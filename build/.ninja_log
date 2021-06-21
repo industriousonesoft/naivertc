@@ -1,0 +1,15 @@
+# ninja log v5
+0	887	1624258743	CMakeFiles/naivertc.dir/src/pc/candidate.cpp.o	3580fadff32bf349
+887	1324	1624258743	libnaivertc.a	1327afd8fb41be60
+1	13042	1624267107	CMakeFiles/naivertc.dir/src/pc/candidate.cpp.o	a022a40f569fdc36
+13042	13996	1624267108	libnaivertc.a	1327afd8fb41be60
+3	1209	1624270060	CMakeFiles/naivertc.dir/src/pc/candidate.cpp.o	a022a40f569fdc36
+1209	1522	1624270060	libnaivertc.a	1327afd8fb41be60
+29	1396	1624270325	CMakeFiles/naivertc.dir/src/pc/candidate.cpp.o	8d61aa754097c2dd
+1396	3362	1624270327	libnaivertc.a	1327afd8fb41be60
+2	1244	1624271844	CMakeFiles/naivertc.dir/src/pc/candidate.cpp.o	8d61aa754097c2dd
+1244	1588	1624271844	libnaivertc.a	1327afd8fb41be60
+2	4209	1624273617	CMakeFiles/naivertc.dir/src/pc/candidate.cpp.o	8d61aa754097c2dd
+4272	4848	1624273618	libnaivertc.a	1327afd8fb41be60
+2	3859	1624274123	CMakeFiles/naivertc.dir/src/pc/candidate.cpp.o	8d61aa754097c2dd
+3859	4126	1624274123	libnaivertc.a	1327afd8fb41be60

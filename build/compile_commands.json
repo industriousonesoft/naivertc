@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/Users/markcao/Documents/Github_Codes/NaiveRTC/build",
+  "command": "/usr/bin/clang++   -I../include -I../deps/plog/include  -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIC   -std=gnu++17 -o CMakeFiles/naivertc.dir/src/pc/candidate.cpp.o -c /Users/markcao/Documents/Github_Codes/NaiveRTC/src/pc/candidate.cpp",
+  "file": "/Users/markcao/Documents/Github_Codes/NaiveRTC/src/pc/candidate.cpp"
+}
+]
