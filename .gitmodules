@@ -1,0 +1,3 @@
+[submodule "plog"]
+	path = deps/plog
+	url = git@github.com:SergiusTheBest/plog.git
