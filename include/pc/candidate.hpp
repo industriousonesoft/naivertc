@@ -53,23 +53,31 @@ public:
 
     ~Candidate();
 
-    std::string Foundation() const;
-    uint32_t ComponentId() const;
-    Type GetType() const;
-    TransportType GetTransportType() const;
-    uint32_t Priority() const;
-    std::string ResolvedCandidate() const;
-    std::string GetMid() const;
-    std::string HostName() const;
-    std::string Service() const;
+    // NOTE: 对于成员变量的Get\Set函数，使用下划线的命名方式，参考webrtc源码
+    // 我猜测的原因有两个：
+    // 一是避免函数名与自定义的类型命名冲突,
+    // 二是根据函数名可识别出是Get\Set函数，以区分于普通函数
+    std::string foundation() const;
+    uint32_t component_id() const;
+    Type type() const;
+    TransportType transport_type() const;
+    uint32_t priority() const;
+    std::string host_name() const;
+    std::string service() const;
+    Family family() const;
 
+    std::string mid() const;
+    void set_mid(std::string mid);
+
+    // NOTE: 对于普通的函数使用驼峰命名方式
     bool isResolved() const;
-    Family GetFamily() const;
-    std::optional<std::string> Address() const;
-    std::optional<uint16_t> Port() const;
+    
+    std::optional<std::string> address() const;
+    std::optional<uint16_t> port() const;
  
     bool Resolve(ResolveMode mode = ResolveMode::SIMPLE);
 
+    std::string ResolvedCandidate() const;
     std::string SDPLine() const;
 
     bool operator==(const Candidate& other) const;

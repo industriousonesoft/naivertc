@@ -1,4 +1,5 @@
 #include "pc/candidate.hpp"
+#include "common/str_utils.hpp"
 
 #include <plog/Log.h>
 
@@ -13,25 +14,6 @@
 const size_t MAX_NUMERICNODE_LEN = 48; // Max IPv6 string representation length
 const size_t MAX_NUMERICSERV_LEN = 6;  // Max port string representation length
 
-namespace {
-    inline bool MatchCandidatePrefix(const std::string &str, const std::string &prefix) {
-        return str.size() >= prefix.size() && std::mismatch(prefix.begin(), prefix.end(), str.begin()).first == prefix.end();
-    }
-
-    inline void TrimBegin(std::string &str) {
-        str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](char c){
-            return !std::isspace(c);
-        }));
-    }
-
-    inline void TrimEnd(std::string &str) {
-        // reverse_iterator.base() -> iterator
-        str.erase(std::find_if(str.rbegin(), str.rend(), [](char c){
-            return !std::isspace(c);
-        }).base(), str.end());
-    }
-}
-
 namespace naivertc {
 
 Candidate::Candidate() :
@@ -45,48 +27,57 @@ Candidate::Candidate() :
 
 Candidate::Candidate(std::string candidate) : Candidate() {
     if (!candidate.empty()) {
-        Parse(candidate);
+        Parse(std::move(candidate));
     }
 }
 
 Candidate::Candidate(std::string candidate, std::string mid) : Candidate() {
     if (!candidate.empty()) {
-        Parse(candidate);
+        Parse(std::move(candidate));
     }
     if (!mid.empty()) {
-        mid_.emplace(mid);
+        mid_.emplace(std::move(mid));
     }
 }
 
 Candidate::~Candidate() {}
 
 // Accessor
-std::string Candidate::Foundation() const {
+std::string Candidate::foundation() const {
     return foundation_;
 }
 
-uint32_t Candidate::ComponentId() const {
+uint32_t Candidate::component_id() const {
     return component_id_;
 }
 
-Candidate::Type Candidate::GetType() const {
+Candidate::Type Candidate::type() const {
     return type_;
 }
 
-Candidate::TransportType Candidate::GetTransportType() const {
+Candidate::TransportType Candidate::transport_type() const {
     return transport_type_;
 }
 
-uint32_t Candidate::Priority() const {
+uint32_t Candidate::priority() const {
     return priority_;
 }
 
-std::string Candidate::HostName() const {
+std::string Candidate::host_name() const {
     return host_name_;
 }
 
-std::string Candidate::Service() const {
+std::string Candidate::service() const {
     return service_;
+}
+
+std::string Candidate::mid() const {
+    return mid_.value_or("0");
+}
+
+void Candidate::set_mid(std::string mid) {
+    if(!mid.empty())
+        mid_.emplace(std::move(mid));
 }
 
 std::string Candidate::ResolvedCandidate() const {
@@ -109,23 +100,19 @@ std::string Candidate::ResolvedCandidate() const {
     return oss.str();
 }
 
-std::string Candidate::GetMid() const {
-    return mid_.value_or("0");
-}
-
 bool Candidate::isResolved() const {
     return family_ != Family::UNRESOVLED;
 }
 
-Candidate::Family Candidate::GetFamily() const {
+Candidate::Family Candidate::family() const {
     return family_;
 }
 
-std::optional<std::string> Candidate::Address() const {
+std::optional<std::string> Candidate::address() const {
     return isResolved() ? std::make_optional(address_) : std::nullopt;
 }
 
-std::optional<uint16_t> Candidate::Port() const {
+std::optional<uint16_t> Candidate::port() const {
     return isResolved() ? std::make_optional(port_) : std::nullopt;
 }
 
@@ -213,7 +200,7 @@ void Candidate::Parse(std::string candidate) {
 
     const std::array<std::string, 2> prefixes = {"a=", "candidate:"};
     for (std::string prefix : prefixes) {
-        if (MatchCandidatePrefix(candidate, prefix)) {
+        if (utils::MatchPrefix(candidate, prefix)) {
             candidate.erase(0, prefix.size());
         }
     }
@@ -249,8 +236,8 @@ void Candidate::Parse(std::string candidate) {
 
     // Keep a copy of substring after type
     std::getline(iss, various_tail_);
-    TrimBegin(various_tail_);
-    TrimEnd(various_tail_);
+    utils::TrimBegin(various_tail_);
+    utils::TrimEnd(various_tail_);
 
     if (transport_type_str_ == "UDP" || transport_type_str_ == "udp") {
         transport_type_ = TransportType::UDP;
