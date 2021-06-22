@@ -1,7 +1,43 @@
 [
 {
   "directory": "/Users/markcao/Documents/Github_Codes/NaiveRTC/build",
+  "command": "/usr/bin/clang++   -I../include -isystem ../deps/googletest/googletest/include -isystem ../deps/googletest/googletest -isystem ../deps/googletest/googlemock/include -isystem ../deps/googletest/googlemock  -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIE   -std=gnu++17 -o CMakeFiles/naivertc_unittest.dir/src/pc/candidate_unittest.cpp.o -c /Users/markcao/Documents/Github_Codes/NaiveRTC/src/pc/candidate_unittest.cpp",
+  "file": "/Users/markcao/Documents/Github_Codes/NaiveRTC/src/pc/candidate_unittest.cpp"
+},
+
+{
+  "directory": "/Users/markcao/Documents/Github_Codes/NaiveRTC/build",
+  "command": "/usr/bin/clang++   -I../include -isystem ../deps/googletest/googletest/include -isystem ../deps/googletest/googletest -isystem ../deps/googletest/googlemock/include -isystem ../deps/googletest/googlemock  -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIE   -std=gnu++17 -o CMakeFiles/naivertc_unittest.dir/testing/gtest_main.cpp.o -c /Users/markcao/Documents/Github_Codes/NaiveRTC/testing/gtest_main.cpp",
+  "file": "/Users/markcao/Documents/Github_Codes/NaiveRTC/testing/gtest_main.cpp"
+},
+
+{
+  "directory": "/Users/markcao/Documents/Github_Codes/NaiveRTC/build",
   "command": "/usr/bin/clang++   -I../include -I../deps/plog/include  -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIC   -std=gnu++17 -o CMakeFiles/naivertc.dir/src/pc/candidate.cpp.o -c /Users/markcao/Documents/Github_Codes/NaiveRTC/src/pc/candidate.cpp",
   "file": "/Users/markcao/Documents/Github_Codes/NaiveRTC/src/pc/candidate.cpp"
+},
+
+{
+  "directory": "/Users/markcao/Documents/Github_Codes/NaiveRTC/build",
+  "command": "/usr/bin/clang++   -I../deps/googletest/googlemock/include -I../deps/googletest/googlemock -isystem ../deps/googletest/googletest/include -isystem ../deps/googletest/googletest  -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIC   -Wall -Wshadow -Werror -Wconversion -DGTEST_HAS_PTHREAD=1 -fexceptions -W -Wpointer-arith -Wreturn-type -Wcast-qual -Wwrite-strings -Wswitch -Wunused-parameter -Wcast-align -Wchar-subscripts -Winline -Wredundant-decls -std=c++17 -o deps/googletest/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o -c /Users/markcao/Documents/Github_Codes/NaiveRTC/deps/googletest/googlemock/src/gmock-all.cc",
+  "file": "/Users/markcao/Documents/Github_Codes/NaiveRTC/deps/googletest/googlemock/src/gmock-all.cc"
+},
+
+{
+  "directory": "/Users/markcao/Documents/Github_Codes/NaiveRTC/build",
+  "command": "/usr/bin/clang++   -isystem ../deps/googletest/googlemock/include -isystem ../deps/googletest/googlemock -isystem ../deps/googletest/googletest/include -isystem ../deps/googletest/googletest  -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIC   -Wall -Wshadow -Werror -Wconversion -DGTEST_HAS_PTHREAD=1 -fexceptions -W -Wpointer-arith -Wreturn-type -Wcast-qual -Wwrite-strings -Wswitch -Wunused-parameter -Wcast-align -Wchar-subscripts -Winline -Wredundant-decls -std=c++17 -o deps/googletest/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o -c /Users/markcao/Documents/Github_Codes/NaiveRTC/deps/googletest/googlemock/src/gmock_main.cc",
+  "file": "/Users/markcao/Documents/Github_Codes/NaiveRTC/deps/googletest/googlemock/src/gmock_main.cc"
+},
+
+{
+  "directory": "/Users/markcao/Documents/Github_Codes/NaiveRTC/build",
+  "command": "/usr/bin/clang++   -isystem ../deps/googletest/googletest/include -isystem ../deps/googletest/googletest  -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIC   -Wall -Wshadow -Werror -Wconversion -DGTEST_HAS_PTHREAD=1 -fexceptions -W -Wpointer-arith -Wreturn-type -Wcast-qual -Wwrite-strings -Wswitch -Wunused-parameter -Wcast-align -Wchar-subscripts -Winline -Wredundant-decls -std=c++17 -o deps/googletest/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o -c /Users/markcao/Documents/Github_Codes/NaiveRTC/deps/googletest/googletest/src/gtest_main.cc",
+  "file": "/Users/markcao/Documents/Github_Codes/NaiveRTC/deps/googletest/googletest/src/gtest_main.cc"
+},
+
+{
+  "directory": "/Users/markcao/Documents/Github_Codes/NaiveRTC/build",
+  "command": "/usr/bin/clang++   -I../deps/googletest/googletest/include -I../deps/googletest/googletest  -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIC   -Wall -Wshadow -Werror -Wconversion -DGTEST_HAS_PTHREAD=1 -fexceptions -W -Wpointer-arith -Wreturn-type -Wcast-qual -Wwrite-strings -Wswitch -Wunused-parameter -Wcast-align -Wchar-subscripts -Winline -Wredundant-decls -std=c++17 -o deps/googletest/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o -c /Users/markcao/Documents/Github_Codes/NaiveRTC/deps/googletest/googletest/src/gtest-all.cc",
+  "file": "/Users/markcao/Documents/Github_Codes/NaiveRTC/deps/googletest/googletest/src/gtest-all.cc"
 }
 ]

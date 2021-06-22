@@ -100,6 +100,53 @@ build CMakeFiles/edit_cache.util: CUSTOM_COMMAND
 build edit_cache: phony CMakeFiles/edit_cache.util
 
 # =============================================================================
+# Object build statements for EXECUTABLE target naivertc_unittest
+
+
+#############################################
+# Order-only phony target for naivertc_unittest
+
+build cmake_object_order_depends_target_naivertc_unittest: phony || cmake_object_order_depends_target_gmock cmake_object_order_depends_target_gmock_main cmake_object_order_depends_target_gtest cmake_object_order_depends_target_gtest_main cmake_object_order_depends_target_naivertc
+
+build CMakeFiles/naivertc_unittest.dir/src/pc/candidate_unittest.cpp.o: CXX_COMPILER__naivertc_unittest_Debug ../src/pc/candidate_unittest.cpp || cmake_object_order_depends_target_naivertc_unittest
+  DEP_FILE = CMakeFiles/naivertc_unittest.dir/src/pc/candidate_unittest.cpp.o.d
+  FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIE   -std=gnu++17
+  INCLUDES = -I../include -isystem ../deps/googletest/googletest/include -isystem ../deps/googletest/googletest -isystem ../deps/googletest/googlemock/include -isystem ../deps/googletest/googlemock
+  OBJECT_DIR = CMakeFiles/naivertc_unittest.dir
+  OBJECT_FILE_DIR = CMakeFiles/naivertc_unittest.dir/src/pc
+
+build CMakeFiles/naivertc_unittest.dir/testing/gtest_main.cpp.o: CXX_COMPILER__naivertc_unittest_Debug ../testing/gtest_main.cpp || cmake_object_order_depends_target_naivertc_unittest
+  DEP_FILE = CMakeFiles/naivertc_unittest.dir/testing/gtest_main.cpp.o.d
+  FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIE   -std=gnu++17
+  INCLUDES = -I../include -isystem ../deps/googletest/googletest/include -isystem ../deps/googletest/googletest -isystem ../deps/googletest/googlemock/include -isystem ../deps/googletest/googlemock
+  OBJECT_DIR = CMakeFiles/naivertc_unittest.dir
+  OBJECT_FILE_DIR = CMakeFiles/naivertc_unittest.dir/testing
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target naivertc_unittest
+
+
+#############################################
+# Link the executable naivertc_unittest-0.1.0
+
+build naivertc_unittest-0.1.0: CXX_EXECUTABLE_LINKER__naivertc_unittest_Debug CMakeFiles/naivertc_unittest.dir/src/pc/candidate_unittest.cpp.o CMakeFiles/naivertc_unittest.dir/testing/gtest_main.cpp.o | lib/libgtestd.a lib/libgtest_maind.a lib/libgmockd.a lib/libgmock_maind.a libnaivertc.a lib/libgmockd.a lib/libgtestd.a || lib/libgmock_maind.a lib/libgmockd.a lib/libgtest_maind.a lib/libgtestd.a libnaivertc.a
+  FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk
+  LINK_LIBRARIES = lib/libgtestd.a  lib/libgtest_maind.a  lib/libgmockd.a  lib/libgmock_maind.a  libnaivertc.a  lib/libgmockd.a  lib/libgtestd.a
+  OBJECT_DIR = CMakeFiles/naivertc_unittest.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = naivertc_unittest-0.1.0
+  TARGET_PDB = naivertc_unittest.dbg
+
+
+#############################################
+# Create executable symlink naivertc_unittest
+
+build naivertc_unittest: CMAKE_SYMLINK_EXECUTABLE naivertc_unittest-0.1.0
+  POST_BUILD = :
+
+# =============================================================================
 # Object build statements for STATIC_LIBRARY target naivertc
 
 
@@ -203,7 +250,365 @@ build deps/plog/install: phony deps/plog/CMakeFiles/install.util
 build deps/plog/list_install_components: phony
 
 # =============================================================================
+# Write statements declared in CMakeLists.txt:
+# /Users/markcao/Documents/Github_Codes/NaiveRTC/CMakeLists.txt
+# =============================================================================
+
+
+#############################################
+# Utility command for install/local
+
+build deps/googletest/CMakeFiles/install/local.util: CUSTOM_COMMAND deps/googletest/all
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest && /usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+  DESC = Installing only the local directory...
+  pool = console
+  restat = 1
+
+build deps/googletest/install/local: phony deps/googletest/CMakeFiles/install/local.util
+
+
+#############################################
+# Utility command for install/strip
+
+build deps/googletest/CMakeFiles/install/strip.util: CUSTOM_COMMAND deps/googletest/all
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest && /usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+  DESC = Installing the project stripped...
+  pool = console
+  restat = 1
+
+build deps/googletest/install/strip: phony deps/googletest/CMakeFiles/install/strip.util
+
+
+#############################################
+# Utility command for install
+
+build deps/googletest/CMakeFiles/install.util: CUSTOM_COMMAND deps/googletest/all
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest && /usr/local/Cellar/cmake/3.17.3/bin/cmake -P cmake_install.cmake
+  DESC = Install the project...
+  pool = console
+  restat = 1
+
+build deps/googletest/install: phony deps/googletest/CMakeFiles/install.util
+
+
+#############################################
+# Utility command for list_install_components
+
+build deps/googletest/list_install_components: phony
+
+
+#############################################
+# Utility command for rebuild_cache
+
+build deps/googletest/CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest && /usr/local/Cellar/cmake/3.17.3/bin/cmake --regenerate-during-build -S/Users/markcao/Documents/Github_Codes/NaiveRTC -B/Users/markcao/Documents/Github_Codes/NaiveRTC/build
+  DESC = Running CMake to regenerate build system...
+  pool = console
+  restat = 1
+
+build deps/googletest/rebuild_cache: phony deps/googletest/CMakeFiles/rebuild_cache.util
+
+
+#############################################
+# Utility command for edit_cache
+
+build deps/googletest/CMakeFiles/edit_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest && /usr/local/Cellar/cmake/3.17.3/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+  DESC = No interactive CMake dialog available...
+  restat = 1
+
+build deps/googletest/edit_cache: phony deps/googletest/CMakeFiles/edit_cache.util
+
+# =============================================================================
+# Write statements declared in CMakeLists.txt:
+# /Users/markcao/Documents/Github_Codes/NaiveRTC/deps/googletest/CMakeLists.txt
+# =============================================================================
+
+
+#############################################
+# Utility command for install/local
+
+build deps/googletest/googlemock/CMakeFiles/install/local.util: CUSTOM_COMMAND deps/googletest/googlemock/all
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googlemock && /usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+  DESC = Installing only the local directory...
+  pool = console
+  restat = 1
+
+build deps/googletest/googlemock/install/local: phony deps/googletest/googlemock/CMakeFiles/install/local.util
+
+
+#############################################
+# Utility command for install/strip
+
+build deps/googletest/googlemock/CMakeFiles/install/strip.util: CUSTOM_COMMAND deps/googletest/googlemock/all
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googlemock && /usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+  DESC = Installing the project stripped...
+  pool = console
+  restat = 1
+
+build deps/googletest/googlemock/install/strip: phony deps/googletest/googlemock/CMakeFiles/install/strip.util
+
+
+#############################################
+# Utility command for install
+
+build deps/googletest/googlemock/CMakeFiles/install.util: CUSTOM_COMMAND deps/googletest/googlemock/all
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googlemock && /usr/local/Cellar/cmake/3.17.3/bin/cmake -P cmake_install.cmake
+  DESC = Install the project...
+  pool = console
+  restat = 1
+
+build deps/googletest/googlemock/install: phony deps/googletest/googlemock/CMakeFiles/install.util
+
+# =============================================================================
+# Object build statements for STATIC_LIBRARY target gmock
+
+
+#############################################
+# Order-only phony target for gmock
+
+build cmake_object_order_depends_target_gmock: phony || cmake_object_order_depends_target_gtest
+
+build deps/googletest/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o: CXX_COMPILER__gmock_Debug ../deps/googletest/googlemock/src/gmock-all.cc || cmake_object_order_depends_target_gmock
+  DEP_FILE = deps/googletest/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o.d
+  FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIC   -Wall -Wshadow -Werror -Wconversion -DGTEST_HAS_PTHREAD=1 -fexceptions -W -Wpointer-arith -Wreturn-type -Wcast-qual -Wwrite-strings -Wswitch -Wunused-parameter -Wcast-align -Wchar-subscripts -Winline -Wredundant-decls -std=c++17
+  INCLUDES = -I../deps/googletest/googlemock/include -I../deps/googletest/googlemock -isystem ../deps/googletest/googletest/include -isystem ../deps/googletest/googletest
+  OBJECT_DIR = deps/googletest/googlemock/CMakeFiles/gmock.dir
+  OBJECT_FILE_DIR = deps/googletest/googlemock/CMakeFiles/gmock.dir/src
+
+
+# =============================================================================
+# Link build statements for STATIC_LIBRARY target gmock
+
+
+#############################################
+# Link the static library lib/libgmockd.a
+
+build lib/libgmockd.a: CXX_STATIC_LIBRARY_LINKER__gmock_Debug deps/googletest/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o || lib/libgtestd.a
+  ARCH_FLAGS = -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk
+  LANGUAGE_COMPILE_FLAGS = -g
+  OBJECT_DIR = deps/googletest/googlemock/CMakeFiles/gmock.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = lib/libgmockd.a
+  TARGET_PDB = gmock.a.dbg
+
+
+#############################################
+# Utility command for rebuild_cache
+
+build deps/googletest/googlemock/CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googlemock && /usr/local/Cellar/cmake/3.17.3/bin/cmake --regenerate-during-build -S/Users/markcao/Documents/Github_Codes/NaiveRTC -B/Users/markcao/Documents/Github_Codes/NaiveRTC/build
+  DESC = Running CMake to regenerate build system...
+  pool = console
+  restat = 1
+
+build deps/googletest/googlemock/rebuild_cache: phony deps/googletest/googlemock/CMakeFiles/rebuild_cache.util
+
+
+#############################################
+# Utility command for edit_cache
+
+build deps/googletest/googlemock/CMakeFiles/edit_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googlemock && /usr/local/Cellar/cmake/3.17.3/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+  DESC = No interactive CMake dialog available...
+  restat = 1
+
+build deps/googletest/googlemock/edit_cache: phony deps/googletest/googlemock/CMakeFiles/edit_cache.util
+
+# =============================================================================
+# Object build statements for STATIC_LIBRARY target gmock_main
+
+
+#############################################
+# Order-only phony target for gmock_main
+
+build cmake_object_order_depends_target_gmock_main: phony || cmake_object_order_depends_target_gmock cmake_object_order_depends_target_gtest
+
+build deps/googletest/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o: CXX_COMPILER__gmock_main_Debug ../deps/googletest/googlemock/src/gmock_main.cc || cmake_object_order_depends_target_gmock_main
+  DEP_FILE = deps/googletest/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o.d
+  FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIC   -Wall -Wshadow -Werror -Wconversion -DGTEST_HAS_PTHREAD=1 -fexceptions -W -Wpointer-arith -Wreturn-type -Wcast-qual -Wwrite-strings -Wswitch -Wunused-parameter -Wcast-align -Wchar-subscripts -Winline -Wredundant-decls -std=c++17
+  INCLUDES = -isystem ../deps/googletest/googlemock/include -isystem ../deps/googletest/googlemock -isystem ../deps/googletest/googletest/include -isystem ../deps/googletest/googletest
+  OBJECT_DIR = deps/googletest/googlemock/CMakeFiles/gmock_main.dir
+  OBJECT_FILE_DIR = deps/googletest/googlemock/CMakeFiles/gmock_main.dir/src
+
+
+# =============================================================================
+# Link build statements for STATIC_LIBRARY target gmock_main
+
+
+#############################################
+# Link the static library lib/libgmock_maind.a
+
+build lib/libgmock_maind.a: CXX_STATIC_LIBRARY_LINKER__gmock_main_Debug deps/googletest/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o || lib/libgmockd.a lib/libgtestd.a
+  ARCH_FLAGS = -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk
+  LANGUAGE_COMPILE_FLAGS = -g
+  OBJECT_DIR = deps/googletest/googlemock/CMakeFiles/gmock_main.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = lib/libgmock_maind.a
+  TARGET_PDB = gmock_main.a.dbg
+
+
+#############################################
+# Utility command for list_install_components
+
+build deps/googletest/googlemock/list_install_components: phony
+
+# =============================================================================
+# Write statements declared in CMakeLists.txt:
+# /Users/markcao/Documents/Github_Codes/NaiveRTC/deps/googletest/googlemock/CMakeLists.txt
+# =============================================================================
+
+
+#############################################
+# Utility command for install/local
+
+build deps/googletest/googletest/CMakeFiles/install/local.util: CUSTOM_COMMAND deps/googletest/googletest/all
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googletest && /usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+  DESC = Installing only the local directory...
+  pool = console
+  restat = 1
+
+build deps/googletest/googletest/install/local: phony deps/googletest/googletest/CMakeFiles/install/local.util
+
+
+#############################################
+# Utility command for list_install_components
+
+build deps/googletest/googletest/list_install_components: phony
+
+
+#############################################
+# Utility command for rebuild_cache
+
+build deps/googletest/googletest/CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googletest && /usr/local/Cellar/cmake/3.17.3/bin/cmake --regenerate-during-build -S/Users/markcao/Documents/Github_Codes/NaiveRTC -B/Users/markcao/Documents/Github_Codes/NaiveRTC/build
+  DESC = Running CMake to regenerate build system...
+  pool = console
+  restat = 1
+
+build deps/googletest/googletest/rebuild_cache: phony deps/googletest/googletest/CMakeFiles/rebuild_cache.util
+
+
+#############################################
+# Utility command for edit_cache
+
+build deps/googletest/googletest/CMakeFiles/edit_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googletest && /usr/local/Cellar/cmake/3.17.3/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+  DESC = No interactive CMake dialog available...
+  restat = 1
+
+build deps/googletest/googletest/edit_cache: phony deps/googletest/googletest/CMakeFiles/edit_cache.util
+
+
+#############################################
+# Utility command for install/strip
+
+build deps/googletest/googletest/CMakeFiles/install/strip.util: CUSTOM_COMMAND deps/googletest/googletest/all
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googletest && /usr/local/Cellar/cmake/3.17.3/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+  DESC = Installing the project stripped...
+  pool = console
+  restat = 1
+
+build deps/googletest/googletest/install/strip: phony deps/googletest/googletest/CMakeFiles/install/strip.util
+
+
+#############################################
+# Utility command for install
+
+build deps/googletest/googletest/CMakeFiles/install.util: CUSTOM_COMMAND deps/googletest/googletest/all
+  COMMAND = cd /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googletest && /usr/local/Cellar/cmake/3.17.3/bin/cmake -P cmake_install.cmake
+  DESC = Install the project...
+  pool = console
+  restat = 1
+
+build deps/googletest/googletest/install: phony deps/googletest/googletest/CMakeFiles/install.util
+
+# =============================================================================
+# Object build statements for STATIC_LIBRARY target gtest_main
+
+
+#############################################
+# Order-only phony target for gtest_main
+
+build cmake_object_order_depends_target_gtest_main: phony || cmake_object_order_depends_target_gtest
+
+build deps/googletest/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o: CXX_COMPILER__gtest_main_Debug ../deps/googletest/googletest/src/gtest_main.cc || cmake_object_order_depends_target_gtest_main
+  DEP_FILE = deps/googletest/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o.d
+  FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIC   -Wall -Wshadow -Werror -Wconversion -DGTEST_HAS_PTHREAD=1 -fexceptions -W -Wpointer-arith -Wreturn-type -Wcast-qual -Wwrite-strings -Wswitch -Wunused-parameter -Wcast-align -Wchar-subscripts -Winline -Wredundant-decls -std=c++17
+  INCLUDES = -isystem ../deps/googletest/googletest/include -isystem ../deps/googletest/googletest
+  OBJECT_DIR = deps/googletest/googletest/CMakeFiles/gtest_main.dir
+  OBJECT_FILE_DIR = deps/googletest/googletest/CMakeFiles/gtest_main.dir/src
+
+
+# =============================================================================
+# Link build statements for STATIC_LIBRARY target gtest_main
+
+
+#############################################
+# Link the static library lib/libgtest_maind.a
+
+build lib/libgtest_maind.a: CXX_STATIC_LIBRARY_LINKER__gtest_main_Debug deps/googletest/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o || lib/libgtestd.a
+  ARCH_FLAGS = -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk
+  LANGUAGE_COMPILE_FLAGS = -g
+  OBJECT_DIR = deps/googletest/googletest/CMakeFiles/gtest_main.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = lib/libgtest_maind.a
+  TARGET_PDB = gtest_main.a.dbg
+
+# =============================================================================
+# Object build statements for STATIC_LIBRARY target gtest
+
+
+#############################################
+# Order-only phony target for gtest
+
+build cmake_object_order_depends_target_gtest: phony || deps/googletest/googletest/CMakeFiles/gtest.dir
+
+build deps/googletest/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o: CXX_COMPILER__gtest_Debug ../deps/googletest/googletest/src/gtest-all.cc || cmake_object_order_depends_target_gtest
+  DEP_FILE = deps/googletest/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o.d
+  FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -fPIC   -Wall -Wshadow -Werror -Wconversion -DGTEST_HAS_PTHREAD=1 -fexceptions -W -Wpointer-arith -Wreturn-type -Wcast-qual -Wwrite-strings -Wswitch -Wunused-parameter -Wcast-align -Wchar-subscripts -Winline -Wredundant-decls -std=c++17
+  INCLUDES = -I../deps/googletest/googletest/include -I../deps/googletest/googletest
+  OBJECT_DIR = deps/googletest/googletest/CMakeFiles/gtest.dir
+  OBJECT_FILE_DIR = deps/googletest/googletest/CMakeFiles/gtest.dir/src
+
+
+# =============================================================================
+# Link build statements for STATIC_LIBRARY target gtest
+
+
+#############################################
+# Link the static library lib/libgtestd.a
+
+build lib/libgtestd.a: CXX_STATIC_LIBRARY_LINKER__gtest_Debug deps/googletest/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+  ARCH_FLAGS = -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk
+  LANGUAGE_COMPILE_FLAGS = -g
+  OBJECT_DIR = deps/googletest/googletest/CMakeFiles/gtest.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = lib/libgtestd.a
+  TARGET_PDB = gtest.a.dbg
+
+# =============================================================================
 # Target aliases.
+
+build gmock: phony lib/libgmockd.a
+
+build gmock_main: phony lib/libgmock_maind.a
+
+build gtest: phony lib/libgtestd.a
+
+build gtest_main: phony lib/libgtest_maind.a
+
+build libgmock_maind.a: phony lib/libgmock_maind.a
+
+build libgmockd.a: phony lib/libgmockd.a
+
+build libgtest_maind.a: phony lib/libgtest_maind.a
+
+build libgtestd.a: phony lib/libgtestd.a
 
 build naivertc: phony libnaivertc.a
 
@@ -215,7 +620,28 @@ build naivertc: phony libnaivertc.a
 #############################################
 # Folder: /Users/markcao/Documents/Github_Codes/NaiveRTC/build
 
-build all: phony libnaivertc.a deps/plog/all
+build all: phony naivertc_unittest libnaivertc.a
+
+# =============================================================================
+
+#############################################
+# Folder: /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest
+
+build deps/googletest/all: phony deps/googletest/googlemock/all
+
+# =============================================================================
+
+#############################################
+# Folder: /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googlemock
+
+build deps/googletest/googlemock/all: phony lib/libgmockd.a lib/libgmock_maind.a deps/googletest/googletest/all
+
+# =============================================================================
+
+#############################################
+# Folder: /Users/markcao/Documents/Github_Codes/NaiveRTC/build/deps/googletest/googletest
+
+build deps/googletest/googletest/all: phony lib/libgtest_maind.a lib/libgtestd.a
 
 # =============================================================================
 
@@ -231,14 +657,14 @@ build deps/plog/all: phony
 #############################################
 # Re-run CMake if any of its inputs changed.
 
-build build.ninja: RERUN_CMAKE | ../CMakeLists.txt ../deps/plog/CMakeLists.txt /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCXXInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCommonLanguageInclude.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeGenericSystem.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeInitializeConfigs.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeLanguageInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeSystemSpecificInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/CMakeCommonCompilerMacros.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/Clang.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/GNU.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Internal/CMakeCheckCompilerFlag.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-Clang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-Clang.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Darwin-Initialize.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Darwin.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/UnixPaths.cmake CMakeCache.txt CMakeFiles/3.17.3/CMakeCXXCompiler.cmake CMakeFiles/3.17.3/CMakeSystem.cmake
+build build.ninja: RERUN_CMAKE | ../CMakeLists.txt ../deps/googletest/CMakeLists.txt ../deps/googletest/googlemock/CMakeLists.txt ../deps/googletest/googlemock/cmake/gmock.pc.in ../deps/googletest/googlemock/cmake/gmock_main.pc.in ../deps/googletest/googletest/CMakeLists.txt ../deps/googletest/googletest/cmake/Config.cmake.in ../deps/googletest/googletest/cmake/gtest.pc.in ../deps/googletest/googletest/cmake/gtest_main.pc.in ../deps/googletest/googletest/cmake/internal_utils.cmake ../deps/plog/CMakeLists.txt /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/BasicConfigVersion-AnyNewerVersion.cmake.in /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCXXInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCommonLanguageInclude.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeDependentOption.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeGenericSystem.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeInitializeConfigs.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeLanguageInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakePackageConfigHelpers.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeSystemSpecificInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CheckCSourceCompiles.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CheckIncludeFile.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CheckLibraryExists.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/AppleClang-C.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/CMakeCommonCompilerMacros.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/Clang.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/GNU.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/FindPackageHandleStandardArgs.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/FindPackageMessage.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/FindPython.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/FindPython/Support.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/FindThreads.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/GNUInstallDirs.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Internal/CMakeCheckCompilerFlag.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-AppleClang-C.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-Clang-C.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-Clang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-Clang.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Darwin-Initialize.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Darwin.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/UnixPaths.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/WriteBasicConfigVersionFile.cmake CMakeCache.txt CMakeFiles/3.17.3/CMakeCCompiler.cmake CMakeFiles/3.17.3/CMakeCXXCompiler.cmake CMakeFiles/3.17.3/CMakeSystem.cmake
   pool = console
 
 
 #############################################
 # A missing CMake input file is not an error.
 
-build ../CMakeLists.txt ../deps/plog/CMakeLists.txt /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCXXInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCommonLanguageInclude.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeGenericSystem.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeInitializeConfigs.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeLanguageInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeSystemSpecificInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/CMakeCommonCompilerMacros.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/Clang.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/GNU.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Internal/CMakeCheckCompilerFlag.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-Clang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-Clang.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Darwin-Initialize.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Darwin.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/UnixPaths.cmake CMakeCache.txt CMakeFiles/3.17.3/CMakeCXXCompiler.cmake CMakeFiles/3.17.3/CMakeSystem.cmake: phony
+build ../CMakeLists.txt ../deps/googletest/CMakeLists.txt ../deps/googletest/googlemock/CMakeLists.txt ../deps/googletest/googlemock/cmake/gmock.pc.in ../deps/googletest/googlemock/cmake/gmock_main.pc.in ../deps/googletest/googletest/CMakeLists.txt ../deps/googletest/googletest/cmake/Config.cmake.in ../deps/googletest/googletest/cmake/gtest.pc.in ../deps/googletest/googletest/cmake/gtest_main.pc.in ../deps/googletest/googletest/cmake/internal_utils.cmake ../deps/plog/CMakeLists.txt /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/BasicConfigVersion-AnyNewerVersion.cmake.in /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCXXInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeCommonLanguageInclude.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeDependentOption.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeGenericSystem.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeInitializeConfigs.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeLanguageInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakePackageConfigHelpers.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeSystemSpecificInformation.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CheckCSourceCompiles.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CheckIncludeFile.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/CheckLibraryExists.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/AppleClang-C.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/CMakeCommonCompilerMacros.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/Clang.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Compiler/GNU.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/FindPackageHandleStandardArgs.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/FindPackageMessage.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/FindPython.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/FindPython/Support.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/FindThreads.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/GNUInstallDirs.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Internal/CMakeCheckCompilerFlag.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-AppleClang-C.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-AppleClang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-Clang-C.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-Clang-CXX.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Apple-Clang.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Darwin-Initialize.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/Darwin.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/Platform/UnixPaths.cmake /usr/local/Cellar/cmake/3.17.3/share/cmake/Modules/WriteBasicConfigVersionFile.cmake CMakeCache.txt CMakeFiles/3.17.3/CMakeCCompiler.cmake CMakeFiles/3.17.3/CMakeCXXCompiler.cmake CMakeFiles/3.17.3/CMakeSystem.cmake: phony
 
 
 #############################################
