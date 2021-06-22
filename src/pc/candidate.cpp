@@ -61,6 +61,14 @@ Candidate::Candidate(std::string candidate, std::string mid) : Candidate() {
 Candidate::~Candidate() {}
 
 // Accessor
+std::string Candidate::Foundation() const {
+    return foundation_;
+}
+
+uint32_t Candidate::ComponentId() const {
+    return component_id_;
+}
+
 Candidate::Type Candidate::GetType() const {
     return type_;
 }
@@ -69,8 +77,16 @@ Candidate::TransportType Candidate::GetTransportType() const {
     return transport_type_;
 }
 
-uint32_t Candidate::GetPriority() const {
+uint32_t Candidate::Priority() const {
     return priority_;
+}
+
+std::string Candidate::HostName() const {
+    return host_name_;
+}
+
+std::string Candidate::Service() const {
+    return service_;
 }
 
 std::string Candidate::ResolvedCandidate() const {

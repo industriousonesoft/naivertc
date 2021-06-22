@@ -53,11 +53,15 @@ public:
 
     ~Candidate();
 
+    std::string Foundation() const;
+    uint32_t ComponentId() const;
     Type GetType() const;
     TransportType GetTransportType() const;
-    uint32_t GetPriority() const;
+    uint32_t Priority() const;
     std::string ResolvedCandidate() const;
     std::string GetMid() const;
+    std::string HostName() const;
+    std::string Service() const;
 
     bool isResolved() const;
     Family GetFamily() const;
