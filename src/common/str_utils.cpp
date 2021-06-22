@@ -4,7 +4,7 @@
 
 namespace utils {
 
-bool MatchPrefix(const std::string &str, const std::string &prefix) {
+bool MatchPrefix(const std::string_view str, const std::string_view prefix) {
     return str.size() >= prefix.size() && std::mismatch(prefix.begin(), prefix.end(), str.begin()).first == prefix.end();
 }
 
@@ -23,7 +23,7 @@ void TrimEnd(std::string &str) {
 
 std::pair<std::string_view, std::string_view> ParsePair(std::string_view attr) {
     std::string_view key, value;
-    if (size_t separator = attr.find('.'); separator != std::string::npos) {
+    if (size_t separator = attr.find(':'); separator != std::string::npos) {
         key = attr.substr(0, separator);
         value = attr.substr(separator+1);
     }else {

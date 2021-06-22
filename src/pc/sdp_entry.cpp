@@ -1,21 +1,23 @@
 #include "pc/sdp_entry.hpp"
+#include "common/str_utils.hpp"
 
 #include <sstream>
 
 namespace naivertc {
+namespace sdp {
 
-SDPEntry::SDPEntry(const std::string& mline, std::string mid, sdp::Direction direction) 
+Entry::Entry(const std::string& mline, std::string mid, Direction direction) 
     : mid_(std::move(mid)), direction_(direction) {
     unsigned int port;
     std::istringstream ss(mline);
     ss >> type_ >> port >> description_;
 }
 
-void SDPEntry::set_direction(sdp::Direction direction) {
+void Entry::set_direction(Direction direction) {
     direction_ = direction;
 }
 
-std::string SDPEntry::GenerateSDP(std::string_view eol, std::string addr, std::string_view port) const {
+std::string Entry::GenerateSDP(std::string_view eol, std::string addr, std::string_view port) const {
     std::ostringstream sdp;
     sdp << "m=" << type() << ' ' << port << ' ' << description() << eol;
     sdp << "c=IN " << addr << eol;
@@ -24,22 +26,22 @@ std::string SDPEntry::GenerateSDP(std::string_view eol, std::string addr, std::s
     return sdp.str();
 }
 
-std::string SDPEntry::GenerateSDPLines(std::string_view eol) const {
+std::string Entry::GenerateSDPLines(std::string_view eol) const {
     std::ostringstream sdp;
     sdp << "a=bundle-only" << eol;
     sdp << "a=mid:" << mid_ << eol;
 
     switch(direction_) {
-    case sdp::Direction::SEND_ONLY: 
+    case Direction::SEND_ONLY: 
         sdp << "a=sendonly" << eol;
         break;
-    case sdp::Direction::RECV_ONLY: 
+    case Direction::RECV_ONLY: 
         sdp << "a=recvonly" << eol;
         break;
-    case sdp::Direction::SEND_RECV: 
+    case Direction::SEND_RECV: 
         sdp << "a=sendrecv" << eol;
         break;
-    case sdp::Direction::INACTIVE: 
+    case Direction::INACTIVE: 
         sdp << "a=inactive" << eol;
         break;
     default:
@@ -59,4 +61,28 @@ std::string SDPEntry::GenerateSDPLines(std::string_view eol) const {
     return sdp.str();
 }
 
+void Entry::ParseSDPLine(std::string_view line) {
+    if (utils::MatchPrefix(line, "a=")) {
+        std::string_view attr = line.substr(2);
+        auto [key, value] = utils::ParsePair(attr);
+
+        if (key == "mid") {
+            mid_ = value;
+        }else if (attr == "sendonly") {
+            direction_ = Direction::SEND_ONLY;
+        }else if (attr == "recvonly") {
+            direction_ = Direction::RECV_ONLY;
+        }else if (attr == "sendrecv") {
+            direction_ = Direction::SEND_RECV;
+        }else if (attr == "inactive") {
+            direction_ = Direction::INACTIVE;
+        }else if (attr == "bundle-only") {
+            // Added already
+        }else {
+            attributes_.emplace_back(std::move(attr));
+        }
+    }
+}   
+
+}
 }

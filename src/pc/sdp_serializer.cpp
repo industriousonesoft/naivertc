@@ -5,34 +5,36 @@
 #include <unordered_map>
 
 namespace naivertc {
-SDPSerializer::SDPSerializer(const std::string& sdp, sdp::Type type, sdp::Role role) : 
-    type_(sdp::Type::UNSPEC),
+namespace sdp {
+Serializer::Serializer(const std::string& sdp, Type type, Role role) : 
+    type_(Type::UNSPEC),
     role_(role) {
     hintType(type);
 
     int index = -1;
 }
 
-SDPSerializer::SDPSerializer(const std::string& sdp, std::string type_string) : 
-    SDPSerializer(sdp, StringToType(type_string), sdp::Role::ACT_PASS) {
+Serializer::Serializer(const std::string& sdp, std::string type_string) : 
+    Serializer(sdp, StringToType(type_string), Role::ACT_PASS) {
 }
 
-sdp::Type SDPSerializer::type() {
+Type Serializer::type() {
     return type_;
 }
 
-sdp::Role SDPSerializer::role() {
+Role Serializer::role() {
     return role_;
 }
 
-void SDPSerializer::hintType(sdp::Type type) {
-    if (type_ == sdp::Type::UNSPEC) {
+void Serializer::hintType(Type type) {
+    if (type_ == Type::UNSPEC) {
         type_ = type;
-        if (type_ == sdp::Type::ANSWER && role_ == sdp::Role::ACT_PASS) {
+        if (type_ == Type::ANSWER && role_ == Role::ACT_PASS) {
             // ActPass is illegal for an answer, so reset to Passive
-            role_ = sdp::Role::PASSIVE;
+            role_ = Role::PASSIVE;
         }
     }
 }
 
+}
 } // end of naive rtc

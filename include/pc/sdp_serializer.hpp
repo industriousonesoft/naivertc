@@ -8,26 +8,28 @@
 #include <string>
 
 namespace naivertc {
+namespace sdp {
 
-class RTC_CPP_EXPORT SDPSerializer {
+class RTC_CPP_EXPORT Serializer {
 public:
-    SDPSerializer(const std::string& sdp, sdp::Type type = sdp::Type::UNSPEC, sdp::Role role = sdp::Role::ACT_PASS);
-    SDPSerializer(const std::string& sdp, std::string type_string);
+    Serializer(const std::string& sdp, Type type = Type::UNSPEC, Role role = Role::ACT_PASS);
+    Serializer(const std::string& sdp, std::string type_string);
 
-    sdp::Type type();
-    sdp::Role role();
+    Type type();
+    Role role();
 
-    void hintType(sdp::Type type);
+    void hintType(Type type);
 
-    static sdp::Type StringToType(const std::string& type_string);
-    static std::string TypeToString(sdp::Type type);
+    static Type StringToType(const std::string& type_string);
+    static std::string TypeToString(Type type);
 
 private:
 
-    sdp::Type type_;
-    sdp::Role role_;
+    Type type_;
+    Role role_;
 };
 
+}
 }
 
 #endif

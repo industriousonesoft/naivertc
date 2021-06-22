@@ -5,7 +5,7 @@
 
 namespace utils {
 
-bool MatchPrefix(const std::string &str, const std::string &prefix);
+bool MatchPrefix(const std::string_view str, const std::string_view prefix);
 void TrimBegin(std::string &str);
 void TrimEnd(std::string &str);
 std::pair<std::string_view, std::string_view> ParsePair(std::string_view attr);
