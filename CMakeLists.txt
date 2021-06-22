@@ -14,6 +14,7 @@ set(LIB_SOURCES
     src/common/str_utils.cpp
     src/pc/candidate.cpp
     src/pc/sdp_serializer.cpp
+    src/pc/sdp_entry.cpp
 )
 
 set(LIB_HEADERS
@@ -21,6 +22,7 @@ set(LIB_HEADERS
     include/common/str_utils.hpp
     include/pc/candidate.hpp
     include/pc/sdp_serializer.hpp
+    include/pc/sdp_entry.hpp
 )
 
 # naiveRTC

@@ -2,6 +2,8 @@
 #define _PC_SDP_SERIALIZER_H_
 
 #include "common/defines.hpp"
+#include "pc/sdp_entry.hpp"
+#include "pc/sdp_defines.hpp"
 
 #include <string>
 
@@ -9,35 +11,21 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT SDPSerializer {
 public:
-    enum class Type {
-        UNSPEC,
-        OFFER,
-        ANSWER,
-        PRANSWER, // provisional answer
-        ROLL_BACK
-    };
+    SDPSerializer(const std::string& sdp, sdp::Type type = sdp::Type::UNSPEC, sdp::Role role = sdp::Role::ACT_PASS);
+    SDPSerializer(const std::string& sdp, std::string type_string);
 
-    enum class Role {
-        ACT_PASS,
-        PASSIVE,
-        ACTIVE
-    };
+    sdp::Type type();
+    sdp::Role role();
 
-    enum class Direction {
-        SEND_ONLY,
-        RECV_ONLY,
-        SEND_RECV,
-        INACTIVE,
-        UNKNOWN
-    };
+    void hintType(sdp::Type type);
 
-    SDPSerializer(const std::string& sdp, Type type = Type::UNSPEC, Role role = Role::ACT_PASS);
-    SDPSerializer(const std::string& sdp, std::string typeStr);
+    static sdp::Type StringToType(const std::string& type_string);
+    static std::string TypeToString(sdp::Type type);
 
 private:
 
-    Type type_;
-    Role role_;
+    sdp::Type type_;
+    sdp::Role role_;
 };
 
 }
