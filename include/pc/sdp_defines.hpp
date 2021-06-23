@@ -32,6 +32,8 @@ enum class Direction {
 sdp::Type StringToType(const std::string& type_string);
 std::string TypeToString(sdp::Type type);
 
+std::string RoleToString(sdp::Role role);
+
 // Default Opus profile
 const std::string DEFAULT_OPUS_AUDIO_PROFILE =
     "minptime=10;maxaveragebitrate=96000;stereo=1;sprop-stereo=1;useinbandfec=1";

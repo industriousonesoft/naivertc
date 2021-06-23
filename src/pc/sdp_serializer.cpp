@@ -45,9 +45,9 @@ Serializer::Serializer(const std::string& sdp, Type type, Role role) :
                 }
             }else if (key == "fingerprint") {
                 if (utils::string::match_prefix(value, "sha-265 ")) {
-                    std::string finger_print{value.substr(8)};
-                    utils::string::trim_begin(finger_print);
-                    set_finger_print(finger_print);
+                    std::string fingerprint{value.substr(8)};
+                    utils::string::trim_begin(fingerprint);
+                    set_fingerprint(fingerprint);
                 }else {
                     PLOG_WARNING << "Unknown SDP fingerprint format: " << value;
                 }
@@ -73,7 +73,7 @@ Serializer::Serializer(const std::string& sdp, Type type, Role role) :
     }
 
     if (session_id_.empty()) {
-
+        session_id_ = std::to_string(utils::random::generate_random<uint32_t>());
     }
 
 }
@@ -100,17 +100,17 @@ void Serializer::hintType(Type type) {
     }
 }
 
-void Serializer::set_finger_print(std::string finger_print) {
-    if (!utils::string::is_sha256_fingerprint(finger_print)) {
-        throw std::invalid_argument("Invalid SHA265 finger print: " + finger_print );
+void Serializer::set_fingerprint(std::string fingerprint) {
+    if (!utils::string::is_sha256_fingerprint(fingerprint)) {
+        throw std::invalid_argument("Invalid SHA265 fingerprint: " + fingerprint );
     }
 
     // make sure All the chars in finger print is uppercase.
-    std::transform(finger_print.begin(), finger_print.end(), finger_print.begin(), [](char c) {
+    std::transform(fingerprint.begin(), fingerprint.end(), fingerprint.begin(), [](char c) {
         return char(std::toupper(c));
     });
 
-    finger_print_.emplace(std::move(finger_print));
+    fingerprint_.emplace(std::move(fingerprint));
 }
 
 int Serializer::AddMedia(Media media) {
@@ -119,9 +119,7 @@ int Serializer::AddMedia(Media media) {
 }
 
 int Serializer::AddApplication(Application app) {
-    application_.reset();
-    application_ = std::make_shared<Application>(std::move(app));
-    entries_.emplace_back(application_);
+    entries_.emplace_back(std::make_shared<Application>(std::move(app)));
     return int(entries_.size()) - 1;
 }
 
@@ -139,26 +137,72 @@ int Serializer::AddVideo(std::string mid, Direction direction) {
 
 void Serializer::ClearMedia() {
     entries_.clear();
-    application_.reset();
 }
 
-std::string Serializer::GenerateSDP(std::string_view eol) const {
+std::string Serializer::GenerateSDP(std::string_view eol, bool application_only) const {
     std::ostringstream sdp;
 
     // Header
+    // sdp版本号，一直为0,rfc4566规定
     sdp << "v=0" << eol;
-    // sdp << "o=" << 
-}
+    // o=<username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
+    // username如何没有使用-代替，7017624586836067756是整个会话的编号，2代表会话版本，如果在会话
+    // 过程中有改变编码之类的操作，重新生成sdp时,sess-id不变，sess-version加1
+    // eg: o=- 7017624586836067756 2 IN IP4 127.0.0.1
+    sdp << "o=" << user_name_ << " " << session_id_ << "  0 IN IP4 127.0.0.1" << eol;
+    // 会话名，没有的话使用-代替
+    sdp << "s=-" << eol;
+    // 两个值分别是会话的起始时间和结束时间，这里都是0代表没有限制
+    sdp << "t= 0 0" << eol;
 
+    // https://tools.ietf.org/html/rfc8843
+    // 需要共用一个传输通道传输的媒体，如果没有这一行，音视频、数据就会分别单独用一个udp端口来发送
+    // eg: a=group:BUNDLE audio video data 
+    sdp << "a=group:BUNDLE";
+    for (const auto &entry : entries_) {
+        sdp << " " << entry->mid();
+    }
+    sdp << eol;
+
+    // WMS是WebRTC Media Stram的缩写，这里给Media Stream定义了一个唯一的标识符。
+    // 一个Media Stream可以有多个track（video track、audio track），
+    // 这些track就是通过这个唯一标识符关联起来的，具体见下面的媒体行(m=)以及它对应的附加属性(a=ssrc:)
+    // 可以参考这里 http://tools.ietf.org/html/draft-ietf-mmusic-msid
+    sdp << "a=msid-semantic:WMS *" << eol;
+    // 这行代表本客户端在dtls协商过程中的角色，做客户端或服务端，或均可，参考rfc4145 rfc4572
+    sdp << "a=setup:" << RoleToString(role_) << eol;
+
+    if (ice_ufrag_) {
+        sdp << "a=ice-ufrag:" << *ice_ufrag_ << eol;
+    }
+
+    if (ice_pwd_) {
+        sdp << "a=ice-pwd:" << *ice_pwd_ << eol;
+    }
+
+    if (fingerprint_) {
+        sdp << "a=fingerprint:sha-256 " << *fingerprint_ << eol;
+    }
+
+    for (const auto& entry : entries_) {
+        // IP4 0.0.0.0：表示你要用来接收或者发送音频使用的IP地址，webrtc使用ice传输，不使用这个地址
+        // 9：代表音频使用端口9来传输
+        if (application_only && entry->type() != "application") {
+            continue;
+        }
+        sdp << entry->GenerateSDP(eol, "IP4 0.0.0.0", "9");
+    }
+    return sdp.str();
+
+}
 
 // private methods
 std::shared_ptr<Entry> Serializer::CreateEntry(std::string mline, std::string mid, Direction direction) {
     std::string type = mline.substr(0, mline.find(' '));
     if (type == "application") {
-        application_.reset();
-        application_ = std::make_shared<Application>(std::move(mid));
-        entries_.emplace_back(application_);
-        return application_;
+        auto app = std::make_shared<Application>(std::move(mid));
+        entries_.emplace_back(app);
+        return app;
     }else {
         auto media = std::make_shared<Media>(std::move(mline), std::move(mid), direction);
         entries_.emplace_back(media);

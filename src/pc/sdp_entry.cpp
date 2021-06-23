@@ -143,14 +143,14 @@ std::string Media::description() const {
     return desc.str();
 }
 
-void Media::AddSSRC(uint32_t ssrc, std::optional<std::string> name, std::optional<std::string> msid = std::nullopt, std::optional<std::string> track_id = std::nullopt) {
+void Media::AddSSRC(uint32_t ssrc, std::optional<std::string> name, std::optional<std::string> msid, std::optional<std::string> track_id) {
     if (name) {
         attributes_.emplace_back("ssrc:" + std::to_string(ssrc) + " cname:" + *name);
     }else {
         attributes_.emplace_back("ssrc:" + std::to_string(ssrc));
     }
 
-    if (mid) {
+    if (msid) {
         attributes_.emplace_back("ssrc:" + std::to_string(ssrc) + " msid:" + *msid + " " + track_id.value_or(*msid));
     }
 
@@ -171,7 +171,7 @@ void Media::RemoveSSRC(uint32_t ssrc) {
     }
 }
 
-void Media::ReplaceSSRC(uint32_t old_ssrc, uint32_t ssrc, std::optional<std::string> name, std::optional<std::string> msid = std::nullopt, std::optional<std::string> track_id = std::nullopt) {
+void Media::ReplaceSSRC(uint32_t old_ssrc, uint32_t ssrc, std::optional<std::string> name, std::optional<std::string> msid, std::optional<std::string> track_id) {
     RemoveSSRC(old_ssrc);
     AddSSRC(ssrc, std::move(name), std::move(msid), std::move(track_id));
 } 
@@ -330,10 +330,10 @@ void Media::AddRTPMap(const RTPMap& map) {
  * 即传输层使用UDP协议，并采用DTLS(UDP + TLS)，在传输层之上使用RTP(RTCP)协议，具体的RTP格式是SAVPF
  * 端口为9（可忽略，端口9为Discard Protocol专用），采用UDP传输加密的RTP包，并使用基于SRTCP的音视频反馈机制来提升传输质量
 */
-Audio::Audio(std::string mid="audio", Direction direction = Direction::SEND_ONLY) 
+Audio::Audio(std::string mid, Direction direction) 
     : Media("audio 9 UDP/TLS/RTP/SAVPF", std::move(mid), direction) {}
 
-void Audio::AddAudioCodec(int payload_type, std::string codec, int clock_rate, int channels, std::optional<std::string> profile = std::nullopt) {
+void Audio::AddAudioCodec(int payload_type, std::string codec, int clock_rate, int channels, std::optional<std::string> profile) {
     RTPMap map(std::to_string(payload_type) + " " + codec + "/" + std::to_string(clock_rate) + "/" + std::to_string(channels));
     if (profile) {
         map.fmt_profiles.emplace_back(*profile);
@@ -341,12 +341,12 @@ void Audio::AddAudioCodec(int payload_type, std::string codec, int clock_rate, i
     AddRTPMap(map);
 }
 
-void Audio::AddOpusCodec(int payload_type, std::optional<std::string> profile = DEFAULT_OPUS_AUDIO_PROFILE) {
+void Audio::AddOpusCodec(int payload_type, std::optional<std::string> profile) {
     AddAudioCodec(payload_type, "OPUS", 48000, 2, profile);
 }
 
 // Video
-Video::Video(std::string mid = "video", Direction direction) 
+Video::Video(std::string mid, Direction direction) 
     : Media("video 9 UDP/TLS/RTP/SAVPF", std::move(mid), direction) {}
 
 void Video::AddVideoCodec(int payload_type, std::string codec, std::optional<std::string> profile) {

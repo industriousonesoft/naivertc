@@ -33,5 +33,18 @@ std::string TypeToString(sdp::Type type) {
     }
 }
 
+std::string RoleToString(sdp::Role role) {
+    switch (role) {
+    case sdp::Role::ACT_PASS:
+        return "actpass";
+    case sdp::Role::PASSIVE:
+        return "passive";
+    case sdp::Role::ACTIVE:
+        return "active";
+    default:
+        return "unknown";
+    }
+}
+
 }
 }

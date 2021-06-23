@@ -1,6 +1,9 @@
-#include "common/str_utils.hpp"
+#include "common/utils.hpp"
 
 #include <sstream>
+#include <random>
+#include <chrono>
+#include <type_traits>
 
 namespace utils {
 
@@ -66,5 +69,17 @@ bool is_sha256_fingerprint(std::string_view fingerprint) {
 }
 
 } // end of string namespace
+
+// Random
+namespace random {
+
+template<typename T> T generate_random() {
+    auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
+    std::default_random_engine generator(seed);
+    std::uniform_int_distribution<T> uniform;
+    return uniform(generator);
+}
+
+} // end of random namespace
 
 }

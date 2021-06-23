@@ -20,9 +20,9 @@ public:
     Role role() const;
 
     void hintType(Type type);
-    void set_finger_print(std::string finger_print);
+    void set_fingerprint(std::string fingerprint);
 
-    std::string GenerateSDP(std::string_view eol) const;
+    std::string GenerateSDP(std::string_view eol, bool application_only = false) const;
 
     bool HasApplication() const;
     bool HasAudio() const;
@@ -51,11 +51,10 @@ private:
     std::string session_id_;
     std::optional<std::string> ice_ufrag_;
     std::optional<std::string> ice_pwd_;
-    std::optional<std::string> finger_print_;
+    std::optional<std::string> fingerprint_;
 
     // Entries
     std::vector<std::shared_ptr<Entry>> entries_;
-    std::shared_ptr<Application> application_;
 
 };
 
