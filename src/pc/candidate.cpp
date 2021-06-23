@@ -1,5 +1,5 @@
 #include "pc/candidate.hpp"
-#include "common/str_utils.hpp"
+#include "common/utils.hpp"
 
 #include <plog/Log.h>
 
@@ -200,7 +200,7 @@ void Candidate::Parse(std::string candidate) {
 
     const std::array<std::string, 2> prefixes = {"a=", "candidate:"};
     for (std::string prefix : prefixes) {
-        if (utils::MatchPrefix(candidate, prefix)) {
+        if (utils::string::match_prefix(candidate, prefix)) {
             candidate.erase(0, prefix.size());
         }
     }
@@ -236,8 +236,8 @@ void Candidate::Parse(std::string candidate) {
 
     // Keep a copy of substring after type
     std::getline(iss, various_tail_);
-    utils::TrimBegin(various_tail_);
-    utils::TrimEnd(various_tail_);
+    utils::string::trim_begin(various_tail_);
+    utils::string::trim_end(various_tail_);
 
     if (transport_type_str_ == "UDP" || transport_type_str_ == "udp") {
         transport_type_ = TransportType::UDP;

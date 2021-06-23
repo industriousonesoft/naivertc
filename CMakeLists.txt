@@ -11,7 +11,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 option(ENABLE_TESTS "Enable tests" ON)
 
 set(LIB_SOURCES
-    src/common/str_utils.cpp
+    src/common/utils.cpp
     src/pc/candidate.cpp
     src/pc/sdp_serializer.cpp
     src/pc/sdp_entry.cpp
@@ -19,7 +19,7 @@ set(LIB_SOURCES
 
 set(LIB_HEADERS
     include/common/defines.hpp
-    include/common/str_utils.hpp
+    include/common/utils.hpp
     include/pc/candidate.hpp
     include/pc/sdp_serializer.hpp
     include/pc/sdp_entry.hpp

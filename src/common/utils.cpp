@@ -4,24 +4,25 @@
 
 namespace utils {
 
-bool MatchPrefix(const std::string_view str, const std::string_view prefix) {
+namespace string {
+bool match_prefix(const std::string_view str, const std::string_view prefix) {
     return str.size() >= prefix.size() && std::mismatch(prefix.begin(), prefix.end(), str.begin()).first == prefix.end();
 }
 
-void TrimBegin(std::string &str) {
+void trim_begin(std::string &str) {
     str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](char c){
         return !std::isspace(c);
     }));
 }
 
-void TrimEnd(std::string &str) {
+void trim_end(std::string &str) {
     // reverse_iterator.base() -> iterator
     str.erase(std::find_if(str.rbegin(), str.rend(), [](char c){
         return !std::isspace(c);
     }).base(), str.end());
 }
 
-std::pair<std::string_view, std::string_view> ParsePair(std::string_view attr) {
+std::pair<std::string_view, std::string_view> parse_pair(std::string_view attr) {
     std::string_view key, value;
     if (size_t separator = attr.find(':'); separator != std::string::npos) {
         key = attr.substr(0, separator);
@@ -32,7 +33,7 @@ std::pair<std::string_view, std::string_view> ParsePair(std::string_view attr) {
     return std::make_pair(std::move(key), std::move(value));
 }
 
-template<typename T> T ToInteger(std::string_view s) {
+template<typename T> T to_integer(std::string_view s) {
     const std::string str(s);
     try {
         return std::is_signed<T>::value ? T(std::stol(str)) : T(std::stoul(str));
@@ -45,23 +46,25 @@ template<typename T> T ToInteger(std::string_view s) {
 // 常规的SHA256哈希值是一个长度为32个字节的数组，通常用一个长度为64的十六进制字符串来表示
 // SDP中的fingerprint在每两个个字节之间加入了一个间隔符”:“，因此长度=32 * 2 +（32 - 1）
 constexpr int kSHA256FixedLength = 32 * 3 - 1;
-bool isSHA256FingerPrint(std::string_view finger_print) {
-    if (finger_print.size() != kSHA256FixedLength) {
+bool is_sha256_fingerprint(std::string_view fingerprint) {
+    if (fingerprint.size() != kSHA256FixedLength) {
         return false;
     }
 
-    for (size_t i = 0; i < finger_print.size(); ++i) {
+    for (size_t i = 0; i < fingerprint.size(); ++i) {
         if (i % 3 == 2) {
-            if (finger_print[i] != ':') {
+            if (fingerprint[i] != ':') {
                 return false;
             }
         }else {
-            if (!std::isxdigit(finger_print[i])) {
+            if (!std::isxdigit(fingerprint[i])) {
                 return false;
             }
         }
     }
     return true;
 }
+
+} // end of string namespace
 
 }
