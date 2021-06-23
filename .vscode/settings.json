@@ -73,6 +73,7 @@
         "unordered_set": "cpp",
         "variant": "cpp",
         "numeric": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "regex": "cpp"
     }
 }

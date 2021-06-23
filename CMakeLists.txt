@@ -12,6 +12,7 @@ option(ENABLE_TESTS "Enable tests" ON)
 
 set(LIB_SOURCES
     src/common/utils.cpp
+    src/pc/peer_connection_configuration.cpp
     src/pc/candidate.cpp
     src/pc/sdp_serializer.cpp
     src/pc/sdp_entry.cpp
@@ -20,6 +21,7 @@ set(LIB_SOURCES
 set(LIB_HEADERS
     include/common/defines.hpp
     include/common/utils.hpp
+    include/pc/peer_connection_configuration.hpp
     include/pc/candidate.hpp
     include/pc/sdp_serializer.hpp
     include/pc/sdp_entry.hpp
@@ -38,6 +40,9 @@ target_include_directories(naivertc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 # plog
 add_subdirectory(deps/plog)
 target_link_libraries(naivertc PRIVATE plog::plog)
+# libnice
+add_subdirectory(deps/libjuice)
+target_link_directories(naivertc PRIVATE juice-static)
 
 # test
 if(ENABLE_TESTS)
@@ -47,6 +52,7 @@ add_subdirectory(deps/googletest)
 
 set(TEST_SOURCES
     src/pc/candidate_unittest.cpp
+    src/pc/peer_connection_configuration_unittest.cpp
     testing/gtest_main.cpp
 )
 
