@@ -4,6 +4,8 @@
 #include "common/defines.hpp"
 
 #include <string>
+#include <vector>
+#include <optional>
 
 namespace naivertc {
 
@@ -35,6 +37,34 @@ private:
     RelayType relay_type_;
     std::string user_name_;
     std::string password_;
+};
+
+enum class CertificateType {
+    DEFAULT,
+    ECDSA,
+    RSA
+};
+
+struct RTC_CPP_EXPORT Configuration {
+    // Ice settings
+    std::vector<IceServer> ice_servers;
+    std::optional<std::string> bind_addresses;
+
+    // Options
+    CertificateType certificate_type = CertificateType::DEFAULT;
+    bool enable_ice_tcp = false;
+    bool auto_negotiation = false;
+
+    // Port range
+    uint16_t port_range_begin_;
+    uint16_t port_range_end_;
+
+    // MTU: Maximum Transmission Unit
+    std::optional<size_t> mtu_;
+
+    // Local max message size at reception
+    std::optional<size_t> max_message_size_;
+
 };
 
 }
