@@ -12,7 +12,7 @@ option(ENABLE_TESTS "Enable tests" ON)
 
 set(LIB_SOURCES
     src/common/utils.cpp
-    src/pc/peer_connection_configuration.cpp
+    src/pc/configuration.cpp
     src/pc/candidate.cpp
     src/pc/sdp_serializer.cpp
     src/pc/sdp_entry.cpp
@@ -21,7 +21,7 @@ set(LIB_SOURCES
 set(LIB_HEADERS
     include/common/defines.hpp
     include/common/utils.hpp
-    include/pc/peer_connection_configuration.hpp
+    include/pc/configuration.hpp
     include/pc/candidate.hpp
     include/pc/sdp_serializer.hpp
     include/pc/sdp_entry.hpp
