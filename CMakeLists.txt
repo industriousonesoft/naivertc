@@ -42,7 +42,10 @@ add_subdirectory(deps/plog)
 target_link_libraries(naivertc PRIVATE plog::plog)
 # libnice
 add_subdirectory(deps/libjuice)
-target_link_directories(naivertc PRIVATE juice-static)
+target_link_libraries(naivertc PRIVATE juice-static)
+# sigslot
+add_subdirectory(deps/sigslot)
+target_link_libraries(naivertc PRIVATE sigslot)
 
 # test
 if(ENABLE_TESTS)

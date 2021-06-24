@@ -7,3 +7,6 @@
 [submodule "deps/libjuice"]
 	path = deps/libjuice
 	url = git@github.com:paullouisageneau/libjuice.git
+[submodule "deps/sigslot"]
+	path = deps/sigslot
+	url = git@github.com:industriousonesoft/sigslot.git
