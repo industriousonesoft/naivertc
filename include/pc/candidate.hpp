@@ -77,8 +77,8 @@ public:
  
     bool Resolve(ResolveMode mode = ResolveMode::SIMPLE);
 
-    std::string ResolvedCandidate() const;
-    std::string SDPLine() const;
+    std::string candidate() const;
+    operator std::string() const;
 
     bool operator==(const Candidate& other) const;
     bool operator!=(const Candidate& other) const;

@@ -18,6 +18,7 @@ public:
 
     Type type() const;
     Role role() const;
+    std::string bundle_id() const;
 
     void hintType(Type type);
     void set_fingerprint(std::string fingerprint);

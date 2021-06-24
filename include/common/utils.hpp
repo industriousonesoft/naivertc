@@ -2,6 +2,7 @@
 #define _COMMON_STR_UTILS_H_
 
 #include <string>
+#include <vector>
 
 namespace utils {
 
@@ -22,6 +23,8 @@ namespace random {
 
 // TODO: how to define a template with numeric constraint
 template<typename T> T generate_random();
+
+template<typename T> void shuffle(std::vector<T> list);
 
 }
 

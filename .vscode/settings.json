@@ -74,6 +74,7 @@
         "variant": "cpp",
         "numeric": "cpp",
         "random": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "filesystem": "cpp"
     }
 }

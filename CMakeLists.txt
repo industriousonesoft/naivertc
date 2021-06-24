@@ -16,6 +16,8 @@ set(LIB_SOURCES
     src/pc/candidate.cpp
     src/pc/sdp_serializer.cpp
     src/pc/sdp_entry.cpp
+    src/pc/transport.cpp
+    src/pc/ice_transport.cpp
 )
 
 set(LIB_HEADERS
@@ -25,6 +27,8 @@ set(LIB_HEADERS
     include/pc/candidate.hpp
     include/pc/sdp_serializer.hpp
     include/pc/sdp_entry.hpp
+    include/pc/transport.hpp
+    include/pc/ice_transport.hpp
 )
 
 # naiveRTC
@@ -55,7 +59,7 @@ add_subdirectory(deps/googletest)
 
 set(TEST_SOURCES
     src/pc/candidate_unittest.cpp
-    src/pc/peer_connection_configuration_unittest.cpp
+    src/pc/configuration_unittest.cpp
     testing/gtest_main.cpp
 )
 

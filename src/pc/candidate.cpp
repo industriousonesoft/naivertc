@@ -80,7 +80,7 @@ void Candidate::set_mid(std::string mid) {
         mid_.emplace(std::move(mid));
 }
 
-std::string Candidate::ResolvedCandidate() const {
+std::string Candidate::candidate() const {
     const char sp{' '};
     std::ostringstream oss;
     oss << "candidate:";
@@ -116,9 +116,9 @@ std::optional<uint16_t> Candidate::port() const {
     return isResolved() ? std::make_optional(port_) : std::nullopt;
 }
 
-std::string Candidate::SDPLine() const {
+Candidate::operator std::string() const {
     std::ostringstream line;
-    line << "a=" << ResolvedCandidate();
+    line << "a=" << candidate();
     return line.str();
 }
 
@@ -262,7 +262,7 @@ void Candidate::Parse(std::string candidate) {
 } // namespace naive rtc
 
 std::ostream &operator<<(std::ostream &out, const naivertc::Candidate& candidate) {
-    return out << candidate.SDPLine();
+    return out << std::string(candidate);
 }
 
 std::ostream &operator<<(std::ostream &out, const naivertc::Candidate::Type type) {

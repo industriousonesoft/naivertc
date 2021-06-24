@@ -80,6 +80,11 @@ template<typename T> T generate_random() {
     return uniform(generator);
 }
 
+template<typename T> void shuffle(std::vector<T> list) {
+    auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
+    std::shuffle(list.begin(), list.end(), std::default_random_engine(seed));
+}
+
 } // end of random namespace
 
 }

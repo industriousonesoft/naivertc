@@ -90,6 +90,10 @@ Role Serializer::role() const {
     return role_;
 }
 
+std::string Serializer::bundle_id() const {
+    return !entries_.empty() ? entries_[0]->mid() : "0";
+}
+
 void Serializer::hintType(Type type) {
     if (type_ == Type::UNSPEC) {
         type_ = type;
