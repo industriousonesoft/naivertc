@@ -73,14 +73,16 @@ bool is_sha256_fingerprint(std::string_view fingerprint) {
 // Random
 namespace random {
 
-template<typename T> T generate_random() {
+template <typename T>
+T generate_random() {
     auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
     std::default_random_engine generator(seed);
     std::uniform_int_distribution<T> uniform;
     return uniform(generator);
 }
 
-template<typename T> void shuffle(std::vector<T> list) {
+template<typename T> 
+void shuffle(std::vector<T> list) {
     auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
     std::shuffle(list.begin(), list.end(), std::default_random_engine(seed));
 }

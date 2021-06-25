@@ -21,10 +21,14 @@ bool is_sha256_fingerprint(std::string_view fingerprint);
 // random
 namespace random {
 
-// TODO: how to define a template with numeric constraint
-template<typename T> T generate_random();
+template <
+    typename T, 
+    typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type
+>
+T generate_random();
 
-template<typename T> void shuffle(std::vector<T> list);
+template<typename T> 
+void shuffle(std::vector<T> list);
 
 }
 
