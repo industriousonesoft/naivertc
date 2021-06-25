@@ -23,7 +23,8 @@ Candidate::Candidate() :
     transport_type_(TransportType::UNKNOWN),
     host_name_("0.0.0.0"),
     service_("9"),
-    type_(Type::UNKNOWN) {}
+    type_(Type::UNKNOWN),
+    family_(Family::UNRESOVLED) {}
 
 Candidate::Candidate(std::string candidate) : Candidate() {
     if (!candidate.empty()) {

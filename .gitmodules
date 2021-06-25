@@ -1,4 +1,4 @@
-[submodule "plog"]
+[submodule "deps/plog"]
 	path = deps/plog
 	url = git@github.com:SergiusTheBest/plog.git
 [submodule "deps/googletest"]
