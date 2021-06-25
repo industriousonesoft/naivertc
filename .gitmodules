@@ -10,3 +10,6 @@
 [submodule "deps/sigslot"]
 	path = deps/sigslot
 	url = git@github.com:industriousonesoft/sigslot.git
+[submodule "deps/json"]
+	path = deps/json
+	url = https://github.com/nlohmann/json.git
