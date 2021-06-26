@@ -1,27 +1,21 @@
 #ifndef _AYAME_CHANNEL_H_
 #define _AYAME_CHANNEL_H_
 
-#include <memory>
-#include <string>
-
 #include "signaling/websocket.hpp"
 #include "signaling/base_channel.hpp"
 
-// boost
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/io_context_strand.hpp>
-#include <boost/thread/thread.hpp>
-
 // nlohmann/json
 #include <nlohmann/json.hpp>
+
+#include <memory>
+#include <string>
 
 namespace naivertc {
 namespace signaling {
 
 class AyameChannel : public BaseChannel {
 public:
-    AyameChannel(boost::asio::io_context& ioc, BaseChannel::Observer* observer);
+    AyameChannel(BaseChannel::Observer* observer);
     ~AyameChannel() override;
     
 public:
@@ -49,7 +43,6 @@ private:
               std::string text);
 
 private:
-    boost::asio::io_context& ioc_;
     Observer* observer_;
     
     BaseChannel::Config config_;

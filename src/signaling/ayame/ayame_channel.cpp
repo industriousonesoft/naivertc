@@ -33,15 +33,14 @@ bool AyameChannel::ParseURL(const std::string signaling_url, URLParts& parts) {
   }
 }
 
-AyameChannel::AyameChannel(boost::asio::io_context& ioc, BaseChannel::Observer* observer)
+AyameChannel::AyameChannel(BaseChannel::Observer* observer)
                         : BaseChannel(observer),
-                          ioc_(ioc),
                           observer_(observer),
                           is_connected_(false) {
 }
 
 AyameChannel::~AyameChannel() {
-    
+
 }
 
 void AyameChannel::Connect(BaseChannel::Config config) {
@@ -62,9 +61,9 @@ void AyameChannel::Connect(BaseChannel::Config config) {
 
     // FIXME: error occuring when signaling_url == ""
     if (ParseURL(signaling_url, parts)) {
-        ws_.reset(new Websocket(Websocket::ssl_tag(), ioc_, config_.insecure));
+        ws_.reset(new Websocket(Websocket::ssl_tag(), config_.insecure));
     } else {
-        ws_.reset(new Websocket(ioc_));
+        ws_.reset(new Websocket());
     }
     ws_->Connect(signaling_url,
                std::bind(&AyameChannel::OnConnect, this,

@@ -23,12 +23,13 @@
 #include <boost/beast/core/multi_buffer.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <boost/beast/websocket/stream.hpp>
+#include <boost/thread/thread.hpp>
 
 namespace naivertc {
 namespace signaling {
 
 class Websocket {
- public:
+public:
   typedef boost::beast::websocket::stream<boost::asio::ip::tcp::socket>
       websocket_t;
   typedef boost::beast::websocket::stream<
@@ -46,21 +47,14 @@ class Websocket {
 
   struct ssl_tag {};
 
- public:
-  Websocket(boost::asio::io_context& ioc);
-
-  Websocket(ssl_tag, boost::asio::io_context& ioc, bool insecure);
-
- private:
-
+private:
   Websocket(ssl_tag,
-            boost::asio::io_context& ioc,
             bool insecure,
             boost::asio::ssl::context ssl_ctx);
 
- public:
-
-  Websocket(boost::asio::ip::tcp::socket socket);
+public:
+  Websocket();
+  Websocket(ssl_tag,  bool insecure);
   ~Websocket();
 
   void Connect(const std::string& url, connect_callback_t on_connect);
@@ -96,14 +90,16 @@ class Websocket {
   void OnWrite(boost::system::error_code ec, std::size_t bytes_transferred);
 
  private:
+  boost::asio::io_context ioc_;
+  boost::asio::strand<websocket_t::executor_type> strand_;
+  std::unique_ptr<boost::thread> ioc_thread_;
+
   std::unique_ptr<websocket_t> ws_;
   std::unique_ptr<ssl_websocket_t> wss_;
 
   std::unique_ptr<boost::asio::ip::tcp::resolver> resolver_;
   connect_callback_t on_connect_;
   URLParts parts_;
-
-  boost::asio::strand<websocket_t::executor_type> strand_;
 
   boost::beast::multi_buffer read_buffer_;
   struct WriteData {
