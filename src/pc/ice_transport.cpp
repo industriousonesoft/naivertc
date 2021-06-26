@@ -19,6 +19,7 @@ IceTransport::IceTransport(const Configuration& config)
         PLOG_WARNING << "ICE-TCP is not supported with libjuice.";
     }
 
+    Initialize(config);
 }
 
 sdp::Role IceTransport::role() const {
@@ -141,7 +142,7 @@ void IceTransport::Initialize(const Configuration& config) {
     for (auto& server : ice_servers) {
         if (!server.host_name().empty() && server.type() == IceServer::Type::TURN) {
             turn_servers[index].host = server.host_name().c_str();
-            turn_servers[index].username = server.user_name().c_str();
+            turn_servers[index].username = server.username().c_str();
             turn_servers[index].password = server.password().c_str();
             turn_servers[index].port = server.port() != 0 ? server.port() : 3478 /* STUN UDP Port */;
             if (++index >= kMaxTurnServersCount) {

@@ -20,22 +20,25 @@ struct RTC_CPP_EXPORT IceServer {
     IceServer(std::string host_name, std::string service);
 
     // TURN
-    IceServer(std::string host_name, uint16_t port, std::string user_name, std::string password, RelayType relay_type = RelayType::TURN_UDP);
-    IceServer(std::string host_name, std::string service, std::string user_name, std::string password, RelayType relay_type = RelayType::TURN_UDP);
+    IceServer(std::string host_name, uint16_t port, std::string username, std::string password, RelayType relay_type = RelayType::TURN_UDP);
+    IceServer(std::string host_name, std::string service, std::string username, std::string password, RelayType relay_type = RelayType::TURN_UDP);
 
     std::string host_name() const { return host_name_; }
     uint16_t port() const { return port_; }
     Type type() const { return type_; }
     RelayType relay_type() const { return relay_type_; }
-    std::string user_name() const { return user_name_; }
+    std::string username() const { return username_; }
     std::string password() const { return password_; }
+
+    void set_username(std::string username) { username_ = username; }
+    void set_password(std::string password) { password_ = password; }
 
 private:
     std::string host_name_;
     uint16_t port_;
     Type type_;
     RelayType relay_type_;
-    std::string user_name_;
+    std::string username_;
     std::string password_;
 };
 

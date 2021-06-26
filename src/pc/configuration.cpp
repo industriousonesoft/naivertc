@@ -50,7 +50,7 @@ IceServer::IceServer(const std::string& url) {
         }
     }
 
-    user_name_ = components[6].value_or("");
+    username_ = components[6].value_or("");
     password_ = components[8].value_or("");
 
     host_name_ = components[10].value();
@@ -79,11 +79,11 @@ IceServer::IceServer(std::string host_name, std::string service)
 	}
 }
 
-IceServer::IceServer(std::string host_name, uint16_t port, std::string user_name, std::string password, RelayType relay_type) 
-    : host_name_(host_name), port_(port), type_(Type::TURN), user_name_(user_name), password_(password), relay_type_(relay_type) {}
+IceServer::IceServer(std::string host_name, uint16_t port, std::string username, std::string password, RelayType relay_type) 
+    : host_name_(host_name), port_(port), type_(Type::TURN), username_(username), password_(password), relay_type_(relay_type) {}
 
-IceServer::IceServer(std::string host_name, std::string service, std::string user_name, std::string password, RelayType relay_type) 
-    : host_name_(host_name), type_(Type::TURN), user_name_(user_name), password_(password), relay_type_(relay_type) {
+IceServer::IceServer(std::string host_name, std::string service, std::string username, std::string password, RelayType relay_type) 
+    : host_name_(host_name), type_(Type::TURN), username_(username), password_(password), relay_type_(relay_type) {
     try {
 		port_ = uint16_t(std::stoul(service));
 	} catch (...) {

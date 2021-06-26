@@ -10,6 +10,18 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(ENABLE_TESTS "Enable tests" ON)
 
+# macos
+if(${CMAKE_SYSTEM_NAME} MATCHES "macOS" OR ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib_deps/macos/_install)
+    # openssl
+    set(LIBOPENSSL_INCLUDE_PATH "/usr/local/Cellar/openssl\@1.1/1.1.1g/include")
+    # boost
+    set(LIBBOOST_INCLUDE_PATH ${INSTALL_DIR}/boost/include)
+    set(LIBBOOST_LIBRARY_PATH ${INSTALL_DIR}/boost/lib)
+else()
+    message(FATAL_ERROR "unsupported platform: ${CMAKE_SYSTEM_NAME}")
+endif()
+
 set(LIB_SOURCES
     src/common/utils.cpp
     src/pc/configuration.cpp
@@ -18,6 +30,9 @@ set(LIB_SOURCES
     src/pc/sdp_entry.cpp
     src/pc/transport.cpp
     src/pc/ice_transport.cpp
+    src/signaling/base_channel.cpp
+    src/signaling/websocket.cpp
+    src/signaling/ayame/ayame_channel.cpp
 )
 
 set(LIB_HEADERS
@@ -29,6 +44,10 @@ set(LIB_HEADERS
     include/pc/sdp_entry.hpp
     include/pc/transport.hpp
     include/pc/ice_transport.hpp
+    include/signaling/base_channel.hpp
+    include/signaling/url_parts.hpp
+    include/signaling/websocket.hpp
+    include/signaling/ayame/ayame_channel.hpp
 )
 
 # naiveRTC
@@ -41,6 +60,9 @@ set_target_properties(naivertc PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDAR
 target_include_directories(naivertc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # liked libraries
+# json
+add_subdirectory(deps/json)
+target_link_libraries(naivertc PRIVATE nlohmann_json)
 # plog
 add_subdirectory(deps/plog)
 target_link_libraries(naivertc PRIVATE plog::plog)
@@ -50,6 +72,13 @@ target_link_libraries(naivertc PRIVATE juice-static)
 # sigslot
 add_subdirectory(deps/sigslot)
 target_link_libraries(naivertc PRIVATE sigslot)
+# boost libraries
+target_include_directories(naivertc PRIVATE ${LIBBOOST_INCLUDE_PATH})
+target_include_directories(naivertc PRIVATE ${LIBOPENSSL_INCLUDE_PATH})
+target_link_libraries(naivertc PRIVATE 
+    ${LIBBOOST_LIBRARY_PATH}/libboost_filesystem${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${LIBBOOST_LIBRARY_PATH}/libboost_thread${CMAKE_STATIC_LIBRARY_SUFFIX}
+)
 
 # test
 if(ENABLE_TESTS)
