@@ -33,6 +33,7 @@ set(LIB_SOURCES
     src/signaling/base_channel.cpp
     src/signaling/websocket.cpp
     src/signaling/ayame/ayame_channel.cpp
+    src/base/task_queue.cpp
 )
 
 set(LIB_HEADERS
@@ -48,6 +49,7 @@ set(LIB_HEADERS
     include/signaling/url_parts.hpp
     include/signaling/websocket.hpp
     include/signaling/ayame/ayame_channel.hpp
+    include/base/task_queue.hpp
 )
 
 # naiveRTC
