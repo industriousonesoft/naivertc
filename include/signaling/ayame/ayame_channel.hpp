@@ -15,11 +15,11 @@ namespace signaling {
 
 class AyameChannel : public BaseChannel {
 public:
-    AyameChannel(BaseChannel::Observer* observer);
+    AyameChannel(boost::asio::io_context& ioc, std::weak_ptr<Observer> observer);
     ~AyameChannel() override;
     
 public:
-    void Connect(BaseChannel::Config config) override;
+    void Connect(Config config) override;
     void Close() override;
     void SendLocalSDP(const std::string sdp, bool is_offer) override;
     void SendLocalCandidate(const std::string sdp_mid, const int sdp_mlineindex, const std::string sdp) override;
@@ -43,9 +43,8 @@ private:
               std::string text);
 
 private:
-    Observer* observer_;
-    
-    BaseChannel::Config config_;
+    boost::asio::io_context& ioc_;
+    Config config_;
     std::unique_ptr<Websocket> ws_;
     
     std::atomic<bool> is_connected_;

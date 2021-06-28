@@ -31,21 +31,23 @@ static boost::asio::ssl::context CreateSSLContext() {
   return ctx;
 }
 
-Websocket::Websocket()
-    : ws_(new websocket_t(ioc_)),
-      resolver_(new boost::asio::ip::tcp::resolver(ioc_)),
+Websocket::Websocket(boost::asio::io_context& ioc)
+    : ws_(new websocket_t(ioc)),
+      resolver_(new boost::asio::ip::tcp::resolver(ioc)),
       strand_(ws_->get_executor()) {
   ws_->write_buffer_bytes(8192);
 }
-Websocket::Websocket(Websocket::ssl_tag,
+Websocket::Websocket(boost::asio::io_context& ioc,
+                     Websocket::ssl_tag,
                      bool insecure)
-    : Websocket(Websocket::ssl_tag(), insecure, CreateSSLContext()) {}
+    : Websocket(ioc, Websocket::ssl_tag(), insecure, CreateSSLContext()) {}
 
-Websocket::Websocket(Websocket::ssl_tag,
+Websocket::Websocket(boost::asio::io_context& ioc,
+                     Websocket::ssl_tag,
                      bool insecure,
                      boost::asio::ssl::context ssl_ctx)
-    : wss_(new ssl_websocket_t(ioc_, ssl_ctx)),
-      resolver_(new boost::asio::ip::tcp::resolver(ioc_)),
+    : wss_(new ssl_websocket_t(ioc, ssl_ctx)),
+      resolver_(new boost::asio::ip::tcp::resolver(ioc)),
       strand_(wss_->get_executor()) {
   wss_->write_buffer_bytes(8192);
 
@@ -62,14 +64,9 @@ Websocket::Websocket(Websocket::ssl_tag,
         // TODO: verify
         return false;
       });
-  
-  ioc_thread_.reset(new boost::thread(boost::bind(&boost::asio::io_context::run, &ioc_)));
-  ioc_thread_->detach();
 }
 
 Websocket::~Websocket() {
-  ioc_.stop();
-  ioc_thread_.reset();
   std::cout << __FUNCTION__ << std::endl;
 }
 

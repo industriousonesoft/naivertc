@@ -37,9 +37,9 @@ private:
     std::string host_name_;
     uint16_t port_;
     Type type_;
-    RelayType relay_type_;
     std::string username_;
     std::string password_;
+    RelayType relay_type_;
 };
 
 enum class CertificateType {

@@ -3,7 +3,7 @@
 namespace naivertc {
 namespace signaling {
 
-BaseChannel::BaseChannel(Observer* observer) 
+BaseChannel::BaseChannel(std::weak_ptr<Observer> observer) 
 : observer_(observer) {}
 
 }

@@ -87,11 +87,6 @@ private:
     void Parse(std::string candidate);
 
 private:
-    
-    Family family_;
-    std::string address_;
-    uint16_t port_;
-    
     std::string foundation_;
     uint32_t component_id_;
     uint32_t priority_;
@@ -103,7 +98,12 @@ private:
     std::string type_str_;
     std::string various_tail_;
 
-    std::optional<std::string> mid_;
+    // TODO: wrap properties blow maybe?
+    Family family_;
+    std::string address_;
+    uint16_t port_;
+
+    std::optional<std::string> mid_{std::nullopt};
     
 };
 

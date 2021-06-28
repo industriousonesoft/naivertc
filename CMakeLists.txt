@@ -14,7 +14,7 @@ option(ENABLE_TESTS "Enable tests" ON)
 if(${CMAKE_SYSTEM_NAME} MATCHES "macOS" OR ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib_deps/macos/_install)
     # openssl
-    set(LIBOPENSSL_INCLUDE_PATH "/usr/local/Cellar/openssl\@1.1/1.1.1g/include")
+    set(OPENSSL_ROOT_DIR "/usr/local/Cellar/openssl\@1.1/1.1.1g/")
     # boost
     set(LIBBOOST_INCLUDE_PATH ${INSTALL_DIR}/boost/include)
     set(LIBBOOST_LIBRARY_PATH ${INSTALL_DIR}/boost/lib)
@@ -52,6 +52,11 @@ set(LIB_HEADERS
     include/base/task_queue.hpp
 )
 
+# gcc -Wall: enables all compiler's warning messages
+# gcc -Wextra: enables extra warning messages
+# gcc -Wpedantic: 当gcc编译不符合ANSI/ISO C标准的代码时，将产生相应的警告信息
+set_source_files_properties(${LIB_SOURCES} PROPERTIES COMPILE_FLAGS -Wall -Wextra -Wpedantic)
+
 # naiveRTC
 add_library(naivertc STATIC ${LIB_SOURCES} ${LIB_HEADERS} )
 
@@ -59,28 +64,43 @@ add_library(naivertc STATIC ${LIB_SOURCES} ${LIB_HEADERS} )
 set_target_properties(naivertc PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
 
 # include paths
-target_include_directories(naivertc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(naivertc PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 # liked libraries
 # json
 add_subdirectory(deps/json)
-target_link_libraries(naivertc PRIVATE nlohmann_json)
+target_link_libraries(naivertc PUBLIC nlohmann_json)
 # plog
 add_subdirectory(deps/plog)
-target_link_libraries(naivertc PRIVATE plog::plog)
+target_link_libraries(naivertc PUBLIC plog::plog)
 # libnice
 add_subdirectory(deps/libjuice)
-target_link_libraries(naivertc PRIVATE juice-static)
+target_link_libraries(naivertc PUBLIC juice-static)
 # sigslot
 add_subdirectory(deps/sigslot)
-target_link_libraries(naivertc PRIVATE sigslot)
+target_link_libraries(naivertc PUBLIC sigslot)
 # boost libraries
-target_include_directories(naivertc PRIVATE ${LIBBOOST_INCLUDE_PATH})
-target_include_directories(naivertc PRIVATE ${LIBOPENSSL_INCLUDE_PATH})
-target_link_libraries(naivertc PRIVATE 
+# PUBLIC: 表示关联naivertc库的库或执行文件可共享naivertc所关联的库
+target_include_directories(naivertc PUBLIC ${LIBBOOST_INCLUDE_PATH})
+target_include_directories(naivertc PUBLIC ${OPENSSL_ROOT_DIR}/include)
+target_link_libraries(naivertc PUBLIC 
     ${LIBBOOST_LIBRARY_PATH}/libboost_filesystem${CMAKE_STATIC_LIBRARY_SUFFIX}
     ${LIBBOOST_LIBRARY_PATH}/libboost_thread${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
+# openssl
+if(APPLE)
+    # This is a bug in CMake that causes it to prefer the system version over 
+    # the one in the specified ROOT folder
+    if(EXISTS ${OPENSSL_ROOT_DIR})
+        set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_ROOT_DIR}/lib/libcrypto.dylib" CACHE FILEPATH "" FORCE)
+        set(OPENSSL_SSL_LIBRARY "${OPENSSL_ROOT_DIR}/lib/libssl.dylib" CACHE FILEPATH "" FORCE)
+    endif()
+endif()
+find_package(OpenSSL REQUIRED)
+target_link_libraries(naivertc PRIVATE OpenSSL::SSL)
+
+# examples
+add_subdirectory(${PROJECT_SOURCE_DIR}/examples/streamer ${CMAKE_CURRENT_BINARY_DIR}/examples/streamer EXCLUDE_FROM_ALL)
 
 # test
 if(ENABLE_TESTS)

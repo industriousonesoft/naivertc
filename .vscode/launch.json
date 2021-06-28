@@ -1,0 +1,18 @@
+{
+    "version": "0.1.0",
+    "configurations": [
+        {
+            "name": "streamer",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/examples/streamer/streamer",
+            "args": [
+                "wss://ayame-labo.shiguredo.jp/signaling",
+                "443",
+                "Hello, world"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {}
+        }
+    ]
+}

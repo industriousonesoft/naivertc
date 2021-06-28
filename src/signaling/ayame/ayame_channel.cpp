@@ -10,9 +10,6 @@
 
 #include "signaling/ayame/ayame_channel.hpp"
 
-// boost
-#include <boost/beast/websocket/stream.hpp>
-
 namespace naivertc {
 namespace signaling {
 
@@ -33,9 +30,9 @@ bool AyameChannel::ParseURL(const std::string signaling_url, URLParts& parts) {
   }
 }
 
-AyameChannel::AyameChannel(BaseChannel::Observer* observer)
+AyameChannel::AyameChannel(boost::asio::io_context& ioc, std::weak_ptr<Observer> observer)
                         : BaseChannel(observer),
-                          observer_(observer),
+                          ioc_(ioc),
                           is_connected_(false) {
 }
 
@@ -43,7 +40,7 @@ AyameChannel::~AyameChannel() {
 
 }
 
-void AyameChannel::Connect(BaseChannel::Config config) {
+void AyameChannel::Connect(Config config) {
     if (is_connected_ || is_connecting_) {
         return;
     }
@@ -53,7 +50,7 @@ void AyameChannel::Connect(BaseChannel::Config config) {
     URLParts parts;
     
     if (config.ice_server_urls.size() > 0) {
-        for (const std::string url : config.ice_server_urls) {
+        for (const std::string& url : config.ice_server_urls) {
             naivertc::IceServer ice_server(url);
             ice_servers_.push_back(ice_server);
         }
@@ -61,9 +58,9 @@ void AyameChannel::Connect(BaseChannel::Config config) {
 
     // FIXME: error occuring when signaling_url == ""
     if (ParseURL(signaling_url, parts)) {
-        ws_.reset(new Websocket(Websocket::ssl_tag(), config_.insecure));
+        ws_.reset(new Websocket(ioc_, Websocket::ssl_tag(), config_.insecure));
     } else {
-        ws_.reset(new Websocket());
+        ws_.reset(new Websocket(ioc_));
     }
     ws_->Connect(signaling_url,
                std::bind(&AyameChannel::OnConnect, this,
@@ -163,8 +160,8 @@ void AyameChannel::OnClose(boost::system::error_code ec) {
     }
     is_closing_ = false;
     is_connected_ = false;
-    if (observer_) {
-        observer_->OnClosed(ec);
+    if (auto ob = observer_.lock()) {
+        ob->OnClosed(ec);
     }
 }
 
@@ -188,7 +185,9 @@ void AyameChannel::OnRead(boost::system::error_code ec,
 
     if (ec) {
         std::cout << __FUNCTION__ << ": error: " << ec.message() << std::endl;
-        observer_->OnClosed(ec);
+        if (auto ob = observer_.lock()) {
+            ob->OnClosed(ec);
+        }
         return;
     }
 
@@ -203,21 +202,21 @@ void AyameChannel::OnRead(boost::system::error_code ec,
         }
         
         ParseIceServers(json_message, ice_servers_);
-        if (observer_) {
-            observer_->OnIceServers(ice_servers_);
-            observer_->OnConnected(is_initiator);
+        if (auto ob = observer_.lock()) {
+            ob->OnIceServers(ice_servers_);
+            ob->OnConnected(is_initiator);
         }
         
     } else if (type == "offer") {
         const std::string sdp = json_message["sdp"];
-        if (observer_) {
-            observer_->OnRemoteSDP(sdp, true);
+        if (auto ob = observer_.lock()) {
+            ob->OnRemoteSDP(sdp, true);
         }
     
     } else if (type == "answer") {
         const std::string sdp = json_message["sdp"];
-        if (observer_) {
-            observer_->OnRemoteSDP(sdp, false);
+        if (auto ob = observer_.lock()) {
+            ob->OnRemoteSDP(sdp, false);
         }
     } else if (type == "candidate") {
         int sdp_mlineindex = 0;
@@ -226,8 +225,8 @@ void AyameChannel::OnRead(boost::system::error_code ec,
         sdp_mid = ice["sdpMid"].get<std::string>();
         sdp_mlineindex = ice["sdpMLineIndex"].get<int>();
         candidate = ice["candidate"].get<std::string>();
-        if (observer_) {
-            observer_->OnRemoteCandidate(sdp_mid, sdp_mlineindex, candidate);
+        if (auto ob = observer_.lock()) {
+            ob->OnRemoteCandidate(sdp_mid, sdp_mlineindex, candidate);
         }
     } else if (type == "ping") {
         DoSendPong();
