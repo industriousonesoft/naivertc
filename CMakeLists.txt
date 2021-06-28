@@ -34,7 +34,7 @@ set(LIB_SOURCES
 
     src/pc/configuration.cpp
     src/pc/candidate.cpp
-    src/pc/sdp_serializer.cpp
+    src/pc/sdp_session_description.cpp
     src/pc/sdp_entry.cpp
     src/pc/transport.cpp
     src/pc/ice_transport.cpp
@@ -57,7 +57,7 @@ set(LIB_HEADERS
 
     include/pc/configuration.hpp
     include/pc/candidate.hpp
-    include/pc/sdp_serializer.hpp
+    include/pc/sdp_session_description.hpp
     include/pc/sdp_entry.hpp
     include/pc/transport.hpp
     include/pc/ice_transport.hpp

@@ -6,7 +6,7 @@
 #include "pc/configuration.hpp"
 #include "pc/candidate.hpp"
 #include "pc/sdp_defines.hpp"
-#include "pc/sdp_serializer.hpp"
+#include "pc/sdp_session_description.hpp"
 
 #include <sigslot.h>
 #include <juice/juice.h>
@@ -28,8 +28,8 @@ public:
     void GatheringLocalCandidate(std::string mid);
     bool AddRemoteCandidate(const Candidate& candidate);
 
-    sdp::Serializer GetLocalDescription(sdp::Type type) const;
-    void SetRemoteDescription(const sdp::Serializer& description);
+    sdp::SessionDescription GetLocalDescription(sdp::Type type) const;
+    void SetRemoteDescription(const sdp::SessionDescription& description);
 
     std::optional<std::string> GetLocalAddress() const;
     std::optional<std::string> GetRemoteAddress() const;

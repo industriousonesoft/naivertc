@@ -1,4 +1,4 @@
-#include "pc/sdp_serializer.hpp"
+#include "pc/sdp_session_description.hpp"
 #include "common/utils.hpp"
 
 #include <plog/Log.h>
@@ -8,7 +8,7 @@
 
 namespace naivertc {
 namespace sdp {
-Serializer::Serializer(const std::string& sdp, Type type, Role role) : 
+SessionDescription::SessionDescription(const std::string& sdp, Type type, Role role) : 
     type_(Type::UNSPEC),
     role_(role) {
     hintType(type);
@@ -78,23 +78,23 @@ Serializer::Serializer(const std::string& sdp, Type type, Role role) :
 
 }
 
-Serializer::Serializer(const std::string& sdp, std::string type_string) : 
-    Serializer(sdp, StringToType(type_string), Role::ACT_PASS) {
+SessionDescription::SessionDescription(const std::string& sdp, std::string type_string) : 
+    SessionDescription(sdp, StringToType(type_string), Role::ACT_PASS) {
 }
 
-Type Serializer::type() const {
+Type SessionDescription::type() const {
     return type_;
 }
 
-Role Serializer::role() const {
+Role SessionDescription::role() const {
     return role_;
 }
 
-std::string Serializer::bundle_id() const {
+std::string SessionDescription::bundle_id() const {
     return !entries_.empty() ? entries_[0]->mid() : "0";
 }
 
-void Serializer::hintType(Type type) {
+void SessionDescription::hintType(Type type) {
     if (type_ == Type::UNSPEC) {
         type_ = type;
         if (type_ == Type::ANSWER && role_ == Role::ACT_PASS) {
@@ -104,7 +104,7 @@ void Serializer::hintType(Type type) {
     }
 }
 
-void Serializer::set_fingerprint(std::string fingerprint) {
+void SessionDescription::set_fingerprint(std::string fingerprint) {
     if (!utils::string::is_sha256_fingerprint(fingerprint)) {
         throw std::invalid_argument("Invalid SHA265 fingerprint: " + fingerprint );
     }
@@ -117,33 +117,33 @@ void Serializer::set_fingerprint(std::string fingerprint) {
     fingerprint_.emplace(std::move(fingerprint));
 }
 
-int Serializer::AddMedia(Media media) {
+int SessionDescription::AddMedia(Media media) {
     entries_.emplace_back(std::make_shared<Media>(std::move(media)));
     return int(entries_.size()) - 1;
 }
 
-int Serializer::AddApplication(Application app) {
+int SessionDescription::AddApplication(Application app) {
     entries_.emplace_back(std::make_shared<Application>(std::move(app)));
     return int(entries_.size()) - 1;
 }
 
-int Serializer::AddApplication(std::string mid) {
+int SessionDescription::AddApplication(std::string mid) {
     return AddApplication(Application(std::move(mid)));
 }
 
-int Serializer::AddAudio(std::string mid, Direction direction) {
+int SessionDescription::AddAudio(std::string mid, Direction direction) {
     return AddMedia(Audio(std::move(mid), direction));
 }
 
-int Serializer::AddVideo(std::string mid, Direction direction) {
+int SessionDescription::AddVideo(std::string mid, Direction direction) {
     return AddMedia(Video(std::move(mid), direction));
 }
 
-void Serializer::ClearMedia() {
+void SessionDescription::ClearMedia() {
     entries_.clear();
 }
 
-std::string Serializer::GenerateSDP(std::string_view eol, bool application_only) const {
+std::string SessionDescription::GenerateSDP(std::string_view eol, bool application_only) const {
     std::ostringstream sdp;
 
     // Header
@@ -201,7 +201,7 @@ std::string Serializer::GenerateSDP(std::string_view eol, bool application_only)
 }
 
 // private methods
-std::shared_ptr<Entry> Serializer::CreateEntry(std::string mline, std::string mid, Direction direction) {
+std::shared_ptr<Entry> SessionDescription::CreateEntry(std::string mline, std::string mid, Direction direction) {
     std::string type = mline.substr(0, mline.find(' '));
     if (type == "application") {
         auto app = std::make_shared<Application>(std::move(mid));

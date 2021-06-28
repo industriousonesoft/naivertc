@@ -1,5 +1,5 @@
-#ifndef _PC_SDP_SERIALIZER_H_
-#define _PC_SDP_SERIALIZER_H_
+#ifndef _PC_SDP_SESSION_DESCRIPTION_H_
+#define _PC_SDP_SESSION_DESCRIPTION_H_
 
 #include "base/defines.hpp"
 #include "pc/sdp_entry.hpp"
@@ -11,10 +11,10 @@
 namespace naivertc {
 namespace sdp {
 
-class RTC_CPP_EXPORT Serializer {
+class RTC_CPP_EXPORT SessionDescription {
 public:
-    Serializer(const std::string& sdp, Type type = Type::UNSPEC, Role role = Role::ACT_PASS);
-    Serializer(const std::string& sdp, std::string type_string);
+    SessionDescription(const std::string& sdp, Type type = Type::UNSPEC, Role role = Role::ACT_PASS);
+    SessionDescription(const std::string& sdp, std::string type_string);
 
     Type type() const;
     Role role() const;
