@@ -1,11 +1,15 @@
 #include "client.hpp"
 
 // naivertc
+#include <common/logger.hpp>
 #include <pc/configuration.hpp>
 #include <signaling/base_channel.hpp>
 
+
 Client::Client(boost::asio::io_context& ioc) {
     ayame_channel_.reset(new naivertc::signaling::AyameChannel(ioc, weak_from_this()));
+    // Logger
+    naivertc::logging::InitLogger(naivertc::logging::Level::VERBOSE);
 }
 
 Client::~Client() {

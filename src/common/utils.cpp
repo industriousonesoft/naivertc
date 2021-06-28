@@ -5,6 +5,7 @@
 #include <chrono>
 #include <type_traits>
 
+namespace naivertc {
 namespace utils {
 
 namespace string {
@@ -89,4 +90,5 @@ void shuffle(std::vector<T> list) {
 
 } // end of random namespace
 
+}
 }

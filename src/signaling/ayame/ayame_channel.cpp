@@ -10,6 +10,9 @@
 
 #include "signaling/ayame/ayame_channel.hpp"
 
+// plog
+#include <plog/Log.h>
+
 namespace naivertc {
 namespace signaling {
 
@@ -127,11 +130,13 @@ void AyameChannel::ParseIceServers(json json_message, std::vector<naivertc::IceS
                 auto jurls = jserver["urls"];
                 for (const std::string url : jurls) {
                     naivertc::IceServer ice_server(url);
-                    if (ice_server.type() == naivertc::IceServer::Type::STUN && jserver.contains("username") && jserver.contains("credential")) {
+                    if (ice_server.type() == naivertc::IceServer::Type::TURN && 
+                        jserver.contains("username") && 
+                        jserver.contains("credential")) {
                         ice_server.set_username(jserver["username"].get<std::string>());
                         ice_server.set_password(jserver["credential"].get<std::string>());
                     }
-                    std::cout << __FUNCTION__ << ": iceserver.url=" << std::string(url) << std::endl;
+                    PLOG_VERBOSE << "iceserver = " << std::string(ice_server);
                     ice_servers.push_back(ice_server);
                 }
                 

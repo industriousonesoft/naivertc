@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+namespace naivertc {
 namespace utils {
 
 // string
@@ -32,6 +33,8 @@ void shuffle(std::vector<T> list);
 
 }
 
+
+}
 }
 
 #endif

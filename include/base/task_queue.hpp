@@ -1,7 +1,7 @@
 #ifndef _BASE_TASK_QUEUE_H_
 #define _BASE_TASK_QUEUE_H_
 
-#include "common/defines.hpp"
+#include "base/defines.hpp"
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/io_context_strand.hpp>

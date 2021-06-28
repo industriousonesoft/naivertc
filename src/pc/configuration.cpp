@@ -5,14 +5,16 @@
 #include <regex>
 #include <vector>
 #include <optional>
+#include <sstream>
 
 namespace naivertc {
 
 // eg: stun:stun.l.google.com:19302
 // eg: turn:numb.viagenie.ca:3478?transport=udp&username=28224511:1379330808&credential=JZEOEt2V3Qb0y27GRntt2u2PAYA
 IceServer::IceServer(const std::string& url) {
-     // Parsing a URI Reference with a Regular Expression
+    // Parsing a URI Reference with a Regular Expression
     // Modified regex from RFC 3986, see https://tools.ietf.org/html/rfc3986#appendix-B
+    // TODO(cwp): 这段正则表达式怎么理解？
 	static const char *rs =
 	    R"(^(([^:.@/?#]+):)?(/{0,2}((([^:@]*)(:([^@]*))?)@)?(([^:/?#]*)(:([^/?#]*))?))?([^?#]*)(\?([^#]*))?(#(.*))?)";
 	static const std::regex r(rs, std::regex::extended);
@@ -89,6 +91,41 @@ IceServer::IceServer(std::string host_name, std::string service, std::string use
 	} catch (...) {
 		throw std::invalid_argument("Invalid ICE server port: " + service);
 	}
+}
+
+IceServer::operator std::string() const {
+    std::ostringstream desc;
+    desc << "hostname: " << host_name_ << " port: " << port_ << " type: " << type_to_string();
+    if (type_ == Type::TURN) {
+        desc << " username: " << username_ << " password: " << password_ << " relayType: " << relay_type_to_string();
+    }
+    return desc.str();
+}
+
+std::string IceServer::type_to_string() const {
+    switch (type_)
+    {
+    case Type::STUN:
+        return "STUN";
+    case Type::TURN:
+        return "TRUN";
+    default:
+        return "";
+    }
+}
+
+std::string IceServer::relay_type_to_string() const {
+    switch (relay_type_)
+    {
+    case RelayType::TURN_UDP:
+        return "TURN_UDP";
+    case RelayType::TURN_TCP:
+        return "TURN_TCP";
+    case RelayType::TURN_TLS:
+        return "TURN_TLS";
+    default:
+        return "";
+    }
 }
 
 }

@@ -1,7 +1,7 @@
 #ifndef _PEER_CONNECTION_CONFIGURATION_H_
 #define _PEER_CONNECTION_CONFIGURATION_H_
 
-#include "common/defines.hpp"
+#include "base/defines.hpp"
 
 #include <string>
 #include <vector>
@@ -32,6 +32,12 @@ struct RTC_CPP_EXPORT IceServer {
 
     void set_username(std::string username) { username_ = username; }
     void set_password(std::string password) { password_ = password; }
+
+    operator std::string() const;
+
+private:
+    std::string type_to_string() const;
+    std::string relay_type_to_string() const;
 
 private:
     std::string host_name_;

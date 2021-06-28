@@ -23,7 +23,11 @@ else()
 endif()
 
 set(LIB_SOURCES
+    src/base/task_queue.cpp
+
     src/common/utils.cpp
+    src/common/logger.cpp
+
     src/pc/configuration.cpp
     src/pc/candidate.cpp
     src/pc/sdp_serializer.cpp
@@ -33,12 +37,15 @@ set(LIB_SOURCES
     src/signaling/base_channel.cpp
     src/signaling/websocket.cpp
     src/signaling/ayame/ayame_channel.cpp
-    src/base/task_queue.cpp
 )
 
 set(LIB_HEADERS
-    include/common/defines.hpp
+    include/base/defines.hpp
+    include/base/task_queue.hpp
+
     include/common/utils.hpp
+    include/common/logger.hpp
+
     include/pc/configuration.hpp
     include/pc/candidate.hpp
     include/pc/sdp_serializer.hpp
@@ -49,7 +56,6 @@ set(LIB_HEADERS
     include/signaling/url_parts.hpp
     include/signaling/websocket.hpp
     include/signaling/ayame/ayame_channel.hpp
-    include/base/task_queue.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages

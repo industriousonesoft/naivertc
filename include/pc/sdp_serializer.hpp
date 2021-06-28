@@ -1,7 +1,7 @@
 #ifndef _PC_SDP_SERIALIZER_H_
 #define _PC_SDP_SERIALIZER_H_
 
-#include "common/defines.hpp"
+#include "base/defines.hpp"
 #include "pc/sdp_entry.hpp"
 #include "pc/sdp_defines.hpp"
 

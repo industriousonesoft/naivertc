@@ -1,7 +1,7 @@
 #ifndef _PC_SDP_ENTRY_H_
 #define _PC_SDP_ENTRY_H_
 
-#include "common/defines.hpp"
+#include "base/defines.hpp"
 #include "pc/sdp_defines.hpp"
 
 #include <string>

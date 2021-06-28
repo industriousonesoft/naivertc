@@ -18,7 +18,7 @@ int main(int argc, const char* argv[]) {
     });
 
     std::cout << "main start." << std::endl;
-
+    
     std::shared_ptr<Client> client = Client::Create(ioc);
 
     client->Start();

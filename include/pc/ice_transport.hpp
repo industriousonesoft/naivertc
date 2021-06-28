@@ -1,7 +1,7 @@
 #ifndef _PC_ICE_TRANSPORT_H_
 #define _PC_ICE_TRANSPORT_H_
 
-#include "common/defines.hpp"
+#include "base/defines.hpp"
 #include "pc/transport.hpp"
 #include "pc/configuration.hpp"
 #include "pc/candidate.hpp"
