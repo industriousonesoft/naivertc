@@ -28,23 +28,32 @@ set(LIB_SOURCES
     src/common/utils.cpp
     src/common/logger.cpp
 
+    src/signaling/base_channel.cpp
+    src/signaling/websocket.cpp
+    src/signaling/ayame/ayame_channel.cpp
+
     src/pc/configuration.cpp
     src/pc/candidate.cpp
     src/pc/sdp_serializer.cpp
     src/pc/sdp_entry.cpp
     src/pc/transport.cpp
     src/pc/ice_transport.cpp
-    src/signaling/base_channel.cpp
-    src/signaling/websocket.cpp
-    src/signaling/ayame/ayame_channel.cpp
+    src/pc/peer_connection.cpp
+    src/pc/peer_connection_impl.cpp
 )
 
 set(LIB_HEADERS
     include/base/defines.hpp
     include/base/task_queue.hpp
+    include/base/proxy.hpp
 
     include/common/utils.hpp
     include/common/logger.hpp
+
+    include/signaling/base_channel.hpp
+    include/signaling/url_parts.hpp
+    include/signaling/websocket.hpp
+    include/signaling/ayame/ayame_channel.hpp
 
     include/pc/configuration.hpp
     include/pc/candidate.hpp
@@ -52,10 +61,8 @@ set(LIB_HEADERS
     include/pc/sdp_entry.hpp
     include/pc/transport.hpp
     include/pc/ice_transport.hpp
-    include/signaling/base_channel.hpp
-    include/signaling/url_parts.hpp
-    include/signaling/websocket.hpp
-    include/signaling/ayame/ayame_channel.hpp
+    include/pc/peer_connection.hpp
+    include/pc/peer_connection_impl.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
