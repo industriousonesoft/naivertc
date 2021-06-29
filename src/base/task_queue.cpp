@@ -17,13 +17,13 @@ TaskQueue::~TaskQueue() {
     ioc_thread_.reset();
 }
 
-template<typename Function>
-void TaskQueue::Post(Function && f) const {
-    boost::asio::post(strand_, f);
+void TaskQueue::Post(std::function<void()> f) const {
+    boost::asio::post(strand_, [f](){
+        f();
+    });
 }
 
-template<typename Function>
-void TaskQueue::Dispatch(Function && f) const {
+void TaskQueue::Dispatch(std::function<void()> f) const {
     boost::asio::dispatch(strand_, f);
 }
 

@@ -7,6 +7,8 @@
 #include <boost/asio/io_context_strand.hpp>
 #include <boost/thread/thread.hpp>
 
+#include <functional>
+
 namespace naivertc {
 
 class RTC_CPP_EXPORT TaskQueue {
@@ -14,11 +16,9 @@ public:
     TaskQueue();
     ~TaskQueue();
 
-    template<typename Function>
-    void Post(Function && f) const;
+    void Post(std::function<void()> f) const;
 
-    template<typename Function>
-    void Dispatch(Function && f) const;
+    void Dispatch(std::function<void()> f) const;
 
 private:
     boost::asio::io_context ioc_;
