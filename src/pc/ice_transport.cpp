@@ -175,7 +175,7 @@ void IceTransport::OnJuiceStateChanged(State state) {
 }
 
 void IceTransport::OnJuiceCandidateGathered(const char* sdp) {
-    SignalCandidateGathered(Candidate(sdp, curr_mid_));
+    SignalCandidateGathered(std::move(Candidate(sdp, curr_mid_)));
 }
 
 void IceTransport::OnJuiceGetheringStateChanged(GatheringState state) {
@@ -186,7 +186,7 @@ void IceTransport::OnJuiceDataReceived(const char* data, size_t size) {
     try {
         PLOG_VERBOSE << "Incoming size: " << size;
         // 使用reinterpret_cast(re+interpret+cast：重新诠释转型)对data中的数据格式进行重新映射: char -> byte
-        auto b = reinterpret_cast<const std::byte *>(data);
+        // auto b = reinterpret_cast<const std::byte *>(data);
     } catch(const std::exception &e) {
         PLOG_WARNING << e.what();
     }
@@ -251,7 +251,7 @@ void IceTransport::OnJuiceCandidateGathered(juice_agent_t* agent, const char* sd
 
 void IceTransport::OnJuiceGetheringDone(juice_agent_t* agent, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
-    ice_transport->OnJuiceGetheringStateChanged(GatheringState::COMPLETE);
+    ice_transport->OnJuiceGetheringStateChanged(GatheringState::COMPLETED);
 }
 
 void IceTransport::OnJuiceDataReceived(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {

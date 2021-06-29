@@ -39,7 +39,6 @@ set(LIB_SOURCES
     src/pc/transport.cpp
     src/pc/ice_transport.cpp
     src/pc/peer_connection.cpp
-    src/pc/peer_connection_impl.cpp
 )
 
 set(LIB_HEADERS
@@ -62,7 +61,6 @@ set(LIB_HEADERS
     include/pc/transport.hpp
     include/pc/ice_transport.hpp
     include/pc/peer_connection.hpp
-    include/pc/peer_connection_impl.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages

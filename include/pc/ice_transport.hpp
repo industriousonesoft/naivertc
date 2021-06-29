@@ -18,7 +18,7 @@ public:
     enum class GatheringState {
         NEW = 0,
         GATHERING,
-        COMPLETE
+        COMPLETED
     };
 public:
     IceTransport(const Configuration& config);

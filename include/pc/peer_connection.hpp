@@ -3,18 +3,21 @@
 
 #include "base/defines.hpp"
 #include "base/proxy.hpp"
+#include "base/task_queue.hpp"
 #include "pc/configuration.hpp"
 #include "pc/candidate.hpp"
 #include "pc/sdp_session_description.hpp"
+#include "pc/ice_transport.hpp"
+
+#include <sigslot.h>
 
 #include <exception>
 
 namespace naivertc {
 
-class PeerConnectionImpl;
-
 // PeerConnection
-class RTC_CPP_EXPORT PeerConnection final : Proxy<PeerConnectionImpl> {
+class RTC_CPP_EXPORT PeerConnection final : public sigslot::has_slots<>, 
+                                            public std::enable_shared_from_this<PeerConnection> {
 public:
     // ConnectionState
     enum class ConnectionState {
@@ -35,13 +38,13 @@ public:
 
     using ConnectionStateCallback = std::function<void(ConnectionState new_state)>;
     using GatheringStateCallback = std::function<void(GatheringState new_state)>;
-    using CandidateCallback = std::function<void(Candidate* candidate)>;
+    using CandidateCallback = std::function<void(Candidate candidate)>;
 
     using SDPCreateSuccessCallback = std::function<void(sdp::SessionDescription* sdp)>;
-    using SDPCreateFailureCallback = std::function<void(const std::exception&)>;
+    using SDPCreateFailureCallback = std::function<void(const std::exception& exp)>;
 
     using SDPSetSuccessCallback = std::function<void()>;
-    using SDPSetFailureCallback = std::function<void(const std::exception&)>;
+    using SDPSetFailureCallback = std::function<void(const std::exception& exp)>;
 public:
     static std::shared_ptr<PeerConnection> CreatePeerConnection(Configuration config) {
         return std::shared_ptr<PeerConnection>(new PeerConnection(config));
@@ -65,8 +68,30 @@ public:
     void OnIceGatheringStateChanged(GatheringStateCallback callback);
     void OnIceCandidate(CandidateCallback callback);
 
+    void OnTransportStateChanged(Transport::State transport_state);
+    void OnGatheringStateChanged(IceTransport::GatheringState gathering_state);
+    void OnCandidateGathered(Candidate candidate);
+
 protected:
     PeerConnection(Configuration config);
+
+private:
+    void InitIceTransport();
+    bool UpdateConnectionState(ConnectionState state);
+    bool UpdateGatheringState(GatheringState state);
+
+private:
+    TaskQueue handle_queue_;
+
+    const Configuration config_;
+    ConnectionState connection_state_;
+    GatheringState gathering_state_;
+
+    std::unique_ptr<IceTransport> ice_transport_;
+
+    PeerConnection::ConnectionStateCallback connection_state_callback_;
+    PeerConnection::GatheringStateCallback gathering_state_callback_;
+    PeerConnection::CandidateCallback candidate_callback_;
 };
 
 }
