@@ -52,65 +52,34 @@ bool PeerConnection::UpdateGatheringState(GatheringState state) {
     return true;
 }
 
-// Ice State && Candidate
-void PeerConnection::OnTransportStateChanged(Transport::State transport_state) {
-    handle_queue_.Post([this, transport_state](){
-        switch (transport_state) {
-        case Transport::State::DISCONNECTED:
-            this->UpdateConnectionState(ConnectionState::DISCONNECTED);
-            break;
-        case Transport::State::CONNECTING:
-            this->UpdateConnectionState(ConnectionState::CONNECTING);
-            break;
-        case Transport::State::CONNECTED:
-            this->UpdateConnectionState(ConnectionState::CONNECTED);
-            break;
-        case Transport::State::FAILED: 
-            this->UpdateConnectionState(ConnectionState::FAILED);
-            break;
-        default:
-            // Ignore the others state
-            break;
-        }
-    });
+void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_description, 
+                                                SDPSetSuccessCallback on_success, 
+                                                SDPSetFailureCallback on_failure) {
+    this->local_session_description_.emplace(session_description);  
+    session_description.ClearMedia();                                        
 }
-
-void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gathering_state) {
-    handle_queue_.Post([this, gathering_state](){
-        switch (gathering_state) {
-        case IceTransport::GatheringState::NEW:
-            this->UpdateGatheringState(GatheringState::NEW);
-            break;
-        case IceTransport::GatheringState::GATHERING:
-            this->UpdateGatheringState(GatheringState::GATHERING);
-            break;
-        case IceTransport::GatheringState::COMPLETED:
-            this->UpdateGatheringState(GatheringState::COMPLETED);
-            break;
-        default:
-            break;
-        }
-    });
-}
-
-void PeerConnection::OnCandidateGathered(Candidate candidate) {
-    handle_queue_.Post([this, candidate](){
-        this->candidate_callback_(candidate);
-    });
+void PeerConnection::SetRemoteSessionDescription(sdp::SessionDescription session_description, 
+                                                SDPSetSuccessCallback on_success, 
+                                                SDPSetFailureCallback on_failure) {
+    this->remote_session_description_.emplace(session_description);
+    this->ice_transport_->SetRemoteDescription(session_description);
+    // TODO: shift datachannel? why?
 }
 
 // Offer && Answer
 void PeerConnection::CreateOffer(SDPSetSuccessCallback on_success, 
                 SDPCreateFailureCallback on_failure) {
     handle_queue_.Post([this, on_success, on_failure](){
-       
+       auto session_description = this->ice_transport_->GetLocalDescription(sdp::Type::OFFER);
+       this->SetLocalSessionDescription(std::move(session_description));
     });
 }
 
 void PeerConnection::CreateAnswer(SDPSetSuccessCallback on_success, 
                 SDPCreateFailureCallback on_failure) {
     handle_queue_.Post([this, on_success, on_failure](){
-        
+        auto session_description = this->ice_transport_->GetLocalDescription(sdp::Type::ANSWER);
+        this->SetLocalSessionDescription(std::move(session_description));
     });
 }
 
@@ -118,7 +87,8 @@ void PeerConnection::SetOffer(const std::string sdp,
             SDPSetSuccessCallback on_success,
             SDPSetFailureCallback on_failure) {
     handle_queue_.Post([this, sdp, on_success, on_failure](){
-        
+        auto session_description = sdp::SessionDescription(sdp, sdp::Type::OFFER);
+        this->SetRemoteSessionDescription(std::move(session_description), on_success, on_failure);
     });
 }
 
@@ -126,7 +96,8 @@ void PeerConnection::SetAnswer(const std::string sdp,
             SDPSetSuccessCallback on_success, 
             SDPSetFailureCallback on_failure) {
     handle_queue_.Post([this, sdp, on_success, on_failure](){
-        
+        auto session_description = sdp::SessionDescription(sdp, sdp::Type::ANSWER);
+        this->SetRemoteSessionDescription(std::move(session_description), on_success, on_failure);
     });        
 }
 

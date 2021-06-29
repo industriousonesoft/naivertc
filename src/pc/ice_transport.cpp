@@ -77,7 +77,7 @@ void IceTransport::SetRemoteDescription(const sdp::SessionDescription& descripti
         throw std::logic_error("Incompatible roles with remote description.");
     }
     curr_mid_ = description.bundle_id();
-    if (juice_set_remote_description(juice_agent_.get(), description.GenerateSDP("\r\n", true).c_str())) {
+    if (juice_set_remote_description(juice_agent_.get(), description.GenerateSDP("\r\n", true /* sdp without audio or video media lines */).c_str())) {
         throw std::runtime_error("Failed to parse ICE settings from remote SDP.");
     }
 }

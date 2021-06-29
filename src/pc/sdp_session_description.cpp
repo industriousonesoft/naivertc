@@ -67,7 +67,7 @@ SessionDescription::SessionDescription(const std::string& sdp, Type type, Role r
         }
     } // end of while
 
-    // username如何没有使用'-'代替
+    // username如果没有则使用'-'代替
     if (user_name_.empty()) {
         user_name_ = "-";
     }

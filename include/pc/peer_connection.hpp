@@ -31,6 +31,7 @@ public:
 
     // GatheringState
     enum class GatheringState {
+        NONE = -1,
         NEW = 0,
         GATHERING,
         COMPLETED
@@ -80,6 +81,13 @@ private:
     bool UpdateConnectionState(ConnectionState state);
     bool UpdateGatheringState(GatheringState state);
 
+    void SetLocalSessionDescription(sdp::SessionDescription session_description, 
+                                    SDPSetSuccessCallback on_success = nullptr, 
+                                    SDPSetFailureCallback on_failure = nullptr);
+    void SetRemoteSessionDescription(sdp::SessionDescription session_description, 
+                                    SDPSetSuccessCallback on_success = nullptr, 
+                                    SDPSetFailureCallback on_failure = nullptr);
+
 private:
     TaskQueue handle_queue_;
 
@@ -92,6 +100,9 @@ private:
     PeerConnection::ConnectionStateCallback connection_state_callback_;
     PeerConnection::GatheringStateCallback gathering_state_callback_;
     PeerConnection::CandidateCallback candidate_callback_;
+
+    std::optional<sdp::SessionDescription> local_session_description_;
+    std::optional<sdp::SessionDescription> remote_session_description_;
 };
 
 }

@@ -24,6 +24,8 @@ endif()
 
 set(LIB_SOURCES
     src/base/task_queue.cpp
+    src/base/certificate.cpp
+    src/base/tls.cpp
 
     src/common/utils.cpp
     src/common/logger.cpp
@@ -39,12 +41,15 @@ set(LIB_SOURCES
     src/pc/transport.cpp
     src/pc/ice_transport.cpp
     src/pc/peer_connection.cpp
+    src/pc/peer_connection_ice_transport_slots.cpp
 )
 
 set(LIB_HEADERS
     include/base/defines.hpp
     include/base/task_queue.hpp
     include/base/proxy.hpp
+    include/base/certificate.hpp
+    include/base/tls.hpp
 
     include/common/utils.hpp
     include/common/logger.hpp
