@@ -13,3 +13,6 @@
 [submodule "deps/json"]
 	path = deps/json
 	url = https://github.com/nlohmann/json.git
+[submodule "deps/usrsctp"]
+	path = deps/usrsctp
+	url = https://github.com/sctplab/usrsctp.git
