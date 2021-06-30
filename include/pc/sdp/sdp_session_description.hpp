@@ -2,8 +2,8 @@
 #define _PC_SDP_SESSION_DESCRIPTION_H_
 
 #include "base/defines.hpp"
-#include "pc/sdp_entry.hpp"
-#include "pc/sdp_defines.hpp"
+#include "pc/sdp/sdp_entry.hpp"
+#include "pc/sdp/sdp_defines.hpp"
 
 #include <string>
 #include <variant>

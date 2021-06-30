@@ -1,4 +1,4 @@
-#include "pc/configuration.hpp"
+#include "pc/peer_connection_configuration.hpp"
 
 #include <plog/Log.h>
 

@@ -4,11 +4,37 @@
 #include <random>
 #include <chrono>
 #include <type_traits>
+#include <limits>
 
 namespace naivertc {
 namespace utils {
 
+// numberic
+namespace numeric {
+
+template<typename T>
+uint16_t to_uint16(T i) {
+    if (i >= 0 && static_cast<typename std::make_unsigned<T>::type>(i) <= std::numeric_limits<uint16_t>::max())
+		return static_cast<uint16_t>(i);
+	else
+		throw std::invalid_argument("Integer out of range");
+}
+
+
+template<typename T>
+uint16_t to_uint32(T i) {
+    if (i >=0 && static_cast<typename std::make_unsigned<T>::type>(i) <= std::numeric_limits<uint32_t>::max()) {
+        return static_cast<uint32_t>(i);
+    }else {
+        throw std::invalid_argument("Integer out of range.");
+    }
+}
+
+}
+
+// string
 namespace string {
+
 bool match_prefix(const std::string_view str, const std::string_view prefix) {
     return str.size() >= prefix.size() && std::mismatch(prefix.begin(), prefix.end(), str.begin()).first == prefix.end();
 }

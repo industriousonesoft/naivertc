@@ -2,7 +2,7 @@
 #define _PC_SDP_ENTRY_H_
 
 #include "base/defines.hpp"
-#include "pc/sdp_defines.hpp"
+#include "pc/sdp/sdp_defines.hpp"
 
 #include <string>
 #include <vector>

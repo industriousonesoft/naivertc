@@ -1,5 +1,5 @@
-#ifndef _BASE_PROXY_H_
-#define _BASE_PROXY_H_
+#ifndef _COMMON_PROXY_H_
+#define _COMMON_PROXY_H_
 
 #include <memory>
 

@@ -66,7 +66,7 @@ std::string Certificate::MakeFingerprint(X509* x509) {
 }
 
 const std::string COMMON_NAME = "libnaivertc";
-std::shared_ptr<Certificate> Certificate::MakeCertificateImpl(CertificateType type) {
+std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, const std::string common_name) {
 
     PLOG_DEBUG << "Generating certificate with OpenSSL.";
 
@@ -130,7 +130,7 @@ std::shared_ptr<Certificate> Certificate::MakeCertificateImpl(CertificateType ty
     }
 
     const size_t serialSize = 16;
-	auto *commonNameBytes = reinterpret_cast<unsigned char *>(const_cast<char *>(COMMON_NAME.c_str()));
+	auto *commonNameBytes = reinterpret_cast<unsigned char *>(const_cast<char *>(common_name.c_str()));
 
 	if (!X509_set_pubkey(x509.get(), pkey.get()))
 		throw std::runtime_error("Unable to set certificate public key");

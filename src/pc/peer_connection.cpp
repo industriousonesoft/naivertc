@@ -1,6 +1,10 @@
 #include "pc/peer_connection.hpp"
+#include "common/utils.hpp"
+#include "base/internals.hpp"
 
 #include <plog/Log.h>
+
+#include <variant>
 
 namespace naivertc {
 
@@ -15,7 +19,7 @@ PeerConnection::~PeerConnection() {
 
 }
 
-// private methods
+// Private methods
 void PeerConnection::InitIceTransport() {
     try {
        PLOG_VERBOSE << "Init Ice transport";
@@ -55,8 +59,27 @@ bool PeerConnection::UpdateGatheringState(GatheringState state) {
 void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_description, 
                                                 SDPSetSuccessCallback on_success, 
                                                 SDPSetFailureCallback on_failure) {
-    this->local_session_description_.emplace(session_description);  
-    session_description.ClearMedia();                                        
+    this->local_session_description_.emplace(session_description);
+    // Clean up the application entry added by ICE transport already.
+    session_description.ClearMedia();                                
+
+    // const uint16_t local_sctp_port = DEFAULT_SCTP_PORT;
+    // const size_t local_max_message_size = config_.max_message_size_.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
+
+    // Reciprocate remote session description
+    if (auto remote = this->remote_session_description_) {
+        // https://wanghenshui.github.io/2018/08/15/variant-visit
+        for (unsigned int i = 0; i < remote->media_count(); ++i) {
+            std::visit(utils::overloaded {
+                [&](sdp::Application* remote_app) {
+                   
+                },
+                [&](sdp::Media* remote_media) {
+
+                }
+            }, remote->media(i));
+        }
+    }       
 }
 void PeerConnection::SetRemoteSessionDescription(sdp::SessionDescription session_description, 
                                                 SDPSetSuccessCallback on_success, 

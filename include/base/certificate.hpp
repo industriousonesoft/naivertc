@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "base/tls.hpp"
-#include "pc/configuration.hpp"
+#include "pc/peer_connection_configuration.hpp"
 
 #include <string>
 #include <memory>
@@ -26,7 +26,7 @@ public:
 
 private:
     std::string MakeFingerprint(X509* x509);
-    static std::shared_ptr<Certificate> MakeCertificateImpl(CertificateType type = CertificateType::DEFAULT);
+    static std::shared_ptr<Certificate> Generate(CertificateType type, const std::string common_name);
 private:
     std::shared_ptr<X509> x509_;
     std::shared_ptr<EVP_PKEY> pkey_;

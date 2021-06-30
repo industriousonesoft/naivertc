@@ -3,9 +3,42 @@
 
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace naivertc {
 namespace utils {
+
+// TODO: Overload Pattern in C++17，overload原理就是模板推导和转发，变参模板怎么理解？
+/** eg:
+struct overloadInt{ 
+    void operator(int arg){
+        std::cout<<arg<<' ';
+    } 
+};
+struct overload : overloadInt{
+    using overloadInt::operator();
+};
+*/
+// overloaded helper
+template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+// numeric
+namespace numeric {
+
+template<
+    typename T,
+    typename = typename std::enable_if<std::is_integral<T>::value, T>::type
+>
+uint16_t to_uint16(T i);
+
+template<
+    typename T,
+    typename = typename std::enable_if<std::is_integral<T>::value, T>::type
+>
+uint32_t to_uint32(T i);
+
+}
 
 // string
 namespace string {

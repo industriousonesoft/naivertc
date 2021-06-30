@@ -2,12 +2,12 @@
 #define _PC_PEER_CONNECTION_H_
 
 #include "base/defines.hpp"
-#include "base/proxy.hpp"
-#include "base/task_queue.hpp"
-#include "pc/configuration.hpp"
-#include "pc/candidate.hpp"
-#include "pc/sdp_session_description.hpp"
-#include "pc/ice_transport.hpp"
+#include "common/proxy.hpp"
+#include "common/task_queue.hpp"
+#include "pc/peer_connection_configuration.hpp"
+#include "pc/sdp/candidate.hpp"
+#include "pc/sdp/sdp_session_description.hpp"
+#include "pc/transports/ice_transport.hpp"
 
 #include <sigslot.h>
 

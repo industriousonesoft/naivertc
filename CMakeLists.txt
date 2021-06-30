@@ -23,49 +23,59 @@ else()
 endif()
 
 set(LIB_SOURCES
-    src/base/task_queue.cpp
     src/base/certificate.cpp
     src/base/tls.cpp
+    src/base/packet.cpp
 
+    src/common/task_queue.cpp
     src/common/utils.cpp
     src/common/logger.cpp
+    src/common/instance_guard.cpp
 
     src/signaling/base_channel.cpp
     src/signaling/websocket.cpp
     src/signaling/ayame/ayame_channel.cpp
 
-    src/pc/configuration.cpp
-    src/pc/candidate.cpp
-    src/pc/sdp_session_description.cpp
-    src/pc/sdp_entry.cpp
-    src/pc/transport.cpp
-    src/pc/ice_transport.cpp
+    src/pc/sdp/candidate.cpp
+    src/pc/sdp/sdp_session_description.cpp
+    src/pc/sdp/sdp_entry.cpp
+    src/pc/transports/transport.cpp
+    src/pc/transports/ice_transport.cpp
+    src/pc/transports/sctp_transport.cpp
     src/pc/peer_connection.cpp
+    src/pc/peer_connection_configuration.cpp
     src/pc/peer_connection_ice_transport_slots.cpp
+    src/pc/channels/channel.cpp
+    
 )
 
 set(LIB_HEADERS
     include/base/defines.hpp
-    include/base/task_queue.hpp
-    include/base/proxy.hpp
     include/base/certificate.hpp
     include/base/tls.hpp
+    include/base/internals.hpp
+    include/base/packet.hpp
 
+    include/common/task_queue.hpp
+    include/common/proxy.hpp
     include/common/utils.hpp
     include/common/logger.hpp
+    include/common/instance_guard.hpp
 
     include/signaling/base_channel.hpp
     include/signaling/url_parts.hpp
     include/signaling/websocket.hpp
     include/signaling/ayame/ayame_channel.hpp
 
-    include/pc/configuration.hpp
-    include/pc/candidate.hpp
-    include/pc/sdp_session_description.hpp
-    include/pc/sdp_entry.hpp
-    include/pc/transport.hpp
-    include/pc/ice_transport.hpp
+    include/pc/sdp/candidate.hpp
+    include/pc/sdp/sdp_session_description.hpp
+    include/pc/sdp/sdp_entry.hpp
+    include/pc/transports/transport.hpp
+    include/pc/transports/ice_transport.hpp
+    include/pc/transports/sctp_transport.hpp
+    include/pc/peer_connection_configuration.hpp
     include/pc/peer_connection.hpp
+    include/pc/channels/channel.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
@@ -114,6 +124,12 @@ if(APPLE)
 endif()
 find_package(OpenSSL REQUIRED)
 target_link_libraries(naivertc PRIVATE OpenSSL::SSL)
+# usrsctp
+option(sctp_build_programs 0)
+option(sctp_build_shared_lib 0)
+add_subdirectory(deps/usrsctp EXCLUDE_FROM_ALL)
+add_library(Usrsctp::Usrsctp ALIAS usrsctp)
+target_link_libraries(naivertc PRIVATE Usrsctp::Usrsctp)
 
 # examples
 add_subdirectory(${PROJECT_SOURCE_DIR}/examples/streamer ${CMAKE_CURRENT_BINARY_DIR}/examples/streamer EXCLUDE_FROM_ALL)
@@ -125,8 +141,8 @@ if(ENABLE_TESTS)
 add_subdirectory(deps/googletest)
 
 set(TEST_SOURCES
-    src/pc/candidate_unittest.cpp
-    src/pc/configuration_unittest.cpp
+    src/pc/sdp/candidate_unittest.cpp
+    src/pc/peer_connection_configuration_unittest.cpp
     testing/gtest_main.cpp
 )
 

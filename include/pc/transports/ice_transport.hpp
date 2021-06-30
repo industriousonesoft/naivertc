@@ -2,11 +2,11 @@
 #define _PC_ICE_TRANSPORT_H_
 
 #include "base/defines.hpp"
-#include "pc/transport.hpp"
-#include "pc/configuration.hpp"
-#include "pc/candidate.hpp"
-#include "pc/sdp_defines.hpp"
-#include "pc/sdp_session_description.hpp"
+#include "pc/transports/transport.hpp"
+#include "pc/peer_connection_configuration.hpp"
+#include "pc/sdp/candidate.hpp"
+#include "pc/sdp/sdp_defines.hpp"
+#include "pc/sdp/sdp_session_description.hpp"
 
 #include <sigslot.h>
 #include <juice/juice.h>

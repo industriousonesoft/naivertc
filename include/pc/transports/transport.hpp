@@ -24,11 +24,9 @@ public:
 
     sigslot::signal1<State> SignalStateChanged;
 
-    State state() const { return state_; }
-
 private:
     std::shared_ptr<Transport> lower_;
-    State state_;
+
 };
 
 }
