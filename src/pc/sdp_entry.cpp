@@ -11,7 +11,20 @@ Entry::Entry(const std::string& mline, std::string mid, Direction direction)
     : mid_(std::move(mid)), direction_(direction) {
     unsigned int port;
     std::istringstream ss(mline);
-    ss >> type_ >> port >> description_;
+    ss >> type_string_ >> port >> description_;
+    type_ = type_string_to_type(type_string_);
+}
+
+Entry::Type Entry::type_string_to_type(std::string type_string) const {
+    if (type_string == "application" || type_string == "APPLICATION") {
+        return Type::APPLICATION;
+    }else if (type_string == "audio" || type_string == "AUDIO") {
+        return Type::AUDIO;
+    }else if (type_string == "video" || type_string == "VIDEO") {
+        return Type::VIDEO;
+    }else {
+        throw std::invalid_argument("Unknown entry type: " + type_string);
+    }
 }
 
 void Entry::set_direction(Direction direction) {
@@ -20,7 +33,7 @@ void Entry::set_direction(Direction direction) {
 
 std::string Entry::GenerateSDP(std::string_view eol, std::string addr, std::string_view port) const {
     std::ostringstream sdp;
-    sdp << "m=" << type() << ' ' << port << ' ' << description() << eol;
+    sdp << "m=" << type_string() << ' ' << port << ' ' << description() << eol;
     sdp << "c=IN " << addr << eol;
     sdp << GenerateSDPLines(eol);
 

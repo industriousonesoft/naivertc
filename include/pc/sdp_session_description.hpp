@@ -37,8 +37,9 @@ public:
     int AddVideo(std::string mid = "video", Direction direction = Direction::SEND_ONLY);
     void ClearMedia();
 
-    // std::variant<Media*, Application*> media(unsigned int index);
-    // unsigned int media_count() const;
+    std::variant<Media*, Application*> media(unsigned int index);
+    std::variant<const Media*, const Application*> media(unsigned int index) const;
+    unsigned int media_count() const;
 
 private:
     std::shared_ptr<Entry> CreateEntry(std::string mline, std::string mid, Direction direction);

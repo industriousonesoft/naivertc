@@ -13,15 +13,22 @@ namespace naivertc {
 namespace sdp {
 
 // Entry
-class RTC_CPP_EXPORT Entry {
+class RTC_CPP_EXPORT Entry : public std::enable_shared_from_this<Entry> {
+public:
+    enum class Type {
+        AUDIO,
+        VIDEO,
+        APPLICATION
+    };
 public:
     virtual ~Entry() = default;
 
-    virtual std::string type() const { return type_; }
     virtual std::string description() const { return description_; }
-    virtual std::string mid() const { return mid_; };
     virtual void ParseSDPLine(std::string_view line);
 
+    Type type() const { return type_; }
+    std::string type_string() const { return type_string_; }
+    std::string mid() const { return mid_; };
     Direction direction() const { return direction_; }
     void set_direction(Direction direction);
 
@@ -33,8 +40,11 @@ protected:
 
     std::vector<std::string> attributes_;
 
+    Type type_string_to_type(std::string type_string) const;
+
 private:
-    std::string type_;
+    Type type_;
+    std::string type_string_;
     std::string description_;
     std::string mid_;
     Direction direction_;

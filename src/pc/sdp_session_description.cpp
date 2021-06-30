@@ -191,7 +191,7 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     for (const auto& entry : entries_) {
         // IP4 0.0.0.0：表示你要用来接收或者发送音频使用的IP地址，webrtc使用ice传输，不使用这个地址
         // 9：代表音频使用端口9来传输
-        if (application_only && entry->type() != "application") {
+        if (application_only && entry->type() != Entry::Type::APPLICATION) {
             continue;
         }
         sdp << entry->GenerateSDP(eol, "IP4 0.0.0.0", "9");
@@ -212,6 +212,52 @@ std::shared_ptr<Entry> SessionDescription::CreateEntry(std::string mline, std::s
         entries_.emplace_back(media);
         return media;
     }
+}
+
+std::variant<Media*, Application*> SessionDescription::media(unsigned int index) {
+    if (index >= entries_.size()) {
+        throw std::out_of_range("Media index out of range.");
+    }
+
+    const auto& entry = entries_[index];
+    if (entry->type() == Entry::Type::APPLICATION) {
+        auto app = dynamic_cast<Application*>(entry.get());
+        if (!app) {
+            throw std::logic_error("Bad type of application in description.");
+        }
+        return app;
+    }else {
+        auto media = dynamic_cast<Media*>(entry.get());
+        if (!media) {
+            throw std::logic_error("Bad type of media in description.");
+        }
+        return media;
+    }
+}
+
+std::variant<const Media*, const Application*> SessionDescription::media(unsigned int index) const {
+     if (index >= entries_.size()) {
+        throw std::out_of_range("Media index out of range.");
+    }
+
+    const auto& entry = entries_[index];
+    if (entry->type() == Entry::Type::APPLICATION) {
+        auto app = dynamic_cast<Application*>(entry.get());
+        if (!app) {
+            throw std::logic_error("Bad type of application in description.");
+        }
+        return app;
+    }else {
+        auto media = dynamic_cast<Media*>(entry.get());
+        if (!media) {
+            throw std::logic_error("Bad type of media in description.");
+        }
+        return media;
+    }
+}
+
+unsigned int SessionDescription::media_count() const {
+    return unsigned(entries_.size());
 }
 
 }
