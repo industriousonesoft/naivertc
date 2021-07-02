@@ -27,4 +27,8 @@ void TaskQueue::Dispatch(std::function<void()> f) const {
     boost::asio::dispatch(strand_, f);
 }
 
+bool TaskQueue::is_in_current_queue() const {
+    return ioc_thread_->get_id() == boost::this_thread::get_id();    
+}
+
 }

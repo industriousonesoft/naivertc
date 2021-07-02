@@ -17,8 +17,9 @@ public:
     ~TaskQueue();
 
     void Post(std::function<void()> f) const;
-
     void Dispatch(std::function<void()> f) const;
+
+    bool is_in_current_queue() const;
 
 private:
     boost::asio::io_context ioc_;
