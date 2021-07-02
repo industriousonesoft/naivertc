@@ -42,9 +42,10 @@ set(LIB_SOURCES
     src/pc/transports/transport.cpp
     src/pc/transports/ice_transport.cpp
     src/pc/transports/sctp_transport.cpp
+    src/pc/transports/ice_transport_juice_delegate.cpp
     src/pc/peer_connection.cpp
     src/pc/peer_connection_configuration.cpp
-    src/pc/peer_connection_ice_transport_slots.cpp
+    src/pc/peer_connection_ice_transport_delegate.cpp
     src/pc/channels/channel.cpp
     
 )

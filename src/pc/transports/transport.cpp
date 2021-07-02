@@ -25,7 +25,7 @@ void Transport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback
         });
         return;
     }
-    Outcoming(packet, callback);
+    Outgoing(packet, callback);
 }
 
 void Transport::Incoming(std::shared_ptr<Packet> in_packet) {
@@ -44,10 +44,10 @@ void Transport::Incoming(std::shared_ptr<Packet> in_packet) {
     }
 }
 
-void Transport::Outcoming(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
+void Transport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
     if (!send_queue_.is_in_current_queue()) {
         send_queue_.Post([this, out_packet, callback](){
-            this->Outcoming(out_packet, callback);
+            this->Outgoing(out_packet, callback);
         });
         return;
     }

@@ -13,7 +13,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT IceTransport: public Transport {
+class RTC_CPP_EXPORT IceTransport final: public Transport {
 public:
     enum class GatheringState {
         NEW = 0,
@@ -37,6 +37,8 @@ public:
     sigslot::signal1<Candidate> SignalCandidateGathered;
     sigslot::signal1<GatheringState> SignalGatheringStateChanged;
 
+    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
+
 private:
     void Initialize(const Configuration& config);
 
@@ -51,11 +53,17 @@ private:
     void OnJuiceGetheringStateChanged(GatheringState state);
     void OnJuiceDataReceived(const char* data, size_t size);
 
+    // Override from Transport
+    void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
+
 private:
     std::unique_ptr<juice_agent_t, void (*)(juice_agent_t *)> juice_agent_;
 
     std::string curr_mid_;
     sdp::Role role_;
+
+    State transport_state_;
+    GatheringState gathering_state_;
 };
 
 }

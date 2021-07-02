@@ -35,7 +35,7 @@ public:
 
 protected:
     virtual void Incoming(std::shared_ptr<Packet> in_packet);
-    virtual void Outcoming(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr);
+    virtual void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr);
 
     TaskQueue send_queue_;
     TaskQueue recv_queue_;
