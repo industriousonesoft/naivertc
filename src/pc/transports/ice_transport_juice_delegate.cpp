@@ -7,7 +7,7 @@ namespace naivertc {
 
 const int kMaxTurnServersCount = 2;
 
-void IceTransport::Initialize(const Configuration& config) {
+void IceTransport::InitJuice(const Configuration& config) {
 
     juice_log_level_t level;
     auto logger = plog::get();
@@ -95,10 +95,7 @@ void IceTransport::Initialize(const Configuration& config) {
 }
 
 void IceTransport::OnJuiceStateChanged(State state) {
-    recv_queue_.Post([this, state](){
-        this->transport_state_ = state;
-        Transport::SignalStateChanged(state);
-    });
+    Transport::UpdateState(state);
 }
 
 void IceTransport::OnJuiceCandidateGathered(const char* sdp) {
@@ -109,8 +106,9 @@ void IceTransport::OnJuiceCandidateGathered(const char* sdp) {
 
 void IceTransport::OnJuiceGetheringStateChanged(GatheringState state) {
     recv_queue_.Post([this, state](){
-        this->gathering_state_ = state;
-        this->SignalGatheringStateChanged(state);
+        if (this->gathering_state_.exchange(state) != state) {
+            this->SignalGatheringStateChanged(state);
+        }
     });
 }
 

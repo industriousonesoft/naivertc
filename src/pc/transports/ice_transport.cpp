@@ -16,7 +16,7 @@ IceTransport::IceTransport(const Configuration& config)
         PLOG_WARNING << "ICE-TCP is not supported with libjuice.";
     }
 
-    Initialize(config);
+    InitJuice(config);
 }
 
 sdp::Role IceTransport::role() const {
@@ -83,7 +83,8 @@ void IceTransport::SetRemoteDescription(const sdp::SessionDescription& descripti
 void IceTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
     send_queue_.Post([this, packet, callback](){
         // A filter for valid packet and state
-        if (!packet || this->transport_state_ != State::CONNECTED || this->transport_state_ != State::COMPLETED) {
+        auto state = this->state();
+        if (!packet || state != State::CONNECTED || state != State::COMPLETED) {
             if (callback) {
                 callback(false);
             }

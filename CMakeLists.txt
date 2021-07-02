@@ -41,8 +41,9 @@ set(LIB_SOURCES
     src/pc/sdp/sdp_entry.cpp
     src/pc/transports/transport.cpp
     src/pc/transports/ice_transport.cpp
-    src/pc/transports/sctp_transport.cpp
     src/pc/transports/ice_transport_juice_delegate.cpp
+    src/pc/transports/sctp_transport.cpp
+    src/pc/transports/sctp_transport_usrsctp_delegate.cpp
     src/pc/peer_connection.cpp
     src/pc/peer_connection_configuration.cpp
     src/pc/peer_connection_ice_transport_delegate.cpp

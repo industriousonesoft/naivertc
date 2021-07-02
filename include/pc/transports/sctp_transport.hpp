@@ -7,6 +7,10 @@
 
 #include <sigslot.h>
 #include <usrsctp.h>
+#include <functional>
+#include <optional>
+#include <vector>
+#include <mutex>
 
 namespace naivertc {
 
@@ -20,24 +24,62 @@ public:
         std::optional<size_t> max_message_size;
     };
 public:
-    SctpTransport(std::shared_ptr<Transport> lower, Config config);
+    SctpTransport(std::shared_ptr<Transport> lower, const Config& config);
     ~SctpTransport();
 
+    void Start(Transport::StartedCallback callback = nullptr) override;
+    void Stop(Transport::StopedCallback callback = nullptr) override;
+
 private:
-    // usrsctp callbacks
-    static void sctp_recv_data_ready_cb(struct socket* socket, void* arg, int flags);
-    static int sctp_send_data_ready_cb(void* ptr, const void* data, size_t lent, uint8_t tos, uint8_t set_df);
+    // Order seems wrong but these are the actual values
+	// See https://tools.ietf.org/html/draft-ietf-rtcweb-data-channel-13#section-8
+    enum class PayloadId : uint32_t {
+        PPID_CONTROL = 50,
+		PPID_STRING = 51,
+		PPID_BINARY_PARTIAL = 52,
+		PPID_BINARY = 53,
+		PPID_STRING_PARTIAL = 54,
+		PPID_STRING_EMPTY = 56,
+		PPID_BINARY_EMPTY = 57
+    };
+
+    void Connect();
+    void Shutdown();
+    void Close();
+    void DoRecv();
+    void DoFlush();
+
+    void UpdateTransportState(State state);
 
     void OnSCTPRecvDataIsReady();
     int OnSCTPSendDataIsReady(const void* data, size_t len, uint8_t tos, uint8_t set_df);
 
+    void ProcessNotification(const union sctp_notification* notification, size_t len);
+    void ProcessMessage(std::vector<std::byte>&& data, uint16_t stream_id, PayloadId payload_id);
+
+    void InitUsrsctp(const Config& config);
+    // usrsctp callbacks
+    static void sctp_recv_data_ready_cb(struct socket* socket, void* arg, int flags);
+    static int sctp_send_data_ready_cb(void* ptr, const void* data, size_t lent, uint8_t tos, uint8_t set_df);
+
+protected:
+    void Incoming(std::shared_ptr<Packet> in_packet) override;
+    void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
+
 private:
     Config config_;
-
     struct socket* socket_;
-
+    
     static InstanceGuard<SctpTransport>* s_instance_guard;
 
+    static const size_t buffer_size_ = 65536;
+	std::byte buffer_[buffer_size_];
+    std::vector<std::byte> notification_data_fragments_;
+    std::vector<std::byte> message_data_fragments_;
+
+    std::mutex waiting_for_sending_mutex_;
+    std::condition_variable waiting_for_sending_condition_;
+    std::atomic<bool> has_sent_once_ = false;
 };
 
 }

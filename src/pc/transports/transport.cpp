@@ -2,14 +2,89 @@
 
 #include <plog/Log.h>
 
+#include <future>
+
 namespace naivertc {
 
 Transport::Transport(std::shared_ptr<Transport> lower) 
     : lower_(lower), 
-    packet_recv_callback_(nullptr) {}
+    packet_recv_callback_(nullptr), 
+    is_stoped_(false),
+    state_(State::DISCONNECTED) {
+    
+}
 
 Transport::~Transport() {
 
+}
+
+void Transport::Start(Transport::StartedCallback callback) {
+    if (!send_queue_.is_in_current_queue()) {
+        send_queue_.Post([this](){
+            this->Start();
+        });
+        return;
+    }
+    is_stoped_ = false;
+    if (lower_) {
+        lower_->OnPacketReceived(std::bind(&Transport::Incoming, this, std::placeholders::_1));
+    }
+    if (callback) {
+        callback(std::nullopt);
+    }
+}
+
+void Transport::Stop(Transport::StopedCallback callback) {
+    if (!send_queue_.is_in_current_queue()) {
+        send_queue_.Post([this](){
+            this->Stop();
+        });
+        return;
+    }
+    is_stoped_ = true;
+    if (lower_) {
+        lower_->OnPacketReceived(nullptr);
+    }
+    if (callback) {
+        callback(std::nullopt);
+    }
+}
+
+bool Transport::is_stoped() const {
+    if (send_queue_.is_in_current_queue()) {
+        return is_stoped_;
+    }
+    std::promise<bool> promise;
+    auto future = promise.get_future();
+    send_queue_.Post([this, &promise](){
+        promise.set_value(is_stoped_);
+    });
+    return future.get();
+}
+
+Transport::State Transport::state() const {
+    if (send_queue_.is_in_current_queue()) {
+        return state_;
+    }
+    std::promise<State> promise;
+    auto future = promise.get_future();
+    send_queue_.Post([this, &promise](){
+        promise.set_value(state_);
+    });
+    return future.get();
+}
+
+void Transport::UpdateState(State state) {
+    if (!send_queue_.is_in_current_queue()) {
+        send_queue_.Post([this, state](){
+            this->UpdateState(state);
+        });
+        return;
+    }
+    if (state_ == state) 
+        return;
+    state_ = state;
+    SignalStateChanged(state);
 }
 
 void Transport::OnPacketReceived(PacketReceivedCallback callback) {
@@ -58,4 +133,4 @@ void Transport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback 
     }
 }
 
-}
+} // end of naivertc

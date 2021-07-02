@@ -16,6 +16,7 @@ namespace naivertc {
 class RTC_CPP_EXPORT IceTransport final: public Transport {
 public:
     enum class GatheringState {
+        NONE = -1,
         NEW = 0,
         GATHERING,
         COMPLETED
@@ -40,7 +41,7 @@ public:
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
 
 private:
-    void Initialize(const Configuration& config);
+    void InitJuice(const Configuration& config);
 
     static void OnJuiceLog(juice_log_level_t level, const char* message);
     static void OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state, void* user_ptr);
@@ -62,8 +63,7 @@ private:
     std::string curr_mid_;
     sdp::Role role_;
 
-    State transport_state_;
-    GatheringState gathering_state_;
+    std::atomic<GatheringState> gathering_state_ = GatheringState::NONE;
 };
 
 }
