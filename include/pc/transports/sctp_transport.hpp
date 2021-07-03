@@ -20,8 +20,6 @@ namespace naivertc {
 class RTC_CPP_EXPORT SctpTransport final : public Transport {
 public:
     struct Config {
-        // Data received in the same order it was sent. 
-        bool ordered;
         // SCTP port
         uint16_t port;
         // MTU: Maximum Transmission Unit

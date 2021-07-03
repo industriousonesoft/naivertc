@@ -21,6 +21,7 @@ public:
         enum class Policy { NONE = 0, RTX, TTL };
 
         Policy polity = Policy::NONE;
+        // Data received in the same order it was sent. 
         bool ordered = true;
         std::variant<int, std::chrono::milliseconds> rexmit;
     };
