@@ -44,6 +44,7 @@ set(LIB_SOURCES
     src/pc/transports/ice_transport_juice_delegate.cpp
     src/pc/transports/sctp_transport.cpp
     src/pc/transports/sctp_transport_usrsctp_delegate.cpp
+    src/pc/transports/sctp_message.cpp
     src/pc/peer_connection.cpp
     src/pc/peer_connection_configuration.cpp
     src/pc/peer_connection_ice_transport_delegate.cpp
@@ -75,6 +76,7 @@ set(LIB_HEADERS
     include/pc/transports/transport.hpp
     include/pc/transports/ice_transport.hpp
     include/pc/transports/sctp_transport.hpp
+    include/pc/transports/sctp_message.hpp
     include/pc/peer_connection_configuration.hpp
     include/pc/peer_connection.hpp
     include/pc/channels/channel.hpp

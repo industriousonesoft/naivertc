@@ -1,6 +1,9 @@
 #include "pc/transports/sctp_transport.hpp"
+#include "common/utils.hpp"
 
 #include <plog/Log.h>
+
+#include <future>
 
 /** 
  * RFC 8831: SCTP MUST support perfoming Path MTU Discovery without relying on ICMP or ICMPv6 as 
@@ -125,6 +128,171 @@ void SctpTransport::Shutdown() {
 
 }
 
+// Send
+bool SctpTransport::Flush() {
+	if (!send_queue_.is_in_current_queue()) {
+		std::promise<bool> promise;
+		auto future = promise.get_future();
+		send_queue_.Post([this, &promise](){
+			promise.set_value(this->Flush());
+		});
+		return future.get();
+	}
+	try {
+		TrySendQueue();
+		return true;
+	} catch(const std::exception& exp) {
+		PLOG_WARNING << "Faild to flush messages: " << exp.what();
+		return false;
+	}
+}
+
+void SctpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
+	send_queue_.Post([=](){
+		if (!utils::instanceof<SctpMessage>(packet.get())) {
+			PLOG_WARNING << "Try to send a non-sctp message.";
+			if (callback) {
+				callback(false);
+			}
+			return;
+		}
+
+		if (!packet) {
+			auto bRet = this->TrySendQueue();
+			if (callback) {
+				callback(bRet);
+			}
+			return;
+		}
+		auto message = std::dynamic_pointer_cast<SctpMessage>(packet);
+		// Flush the queue, and if nothing is pending, try to send directly
+		if (this->TrySendQueue() && this->TrySendMessage(message)) {
+			if (callback) {
+				callback(true);
+			}
+			return;
+		}
+
+		// enqueue
+		this->message_queue_.push(message);
+		this->UpdateBufferedAmount(message->stream_id(), ptrdiff_t(message->message_size()));
+		if (callback) {
+			callback(false);
+		}
+	});
+}
+
+bool SctpTransport::TrySendQueue() {
+	while (auto next = message_queue_.back()) {
+		auto message = std::move(next);
+		if (!TrySendMessage(message)) {
+			return false;
+		}
+		message_queue_.pop();
+		UpdateBufferedAmount(message->stream_id(), -ptrdiff_t(message->message_size()));
+	}
+	return false;
+}
+
+bool SctpTransport::TrySendMessage(std::shared_ptr<SctpMessage> message) {
+	if (!socket_ || state() == State::CONNECTED) {
+		return false;
+	}
+	PayloadId ppid;
+	switch (message->type()) {
+	case SctpMessage::Type::STRING:
+		ppid = message->is_empty() ? PayloadId::PPID_STRING_EMPTY : PayloadId::PPID_STRING;
+		break;
+	case SctpMessage::Type::BINARY:
+		ppid = message->is_empty() ? PayloadId::PPID_BINARY_EMPTY : PayloadId::PPID_BINARY;
+		break;
+	case SctpMessage::Type::CONTROL:
+		ppid = PayloadId::PPID_CONTROL;	
+		break;
+	case SctpMessage::Type::RESET:
+		ResetStream(message->stream_id());
+		return true;
+	default:
+		// Ignore
+		return true;
+	}
+
+	// TODO: Implement SCTP ndata specification draft when supported everywhere
+	// See https://tools.ietf.org/html/draft-ietf-tsvwg-sctp-ndata-08
+
+	const auto reliability = message->reliability() ? *message->reliability() : SctpMessage::Reliability();
+	
+	struct sctp_sendv_spa spa = {};
+	
+	// set sndinfo
+	spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
+	spa.sendv_sndinfo.snd_sid = message->stream_id();
+	spa.sendv_sndinfo.snd_ppid = htonl(uint32_t(ppid));
+	spa.sendv_sndinfo.snd_flags |= SCTP_EOR;
+
+	// set prinfo
+	spa.sendv_flags |= SCTP_SEND_PRINFO_VALID;
+	if (reliability.ordered == false) {
+		spa.sendv_sndinfo.snd_flags |= SCTP_UNORDERED;
+	}
+
+	switch (reliability.polity) {
+	case SctpMessage::Reliability::Policy::RTX: {
+		spa.sendv_flags |= SCTP_SEND_PRINFO_VALID;
+		spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_RTX;
+		spa.sendv_prinfo.pr_value = utils::numeric::to_uint32(std::get<int>(reliability.rexmit));
+		break;
+	}
+	case SctpMessage::Reliability::Policy::TTL: {
+		spa.sendv_flags |= SCTP_SEND_PRINFO_VALID;
+		spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_TTL;
+		spa.sendv_prinfo.pr_value = utils::numeric::to_uint32(std::get<std::chrono::milliseconds>(reliability.rexmit).count());
+		break;
+	}
+	default:
+		spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_NONE;
+		break;
+	}
+
+	ssize_t ret;
+	if (!message->is_empty()) {
+		ret = usrsctp_sendv(socket_, message->data(), message->size(), nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
+	}else {
+		const char zero = 0;
+		ret = usrsctp_sendv(socket_, &zero, 1, nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
+	}
+
+	if (ret < 0) {
+		if (errno == EWOULDBLOCK || errno == EAGAIN) {
+			PLOG_WARNING << "SCTP sending not possible.";
+			return false;
+		}
+
+		PLOG_ERROR << "SCTP sending failed, errno: " << errno;
+		throw std::runtime_error("Faild to send SCTP message, errno: " + std::to_string(errno));
+	}
+
+	PLOG_VERBOSE << "SCTP send size: " << message->size();
+
+	if (message->type() == SctpMessage::Type::STRING || message->type() == SctpMessage::Type::BINARY) {
+		bytes_sent_ += message->size();
+	}
+
+	return true;
+}
+
+void SctpTransport::UpdateBufferedAmount(uint16_t stream_id, ptrdiff_t delta) {
+	// Find the pair for stream_id, or create a new pair
+	auto it = buffered_amount_.insert(std::make_pair(stream_id, 0)).first;
+	size_t amount = size_t(std::max(ptrdiff_t(it->second) + delta, ptrdiff_t(0)));
+	if (amount == 0) {
+		buffered_amount_.erase(it);
+	}else {
+		it->second = amount;
+	}
+	SignalBufferedAmountChanged(stream_id, amount);
+}
+
 void SctpTransport::DoRecv() {
 	try {
 		while (true) {
@@ -176,17 +344,195 @@ void SctpTransport::DoRecv() {
 }
 
 void SctpTransport::DoFlush() {
+	try {
+		TrySendQueue();
+	} catch(const std::exception& exp) {
+		PLOG_WARNING << exp.what();
+	}
+}
 
+void SctpTransport::CloseStream(uint16_t stream_id) {
+	const std::byte stream_close_message{0x0};
+	auto message = SctpMessage::Create(&stream_close_message, 1, SctpMessage::Type::RESET, stream_id);
+	Send(message);
+}
+
+void SctpTransport::ResetStream(uint16_t stream_id) {
+	if (socket_ == nullptr || state() == State::CONNECTED) {
+		return;
+	}
+
+	PLOG_DEBUG << "SCTP resetting stream: " << stream_id;
+
+	using srs_t = struct sctp_reset_streams;
+	const size_t len = sizeof(srs_t) + sizeof(uint16_t);
+	std::byte buffer[len] = {};
+	srs_t& srs = *reinterpret_cast<srs_t *>(buffer);
+	srs.srs_flags = SCTP_STREAM_RESET_OUTGOING;
+	srs.srs_number_streams = 1;
+	srs.srs_stream_list[0] = stream_id;
+
+	if (usrsctp_setsockopt(socket_, IPPROTO_SCTP, SCTP_RESET_STREAMS, &srs, len) != 0) {
+		if (errno == EINVAL) {
+			PLOG_DEBUG << "SCTP stream: " << stream_id << " already reset.";
+		}else {
+			PLOG_WARNING << "SCTP reset stream " << stream_id << " failed, errno: " << std::to_string(errno);
+		}
+	}
 }
 
 void SctpTransport::ProcessNotification(const union sctp_notification* notification, size_t len) {
+	if (len != sizeof(notification->sn_header.sn_length)) {
+		PLOG_WARNING << "Invalid SCTP notification length";
+		return;
+	}
 
+	auto type = notification->sn_header.sn_type;
+
+	PLOG_VERBOSE << "Processing notification type: " << type;
+
+	switch (type) {
+	case SCTP_ASSOC_CHANGE: {
+		const struct sctp_assoc_change &assoc_change = notification->sn_assoc_change;
+		if (assoc_change.sac_state == SCTP_COMM_UP) {
+			PLOG_INFO << "SCTP connected.";
+			UpdateState(State::CONNECTED);
+		}else {
+			if (State() == State::CONNECTING) {
+				PLOG_ERROR << "SCTP connection failed.";
+				UpdateState(State::FAILED);
+			}else {
+				PLOG_INFO << "SCTP disconnected.";
+				UpdateState(State::DISCONNECTED);
+			}
+			// SCTP 连接失败意味着不可能发送消息
+			waiting_for_sending_condition_.notify_all();
+		}
+		break;
+	}
+	case SCTP_SENDER_DRY_EVENT: {
+		PLOG_VERBOSE << "SCTP dry event.";
+		// It should not be necessary since the sand callback should have been called already,
+		// but to be sure, let's try to send now.
+		Flush();
+		break;
+	}
+
+	case SCTP_STREAM_RESET_EVENT: {
+		const struct sctp_stream_reset_event& reset_event = notification->sn_strreset_event;
+		const int count = (reset_event.strreset_length - sizeof(reset_event)) / sizeof(uint16_t);
+		const uint16_t flags = reset_event.strreset_flags;
+
+		IF_PLOG(plog::verbose) {
+			std::ostringstream desc;
+			desc << "flags=";
+			if (flags & SCTP_STREAM_RESET_OUTGOING_SSN && flags & SCTP_STREAM_RESET_INCOMING_SSN)
+				desc << "outgoing|incoming";
+			else if (flags & SCTP_STREAM_RESET_OUTGOING_SSN)
+				desc << "outgoing";
+			else if (flags & SCTP_STREAM_RESET_INCOMING_SSN)
+				desc << "incoming";
+			else
+				desc << "0";
+
+			desc << ", streams=[";
+			for (int i = 0; i < count; ++i) {
+				uint16_t streamId = reset_event.strreset_stream_list[i];
+				desc << (i != 0 ? "," : "") << streamId;
+			}
+			desc << "]";
+
+			PLOG_VERBOSE << "SCTP reset event, " << desc.str();
+		}
+
+		if (flags & SCTP_STREAM_RESET_OUTGOING_SSN) {
+			for (int i = 0; i < count; ++i) {
+				uint16_t stream_id = reset_event.strreset_stream_list[i];
+				CloseStream(stream_id);
+			}
+		}
+
+		if (flags & SCTP_STREAM_RESET_INCOMING_SSN) {
+			const std::byte data_channel_close_message{0x04};
+			for (int i = 0; i < count; ++i) {
+				uint16_t stream_id = reset_event.strreset_stream_list[i];
+				auto message = SctpMessage::Create(&data_channel_close_message, 1, SctpMessage::Type::CONTROL, stream_id);
+				Transport::Incoming(message);
+			}
+		}
+
+		break;
+	}
+	default:
+		break;
+	}
 }
 
 void SctpTransport::ProcessMessage(std::vector<std::byte>&& data, uint16_t stream_id, SctpTransport::PayloadId payload_id) {
-
+	// RFC 8831: The usage of the PPIDs "WebRTC String Partial" and "WebRTC Binary Partial" is
+	// deprecated. They were used for a PPID-based fragmentation and reassembly of user messages
+	// belonging to reliable and ordered data channels.
+	// See https://tools.ietf.org/html/rfc8831#section-6.6
+	// We handle those PPIDs at reception for compatibility reasons but shall never send them.
+	switch (payload_id) {
+	case PayloadId::PPID_CONTROL: {
+		auto message = SctpMessage::Create(std::move(data), SctpMessage::Type::CONTROL, stream_id);
+		Transport::Incoming(message);
+		break;
+	}
+	case PayloadId::PPID_STRING_PARTIAL: 
+		string_data_fragments_.insert(string_data_fragments_.end(), data.begin(), data.end());
+		break;
+	case PayloadId::PPID_STRING: {
+		if (string_data_fragments_.empty()) {
+			bytes_recv_ += data.size();
+			auto message = SctpMessage::Create(std::move(data), SctpMessage::Type::STRING, stream_id);
+			Transport::Incoming(message);
+		}else {
+			string_data_fragments_.insert(string_data_fragments_.end(), data.begin(), data.end());
+			bytes_recv_ += data.size();
+			auto message = SctpMessage::Create(std::move(string_data_fragments_), SctpMessage::Type::STRING, stream_id);
+			Transport::Incoming(message);
+			string_data_fragments_.clear();
+		}
+		break;
+	}
+	case PayloadId::PPID_STRING_EMPTY: {
+		auto message = SctpMessage::Create(std::move(string_data_fragments_), SctpMessage::Type::STRING, stream_id);
+		Transport::Incoming(message);
+		string_data_fragments_.clear();
+		break;
+	}
+	case PayloadId::PPID_BINARY_PARTIAL: 
+		binary_data_fragments_.insert(binary_data_fragments_.end(), data.begin(), data.end());
+		break;
+	case PayloadId::PPID_BINARY: {
+		if (binary_data_fragments_.empty()) {
+			bytes_recv_ += data.size();
+			auto message = SctpMessage::Create(std::move(data), SctpMessage::Type::BINARY, stream_id);
+			Transport::Incoming(message);
+		}else {
+			binary_data_fragments_.insert(binary_data_fragments_.end(), data.begin(), data.end());
+			bytes_recv_ += data.size();
+			auto message = SctpMessage::Create(std::move(binary_data_fragments_), SctpMessage::Type::BINARY, stream_id);
+			Transport::Incoming(message);
+			binary_data_fragments_.clear();
+		}
+		break;
+	}
+	case PayloadId::PPID_BINARY_EMPTY: {
+		auto message = SctpMessage::Create(std::move(binary_data_fragments_), SctpMessage::Type::BINARY, stream_id);
+		Transport::Incoming(message);
+		binary_data_fragments_.clear();
+		break;
+	}
+	default:
+		PLOG_VERBOSE << "Unknown PPID: " << uint32_t(payload_id);
+		break;
+	}
 }
 
+// SCTP callback methods
 void SctpTransport::OnSCTPRecvDataIsReady() {
 	recv_queue_.Post([this](){
 		if (this->socket_ == nullptr)
@@ -204,10 +550,20 @@ void SctpTransport::OnSCTPRecvDataIsReady() {
 	});
 }
     
-int SctpTransport::OnSCTPSendDataIsReady(const void* data, size_t lent, uint8_t tos, uint8_t set_df) {
-    return 0;
+int SctpTransport::OnSCTPSendDataIsReady(const void* data, size_t len, uint8_t tos, uint8_t set_df) {
+	std::promise<bool> promise;
+	auto future = promise.get_future();
+	auto packet = Packet::Create(static_cast<const char*>(data), len);
+	Outgoing(std::move(packet), [this, &promise](bool success){
+		promise.set_value(success);
+		// Reset the sent flag and ready to handle the incoming message
+		this->has_sent_once_ = true;
+		this->waiting_for_sending_condition_.notify_all();
+	});
+	return future.get() ? 0 : -1;
 }
 
+// Override methods
 void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 	// There could be a race condition here where we receive the remote INIT before the local one is
 	// sent, which would result in the connection being aborted. Therefore, we need to wait for data
@@ -229,14 +585,17 @@ void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 
 	PLOG_VERBOSE << "Incoming size: " << in_packet->size();
 
+	// 触发回调函数sctp_recv_data_ready_cb？
 	usrsctp_conninput(this, in_packet->data(), in_packet->size(), 0);
 }
 
 void SctpTransport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
-	// Set recommended medium-priority DSCP value
-	// See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
-	out_packet->set_dscp(10); // AF11: Assured Forwarding class 1, low drop probability
-	return Transport::Outgoing(std::move(out_packet), callback);
+	send_queue_.Post([=](){
+		// Set recommended medium-priority DSCP value
+		// See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
+		out_packet->set_dscp(10); // AF11: Assured Forwarding class 1, low drop probability
+		return Transport::Outgoing(std::move(out_packet), callback);
+	});
 }
 
 }

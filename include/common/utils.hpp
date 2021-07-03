@@ -8,6 +8,12 @@
 namespace naivertc {
 namespace utils {
 
+// instanceof
+template<typename Base, typename T>
+inline bool instanceof(const T*) {
+   return std::is_base_of<Base, T>::value;
+}
+
 // TODO: Overload Pattern in C++17，overload原理就是模板推导和转发，变参模板怎么理解？
 /** eg:
 struct overloadInt{ 

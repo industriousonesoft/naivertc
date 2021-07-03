@@ -2,10 +2,14 @@
 
 namespace naivertc {
 
-Packet::Packet(const char* data, size_t size) : dscp_(0) {
-    // 使用reinterpret_cast(re+interpret+cast：重新诠释转型)对data中的数据格式进行重新映射: char -> byte
-    auto begin = reinterpret_cast<const std::byte*>(data);
-    bytes_.assign(begin, begin + size);
+Packet::Packet(const std::byte* bytes, size_t size) 
+    : dscp_(0) {
+    bytes_.assign(bytes, bytes + size);
+}
+
+Packet::Packet(std::vector<std::byte>&& bytes) 
+    : bytes_(std::move(bytes)),
+    dscp_(0) {
 }
 
 Packet::~Packet() {}
