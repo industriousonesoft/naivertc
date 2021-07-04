@@ -12,7 +12,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT Transport: sigslot::has_slots<> {
+class RTC_CPP_EXPORT Transport : public sigslot::has_slots<>, public std::enable_shared_from_this<Transport> {
 public:
     enum class State {
         DISCONNECTED,

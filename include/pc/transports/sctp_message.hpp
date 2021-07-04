@@ -26,24 +26,24 @@ public:
         std::variant<int, std::chrono::milliseconds> rexmit;
     };
 public:
-    static std::shared_ptr<SctpMessage> Create(const char* data, size_t size, Type type, uint16_t stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
+    static std::shared_ptr<SctpMessage> Create(const char* data, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
         // 使用reinterpret_cast(re+interpret+cast：重新诠释转型)对data中的数据格式进行重新映射: char -> byte
         auto bytes = reinterpret_cast<const std::byte*>(data);
         return std::shared_ptr<SctpMessage>(new SctpMessage(bytes, size, type, stream_id, reliability));
     }
 
-    static std::shared_ptr<SctpMessage> Create(const std::byte* bytes, size_t size, Type type, uint16_t stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
+    static std::shared_ptr<SctpMessage> Create(const std::byte* bytes, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
         return std::shared_ptr<SctpMessage>(new SctpMessage(bytes, size, type, stream_id, reliability));
     }
 
-    static std::shared_ptr<SctpMessage> Create(std::vector<std::byte>&& bytes, Type type, uint16_t stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
+    static std::shared_ptr<SctpMessage> Create(std::vector<std::byte>&& bytes, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
         return std::shared_ptr<SctpMessage>(new SctpMessage(std::move(bytes), type, stream_id, reliability));
     }
   
     ~SctpMessage();
 
     Type type() const { return type_; }
-    uint16_t stream_id() const { return stream_id_; }
+    StreamId stream_id() const { return stream_id_; }
     const std::shared_ptr<Reliability> reliability() const { return reliability_; }
 
     size_t message_size() {
@@ -55,12 +55,12 @@ public:
     }
    
 protected:
-    SctpMessage(const std::byte* data, size_t size, Type type, uint16_t stream_id, std::shared_ptr<Reliability> reliability = nullptr);
-    SctpMessage(std::vector<std::byte>&& bytes, Type type, uint16_t stream_id, std::shared_ptr<Reliability> reliability = nullptr);
+    SctpMessage(const std::byte* data, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
+    SctpMessage(std::vector<std::byte>&& bytes, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
 
 private:
     Type type_;
-    uint16_t stream_id_;
+    StreamId stream_id_;
     std::shared_ptr<Reliability> reliability_;
 };
 

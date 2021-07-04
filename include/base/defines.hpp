@@ -5,6 +5,10 @@
 #define RTC_CPP_EXPORT
 #endif
 
+#include <cstdint>
+
+using StreamId = uint16_t;
+
 #endif
 
 

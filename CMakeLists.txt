@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.8)
 project(NaiveRTC VERSION 0.1.0 LANGUAGES CXX)
 
 # C++ standard requirements
+# 最低版本需求C++11，原因是代码用到了：c++11新标准支持static局部变量安全访问
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -30,7 +31,7 @@ set(LIB_SOURCES
     src/common/task_queue.cpp
     src/common/utils.cpp
     src/common/logger.cpp
-    src/common/instance_guard.cpp
+    src/common/weak_ptr_manager.cpp
 
     src/signaling/base_channel.cpp
     src/signaling/websocket.cpp
@@ -49,6 +50,7 @@ set(LIB_SOURCES
     src/pc/peer_connection_configuration.cpp
     src/pc/peer_connection_ice_transport_delegate.cpp
     src/pc/channels/channel.cpp
+    src/pc/channels/data_channel.cpp
     
 )
 
@@ -63,7 +65,7 @@ set(LIB_HEADERS
     include/common/proxy.hpp
     include/common/utils.hpp
     include/common/logger.hpp
-    include/common/instance_guard.hpp
+    include/common/weak_ptr_manager.hpp
 
     include/signaling/base_channel.hpp
     include/signaling/url_parts.hpp
@@ -80,6 +82,7 @@ set(LIB_HEADERS
     include/pc/peer_connection_configuration.hpp
     include/pc/peer_connection.hpp
     include/pc/channels/channel.hpp
+    include/pc/channels/data_channel.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
