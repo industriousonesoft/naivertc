@@ -13,7 +13,7 @@ namespace naivertc {
 namespace sdp {
 
 // Entry
-class RTC_CPP_EXPORT Entry : public std::enable_shared_from_this<Entry> {
+struct RTC_CPP_EXPORT Entry : public std::enable_shared_from_this<Entry> {
 public:
     enum class Type {
         AUDIO,
@@ -51,12 +51,13 @@ private:
 };
 
 // Application
-class RTC_CPP_EXPORT Application : public Entry {
+struct RTC_CPP_EXPORT Application : public Entry {
 public:
     Application(std::string mid = "data");
     virtual ~Application() = default;
 
     std::string description() const override;
+    Application reciprocate() const;
 
     std::optional<uint16_t> sctp_port() const { return sctp_port_; }
     void set_sctp_port(uint16_t port) { sctp_port_ = port; }
@@ -68,7 +69,6 @@ public:
     virtual void ParseSDPLine(std::string_view line) override;
 
 private:
-
     virtual std::string GenerateSDPLines(std::string_view eol) const override;
 
     std::optional<uint16_t> sctp_port_;
@@ -76,7 +76,7 @@ private:
 };
 
 // Media
-class RTC_CPP_EXPORT Media : public Entry {
+struct RTC_CPP_EXPORT Media : public Entry {
 public:
     struct RTPMap {
     public:
@@ -104,6 +104,7 @@ public:
     virtual ~Media() = default;
 
     std::string description() const override;
+    Media reciprocate() const;
 
     void set_bandwidth_max_value(int value);
     int bandwidth_max_value();
@@ -130,7 +131,7 @@ private:
 };
 
 // Audio 
-class RTC_CPP_EXPORT Audio : public Media {
+struct RTC_CPP_EXPORT Audio : public Media {
 public:
     Audio(std::string mid="audio", Direction direction = Direction::SEND_ONLY);
 
@@ -140,7 +141,7 @@ public:
 };
 
 // Video
-class RTC_CPP_EXPORT Video : public Media {
+struct RTC_CPP_EXPORT Video : public Media {
 public: 
     Video(std::string mid = "video", Direction direction = Direction::SEND_ONLY);
 

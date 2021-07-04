@@ -106,6 +106,12 @@ std::string Application::description() const {
     return Entry::description() + " webrtc-datachannel";
 }
 
+Application Application::reciprocate() const {
+    Application reciprocate(*this);
+    reciprocate.max_message_size_.reset();
+    return reciprocate;
+}
+
 void Application::ParseSDPLine(std::string_view line) {
     if (utils::string::match_prefix(line, "a=")) {
         std::string_view attr = line.substr(2);
@@ -138,6 +144,7 @@ std::string Application::GenerateSDPLines(std::string_view eol) const {
     return sdp.str();
 }
 
+
 // Media
 Media::Media(const std::string& sdp) 
     : Entry(sdp, "", Direction::UNKNOWN) {}
@@ -154,6 +161,26 @@ std::string Media::description() const {
     }
 
     return desc.str();
+}
+
+Media Media::reciprocate() const {
+    Media reciprocated(*this);
+
+    // Invert direction
+    switch (direction())
+    {
+    case sdp::Direction::RECV_ONLY:
+        reciprocated.set_direction(sdp::Direction::SEND_ONLY);
+        break;
+    case sdp::Direction::SEND_ONLY:
+        reciprocated.set_direction(sdp::Direction::RECV_ONLY);
+        break;
+    default:
+        // Keep the original direction
+        break;
+    }
+
+    return reciprocated;
 }
 
 void Media::AddSSRC(uint32_t ssrc, std::optional<std::string> name, std::optional<std::string> msid, std::optional<std::string> track_id) {

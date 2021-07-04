@@ -87,8 +87,8 @@ void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_
     // Clean up the application entry added by ICE transport already.
     session_description.ClearMedia();                                
 
-    // const uint16_t local_sctp_port = DEFAULT_SCTP_PORT;
-    // const size_t local_max_message_size = config_.max_message_size_.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
+    const uint16_t local_sctp_port = DEFAULT_SCTP_PORT;
+    const size_t local_max_message_size = config_.max_message_size_.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
 
     // Reciprocate remote session description
     if (auto remote = this->remote_session_description_) {
@@ -96,21 +96,43 @@ void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_
         for (unsigned int i = 0; i < remote->media_count(); ++i) {
             std::visit(utils::overloaded {
                 [&](sdp::Application* remote_app) {
-                   
+                   // TODO: Prefer local data channel description
+
+                   auto reciprocated = remote_app->reciprocate();
+                   reciprocated.HintSctpPort(local_sctp_port);
+                   reciprocated.set_max_message_size(local_max_message_size);
+
+                   PLOG_DEBUG << "Reciprocating application in local description, mid: " 
+                              << reciprocated.mid();
+
+                   session_description.AddApplication(std::move(reciprocated));
                 },
                 [&](sdp::Media* remote_media) {
+                    // TODO: Prefer local media track
+                    auto reciprocated = remote_media->reciprocate();
 
+                    PLOG_DEBUG << "Reciprocating media in local description, mid: " 
+                               << reciprocated.mid();
+                    session_description.AddMedia(std::move(reciprocated));
                 }
             }, remote->media(i));
         }
-    }       
+    } 
+
+    if (session_description.type() == sdp::Type::OFFER) {
+        // If this is a offer, add locally created data channels and tracks
+        // Add application for data channels
+    }      
 }
 void PeerConnection::SetRemoteSessionDescription(sdp::SessionDescription session_description, 
                                                 SDPSetSuccessCallback on_success, 
                                                 SDPSetFailureCallback on_failure) {
     this->remote_session_description_.emplace(session_description);
     this->ice_transport_->SetRemoteDescription(session_description);
-    // TODO: shift datachannel? why?
+
+    // TODO: To shift datachannel? but why?
+
+    // TODO: To init sctptransport if necessary
 }
 
 // Offer && Answer
