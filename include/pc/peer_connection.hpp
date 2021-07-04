@@ -8,6 +8,7 @@
 #include "pc/sdp/candidate.hpp"
 #include "pc/sdp/sdp_session_description.hpp"
 #include "pc/transports/ice_transport.hpp"
+#include "pc/transports/sctp_transport.hpp"
 
 #include <sigslot.h>
 
@@ -78,6 +79,8 @@ protected:
 
 private:
     void InitIceTransport();
+    void InitSctpTransport();
+
     bool UpdateConnectionState(ConnectionState state);
     bool UpdateGatheringState(GatheringState state);
 
@@ -95,7 +98,8 @@ private:
     ConnectionState connection_state_;
     GatheringState gathering_state_;
 
-    std::unique_ptr<IceTransport> ice_transport_;
+    std::shared_ptr<IceTransport> ice_transport_;
+    std::shared_ptr<SctpTransport> sctp_transport_;
 
     PeerConnection::ConnectionStateCallback connection_state_callback_;
     PeerConnection::GatheringStateCallback gathering_state_callback_;

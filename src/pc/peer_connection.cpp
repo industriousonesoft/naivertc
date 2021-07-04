@@ -5,6 +5,7 @@
 #include <plog/Log.h>
 
 #include <variant>
+#include <string>
 
 namespace naivertc {
 
@@ -12,11 +13,27 @@ PeerConnection::PeerConnection(Configuration config)
     : config_(config),
     connection_state_(ConnectionState::CLOSED)  {
 
+    if (config_.port_range_end_ > 0 && config_.port_range_end_ <  config_.port_range_begin_) {
+        throw std::invalid_argument("Invaild port range.");
+    }
+
+    if (auto mtu = config_.mtu_) {
+        // Min MTU for IPv4
+        if (mtu < 576) {
+            throw std::invalid_argument("Invalid MTU value: " + std::to_string(*mtu));
+        }else if (mtu > 1500) {
+            PLOG_WARNING << "MTU set to: " << *mtu;
+        }else {
+            PLOG_VERBOSE << "MTU set to: " << *mtu;
+        }
+    }
+
     InitIceTransport();
 }
 
 PeerConnection::~PeerConnection() {
-
+    ice_transport_.reset();
+    sctp_transport_.reset();
 }
 
 // Private methods
@@ -34,8 +51,15 @@ void PeerConnection::InitIceTransport() {
         PLOG_ERROR << e.what();
         UpdateConnectionState(ConnectionState::FAILED);
         throw std::runtime_error("Ice tansport initialization failed.");
+    }   
+}
+
+void PeerConnection::InitSctpTransport() {
+    try {
+
+    } catch(const std::exception& exp) {
+
     }
-    
 }
 
 bool PeerConnection::UpdateConnectionState(ConnectionState state) {
