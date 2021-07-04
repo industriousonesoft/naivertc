@@ -1,6 +1,7 @@
 #include "pc/transports/sctp_transport.hpp"
 #include "base/internals.hpp"
 #include "common/utils.hpp"
+#include "common/weak_ptr_manager.hpp"
 
 #include <plog/Log.h>
 
@@ -12,8 +13,6 @@ void SctpTransport::InitUsrsctp(const Config& config) {
     // Register this class as an address for usrsctp, This is used by SCTP to 
     // direct the packets received by sctp socket to this class.
     usrsctp_register_address(this);
-
-    s_instance_guard->Add(this);
 
     // usrsctp_socket(domain, type, protocol, recv_callback, send_callback, sd_threshold, ulp_info)
     socket_ = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, nullptr, nullptr, 0, nullptr);
@@ -157,7 +156,7 @@ void SctpTransport::InitUsrsctp(const Config& config) {
 // usrsctp callbacks
 void SctpTransport::sctp_recv_data_ready_cb(struct socket* socket, void* arg, int flags) {
     auto* transport = static_cast<SctpTransport*>(arg);
-    if (s_instance_guard->TryLock(transport)) {
+    if (WeakPtrManager::SharedInstance()->TryLock(transport)) {
         transport->OnSCTPRecvDataIsReady();
     }
 }
@@ -166,7 +165,7 @@ int SctpTransport::sctp_send_data_ready_cb(void* ptr, const void* data, size_t l
     auto* transport = static_cast<SctpTransport*>(ptr);
     // In case of Sending callback is invoked on a already closed registered class instance.(transport).
     // https://github.com/sctplab/usrsctp/issues/405
-    if (s_instance_guard->TryLock(transport)) {
+    if (WeakPtrManager::SharedInstance()->TryLock(transport)) {
         return transport->OnSCTPSendDataIsReady(data, len, tos, set_df);
     }else {
         return -1;

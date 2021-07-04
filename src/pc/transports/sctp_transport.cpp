@@ -1,5 +1,6 @@
 #include "pc/transports/sctp_transport.hpp"
 #include "common/utils.hpp"
+#include "common/weak_ptr_manager.hpp"
 
 #include <plog/Log.h>
 
@@ -28,20 +29,18 @@
 
 namespace naivertc {
 
-InstanceGuard<SctpTransport>* s_instance_guard = new InstanceGuard<SctpTransport>();
-
 // SctpTransport
 SctpTransport::SctpTransport(std::shared_ptr<Transport> lower, const Config& config) 
     : Transport(lower),
     config_(std::move(config)) {
     InitUsrsctp(std::move(config));
+	WeakPtrManager::SharedInstance()->Register(this);
 }
 
 SctpTransport::~SctpTransport() {
 	Stop();
-
     usrsctp_deregister_address(this);
-    s_instance_guard->Remove(this);
+    WeakPtrManager::SharedInstance()->Deregister(this);
 }
 
 void SctpTransport::Start(Transport::StartedCallback callback) {
@@ -174,7 +173,7 @@ void SctpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback call
 		}
 
 		// enqueue
-		this->message_queue_.push(message);
+		this->send_message_queue_.push(message);
 		this->UpdateBufferedAmount(message->stream_id(), ptrdiff_t(message->message_size()));
 		if (callback) {
 			callback(false);
@@ -183,12 +182,12 @@ void SctpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback call
 }
 
 bool SctpTransport::TrySendQueue() {
-	while (auto next = message_queue_.back()) {
+	while (auto next = send_message_queue_.back()) {
 		auto message = std::move(next);
 		if (!TrySendMessage(message)) {
 			return false;
 		}
-		message_queue_.pop();
+		send_message_queue_.pop();
 		UpdateBufferedAmount(message->stream_id(), -ptrdiff_t(message->message_size()));
 	}
 	return false;
@@ -281,7 +280,7 @@ bool SctpTransport::TrySendMessage(std::shared_ptr<SctpMessage> message) {
 	return true;
 }
 
-void SctpTransport::UpdateBufferedAmount(uint16_t stream_id, ptrdiff_t delta) {
+void SctpTransport::UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta) {
 	// Find the pair for stream_id, or create a new pair
 	auto it = buffered_amount_.insert(std::make_pair(stream_id, 0)).first;
 	size_t amount = size_t(std::max(ptrdiff_t(it->second) + delta, ptrdiff_t(0)));
@@ -351,13 +350,13 @@ void SctpTransport::DoFlush() {
 	}
 }
 
-void SctpTransport::CloseStream(uint16_t stream_id) {
+void SctpTransport::CloseStream(StreamId stream_id) {
 	const std::byte stream_close_message{0x0};
 	auto message = SctpMessage::Create(&stream_close_message, 1, SctpMessage::Type::RESET, stream_id);
 	Send(message);
 }
 
-void SctpTransport::ResetStream(uint16_t stream_id) {
+void SctpTransport::ResetStream(StreamId stream_id) {
 	if (socket_ == nullptr || state() == State::CONNECTED) {
 		return;
 	}
@@ -365,7 +364,7 @@ void SctpTransport::ResetStream(uint16_t stream_id) {
 	PLOG_DEBUG << "SCTP resetting stream: " << stream_id;
 
 	using srs_t = struct sctp_reset_streams;
-	const size_t len = sizeof(srs_t) + sizeof(uint16_t);
+	const size_t len = sizeof(srs_t) + sizeof(StreamId);
 	std::byte buffer[len] = {};
 	srs_t& srs = *reinterpret_cast<srs_t *>(buffer);
 	srs.srs_flags = SCTP_STREAM_RESET_OUTGOING;
@@ -437,8 +436,8 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 
 			desc << ", streams=[";
 			for (int i = 0; i < count; ++i) {
-				uint16_t streamId = reset_event.strreset_stream_list[i];
-				desc << (i != 0 ? "," : "") << streamId;
+				StreamId stream_id = reset_event.strreset_stream_list[i];
+				desc << (i != 0 ? "," : "") << stream_id;
 			}
 			desc << "]";
 
@@ -447,7 +446,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 
 		if (flags & SCTP_STREAM_RESET_OUTGOING_SSN) {
 			for (int i = 0; i < count; ++i) {
-				uint16_t stream_id = reset_event.strreset_stream_list[i];
+				StreamId stream_id = reset_event.strreset_stream_list[i];
 				CloseStream(stream_id);
 			}
 		}
@@ -455,7 +454,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 		if (flags & SCTP_STREAM_RESET_INCOMING_SSN) {
 			const std::byte data_channel_close_message{0x04};
 			for (int i = 0; i < count; ++i) {
-				uint16_t stream_id = reset_event.strreset_stream_list[i];
+				StreamId stream_id = reset_event.strreset_stream_list[i];
 				auto message = SctpMessage::Create(&data_channel_close_message, 1, SctpMessage::Type::CONTROL, stream_id);
 				Transport::Incoming(message);
 			}
@@ -468,7 +467,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 	}
 }
 
-void SctpTransport::ProcessMessage(std::vector<std::byte>&& data, uint16_t stream_id, SctpTransport::PayloadId payload_id) {
+void SctpTransport::ProcessMessage(std::vector<std::byte>&& data, StreamId stream_id, SctpTransport::PayloadId payload_id) {
 	// RFC 8831: The usage of the PPIDs "WebRTC String Partial" and "WebRTC Binary Partial" is
 	// deprecated. They were used for a PPID-based fragmentation and reassembly of user messages
 	// belonging to reliable and ordered data channels.

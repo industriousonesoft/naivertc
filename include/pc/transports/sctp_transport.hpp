@@ -4,7 +4,6 @@
 #include "base/defines.hpp"
 #include "pc/transports/transport.hpp"
 #include "pc/transports/sctp_message.hpp"
-#include "common/instance_guard.hpp"
 
 #include <sigslot.h>
 #include <usrsctp.h>
@@ -56,12 +55,12 @@ private:
     void Close();
     void DoRecv();
     void DoFlush();
-    void ResetStream(uint16_t stream_id);
-    void CloseStream(uint16_t stream_id);
+    void ResetStream(StreamId stream_id);
+    void CloseStream(StreamId stream_id);
 
     bool TrySendQueue();
     bool TrySendMessage(std::shared_ptr<SctpMessage> message);
-    void UpdateBufferedAmount(uint16_t stream_id, ptrdiff_t delta);
+    void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
 
     void UpdateTransportState(State state);
 
@@ -69,7 +68,7 @@ private:
     int OnSCTPSendDataIsReady(const void* data, size_t len, uint8_t tos, uint8_t set_df);
 
     void ProcessNotification(const union sctp_notification* notification, size_t len);
-    void ProcessMessage(std::vector<std::byte>&& data, uint16_t stream_id, PayloadId payload_id);
+    void ProcessMessage(std::vector<std::byte>&& data, StreamId stream_id, PayloadId payload_id);
 
     void InitUsrsctp(const Config& config);
     // usrsctp callbacks
@@ -83,9 +82,7 @@ protected:
 private:
     Config config_;
     struct socket* socket_;
-    
-    static InstanceGuard<SctpTransport>* s_instance_guard;
-
+  
     static const size_t buffer_size_ = 65536;
 	std::byte buffer_[buffer_size_];
     std::vector<std::byte> notification_data_fragments_;
@@ -101,7 +98,7 @@ private:
     std::condition_variable waiting_for_sending_condition_;
     std::atomic<bool> has_sent_once_ = false;
 
-    std::queue<std::shared_ptr<SctpMessage>> message_queue_;
+    std::queue<std::shared_ptr<SctpMessage>> send_message_queue_;
     std::map<uint16_t, size_t> buffered_amount_;
 };
 
