@@ -35,7 +35,7 @@ void Transport::Start(Transport::StartedCallback callback) {
         }
     }catch (const std::exception& exp) {
         if (callback) {
-            callback(std::move(exp));
+            callback(exp);
         }
     }
 }
@@ -57,7 +57,7 @@ void Transport::Stop(Transport::StopedCallback callback) {
         }
     }catch (const std::exception& exp) {
         if (callback) {
-            callback(std::move(exp));
+            callback(exp);
         }
     }
 }
@@ -102,7 +102,7 @@ void Transport::UpdateState(State state) {
 void Transport::HandleIncomingPacket(std::shared_ptr<Packet> packet) {
     if (!task_queue_.is_in_current_queue()) {
         task_queue_.Post([this, packet](){
-            this->HandleIncomingPacket(packet);
+            this->HandleIncomingPakcet(packet);
         });
         return;
     }
