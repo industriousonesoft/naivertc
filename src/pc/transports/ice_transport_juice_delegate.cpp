@@ -99,13 +99,13 @@ void IceTransport::OnJuiceStateChanged(State state) {
 }
 
 void IceTransport::OnJuiceCandidateGathered(const char* sdp) {
-    recv_queue_.Post([this, sdp](){
+    task_queue_.Post([this, sdp](){
         this->SignalCandidateGathered(std::move(Candidate(sdp, this->curr_mid_)));
     });
 }
 
 void IceTransport::OnJuiceGetheringStateChanged(GatheringState state) {
-    recv_queue_.Post([this, state](){
+    task_queue_.Post([this, state](){
         if (this->gathering_state_.exchange(state) != state) {
             this->SignalGatheringStateChanged(state);
         }
@@ -113,11 +113,11 @@ void IceTransport::OnJuiceGetheringStateChanged(GatheringState state) {
 }
 
 void IceTransport::OnJuiceDataReceived(const char* data, size_t size) {
-    recv_queue_.Post([this, data, size](){
+    task_queue_.Post([this, data, size](){
         try {
             PLOG_VERBOSE << "Incoming size: " << size;
             auto packet = Packet::Create(data, size);
-            Transport::Incoming(packet);
+            HandleIncomingPacket(packet);
         } catch(const std::exception &e) {
             PLOG_WARNING << e.what();
         }

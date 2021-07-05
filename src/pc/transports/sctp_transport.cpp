@@ -44,7 +44,7 @@ SctpTransport::~SctpTransport() {
 }
 
 void SctpTransport::Start(Transport::StartedCallback callback) {
-	send_queue_.Post([this, callback](){
+	task_queue_.Post([this, callback](){
 		try {
 			Transport::Start();
 			this->Connect();
@@ -60,7 +60,7 @@ void SctpTransport::Start(Transport::StartedCallback callback) {
 }
 
 void SctpTransport::Stop(Transport::StopedCallback callback) {
-	send_queue_.Post([this, callback](){
+	task_queue_.Post([this, callback](){
 		if (this->is_stoped()) {
 			if (callback) {
 				callback(std::nullopt);
@@ -129,10 +129,10 @@ void SctpTransport::Shutdown() {
 
 // Send
 bool SctpTransport::Flush() {
-	if (!send_queue_.is_in_current_queue()) {
+	if (!task_queue_.is_in_current_queue()) {
 		std::promise<bool> promise;
 		auto future = promise.get_future();
-		send_queue_.Post([this, &promise](){
+		task_queue_.Post([this, &promise](){
 			promise.set_value(this->Flush());
 		});
 		return future.get();
@@ -147,7 +147,7 @@ bool SctpTransport::Flush() {
 }
 
 void SctpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
-	send_queue_.Post([=](){
+	task_queue_.Post([=](){
 		if (!utils::instanceof<SctpMessage>(packet.get())) {
 			PLOG_WARNING << "Try to send a non-sctp message.";
 			if (callback) {
@@ -456,7 +456,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 			for (int i = 0; i < count; ++i) {
 				StreamId stream_id = reset_event.strreset_stream_list[i];
 				auto message = SctpMessage::Create(&data_channel_close_message, 1, SctpMessage::Type::CONTROL, stream_id);
-				Transport::Incoming(message);
+				HandleIncomingPacket(message);
 			}
 		}
 
@@ -476,7 +476,7 @@ void SctpTransport::ProcessMessage(std::vector<std::byte>&& data, StreamId strea
 	switch (payload_id) {
 	case PayloadId::PPID_CONTROL: {
 		auto message = SctpMessage::Create(std::move(data), SctpMessage::Type::CONTROL, stream_id);
-		Transport::Incoming(message);
+		HandleIncomingPacket(message);
 		break;
 	}
 	case PayloadId::PPID_STRING_PARTIAL: 
@@ -486,19 +486,19 @@ void SctpTransport::ProcessMessage(std::vector<std::byte>&& data, StreamId strea
 		if (string_data_fragments_.empty()) {
 			bytes_recv_ += data.size();
 			auto message = SctpMessage::Create(std::move(data), SctpMessage::Type::STRING, stream_id);
-			Transport::Incoming(message);
+			HandleIncomingPacket(message);
 		}else {
 			string_data_fragments_.insert(string_data_fragments_.end(), data.begin(), data.end());
 			bytes_recv_ += data.size();
 			auto message = SctpMessage::Create(std::move(string_data_fragments_), SctpMessage::Type::STRING, stream_id);
-			Transport::Incoming(message);
+			HandleIncomingPacket(message);
 			string_data_fragments_.clear();
 		}
 		break;
 	}
 	case PayloadId::PPID_STRING_EMPTY: {
 		auto message = SctpMessage::Create(std::move(string_data_fragments_), SctpMessage::Type::STRING, stream_id);
-		Transport::Incoming(message);
+		HandleIncomingPacket(message);
 		string_data_fragments_.clear();
 		break;
 	}
@@ -509,19 +509,19 @@ void SctpTransport::ProcessMessage(std::vector<std::byte>&& data, StreamId strea
 		if (binary_data_fragments_.empty()) {
 			bytes_recv_ += data.size();
 			auto message = SctpMessage::Create(std::move(data), SctpMessage::Type::BINARY, stream_id);
-			Transport::Incoming(message);
+			HandleIncomingPacket(message);
 		}else {
 			binary_data_fragments_.insert(binary_data_fragments_.end(), data.begin(), data.end());
 			bytes_recv_ += data.size();
 			auto message = SctpMessage::Create(std::move(binary_data_fragments_), SctpMessage::Type::BINARY, stream_id);
-			Transport::Incoming(message);
+			HandleIncomingPacket(message);
 			binary_data_fragments_.clear();
 		}
 		break;
 	}
 	case PayloadId::PPID_BINARY_EMPTY: {
 		auto message = SctpMessage::Create(std::move(binary_data_fragments_), SctpMessage::Type::BINARY, stream_id);
-		Transport::Incoming(message);
+		HandleIncomingPacket(message);
 		binary_data_fragments_.clear();
 		break;
 	}
@@ -533,7 +533,7 @@ void SctpTransport::ProcessMessage(std::vector<std::byte>&& data, StreamId strea
 
 // SCTP callback methods
 void SctpTransport::OnSCTPRecvDataIsReady() {
-	recv_queue_.Post([this](){
+	task_queue_.Post([this](){
 		if (this->socket_ == nullptr)
 			return;
 
@@ -578,7 +578,7 @@ void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 	if (!in_packet) {
 		Transport::UpdateState(State::DISCONNECTED);
 		// To notify the recv callback
-		Transport::Incoming(nullptr);
+		HandleIncomingPacket(nullptr);
 		return;
 	}
 
@@ -589,7 +589,7 @@ void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 }
 
 void SctpTransport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
-	send_queue_.Post([=](){
+	task_queue_.Post([=](){
 		// Set recommended medium-priority DSCP value
 		// See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
 		out_packet->set_dscp(10); // AF11: Assured Forwarding class 1, low drop probability

@@ -102,7 +102,7 @@ void Transport::UpdateState(State state) {
 void Transport::HandleIncomingPacket(std::shared_ptr<Packet> packet) {
     if (!task_queue_.is_in_current_queue()) {
         task_queue_.Post([this, packet](){
-            this->HandleIncomingPakcet(packet);
+            this->HandleIncomingPacket(packet);
         });
         return;
     }
