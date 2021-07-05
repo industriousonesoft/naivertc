@@ -19,64 +19,76 @@ Transport::~Transport() {
 }
 
 void Transport::Start(Transport::StartedCallback callback) {
-    if (!send_queue_.is_in_current_queue()) {
-        send_queue_.Post([this](){
+    if (!task_queue_.is_in_current_queue()) {
+        task_queue_.Post([this](){
             this->Start();
         });
         return;
     }
-    is_stoped_ = false;
-    if (lower_) {
-        lower_->OnPacketReceived(std::bind(&Transport::Incoming, this, std::placeholders::_1));
-    }
-    if (callback) {
-        callback(std::nullopt);
+    try {
+        if (lower_) {
+            lower_->OnPacketReceived(std::bind(&Transport::Incoming, this, std::placeholders::_1));
+        }
+        is_stoped_ = false;
+        if (callback) {
+            callback(std::nullopt);
+        }
+    }catch (const std::exception& exp) {
+        if (callback) {
+            callback(std::move(exp));
+        }
     }
 }
 
 void Transport::Stop(Transport::StopedCallback callback) {
-    if (!send_queue_.is_in_current_queue()) {
-        send_queue_.Post([this](){
+    if (!task_queue_.is_in_current_queue()) {
+        task_queue_.Post([this](){
             this->Stop();
         });
         return;
     }
-    is_stoped_ = true;
-    if (lower_) {
-        lower_->OnPacketReceived(nullptr);
-    }
-    if (callback) {
-        callback(std::nullopt);
+    try {
+        is_stoped_ = true;
+        if (lower_) {
+            lower_->OnPacketReceived(nullptr);
+        }
+        if (callback) {
+            callback(std::nullopt);
+        }
+    }catch (const std::exception& exp) {
+        if (callback) {
+            callback(std::move(exp));
+        }
     }
 }
 
 bool Transport::is_stoped() const {
-    if (send_queue_.is_in_current_queue()) {
+    if (task_queue_.is_in_current_queue()) {
         return is_stoped_;
     }
     std::promise<bool> promise;
     auto future = promise.get_future();
-    send_queue_.Post([this, &promise](){
+    task_queue_.Post([this, &promise](){
         promise.set_value(is_stoped_);
     });
     return future.get();
 }
 
 Transport::State Transport::state() const {
-    if (recv_queue_.is_in_current_queue()) {
+    if (task_queue_.is_in_current_queue()) {
         return state_;
     }
     std::promise<State> promise;
     auto future = promise.get_future();
-    recv_queue_.Post([this, &promise](){
+    task_queue_.Post([this, &promise](){
         promise.set_value(state_);
     });
     return future.get();
 }
 
 void Transport::UpdateState(State state) {
-    if (!recv_queue_.is_in_current_queue()) {
-        recv_queue_.Post([this, state](){
+    if (!task_queue_.is_in_current_queue()) {
+        task_queue_.Post([this, state](){
             this->UpdateState(state);
         });
         return;
@@ -88,8 +100,8 @@ void Transport::UpdateState(State state) {
 }
 
 void Transport::HandleIncomingPacket(std::shared_ptr<Packet> packet) {
-    if (!recv_queue_.is_in_current_queue()) {
-        recv_queue_.Post([this, packet](){
+    if (!task_queue_.is_in_current_queue()) {
+        task_queue_.Post([this, packet](){
             this->HandleIncomingPacket(packet);
         });
         return;
@@ -104,14 +116,14 @@ void Transport::HandleIncomingPacket(std::shared_ptr<Packet> packet) {
 }
 
 void Transport::OnPacketReceived(PacketReceivedCallback callback) {
-    recv_queue_.Post([this, callback](){
+    task_queue_.Post([this, callback](){
         this->packet_recv_callback_ = std::move(callback);
     });
 }
 
 void Transport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
-    if (!send_queue_.is_in_current_queue()) {
-        send_queue_.Post([this, packet, callback](){
+    if (!task_queue_.is_in_current_queue()) {
+        task_queue_.Post([this, packet, callback](){
             this->Send(packet, callback);
         });
         return;
@@ -120,8 +132,8 @@ void Transport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback
 }
 
 void Transport::Incoming(std::shared_ptr<Packet> in_packet) {
-    if (!recv_queue_.is_in_current_queue()) {
-        recv_queue_.Post([this, in_packet](){
+    if (!task_queue_.is_in_current_queue()) {
+        task_queue_.Post([this, in_packet](){
             this->Incoming(in_packet);
         });
         return;
@@ -130,8 +142,8 @@ void Transport::Incoming(std::shared_ptr<Packet> in_packet) {
 }
 
 void Transport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
-    if (!send_queue_.is_in_current_queue()) {
-        send_queue_.Post([this, out_packet, callback](){
+    if (!task_queue_.is_in_current_queue()) {
+        task_queue_.Post([this, out_packet, callback](){
             this->Outgoing(out_packet, callback);
         });
         return;

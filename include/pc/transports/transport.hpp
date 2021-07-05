@@ -49,8 +49,7 @@ protected:
     void UpdateState(State state);
     void HandleIncomingPacket(std::shared_ptr<Packet> packet);
 
-    TaskQueue send_queue_;
-    TaskQueue recv_queue_;
+    TaskQueue task_queue_;
 
 private:
     std::shared_ptr<Transport> lower_;
