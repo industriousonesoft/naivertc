@@ -29,10 +29,11 @@ public:
     sigslot::signal1<State> SignalStateChanged;
 
     bool is_stoped() const;
+    State state() const;
 
     using StartedCallback = std::function<void(std::optional<const std::exception>)>;
-    virtual void Start(StartedCallback callback = nullptr);
     using StopedCallback = std::function<void(std::optional<const std::exception>)>;
+    virtual void Start(StartedCallback callback = nullptr);
     virtual void Stop(StopedCallback callback = nullptr);
 
     using PacketReceivedCallback = std::function<void(std::shared_ptr<Packet> in_packet)>;
@@ -45,8 +46,8 @@ protected:
     virtual void Incoming(std::shared_ptr<Packet> in_packet);
     virtual void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr);
 
-    State state() const;
-    void UpdateState(State state); 
+    void UpdateState(State state);
+    void HandleIncomingPacket(std::shared_ptr<Packet> packet);
 
     TaskQueue send_queue_;
     TaskQueue recv_queue_;
