@@ -24,8 +24,9 @@ public:
 
     std::string fingerprint() const;
 
+    static std::string MakeFingerprint(X509* x509);
+
 private:
-    std::string MakeFingerprint(X509* x509);
     static std::shared_ptr<Certificate> Generate(CertificateType type, const std::string common_name);
 private:
     std::shared_ptr<X509> x509_;
