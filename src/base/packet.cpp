@@ -22,5 +22,5 @@ size_t Packet::size() const {
     return static_cast<size_t>(bytes_.size());
 }
     
-} // end of naivertc
+} // namespace naivertc
 

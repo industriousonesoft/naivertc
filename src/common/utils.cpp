@@ -95,7 +95,7 @@ bool is_sha256_fingerprint(std::string_view fingerprint) {
     return true;
 }
 
-} // end of string namespace
+} // enamespace string
 
 // Random
 namespace random {
@@ -114,7 +114,7 @@ void shuffle(std::vector<T> list) {
     std::shuffle(list.begin(), list.end(), std::default_random_engine(seed));
 }
 
-} // end of random namespace
+} // namespace random
 
 }
 }

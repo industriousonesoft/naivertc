@@ -155,4 +155,4 @@ void Transport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback 
     }
 }
 
-} // end of naivertc
+} // namespace naivertc

@@ -103,4 +103,4 @@ void IceTransport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallba
     }
 }
 
-} // end of naivertc
+} // namespace naivertc

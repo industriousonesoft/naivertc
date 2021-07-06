@@ -172,4 +172,4 @@ int SctpTransport::sctp_send_data_ready_cb(void* ptr, const void* data, size_t l
     }
 }
 
-} // end of naivertc
+} // namespace naivertc

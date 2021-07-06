@@ -26,6 +26,6 @@ private:
     std::queue<SctpMessage> recv_message_queue_;
 };
 
-} // end of naivertc
+} // namespace naivertc
 
 #endif

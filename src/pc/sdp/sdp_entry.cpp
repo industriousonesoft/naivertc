@@ -404,5 +404,5 @@ void Video::AddH264Codec(int payload_type, std::optional<std::string> profile) {
     AddVideoCodec(payload_type, "H264", profile);
 }
 
-} // end of sdp
-} // end of naivertc
+} // namespace sdp
+} // namespace naivertc

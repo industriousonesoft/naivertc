@@ -92,4 +92,4 @@ std::string DataChannel::protocol() const {
     return protocol_;
 }
     
-} // end of naivertc
+} // namespace naivertc

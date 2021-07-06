@@ -261,4 +261,4 @@ unsigned int SessionDescription::media_count() const {
 }
 
 }
-} // end of naive rtc
+} // namespace naivertc
