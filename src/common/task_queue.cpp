@@ -1,14 +1,18 @@
 #include "common/task_queue.hpp"
 
-#include <boost/asio.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>  
+#include <plog/Log.h>
 
 namespace naivertc {
 
 TaskQueue::TaskQueue() 
     : work_guard_(boost::asio::make_work_guard(ioc_)),
-      strand_(ioc_) {
+      strand_(ioc_),
+      timer_(ioc_) {
     ioc_thread_.reset(new boost::thread(boost::bind(&boost::asio::io_context::run, &ioc_)));
+    ioc_thread_id_ = ioc_thread_->get_id();
+    // PLOG_DEBUG << "Init calling thread id: " << boost::this_thread::get_id();
+    // PLOG_DEBUG << "Task thread id: " << ioc_thread_id_;
+    // FIXME: 在detach之后调用get_id()返回的是{Not-any-thread}，why?
     ioc_thread_->detach();
 }
 
@@ -27,24 +31,18 @@ void TaskQueue::Dispatch(std::function<void()> handler) const {
 }
 
 void TaskQueue::PostDelay(TimeInterval delay_in_sec, std::function<void()> handler) {
-    Post([this, delay_in_sec, handler](){
-        // Construct a timer without setting an expiry time.
-        boost::asio::deadline_timer timer(ioc_);
-        // Set an expiry time relative to now.
-        timer.expires_from_now(boost::posix_time::seconds(delay_in_sec));
-        // Start an asynchronous wait
-        timer.async_wait([this, handler](const boost::system::error_code& error){
-            if (this->is_in_current_queue()) {
-                handler();
-            }else {
-                Post(handler);
-            }
-        });
+    // Construct a timer without setting an expiry time.
+    timer_.expires_from_now(boost::posix_time::seconds(delay_in_sec));
+    // Start an asynchronous wait
+    timer_.async_wait([handler](const boost::system::error_code& error){
+         handler();
     });
+
 }
 
 bool TaskQueue::is_in_current_queue() const {
-    return ioc_thread_->get_id() == boost::this_thread::get_id();    
+    // FIXME: 不能再自身线程调用get_id()亦或是在detach之后不能调用？ioc_thread_->get_id()={Not-any-thread}
+    return ioc_thread_id_ == boost::this_thread::get_id();    
 }
 
 }

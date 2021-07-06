@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 
+#include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/io_context_strand.hpp>
 #include <boost/thread/thread.hpp>
@@ -27,6 +28,8 @@ private:
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard_;
     boost::asio::io_context::strand strand_;
     std::unique_ptr<boost::thread> ioc_thread_;
+    boost::thread::id ioc_thread_id_;
+    boost::asio::deadline_timer timer_;
 };
 
 }
