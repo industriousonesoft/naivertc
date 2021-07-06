@@ -48,6 +48,7 @@ set(LIB_SOURCES
     src/pc/transports/sctp_message.cpp
     src/pc/transports/dtls_transport.cpp
     src/pc/transports/dtls_transport_openssl_delegate.cpp
+    src/pc/transports/dtls_srtp_transport.cpp
     src/pc/peer_connection.cpp
     src/pc/peer_connection_configuration.cpp
     src/pc/peer_connection_ice_transport_delegate.cpp
@@ -83,6 +84,7 @@ set(LIB_HEADERS
     include/pc/transports/sctp_transport.hpp
     include/pc/transports/sctp_message.hpp
     include/pc/transports/dtls_transport.hpp
+    include/pc/transports/dtls_srtp_transport.hpp
     include/pc/peer_connection_configuration.hpp
     include/pc/peer_connection.hpp
     include/pc/channels/channel.hpp
@@ -158,7 +160,6 @@ add_subdirectory(deps/googletest)
 
 set(TEST_SOURCES
     src/common/task_queue_unittest.cpp
-
     src/pc/sdp/candidate_unittest.cpp
     src/pc/peer_connection_configuration_unittest.cpp
     testing/gtest_main.cpp
