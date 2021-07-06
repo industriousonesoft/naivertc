@@ -199,6 +199,10 @@ bool DtlsTransport::IsHandshakeTimeout() {
     return false;
 }
 
+void DtlsTransport::HandshakeDone() {
+    // Dummy
+}
+
 // Callback methods
 openssl_bool DtlsTransport::CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx) {
     SSL* ssl = static_cast<SSL *>(X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx()));

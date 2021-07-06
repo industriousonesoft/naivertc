@@ -34,9 +34,9 @@ public:
     using VerifyCallback = std::function<bool(const std::string& fingerprint)>;
     void OnVerify(VerifyCallback callback);
 
-    void Start(StartedCallback callback = nullptr) override;
-    void Stop(StopedCallback callback = nullptr) override;
-    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
+    virtual void Start(StartedCallback callback = nullptr) override;
+    virtual void Stop(StopedCallback callback = nullptr) override;
+    virtual void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
 
 protected:
     void InitOpenSSL(const Config& config);
@@ -45,6 +45,7 @@ protected:
     void InitHandshake();
     bool TryToHandshake();
     bool IsHandshakeTimeout();
+    virtual void HandshakeDone();
 
     static openssl_bool CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx);
     static void InfoCallback(const SSL* ssl, int where, int ret);
@@ -55,7 +56,6 @@ protected:
     static long BioMethodCtrl(BIO* bio, int cmd, long num, void* ptr);
 
     bool HandleVerify(const std::string& fingerprint);
-    // void HandleInfo
 
     // 全局变量声明式
     static BIO_METHOD* bio_methods_;
@@ -68,8 +68,8 @@ protected:
     BIO* out_bio_ = NULL;
 
 protected:
-    void Incoming(std::shared_ptr<Packet> in_packet) override;
-    void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
+    virtual void Incoming(std::shared_ptr<Packet> in_packet) override;
+    virtual void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
 
 private:
     Config config_;
