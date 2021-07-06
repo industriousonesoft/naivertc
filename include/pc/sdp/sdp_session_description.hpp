@@ -44,6 +44,8 @@ public:
 private:
     std::shared_ptr<Entry> CreateEntry(std::string mline, std::string mid, Direction direction);
 
+    static bool IsSHA256Fingerprint(std::string_view fingerprint);
+
 private:
 
     Type type_;

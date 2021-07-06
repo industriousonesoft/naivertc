@@ -54,7 +54,6 @@ void trim_begin(std::string &str);
 void trim_end(std::string &str);
 std::pair<std::string_view, std::string_view> parse_pair(std::string_view attr);
 template<typename T> T to_integer(std::string_view s);
-bool is_sha256_fingerprint(std::string_view fingerprint);
 
 }
 
@@ -70,10 +69,10 @@ T generate_random();
 template<typename T> 
 void shuffle(std::vector<T> list);
 
-}
+} 
 
 
-}
-}
+} // namespace utils
+} // namespace naivertc
 
 #endif
