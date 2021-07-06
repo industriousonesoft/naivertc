@@ -5,6 +5,9 @@
 
 #include <plog/Log.h>
 
+#include <sys/time.h>
+#include <chrono>
+
 namespace naivertc {
 
 // 静态变量定义式
@@ -164,6 +167,38 @@ bool DtlsTransport::TryToHandshake() {
     }
 }
 
+bool DtlsTransport::IsHandshakeTimeout() {
+    if (!ssl_) {
+        throw std::runtime_error("SSL instance is not created yet.");
+    }
+    // DTLSv1_handle_timeout is called when a DTLS handshake timeout expires. If no timeout had expired, 
+    // it returns 0. Otherwise, it retransmits the previous flight of handshake messages and returns 1. 
+    // If too many timeouts had expired without progress or an error occurs, it returns -1.
+    int ret = DTLSv1_handle_timeout(ssl_);
+    if (ret < 0) {
+        return true;
+    }else if (ret > 0) {
+        LOG_VERBOSE << "Openssl did DTLS retransmit";
+    }
+
+    struct timeval timeout = {};
+    // DTLSv1_get_timeout queries the next DTLS handshake timeout.
+    // If there is a timeout in progress, it sets *out to the time remaining and returns one. 
+    // Otherwise, it returns zero.
+    if (DTLSv1_get_timeout(ssl_, &timeout)) {
+        auto duration_ms = std::chrono::milliseconds(timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
+        // Also handle hand shake manually because OpenSSL actually doesn't...
+        // OpenSSL backs off exponentially in base 2 starting from the recommended 1s,
+        // so this allow for 5 retansmissions and faild after roughly 30s.
+        if (duration_ms > std::chrono::milliseconds(30000)) {
+            return true;
+        }else {
+            LOG_VERBOSE << "OpenSSL DTLS retransmit timeout is " << duration_ms.count() << "ms";
+        }
+    }
+    return false;
+}
+
 // Callback methods
 openssl_bool DtlsTransport::CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx) {
     SSL* ssl = static_cast<SSL *>(X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx()));
@@ -172,19 +207,66 @@ openssl_bool DtlsTransport::CertificateCallback(int preverify_ok, X509_STORE_CTX
     if (WeakPtrManager::SharedInstance()->TryLock(transport)) {
         X509* crt = X509_STORE_CTX_get_current_cert(ctx);
         std::string fingerprint = Certificate::MakeFingerprint(crt);
-        return transport->Verify(fingerprint) ? openssl_true /* true */ : openssl_false /* false */;
+        return transport->HandleVerify(fingerprint) ? openssl_true /* true */ : openssl_false /* false */;
     }else {
         return openssl_false;
     }
 }
 
 void DtlsTransport::InfoCallback(const SSL* ssl, int where, int ret) {
+    // SSL_CB_LOOP                     0x01
+    // SSL_CB_EXIT                     0x02
+    // SL_CB_READ                      0x04
+    // SSL_CB_WRITE                    0x08
+    // SSL_CB_ALERT                    0x4000/* used in callback */
+    // SSL_CB_READ_ALERT               (SSL_CB_ALERT|SSL_CB_READ)
+    // SSL_CB_WRITE_ALERT              (SSL_CB_ALERT|SSL_CB_WRITE)
+    // SSL_CB_ACCEPT_LOOP              (SSL_ST_ACCEPT|SSL_CB_LOOP)
+    // SSL_CB_ACCEPT_EXIT              (SSL_ST_ACCEPT|SSL_CB_EXIT)
+    // SSL_CB_CONNECT_LOOP             (SSL_ST_CONNECT|SSL_CB_LOOP)
+    // SSL_CB_CONNECT_EXIT             (SSL_ST_CONNECT|SSL_CB_EXIT)
+    // SSL_CB_HANDSHAKE_START          0x10
+    // SSL_CB_HANDSHAKE_DONE           0x20
+
     // DtlsTransport* transport = static_cast<DtlsTransport*>(SSL_get_ex_data(ssl, DtlsTransport::transport_ex_index_));
-    if (where & SSL_CB_ALERT) {
-        if (ret != 256) {
-            PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
-        }
-        // TODO: close connection
+
+    // Callback has been called to indicate state change inside a loop.
+    if (where & SSL_CB_LOOP) {
+        PLOG_INFO << "Loop state changed: " << SSL_alert_desc_string_long(ret);
+    // Callback has been called to indicate error exit of a handshake function.
+    }else if (where & SSL_CB_EXIT) {
+        PLOG_INFO << "Exit error: " << SSL_alert_desc_string_long(ret);
+    // Callback has been called during read operation.
+    }else if (where & SSL_CB_READ) {
+        
+    // Callback has been called during write operation.
+    }else if (where & SSL_CB_WRITE) {
+        
+    }else if (where & SSL_CB_READ_ALERT) {
+        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+    }else if (where & SSL_CB_WRITE_ALERT) {
+        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+    }else if (where & SSL_CB_ACCEPT_LOOP) {
+        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+    }else if (where & SSL_CB_ACCEPT_EXIT) {
+        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+    }else if (where & SSL_CB_CONNECT_LOOP) {
+        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+    }else if (where & SSL_CB_CONNECT_EXIT) {
+        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+    // Callback has been called because a new handshake is started.
+    }else if (where & SSL_CB_HANDSHAKE_START) {
+        PLOG_INFO << "Handshake start";
+    // Callback has been called because a handshake is finished.
+    }else if (where & SSL_CB_HANDSHAKE_DONE) {
+        PLOG_INFO << "handshake done";
+    }else {
+        if (where & SSL_CB_ALERT) {
+            if (ret != 256) {
+                PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+            }
+            // TODO: close connection
+        } 
     }
 }
 

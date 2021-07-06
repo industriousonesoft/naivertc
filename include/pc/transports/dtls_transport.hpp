@@ -36,6 +36,7 @@ public:
 
     void Start(StartedCallback callback = nullptr) override;
     void Stop(StopedCallback callback = nullptr) override;
+    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
 
 protected:
     void InitOpenSSL(const Config& config);
@@ -43,6 +44,7 @@ protected:
 
     void InitHandshake();
     bool TryToHandshake();
+    bool IsHandshakeTimeout();
 
     static openssl_bool CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx);
     static void InfoCallback(const SSL* ssl, int where, int ret);
@@ -52,9 +54,10 @@ protected:
     static int BioMethodWrite(BIO* bio, const char* in, int in_size);
     static long BioMethodCtrl(BIO* bio, int cmd, long num, void* ptr);
 
-    bool Verify(const std::string& fingerprint);
+    bool HandleVerify(const std::string& fingerprint);
+    // void HandleInfo
 
-     // 声明式
+    // 全局变量声明式
     static BIO_METHOD* bio_methods_;
     static int transport_ex_index_;
     static std::mutex global_mutex_;
@@ -73,6 +76,7 @@ private:
     const bool is_client_;
     VerifyCallback verify_callback_;
 
+    unsigned int curr_dscp_;
     static constexpr size_t DEFAULT_SSL_BUFFER_SIZE = 4096;
 
 };

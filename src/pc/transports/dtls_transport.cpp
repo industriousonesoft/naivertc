@@ -4,13 +4,16 @@
 #include <plog/Log.h>
 
 #include <sys/time.h>
+#include <future>
 
 namespace naivertc {
 
 DtlsTransport::DtlsTransport(std::shared_ptr<IceTransport> lower, const Config& config) 
     : Transport(lower),
     config_(std::move(config)),
-    is_client_(lower->role() == sdp::Role::ACTIVE) {
+    is_client_(lower->role() == sdp::Role::ACTIVE),
+    curr_dscp_(0) {
+
     InitOpenSSL(config_);
     WeakPtrManager::SharedInstance()->Register(this);
 }
@@ -21,15 +24,22 @@ DtlsTransport::~DtlsTransport() {
 }
 
 void DtlsTransport::OnVerify(VerifyCallback callback) {
-    verify_callback_ = callback;
+    task_queue_.Post([this, callback](){
+        verify_callback_ = callback;
+    });
 }
 
-bool DtlsTransport::Verify(const std::string& fingerprint) {
-    if (verify_callback_) {
-        return verify_callback_(fingerprint);
-    }else {
-        return false;
-    }
+bool DtlsTransport::HandleVerify(const std::string& fingerprint) {
+    std::promise<bool> promise;
+    auto future = promise.get_future();
+    task_queue_.Post([this, &fingerprint, &promise](){
+        if (verify_callback_) {
+            promise.set_value(verify_callback_(fingerprint));
+        }else {
+            promise.set_value(false);
+        }
+    });
+    return future.get();
 }
 
 void DtlsTransport::Start(StartedCallback callback) { 
@@ -45,6 +55,7 @@ void DtlsTransport::Start(StartedCallback callback) {
             this->UpdateState(State::CONNECTING);
             // Start to handshake
             this->InitHandshake();
+            // TODO: Do we should use delay post to check handshake timeout in 30s here?
             if (callback) {
                 callback(std::nullopt);
             }
@@ -76,6 +87,24 @@ void DtlsTransport::Stop(StopedCallback callback) {
     });
 }
 
+void DtlsTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
+    task_queue_.Post([this, packet, callback](){
+        if (!packet || state() != State::CONNECTED) {
+            if (callback) {
+                callback(false);
+            }
+            return;
+        }
+
+        this->curr_dscp_ = packet->dscp();
+        int ret = SSL_write(this->ssl_, packet->data(), int(packet->size()));
+        int bRet = openssl::check(this->ssl_, ret);
+        if (callback) {
+            callback(bRet);
+        }
+    });
+}
+
 void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
     if (!in_packet || !ssl_) {
         return;
@@ -86,18 +115,19 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 
         auto curr_state = state();
 
-        // 非阻塞模式下，SSL_do_handshake可能需要调用多次才能握手成功
+        // In non-blocking mode, We may try to do handshake multiple time. 
         if (curr_state == State::CONNECTING) {
             if (TryToHandshake()) {
                 // DTLS Connected
                 UpdateState(State::CONNECTED);
             }else {
-                // TODO: To detect if the handshake was timeout
+                if (IsHandshakeTimeout()) {
+                    UpdateState(State::FAILED);
+                }
                 return;
             }
-        // 必须握手成功后才可以开始从SSL中读取数据
+        // Do SSL reading after connected
         }else if (curr_state != State::CONNECTED) {
-            // TODO: To detect if the handshake was timeout
             return;
         }
 
@@ -119,7 +149,12 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 }
     
 void DtlsTransport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
-
+    task_queue_.Post([this, out_packet, callback](){
+        if (out_packet->dscp() == 0) {
+            out_packet->set_dscp(curr_dscp_);
+        }
+        Transport::Outgoing(out_packet, callback);
+    });
 }
     
 } // namespace naivertc
