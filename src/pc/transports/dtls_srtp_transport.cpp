@@ -96,5 +96,11 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 void DtlsSrtpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
 
 }
+
+void DtlsSrtpTransport::OnReceivedRtpPacket(RtpPacketRecvCallback callback) {
+    task_queue_.Post([this, callback](){
+        rtp_packet_recv_callback_ = callback;
+    });
+}
     
 } // namespace naivertc

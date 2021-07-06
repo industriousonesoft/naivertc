@@ -24,7 +24,6 @@ public:
     const char* data() const;
     char* data();
     size_t size() const;
-
     const std::vector<std::byte> bytes() const;
 
     unsigned int dscp() const { return dscp_; };

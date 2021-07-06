@@ -7,6 +7,10 @@
 #include <chrono>
 #include <variant>
 
+namespace {
+using StreamId = uint16_t;
+}
+
 namespace naivertc {
 
 class RTC_CPP_EXPORT SctpPacket final: public Packet {
