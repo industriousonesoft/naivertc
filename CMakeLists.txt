@@ -46,11 +46,14 @@ set(LIB_SOURCES
     src/pc/transports/sctp_transport.cpp
     src/pc/transports/sctp_transport_usrsctp_delegate.cpp
     src/pc/transports/sctp_message.cpp
+    src/pc/transports/dtls_transport.cpp
+    src/pc/transports/dtls_transport_openssl_delegate.cpp
     src/pc/peer_connection.cpp
     src/pc/peer_connection_configuration.cpp
     src/pc/peer_connection_ice_transport_delegate.cpp
     src/pc/channels/channel.cpp
     src/pc/channels/data_channel.cpp
+    src/pc/channels/media_channel.cpp
     
 )
 
@@ -79,10 +82,12 @@ set(LIB_HEADERS
     include/pc/transports/ice_transport.hpp
     include/pc/transports/sctp_transport.hpp
     include/pc/transports/sctp_message.hpp
+    include/pc/transports/dtls_transport.hpp
     include/pc/peer_connection_configuration.hpp
     include/pc/peer_connection.hpp
     include/pc/channels/channel.hpp
     include/pc/channels/data_channel.hpp
+    include/pc/channels/media_channel.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
@@ -140,6 +145,7 @@ target_link_libraries(naivertc PRIVATE Usrsctp::Usrsctp)
 
 # examples
 add_subdirectory(${PROJECT_SOURCE_DIR}/examples/streamer ${CMAKE_CURRENT_BINARY_DIR}/examples/streamer EXCLUDE_FROM_ALL)
+add_subdirectory(${PROJECT_SOURCE_DIR}/examples/common_tests ${CMAKE_CURRENT_BINARY_DIR}/examples/common_tests EXCLUDE_FROM_ALL)
 
 # test
 if(ENABLE_TESTS)
@@ -148,6 +154,8 @@ if(ENABLE_TESTS)
 add_subdirectory(deps/googletest)
 
 set(TEST_SOURCES
+    src/common/task_queue_unittest.cpp
+
     src/pc/sdp/candidate_unittest.cpp
     src/pc/peer_connection_configuration_unittest.cpp
     testing/gtest_main.cpp

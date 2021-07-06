@@ -7,10 +7,21 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/examples/streamer/streamer",
             "args": [
+                /*
                 "wss://ayame-labo.shiguredo.jp/signaling",
                 "443",
                 "Hello, world"
+                */
             ],
+            "cwd": "${workspaceFolder}",
+            "env": {}
+        },
+        {
+            "name": "common_tests",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/examples/common_tests/common_tests",
+            "args": [],
             "cwd": "${workspaceFolder}",
             "env": {}
         }
