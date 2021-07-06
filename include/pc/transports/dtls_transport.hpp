@@ -47,6 +47,11 @@ protected:
     bool IsHandshakeTimeout();
     virtual void HandshakeDone();
 
+    bool ExportKeyingMaterial(unsigned char *out, size_t olen,
+                                const char *label, size_t llen,
+                                const unsigned char *context,
+                                size_t contextlen, bool use_context);
+
     static openssl_bool CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx);
     static void InfoCallback(const SSL* ssl, int where, int ret);
 
@@ -56,16 +61,6 @@ protected:
     static long BioMethodCtrl(BIO* bio, int cmd, long num, void* ptr);
 
     bool HandleVerify(const std::string& fingerprint);
-
-    // 全局变量声明式
-    static BIO_METHOD* bio_methods_;
-    static int transport_ex_index_;
-    static std::mutex global_mutex_;
-
-    SSL_CTX* ctx_ = NULL;
-    SSL* ssl_ = NULL;
-    BIO* in_bio_ = NULL;
-    BIO* out_bio_ = NULL;
 
 protected:
     virtual void Incoming(std::shared_ptr<Packet> in_packet) override;
@@ -79,6 +74,15 @@ private:
     unsigned int curr_dscp_;
     static constexpr size_t DEFAULT_SSL_BUFFER_SIZE = 4096;
 
+    SSL_CTX* ctx_ = NULL;
+    SSL* ssl_ = NULL;
+    BIO* in_bio_ = NULL;
+    BIO* out_bio_ = NULL;
+
+    // 全局变量声明式
+    static BIO_METHOD* bio_methods_;
+    static int transport_ex_index_;
+    static std::mutex global_mutex_;
 };
 
 }

@@ -22,7 +22,10 @@ public:
     virtual ~Packet();
 
     const char* data() const;
+    char* data();
     size_t size() const;
+
+    const std::vector<std::byte> bytes() const;
 
     unsigned int dscp() const { return dscp_; };
     void set_dscp(unsigned int dscp) { dscp_ = dscp; }
@@ -32,6 +35,8 @@ public:
 protected:
     Packet(const std::byte* bytes, size_t size);
     Packet(std::vector<std::byte>&& bytes);
+
+    void Resize(size_t new_size);
 
 private:
     std::vector<std::byte> bytes_;

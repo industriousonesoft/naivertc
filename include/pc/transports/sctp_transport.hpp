@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "pc/transports/transport.hpp"
-#include "pc/transports/sctp_message.hpp"
+#include "pc/transports/sctp_packet.hpp"
 
 #include <sigslot.h>
 #include <usrsctp.h>
@@ -59,7 +59,7 @@ private:
     void CloseStream(StreamId stream_id);
 
     bool TrySendQueue();
-    bool TrySendMessage(std::shared_ptr<SctpMessage> message);
+    bool TrySendMessage(std::shared_ptr<SctpPacket> message);
     void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
 
     void UpdateTransportState(State state);
@@ -98,7 +98,7 @@ private:
     std::condition_variable waiting_for_sending_condition_;
     std::atomic<bool> has_sent_once_ = false;
 
-    std::queue<std::shared_ptr<SctpMessage>> send_message_queue_;
+    std::queue<std::shared_ptr<SctpPacket>> send_message_queue_;
     std::map<uint16_t, size_t> buffered_amount_;
 };
 

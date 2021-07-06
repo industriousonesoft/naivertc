@@ -23,7 +23,7 @@ private:
     std::string label_;
     std::string protocol_;
 
-    std::queue<SctpMessage> recv_message_queue_;
+    std::queue<SctpPacket> recv_message_queue_;
 };
 
 } // namespace naivertc

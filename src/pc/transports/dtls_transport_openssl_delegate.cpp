@@ -203,6 +203,30 @@ void DtlsTransport::HandshakeDone() {
     // Dummy
 }
 
+bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
+                                        const char *label, size_t llen,
+                                        const unsigned char *context,
+                                        size_t contextlen, bool use_context) {
+    if (!ssl_) {
+        return false;
+    }
+    /**
+     * SSL_export_keying_material exports a value derived from the master secret,
+     * as specified in RFC 5705. It writes |olen| bytes to |out| given a label and
+     * optional context. (Since a zero length context is allowed, the |use_context|
+     * flag controls whether a context is included.)
+     *
+     * It returns 1 on success and zero otherwise.
+    */
+    int ret = SSL_export_keying_material(ssl_, out, olen, label, llen, context, contextlen, use_context ? 1 : 0);
+    if (ret <= 0) {
+        PLOG_ERROR << "Failed to export keying material: " << openssl::error_string(ERR_get_error());
+        return false;
+    }else {
+        return true;
+    }
+}
+
 // Callback methods
 openssl_bool DtlsTransport::CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx) {
     SSL* ssl = static_cast<SSL *>(X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx()));
