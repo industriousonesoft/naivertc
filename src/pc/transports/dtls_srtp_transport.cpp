@@ -71,7 +71,11 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                 return;
             }
             PLOG_VERBOSE << "Unprotected SRTCP packet, size: " << unprotected_rtcp_packet_size;
-            // TODO: wrap rtcp packet
+            // TODO: To get rtcp sr ssrc
+            unsigned int ssrc = 0;
+            in_packet->Resize(unprotected_rtcp_packet_size);
+            auto rtcp_packet = RtpPacket::Create(std::move(in_packet), RtpPacket::Type::RTCP, ssrc);
+            rtp_packet_recv_callback_(rtcp_packet);
         }else {
             PLOG_VERBOSE << "Incoming SRTP packet, size: " << packet_size;
             int unprotected_rtp_packet_size = int(packet_size);
@@ -86,7 +90,12 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                 return;
             }
             PLOG_VERBOSE << "Unprotected SRTP packet, size: " << unprotected_rtp_packet_size;
-            // TODO: wrap rtcp packet
+            // TODO: To get rtp ssrc
+            unsigned int ssrc = 0;
+            // shrink size
+            in_packet->Resize(unprotected_rtp_packet_size);
+            auto rtcp_packet = RtpPacket::Create(std::move(in_packet), RtpPacket::Type::RTP, ssrc);
+            rtp_packet_recv_callback_(rtcp_packet);
         }
     }else {
         PLOG_VERBOSE <<  "Unknown packet type, value: " << first_byte << ", size: " << packet_size;
@@ -95,6 +104,12 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 
 void DtlsSrtpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
 
+}
+
+void DtlsSrtpTransport::OnReceivedRtpPacket(RtpPacketRecvCallback callback) {
+    task_queue_.Post([this, callback](){
+        rtp_packet_recv_callback_ = callback;
+    });
 }
     
 } // namespace naivertc

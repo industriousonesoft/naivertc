@@ -55,6 +55,7 @@ set(LIB_SOURCES
     src/pc/channels/channel.cpp
     src/pc/channels/data_channel.cpp
     src/pc/channels/media_channel.cpp
+    src/pc/rtp_rtcp/rtp_packet.cpp
     
 )
 
@@ -90,6 +91,7 @@ set(LIB_HEADERS
     include/pc/channels/channel.hpp
     include/pc/channels/data_channel.hpp
     include/pc/channels/media_channel.hpp
+    include/pc/rtp_rtcp/rtp_packet.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages

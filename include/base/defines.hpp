@@ -7,7 +7,6 @@
 
 #include <cstdint>
 
-using StreamId = uint16_t;
 using TimeInterval = long;
 
 #endif

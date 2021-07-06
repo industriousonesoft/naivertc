@@ -24,7 +24,6 @@ public:
     const char* data() const;
     char* data();
     size_t size() const;
-
     const std::vector<std::byte> bytes() const;
 
     unsigned int dscp() const { return dscp_; };
@@ -32,12 +31,11 @@ public:
 
     bool is_empty() const { return bytes_.empty(); }
 
+    void Resize(size_t new_size);
+
 protected:
     Packet(const std::byte* bytes, size_t size);
     Packet(std::vector<std::byte>&& bytes);
-
-    void Resize(size_t new_size);
-
 private:
     std::vector<std::byte> bytes_;
 

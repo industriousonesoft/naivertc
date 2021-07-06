@@ -3,8 +3,11 @@
 
 #include "base/defines.hpp"
 #include "pc/transports/dtls_transport.hpp"
+#include "pc/rtp_rtcp/rtp_packet.hpp"
 
 #include <srtp.h>
+
+#include <functional>
 
 namespace naivertc {
 
@@ -17,6 +20,9 @@ public:
     ~DtlsSrtpTransport();
 
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
+
+    using RtpPacketRecvCallback = std::function<void(std::shared_ptr<RtpPacket>)>;
+    void OnReceivedRtpPacket(RtpPacketRecvCallback callback);
 
 private:
     void InitSrtp();
@@ -33,6 +39,8 @@ private:
 
     unsigned char client_write_key_[SRTP_AES_128_KEY_LEN + SRTP_SALT_LEN];
     unsigned char server_write_key_[SRTP_AES_128_KEY_LEN + SRTP_SALT_LEN];
+
+    RtpPacketRecvCallback rtp_packet_recv_callback_;
 
 };
 
