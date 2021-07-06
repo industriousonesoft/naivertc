@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(NaiveRTC VERSION 0.1.0 LANGUAGES CXX)
+project(naivertc VERSION 0.1.0 LANGUAGES CXX)
 
 # C++ standard requirements
 # 最低版本需求C++11，原因是代码用到了：c++11新标准支持static局部变量安全访问
@@ -96,32 +96,32 @@ set(LIB_HEADERS
 set_source_files_properties(${LIB_SOURCES} PROPERTIES COMPILE_FLAGS -Wall -Wextra -Wpedantic)
 
 # naiveRTC
-add_library(naivertc STATIC ${LIB_SOURCES} ${LIB_HEADERS} )
+add_library(${PROJECT_NAME} STATIC ${LIB_SOURCES} ${LIB_HEADERS} )
 
 # c++17 required
-set_target_properties(naivertc PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
+set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
 
 # include paths
-target_include_directories(naivertc PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 # liked libraries
 # json
-add_subdirectory(deps/json)
-target_link_libraries(naivertc PUBLIC nlohmann_json)
+add_subdirectory(deps/json EXCLUDE_FROM_ALL)
+target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json)
 # plog
-add_subdirectory(deps/plog)
-target_link_libraries(naivertc PUBLIC plog::plog)
+add_subdirectory(deps/plog EXCLUDE_FROM_ALL)
+target_link_libraries(${PROJECT_NAME} PUBLIC plog::plog)
 # libnice
-add_subdirectory(deps/libjuice)
-target_link_libraries(naivertc PUBLIC juice-static)
+add_subdirectory(deps/libjuice EXCLUDE_FROM_ALL)
+target_link_libraries(${PROJECT_NAME} PUBLIC juice-static)
 # sigslot
-add_subdirectory(deps/sigslot)
-target_link_libraries(naivertc PUBLIC sigslot)
+add_subdirectory(deps/sigslot EXCLUDE_FROM_ALL)
+target_link_libraries(${PROJECT_NAME} PUBLIC sigslot)
 # boost libraries
 # PUBLIC: 表示关联naivertc库的库或执行文件可共享naivertc所关联的库
-target_include_directories(naivertc PUBLIC ${LIBBOOST_INCLUDE_PATH})
-target_include_directories(naivertc PUBLIC ${OPENSSL_ROOT_DIR}/include)
-target_link_libraries(naivertc PUBLIC 
+target_include_directories(${PROJECT_NAME} PUBLIC ${LIBBOOST_INCLUDE_PATH})
+target_include_directories(${PROJECT_NAME} PUBLIC ${OPENSSL_ROOT_DIR}/include)
+target_link_libraries(${PROJECT_NAME} PUBLIC 
     ${LIBBOOST_LIBRARY_PATH}/libboost_filesystem${CMAKE_STATIC_LIBRARY_SUFFIX}
     ${LIBBOOST_LIBRARY_PATH}/libboost_thread${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
@@ -135,13 +135,16 @@ if(APPLE)
     endif()
 endif()
 find_package(OpenSSL REQUIRED)
-target_link_libraries(naivertc PRIVATE OpenSSL::SSL)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL)
 # usrsctp
 option(sctp_build_programs 0)
 option(sctp_build_shared_lib 0)
 add_subdirectory(deps/usrsctp EXCLUDE_FROM_ALL)
 add_library(Usrsctp::Usrsctp ALIAS usrsctp)
-target_link_libraries(naivertc PRIVATE Usrsctp::Usrsctp)
+target_link_libraries(${PROJECT_NAME} PRIVATE Usrsctp::Usrsctp)
+# srtp
+add_subdirectory(deps/libsrtp EXCLUDE_FROM_ALL)
+target_link_libraries(${PROJECT_NAME} PRIVATE srtp2)
 
 # examples
 add_subdirectory(${PROJECT_SOURCE_DIR}/examples/streamer ${CMAKE_CURRENT_BINARY_DIR}/examples/streamer EXCLUDE_FROM_ALL)
@@ -167,7 +170,7 @@ add_executable(naivertc_unittest EXCLUDE_FROM_ALL ${TEST_SOURCES})
 set_target_properties(naivertc_unittest PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
 
 target_link_libraries(naivertc_unittest PRIVATE gtest gtest_main gmock gmock_main)
-target_link_libraries(naivertc_unittest PRIVATE naivertc)
+target_link_libraries(naivertc_unittest PRIVATE ${PROJECT_NAME})
 
 # add_test(NAME unittest COMMAND naivertc_unittest)
 
