@@ -34,6 +34,7 @@ namespace numeric {
 
 template<
     typename T,
+    // 只有当第一个模板参数: std::is_integral<T>::value = true 时，则将类型T启用为成员类型enable_if :: type，未定义enable_if :: type，产生编译错误
     typename = typename std::enable_if<std::is_integral<T>::value, T>::type
 >
 uint16_t to_uint16(T i);
