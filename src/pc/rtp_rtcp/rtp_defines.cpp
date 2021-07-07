@@ -163,4 +163,97 @@ RTCP_Header::operator std::string() const {
     return oss.str();
 }
 
+// SR: Send Report
+// Report Block
+uint16_t RTCP_ReportBlock::seq_num_cycles() const {
+    return ntohs(seq_num_cycles_);
+}
+
+uint16_t RTCP_ReportBlock::highest_seq_num() const {
+    return ntohs(highest_seq_num_);
+}
+
+uint32_t RTCP_ReportBlock::jitter() const {
+    return ntohl(jitter_);
+}
+
+uint32_t RTCP_ReportBlock::delay_since_last_sr() const {
+    return ntohl(delay_since_last_sr_);
+}
+
+SSRC RTCP_ReportBlock::ssrc() const {
+    return ntohl(ssrc_);
+}
+
+uint32_t RTCP_ReportBlock::last_sr_ntp_timestamp() const {
+    // FIXME: 此处需要：ntohl(last_sr_ntp_timestamp_) << 16u？
+    // 我觉得是不需要， 在设置的时候uint64_t强制转换为uint32_t，因此高位自动被裁减了
+    return ntohl(last_sr_ntp_timestamp_);
+}
+
+RTCP_ReportBlock::operator std::string() const {
+    std::ostringstream oss;
+    oss << "RTCP report block: "
+        << "ssrc="
+        << ntohl(ssrc_)
+        // TODO: Implement these reports
+        //	<< ", fractionLost=" << fractionLost
+        //	<< ", packetsLost=" << packetsLost
+        << ", highest_seq_num=" << highest_seq_num() << ", seq_num_cycles=" << seq_num_cycles()
+        << ", jitter=" << jitter() << ", last_sr_ntp_timestamp=" << last_sr_ntp_timestamp()
+        << ", delay_since_last_sr=" << delay_since_last_sr();
+
+    return oss.str();
+}
+
+void RTCP_ReportBlock::set_ssrc(SSRC ssrc) {
+    ssrc_ = htonl(ssrc);
+}
+
+void RTCP_ReportBlock::set_packet_lost(unsigned int packet_lost, unsigned int total_packets) {
+    // TODO: Calculate loss percentage
+    // See https://datatracker.ietf.org/doc/html/rfc3550#section-6.4.1
+    fracion_lost_and_packet_lost_ = 0;
+}
+
+void RTCP_ReportBlock::set_seq_num(uint16_t highest_seq_num, uint16_t seq_num_cycles) {
+    highest_seq_num_ = htons(highest_seq_num);
+    seq_num_cycles_ = htons(seq_num_cycles);
+}   
+
+void RTCP_ReportBlock::set_jitter(uint32_t jitter) {
+    jitter_ = htonl(jitter);
+}
+
+void RTCP_ReportBlock::set_last_sr_ntp_timestamp(uint64_t ntp_timestamp) {
+    // Keep the middle 32 bits out of 64 in the NTP timestamp
+    last_sr_ntp_timestamp_ = htonll(ntp_timestamp >> 16u);
+}
+
+void RTCP_ReportBlock::set_delay_since_last_sr(uint32_t delay) {
+    delay_since_last_sr_ = htonl(delay);
+}
+
+void RTCP_ReportBlock::Prepare(SSRC ssrc, unsigned int packet_lost, unsigned int total_packets, 
+                                uint16_t highest_seq_num, uint16_t seq_num_cycles, 
+                                uint32_t jitter, uint64_t last_sr_ntp_timestamp, uint64_t delay_since_last_sr) {
+    set_ssrc(ssrc);
+    set_packet_lost(packet_lost, total_packets);
+    set_seq_num(highest_seq_num, seq_num_cycles);
+    set_jitter(jitter);
+    set_last_sr_ntp_timestamp(last_sr_ntp_timestamp);
+    set_delay_since_last_sr(delay_since_last_sr);
+}
+
+unsigned int RTCP_ReportBlock::LossPercentage() const {
+    // TODO: Calculate loss percentage
+    return 0;
+}
+
+unsigned int RTCP_ReportBlock::PacketLostCount() const {
+    // TODO: Calculate total percentage
+    return 0;
+}
+
+
 } // namespace naivertc
