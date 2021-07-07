@@ -15,7 +15,7 @@ TEST(RtpRtcpTest, ParseRTPPacket) {
 
     struct RTP rtp_packet;
     
-    memcpy(&rtp_packet, raw_bytes, sizeof(raw_bytes)); 
+    memcpy(&rtp_packet, raw_bytes, sizeof(rtp_packet)); 
 
     EXPECT_EQ(rtp_packet.version(), 0x02);
     EXPECT_EQ(rtp_packet.padding(), false);
@@ -55,6 +55,34 @@ TEST(RtpRtcpTest, CreateRTPPacket) {
     EXPECT_EQ(rtp_packet.ssrc(), 0x01);
     EXPECT_EQ(rtp_packet.header_size(), 12);
 
+}
+
+// RTCP 
+// Header
+TEST(RtpRtcpTest, ParseRtcpHeader) {
+    const uint8_t raw_bytes[] = {0x81, 0xC8, 0x00, 0x1e};
+
+    struct RTCP_Header rtcp_header;
+    memcpy(&rtcp_header, raw_bytes, sizeof(rtcp_header));
+
+    EXPECT_EQ(rtcp_header.version(), 0x02);
+    EXPECT_EQ(rtcp_header.padding(), false);
+    EXPECT_EQ(rtcp_header.report_count(), 0x01);
+    EXPECT_EQ(rtcp_header.payload_type(), 200);
+    EXPECT_EQ(rtcp_header.length(), 0x001e);
+    EXPECT_EQ(rtcp_header.length_in_bytes(), 124);
+}
+
+TEST(RtpRtcpTest, CreateRtcpHeader) {
+    struct RTCP_Header rtcp_header;
+    rtcp_header.Prepare(201, 5, 9);
+
+    EXPECT_EQ(rtcp_header.version(), 0x02);
+    EXPECT_EQ(rtcp_header.padding(), false);
+    EXPECT_EQ(rtcp_header.report_count(), 5);
+    EXPECT_EQ(rtcp_header.payload_type(), 201);
+    EXPECT_EQ(rtcp_header.length(), 0x09);
+    EXPECT_EQ(rtcp_header.length_in_bytes(), 40);
 }
 
     

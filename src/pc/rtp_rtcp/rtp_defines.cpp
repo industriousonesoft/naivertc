@@ -3,6 +3,15 @@
 #include <sstream>
 #include <cmath>
 
+#ifndef htonll
+#define htonll(x)                                                                                  \
+	((uint64_t)(((uint64_t)htonl((uint32_t)(x))) << 32) | (uint64_t)htonl((uint32_t)((x) >> 32)))
+#endif
+
+#ifndef ntohll
+#define ntohll(x) htonll(x)
+#endif
+
 namespace naivertc {
     
 // RTP
@@ -65,11 +74,9 @@ RTP::operator std::string() const {
 }
 
 void RTP::prepare() {
-    // Reset
-    first_byte_ = 0x00;
-    // RTP version: high 2 bits, always 2
-    first_byte_ |= (1 << 7);
-    // TODO: to init left bits int first byte.
+    // version 2, no padding
+    first_byte_ = 0b10000000u;
+    // TODO: Need to init left bits in first byte?
 }
 
 void RTP::set_seq_number(uint16_t new_seq_num) {
@@ -90,6 +97,70 @@ void RTP::set_marker(bool marker) {
 
 void RTP::set_timestamp(uint32_t new_timestamp) {
     timestamp_ = htonl(new_timestamp);
+}
+
+// RTCP
+// Header
+uint8_t RTCP_Header::version() const {
+    return first_byte_ >> 6;
+}
+
+bool RTCP_Header::padding() const {
+    return (first_byte_ >> 5) & 0x01;
+}
+
+uint8_t RTCP_Header::report_count() const {
+    return (first_byte_ & 0x0F);
+}
+
+uint8_t RTCP_Header::payload_type() const {
+    return payload_type_;
+}
+
+uint16_t RTCP_Header::length() const {
+    return ntohs(length_);
+}
+
+size_t RTCP_Header::length_in_bytes() const {
+    // The length of this RTCP packet in 32 words minus one,
+    // including the header and any padding, 
+    // The offset of one makes zero a valid length and avoids
+    // a possible infinite loop in scanning a RTCP packet, while
+    // counting 32 bit words a validity check for a multiple of 4
+    // 一个字节为8比特，而length的计算是以32比特为单位，因此换算成字节需要乘以4
+    return (1 + length()) * 4;
+}
+
+void RTCP_Header::Prepare(uint8_t payload_type, uint8_t report_count, uint16_t length) {
+    first_byte_ = 0b10000000u;
+    set_report_count(report_count);
+    set_payload_type(payload_type);
+    set_length(length);
+}
+
+void RTCP_Header::set_payload_type(uint8_t type) {
+    payload_type_ = type;
+}
+
+void RTCP_Header::set_report_count(uint8_t count) {
+    first_byte_ = (first_byte_ & 0b11100000u) | (count & 0b00011111u);
+}
+
+void RTCP_Header::set_length(uint16_t length) {
+    length_ = htons(length);
+}
+
+// void RTCP_Header::set_length_in_bytes(size_t length_in_bytes) {
+//     length_ = (length_in_bytes - 1) / 4;
+// }
+
+RTCP_Header::operator std::string() const {
+    std::ostringstream oss;
+    oss << "RTCP Header: "
+        << "V: " << version() << " P: " << (padding() ? "P" : " ")
+        << "RC: " << report_count() << " PT: " << payload_type() 
+        << "length: " << length();
+    return oss.str();
 }
 
 } // namespace naivertc
