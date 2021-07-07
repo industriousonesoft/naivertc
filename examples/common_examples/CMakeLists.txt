@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(common_tests VERSION 0.0.1 LANGUAGES CXX)
+project(common_examples VERSION 0.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCE_FILES
     src/main.cpp
-    src/task_queue_tests.cpp
+    src/task_queue_examples.cpp
 
-    include/task_queue_tests.hpp
+    include/task_queue_examples.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
