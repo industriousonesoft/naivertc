@@ -65,19 +65,14 @@ public:
 };
 
 // RTCP
+// Header
 /** 
     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |V=2|P|   RC    |      PT       |           length              |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |           synchronization source (SSRC) identifier            |
-   +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
-   |                    source or chunk                            |
-   |                             ....                              |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
-// Header
 struct RTC_CPP_EXPORT RTCP_Header {
 private:
     // All Variales saved in big-endian
@@ -129,13 +124,17 @@ private:
     SSRC ssrc_;
     // fraction lost is high 8 bits, packets lost is low 24 bits
     uint32_t fracion_lost_and_packet_lost_;
+    // the most significant 16 bits extend that sequence number 
+    // with the corresponding count of sequence number cycles
+    // 高16比特表示循环的圈数（sequeue number使用uint32_t表示，表示范围有限）
     uint16_t seq_num_cycles_;
+    // The low 16 bits contain the highest sequence number received in an
+    // RTP data packet from source SSRC_n
     uint16_t highest_seq_num_;
     uint32_t jitter_;
-    // Last send report timestamp: 
-    // The middle 32 bits out of 64 in the NTP timestamp
+    // Last send report timestamp, 
+    // the middle 32 bits out of 64 in the NTP timestamp
     uint32_t last_sr_ntp_timestamp_;
-    // Delay since last send report: 
     // The delay, expressed in units of 1/65536 seconds, between
     // receiving the last SR packet from source SSRC_n and sending this
     // reception report block. 
@@ -184,8 +183,20 @@ public:
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     |                      sender's octet count                     |
     +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+    |                      report blocks                            |
+    +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 */
 struct RTC_CPP_EXPORT RTCP_SR {
+private:
+    RTCP_Header header_;
+
+    SSRC sender_ssrc_;
+    uint64_t ntp_timestamp_;
+    uint32_t rtp_timestamp_;
+    uint32_t packet_count_;
+    uint32_t octet_count_;
+
+    RTCP_ReportBlock report_blocks;
 
 };
 
