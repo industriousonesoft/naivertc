@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCE_FILES
     src/main.cpp
+    src/task_queue_tests.cpp
+
+    include/task_queue_tests.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
