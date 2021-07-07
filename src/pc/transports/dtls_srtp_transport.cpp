@@ -1,5 +1,6 @@
 #include "pc/transports/dtls_srtp_transport.hpp"
 #include "common/utils.hpp"
+#include "pc/rtp_rtcp/rtp_defines.hpp"
 
 #include <plog/Log.h>
 

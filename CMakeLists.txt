@@ -56,7 +56,7 @@ set(LIB_SOURCES
     src/pc/channels/data_channel.cpp
     src/pc/channels/media_channel.cpp
     src/pc/rtp_rtcp/rtp_packet.cpp
-    
+    src/pc/rtp_rtcp/rtp_defines.cpp
 )
 
 set(LIB_HEADERS
@@ -92,6 +92,7 @@ set(LIB_HEADERS
     include/pc/channels/data_channel.hpp
     include/pc/channels/media_channel.hpp
     include/pc/rtp_rtcp/rtp_packet.hpp
+    include/pc/rtp_rtcp/rtp_defines.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
@@ -161,9 +162,11 @@ if(ENABLE_TESTS)
 add_subdirectory(deps/googletest)
 
 set(TEST_SOURCES
-    src/common/task_queue_unittest.cpp
+    # src/common/task_queue_unittest.cpp
     src/pc/sdp/candidate_unittest.cpp
     src/pc/peer_connection_configuration_unittest.cpp
+    src/pc/rtp_rtcp/rtp_defines_unittest.cpp
+
     testing/gtest_main.cpp
 )
 
