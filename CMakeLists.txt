@@ -153,7 +153,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE srtp2)
 
 # examples
 add_subdirectory(${PROJECT_SOURCE_DIR}/examples/streamer ${CMAKE_CURRENT_BINARY_DIR}/examples/streamer EXCLUDE_FROM_ALL)
-add_subdirectory(${PROJECT_SOURCE_DIR}/examples/common_tests ${CMAKE_CURRENT_BINARY_DIR}/examples/common_tests EXCLUDE_FROM_ALL)
+add_subdirectory(${PROJECT_SOURCE_DIR}/examples/common_examples ${CMAKE_CURRENT_BINARY_DIR}/examples/common_examples EXCLUDE_FROM_ALL)
 
 # test
 if(ENABLE_TESTS)
