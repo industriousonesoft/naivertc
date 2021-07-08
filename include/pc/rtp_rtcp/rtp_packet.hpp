@@ -28,12 +28,7 @@ public:
     Type type() const { return type_; }
     SSRCId ssrc_id() const { return ssrc_id_; }
 
-    const char* data() const;
-    char* data();
-    size_t size() const;
-    const std::vector<std::byte> bytes() const;
-
-    bool is_empty() const;
+    std::shared_ptr<Packet> raw_packet() const { return raw_packet_; }
 
 protected:
     RtpPacket(std::shared_ptr<Packet> raw_packet, Type type, SSRCId ssrc_id);

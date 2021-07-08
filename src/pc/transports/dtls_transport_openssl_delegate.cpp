@@ -159,8 +159,10 @@ bool DtlsTransport::TryToHandshake() {
         // RFC 8261: DTLS MUST support sending messages larger than the current path
         // MTU See https://tools.ietf.org/html/rfc8261#section-5
         SSL_set_mtu(ssl_, DEFAULT_SSL_BUFFER_SIZE + 1 /* buffer eof byte? */);
+        DtlsHandshakeDone();
 
         PLOG_INFO << "DTLS handshake finished.";
+        
         return true;
     }else {
         return false;
@@ -199,7 +201,7 @@ bool DtlsTransport::IsHandshakeTimeout() {
     return false;
 }
 
-void DtlsTransport::HandshakeDone() {
+void DtlsTransport::DtlsHandshakeDone() {
     // Dummy
 }
 

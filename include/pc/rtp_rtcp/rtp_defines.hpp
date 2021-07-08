@@ -187,17 +187,6 @@ public:
     +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
 */
 struct RTC_CPP_EXPORT RTCP_SR {
-private:
-    RTCP_Header header_;
-
-    SSRC sender_ssrc_;
-    uint64_t ntp_timestamp_;
-    uint32_t rtp_timestamp_;
-    uint32_t packet_count_;
-    uint32_t octet_count_;
-
-    RTCP_ReportBlock report_blocks;
-
 };
 
 #pragma pack(pop)

@@ -45,7 +45,7 @@ protected:
     void InitHandshake();
     bool TryToHandshake();
     bool IsHandshakeTimeout();
-    virtual void HandshakeDone();
+    virtual void DtlsHandshakeDone();
 
     bool ExportKeyingMaterial(unsigned char *out, size_t olen,
                                 const char *label, size_t llen,
