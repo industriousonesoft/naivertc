@@ -8,8 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SOURCE_FILES
     src/main.cpp
     src/task_queue_examples.cpp
+    src/volatile_examples.cpp
 
     include/task_queue_examples.hpp
+    include/volatile_examples.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
