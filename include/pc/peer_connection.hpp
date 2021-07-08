@@ -9,10 +9,12 @@
 #include "pc/sdp/sdp_session_description.hpp"
 #include "pc/transports/ice_transport.hpp"
 #include "pc/transports/sctp_transport.hpp"
+#include "pc/media/media_track.hpp"
 
 #include <sigslot.h>
 
 #include <exception>
+#include <unordered_map>
 
 namespace naivertc {
 
@@ -53,6 +55,8 @@ public:
     }
     ~PeerConnection();
 
+    void AddTrack(std::shared_ptr<MediaTrack> media_track);
+
     void CreateOffer(SDPSetSuccessCallback on_success = nullptr, 
                     SDPCreateFailureCallback on_failure = nullptr);
     void CreateAnswer(SDPSetSuccessCallback on_success = nullptr, 
@@ -65,6 +69,7 @@ public:
                 SDPSetSuccessCallback on_success = nullptr, 
                 SDPSetFailureCallback on_failure = nullptr);
 
+public:
     // setup State & Candidate callback
     void OnConnectionStateChanged(ConnectionStateCallback callback);
     void OnIceGatheringStateChanged(GatheringStateCallback callback);
@@ -107,6 +112,8 @@ private:
 
     std::optional<sdp::SessionDescription> local_session_description_;
     std::optional<sdp::SessionDescription> remote_session_description_;
+
+    std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_;
 
 };
 

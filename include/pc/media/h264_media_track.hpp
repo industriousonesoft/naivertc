@@ -13,7 +13,8 @@ public:
     H264MediaTrack(Config config);
     virtual ~H264MediaTrack();
 
-    Kind kind() const { return Kind::VIDEO; };
+    Kind kind() const override { return Kind::VIDEO; } 
+    Codec codec() const override { return Codec::H264; } 
 
     int payload_type() const;
     void set_payload_type(int payload_type);

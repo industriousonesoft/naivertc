@@ -373,7 +373,7 @@ void Media::AddRTPMap(const RTPMap& map) {
 Audio::Audio(std::string mid, Direction direction) 
     : Media("audio 9 UDP/TLS/RTP/SAVPF", std::move(mid), direction) {}
 
-void Audio::AddAudioCodec(int payload_type, std::string codec, int clock_rate, int channels, std::optional<std::string> profile) {
+void Audio::AddCodec(int payload_type, std::string codec, int clock_rate, int channels, std::optional<std::string> profile) {
     RTPMap map(std::to_string(payload_type) + " " + codec + "/" + std::to_string(clock_rate) + "/" + std::to_string(channels));
     if (profile) {
         map.fmt_profiles.emplace_back(*profile);
@@ -385,7 +385,7 @@ void Audio::AddAudioCodec(int payload_type, std::string codec, int clock_rate, i
 Video::Video(std::string mid, Direction direction) 
     : Media("video 9 UDP/TLS/RTP/SAVPF", std::move(mid), direction) {}
 
-void Video::AddVideoCodec(int payload_type, std::string codec, std::optional<std::string> profile) {
+void Video::AddCodec(int payload_type, std::string codec, std::optional<std::string> profile) {
     RTPMap map(std::to_string(payload_type) + " " + codec + "/90000");
     // TODO: Replace fixed feedback settings with input parameters
     map.AddFeedback("nack");

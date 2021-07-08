@@ -13,7 +13,8 @@ public:
     OpusMediaTrack(Config config, int sample_rate, int channels);
     virtual ~OpusMediaTrack();
 
-    Kind kind() const { return Kind::AUDIO; }
+    Kind kind() const override { return Kind::AUDIO; }
+    Codec codec() const override { return Codec::OPUS; } 
 
     int sample_rate() const;
     int channels() const;
