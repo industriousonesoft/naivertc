@@ -381,16 +381,13 @@ void Audio::AddAudioCodec(int payload_type, std::string codec, int clock_rate, i
     AddRTPMap(map);
 }
 
-void Audio::AddOpusCodec(int payload_type, std::optional<std::string> profile) {
-    AddAudioCodec(payload_type, "OPUS", 48000, 2, profile);
-}
-
 // Video
 Video::Video(std::string mid, Direction direction) 
     : Media("video 9 UDP/TLS/RTP/SAVPF", std::move(mid), direction) {}
 
 void Video::AddVideoCodec(int payload_type, std::string codec, std::optional<std::string> profile) {
     RTPMap map(std::to_string(payload_type) + " " + codec + "/90000");
+    // TODO: Replace fixed feedback settings with input parameters
     map.AddFeedback("nack");
     map.AddFeedback("nack pli");
     map.AddFeedback("goog-remb");
@@ -398,10 +395,6 @@ void Video::AddVideoCodec(int payload_type, std::string codec, std::optional<std
         map.fmt_profiles.emplace_back(*profile);
 
     AddRTPMap(map);
-}
-
-void Video::AddH264Codec(int payload_type, std::optional<std::string> profile) {
-    AddVideoCodec(payload_type, "H264", profile);
 }
 
 } // namespace sdp

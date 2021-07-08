@@ -1,5 +1,5 @@
-#ifndef _DTLS_SRTP_TRANSPORT_H_
-#define _DTLS_SRTP_TRANSPORT_H_
+#ifndef _PC_DTLS_SRTP_TRANSPORT_H_
+#define _PC_DTLS_SRTP_TRANSPORT_H_
 
 #include "base/defines.hpp"
 #include "pc/transports/dtls_transport.hpp"

@@ -136,8 +136,7 @@ public:
     Audio(std::string mid="audio", Direction direction = Direction::SEND_ONLY);
 
     void AddAudioCodec(int payload_type, std::string codec, int clock_rate = 48000, int channels = 2, std::optional<std::string> profile = std::nullopt);
-    
-    void AddOpusCodec(int payload_type, std::optional<std::string> profile = DEFAULT_OPUS_AUDIO_PROFILE);
+
 };
 
 // Video
@@ -146,8 +145,6 @@ public:
     Video(std::string mid = "video", Direction direction = Direction::SEND_ONLY);
 
     void AddVideoCodec(int payload_type, std::string codec, std::optional<std::string> profile = std::nullopt);
-
-    void AddH264Codec(int payload_type, std::optional<std::string> profile = DEFAULT_H264_VIDEO_PROFILE);
 };
 
 }

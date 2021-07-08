@@ -57,6 +57,9 @@ set(LIB_SOURCES
     src/pc/channels/media_channel.cpp
     src/pc/rtp_rtcp/rtp_packet.cpp
     src/pc/rtp_rtcp/rtp_defines.cpp
+    src/pc/media/media_track.cpp
+    src/pc/media/h264_media_track.cpp
+    src/pc/media/opus_media_track.cpp
 )
 
 set(LIB_HEADERS
@@ -93,6 +96,9 @@ set(LIB_HEADERS
     include/pc/channels/media_channel.hpp
     include/pc/rtp_rtcp/rtp_packet.hpp
     include/pc/rtp_rtcp/rtp_defines.hpp
+    include/pc/media/media_track.hpp
+    include/pc/media/h264_media_track.hpp
+    include/pc/media/opus_media_track.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
