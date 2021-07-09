@@ -9,6 +9,7 @@
 
 namespace naivertc {
 
+// IceServer
 struct RTC_CPP_EXPORT IceServer {
     enum class Type { STUN, TURN };
     enum class RelayType { TURN_UDP, TURN_TCP, TURN_TLS };
@@ -48,12 +49,21 @@ private:
     RelayType relay_type_;
 };
 
+// CertificateType
 enum class CertificateType {
     DEFAULT,
     ECDSA,
     RSA
 };
 
+// DataChannelInit
+struct RTC_CPP_EXPORT DataChannelInit {
+    std::optional<StreamId> stream_id;
+    std::string label;
+    std::string protocol;
+};
+
+// Configuration
 struct RTC_CPP_EXPORT Configuration {
     // Ice settings
     std::vector<IceServer> ice_servers;

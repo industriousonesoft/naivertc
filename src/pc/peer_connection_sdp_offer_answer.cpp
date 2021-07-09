@@ -109,9 +109,9 @@ void PeerConnection::AddTrack(std::shared_ptr<MediaTrack> media_track) {
             // H264 track
             if (codec == MediaTrack::Codec::H264 && utils::instanceof<H264MediaTrack>(media_track.get())) {
                 auto h264_track = static_cast<H264MediaTrack*>(media_track.get());
-                sdp::Video video_sdp_entry = sdp::Video(h264_track->mid());
-                video_sdp_entry.AddCodec(h264_track->payload_type(), h264_track->codec_string(), h264_track->format_profile());
-                // TODO: emplace new track
+                auto video_sdp_entry = std::make_shared<sdp::Video>(h264_track->mid());
+                video_sdp_entry->AddCodec(h264_track->payload_type(), h264_track->codec_string(), h264_track->format_profile());
+                this->media_sdp_entries_.emplace(std::make_pair(video_sdp_entry->mid(), video_sdp_entry));
             }else {
                 PLOG_ERROR << "video track with codec: " << media_track->codec_string();
             }
@@ -119,15 +119,50 @@ void PeerConnection::AddTrack(std::shared_ptr<MediaTrack> media_track) {
             // Opus track
             if (codec == MediaTrack::Codec::OPUS && utils::instanceof<OpusMediaTrack>(media_track.get())) {
                 auto opus_track = static_cast<OpusMediaTrack*>(media_track.get());
-                sdp::Video audio_sdp_entry = sdp::Video(opus_track->mid());
-                audio_sdp_entry.AddCodec(opus_track->payload_type(), opus_track->codec_string(), opus_track->format_profile());
-                // TODO: emplace new track
+                auto audio_sdp_entry = std::make_shared<sdp::Audio>(opus_track->mid());
+                audio_sdp_entry->AddCodec(opus_track->payload_type(), opus_track->codec_string(), opus_track->sample_rate(), opus_track->channels(), opus_track->format_profile());
+                this->media_sdp_entries_.emplace(std::make_pair(audio_sdp_entry->mid(), audio_sdp_entry));
             }else {
                 PLOG_ERROR << "audio track with codec: " << media_track->codec_string();
             }
         }else {
             PLOG_ERROR << "Unsupported media track kind: " << media_track->kind_string() << ", codec: " << media_track->codec_string();
         }
+    });
+}
+
+void PeerConnection::CreateDataChannel(DataChannelInit init) {
+    handle_queue_.Post([this, init](){
+        StreamId stream_id;
+        if (init.stream_id) {
+            stream_id = *init.stream_id;
+            if (stream_id > STREAM_ID_MAX_VALUE) {
+                throw std::invalid_argument("Invalid DataChannel stream id.");
+            }
+        }else {
+            // RFC 5763: The answerer MUST use either a setup attibute value of setup:active or setup:passive.
+            // and, setup::active is RECOMMENDED. See https://tools.ietf.org/html/rfc5763#section-5
+            // Thus, we assume passive role if we are the offerer.
+            auto role = this->ice_transport_->role();
+
+            // FRC 8832: The peer that initiates opening a data channel selects a stream identifier for 
+            // which the corresponding incoming and outgoing streams are unused. If the side is acting as the DTLS client,
+            // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
+            // See https://tools.ietf.org/html/rfc8832#section-6
+            stream_id = (role == sdp::Role::ACTIVE) ? 0 : 1;
+            // Avoid conflict with existed data channel
+            while (data_channels_.find(stream_id) != data_channels_.end()) {
+                if (stream_id >= STREAM_ID_MAX_VALUE - 2) {
+                    throw std::runtime_error("Too many DataChannels");
+                }
+                stream_id += 2;
+            }
+        }
+
+        // We assume the DataChannel is not negotiacted
+        auto data_channel = std::make_shared<DataChannel>(stream_id, std::move(init.label), std::move(init.protocol));
+
+        data_channels_.emplace(std::make_pair(stream_id, data_channel));
     });
 }
 

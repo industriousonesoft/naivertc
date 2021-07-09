@@ -12,6 +12,8 @@
 #include <cstdint>
 
 using TimeInterval = long;
+using StreamId = uint16_t;
+const StreamId STREAM_ID_MAX_VALUE = 65535;
 
 #endif
 

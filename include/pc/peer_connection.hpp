@@ -5,11 +5,13 @@
 #include "common/proxy.hpp"
 #include "common/task_queue.hpp"
 #include "pc/peer_connection_configuration.hpp"
+#include "pc/sdp/sdp_entry.hpp"
 #include "pc/sdp/candidate.hpp"
 #include "pc/sdp/sdp_session_description.hpp"
 #include "pc/transports/ice_transport.hpp"
 #include "pc/transports/sctp_transport.hpp"
 #include "pc/media/media_track.hpp"
+#include "pc/channels/data_channel.hpp"
 
 #include <sigslot.h>
 
@@ -56,6 +58,7 @@ public:
     ~PeerConnection();
 
     void AddTrack(std::shared_ptr<MediaTrack> media_track);
+    void CreateDataChannel(DataChannelInit init);
 
     void CreateOffer(SDPSetSuccessCallback on_success = nullptr, 
                     SDPCreateFailureCallback on_failure = nullptr);
@@ -113,7 +116,8 @@ private:
     std::optional<sdp::SessionDescription> local_session_description_;
     std::optional<sdp::SessionDescription> remote_session_description_;
 
-    std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_;
+    std::unordered_map<StreamId, std::shared_ptr<DataChannel>> data_channels_;
+    std::unordered_map<std::string /* mid */, std::shared_ptr<sdp::Entry>> media_sdp_entries_;
 
 };
 
