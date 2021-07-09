@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "pc/sdp/sdp_entry.hpp"
+#include "pc/sdp/sdp_defines.hpp"
 
 #include <string>
 #include <vector>
@@ -33,31 +34,22 @@ public:
     };
 
 public:
-    MediaTrack(const Config& config);
-    virtual ~MediaTrack() = default;
+    MediaTrack(const sdp::Media& description);
+    ~MediaTrack();
 
-    virtual Kind kind() const = 0;
-
-    virtual Codec codec() const = 0;
-
-    virtual sdp::Media description() const = 0;
-
-    uint32_t ssrc() const { return config_.ssrc; }
-    std::string cname() const { return config_.cname; } 
-    std::string mid() const { return config_.mid; }
-    std::string track_id() const { return config_.track_id; }
-    std::string msid() const { return config_.msid; }
-    std::vector<int> payload_types() const { return config_.payload_types; }
+    std::string mid() const;
+    sdp::Direction direction() const;
+    sdp::Media description() const;
+    
+    void UpdateDescription(sdp::Media description);
 
 public:
     static std::string kind_to_string(Kind kind);
     static std::string codec_to_string(Codec codec);
+    static std::optional<std::string> FormatProfileForPayloadType(int payload_type);
 
 protected:
-    virtual std::optional<std::string> FormatProfileForPayloadType(int payload_type) const = 0;
-
-protected:
-    const Config config_;
+    sdp::Media description_;
 };
 
 } // namespace naivertc

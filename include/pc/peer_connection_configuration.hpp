@@ -65,7 +65,7 @@ struct RTC_CPP_EXPORT Configuration {
     // Options
     CertificateType certificate_type = CertificateType::DEFAULT;
     bool enable_ice_tcp = false;
-    bool auto_negotiation = false;
+    bool auto_negotiation = true;
 
     // Port range
     uint16_t port_range_begin_;

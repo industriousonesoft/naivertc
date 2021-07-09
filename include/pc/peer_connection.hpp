@@ -98,12 +98,18 @@ private:
                                     SDPSetSuccessCallback on_success = nullptr, 
                                     SDPSetFailureCallback on_failure = nullptr);
 
+    void AddRemoteTrack(sdp::Media description);
+
+    sdp::Media BuildMediaTrackDescription(const MediaTrack::Config& config);
+
 private:
     TaskQueue handle_queue_;
 
     const Configuration config_;
     ConnectionState connection_state_;
     GatheringState gathering_state_;
+
+    bool negotiation_needed_;
 
     std::shared_ptr<IceTransport> ice_transport_;
     std::shared_ptr<SctpTransport> sctp_transport_;
@@ -115,6 +121,7 @@ private:
     std::optional<sdp::SessionDescription> local_session_description_;
     std::optional<sdp::SessionDescription> remote_session_description_;
 
+    // FIXME: Do I need to use shared_ptr instead of weak_ptr here?
     std::unordered_map<StreamId, std::weak_ptr<DataChannel>> data_channels_;
     std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_;
 

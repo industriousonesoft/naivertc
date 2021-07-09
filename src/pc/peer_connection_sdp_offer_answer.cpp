@@ -2,8 +2,6 @@
 #include "common/utils.hpp"
 #include "base/internals.hpp"
 #include "pc/sdp/sdp_entry.hpp"
-#include "pc/media/h264_media_track.hpp"
-#include "pc/media/opus_media_track.hpp"
 
 #include <plog/Log.h>
 
@@ -43,26 +41,42 @@ void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_
                         reciprocated.HintSctpPort(local_sctp_port);
                         reciprocated.set_max_message_size(local_max_message_size);
 
-                        PLOG_DEBUG << "Reciprocating application in local description, mid: " 
-                                    << reciprocated.mid();
+                        PLOG_DEBUG 
+                            << "Reciprocating application in local description, mid: " 
+                            << reciprocated.mid();
 
                         session_description.AddApplication(std::move(reciprocated));
                    }
                 },
                 [&](sdp::Media* remote_media) {
-                    // TODO: Prefer local media track
+                    // Prefer local media track
                     if (auto it = media_tracks_.find(remote_media->mid()); it != media_tracks_.end()) {
-                        if (auto local_media = it->second.lock()) {
-                            // session_description.AddMedia(std::)
+                        if (auto local_track = it->second.lock()) {
+                            // 此处调用的是拷贝构造函数
+                            auto local_media = local_track->description();
+                            PLOG_DEBUG << "Adding media to local description, mid=" << local_media.mid()
+                                        << ", active=" << std::boolalpha
+                                        << (local_media.direction() != sdp::Direction::INACTIVE);
+
+                            session_description.AddMedia(std::move(local_media));
+                        // Local track was removed
+                        }else {
+                            auto reciprocated = remote_media->reciprocate();
+                            reciprocated.set_direction(sdp::Direction::INACTIVE);
+
+                            PLOG_DEBUG << "Adding inactive media to local description, mid=" << reciprocated.mid();
+
+                            session_description.AddMedia(std::move(reciprocated));
                         }
+                    }else {
+                        auto reciprocated = remote_media->reciprocate();
+
+                        AddRemoteTrack(reciprocated);
+
+                        PLOG_DEBUG << "Reciprocating media in local description, mid: " 
+                                << reciprocated.mid();
+                        session_description.AddMedia(std::move(reciprocated));
                     }
-
-
-                    auto reciprocated = remote_media->reciprocate();
-
-                    PLOG_DEBUG << "Reciprocating media in local description, mid: " 
-                               << reciprocated.mid();
-                    session_description.AddMedia(std::move(reciprocated));
                 }
             }, remote->media(i));
         }
@@ -125,32 +139,24 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Config& c
     auto future = promise.get_future();
     handle_queue_.Post([this, init_config = std::move(config), &promise](){
         try {
-            // Create media description and add to local sdp
-            auto codec = init_config.codec;
-            auto kind = init_config.kind;
+            auto description = this->BuildMediaTrackDescription(std::move(init_config));
+
             std::shared_ptr<MediaTrack> media_track = nullptr;
-            if (kind == MediaTrack::Kind::VIDEO) {
-                // H264 track
-                if (codec == MediaTrack::Codec::H264) {
-                    auto h264_track = std::make_shared<H264MediaTrack>(std::move(init_config));
-                    this->media_tracks_.emplace(std::make_pair(h264_track->mid(), h264_track));
-                    media_track = std::move(h264_track);
-                }else {
-                    throw std::invalid_argument("Unsupported vodieo codec: " + MediaTrack::codec_to_string(codec));
+
+            if (auto it = this->media_tracks_.find(description.mid()); it != this->media_tracks_.end()) {
+                if (media_track = it->second.lock(), media_track) {
+                    media_track->UpdateDescription(std::move(description));
                 }
-            }else if(kind == MediaTrack::Kind::AUDIO) {
-                // Opus track
-                if (codec == MediaTrack::Codec::OPUS) {
-                    auto opus_track = std::make_shared<OpusMediaTrack>(std::move(init_config), 48000, 2);
-                    this->media_tracks_.emplace(std::make_pair(opus_track->mid(), opus_track));
-                    media_track = std::move(opus_track);
-                }else {
-                    throw std::invalid_argument("Unsupported audio codec: " + MediaTrack::codec_to_string(codec));
-                }
-            }else {
-                throw std::invalid_argument("Unsupported media kind: " + MediaTrack::kind_to_string(kind));
             }
+
+            if (!media_track) {
+                media_track = std::make_shared<MediaTrack>(std::move(description));
+                this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
+            }
+
             promise.set_value(media_track);
+            // Renegotiation is needed for the new or updated track
+            negotiation_needed_ = true;
         }catch (...) {
             promise.set_exception(std::current_exception());
         }
@@ -158,6 +164,15 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Config& c
     return future.get();
 }
 
+void PeerConnection::AddRemoteTrack(sdp::Media description) {
+    if (media_tracks_.find(description.mid()) == media_tracks_.end()) {
+        auto media_track = std::make_shared<MediaTrack>(std::move(description));
+        media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
+        // TODO: trigger track manually
+    }
+}
+
+// Data Channels
 std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Config& config) {
     std::promise<std::shared_ptr<DataChannel>> promise;
     auto future = promise.get_future();
@@ -191,16 +206,56 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
 
             // We assume the DataChannel is not negotiacted
             auto data_channel = std::make_shared<DataChannel>(stream_id, init_config.label, init_config.protocol);
-
             data_channels_.emplace(std::make_pair(stream_id, data_channel));
 
-            promise.set_value(std::move(data_channel));
+            // TODO: To open channel if SCTP transport is created for now.
 
+            // Renegotiation is needed if the curren local description does not have application
+            if (local_session_description_ || local_session_description_->HasApplication() == false) {
+                this->negotiation_needed_ = true;
+            }
+
+            if (this->config_.auto_negotiation) {
+                // TODO: To negotiate automatically
+            }
+
+            promise.set_value(std::move(data_channel));
         }catch (...) {
             promise.set_exception(std::current_exception());
         }
     });
     return future.get();
 }
+
+// SDP Builder
+sdp::Media PeerConnection::BuildMediaTrackDescription(const MediaTrack::Config& config) {
+    auto codec = config.codec;
+    auto kind = config.kind;
+    if (kind == MediaTrack::Kind::VIDEO) {
+        if (codec == MediaTrack::Codec::H264) {
+            auto description = sdp::Video(config.mid);
+            for (auto payload_type : config.payload_types) {
+                description.AddCodec(payload_type, MediaTrack::codec_to_string(codec), MediaTrack::FormatProfileForPayloadType(payload_type));
+            }
+            return std::move(description);
+        }else {
+            throw std::invalid_argument("Unsupported video codec: " + MediaTrack::codec_to_string(codec));
+        }
+    }else if (kind == MediaTrack::Kind::AUDIO) {
+        if (codec == MediaTrack::Codec::OPUS) {
+            auto description = sdp::Audio(config.mid);
+            for (int payload_type : config.payload_types) {
+                // TODO: Not use fixed sample rate and channel value
+                description.AddCodec(payload_type, MediaTrack::codec_to_string(codec), 48000, 2, MediaTrack::FormatProfileForPayloadType(payload_type));
+            }
+            return std::move(description);
+        }else {
+            throw std::invalid_argument("Unsupported audio codec: " + MediaTrack::codec_to_string(codec));
+        }
+    }else {
+        throw std::invalid_argument("Unsupported media kind: " + MediaTrack::kind_to_string(kind));
+    }
+}
+ 
 
 } // namespace naivertc
