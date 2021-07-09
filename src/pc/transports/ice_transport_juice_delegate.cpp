@@ -99,7 +99,7 @@ void IceTransport::OnJuiceStateChanged(State state) {
 }
 
 void IceTransport::OnJuiceCandidateGathered(const char* sdp) {
-    task_queue_.Post([this, sdp](){
+    task_queue_.Post([this, sdp = std::move(sdp)](){
         this->SignalCandidateGathered(std::move(Candidate(sdp, this->curr_mid_)));
     });
 }
@@ -113,7 +113,7 @@ void IceTransport::OnJuiceGetheringStateChanged(GatheringState state) {
 }
 
 void IceTransport::OnJuiceDataReceived(const char* data, size_t size) {
-    task_queue_.Post([this, data, size](){
+    task_queue_.Post([this, data = std::move(data), size](){
         try {
             PLOG_VERBOSE << "Incoming size: " << size;
             auto packet = Packet::Create(data, size);

@@ -139,7 +139,7 @@ void PeerConnection::SetRemoteSessionDescription(sdp::SessionDescription session
 // Offer && Answer
 void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success, 
                                     SDPCreateFailureCallback on_failure) {
-    handle_queue_.Post([this, on_success = std::move(on_success), on_failure = std::move(on_failure)](){
+    handle_queue_.Post([this, on_success, on_failure](){
         try {
             auto session_description = this->ice_transport_->GetLocalDescription(sdp::Type::OFFER);
             this->SetLocalSessionDescription(std::move(session_description));
@@ -157,7 +157,7 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
 
 void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success, 
                                     SDPCreateFailureCallback on_failure) {
-    handle_queue_.Post([this, on_success = std::move(on_success), on_failure = std::move(on_failure)](){
+    handle_queue_.Post([this, on_success, on_failure](){
         try {
             auto session_description = this->ice_transport_->GetLocalDescription(sdp::Type::ANSWER);
             this->SetLocalSessionDescription(std::move(session_description));
@@ -176,7 +176,7 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
 void PeerConnection::SetOffer(const std::string sdp,
                                 SDPSetSuccessCallback on_success,
                                 SDPSetFailureCallback on_failure) {
-    handle_queue_.Post([this, sdp = std::move(sdp), on_success = std::move(on_success), on_failure = std::move(on_failure)](){
+    handle_queue_.Post([this, sdp = std::move(sdp), on_success, on_failure](){
         try {
             auto session_description = sdp::SessionDescription(sdp, sdp::Type::OFFER);
             this->SetRemoteSessionDescription(std::move(session_description));
@@ -190,7 +190,7 @@ void PeerConnection::SetOffer(const std::string sdp,
 void PeerConnection::SetAnswer(const std::string sdp, 
                                 SDPSetSuccessCallback on_success, 
                                 SDPSetFailureCallback on_failure) {
-    handle_queue_.Post([this, sdp = std::move(sdp), on_success = std::move(on_success), on_failure = std::move(on_failure)](){
+    handle_queue_.Post([this, sdp = std::move(sdp), on_success, on_failure](){
         try {
             auto session_description = sdp::SessionDescription(sdp, sdp::Type::ANSWER);
             this->SetRemoteSessionDescription(std::move(session_description));
