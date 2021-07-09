@@ -1,4 +1,5 @@
 #include "base/certificate.hpp"
+#include "common/task_queue.hpp"
 
 #include <plog/Log.h>
 
@@ -65,7 +66,6 @@ std::string Certificate::MakeFingerprint(X509* x509) {
     return oss.str();
 }
 
-const std::string COMMON_NAME = "libnaivertc";
 std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, const std::string common_name) {
 
     PLOG_DEBUG << "Generating certificate with OpenSSL.";
@@ -152,8 +152,15 @@ std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, const s
 	return std::make_shared<Certificate>(x509, pkey);
 }
 
-// std::shared_future<std::shared_ptr<Certificate>> Certificate::MakeCertificate(CertificateType type) {
-
-// }
+const std::string COMMON_NAME = "libnaivertc";
+std::future<std::shared_ptr<Certificate>> Certificate::MakeCertificate(CertificateType type) {
+    std::promise<std::shared_ptr<Certificate>> promise;
+    auto future = promise.get_future();
+    TaskQueue::PostInGlobalQueue([type, &promise](){
+        auto certificate = Certificate::Generate(type, COMMON_NAME);
+        promise.set_value(std::move(certificate));
+    });
+    return future;
+}
 
 }

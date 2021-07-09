@@ -13,8 +13,8 @@
 namespace naivertc {
 
 class RTC_CPP_EXPORT Certificate {
-// public:
-    // static std::shared_future<std::shared_ptr<Certificate>> MakeCertificate(CertificateType type = CertificateType::DEFAULT);
+public:
+    static std::future<std::shared_ptr<Certificate>> MakeCertificate(CertificateType type = CertificateType::DEFAULT);
 public:
     Certificate(std::string crt_pem, std::string key_pem);
     Certificate(std::shared_ptr<X509> x509, std::shared_ptr<EVP_PKEY> pkey);
