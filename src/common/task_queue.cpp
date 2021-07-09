@@ -4,6 +4,8 @@
 
 namespace naivertc {
 
+std::shared_ptr<TaskQueue> GlobalTaskQueue = std::make_shared<TaskQueue>();
+
 TaskQueue::TaskQueue() 
     : work_guard_(boost::asio::make_work_guard(ioc_)),
       strand_(ioc_),
@@ -43,6 +45,18 @@ void TaskQueue::PostDelay(TimeInterval delay_in_sec, std::function<void()> handl
 bool TaskQueue::is_in_current_queue() const {
     // FIXME: 不能再自身线程调用get_id()亦或是在detach之后不能调用？ioc_thread_->get_id()={Not-any-thread}
     return ioc_thread_id_ == boost::this_thread::get_id();    
+}
+
+void TaskQueue::PostInGlobalQueue(std::function<void()> handler) {
+    GlobalTaskQueue->Post(std::move(handler));
+}
+
+void TaskQueue::DispatchInGlobalQueue(std::function<void()> handler) {
+    GlobalTaskQueue->Dispatch(std::move(handler));
+}
+
+void TaskQueue::PostDelayInGlobalQueue(TimeInterval delay_in_sec ,std::function<void()> handler) {
+    GlobalTaskQueue->PostDelay(delay_in_sec, std::move(handler));
 }
 
 }

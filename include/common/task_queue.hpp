@@ -12,7 +12,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT TaskQueue {
+class RTC_CPP_EXPORT TaskQueue : std::enable_shared_from_this<TaskQueue> {
 public:
     TaskQueue();
     ~TaskQueue();
@@ -23,6 +23,11 @@ public:
 
     bool is_in_current_queue() const;
 
+public:
+    static void PostInGlobalQueue(std::function<void()> handler);
+    static void DispatchInGlobalQueue(std::function<void()> handler);
+    static void PostDelayInGlobalQueue(TimeInterval delay_in_sec ,std::function<void()> handler);
+
 private:
     boost::asio::io_context ioc_;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard_;
@@ -30,6 +35,8 @@ private:
     std::unique_ptr<boost::thread> ioc_thread_;
     boost::thread::id ioc_thread_id_;
     boost::asio::deadline_timer timer_;
+
+    static std::shared_ptr<TaskQueue> GlobalTaskQueue;
 };
 
 }
