@@ -2,13 +2,13 @@
 
 namespace naivertc {
 
-MediaTrack::MediaTrack(Config config) 
+MediaTrack::MediaTrack(const Config& config) 
     : config_(std::move(config)) {
 
 }
 
-std::string MediaTrack::kind_string() const {
-    switch (kind())
+std::string MediaTrack::kind_to_string(Kind kind) {
+    switch (kind)
     {
     case Kind::VIDEO:
         return "video";
@@ -17,8 +17,8 @@ std::string MediaTrack::kind_string() const {
     }
 }
 
-std::string MediaTrack::codec_string() const {
-    switch (codec())
+std::string MediaTrack::codec_to_string(Codec codec) {
+    switch (codec)
     {
     case Codec::H264:
         return "h264";

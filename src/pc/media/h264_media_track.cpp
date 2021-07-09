@@ -5,25 +5,23 @@ namespace naivertc {
 const std::string DEFAULT_H264_VIDEO_PROFILE =
     "profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1";
 
-H264MediaTrack::H264MediaTrack(Config config) 
+H264MediaTrack::H264MediaTrack(const Config& config) 
     : MediaTrack(std::move(config)),
-    payload_type_(0) {
-
+    description_(config_.mid) {
+    for (auto payload_type : payload_types()) {
+        description_.AddCodec(payload_type, MediaTrack::codec_to_string(config_.codec), FormatProfileForPayloadType(payload_type));
+    }
 }
 
 H264MediaTrack::~H264MediaTrack() {}
 
-int H264MediaTrack::payload_type() const {
-    return payload_type_;
+sdp::Media H264MediaTrack::description() const {
+    return description_;
 }
 
-void H264MediaTrack::set_payload_type(int payload_type) {
-    payload_type_ = payload_type;
-}
-
-std::optional<std::string> H264MediaTrack::format_profile() const {
+std::optional<std::string> H264MediaTrack::FormatProfileForPayloadType(int payload_type) const {
     // FIXME: payload type 与 format profile是一对一的关系吗？ 
-    if (payload_type_ == 102) {
+    if (payload_type == 102) {
         return DEFAULT_H264_VIDEO_PROFILE;
     }else {
         return std::nullopt;

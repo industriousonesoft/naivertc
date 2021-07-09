@@ -56,13 +56,6 @@ enum class CertificateType {
     RSA
 };
 
-// DataChannelInit
-struct RTC_CPP_EXPORT DataChannelInit {
-    std::optional<StreamId> stream_id;
-    std::string label;
-    std::string protocol;
-};
-
 // Configuration
 struct RTC_CPP_EXPORT Configuration {
     // Ice settings

@@ -2,8 +2,10 @@
 #define _PC_MEDIA_TRACK_H_
 
 #include "base/defines.hpp"
+#include "pc/sdp/sdp_entry.hpp"
 
 #include <string>
+#include <vector>
 
 namespace naivertc {
 
@@ -19,32 +21,43 @@ public:
         OPUS
     };
 
-    struct Config {
+    struct RTC_CPP_EXPORT Config {
         uint32_t ssrc;
         std::string cname;
         std::string mid;
         std::string track_id;
         std::string msid; // media stream id
+        Kind kind;
+        Codec codec;
+        std::vector<int> payload_types;
     };
 
 public:
-    MediaTrack(Config config);
+    MediaTrack(const Config& config);
     virtual ~MediaTrack() = default;
 
     virtual Kind kind() const = 0;
-    std::string kind_string() const;
 
     virtual Codec codec() const = 0;
-    std::string codec_string() const;
+
+    virtual sdp::Media description() const = 0;
 
     uint32_t ssrc() const { return config_.ssrc; }
     std::string cname() const { return config_.cname; } 
     std::string mid() const { return config_.mid; }
     std::string track_id() const { return config_.track_id; }
     std::string msid() const { return config_.msid; }
+    std::vector<int> payload_types() const { return config_.payload_types; }
+
+public:
+    static std::string kind_to_string(Kind kind);
+    static std::string codec_to_string(Codec codec);
 
 protected:
-    Config config_;
+    virtual std::optional<std::string> FormatProfileForPayloadType(int payload_type) const = 0;
+
+protected:
+    const Config config_;
 };
 
 } // namespace naivertc

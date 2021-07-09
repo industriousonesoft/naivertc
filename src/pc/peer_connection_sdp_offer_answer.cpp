@@ -7,6 +7,9 @@
 
 #include <plog/Log.h>
 
+#include <future>
+#include <memory>
+
 namespace naivertc {
 
 void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_description, 
@@ -25,19 +28,36 @@ void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_
         for (unsigned int i = 0; i < remote->media_count(); ++i) {
             std::visit(utils::overloaded {
                 [&](sdp::Application* remote_app) {
-                   // TODO: Prefer local data channel description
+                    // Prefer local description
+                   if (!data_channels_.empty()) {
+                        sdp::Application local_app(remote_app->mid());
+                        local_app.set_sctp_port(local_sctp_port);
+                        local_app.set_max_message_size(local_max_message_size);
+                       
+                        PLOG_DEBUG << "Adding application to local description, mid= " << local_app.mid();
 
-                   auto reciprocated = remote_app->reciprocate();
-                   reciprocated.HintSctpPort(local_sctp_port);
-                   reciprocated.set_max_message_size(local_max_message_size);
+                        session_description.AddApplication(std::move(local_app));
 
-                   PLOG_DEBUG << "Reciprocating application in local description, mid: " 
-                              << reciprocated.mid();
+                   }else {
+                        auto reciprocated = remote_app->reciprocate();
+                        reciprocated.HintSctpPort(local_sctp_port);
+                        reciprocated.set_max_message_size(local_max_message_size);
 
-                   session_description.AddApplication(std::move(reciprocated));
+                        PLOG_DEBUG << "Reciprocating application in local description, mid: " 
+                                    << reciprocated.mid();
+
+                        session_description.AddApplication(std::move(reciprocated));
+                   }
                 },
                 [&](sdp::Media* remote_media) {
                     // TODO: Prefer local media track
+                    if (auto it = media_tracks_.find(remote_media->mid()); it != media_tracks_.end()) {
+                        if (auto local_media = it->second.lock()) {
+                            // session_description.AddMedia(std::)
+                        }
+                    }
+
+
                     auto reciprocated = remote_media->reciprocate();
 
                     PLOG_DEBUG << "Reciprocating media in local description, mid: " 
@@ -100,70 +120,87 @@ void PeerConnection::SetAnswer(const std::string sdp,
 }
 
 // Media Tracks
-void PeerConnection::AddTrack(std::shared_ptr<MediaTrack> media_track) {
-    handle_queue_.Post([this, media_track](){
-        // Create media description and add to local sdp
-        auto kind = media_track->kind();
-        auto codec = media_track->codec();
-        if (kind == MediaTrack::Kind::VIDEO) {
-            // H264 track
-            if (codec == MediaTrack::Codec::H264 && utils::instanceof<H264MediaTrack>(media_track.get())) {
-                auto h264_track = static_cast<H264MediaTrack*>(media_track.get());
-                auto video_sdp_entry = std::make_shared<sdp::Video>(h264_track->mid());
-                video_sdp_entry->AddCodec(h264_track->payload_type(), h264_track->codec_string(), h264_track->format_profile());
-                this->media_sdp_entries_.emplace(std::make_pair(video_sdp_entry->mid(), video_sdp_entry));
+std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Config& config) {
+    std::promise<std::shared_ptr<MediaTrack>> promise;
+    auto future = promise.get_future();
+    handle_queue_.Post([this, init_config = std::move(config), &promise](){
+        try {
+            // Create media description and add to local sdp
+            auto codec = init_config.codec;
+            auto kind = init_config.kind;
+            std::shared_ptr<MediaTrack> media_track = nullptr;
+            if (kind == MediaTrack::Kind::VIDEO) {
+                // H264 track
+                if (codec == MediaTrack::Codec::H264) {
+                    auto h264_track = std::make_shared<H264MediaTrack>(std::move(init_config));
+                    this->media_tracks_.emplace(std::make_pair(h264_track->mid(), h264_track));
+                    media_track = std::move(h264_track);
+                }else {
+                    throw std::invalid_argument("Unsupported vodieo codec: " + MediaTrack::codec_to_string(codec));
+                }
+            }else if(kind == MediaTrack::Kind::AUDIO) {
+                // Opus track
+                if (codec == MediaTrack::Codec::OPUS) {
+                    auto opus_track = std::make_shared<OpusMediaTrack>(std::move(init_config), 48000, 2);
+                    this->media_tracks_.emplace(std::make_pair(opus_track->mid(), opus_track));
+                    media_track = std::move(opus_track);
+                }else {
+                    throw std::invalid_argument("Unsupported audio codec: " + MediaTrack::codec_to_string(codec));
+                }
             }else {
-                PLOG_ERROR << "video track with codec: " << media_track->codec_string();
+                throw std::invalid_argument("Unsupported media kind: " + MediaTrack::kind_to_string(kind));
             }
-        }else if(kind == MediaTrack::Kind::AUDIO) {
-            // Opus track
-            if (codec == MediaTrack::Codec::OPUS && utils::instanceof<OpusMediaTrack>(media_track.get())) {
-                auto opus_track = static_cast<OpusMediaTrack*>(media_track.get());
-                auto audio_sdp_entry = std::make_shared<sdp::Audio>(opus_track->mid());
-                audio_sdp_entry->AddCodec(opus_track->payload_type(), opus_track->codec_string(), opus_track->sample_rate(), opus_track->channels(), opus_track->format_profile());
-                this->media_sdp_entries_.emplace(std::make_pair(audio_sdp_entry->mid(), audio_sdp_entry));
-            }else {
-                PLOG_ERROR << "audio track with codec: " << media_track->codec_string();
-            }
-        }else {
-            PLOG_ERROR << "Unsupported media track kind: " << media_track->kind_string() << ", codec: " << media_track->codec_string();
+            promise.set_value(media_track);
+        }catch (...) {
+            promise.set_exception(std::current_exception());
         }
     });
+    return future.get();
 }
 
-void PeerConnection::CreateDataChannel(DataChannelInit init) {
-    handle_queue_.Post([this, init](){
+std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Config& config) {
+    std::promise<std::shared_ptr<DataChannel>> promise;
+    auto future = promise.get_future();
+    handle_queue_.Post([this, init_config = std::move(config), &promise](){
         StreamId stream_id;
-        if (init.stream_id) {
-            stream_id = *init.stream_id;
-            if (stream_id > STREAM_ID_MAX_VALUE) {
-                throw std::invalid_argument("Invalid DataChannel stream id.");
-            }
-        }else {
-            // RFC 5763: The answerer MUST use either a setup attibute value of setup:active or setup:passive.
-            // and, setup::active is RECOMMENDED. See https://tools.ietf.org/html/rfc5763#section-5
-            // Thus, we assume passive role if we are the offerer.
-            auto role = this->ice_transport_->role();
-
-            // FRC 8832: The peer that initiates opening a data channel selects a stream identifier for 
-            // which the corresponding incoming and outgoing streams are unused. If the side is acting as the DTLS client,
-            // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
-            // See https://tools.ietf.org/html/rfc8832#section-6
-            stream_id = (role == sdp::Role::ACTIVE) ? 0 : 1;
-            // Avoid conflict with existed data channel
-            while (data_channels_.find(stream_id) != data_channels_.end()) {
-                if (stream_id >= STREAM_ID_MAX_VALUE - 2) {
-                    throw std::runtime_error("Too many DataChannels");
+        try {
+            if (init_config.stream_id) {
+                stream_id = *init_config.stream_id;
+                if (stream_id > STREAM_ID_MAX_VALUE) {
+                    throw std::invalid_argument("Invalid DataChannel stream id.");
                 }
-                stream_id += 2;
+            }else {
+                // RFC 5763: The answerer MUST use either a setup attibute value of setup:active or setup:passive.
+                // and, setup::active is RECOMMENDED. See https://tools.ietf.org/html/rfc5763#section-5
+                // Thus, we assume passive role if we are the offerer.
+                auto role = this->ice_transport_->role();
+
+                // FRC 8832: The peer that initiates opening a data channel selects a stream identifier for 
+                // which the corresponding incoming and outgoing streams are unused. If the side is acting as the DTLS client,
+                // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
+                // See https://tools.ietf.org/html/rfc8832#section-6
+                stream_id = (role == sdp::Role::ACTIVE) ? 0 : 1;
+                // Avoid conflict with existed data channel
+                while (data_channels_.find(stream_id) != data_channels_.end()) {
+                    if (stream_id >= STREAM_ID_MAX_VALUE - 2) {
+                        throw std::overflow_error("Too many DataChannels");
+                    }
+                    stream_id += 2;
+                }
             }
+
+            // We assume the DataChannel is not negotiacted
+            auto data_channel = std::make_shared<DataChannel>(stream_id, init_config.label, init_config.protocol);
+
+            data_channels_.emplace(std::make_pair(stream_id, data_channel));
+
+            promise.set_value(std::move(data_channel));
+
+        }catch (...) {
+            promise.set_exception(std::current_exception());
         }
-
-        // We assume the DataChannel is not negotiacted
-        auto data_channel = std::make_shared<DataChannel>(stream_id, std::move(init.label), std::move(init.protocol));
-
-        data_channels_.emplace(std::make_pair(stream_id, data_channel));
     });
+    return future.get();
 }
 
 } // namespace naivertc

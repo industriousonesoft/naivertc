@@ -11,6 +11,12 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT DataChannel : public std::enable_shared_from_this<DataChannel> {
 public:
+    struct RTC_CPP_EXPORT Config {
+        std::optional<StreamId> stream_id;
+        std::string label;
+        std::string protocol;
+    };
+public:
     DataChannel(StreamId stream_id, std::string label, std::string protocol);
     virtual ~DataChannel();
 

@@ -10,23 +10,25 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT OpusMediaTrack : public MediaTrack {
 public:
-    OpusMediaTrack(Config config, int sample_rate, int channels);
+    OpusMediaTrack(const Config& config, int sample_rate, int channels);
     virtual ~OpusMediaTrack();
 
     Kind kind() const override { return Kind::AUDIO; }
     Codec codec() const override { return Codec::OPUS; } 
 
+    sdp::Media description() const override;
+
     int sample_rate() const;
     int channels() const;
 
-    int payload_type() const;
-    void set_payload_type(int payload_type);
-    std::optional<std::string> format_profile() const;
-
 private:
-    int payload_type_;
+    std::optional<std::string> FormatProfileForPayloadType(int payload_type) const override;
+   
+private:
     int sample_rate_;
     int channels_;
+
+    sdp::Audio description_;
 };
     
 } // namespace naivertc

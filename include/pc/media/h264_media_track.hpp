@@ -10,20 +10,19 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT H264MediaTrack : public MediaTrack {
 public:
-    H264MediaTrack(Config config);
+    H264MediaTrack(const Config& config);
     virtual ~H264MediaTrack();
 
     Kind kind() const override { return Kind::VIDEO; } 
-    Codec codec() const override { return Codec::H264; } 
+    Codec codec() const override { return Codec::H264; }
 
-    int payload_type() const;
-    void set_payload_type(int payload_type);
-    std::optional<std::string> format_profile() const;
+    sdp::Media description() const override;
 
 private:
-    // TODO: Supports more payload types
-    int payload_type_;
+    std::optional<std::string> FormatProfileForPayloadType(int payload_type) const override;
 
+private:
+    sdp::Video description_;
 };
     
 } // namespace naivertc

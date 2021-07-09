@@ -73,12 +73,9 @@ DataChannel::DataChannel(StreamId stream_id, std::string label, std::string prot
     : stream_id_(stream_id),
     label_(label),
     protocol_(protocol) {
-
 }
 
-DataChannel::~DataChannel() {
-
-}
+DataChannel::~DataChannel() {}
 
 StreamId DataChannel::stream_id() const {
     return stream_id_;
