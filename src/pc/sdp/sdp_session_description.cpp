@@ -143,6 +143,43 @@ void SessionDescription::ClearMedia() {
     entries_.clear();
 }
 
+bool SessionDescription::HasApplication() const {
+    for (auto entry : entries_) {
+        if (entry->type() == sdp::Entry::Type::APPLICATION) {
+            return true;
+        } 
+    }
+    return false;
+}
+
+bool SessionDescription::HasAudio() const {
+    for (auto entry : entries_) {
+        if (entry->type() == sdp::Entry::Type::AUDIO) {
+            return true;
+        } 
+    }
+    return false;
+}
+
+bool SessionDescription::HasVieo() const {
+    for (auto entry : entries_) {
+        if (entry->type() == sdp::Entry::Type::VIDEO) {
+            return true;
+        } 
+    }
+    return false;
+}
+
+bool SessionDescription::HasMid(std::string_view mid) const {
+    for (auto entry : entries_) {
+        if (entry->mid() == mid) {
+            return true;
+        } 
+    }
+    return false;
+}
+
+// GenerateSDP
 std::string SessionDescription::GenerateSDP(std::string_view eol, bool application_only) const {
     std::ostringstream sdp;
 

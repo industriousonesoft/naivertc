@@ -28,7 +28,7 @@ public:
     bool HasApplication() const;
     bool HasAudio() const;
     bool HasVieo() const;
-    bool HasMid() const;
+    bool HasMid(std::string_view mid) const;
 
     int AddMedia(Media media);
     int AddApplication(Application app);
