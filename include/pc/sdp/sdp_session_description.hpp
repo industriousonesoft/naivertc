@@ -23,6 +23,7 @@ public:
     void hintType(Type type);
     void set_fingerprint(std::string fingerprint);
 
+    operator std::string() const;
     std::string GenerateSDP(std::string_view eol, bool application_only = false) const;
 
     bool HasApplication() const;

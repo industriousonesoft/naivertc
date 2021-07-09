@@ -179,6 +179,10 @@ bool SessionDescription::HasMid(std::string_view mid) const {
     return false;
 }
 
+SessionDescription::operator std::string() const {
+    return GenerateSDP("\r\n");
+}
+
 // GenerateSDP
 std::string SessionDescription::GenerateSDP(std::string_view eol, bool application_only) const {
     std::ostringstream sdp;
