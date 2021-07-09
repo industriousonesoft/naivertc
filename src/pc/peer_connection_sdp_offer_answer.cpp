@@ -10,10 +10,7 @@
 
 namespace naivertc {
 
-void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_description, 
-                                                SDPSetSuccessCallback on_success, 
-                                                SDPSetFailureCallback on_failure) {
-    this->local_session_description_.emplace(session_description);
+void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_description) {
     // Clean up the application entry added by ICE transport already.
     session_description.ClearMedia();                                
 
@@ -120,18 +117,17 @@ void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_
     } 
 
     // Set local fingerprint (wait for certificate if necessary)
-    // TODO: To set local fingerprint
+    session_description.set_fingerprint(certificate_.get()->fingerprint());
 
     // TODO: Add candidates existed in old local sdp
 
-    // TODO: To call callback
-
+    PLOG_VERBOSE << "Did set local sdp: " << std::string(session_description);
+    local_session_description_.emplace(session_description);
+   
     // TODO: Reciprocated tracks might need to be open
 
 }
-void PeerConnection::SetRemoteSessionDescription(sdp::SessionDescription session_description, 
-                                                SDPSetSuccessCallback on_success, 
-                                                SDPSetFailureCallback on_failure) {
+void PeerConnection::SetRemoteSessionDescription(sdp::SessionDescription session_description) {
     this->remote_session_description_.emplace(session_description);
     this->ice_transport_->SetRemoteDescription(session_description);
 
@@ -141,37 +137,67 @@ void PeerConnection::SetRemoteSessionDescription(sdp::SessionDescription session
 }
 
 // Offer && Answer
-void PeerConnection::CreateOffer(SDPSetSuccessCallback on_success, 
-                SDPCreateFailureCallback on_failure) {
-    handle_queue_.Post([this, on_success, on_failure](){
-       auto session_description = this->ice_transport_->GetLocalDescription(sdp::Type::OFFER);
-       this->SetLocalSessionDescription(std::move(session_description));
+void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success, 
+                                    SDPCreateFailureCallback on_failure) {
+    handle_queue_.Post([this, on_success = std::move(on_success), on_failure = std::move(on_failure)](){
+        try {
+            auto session_description = this->ice_transport_->GetLocalDescription(sdp::Type::OFFER);
+            this->SetLocalSessionDescription(std::move(session_description));
+            if (this->local_session_description_) {
+                auto local_sdp = *this->local_session_description_;
+                on_success(std::move(local_sdp));
+            }else {
+                throw std::runtime_error("Failed to create local offer sdp.");
+            }
+        }catch(...) {
+            on_failure(std::current_exception());
+        }
     });
 }
 
-void PeerConnection::CreateAnswer(SDPSetSuccessCallback on_success, 
-                SDPCreateFailureCallback on_failure) {
-    handle_queue_.Post([this, on_success, on_failure](){
-        auto session_description = this->ice_transport_->GetLocalDescription(sdp::Type::ANSWER);
-        this->SetLocalSessionDescription(std::move(session_description));
+void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success, 
+                                    SDPCreateFailureCallback on_failure) {
+    handle_queue_.Post([this, on_success = std::move(on_success), on_failure = std::move(on_failure)](){
+        try {
+            auto session_description = this->ice_transport_->GetLocalDescription(sdp::Type::ANSWER);
+            this->SetLocalSessionDescription(std::move(session_description));
+            if (this->local_session_description_) {
+                auto local_sdp = *this->local_session_description_;
+                on_success(std::move(local_sdp));
+            }else {
+                throw std::runtime_error("Failed to create local answer sdp.");
+            }
+        }catch(...) {
+            on_failure(std::current_exception());
+        }
     });
 }
 
 void PeerConnection::SetOffer(const std::string sdp,
-            SDPSetSuccessCallback on_success,
-            SDPSetFailureCallback on_failure) {
-    handle_queue_.Post([this, sdp, on_success, on_failure](){
-        auto session_description = sdp::SessionDescription(sdp, sdp::Type::OFFER);
-        this->SetRemoteSessionDescription(std::move(session_description), on_success, on_failure);
+                                SDPSetSuccessCallback on_success,
+                                SDPSetFailureCallback on_failure) {
+    handle_queue_.Post([this, sdp = std::move(sdp), on_success = std::move(on_success), on_failure = std::move(on_failure)](){
+        try {
+            auto session_description = sdp::SessionDescription(sdp, sdp::Type::OFFER);
+            this->SetRemoteSessionDescription(std::move(session_description));
+            on_success();
+        }catch(...) {
+            on_failure(std::current_exception());
+        }
     });
 }
 
 void PeerConnection::SetAnswer(const std::string sdp, 
-            SDPSetSuccessCallback on_success, 
-            SDPSetFailureCallback on_failure) {
-    handle_queue_.Post([this, sdp, on_success, on_failure](){
-        auto session_description = sdp::SessionDescription(sdp, sdp::Type::ANSWER);
-        this->SetRemoteSessionDescription(std::move(session_description), on_success, on_failure);
+                                SDPSetSuccessCallback on_success, 
+                                SDPSetFailureCallback on_failure) {
+    handle_queue_.Post([this, sdp = std::move(sdp), on_success = std::move(on_success), on_failure = std::move(on_failure)](){
+        try {
+            auto session_description = sdp::SessionDescription(sdp, sdp::Type::ANSWER);
+            this->SetRemoteSessionDescription(std::move(session_description));
+            on_success();
+        }catch (...) {
+            on_failure(std::current_exception());
+        }
     });        
 }
 

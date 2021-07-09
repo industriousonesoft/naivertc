@@ -9,6 +9,7 @@ namespace naivertc {
 
 PeerConnection::PeerConnection(Configuration config) 
     : config_(config),
+    certificate_(Certificate::MakeCertificate(config_.certificate_type)),
     connection_state_(ConnectionState::CLOSED),
     gathering_state_(GatheringState::NONE),
     negotiation_needed_(false) {

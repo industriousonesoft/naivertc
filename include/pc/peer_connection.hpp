@@ -2,6 +2,7 @@
 #define _PC_PEER_CONNECTION_H_
 
 #include "base/defines.hpp"
+#include "base/certificate.hpp"
 #include "common/proxy.hpp"
 #include "common/task_queue.hpp"
 #include "pc/peer_connection_configuration.hpp"
@@ -45,11 +46,11 @@ public:
     using GatheringStateCallback = std::function<void(GatheringState new_state)>;
     using CandidateCallback = std::function<void(Candidate candidate)>;
 
-    using SDPCreateSuccessCallback = std::function<void(sdp::SessionDescription* sdp)>;
-    using SDPCreateFailureCallback = std::function<void(const std::exception& exp)>;
+    using SDPCreateSuccessCallback = std::function<void(sdp::SessionDescription sdp)>;
+    using SDPCreateFailureCallback = std::function<void(const std::exception_ptr)>;
 
     using SDPSetSuccessCallback = std::function<void()>;
-    using SDPSetFailureCallback = std::function<void(const std::exception& exp)>;
+    using SDPSetFailureCallback = std::function<void(const std::exception_ptr)>;
 public:
     static std::shared_ptr<PeerConnection> CreatePeerConnection(Configuration config) {
         return std::shared_ptr<PeerConnection>(new PeerConnection(config));
@@ -59,9 +60,9 @@ public:
     std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Config& config);
     std::shared_ptr<DataChannel> CreateDataChannel(const DataChannel::Config& config);
 
-    void CreateOffer(SDPSetSuccessCallback on_success = nullptr, 
+    void CreateOffer(SDPCreateSuccessCallback on_success = nullptr, 
                     SDPCreateFailureCallback on_failure = nullptr);
-    void CreateAnswer(SDPSetSuccessCallback on_success = nullptr, 
+    void CreateAnswer(SDPCreateSuccessCallback on_success = nullptr, 
                     SDPCreateFailureCallback on_failure = nullptr);
 
     void SetOffer(const std::string sdp,
@@ -91,12 +92,8 @@ private:
     bool UpdateConnectionState(ConnectionState state);
     bool UpdateGatheringState(GatheringState state);
 
-    void SetLocalSessionDescription(sdp::SessionDescription session_description, 
-                                    SDPSetSuccessCallback on_success = nullptr, 
-                                    SDPSetFailureCallback on_failure = nullptr);
-    void SetRemoteSessionDescription(sdp::SessionDescription session_description, 
-                                    SDPSetSuccessCallback on_success = nullptr, 
-                                    SDPSetFailureCallback on_failure = nullptr);
+    void SetLocalSessionDescription(sdp::SessionDescription session_description);
+    void SetRemoteSessionDescription(sdp::SessionDescription session_description);
 
     void AddRemoteTrack(sdp::Media description);
 
@@ -106,6 +103,8 @@ private:
     TaskQueue handle_queue_;
 
     const Configuration config_;
+    std::future<std::shared_ptr<Certificate>> certificate_;
+
     ConnectionState connection_state_;
     GatheringState gathering_state_;
 
