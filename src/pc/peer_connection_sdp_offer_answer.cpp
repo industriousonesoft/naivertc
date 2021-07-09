@@ -85,7 +85,49 @@ void PeerConnection::SetLocalSessionDescription(sdp::SessionDescription session_
     if (session_description.type() == sdp::Type::OFFER) {
         // If this is a offer, add locally created data channels and tracks
         // Add application for data channels
-    }      
+        if (session_description.HasApplication() == false) {
+            if (data_channels_.empty() == false) {
+                StreamId new_mid = 0;
+                while (session_description.HasMid(std::to_string(new_mid))) {
+                    ++new_mid;
+                }
+                sdp::Application app(std::to_string(new_mid));
+                app.set_sctp_port(local_sctp_port);
+                app.set_max_message_size(local_max_message_size);
+
+                PLOG_DEBUG << "Adding application to local description, mid=" + app.mid();
+
+                session_description.AddApplication(std::move(app));
+            }
+        }
+
+        // Add media for local tracks
+        for (auto it = media_tracks_.begin(); it != media_tracks_.end(); ++it) {
+            if (auto track = it->second.lock()) {
+                // Filter existed tracks
+                if (session_description.HasMid(track->mid())) {
+                    continue;
+                }
+                auto media = track->description();
+
+                PLOG_DEBUG << "Adding media to local description, mid=" << media.mid()
+                            << ", active=" << std::boolalpha
+                            << (media.direction() != sdp::Direction::INACTIVE);
+
+                session_description.AddMedia(std::move(media));
+            }
+        }
+    } 
+
+    // Set local fingerprint (wait for certificate if necessary)
+    // TODO: To set local fingerprint
+
+    // TODO: Add candidates existed in old local sdp
+
+    // TODO: To call callback
+
+    // TODO: Reciprocated tracks might need to be open
+
 }
 void PeerConnection::SetRemoteSessionDescription(sdp::SessionDescription session_description, 
                                                 SDPSetSuccessCallback on_success, 
