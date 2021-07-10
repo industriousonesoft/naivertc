@@ -57,7 +57,7 @@ public:
 
     using ConnectionStateCallback = std::function<void(ConnectionState new_state)>;
     using GatheringStateCallback = std::function<void(GatheringState new_state)>;
-    using CandidateCallback = std::function<void(Candidate candidate)>;
+    using CandidateCallback = std::function<void(const Candidate& candidate)>;
     using SignalingStateCallback = std::function<void(SignalingState new_state)>;
 
     using SDPCreateSuccessCallback = std::function<void(sdp::SessionDescription sdp)>;
@@ -86,6 +86,8 @@ public:
                 SDPSetSuccessCallback on_success = nullptr, 
                 SDPSetFailureCallback on_failure = nullptr);
 
+    void AddRemoteCandidate(const Candidate& candidate);
+
 public:
     // setup State & Candidate callback
     void OnConnectionStateChanged(ConnectionStateCallback callback);
@@ -112,7 +114,7 @@ private:
     void ProcessLocalDescription(sdp::SessionDescription session_description);
     void ProcessRemoteDescription(sdp::SessionDescription session_description);
     void ValidRemoteDescription(const sdp::SessionDescription& session_description);
-
+    void ProcessRemoteCandidate(Candidate candidate);
 
     void AddRemoteTrack(sdp::Media description);
   
@@ -148,9 +150,11 @@ private:
     std::optional<sdp::SessionDescription> local_session_description_;
     std::optional<sdp::SessionDescription> remote_session_description_;
 
-    // FIXME: Do I need to use shared_ptr instead of weak_ptr here?
+    // FIXME: Do we need to use shared_ptr instead of weak_ptr here?
     std::unordered_map<StreamId, std::weak_ptr<DataChannel>> data_channels_;
     std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_;
+
+    std::vector<const Candidate> remote_candidates_;
 
 };
 
