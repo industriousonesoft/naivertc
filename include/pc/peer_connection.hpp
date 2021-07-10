@@ -9,6 +9,7 @@
 #include "pc/sdp/candidate.hpp"
 #include "pc/sdp/sdp_session_description.hpp"
 #include "pc/transports/ice_transport.hpp"
+#include "pc/transports/dtls_transport.hpp"
 #include "pc/transports/sctp_transport.hpp"
 #include "pc/media/media_track.hpp"
 #include "pc/channels/data_channel.hpp"
@@ -25,7 +26,7 @@ class RTC_CPP_EXPORT PeerConnection final : public sigslot::has_slots<>,
                                             public std::enable_shared_from_this<PeerConnection> {
 public:
     // ConnectionState
-    enum class ConnectionState {
+    enum class ConnectionState: int {
         NEW = 0,
         CONNECTING,
         CONNECTED,
@@ -35,16 +36,29 @@ public:
     };
 
     // GatheringState
-    enum class GatheringState {
+    enum class GatheringState: int {
         NONE = -1,
         NEW = 0,
         GATHERING,
         COMPLETED
     };
 
+    // SignalingState
+    // See https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/signalingState
+    enum class SignalingState: int {
+        // 1. means the peer connection is new, and both the local and remote sdp are null
+        // 2. means the negotiation is complete and a connection has been established
+        STABLE = 0,
+        HAVE_LOCAL_OFFER,
+        HAVE_REMOTE_OFFER,
+        HAVE_LOCAL_PRANSWER,
+        HAVE_REMOTE_PRANSWER
+    };
+
     using ConnectionStateCallback = std::function<void(ConnectionState new_state)>;
     using GatheringStateCallback = std::function<void(GatheringState new_state)>;
     using CandidateCallback = std::function<void(Candidate candidate)>;
+    using SignalingStateCallback = std::function<void(SignalingState new_state)>;
 
     using SDPCreateSuccessCallback = std::function<void(sdp::SessionDescription sdp)>;
     using SDPCreateFailureCallback = std::function<void(const std::exception_ptr)>;
@@ -77,10 +91,9 @@ public:
     void OnConnectionStateChanged(ConnectionStateCallback callback);
     void OnIceGatheringStateChanged(GatheringStateCallback callback);
     void OnIceCandidate(CandidateCallback callback);
+    void OnSignalingStateChanged(SignalingStateCallback callback);
 
-    void OnTransportStateChanged(Transport::State transport_state);
-    void OnGatheringStateChanged(IceTransport::GatheringState gathering_state);
-    void OnCandidateGathered(Candidate candidate);
+    static std::string signaling_state_to_string(SignalingState state);
 
 protected:
     PeerConnection(Configuration config);
@@ -91,13 +104,25 @@ private:
 
     bool UpdateConnectionState(ConnectionState state);
     bool UpdateGatheringState(GatheringState state);
+    bool UpdateSignalingState(SignalingState state);
 
-    void SetLocalSessionDescription(sdp::SessionDescription session_description);
-    void SetRemoteSessionDescription(sdp::SessionDescription session_description);
+    void SetLocalDescription(sdp::Type type);
+    void SetRemoteDescription(sdp::SessionDescription description);
+
+    void ProcessLocalDescription(sdp::SessionDescription session_description);
+    void ProcessRemoteDescription(sdp::SessionDescription session_description);
+    void ValidRemoteDescription(const sdp::SessionDescription& session_description);
+
 
     void AddRemoteTrack(sdp::Media description);
-
+  
     sdp::Media BuildMediaTrackDescription(const MediaTrack::Config& config);
+
+private:
+    // IceTransport callbacks
+    void OnTransportStateChanged(Transport::State transport_state);
+    void OnGatheringStateChanged(IceTransport::GatheringState gathering_state);
+    void OnCandidateGathered(Candidate candidate);
 
 private:
     TaskQueue handle_queue_;
@@ -107,15 +132,18 @@ private:
 
     ConnectionState connection_state_;
     GatheringState gathering_state_;
+    SignalingState signaling_state_;
 
     bool negotiation_needed_;
 
     std::shared_ptr<IceTransport> ice_transport_;
+    std::shared_ptr<DtlsTransport> dtls_transport_;
     std::shared_ptr<SctpTransport> sctp_transport_;
 
-    PeerConnection::ConnectionStateCallback connection_state_callback_;
-    PeerConnection::GatheringStateCallback gathering_state_callback_;
-    PeerConnection::CandidateCallback candidate_callback_;
+    ConnectionStateCallback connection_state_callback_;
+    GatheringStateCallback gathering_state_callback_;
+    CandidateCallback candidate_callback_;
+    SignalingStateCallback signaling_state_callback_;
 
     std::optional<sdp::SessionDescription> local_session_description_;
     std::optional<sdp::SessionDescription> remote_session_description_;

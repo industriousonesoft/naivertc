@@ -38,37 +38,12 @@ PeerConnection::~PeerConnection() {
 }
 
 // Private methods
-void PeerConnection::InitIceTransport() {
-    try {
-       PLOG_VERBOSE << "Init Ice transport";
-
-       ice_transport_.reset(new IceTransport(config_));
-
-       ice_transport_->SignalStateChanged.connect(this, &PeerConnection::OnTransportStateChanged);
-       ice_transport_->SignalGatheringStateChanged.connect(this, &PeerConnection::OnGatheringStateChanged);
-       ice_transport_->SignalCandidateGathered.connect(this, &PeerConnection::OnCandidateGathered);
-
-    } catch(const std::exception& e) {
-        PLOG_ERROR << e.what();
-        UpdateConnectionState(ConnectionState::FAILED);
-        throw std::runtime_error("Ice tansport initialization failed.");
-    }   
-}
-
-void PeerConnection::InitSctpTransport() {
-    try {
-
-    } catch(const std::exception& exp) {
-
-    }
-}
-
 bool PeerConnection::UpdateConnectionState(ConnectionState state) {
     if (connection_state_ == state) {
         return false;
     }
     connection_state_ = state;
-    this->connection_state_callback_(state);
+    this->connection_state_callback_(connection_state_);
     return true;
 }
 
@@ -77,8 +52,34 @@ bool PeerConnection::UpdateGatheringState(GatheringState state) {
         return false;
     }
     gathering_state_ = state;
-    this->gathering_state_callback_(state);
+    this->gathering_state_callback_(gathering_state_);
     return true;
+}
+
+bool PeerConnection::UpdateSignalingState(SignalingState state) {
+    if (signaling_state_ == state) {
+        return false;
+    }
+    signaling_state_ = state;
+    signaling_state_callback_(signaling_state_);
+    return true;
+}
+
+std::string PeerConnection::signaling_state_to_string(SignalingState state) {
+    switch (state) {
+	case SignalingState::STABLE:
+		return "stable";
+	case SignalingState::HAVE_LOCAL_OFFER:
+		return "have-local-offer";
+	case SignalingState::HAVE_REMOTE_OFFER:
+		return "have-remote-offer";
+	case SignalingState::HAVE_LOCAL_PRANSWER:
+		return "have-local-pranswer";
+	case SignalingState::HAVE_REMOTE_PRANSWER:
+		return "have-remote-pranswer";
+	default:
+		return "unknown";
+	}
 }
 
 // state && candidate callback
@@ -97,6 +98,12 @@ void PeerConnection::OnIceGatheringStateChanged(GatheringStateCallback callback)
 void PeerConnection::OnIceCandidate(CandidateCallback callback) {
     handle_queue_.Post([this, callback](){
         this->candidate_callback_ = callback;
+    });
+}
+
+void PeerConnection::OnSignalingStateChanged(SignalingStateCallback callback) {
+    handle_queue_.Post([this, callback](){
+        this->signaling_state_callback_ = callback;
     });
 }
     

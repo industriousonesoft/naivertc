@@ -3,7 +3,25 @@
 #include <plog/Log.h>
 
 namespace naivertc {
-// IceTransport slots
+// Init IceTransport 
+void PeerConnection::InitIceTransport() {
+    try {
+       PLOG_VERBOSE << "Init Ice transport";
+
+       ice_transport_.reset(new IceTransport(config_));
+
+       ice_transport_->SignalStateChanged.connect(this, &PeerConnection::OnTransportStateChanged);
+       ice_transport_->SignalGatheringStateChanged.connect(this, &PeerConnection::OnGatheringStateChanged);
+       ice_transport_->SignalCandidateGathered.connect(this, &PeerConnection::OnCandidateGathered);
+
+    } catch(const std::exception& e) {
+        PLOG_ERROR << e.what();
+        UpdateConnectionState(ConnectionState::FAILED);
+        throw std::runtime_error("Ice tansport initialization failed.");
+    }   
+}
+
+// IceTransport delegate
 void PeerConnection::OnTransportStateChanged(Transport::State transport_state) {
     handle_queue_.Post([this, transport_state](){
         switch (transport_state) {
