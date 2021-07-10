@@ -314,6 +314,24 @@ unsigned int SessionDescription::media_count() const {
     return unsigned(entries_.size());
 }
 
+const Application* SessionDescription::application() const {
+    for (auto entry : entries_) {
+        if (entry->type() == sdp::Entry::Type::APPLICATION) {
+            return static_cast<Application* >(entry.get());
+        } 
+    }
+    return nullptr;
+}
+
+Application* SessionDescription::application() {
+    for (auto entry : entries_) {
+        if (entry->type() == sdp::Entry::Type::APPLICATION) {
+            return static_cast<Application* >(entry.get());
+        } 
+    }
+    return nullptr;
+}
+
 // a=fingerprint:sha-256 A9:CA:95:47:CB:8D:81:DE:E4:78:38:1E:70:6B:AA:14:66:6C:AF:7F:89:D7:B7:C7:1A:A9:45:09:83:CC:0D:03
 // 常规的SHA256哈希值是一个长度为32个字节的数组，通常用一个长度为64的十六进制字符串来表示
 // SDP中的fingerprint在每两个个字节之间加入了一个间隔符”:“，因此长度=32 * 2 +（32 - 1）

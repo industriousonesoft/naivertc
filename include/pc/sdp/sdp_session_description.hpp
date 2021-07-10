@@ -45,6 +45,9 @@ public:
     std::variant<const Media*, const Application*> media(unsigned int index) const;
     unsigned int media_count() const;
 
+    const Application* application() const;
+    Application* application();
+
 private:
     std::shared_ptr<Entry> CreateEntry(std::string mline, std::string mid, Direction direction);
 

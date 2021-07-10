@@ -256,7 +256,7 @@ void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
 
 void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_description) {
     const uint16_t local_sctp_port = DEFAULT_SCTP_PORT;
-    const size_t local_max_message_size = config_.max_message_size_.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
+    const size_t local_max_message_size = config_.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
 
     // Clean up the application entry added by ICE transport already.
     session_description.ClearMedia();  

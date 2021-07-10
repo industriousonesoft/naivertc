@@ -35,7 +35,7 @@ public:
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
     bool Flush();
 
-    sigslot::signal2<uint16_t, size_t> SignalBufferedAmountChanged;
+    sigslot::signal2<StreamId, size_t> SignalBufferedAmountChanged;
 
 private:
     // Order seems wrong but these are the actual values

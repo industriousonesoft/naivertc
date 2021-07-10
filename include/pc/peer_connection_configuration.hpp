@@ -68,14 +68,14 @@ struct RTC_CPP_EXPORT Configuration {
     bool auto_negotiation = true;
 
     // Port range
-    uint16_t port_range_begin_;
-    uint16_t port_range_end_;
+    uint16_t port_range_begin;
+    uint16_t port_range_end;
 
     // MTU: Maximum Transmission Unit
-    std::optional<size_t> mtu_;
+    std::optional<size_t> mtu;
 
     // Local max message size at reception
-    std::optional<size_t> max_message_size_;
+    std::optional<size_t> max_message_size;
 
 };
 

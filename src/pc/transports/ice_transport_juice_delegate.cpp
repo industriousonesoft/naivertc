@@ -84,9 +84,9 @@ void IceTransport::InitJuice(const Configuration& config) {
     }
 
     // Port range
-    if (config.port_range_begin_ > 1024 || (config.port_range_end_ != 0 && config.port_range_end_ != 65535)) {
-        juice_config.local_port_range_begin = config.port_range_begin_;
-        juice_config.local_port_range_end = config.port_range_end_;
+    if (config.port_range_begin > 1024 || (config.port_range_end != 0 && config.port_range_end != 65535)) {
+        juice_config.local_port_range_begin = config.port_range_begin;
+        juice_config.local_port_range_end = config.port_range_end;
     }
 
     // Create agent

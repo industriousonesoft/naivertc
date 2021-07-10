@@ -10,7 +10,7 @@ void PeerConnection::InitIceTransport() {
 
        ice_transport_.reset(new IceTransport(config_));
 
-       ice_transport_->SignalStateChanged.connect(this, &PeerConnection::OnTransportStateChanged);
+       ice_transport_->SignalStateChanged.connect(this, &PeerConnection::OnIceTransportStateChanged);
        ice_transport_->SignalGatheringStateChanged.connect(this, &PeerConnection::OnGatheringStateChanged);
        ice_transport_->SignalCandidateGathered.connect(this, &PeerConnection::OnCandidateGathered);
 
@@ -22,7 +22,7 @@ void PeerConnection::InitIceTransport() {
 }
 
 // IceTransport delegate
-void PeerConnection::OnTransportStateChanged(Transport::State transport_state) {
+void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state) {
     handle_queue_.Post([this, transport_state](){
         switch (transport_state) {
         case Transport::State::DISCONNECTED:
@@ -32,7 +32,7 @@ void PeerConnection::OnTransportStateChanged(Transport::State transport_state) {
             this->UpdateConnectionState(ConnectionState::CONNECTING);
             break;
         case Transport::State::CONNECTED:
-            this->UpdateConnectionState(ConnectionState::CONNECTED);
+            // TODO: Init DTLS transport
             break;
         case Transport::State::FAILED: 
             this->UpdateConnectionState(ConnectionState::FAILED);
@@ -63,8 +63,8 @@ void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gather
 }
 
 void PeerConnection::OnCandidateGathered(Candidate candidate) {
-    handle_queue_.Post([this, candidate](){
-        this->candidate_callback_(candidate);
+    handle_queue_.Post([this, candidate = std::move(candidate)](){
+        this->candidate_callback_(std::move(candidate));
     });
 }
 
