@@ -67,7 +67,7 @@ public:
     Family family() const;
 
     std::string mid() const;
-    void set_mid(std::string mid);
+    void HintMid(std::string mid);
 
     // NOTE: 对于普通的函数使用驼峰命名方式
     bool isResolved() const;

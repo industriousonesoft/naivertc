@@ -76,7 +76,7 @@ std::string Candidate::mid() const {
     return mid_.value_or("0");
 }
 
-void Candidate::set_mid(std::string mid) {
+void Candidate::HintMid(std::string mid) {
     if(!mid.empty())
         mid_.emplace(std::move(mid));
 }
