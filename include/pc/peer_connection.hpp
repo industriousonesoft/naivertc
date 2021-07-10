@@ -102,6 +102,7 @@ protected:
 
 private:
     void InitIceTransport();
+    void InitDtlsTransport();
     void InitSctpTransport();
 
     bool UpdateConnectionState(ConnectionState state);

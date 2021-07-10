@@ -52,6 +52,7 @@ set(LIB_SOURCES
     src/pc/peer_connection.cpp
     src/pc/peer_connection_configuration.cpp
     src/pc/peer_connection_ice_transport_delegate.cpp
+    src/pc/peer_connection_dtls_transport_delegate.cpp
     src/pc/peer_connection_sctp_transport_delegate.cpp
     src/pc/peer_connection_sdp_offer_answer.cpp
     src/pc/peer_connection_media_handler.cpp
