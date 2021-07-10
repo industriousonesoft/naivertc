@@ -14,6 +14,8 @@ void PeerConnection::InitIceTransport() {
        ice_transport_->SignalGatheringStateChanged.connect(this, &PeerConnection::OnGatheringStateChanged);
        ice_transport_->SignalCandidateGathered.connect(this, &PeerConnection::OnCandidateGathered);
 
+       ice_transport_->Start();
+
     } catch(const std::exception& e) {
         PLOG_ERROR << e.what();
         UpdateConnectionState(ConnectionState::FAILED);
@@ -25,17 +27,17 @@ void PeerConnection::InitIceTransport() {
 void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state) {
     handle_queue_.Post([this, transport_state](){
         switch (transport_state) {
-        case Transport::State::DISCONNECTED:
-            this->UpdateConnectionState(ConnectionState::DISCONNECTED);
-            break;
         case Transport::State::CONNECTING:
             this->UpdateConnectionState(ConnectionState::CONNECTING);
             break;
         case Transport::State::CONNECTED:
-            // TODO: Init DTLS transport
+            InitDtlsTransport();
             break;
         case Transport::State::FAILED: 
             this->UpdateConnectionState(ConnectionState::FAILED);
+            break;
+        case Transport::State::DISCONNECTED:
+            this->UpdateConnectionState(ConnectionState::DISCONNECTED);
             break;
         default:
             // Ignore the others state
