@@ -94,6 +94,18 @@ std::string SessionDescription::bundle_id() const {
     return !entries_.empty() ? entries_[0]->mid() : "0";
 }
 
+std::optional<std::string> SessionDescription::ice_ufrag() const {
+    return ice_ufrag_;
+}
+
+std::optional<std::string> SessionDescription::ice_pwd() const {
+    return ice_pwd_;
+}
+
+std::optional<std::string> SessionDescription::fingerprint() const {
+    return fingerprint_;
+}
+
 void SessionDescription::hintType(Type type) {
     if (type_ == Type::UNSPEC) {
         type_ = type;
@@ -200,6 +212,7 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     // 两个值分别是会话的起始时间和结束时间，这里都是0代表没有限制
     sdp << "t= 0 0" << eol;
 
+    // Bundle (RFC8843 Negotiating Media Multiplexing Using the Session Description Protocol)
     // https://tools.ietf.org/html/rfc8843
     // 需要共用一个传输通道传输的媒体，如果没有这一行，音视频、数据就会分别单独用一个udp端口来发送
     // eg: a=group:BUNDLE audio video data 

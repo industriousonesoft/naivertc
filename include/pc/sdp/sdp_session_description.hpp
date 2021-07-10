@@ -19,6 +19,9 @@ public:
     Type type() const;
     Role role() const;
     std::string bundle_id() const;
+    std::optional<std::string> ice_ufrag() const;
+    std::optional<std::string> ice_pwd() const;
+    std::optional<std::string> fingerprint() const;
 
     void hintType(Type type);
     void set_fingerprint(std::string fingerprint);
