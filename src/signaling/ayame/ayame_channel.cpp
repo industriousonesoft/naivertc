@@ -40,7 +40,11 @@ AyameChannel::AyameChannel(boost::asio::io_context& ioc, std::weak_ptr<Observer>
 }
 
 AyameChannel::~AyameChannel() {
-
+    Close();
+    if (ws_) {
+        ws_.reset();
+    }
+    ice_servers_.clear();
 }
 
 void AyameChannel::Connect(Config config) {

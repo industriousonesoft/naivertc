@@ -1,8 +1,8 @@
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
 
-#include <signaling/base_channel.hpp>
 #include <signaling/ayame/ayame_channel.hpp>
+#include <pc/peer_connection.hpp>
 
 class Client: public naivertc::signaling::BaseChannel::Observer, public std::enable_shared_from_this<Client> {
     Client(boost::asio::io_context& ioc);
@@ -15,7 +15,11 @@ public:
 
     void Start();
     void Stop();
-public:
+
+private:
+    void CreatePeerConnection(const naivertc::RtcConfiguration& rtc_config);
+
+private:
     void OnConnected(bool is_initiator) override;
     void OnClosed(boost::system::error_code ec) override;
     void OnIceServers(std::vector<naivertc::IceServer> ice_servers) override;
@@ -23,7 +27,10 @@ public:
     void OnRemoteCandidate(const std::string sdp_mid, const int sdp_mlineindex, const std::string candidate) override;
 
 private:
+    boost::asio::io_context& ioc_;
     std::unique_ptr<naivertc::signaling::AyameChannel> ayame_channel_;
+
+    std::shared_ptr<naivertc::PeerConnection> peer_conn_;
 };
 
 #endif
