@@ -13,6 +13,7 @@
 #include "pc/transports/sctp_transport.hpp"
 #include "pc/media/media_track.hpp"
 #include "pc/channels/data_channel.hpp"
+#include "pc/rtp_rtcp/rtp_packet.hpp"
 
 #include <sigslot.h>
 
@@ -130,7 +131,7 @@ private:
     // DtlsTransport callbacks
     void OnDtlsTransportStateChange(DtlsTransport::State transport_state);
     bool OnDtlsVerify(const std::string& fingerprint);
-    void OnDtlsPacketReceived(std::shared_ptr<Packet> in_packet);
+    void OnRtpPacketReceived(std::shared_ptr<RtpPacket> in_packet);
 
     // SctpTransport callbacks
     void OnSctpTransportStateChanged(SctpTransport::State transport_state);

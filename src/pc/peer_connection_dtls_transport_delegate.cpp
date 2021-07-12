@@ -21,20 +21,24 @@ void PeerConnection::InitDtlsTransport() {
         dtls_init_config.certificate = std::move(certificate);
         dtls_init_config.mtu = config_.mtu;
 
+        std::shared_ptr<DtlsTransport> dtls_transport = nullptr;
         // DTLS-SRTP
         if (auto local_sdp = local_session_description_; local_sdp.has_value() && (local_sdp->HasAudio() || local_sdp->HasVieo())) {
-            dtls_transport_ = std::make_shared<DtlsSrtpTransport>(lower, std::move(dtls_init_config));
-            dtls_transport_->OnPacketReceived(utils::weak_bind(&PeerConnection::OnDtlsPacketReceived, this, std::placeholders::_1));
+            auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(lower, std::move(dtls_init_config));
+            dtls_srtp_transport->OnReceivedRtpPacket(utils::weak_bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1));
+            dtls_transport = dtls_srtp_transport;
         // DTLS only
         }else {
-            dtls_transport_ = std::make_shared<DtlsTransport>(lower, std::move(dtls_init_config));
-            dtls_transport_->OnPacketReceived(nullptr);
+            dtls_transport = std::make_shared<DtlsTransport>(lower, std::move(dtls_init_config));
         }
 
-        dtls_transport_->SignalStateChanged.connect(this, &PeerConnection::OnDtlsTransportStateChange);
-        dtls_transport_->OnVerify(utils::weak_bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
+        if (dtls_transport) {
+            dtls_transport_->SignalStateChanged.connect(this, &PeerConnection::OnDtlsTransportStateChange);
+            dtls_transport_->OnVerify(utils::weak_bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
+        }
         
-
+        dtls_transport->Start();
+        
     }catch (const std::exception& exp) {
         PLOG_ERROR << "Failed to init dtls transport: " << exp.what();
         UpdateConnectionState(ConnectionState::FAILED);
@@ -73,7 +77,7 @@ bool PeerConnection::OnDtlsVerify(const std::string& fingerprint) {
     return true;
 }
 
-void PeerConnection::OnDtlsPacketReceived(std::shared_ptr<Packet> in_packet) {
+void PeerConnection::OnRtpPacketReceived(std::shared_ptr<RtpPacket> in_packet) {
     
 }
 
