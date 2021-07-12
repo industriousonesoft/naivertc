@@ -49,6 +49,7 @@ set(LIB_SOURCES
     src/pc/transports/dtls_transport.cpp
     src/pc/transports/dtls_transport_openssl_delegate.cpp
     src/pc/transports/dtls_srtp_transport.cpp
+    src/pc/transports/dtls_srtp_transport_srtp_delegate.cpp
     src/pc/peer_connection.cpp
     src/pc/peer_connection_configuration.cpp
     src/pc/peer_connection_ice_transport_delegate.cpp
@@ -147,16 +148,16 @@ if(APPLE)
     endif()
 endif()
 find_package(OpenSSL REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL)
+target_link_libraries(${PROJECT_NAME} PUBLIC OpenSSL::SSL)
 # usrsctp
 option(sctp_build_programs 0)
 option(sctp_build_shared_lib 0)
 add_subdirectory(deps/usrsctp EXCLUDE_FROM_ALL)
 add_library(Usrsctp::Usrsctp ALIAS usrsctp)
-target_link_libraries(${PROJECT_NAME} PRIVATE Usrsctp::Usrsctp)
+target_link_libraries(${PROJECT_NAME} PUBLIC Usrsctp::Usrsctp)
 # srtp
 add_subdirectory(deps/libsrtp EXCLUDE_FROM_ALL)
-target_link_libraries(${PROJECT_NAME} PRIVATE srtp2)
+target_link_libraries(${PROJECT_NAME} PUBLIC srtp2)
 
 # examples
 add_subdirectory(${PROJECT_SOURCE_DIR}/examples/streamer ${CMAKE_CURRENT_BINARY_DIR}/examples/streamer EXCLUDE_FROM_ALL)

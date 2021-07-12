@@ -25,8 +25,9 @@ public:
     void OnReceivedRtpPacket(RtpPacketRecvCallback callback);
 
 private:
+    void CreateSrtp();
+    void DestroySrtp();
     void InitSrtp();
-    void DeinitSrtp();
 
     void DtlsHandshakeDone() override;
     void Incoming(std::shared_ptr<Packet> in_packet) override;

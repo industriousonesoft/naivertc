@@ -23,6 +23,21 @@ void DtlsSrtpTransport::Cleanup() {
     srtp_shutdown();
 }
 
+void DtlsSrtpTransport::CreateSrtp() {
+    if (srtp_err_status_t err = srtp_create(&srtp_in_, nullptr)) {
+		throw std::runtime_error("SRTP create failed, status=" + std::to_string(static_cast<int>(err)));
+	}
+	if (srtp_err_status_t err = srtp_create(&srtp_out_, nullptr)) {
+		srtp_dealloc(srtp_in_);
+		throw std::runtime_error("SRTP create failed, status=" + std::to_string(static_cast<int>(err)));
+	}
+}
+
+void DtlsSrtpTransport::DestroySrtp() {
+    srtp_dealloc(srtp_in_);
+    srtp_dealloc(srtp_out_);
+}
+
 void DtlsSrtpTransport::InitSrtp() {
 
     static_assert(SRTP_AES_ICM_128_KEY_LEN_WSALT == SRTP_AES_128_KEY_LEN + SRTP_SALT_LEN);
@@ -73,11 +88,6 @@ void DtlsSrtpTransport::InitSrtp() {
     }
 }
 
-void DtlsSrtpTransport::DeinitSrtp() {
-    srtp_delloc(srtp_in_);
-    srtp_delloc(srtp_out);
-}
-
-} // namespace naivert 
+} // namespace naivertc 
 
 
