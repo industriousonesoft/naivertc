@@ -13,7 +13,7 @@ void PeerConnection::InitSctpTransport() {
         }
         PLOG_VERBOSE << "Starting SCTP transport";
 
-        auto lower = ice_transport_;
+        auto lower = dtls_transport_;
         if (!lower) {
             throw std::logic_error("No underlying DTLS transport for SCTP transport");
         }

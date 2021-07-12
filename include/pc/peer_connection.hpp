@@ -127,8 +127,13 @@ private:
     void OnGatheringStateChanged(IceTransport::GatheringState gathering_state);
     void OnCandidateGathered(Candidate candidate);
 
+    // DtlsTransport callbacks
+    void OnDtlsTransportStateChange(DtlsTransport::State transport_state);
+    bool OnDtlsVerify(const std::string& fingerprint);
+    void OnDtlsPacketReceived(std::shared_ptr<Packet> in_packet);
+
     // SctpTransport callbacks
-    void OnSctpTransportStateChanged(Transport::State transport_state);
+    void OnSctpTransportStateChanged(SctpTransport::State transport_state);
     void OnBufferedAmountChanged(StreamId stream_id, size_t amount);
     void OnSctpPacketReceived(std::shared_ptr<Packet> in_packet);
 

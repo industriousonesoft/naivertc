@@ -17,7 +17,7 @@ void PeerConnection::InitIceTransport() {
        ice_transport_->Start();
 
     } catch(const std::exception& e) {
-        PLOG_ERROR << e.what();
+        PLOG_ERROR << "Failed to init ice transport: " << e.what();
         UpdateConnectionState(ConnectionState::FAILED);
         throw std::runtime_error("Ice tansport initialization failed.");
     }   
