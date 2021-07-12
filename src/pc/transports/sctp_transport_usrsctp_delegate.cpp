@@ -21,7 +21,7 @@ void SctpTransport::Init() {
 	usrsctp_sysctl_set_sctp_ecn_enable(0);
 }
 
-void SctpTransport::SetSetings(const SctpSettings& settings) {
+void SctpTransport::CustomizeSctp(const SctpCustomizedSettings& settings) {
 	// The default send and receive window size of usrsctp is 256KB, which is too small for realistic RTTs,
 	// therefore we increase it to 1MB by defualt for better performance.
 	// See https://bugzilla.mozilla.org/show_bug.cgi?id=1051685

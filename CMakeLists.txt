@@ -27,6 +27,7 @@ set(LIB_SOURCES
     src/base/certificate.cpp
     src/base/tls.cpp
     src/base/packet.cpp
+    src/base/init.cpp
 
     src/common/task_queue.cpp
     src/common/utils.cpp
@@ -73,6 +74,7 @@ set(LIB_HEADERS
     include/base/tls.hpp
     include/base/internals.hpp
     include/base/packet.hpp
+    include/base/init.hpp
 
     include/common/task_queue.hpp
     include/common/proxy.hpp
@@ -92,6 +94,7 @@ set(LIB_HEADERS
     include/pc/transports/transport.hpp
     include/pc/transports/ice_transport.hpp
     include/pc/transports/sctp_transport.hpp
+    include/pc/transports/sctp_transport_usr_sctp_settings.hpp
     include/pc/transports/sctp_packet.hpp
     include/pc/transports/dtls_transport.hpp
     include/pc/transports/dtls_srtp_transport.hpp

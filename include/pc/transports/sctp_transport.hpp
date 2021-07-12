@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "pc/transports/transport.hpp"
 #include "pc/transports/sctp_packet.hpp"
+#include "pc/transports/sctp_transport_usr_sctp_settings.hpp"
 
 #include <sigslot.h>
 #include <usrsctp.h>
@@ -27,25 +28,9 @@ public:
         // Local max message size at reception
         std::optional<size_t> max_message_size;
     };
-
-    struct SctpSettings {
-        // For the following settings, not set means optimized default
-        std::optional<size_t> recvBufferSize;                // in bytes
-        std::optional<size_t> sendBufferSize;                // in bytes
-        std::optional<size_t> maxChunksOnQueue;              // in chunks
-        std::optional<size_t> initialCongestionWindow;       // in MTUs
-        std::optional<size_t> maxBurst;                      // in MTUs
-        std::optional<unsigned int> congestionControlModule; // 0: RFC2581, 1: HSTCP, 2: H-TCP, 3: RTCC
-        std::optional<std::chrono::milliseconds> delayedSackTime;
-        std::optional<std::chrono::milliseconds> minRetransmitTimeout;
-        std::optional<std::chrono::milliseconds> maxRetransmitTimeout;
-        std::optional<std::chrono::milliseconds> initialRetransmitTimeout;
-        std::optional<unsigned int> maxRetransmitAttempts;
-        std::optional<std::chrono::milliseconds> heartbeatInterval;
-    };
 public:
     static void Init();
-    static void SetSetings(const SctpSettings& settings);
+    static void CustomizeSctp(const SctpCustomizedSettings& settings);
     static void Cleanup();
 public:
     SctpTransport(std::shared_ptr<Transport> lower, const Config& config);
