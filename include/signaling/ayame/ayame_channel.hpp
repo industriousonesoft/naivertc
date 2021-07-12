@@ -1,8 +1,8 @@
 #ifndef _AYAME_CHANNEL_H_
 #define _AYAME_CHANNEL_H_
 
-#include "signaling/websocket.hpp"
-#include "signaling/base_channel.hpp"
+#include "signaling/base/websocket.hpp"
+#include "signaling/base/base_channel.hpp"
 
 // nlohmann/json
 #include <nlohmann/json.hpp>

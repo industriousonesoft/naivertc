@@ -33,8 +33,8 @@ set(LIB_SOURCES
     src/common/logger.cpp
     src/common/weak_ptr_manager.cpp
 
-    src/signaling/base_channel.cpp
-    src/signaling/websocket.cpp
+    src/signaling/base/base_channel.cpp
+    src/signaling/base/websocket.cpp
     src/signaling/ayame/ayame_channel.cpp
 
     src/pc/sdp/candidate.cpp
@@ -78,9 +78,9 @@ set(LIB_HEADERS
     include/common/logger.hpp
     include/common/weak_ptr_manager.hpp
 
-    include/signaling/base_channel.hpp
-    include/signaling/url_parts.hpp
-    include/signaling/websocket.hpp
+    include/signaling/base/base_channel.hpp
+    include/signaling/common/url_parts.hpp
+    include/signaling/base/websocket.hpp
     include/signaling/ayame/ayame_channel.hpp
 
     include/pc/sdp/candidate.hpp

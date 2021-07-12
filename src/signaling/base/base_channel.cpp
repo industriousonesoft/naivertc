@@ -1,4 +1,4 @@
-#include "signaling/base_channel.hpp"
+#include "signaling/base/base_channel.hpp"
 
 namespace naivertc {
 namespace signaling {
