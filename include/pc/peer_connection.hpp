@@ -102,6 +102,8 @@ protected:
     PeerConnection(const RtcConfiguration& config);
 
 private:
+    void InitLogger(LoggingLevel level);
+
     void InitIceTransport();
     void InitDtlsTransport();
     void InitSctpTransport();

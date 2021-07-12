@@ -21,7 +21,6 @@ enum class Level { // Don't change, it MUST match plog secerity
 using LoggingCallback = std::function<bool(Level level, std::string message)>;
 
 RTC_CPP_EXPORT void InitLogger(Level level, LoggingCallback callback = nullptr);
-RTC_CPP_EXPORT void InitLogger(plog::Severity severity, plog::IAppender *appender = nullptr);
 
 }
 

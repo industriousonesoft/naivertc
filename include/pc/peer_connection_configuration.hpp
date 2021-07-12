@@ -56,6 +56,16 @@ enum class CertificateType {
     RSA
 };
 
+// Log level
+enum class LoggingLevel {
+    NONE,
+    DEBUG,
+    WARNING,
+    INFO,
+    ERROR,
+    VERBOSE
+};
+
 // Rtc Configuration
 struct RTC_CPP_EXPORT RtcConfiguration {
     // Ice settings
@@ -66,6 +76,9 @@ struct RTC_CPP_EXPORT RtcConfiguration {
     CertificateType certificate_type = CertificateType::DEFAULT;
     bool enable_ice_tcp = false;
     bool auto_negotiation = true;
+
+    // Logging level
+    LoggingLevel logging_level = LoggingLevel::INFO;
 
     // Port range
     uint16_t port_range_begin = 1024;

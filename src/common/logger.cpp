@@ -19,6 +19,8 @@
 namespace naivertc {
 namespace logging {
 
+void InitLogger(plog::Severity severity, plog::IAppender *appender = nullptr);
+
 struct LogAppender : public plog::IAppender {
 	LoggingCallback callback;
 
