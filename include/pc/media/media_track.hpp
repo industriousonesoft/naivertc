@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 
 namespace naivertc {
 
@@ -23,14 +24,16 @@ public:
     };
 
     struct RTC_CPP_EXPORT Config {
-        uint32_t ssrc;
-        std::string cname;
         std::string mid;
-        std::string track_id;
-        std::string msid; // media stream id
+        
         Kind kind;
         Codec codec;
         std::vector<int> payload_types;
+
+        uint32_t ssrc;
+        std::optional<std::string> cname;
+        std::optional<std::string> track_id;
+        std::optional<std::string> msid; // media stream id
     };
 
 public:
@@ -40,15 +43,16 @@ public:
     std::string mid() const;
     sdp::Direction direction() const;
     sdp::Media description() const;
-    
-    void UpdateDescription(sdp::Media description);
 
+    void UpdateDescription(const sdp::Media& description);
+    
 public:
     static std::string kind_to_string(Kind kind);
     static std::string codec_to_string(Codec codec);
     static std::optional<std::string> FormatProfileForPayloadType(int payload_type);
+    static sdp::Media BuildDescription(const MediaTrack::Config& config);
 
-protected:
+private:
     sdp::Media description_;
 };
 

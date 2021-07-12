@@ -121,8 +121,6 @@ private:
     void AddRemoteTrack(sdp::Media description);
     void ShiftDataChannelIfNeccessary();
   
-    sdp::Media BuildMediaTrackDescription(const MediaTrack::Config& config);
-
 private:
     // IceTransport callbacks
     void OnIceTransportStateChanged(Transport::State transport_state);

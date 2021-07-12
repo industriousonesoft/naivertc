@@ -57,6 +57,7 @@ void PeerConnection::OnDtlsTransportStateChange(DtlsTransport::State transport_s
             }else {
                 this->UpdateConnectionState(ConnectionState::CONNECTED);
             }
+            // TODO: To open local media tracks
             break;
         }
         case DtlsSrtpTransport::State::FAILED: {

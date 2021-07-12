@@ -62,6 +62,7 @@ set(LIB_SOURCES
     src/pc/rtp_rtcp/rtp_packet.cpp
     src/pc/rtp_rtcp/rtp_defines.cpp
     src/pc/media/media_track.cpp
+    src/pc/media/media_track_sdp_builder.cpp
 )
 
 set(LIB_HEADERS

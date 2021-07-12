@@ -7,7 +7,7 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Config& c
     auto future = promise.get_future();
     handle_queue_.Post([this, init_config = std::move(config), &promise](){
         try {
-            auto description = this->BuildMediaTrackDescription(std::move(init_config));
+            auto description = MediaTrack::BuildDescription(std::move(init_config));
 
             std::shared_ptr<MediaTrack> media_track = nullptr;
 

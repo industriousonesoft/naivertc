@@ -79,36 +79,6 @@ void PeerConnection::AddRemoteCandidate(const Candidate& candidate) {
     });
 }
 
-// SDP Builder
-sdp::Media PeerConnection::BuildMediaTrackDescription(const MediaTrack::Config& config) {
-    auto codec = config.codec;
-    auto kind = config.kind;
-    if (kind == MediaTrack::Kind::VIDEO) {
-        if (codec == MediaTrack::Codec::H264) {
-            auto description = sdp::Video(config.mid);
-            for (auto payload_type : config.payload_types) {
-                description.AddCodec(payload_type, MediaTrack::codec_to_string(codec), MediaTrack::FormatProfileForPayloadType(payload_type));
-            }
-            return std::move(description);
-        }else {
-            throw std::invalid_argument("Unsupported video codec: " + MediaTrack::codec_to_string(codec));
-        }
-    }else if (kind == MediaTrack::Kind::AUDIO) {
-        if (codec == MediaTrack::Codec::OPUS) {
-            auto description = sdp::Audio(config.mid);
-            for (int payload_type : config.payload_types) {
-                // TODO: Not use fixed sample rate and channel value
-                description.AddCodec(payload_type, MediaTrack::codec_to_string(codec), 48000, 2, MediaTrack::FormatProfileForPayloadType(payload_type));
-            }
-            return std::move(description);
-        }else {
-            throw std::invalid_argument("Unsupported audio codec: " + MediaTrack::codec_to_string(codec));
-        }
-    }else {
-        throw std::invalid_argument("Unsupported media kind: " + MediaTrack::kind_to_string(kind));
-    }
-}
-
 // SDP Processor
 void PeerConnection::SetLocalDescription(sdp::Type type) {
     PLOG_VERBOSE << "Setting local description, type: " << sdp::TypeToString(type);
@@ -332,7 +302,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
                 while (session_description.HasMid(std::to_string(new_mid))) {
                     ++new_mid;
                 }
-                // FIXME: Do we need to update data channle stream id here other than to shift it after received remote sdp later?
+                // FIXME: Do we need to update data channle stream id here other than to shift it after received remote sdp later.
                 sdp::Application app(std::to_string(new_mid));
                 app.set_sctp_port(local_sctp_port);
                 app.set_max_message_size(local_max_message_size);
