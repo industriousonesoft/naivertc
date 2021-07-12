@@ -40,6 +40,7 @@ set(LIB_SOURCES
     src/pc/sdp/candidate.cpp
     src/pc/sdp/sdp_session_description.cpp
     src/pc/sdp/sdp_entry.cpp
+    src/pc/sdp/sdp_defines.cpp
     src/pc/transports/transport.cpp
     src/pc/transports/ice_transport.cpp
     src/pc/transports/ice_transport_juice_delegate.cpp
@@ -87,6 +88,7 @@ set(LIB_HEADERS
     include/pc/sdp/candidate.hpp
     include/pc/sdp/sdp_session_description.hpp
     include/pc/sdp/sdp_entry.hpp
+    include/pc/sdp/sdp_defines.hpp
     include/pc/transports/transport.hpp
     include/pc/transports/ice_transport.hpp
     include/pc/transports/sctp_transport.hpp

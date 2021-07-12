@@ -4,7 +4,7 @@
 
 namespace naivertc {
 
-std::shared_ptr<TaskQueue> GlobalTaskQueue = std::make_shared<TaskQueue>();
+std::shared_ptr<TaskQueue> TaskQueue::GlobalTaskQueue = std::make_shared<TaskQueue>();
 
 TaskQueue::TaskQueue() 
     : work_guard_(boost::asio::make_work_guard(ioc_)),
