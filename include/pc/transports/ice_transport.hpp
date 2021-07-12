@@ -22,7 +22,7 @@ public:
         COMPLETED
     };
 public:
-    IceTransport(const Configuration& config);
+    IceTransport(const RtcConfiguration& config);
     ~IceTransport();
 
     sdp::Role role() const;
@@ -41,7 +41,7 @@ public:
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
 
 private:
-    void InitJuice(const Configuration& config);
+    void InitJuice(const RtcConfiguration& config);
 
     static void OnJuiceLog(juice_log_level_t level, const char* message);
     static void OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state, void* user_ptr);

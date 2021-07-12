@@ -6,6 +6,8 @@ MediaTrack::MediaTrack(const sdp::Media& description)
     : description_(std::move(description)) {;
 }
 
+MediaTrack::~MediaTrack() {}
+
 std::string MediaTrack::mid() const {
     return description_.mid();
 }

@@ -84,7 +84,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
                 this->negotiation_needed_ = true;
             }
 
-            if (this->config_.auto_negotiation) {
+            if (this->rtc_config_.auto_negotiation) {
                 // TODO: To negotiate automatically
             }
 

@@ -8,7 +8,7 @@ void PeerConnection::InitIceTransport() {
     try {
        PLOG_VERBOSE << "Init Ice transport";
 
-       ice_transport_.reset(new IceTransport(config_));
+       ice_transport_.reset(new IceTransport(rtc_config_));
 
        ice_transport_->SignalStateChanged.connect(this, &PeerConnection::OnIceTransportStateChanged);
        ice_transport_->SignalGatheringStateChanged.connect(this, &PeerConnection::OnGatheringStateChanged);

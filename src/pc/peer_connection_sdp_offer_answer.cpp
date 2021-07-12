@@ -215,7 +215,7 @@ void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
     UpdateSignalingState(new_signaling_state);
 
     // If this is an offer, we need to answer it
-    if (description.type() == sdp::Type::OFFER && config_.auto_negotiation) {
+    if (description.type() == sdp::Type::OFFER && rtc_config_.auto_negotiation) {
         SetLocalDescription(sdp::Type::ANSWER);
     }
 
@@ -226,7 +226,7 @@ void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
 
 void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_description) {
     const uint16_t local_sctp_port = DEFAULT_SCTP_PORT;
-    const size_t local_max_message_size = config_.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
+    const size_t local_max_message_size = rtc_config_.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
 
     // Clean up the application entry added by ICE transport already.
     session_description.ClearMedia();  

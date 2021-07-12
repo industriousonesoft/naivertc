@@ -30,8 +30,8 @@ void PeerConnection::InitSctpTransport() {
         // Create SCTP tansport
         SctpTransport::Config sctp_config;
         sctp_config.port = sctp_port;
-        sctp_config.mtu = config_.mtu.value_or(DEFAULT_MTU_SIZE);
-        sctp_config.max_message_size = config_.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
+        sctp_config.mtu = rtc_config_.mtu.value_or(DEFAULT_MTU_SIZE);
+        sctp_config.max_message_size = rtc_config_.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
 
         sctp_transport_ = std::make_shared<SctpTransport>(lower, std::move(sctp_config));
         sctp_transport_->SignalStateChanged.connect(this, &PeerConnection::OnSctpTransportStateChanged);

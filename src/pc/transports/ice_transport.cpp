@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-IceTransport::IceTransport(const Configuration& config) 
+IceTransport::IceTransport(const RtcConfiguration& config) 
     : Transport(nullptr), 
     juice_agent_(nullptr, nullptr), 
     curr_mid_("0"),
@@ -18,6 +18,8 @@ IceTransport::IceTransport(const Configuration& config)
 
     InitJuice(config);
 }
+
+IceTransport::~IceTransport() {}
 
 sdp::Role IceTransport::role() const {
     return role_;

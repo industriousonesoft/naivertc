@@ -67,8 +67,8 @@ public:
     using SDPSetSuccessCallback = std::function<void()>;
     using SDPSetFailureCallback = std::function<void(const std::exception_ptr)>;
 public:
-    static std::shared_ptr<PeerConnection> CreatePeerConnection(Configuration config) {
-        return std::shared_ptr<PeerConnection>(new PeerConnection(config));
+    static std::shared_ptr<PeerConnection> Create(const RtcConfiguration& config) {
+        return std::shared_ptr<PeerConnection>(new PeerConnection(std::move(config)));
     }
     ~PeerConnection();
 
@@ -99,7 +99,7 @@ public:
     static std::string signaling_state_to_string(SignalingState state);
 
 protected:
-    PeerConnection(Configuration config);
+    PeerConnection(const RtcConfiguration& config);
 
 private:
     void InitIceTransport();
@@ -140,7 +140,7 @@ private:
 private:
     TaskQueue handle_queue_;
 
-    const Configuration config_;
+    const RtcConfiguration rtc_config_;
     std::future<std::shared_ptr<Certificate>> certificate_;
 
     ConnectionState connection_state_;

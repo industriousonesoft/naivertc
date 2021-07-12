@@ -19,7 +19,7 @@ void PeerConnection::InitDtlsTransport() {
 
         auto dtls_init_config = DtlsTransport::Config();
         dtls_init_config.certificate = std::move(certificate);
-        dtls_init_config.mtu = config_.mtu;
+        dtls_init_config.mtu = rtc_config_.mtu;
 
         std::shared_ptr<DtlsTransport> dtls_transport = nullptr;
         // DTLS-SRTP

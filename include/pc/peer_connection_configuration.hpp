@@ -56,8 +56,8 @@ enum class CertificateType {
     RSA
 };
 
-// Configuration
-struct RTC_CPP_EXPORT Configuration {
+// Rtc Configuration
+struct RTC_CPP_EXPORT RtcConfiguration {
     // Ice settings
     std::vector<IceServer> ice_servers;
     std::optional<std::string> bind_addresses;
@@ -68,8 +68,8 @@ struct RTC_CPP_EXPORT Configuration {
     bool auto_negotiation = true;
 
     // Port range
-    uint16_t port_range_begin;
-    uint16_t port_range_end;
+    uint16_t port_range_begin = 1024;
+    uint16_t port_range_end = 65535;
 
     // MTU: Maximum Transmission Unit
     std::optional<size_t> mtu;

@@ -7,18 +7,18 @@
 
 namespace naivertc {
 
-PeerConnection::PeerConnection(Configuration config) 
-    : config_(config),
-    certificate_(Certificate::MakeCertificate(config_.certificate_type)),
+PeerConnection::PeerConnection(const RtcConfiguration& config) 
+    : rtc_config_(std::move(config)),
+    certificate_(Certificate::MakeCertificate(rtc_config_.certificate_type)),
     connection_state_(ConnectionState::CLOSED),
     gathering_state_(GatheringState::NONE),
     negotiation_needed_(false) {
 
-    if (config_.port_range_end > 0 && config_.port_range_end <  config_.port_range_begin) {
+    if (rtc_config_.port_range_end > 0 && rtc_config_.port_range_end < rtc_config_.port_range_begin) {
         throw std::invalid_argument("Invaild port range.");
     }
 
-    if (auto mtu = config_.mtu) {
+    if (auto mtu = rtc_config_.mtu) {
         // Min MTU for IPv4
         if (mtu < 576) {
             throw std::invalid_argument("Invalid MTU value: " + std::to_string(*mtu));

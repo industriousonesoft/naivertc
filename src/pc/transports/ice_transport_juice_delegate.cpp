@@ -7,7 +7,7 @@ namespace naivertc {
 
 const int kMaxTurnServersCount = 2;
 
-void IceTransport::InitJuice(const Configuration& config) {
+void IceTransport::InitJuice(const RtcConfiguration& config) {
 
     juice_log_level_t level;
     auto logger = plog::get();
