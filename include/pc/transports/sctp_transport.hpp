@@ -13,6 +13,7 @@
 #include <mutex>
 #include <queue>
 #include <map>
+#include <chrono>
 
 namespace naivertc {
 
@@ -26,6 +27,26 @@ public:
         // Local max message size at reception
         std::optional<size_t> max_message_size;
     };
+
+    struct SctpSettings {
+        // For the following settings, not set means optimized default
+        std::optional<size_t> recvBufferSize;                // in bytes
+        std::optional<size_t> sendBufferSize;                // in bytes
+        std::optional<size_t> maxChunksOnQueue;              // in chunks
+        std::optional<size_t> initialCongestionWindow;       // in MTUs
+        std::optional<size_t> maxBurst;                      // in MTUs
+        std::optional<unsigned int> congestionControlModule; // 0: RFC2581, 1: HSTCP, 2: H-TCP, 3: RTCC
+        std::optional<std::chrono::milliseconds> delayedSackTime;
+        std::optional<std::chrono::milliseconds> minRetransmitTimeout;
+        std::optional<std::chrono::milliseconds> maxRetransmitTimeout;
+        std::optional<std::chrono::milliseconds> initialRetransmitTimeout;
+        std::optional<unsigned int> maxRetransmitAttempts;
+        std::optional<std::chrono::milliseconds> heartbeatInterval;
+    };
+public:
+    static void Init();
+    static void SetSetings(const SctpSettings& settings);
+    static void Cleanup();
 public:
     SctpTransport(std::shared_ptr<Transport> lower, const Config& config);
     ~SctpTransport();
@@ -73,7 +94,7 @@ private:
     void InitUsrsctp(const Config& config);
     // usrsctp callbacks
     static void sctp_recv_data_ready_cb(struct socket* socket, void* arg, int flags);
-    static int sctp_send_data_ready_cb(void* ptr, const void* data, size_t lent, uint8_t tos, uint8_t set_df);
+    static int sctp_send_data_ready_cb(void* ptr, void* data, size_t lent, uint8_t tos, uint8_t set_df);
 
 protected:
     void Incoming(std::shared_ptr<Packet> in_packet) override;

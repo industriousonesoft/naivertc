@@ -5,7 +5,73 @@
 
 #include <plog/Log.h>
 
+#include <thread>
+#include <chrono>
+
 namespace naivertc {
+
+using namespace std::chrono_literals;
+using namespace utils::numeric;
+
+void SctpTransport::Init() {
+	usrsctp_init(0, &SctpTransport::sctp_send_data_ready_cb, nullptr);
+	// Enable Partial Reliability Extension (RFC 3758)
+	usrsctp_sysctl_set_sctp_pr_enable(1);
+	// Disable Explicit Congestion Notification
+	usrsctp_sysctl_set_sctp_ecn_enable(0);
+}
+
+void SctpTransport::SetSetings(const SctpSettings& settings) {
+	// The default send and receive window size of usrsctp is 256KB, which is too small for realistic RTTs,
+	// therefore we increase it to 1MB by defualt for better performance.
+	// See https://bugzilla.mozilla.org/show_bug.cgi?id=1051685
+	usrsctp_sysctl_set_sctp_recvspace(to_uint32(settings.recvBufferSize.value_or(1024 * 1024)));
+	usrsctp_sysctl_set_sctp_sendspace(to_uint32(settings.sendBufferSize.value_or(1024 * 1024)));
+
+	// Increase maxium chunks number on queue to 10KB by default
+	usrsctp_sysctl_set_sctp_max_chunks_on_queue(to_uint32(settings.maxChunksOnQueue.value_or(10 * 1024)));
+
+	// Increase initial congestion window size to 10 MTUs (RFC 6928) by default
+	usrsctp_sysctl_set_sctp_initial_cwnd(to_uint32(settings.initialCongestionWindow.value_or(10)));
+
+	// Set max burst to 10 MTUs by default (max burst is initially 0, meaning disabled)
+	usrsctp_sysctl_set_sctp_max_burst_default(to_uint32(settings.maxBurst.value_or(10)));
+
+	// Use standard SCTP congestion control (RFC 4960) by default
+	// See https://github.com/paullouisageneau/libdatachannel/issues/354
+	usrsctp_sysctl_set_sctp_default_cc_module(to_uint32(settings.congestionControlModule.value_or(0)));
+
+	// Reduce SACK delay to 20ms by default (the recommended default value from RFC 4960 is 200ms)
+	usrsctp_sysctl_set_sctp_delayed_sack_time_default(to_uint32(settings.delayedSackTime.value_or(20ms).count()));
+
+	// RTO (retransmit timeout) settings
+	// RFC 2988 recommends a 1s min RTO, which is very high, but TCP on linux has a 200ms min RTO
+	usrsctp_sysctl_set_sctp_rto_min_default(to_uint32(settings.minRetransmitTimeout.value_or(20ms).count()));
+
+	// Set only 10s as max RTO instead of 60s for shorter connection timeout
+	usrsctp_sysctl_set_sctp_rto_max_default(to_uint32(settings.maxRetransmitTimeout.value_or(10000ms).count()));
+	usrsctp_sysctl_set_sctp_init_rto_max_default(to_uint32(settings.maxRetransmitTimeout.value_or(10000ms).count()));
+
+	// Still set 1s as initial RTO
+	usrsctp_sysctl_set_sctp_rto_initial_default(to_uint32(settings.initialRetransmitTimeout.value_or(1000ms).count()));
+
+	// RTX settings
+	// 5 retransmissions instead of 8 to shorten the backoff for shorter connection timeout
+	auto max_rtx_count = to_uint32(settings.maxRetransmitAttempts.value_or(5));
+	usrsctp_sysctl_set_sctp_init_rtx_max_default(max_rtx_count);
+	usrsctp_sysctl_set_sctp_assoc_rtx_max_default(max_rtx_count);
+	usrsctp_sysctl_set_sctp_path_rtx_max_default(max_rtx_count);
+	
+	// Heartbeat interval 10s
+	usrsctp_sysctl_set_sctp_heartbeat_interval_default(to_uint32(settings.heartbeatInterval.value_or(10000ms).count()));
+}
+
+void SctpTransport::Cleanup() {
+	// Waiting util sctp finished
+	while (usrsctp_finish() != 0) {
+		std::this_thread::sleep_for(100ms);
+	}
+}
 
 void SctpTransport::InitUsrsctp(const Config& config) {
     PLOG_VERBOSE << "Initializing SCTP transport.";
@@ -161,7 +227,7 @@ void SctpTransport::sctp_recv_data_ready_cb(struct socket* socket, void* arg, in
     }
 }
 
-int SctpTransport::sctp_send_data_ready_cb(void* ptr, const void* data, size_t len, uint8_t tos, uint8_t set_df) {
+int SctpTransport::sctp_send_data_ready_cb(void* ptr, void* data, size_t len, uint8_t tos, uint8_t set_df) {
     auto* transport = static_cast<SctpTransport*>(ptr);
     // In case of Sending callback is invoked on a already closed registered class instance.(transport).
     // https://github.com/sctplab/usrsctp/issues/405
