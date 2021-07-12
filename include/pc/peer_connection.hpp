@@ -118,7 +118,7 @@ private:
     void ValidRemoteDescription(const sdp::SessionDescription& session_description);
     void ProcessRemoteCandidate(Candidate candidate);
 
-    void AddRemoteTrack(sdp::Media description);
+    void AddReciprocatedMediaTrack(sdp::Media description);
     void ShiftDataChannelIfNeccessary();
   
 private:

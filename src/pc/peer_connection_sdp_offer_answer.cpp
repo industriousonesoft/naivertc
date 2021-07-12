@@ -282,7 +282,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
                     }else {
                         auto reciprocated = remote_media->reciprocate();
 
-                        AddRemoteTrack(reciprocated);
+                        AddReciprocatedMediaTrack(reciprocated);
 
                         PLOG_DEBUG << "Reciprocating media in local description, mid: " 
                                 << reciprocated.mid();
