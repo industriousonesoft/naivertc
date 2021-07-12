@@ -25,7 +25,7 @@ void PeerConnection::InitSctpTransport() {
         uint16_t sctp_port = remote_session_description_->application()->sctp_port().value_or(DEFAULT_SCTP_PORT);
 
         // This is the last chance to ensure the stream numbers are coherent with the role
-        // TODO: To shift data channels
+        ShiftDataChannelIfNeccessary();
 
         // Create SCTP tansport
         SctpTransport::Config sctp_config;

@@ -332,6 +332,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
                 while (session_description.HasMid(std::to_string(new_mid))) {
                     ++new_mid;
                 }
+                // FIXME: Do we need to update data channle stream id here other than to shift it after received remote sdp later?
                 sdp::Application app(std::to_string(new_mid));
                 app.set_sctp_port(local_sctp_port);
                 app.set_max_message_size(local_max_message_size);
@@ -375,7 +376,9 @@ void PeerConnection::ProcessRemoteDescription(sdp::SessionDescription session_de
     
     this->ice_transport_->SetRemoteDescription(session_description);
 
-    // TODO: To shift datachannel? but why?
+    // Since we assumed passive role during DataChannel creatation, we might need to 
+    // shift the stream id form odd to even
+    ShiftDataChannelIfNeccessary();
 
     // If both the local and remote sdp have application, we need to create sctp transport for data channel
     if (session_description.HasApplication()) {
@@ -454,6 +457,22 @@ void PeerConnection::ValidRemoteDescription(const sdp::SessionDescription& sessi
             throw std::logic_error("Got a local sdp as remote sdp");
         }
     }
+}
+
+void PeerConnection::ShiftDataChannelIfNeccessary() {
+    // If sctp transport was created which means we have no chance to change the role any more
+    // or ice transport does not acts as active role cause we assumed we are passive role at first
+    if (sctp_transport_ && ice_transport_ && ice_transport_->role() != sdp::Role::ACTIVE) {
+        return;
+    }
+
+    // We need to update the mid of data channel as a active 
+    for (auto it = data_channels_.begin(); it != data_channels_.end(); ++it) {
+        if (auto data_channel = it->second.lock()) {
+            data_channel.get()->HintStreamIdForRole(sdp::Role::ACTIVE);
+        }
+    }
+
 }
 
 } // namespace naivertc

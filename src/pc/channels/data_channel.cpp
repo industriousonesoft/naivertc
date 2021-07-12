@@ -88,5 +88,19 @@ std::string DataChannel::label() const {
 std::string DataChannel::protocol() const {
     return protocol_;
 }
+
+void DataChannel::HintStreamIdForRole(sdp::Role role) {
+    if (role == sdp::Role::ACTIVE) {
+        if (stream_id_ % 2 == 1) {
+            stream_id_ -= 1;
+        }
+    }else if (role == sdp::Role::PASSIVE) {
+        if (stream_id_ % 2 == 0) {
+            stream_id_ += 1;
+        }
+    }else {
+        // This is ok
+    }
+}
     
 } // namespace naivertc

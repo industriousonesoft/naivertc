@@ -30,7 +30,7 @@ public:
     bool AddRemoteCandidate(const Candidate& candidate);
 
     sdp::SessionDescription GetLocalDescription(sdp::Type type) const;
-    void SetRemoteDescription(const sdp::SessionDescription& description);
+    void SetRemoteDescription(const sdp::SessionDescription& remote_sdp);
 
     std::optional<std::string> GetLocalAddress() const;
     std::optional<std::string> GetRemoteAddress() const;

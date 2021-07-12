@@ -119,6 +119,7 @@ private:
     void ProcessRemoteCandidate(Candidate candidate);
 
     void AddRemoteTrack(sdp::Media description);
+    void ShiftDataChannelIfNeccessary();
   
     sdp::Media BuildMediaTrackDescription(const MediaTrack::Config& config);
 

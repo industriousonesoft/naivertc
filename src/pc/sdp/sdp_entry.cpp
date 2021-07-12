@@ -144,7 +144,6 @@ std::string Application::GenerateSDPLines(std::string_view eol) const {
     return sdp.str();
 }
 
-
 // Media
 Media::Media(const std::string& sdp) 
     : Entry(sdp, "", Direction::UNKNOWN) {}

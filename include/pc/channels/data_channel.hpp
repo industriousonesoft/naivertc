@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "pc/transports/sctp_transport.hpp"
+#include "pc/sdp/sdp_defines.hpp"
 
 #include <memory>
 #include <queue>
@@ -23,6 +24,7 @@ public:
     StreamId stream_id() const;
     std::string label() const;
     std::string protocol() const;
+    void HintStreamIdForRole(sdp::Role role);
 
 private:
     StreamId stream_id_;

@@ -76,7 +76,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
             auto data_channel = std::make_shared<DataChannel>(stream_id, init_config.label, init_config.protocol);
             data_channels_.emplace(std::make_pair(stream_id, data_channel));
 
-            // TODO: To open channel if SCTP transport is created for now.
+            // TODO: To open channel if SCTP transport is created so far.
 
             // Renegotiation is needed if the curren local description does not have application
             if (local_session_description_ || local_session_description_->HasApplication() == false) {

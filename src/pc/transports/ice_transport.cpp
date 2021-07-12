@@ -66,15 +66,15 @@ sdp::SessionDescription IceTransport::GetLocalDescription(sdp::Type type) const 
     return sdp::SessionDescription(std::string(sdp), type, type == sdp::Type::OFFER ? sdp::Role::ACT_PASS : role_);
 }
 
-void IceTransport::SetRemoteDescription(const sdp::SessionDescription& description) {
+void IceTransport::SetRemoteDescription(const sdp::SessionDescription& remote_sdp) {
     if (role_ == sdp::Role::ACT_PASS) {
-        role_ = description.role() == sdp::Role::ACTIVE ? sdp::Role::PASSIVE : sdp::Role::PASSIVE;
+        role_ = remote_sdp.role() == sdp::Role::ACTIVE ? sdp::Role::PASSIVE : sdp::Role::ACTIVE;
     }
-    if (role_ == description.role()) {
+    if (role_ == remote_sdp.role()) {
         throw std::logic_error("Incompatible roles with remote description.");
     }
-    curr_mid_ = description.bundle_id();
-    if (juice_set_remote_description(juice_agent_.get(), description.GenerateSDP("\r\n", true /* sdp without audio or video media lines */).c_str())) {
+    curr_mid_ = remote_sdp.bundle_id();
+    if (juice_set_remote_description(juice_agent_.get(), remote_sdp.GenerateSDP("\r\n", true /* sdp without audio or video media lines */).c_str())) {
         throw std::runtime_error("Failed to parse ICE settings from remote SDP.");
     }
 }
