@@ -32,8 +32,17 @@ public:
 
         uint32_t ssrc;
         std::optional<std::string> cname;
-        std::optional<std::string> track_id;
         std::optional<std::string> msid; // media stream id
+        std::optional<std::string> track_id;
+
+        Config(const std::string mid, 
+                Kind kind, 
+                Codec codec, 
+                std::vector<int> payload_types, 
+                uint32_t ssrc, 
+                std::optional<std::string> cname = std::nullopt, 
+                std::optional<std::string> msid = std::nullopt,
+                std::optional<std::string> track_id = std::nullopt);
     };
 
 public:

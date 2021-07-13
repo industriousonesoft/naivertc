@@ -68,7 +68,15 @@ struct CloseMessage {
 
 #pragma pack(pop)
 
-// DataChannel
+// Implement of Config
+DataChannel::Config::Config(const std::string _label, const std::string _protocol, std::optional<StreamId> _stream_id) 
+    : label(std::move(_label)),
+    protocol(std::move(_protocol)),
+    stream_id(_stream_id) {
+
+}
+
+// Implement of DataChannel
 DataChannel::DataChannel(StreamId stream_id, std::string label, std::string protocol) 
     : stream_id_(stream_id),
     label_(label),
