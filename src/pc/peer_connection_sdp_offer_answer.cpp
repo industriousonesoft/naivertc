@@ -16,14 +16,14 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
     handle_queue_.Post([this, on_success, on_failure](){
         try {
             this->SetLocalDescription(sdp::Type::OFFER);
-            if (this->local_session_description_) {
-                auto local_sdp = *this->local_session_description_;
+            if (this->local_session_description_.has_value()) {
+                auto local_sdp = this->local_session_description_.value();
                 on_success(std::move(local_sdp));
             }else {
                 throw std::runtime_error("Failed to create local offer sdp.");
             }
-        }catch(...) {
-            on_failure(std::current_exception());
+        }catch(const std::exception& exp) {
+            on_failure(std::move(exp));
         }
     });
 }
@@ -33,14 +33,14 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
     handle_queue_.Post([this, on_success, on_failure](){
         try {
             this->SetLocalDescription(sdp::Type::ANSWER);
-            if (this->local_session_description_) {
-                auto local_sdp = *this->local_session_description_;
+            if (this->local_session_description_.has_value()) {
+                auto local_sdp = this->local_session_description_.value();
                 on_success(std::move(local_sdp));
             }else {
                 throw std::runtime_error("Failed to create local answer sdp.");
             }
-        }catch(...) {
-            on_failure(std::current_exception());
+        }catch(const std::exception& exp) {
+            on_failure(std::move(exp));
         }
     });
 }
@@ -53,8 +53,8 @@ void PeerConnection::SetOffer(const std::string sdp,
             auto remote_sdp = sdp::SessionDescription(sdp, sdp::Type::OFFER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
-        }catch(...) {
-            on_failure(std::current_exception());
+        }catch(const std::exception& exp) {
+            on_failure(std::move(exp));
         }
     });
 }
@@ -67,15 +67,21 @@ void PeerConnection::SetAnswer(const std::string sdp,
             auto remote_sdp = sdp::SessionDescription(sdp, sdp::Type::ANSWER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
-        }catch (...) {
-            on_failure(std::current_exception());
+        }catch (const std::exception& exp) {
+            on_failure(std::move(exp));
         }
     });        
 }
 
 void PeerConnection::AddRemoteCandidate(const Candidate& candidate) {
     handle_queue_.Post([this, candidate = std::move(candidate)](){
+
         remote_candidates_.emplace_back(std::move(candidate));
+
+        // Start to process remote candidate if remote sdp is ready
+        if (remote_session_description_) {
+            ProcessRemoteCandidates();
+        }
     });
 }
 
@@ -215,13 +221,12 @@ void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
     UpdateSignalingState(new_signaling_state);
 
     // If this is an offer, we need to answer it
-    if (description.type() == sdp::Type::OFFER && rtc_config_.auto_negotiation) {
+    if (remote_session_description_ && remote_session_description_->type() == sdp::Type::OFFER && rtc_config_.auto_negotiation) {
         SetLocalDescription(sdp::Type::ANSWER);
     }
 
-    for (const auto &candidate : remote_candidates_) {
-        ProcessRemoteCandidate(std::move(candidate));
-    }
+    // Start to process remote candidate if remote sdp is ready
+    ProcessRemoteCandidates();
 }
 
 void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_description) {
@@ -337,14 +342,15 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
     // TODO: Add candidates existed in old local sdp
 
     PLOG_VERBOSE << "Did set local sdp: " << std::string(session_description);
-    local_session_description_.emplace(std::move(session_description));
+
+    local_session_description_ = std::move(session_description);
    
     // TODO: Reciprocated tracks might need to be open
 
 }
 void PeerConnection::ProcessRemoteDescription(sdp::SessionDescription session_description) {
     
-    this->ice_transport_->SetRemoteDescription(session_description);
+    ice_transport_->SetRemoteDescription(session_description);
 
     // Since we assumed passive role during DataChannel creatation, we might need to 
     // shift the stream id form odd to even
@@ -357,7 +363,14 @@ void PeerConnection::ProcessRemoteDescription(sdp::SessionDescription session_de
         }
     }
 
-    this->remote_session_description_.emplace(std::move(session_description));
+    remote_session_description_ = std::move(session_description);
+}
+
+void PeerConnection::ProcessRemoteCandidates() {
+    for (const auto &candidate : remote_candidates_) {
+        ProcessRemoteCandidate(std::move(candidate));
+    }
+    remote_candidates_.clear();
 }
 
 void PeerConnection::ProcessRemoteCandidate(Candidate candidate) {
@@ -421,7 +434,7 @@ void PeerConnection::ValidRemoteDescription(const sdp::SessionDescription& sessi
         throw std::invalid_argument("Remote sdp has no active media");
     }
 
-    if (local_session_description_.has_value()) {
+    if (local_session_description_) {
         if (local_session_description_->ice_ufrag() == session_description.ice_ufrag() &&
             local_session_description_->ice_pwd() == session_description.ice_pwd()) {
             throw std::logic_error("Got a local sdp as remote sdp");

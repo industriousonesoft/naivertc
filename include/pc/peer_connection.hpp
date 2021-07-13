@@ -61,11 +61,11 @@ public:
     using CandidateCallback = std::function<void(const Candidate& candidate)>;
     using SignalingStateCallback = std::function<void(SignalingState new_state)>;
 
-    using SDPCreateSuccessCallback = std::function<void(sdp::SessionDescription sdp)>;
-    using SDPCreateFailureCallback = std::function<void(const std::exception_ptr)>;
+    using SDPCreateSuccessCallback = std::function<void(const sdp::SessionDescription& sdp)>;
+    using SDPCreateFailureCallback = std::function<void(const std::exception& exp)>;
 
     using SDPSetSuccessCallback = std::function<void()>;
-    using SDPSetFailureCallback = std::function<void(const std::exception_ptr)>;
+    using SDPSetFailureCallback = std::function<void(const std::exception& exp)>;
 public:
     static std::shared_ptr<PeerConnection> Create(const RtcConfiguration& config) {
         return std::shared_ptr<PeerConnection>(new PeerConnection(std::move(config)));
@@ -118,6 +118,7 @@ private:
     void ProcessLocalDescription(sdp::SessionDescription session_description);
     void ProcessRemoteDescription(sdp::SessionDescription session_description);
     void ValidRemoteDescription(const sdp::SessionDescription& session_description);
+    void ProcessRemoteCandidates();
     void ProcessRemoteCandidate(Candidate candidate);
 
     void AddReciprocatedMediaTrack(sdp::Media description);
@@ -145,23 +146,23 @@ private:
     const RtcConfiguration rtc_config_;
     std::future<std::shared_ptr<Certificate>> certificate_;
 
-    ConnectionState connection_state_;
-    GatheringState gathering_state_;
-    SignalingState signaling_state_;
+    ConnectionState connection_state_ = ConnectionState::CLOSED;
+    GatheringState gathering_state_ = GatheringState::NONE;
+    SignalingState signaling_state_ = SignalingState::STABLE;
 
-    bool negotiation_needed_;
+    bool negotiation_needed_ = false;
 
-    std::shared_ptr<IceTransport> ice_transport_;
-    std::shared_ptr<DtlsTransport> dtls_transport_;
-    std::shared_ptr<SctpTransport> sctp_transport_;
+    std::shared_ptr<IceTransport> ice_transport_ = nullptr;
+    std::shared_ptr<DtlsTransport> dtls_transport_ = nullptr;
+    std::shared_ptr<SctpTransport> sctp_transport_ = nullptr;
 
-    ConnectionStateCallback connection_state_callback_;
-    GatheringStateCallback gathering_state_callback_;
-    CandidateCallback candidate_callback_;
-    SignalingStateCallback signaling_state_callback_;
+    ConnectionStateCallback connection_state_callback_ = nullptr;
+    GatheringStateCallback gathering_state_callback_ = nullptr;
+    CandidateCallback candidate_callback_ = nullptr;
+    SignalingStateCallback signaling_state_callback_ = nullptr;
 
-    std::optional<sdp::SessionDescription> local_session_description_;
-    std::optional<sdp::SessionDescription> remote_session_description_;
+    std::optional<sdp::SessionDescription> local_session_description_ = std::nullopt;
+    std::optional<sdp::SessionDescription> remote_session_description_ = std::nullopt;
 
     // FIXME: Do we need to use shared_ptr instead of weak_ptr here?
     std::unordered_map<StreamId, std::weak_ptr<DataChannel>> data_channels_;
