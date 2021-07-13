@@ -27,43 +27,12 @@ PeerConnection::PeerConnection(const RtcConfiguration& config)
         }
     }
 
-    InitLogger(config.logging_level);
-
     InitIceTransport();
 }
 
 PeerConnection::~PeerConnection() {
     ice_transport_.reset();
     sctp_transport_.reset();
-}
-
-// Private methods
-void PeerConnection::InitLogger(LoggingLevel level) {
-    logging::Level plog_level = logging::Level::NONE;
-    switch (level) {
-    case LoggingLevel::NONE:
-        plog_level = logging::Level::NONE;
-        break;
-    case LoggingLevel::DEBUG:
-        plog_level = logging::Level::DEBUG;
-        break;
-    case LoggingLevel::WARNING:
-        plog_level = logging::Level::WARNING;
-        break;
-    case LoggingLevel::INFO:
-        plog_level = logging::Level::INFO;
-        break;
-    case LoggingLevel::ERROR:
-        plog_level = logging::Level::ERROR;
-        break;
-    case LoggingLevel::VERBOSE:
-        plog_level = logging::Level::VERBOSE;
-        break;
-    default:
-        break;
-    }
-    // TODO: add a logging callback for serialize log
-    logging::InitLogger(plog_level);
 }
 
 void PeerConnection::Close() {
