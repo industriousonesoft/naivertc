@@ -16,9 +16,9 @@ void Init() {
 }
 
 void Cleanup() {
+    SctpTransport::Cleanup();
     DtlsSrtpTransport::Cleanup();
     DtlsTransport::Cleanup();
-    SctpTransport::Cleanup();
 }
     
 } // namespace naivertc

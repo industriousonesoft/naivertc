@@ -73,6 +73,13 @@ void PeerConnection::SetAnswer(const std::string sdp,
     });        
 }
 
+void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string sdp) {
+    handle_queue_.Post([this, mid = std::move(mid), sdp = std::move(sdp)](){
+        auto candidate = Candidate(sdp, mid);
+        AddRemoteCandidate(std::move(candidate));
+    });
+}
+
 void PeerConnection::AddRemoteCandidate(const Candidate& candidate) {
     handle_queue_.Post([this, candidate = std::move(candidate)](){
 

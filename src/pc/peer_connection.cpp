@@ -66,6 +66,52 @@ void PeerConnection::InitLogger(LoggingLevel level) {
     logging::InitLogger(plog_level);
 }
 
+void PeerConnection::Close() {
+
+    handle_queue_.Post([this](){
+        PLOG_VERBOSE << "Closing PeerConnection";
+
+        this->negotiation_needed_ = false;
+
+        // TODO: Close data channels asynchronously
+
+        CloseTransports();
+    });
+
+}
+
+void PeerConnection::ResetCallbacks() {
+    connection_state_callback_ = nullptr;
+    gathering_state_callback_ = nullptr;
+    candidate_callback_ = nullptr;
+    signaling_state_callback_ = nullptr;
+}
+
+void PeerConnection::CloseTransports() {
+    if (!UpdateConnectionState(ConnectionState::CLOSED)) {
+        // Closed already
+        return;
+    }
+
+    ResetCallbacks();
+
+    if (sctp_transport_) {
+        sctp_transport_->Stop();
+        sctp_transport_.reset();
+    }
+
+    if (dtls_transport_) {
+        dtls_transport_->Stop();
+        dtls_transport_.reset();
+    }
+
+    if (ice_transport_) {
+        ice_transport_->Stop();
+        ice_transport_.reset();
+    }
+
+}
+
 bool PeerConnection::UpdateConnectionState(ConnectionState state) {
     if (connection_state_ == state) {
         return false;

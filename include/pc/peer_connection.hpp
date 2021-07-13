@@ -87,7 +87,9 @@ public:
                 SDPSetSuccessCallback on_success = nullptr, 
                 SDPSetFailureCallback on_failure = nullptr);
 
-    void AddRemoteCandidate(const Candidate& candidate);
+    void AddRemoteCandidate(const std::string mid, const std::string sdp);
+
+    void Close();
 
 public:
     // setup State & Candidate callback
@@ -120,9 +122,13 @@ private:
     void ValidRemoteDescription(const sdp::SessionDescription& session_description);
     void ProcessRemoteCandidates();
     void ProcessRemoteCandidate(Candidate candidate);
+    void AddRemoteCandidate(const Candidate& candidate);
 
     void AddReciprocatedMediaTrack(sdp::Media description);
     void ShiftDataChannelIfNeccessary();
+
+    void ResetCallbacks();
+    void CloseTransports();
   
 private:
     // IceTransport callbacks
