@@ -81,7 +81,13 @@ void Candidate::HintMid(std::string mid) {
         mid_.emplace(std::move(mid));
 }
 
-std::string Candidate::candidate() const {
+std::string Candidate::sdp_line() const {
+    std::ostringstream line;
+    line << "a=" << std::string();
+    return line.str();
+}
+
+Candidate::operator std::string() const {
     const char sp{' '};
     std::ostringstream oss;
     oss << "candidate:";
@@ -115,12 +121,6 @@ std::optional<std::string> Candidate::address() const {
 
 std::optional<uint16_t> Candidate::port() const {
     return isResolved() ? std::make_optional(port_) : std::nullopt;
-}
-
-Candidate::operator std::string() const {
-    std::ostringstream line;
-    line << "a=" << candidate();
-    return line.str();
 }
 
 bool Candidate::operator==(const Candidate& other) const {
