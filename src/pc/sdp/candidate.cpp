@@ -21,7 +21,7 @@ Candidate::Candidate() :
     component_id_(0),
     priority_(0),
     transport_type_(TransportType::UNKNOWN),
-    host_name_("0.0.0.0"),
+    hostname_("0.0.0.0"),
     service_("9"),
     type_(Type::UNKNOWN),
     family_(Family::UNRESOVLED) {}
@@ -64,8 +64,8 @@ uint32_t Candidate::priority() const {
     return priority_;
 }
 
-std::string Candidate::host_name() const {
-    return host_name_;
+std::string Candidate::hostname() const {
+    return hostname_;
 }
 
 std::string Candidate::service() const {
@@ -95,7 +95,7 @@ Candidate::operator std::string() const {
     if (isResolved()) {
         oss << address_ << sp << port_;
     }else {
-        oss << host_name_ << sp << service_;
+        oss << hostname_ << sp << service_;
     }
 
     oss << sp << "typ" << sp << type_str_;
@@ -126,7 +126,7 @@ std::optional<uint16_t> Candidate::port() const {
 bool Candidate::operator==(const Candidate& other) const {
     return (foundation_ == other.foundation_ && 
             service_ == other.service_ &&
-            host_name_ == other.host_name_
+            hostname_ == other.hostname_
             );
 }
 
@@ -139,7 +139,7 @@ bool Candidate::operator!=(const Candidate& other) const {
 bool Candidate::Resolve(ResolveMode mode) {
     PLOG_VERBOSE << "Resolving candidate (mode="
                  << (mode == ResolveMode::SIMPLE ? "simple" : "lookup") 
-                 << "): " << host_name_ << ":" << service_;
+                 << "): " << hostname_ << ":" << service_;
 
     struct addrinfo hints = {};
     hints.ai_family = AF_UNSPEC;
@@ -157,7 +157,7 @@ bool Candidate::Resolve(ResolveMode mode) {
     }
 
     struct addrinfo *result = nullptr;
-    if (getaddrinfo(host_name_.c_str(), service_.c_str(), &hints, &result) == 0) {
+    if (getaddrinfo(hostname_.c_str(), service_.c_str(), &hints, &result) == 0) {
         for (auto p = result; p; p = p ->ai_next) {
             char nodebuffer[MAX_NUMERICNODE_LEN];
             char servbuffer[MAX_NUMERICSERV_LEN];
@@ -223,7 +223,7 @@ void Candidate::Parse(std::string candidate) {
     std::string type_indicator;
     // 使用istringstream对格式化的字符串（以空格隔开）进行重定向
     if (!(iss >> foundation_ >> component_id_ >> transport_type_str_ >> priority_ 
-        >> host_name_ >> service_ >> type_indicator >> type_str_) && type_indicator == "typ") {
+        >> hostname_ >> service_ >> type_indicator >> type_str_) && type_indicator == "typ") {
         throw std::invalid_argument("Invalid candidate format");
     }
 

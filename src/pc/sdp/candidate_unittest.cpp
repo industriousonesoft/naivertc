@@ -18,7 +18,7 @@ TEST(CandidateTest, CreateFromSDPLine) {
     EXPECT_EQ(candidate.component_id(), 1);
     EXPECT_EQ(candidate.transport_type(), Candidate::TransportType::UDP);
     EXPECT_EQ(candidate.priority(), 9654321);
-    EXPECT_EQ(candidate.host_name(), "212.223.223.223");
+    EXPECT_EQ(candidate.hostname(), "212.223.223.223");
     EXPECT_EQ(candidate.service(), "12345");
     EXPECT_EQ(candidate.type(), Candidate::Type::SERVER_REFLEXIVE);
     EXPECT_EQ(candidate.isResolved(), false);
@@ -34,7 +34,7 @@ TEST(CandidateTest, BuildFromCandidateSDP) {
     EXPECT_EQ(candidate.component_id(), 1);
     EXPECT_EQ(candidate.transport_type(), Candidate::TransportType::UDP);
     EXPECT_EQ(candidate.priority(), 9654321);
-    EXPECT_EQ(candidate.host_name(), "212.223.223.223");
+    EXPECT_EQ(candidate.hostname(), "212.223.223.223");
     EXPECT_EQ(candidate.service(), "12345");
     EXPECT_EQ(candidate.type(), Candidate::Type::SERVER_REFLEXIVE);
     EXPECT_EQ(candidate.isResolved(), false);

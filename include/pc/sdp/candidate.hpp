@@ -62,7 +62,7 @@ public:
     Type type() const;
     TransportType transport_type() const;
     uint32_t priority() const;
-    std::string host_name() const;
+    std::string hostname() const;
     std::string service() const;
     Family family() const;
 
@@ -92,7 +92,7 @@ private:
     uint32_t priority_;
     TransportType transport_type_;
     std::string transport_type_str_;
-    std::string host_name_;
+    std::string hostname_;
     std::string service_;
     Type type_;
     std::string type_str_;

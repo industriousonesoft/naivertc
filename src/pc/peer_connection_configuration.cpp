@@ -55,11 +55,11 @@ IceServer::IceServer(const std::string& url) {
     username_ = components[6].value_or("");
     password_ = components[8].value_or("");
 
-    host_name_ = components[10].value();
-    while (!host_name_.empty() && host_name_.front() == '[')
-		host_name_.erase(host_name_.begin());
-	while (!host_name_.empty() && host_name_.back() == ']')
-		host_name_.pop_back();
+    hostname_ = components[10].value();
+    while (!hostname_.empty() && hostname_.front() == '[')
+		hostname_.erase(hostname_.begin());
+	while (!hostname_.empty() && hostname_.back() == ']')
+		hostname_.pop_back();
 
     std::string service = components[12].value_or(relay_type_ == RelayType::TURN_TLS ? "5349" : "3478");
 	try {
@@ -69,11 +69,11 @@ IceServer::IceServer(const std::string& url) {
 	}
 }
 
-IceServer::IceServer(std::string host_name, uint16_t port) 
-    : host_name_(host_name), port_(port), type_(Type::STUN) {}
+IceServer::IceServer(std::string hostname, uint16_t port) 
+    : hostname_(hostname), port_(port), type_(Type::STUN) {}
 
-IceServer::IceServer(std::string host_name, std::string service) 
-    : host_name_(host_name), type_(Type::STUN) {
+IceServer::IceServer(std::string hostname, std::string service) 
+    : hostname_(hostname), type_(Type::STUN) {
     try {
 		port_ = uint16_t(std::stoul(service));
 	} catch (...) {
@@ -81,11 +81,11 @@ IceServer::IceServer(std::string host_name, std::string service)
 	}
 }
 
-IceServer::IceServer(std::string host_name, uint16_t port, std::string username, std::string password, RelayType relay_type) 
-    : host_name_(host_name), port_(port), type_(Type::TURN), username_(username), password_(password), relay_type_(relay_type) {}
+IceServer::IceServer(std::string hostname, uint16_t port, std::string username, std::string password, RelayType relay_type) 
+    : hostname_(hostname), port_(port), type_(Type::TURN), username_(username), password_(password), relay_type_(relay_type) {}
 
-IceServer::IceServer(std::string host_name, std::string service, std::string username, std::string password, RelayType relay_type) 
-    : host_name_(host_name), type_(Type::TURN), username_(username), password_(password), relay_type_(relay_type) {
+IceServer::IceServer(std::string hostname, std::string service, std::string username, std::string password, RelayType relay_type) 
+    : hostname_(hostname), type_(Type::TURN), username_(username), password_(password), relay_type_(relay_type) {
     try {
 		port_ = uint16_t(std::stoul(service));
 	} catch (...) {
@@ -95,7 +95,7 @@ IceServer::IceServer(std::string host_name, std::string service, std::string use
 
 IceServer::operator std::string() const {
     std::ostringstream desc;
-    desc << "hostname: " << host_name_ << " port: " << port_ << " type: " << type_to_string();
+    desc << "hostname: " << hostname_ << " port: " << port_ << " type: " << type_to_string();
     if (type_ == Type::TURN) {
         desc << " username: " << username_ << " password: " << password_ << " relayType: " << relay_type_to_string();
     }
@@ -127,5 +127,13 @@ std::string IceServer::relay_type_to_string() const {
         return "";
     }
 }
+
+// ProxyServer
+ProxyServer::ProxyServer(Type type_, std::string hostname_, uint16_t port_, std::string username_, std::string password_) 
+    : type(type_),
+    hostname(hostname_),
+    port(port_),
+    username(username_),
+    password(password_) {}
 
 }

@@ -9,7 +9,13 @@
 #include "pc/sdp/sdp_session_description.hpp"
 
 #include <sigslot.h>
+
+#if USE_NICE
+#include <nice/agent.h>
+#include <thread>
+#else
 #include <juice/juice.h>
+#endif
 
 namespace naivertc {
 
@@ -41,7 +47,23 @@ public:
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
 
 private:
+    
+    void OnStateChanged(State state);
+    void OnGetheringStateChanged(GatheringState state);
+    
+    // Override from Transport
+    void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
+
+private:
+#if USE_NICE
+    void InitNice(const RtcConfiguration& config);
+
+    static void OnNiceLog(const gchar* log_domain, GLogLevelFlags log_level, const gchar* message, gpointer user_data);
+#else
     void InitJuice(const RtcConfiguration& config);
+
+    void OnJuiceCandidateGathered(const char* sdp);
+    void OnJuiceDataReceived(const char* data, size_t size);
 
     static void OnJuiceLog(juice_log_level_t level, const char* message);
     static void OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state, void* user_ptr);
@@ -49,17 +71,19 @@ private:
     static void OnJuiceGetheringDone(juice_agent_t* agent, void* user_ptr);
     static void OnJuiceDataReceived(juice_agent_t* agent, const char* data, size_t size, void* user_ptr);
 
-    void OnJuiceStateChanged(State state);
-    void OnJuiceCandidateGathered(const char* sdp);
-    void OnJuiceGetheringStateChanged(GatheringState state);
-    void OnJuiceDataReceived(const char* data, size_t size);
-
-    // Override from Transport
-    void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
+#endif
 
 private:
-    std::unique_ptr<juice_agent_t, void (*)(juice_agent_t *)> juice_agent_;
-
+#if USE_NICE
+    uint32_t stream_id_ = 0;
+    guint timeout_id_ = 0;
+    unsigned int outgoing_dscp_ = 0;
+    std::thread main_loop_thread_;
+    std::unique_ptr<NiceAgent, void(*)(gpointer)> nice_agent_{nullptr, nullptr};
+    std::unique_ptr<GMainLoop, void(*)(GMainLoop *)> main_loop_{nullptr, nullptr};
+#else
+    std::unique_ptr<juice_agent_t, void (*)(juice_agent_t *)> juice_agent_{nullptr, nullptr};
+#endif
     std::string curr_mid_;
     sdp::Role role_;
 

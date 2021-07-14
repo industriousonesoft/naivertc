@@ -17,14 +17,14 @@ struct RTC_CPP_EXPORT IceServer {
     IceServer(const std::string& url);
 
     // STUN
-    IceServer(std::string host_name, uint16_t port);
-    IceServer(std::string host_name, std::string service);
+    IceServer(std::string hostname, uint16_t port);
+    IceServer(std::string hostname, std::string service);
 
     // TURN
-    IceServer(std::string host_name, uint16_t port, std::string username, std::string password, RelayType relay_type = RelayType::TURN_UDP);
-    IceServer(std::string host_name, std::string service, std::string username, std::string password, RelayType relay_type = RelayType::TURN_UDP);
+    IceServer(std::string hostname, uint16_t port, std::string username, std::string password, RelayType relay_type = RelayType::TURN_UDP);
+    IceServer(std::string hostname, std::string service, std::string username, std::string password, RelayType relay_type = RelayType::TURN_UDP);
 
-    std::string host_name() const { return host_name_; }
+    std::string hostname() const { return hostname_; }
     uint16_t port() const { return port_; }
     Type type() const { return type_; }
     RelayType relay_type() const { return relay_type_; }
@@ -41,7 +41,7 @@ private:
     std::string relay_type_to_string() const;
 
 private:
-    std::string host_name_;
+    std::string hostname_;
     uint16_t port_;
     Type type_;
     std::string username_;
@@ -56,11 +56,39 @@ enum class CertificateType {
     RSA
 };
 
+#if USE_NICE
+
+struct RTC_CPP_EXPORT ProxyServer {
+    enum class Type { 
+        NONE = 0,
+        SOCKS5,
+        HTTP,
+        LAST = HTTP
+    };
+
+    Type type;
+    std::string hostname;
+    uint16_t port;
+    std::string username;
+    std::string password;
+
+    ProxyServer(Type type, std::string hostname, uint16_t port, std::string username = "", std::string password = "");
+};
+
+#endif
+
 // Rtc Configuration
 struct RTC_CPP_EXPORT RtcConfiguration {
     // Ice settings
     std::vector<IceServer> ice_servers;
+    
+#if USE_NICE
+    // libnice only
+    std::optional<ProxyServer> proxy_server;
+#else
+    // libjuice only
     std::optional<std::string> bind_addresses;
+#endif
 
     // Options
     CertificateType certificate_type = CertificateType::DEFAULT;
