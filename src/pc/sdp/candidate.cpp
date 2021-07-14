@@ -83,7 +83,7 @@ void Candidate::HintMid(std::string mid) {
 
 std::string Candidate::sdp_line() const {
     std::ostringstream line;
-    line << "a=" << std::string();
+    line << "a=" << std::string(*this);
     return line.str();
 }
 

@@ -40,12 +40,22 @@ TEST(CandidateTest, BuildFromCandidateSDP) {
     EXPECT_EQ(candidate.isResolved(), false);
 }
 
+TEST(CandidateTest, ToString) {
+    const std::string sdp = "candidate:1 1 UDP 9654321 212.223.223.223 12345 typ srflx raddr 10.216.33.9 rport 54321";
+
+    naivertc::Candidate candidate(sdp);
+
+    std::string str = std::string(candidate);
+
+    EXPECT_EQ(str, sdp);
+}
+
 TEST(CandidateTest, BuildSDPLine) {
     const std::string sdp = "a=candidate:1 1 UDP 9654321 212.223.223.223 12345 typ srflx raddr 10.216.33.9 rport 54321";
 
     naivertc::Candidate candidate(sdp);
 
-    std::string build_sdp = std::string(candidate);
+    std::string build_sdp = candidate.sdp_line();
 
     EXPECT_EQ(build_sdp, sdp);
 }
