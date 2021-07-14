@@ -168,9 +168,9 @@ private:
     std::optional<sdp::SessionDescription> local_session_description_ = std::nullopt;
     std::optional<sdp::SessionDescription> remote_session_description_ = std::nullopt;
 
-    // FIXME: Do we need to use shared_ptr instead of weak_ptr here?
-    std::unordered_map<StreamId, std::weak_ptr<DataChannel>> data_channels_;
-    std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_;
+    // Using std::shared_ptr instead of std::weak_ptr to make sure them still valid during the peer connection
+    std::unordered_map<StreamId, std::shared_ptr<DataChannel>> data_channels_;
+    std::unordered_map<std::string /* mid */, std::shared_ptr<MediaTrack>> media_tracks_;
 
     std::vector<const Candidate> remote_candidates_;
 

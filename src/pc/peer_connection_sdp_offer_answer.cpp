@@ -274,7 +274,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
                 [&](sdp::Media* remote_media) {
                     // Prefer local media track
                     if (auto it = media_tracks_.find(remote_media->mid()); it != media_tracks_.end()) {
-                        if (auto local_track = it->second.lock()) {
+                        if (auto local_track = it->second) {
                             // 此处调用的是拷贝构造函数
                             auto local_media = local_track->description();
                             PLOG_DEBUG << "Adding media to local description, mid=" << local_media.mid()
@@ -327,7 +327,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
 
         // Add media for local tracks
         for (auto it = media_tracks_.begin(); it != media_tracks_.end(); ++it) {
-            if (auto track = it->second.lock()) {
+            if (auto track = it->second) {
                 // Filter existed tracks
                 if (session_description.HasMid(track->mid())) {
                     continue;
@@ -348,7 +348,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
 
     // TODO: Add candidates existed in old local sdp
 
-    PLOG_VERBOSE << "Did set local sdp: " << std::string(session_description);
+    PLOG_VERBOSE << "Did process local sdp: " << std::string(session_description);
 
     local_session_description_ = std::move(session_description);
    
@@ -369,6 +369,8 @@ void PeerConnection::ProcessRemoteDescription(sdp::SessionDescription session_de
             InitSctpTransport();
         }
     }
+
+    PLOG_VERBOSE << "Did process remote sdp: " << std::string(session_description);
 
     remote_session_description_ = std::move(session_description);
 }
@@ -458,7 +460,7 @@ void PeerConnection::ShiftDataChannelIfNeccessary() {
 
     // We need to update the mid of data channel as a active 
     for (auto it = data_channels_.begin(); it != data_channels_.end(); ++it) {
-        if (auto data_channel = it->second.lock()) {
+        if (auto data_channel = it->second) {
             data_channel.get()->HintStreamIdForRole(sdp::Role::ACTIVE);
         }
     }

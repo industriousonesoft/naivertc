@@ -78,7 +78,6 @@ void PeerConnection::CloseTransports() {
         ice_transport_->Stop();
         ice_transport_.reset();
     }
-
 }
 
 bool PeerConnection::UpdateConnectionState(ConnectionState state) {
@@ -86,7 +85,9 @@ bool PeerConnection::UpdateConnectionState(ConnectionState state) {
         return false;
     }
     connection_state_ = state;
-    this->connection_state_callback_(connection_state_);
+    if (connection_state_callback_) {
+        connection_state_callback_(connection_state_);
+    }
     return true;
 }
 
@@ -95,7 +96,9 @@ bool PeerConnection::UpdateGatheringState(GatheringState state) {
         return false;
     }
     gathering_state_ = state;
-    this->gathering_state_callback_(gathering_state_);
+    if (gathering_state_callback_) {
+        gathering_state_callback_(gathering_state_);
+    }
     return true;
 }
 
@@ -104,7 +107,9 @@ bool PeerConnection::UpdateSignalingState(SignalingState state) {
         return false;
     }
     signaling_state_ = state;
-    signaling_state_callback_(signaling_state_);
+    if (signaling_state_callback_) {
+        signaling_state_callback_(signaling_state_);
+    }
     return true;
 }
 

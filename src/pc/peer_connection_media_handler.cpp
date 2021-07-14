@@ -1,19 +1,18 @@
 #include "pc/peer_connection.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
     
 std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Config& config) {
-    std::promise<std::shared_ptr<MediaTrack>> promise;
-    auto future = promise.get_future();
-    handle_queue_.Post([this, init_config = std::move(config), &promise](){
+    return handle_queue_.SyncPost<std::shared_ptr<MediaTrack>>([this, init_config = std::move(config)]() -> std::shared_ptr<MediaTrack> {
         try {
             auto description = MediaTrack::BuildDescription(std::move(init_config));
 
             std::shared_ptr<MediaTrack> media_track = nullptr;
 
-
             if (auto it = this->media_tracks_.find(description.mid()); it != this->media_tracks_.end()) {
-                if (media_track = it->second.lock(), media_track) {
+                if (media_track = it->second, media_track) {
                     media_track->UpdateDescription(std::move(description));
                 }
             }
@@ -23,14 +22,16 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Config& c
                 this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
             }
 
-            promise.set_value(media_track);
             // Renegotiation is needed for the new or updated track
             negotiation_needed_ = true;
-        }catch (...) {
-            promise.set_exception(std::current_exception());
+
+            return media_track;
+
+        }catch (const std::exception& exp) {
+            PLOG_ERROR << "Failed to add media track: " << exp.what();
+            return nullptr;
         }
     });
-    return future.get();
 }
 
 void PeerConnection::AddReciprocatedMediaTrack(sdp::Media description) {
@@ -43,9 +44,7 @@ void PeerConnection::AddReciprocatedMediaTrack(sdp::Media description) {
 
 // Data Channels
 std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Config& config) {
-    std::promise<std::shared_ptr<DataChannel>> promise;
-    auto future = promise.get_future();
-    handle_queue_.Post([this, init_config = std::move(config), &promise](){
+    return handle_queue_.SyncPost<std::shared_ptr<DataChannel>>([this, init_config = std::move(config)]() -> std::shared_ptr<DataChannel> {
         StreamId stream_id;
         try {
             if (init_config.stream_id) {
@@ -80,7 +79,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
             // TODO: To open channel if SCTP transport is created so far.
 
             // Renegotiation is needed if the curren local description does not have application
-            if (local_session_description_ || local_session_description_->HasApplication() == false) {
+            if (!local_session_description_ || local_session_description_->HasApplication() == false) {
                 this->negotiation_needed_ = true;
             }
 
@@ -88,12 +87,13 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
                 // TODO: To negotiate automatically
             }
 
-            promise.set_value(std::move(data_channel));
-        }catch (...) {
-            promise.set_exception(std::current_exception());
+            return data_channel;
+
+        }catch (const std::exception& exp) {
+            PLOG_ERROR << "Failed to add media track: " << exp.what();
+            return nullptr;
         }
     });
-    return future.get();
 }
 
 } // namespace naivertc
