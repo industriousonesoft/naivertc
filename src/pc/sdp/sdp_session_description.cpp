@@ -44,7 +44,7 @@ SessionDescription::SessionDescription(const std::string& sdp, Type type, Role r
                     role_ = Role::ACT_PASS;
                 }
             }else if (key == "fingerprint") {
-                if (utils::string::match_prefix(value, "sha-265 ")) {
+                if (utils::string::match_prefix(value, "sha-256 ")) {
                     std::string fingerprint{value.substr(8)};
                     utils::string::trim_begin(fingerprint);
                     set_fingerprint(fingerprint);
@@ -198,7 +198,7 @@ SessionDescription::operator std::string() const {
 // GenerateSDP
 std::string SessionDescription::GenerateSDP(std::string_view eol, bool application_only) const {
     std::ostringstream sdp;
-
+    #warning Be careful, there is no space after '=' and only has one space between two parts in a line.
     // Header
     // sdp版本号，一直为0,rfc4566规定
     sdp << "v=0" << eol;
@@ -210,7 +210,7 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     // 会话名，没有的话使用-代替
     sdp << "s=-" << eol;
     // 两个值分别是会话的起始时间和结束时间，这里都是0代表没有限制
-    sdp << "t= 0 0" << eol;
+    sdp << "t=0 0" << eol;
 
     // Bundle (RFC8843 Negotiating Media Multiplexing Using the Session Description Protocol)
     // https://tools.ietf.org/html/rfc8843
