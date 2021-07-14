@@ -86,7 +86,7 @@ void IceTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callb
     task_queue_.Post([this, packet, callback](){
         // A filter for valid packet and state
         auto state = this->state();
-        if (!packet || state != State::CONNECTED || state != State::COMPLETED) {
+        if (!packet || (state != State::CONNECTED && state != State::COMPLETED)) {
             if (callback) {
                 callback(false);
             }

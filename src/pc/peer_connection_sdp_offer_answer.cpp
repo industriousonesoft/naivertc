@@ -64,6 +64,7 @@ void PeerConnection::SetAnswer(const std::string sdp,
                                 SDPSetFailureCallback on_failure) {
     handle_queue_.Post([this, sdp = std::move(sdp), on_success, on_failure](){
         try {
+            PLOG_DEBUG << "remote sdp: \r\n" << sdp;
             auto remote_sdp = sdp::SessionDescription(sdp, sdp::Type::ANSWER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
@@ -141,7 +142,8 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
         // Two situation:
         // 1. We have remote offer, and now we need to create a answer
         // 2. We have local pranswer, and now we need to recreate a pr-answer
-        if (type != sdp::Type::ANSWER && type != sdp::Type::PRANSWER) {
+        if (type != sdp::Type::ANSWER && 
+            type != sdp::Type::PRANSWER) {
             throw std::logic_error("Unexpected local sdp type: " + sdp::TypeToString(type) + "for signling state: " + signaling_state_to_string(signaling_state_));
         }
         // Now we have both local and remote sdp. so the signaling state goes to stable.
@@ -193,7 +195,7 @@ void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
     }
     case SignalingState::HAVE_LOCAL_OFFER: {
         description.hintType(sdp::Type::ANSWER);
-        if (description.type() != sdp::Type::ANSWER ||
+        if (description.type() != sdp::Type::ANSWER &&
             description.type() != sdp::Type::PRANSWER) {
             throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(description.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
         }
@@ -211,7 +213,7 @@ void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
     // If we already have a remote pr-answer sdp, we try to replace it with new remote sdp.
     case SignalingState::HAVE_REMOTE_PRANSWER: {
         description.hintType(sdp::Type::ANSWER);
-        if (description.type() != sdp::Type::ANSWER ||
+        if (description.type() != sdp::Type::ANSWER &&
             description.type() != sdp::Type::PRANSWER) {
             throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(description.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
         }
