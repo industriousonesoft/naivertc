@@ -1,5 +1,5 @@
 // naivertc
-#include <common/logger.hpp>
+#include <base/init.hpp>
 
 // boost
 #include <boost/asio.hpp>
@@ -7,10 +7,13 @@
 
 #include "client.hpp"
 
+#include <iostream>
+
 int main(int argc, const char* argv[]) {
 
+    naivertc::Init();
     // Logger
-    naivertc::logging::InitLogger(naivertc::logging::Level::VERBOSE);
+    naivertc::InitLogger(naivertc::LoggingLevel::VERBOSE);
 
     boost::asio::io_context ioc;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
@@ -18,10 +21,10 @@ int main(int argc, const char* argv[]) {
     boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
     signals.async_wait([&](const boost::system::error_code&, int) {
         ioc.stop();
-        PLOG_DEBUG << "main ioc exit";
+        std::cout << "main ioc exit" << std::endl;
     });
 
-    PLOG_DEBUG << "main start.";
+    std::cout << "main start." << std::endl;
 
     std::shared_ptr<Client> client = Client::Create(ioc);
     client->Start();
@@ -29,7 +32,10 @@ int main(int argc, const char* argv[]) {
     ioc.run();
 
     client->Stop();
-    PLOG_DEBUG << "main exit.";
+
+    naivertc::Cleanup();
+
+    std::cout << "main exit." << std::endl;
 
     return 0;
 }

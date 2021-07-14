@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SOURCE_FILES
     src/main.cpp
     src/client.cpp
+    src/client_signaling_delegate.cpp
 
     include/client.hpp
     # src/websocket_client_sync_ssl.cpp

@@ -230,6 +230,7 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     // 这行代表本客户端在dtls协商过程中的角色，做客户端或服务端，或均可，参考rfc4145 rfc4572
     sdp << "a=setup:" << RoleToString(role_) << eol;
 
+    // Username fragment
     if (ice_ufrag_) {
         sdp << "a=ice-ufrag:" << *ice_ufrag_ << eol;
     }

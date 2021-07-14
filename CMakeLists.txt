@@ -9,9 +9,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# options
+# Using libnice instead of libjuice for more completed implementation of 
+# the IETF's Interactive Connectivity Establishment(ICE) standard to compatible with WebRTC
+option(USE_NICE "Use libnice instead of libjuice" ON)
 option(ENABLE_TESTS "Enable tests" ON)
 
-# macos
+# macOSx
 if(${CMAKE_SYSTEM_NAME} MATCHES "macOS" OR ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib_deps/macos/_install)
     # openssl
@@ -122,16 +126,24 @@ set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} CXX_
 # include paths
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
-# liked libraries
+# linked libraries
 # json
 add_subdirectory(deps/json EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json)
 # plog
 add_subdirectory(deps/plog EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} PUBLIC plog::plog)
+
 # libnice
-add_subdirectory(deps/libjuice EXCLUDE_FROM_ALL)
-target_link_libraries(${PROJECT_NAME} PUBLIC juice-static)
+if(USE_NICE)
+    add_subdirectory(deps/libnice EXCLUDE_FROM_ALL)
+    target_link_libraries(${PROJECT_NAME} PUBLIC LibNice::LibNice)
+ # libjuice
+else()
+    add_subdirectory(deps/libjuice EXCLUDE_FROM_ALL)
+    target_link_libraries(${PROJECT_NAME} PUBLIC LibJuice::LibJuiceStatic)
+endif()
+
 # sigslot
 add_subdirectory(deps/sigslot EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} PUBLIC sigslot)

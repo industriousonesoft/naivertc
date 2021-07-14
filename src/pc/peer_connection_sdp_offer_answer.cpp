@@ -64,7 +64,6 @@ void PeerConnection::SetAnswer(const std::string sdp,
                                 SDPSetFailureCallback on_failure) {
     handle_queue_.Post([this, sdp = std::move(sdp), on_success, on_failure](){
         try {
-            PLOG_DEBUG << "remote sdp: \r\n" << sdp;
             auto remote_sdp = sdp::SessionDescription(sdp, sdp::Type::ANSWER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
