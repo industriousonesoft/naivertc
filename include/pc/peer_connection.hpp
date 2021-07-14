@@ -38,7 +38,6 @@ public:
 
     // GatheringState
     enum class GatheringState: int {
-        NONE = -1,
         NEW = 0,
         GATHERING,
         COMPLETED
@@ -151,7 +150,7 @@ private:
     std::future<std::shared_ptr<Certificate>> certificate_;
 
     ConnectionState connection_state_ = ConnectionState::CLOSED;
-    GatheringState gathering_state_ = GatheringState::NONE;
+    GatheringState gathering_state_ = GatheringState::NEW;
     SignalingState signaling_state_ = SignalingState::STABLE;
 
     bool negotiation_needed_ = false;
