@@ -134,13 +134,9 @@ target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json)
 add_subdirectory(deps/plog EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} PUBLIC plog::plog)
 
-# libnice
-if(USE_NICE)
- # libjuice
-else()
-    add_subdirectory(deps/libjuice EXCLUDE_FROM_ALL)
-    target_link_libraries(${PROJECT_NAME} PUBLIC LibJuice::LibJuiceStatic)
-endif()
+# libjuice
+add_subdirectory(deps/libjuice EXCLUDE_FROM_ALL)
+target_link_libraries(${PROJECT_NAME} PUBLIC LibJuice::LibJuiceStatic)
 
 # sigslot
 add_subdirectory(deps/sigslot EXCLUDE_FROM_ALL)
