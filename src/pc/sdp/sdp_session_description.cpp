@@ -44,8 +44,8 @@ SessionDescription::SessionDescription(const std::string& sdp, Type type, Role r
                     role_ = Role::ACT_PASS;
                 }
             }else if (key == "fingerprint") {
-                if (utils::string::match_prefix(value, "sha-256 ")) {
-                    std::string fingerprint{value.substr(8)};
+                if (utils::string::match_prefix(value, "sha-256")) {
+                    std::string fingerprint{value.substr(7)};
                     utils::string::trim_begin(fingerprint);
                     set_fingerprint(fingerprint);
                 }else {
