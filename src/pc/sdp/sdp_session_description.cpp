@@ -206,7 +206,7 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     // username如何没有使用-代替，7017624586836067756是整个会话的编号，2代表会话版本，如果在会话
     // 过程中有改变编码之类的操作，重新生成sdp时,sess-id不变，sess-version加1
     // eg: o=- 7017624586836067756 2 IN IP4 127.0.0.1
-    sdp << "o=" << user_name_ << " " << session_id_ << "  0 IN IP4 127.0.0.1" << eol;
+    sdp << "o=" << user_name_ << " " << session_id_ << " 0 IN IP4 127.0.0.1" << eol;
     // 会话名，没有的话使用-代替
     sdp << "s=-" << eol;
     // 两个值分别是会话的起始时间和结束时间，这里都是0代表没有限制

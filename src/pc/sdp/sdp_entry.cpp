@@ -162,6 +162,38 @@ std::string Media::description() const {
     return desc.str();
 }
 
+std::string Media::GenerateSDPLines(std::string_view eol) const {
+    std::ostringstream sdp;
+    sdp << Entry::GenerateSDPLines(eol);
+    sdp << "a=rtcp-mux" << eol;
+
+    for (auto it = rtp_map_.begin(); it != rtp_map_.end(); ++it) {
+        auto &map = it->second;
+
+        // a=rtpmap
+        sdp << "a=rtpmap:" << map.pt << ' ' << map.format << "/" << map.clock_rate;
+        if (!map.codec_params.empty()) {
+            sdp << "/" << map.codec_params;
+        }
+        sdp << eol;
+
+        // a=rtcp-fb
+        for (const auto& val : map.rtcp_feedbacks) {
+            // TODO: Add transport-cc support
+            if (val != "transport-cc") {
+                sdp << "a=rtcp-fb" << map.pt << ' ' << val << eol;
+            }
+        }
+
+        // a=fmtp
+        for (const auto& val : map.fmt_profiles) {
+            sdp << "a=fmtp:" << map.pt << ' ' << val << eol;
+        }
+    }
+
+    return sdp.str();
+}
+
 Media Media::reciprocate() const {
     Media reciprocated(*this);
 

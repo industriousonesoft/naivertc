@@ -123,6 +123,9 @@ public:
     void AddRTPMap(const RTPMap& map);
 
 private:
+    virtual std::string GenerateSDPLines(std::string_view eol) const override;
+
+private:
     std::map<int, RTPMap> rtp_map_;
     std::vector<uint32_t> ssrcs_;
     std::map<uint32_t, std::string> cname_map_;
