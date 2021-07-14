@@ -23,6 +23,18 @@ public:
 
     bool is_in_current_queue() const;
 
+    template<typename T>
+    T SyncPost(std::function<T(void)> handler) const {
+        boost::unique_lock<boost::mutex> lock(mutex_);
+        T ret;
+        Post([this, handler = std::move(handler), &ret](){
+            ret = handler();
+            cond_.notify_one();
+        });
+        cond_.wait(lock);
+        return ret;
+    }
+
 public:
     static void PostInGlobalQueue(std::function<void()> handler);
     static void DispatchInGlobalQueue(std::function<void()> handler);
@@ -35,6 +47,9 @@ private:
     std::unique_ptr<boost::thread> ioc_thread_;
     boost::thread::id ioc_thread_id_;
     boost::asio::deadline_timer timer_;
+
+    mutable boost::mutex mutex_;
+    mutable boost::condition_variable cond_;
 
     static std::shared_ptr<TaskQueue> GlobalTaskQueue;
 };
