@@ -8,11 +8,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 
 # options
 # Using libnice instead of libjuice for more completed implementation of 
 # the IETF's Interactive Connectivity Establishment(ICE) standard to compatible with WebRTC
-option(USE_NICE "Use libnice instead of libjuice" OFF)
+option(USE_NICE "Use libnice instead of libjuice" ON)
 option(ENABLE_TESTS "Enable tests" ON)
 
 # macOSx
@@ -134,9 +135,19 @@ target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json)
 add_subdirectory(deps/plog EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} PUBLIC plog::plog)
 
-# libjuice
-add_subdirectory(deps/libjuice EXCLUDE_FROM_ALL)
-target_link_libraries(${PROJECT_NAME} PUBLIC LibJuice::LibJuiceStatic)
+if(USE_NICE)
+    # libnice
+    find_package(LibNice REQUIRED)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE USE_NICE=1)
+    target_link_libraries(${PROJECT_NAME} PUBLIC LibNice::LibNice)
+else()
+    # libjuice
+    add_subdirectory(deps/libjuice EXCLUDE_FROM_ALL)
+    target_compile_definitions(${PROJECT_NAME} PIRVATE USE_NCIE=0)
+    target_link_libraries(${PROJECT_NAME} PUBLIC LibJuice::LibJuiceStatic)
+endif()
+
+
 
 # sigslot
 add_subdirectory(deps/sigslot EXCLUDE_FROM_ALL)
