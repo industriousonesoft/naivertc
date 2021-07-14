@@ -66,24 +66,18 @@ bool Transport::is_stoped() const {
     if (task_queue_.is_in_current_queue()) {
         return is_stoped_;
     }
-    std::promise<bool> promise;
-    auto future = promise.get_future();
-    task_queue_.Post([this, &promise](){
-        promise.set_value(is_stoped_);
+    return task_queue_.SyncPost<bool>([this]() -> bool {
+        return is_stoped_;
     });
-    return future.get();
 }
 
 Transport::State Transport::state() const {
     if (task_queue_.is_in_current_queue()) {
         return state_;
     }
-    std::promise<State> promise;
-    auto future = promise.get_future();
-    task_queue_.Post([this, &promise](){
-        promise.set_value(state_);
+    return task_queue_.SyncPost<Transport::State>([this]() -> Transport::State {
+        return state_;
     });
-    return future.get();
 }
 
 void Transport::UpdateState(State state) {
@@ -101,14 +95,14 @@ void Transport::UpdateState(State state) {
 
 void Transport::HandleIncomingPacket(std::shared_ptr<Packet> packet) {
     if (!task_queue_.is_in_current_queue()) {
-        task_queue_.Post([this, packet](){
-            this->HandleIncomingPacket(packet);
+        task_queue_.Post([this, packet = std::move(packet)](){
+            this->HandleIncomingPacket(std::move(packet));
         });
         return;
     }
     try {
         if (this->packet_recv_callback_) {
-            this->packet_recv_callback_(packet);
+            this->packet_recv_callback_(std::move(packet));
         }
     } catch (std::exception& exp) {
         PLOG_WARNING << exp.what();
@@ -123,33 +117,40 @@ void Transport::OnPacketReceived(PacketReceivedCallback callback) {
 
 void Transport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
     if (!task_queue_.is_in_current_queue()) {
-        task_queue_.Post([this, packet, callback](){
-            this->Send(packet, callback);
+        task_queue_.Post([this, packet = std::move(packet), callback](){
+            this->Send(std::move(packet), callback);
         });
         return;
     }
-    Outgoing(packet, callback);
+    Outgoing(std::move(packet), callback);
 }
 
 void Transport::Incoming(std::shared_ptr<Packet> in_packet) {
     if (!task_queue_.is_in_current_queue()) {
-        task_queue_.Post([this, in_packet](){
-            this->Incoming(in_packet);
+        task_queue_.Post([this, in_packet = std::move(in_packet)](){
+            this->Incoming(std::move(in_packet));
         });
         return;
     }
-    HandleIncomingPacket(in_packet);
+    HandleIncomingPacket(std::move(in_packet));
 }
 
 void Transport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
     if (!task_queue_.is_in_current_queue()) {
-        task_queue_.Post([this, out_packet, callback](){
-            this->Outgoing(out_packet, callback);
+        task_queue_.Post([this, out_packet = std::move(out_packet), callback](){
+            this->Outgoing(std::move(out_packet), callback);
         });
         return;
     }
     if (lower_) {
-        lower_->Send(out_packet, callback);
+        try {
+            lower_->Send(std::move(out_packet), callback);
+        }catch (const std::exception& exp) {
+            PLOG_WARNING << exp.what();
+            if (callback) {
+                callback(false);
+            }
+        }
     }else if (callback) {
         callback(false);
     }

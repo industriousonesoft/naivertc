@@ -100,8 +100,8 @@ private:
     size_t bytes_sent_ = 0;
     size_t bytes_recv_ = 0;
 
-    std::mutex waiting_for_sending_mutex_;
-    std::condition_variable waiting_for_sending_condition_;
+    std::mutex write_mutex_;
+    std::condition_variable written_condition_;
     std::atomic<bool> has_sent_once_ = false;
 
     std::queue<std::shared_ptr<SctpPacket>> send_message_queue_;

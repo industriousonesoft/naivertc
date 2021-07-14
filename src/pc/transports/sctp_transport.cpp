@@ -130,12 +130,9 @@ void SctpTransport::Shutdown() {
 // Send
 bool SctpTransport::Flush() {
 	if (!task_queue_.is_in_current_queue()) {
-		std::promise<bool> promise;
-		auto future = promise.get_future();
-		task_queue_.Post([this, &promise](){
-			promise.set_value(this->Flush());
+		return task_queue_.SyncPost<bool>([this]() -> bool {
+			return this->Flush();
 		});
-		return future.get();
 	}
 	try {
 		TrySendQueue();
@@ -405,7 +402,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 				UpdateState(State::DISCONNECTED);
 			}
 			// SCTP 连接失败意味着不可能发送消息
-			waiting_for_sending_condition_.notify_all();
+			written_condition_.notify_all();
 		}
 		break;
 	}
@@ -550,16 +547,22 @@ void SctpTransport::OnSCTPRecvDataIsReady() {
 }
     
 int SctpTransport::OnSCTPSendDataIsReady(const void* data, size_t len, uint8_t tos, uint8_t set_df) {
-	std::promise<bool> promise;
-	auto future = promise.get_future();
+	std::unique_lock lock(write_mutex_);
+	bool isWritten = false;
 	auto packet = Packet::Create(static_cast<const char*>(data), len);
-	Outgoing(std::move(packet), [this, &promise](bool success){
-		promise.set_value(success);
+	Outgoing(std::move(packet), [this, &isWritten](bool success){
 		// Reset the sent flag and ready to handle the incoming message
-		this->has_sent_once_ = true;
-		this->waiting_for_sending_condition_.notify_all();
+		if (!this->has_sent_once_) {
+			this->has_sent_once_ = success;
+		}
+		isWritten = success;
+		this->written_condition_.notify_all();
 	});
-	return future.get() ? 0 : -1;
+	written_condition_.wait(lock, [isWritten]() {
+		// return false if the waiting should be continued.
+		return isWritten;
+	});
+	return isWritten ? 0 : -1;
 }
 
 // Override methods
@@ -568,8 +571,8 @@ void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 	// sent, which would result in the connection being aborted. Therefore, we need to wait for data
 	// to be sent on our side (i.e. the local INIT) before proceeding.
 	if (!has_sent_once_) {
-		std::unique_lock lock(waiting_for_sending_mutex_);
-		waiting_for_sending_condition_.wait(lock, [&]() {
+		std::unique_lock lock(write_mutex_);
+		written_condition_.wait(lock, [&]() {
 			// return false if the waiting should be continued.
 			return has_sent_once_.load();
 		});

@@ -30,16 +30,9 @@ void DtlsTransport::OnVerify(VerifyCallback callback) {
 }
 
 bool DtlsTransport::HandleVerify(const std::string& fingerprint) {
-    std::promise<bool> promise;
-    auto future = promise.get_future();
-    task_queue_.Post([this, &fingerprint, &promise](){
-        if (verify_callback_) {
-            promise.set_value(verify_callback_(fingerprint));
-        }else {
-            promise.set_value(false);
-        }
+    return task_queue_.SyncPost<bool>([this, &fingerprint]() -> bool {
+        return verify_callback_ != nullptr ? verify_callback_(fingerprint) : false;
     });
-    return future.get();
 }
 
 void DtlsTransport::Start(StartedCallback callback) { 

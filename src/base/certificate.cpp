@@ -154,12 +154,7 @@ std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, const s
 
 const std::string COMMON_NAME = "libnaivertc";
 std::future<std::shared_ptr<Certificate>> Certificate::MakeCertificate(CertificateType type) {
-    std::promise<std::shared_ptr<Certificate>> promise;
-    auto future = promise.get_future();
-    TaskQueue::PostInGlobalQueue([type, &promise](){
-        auto certificate = Certificate::Generate(type, COMMON_NAME);
-        promise.set_value(std::move(certificate));
-    });
+    auto future = std::async(std::launch::async, Certificate::Generate, type, COMMON_NAME);
     return future;
 }
 
