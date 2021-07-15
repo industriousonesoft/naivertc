@@ -1,3 +1,4 @@
+#if !USE_NICE
 #include "pc/transports/ice_transport.hpp"
 #include "common/utils.hpp"
 
@@ -8,6 +9,8 @@ namespace naivertc {
 const int kMaxTurnServersCount = 2;
 
 void IceTransport::InitJuice(const RtcConfiguration& config) {
+
+    PLOG_VERBOSE << "Initializing ICE transport (libjuice)";
 
     juice_log_level_t level;
     auto logger = plog::get();
@@ -39,7 +42,7 @@ void IceTransport::InitJuice(const RtcConfiguration& config) {
     juice_set_log_level(level);
 
     juice_config_t juice_config = {};
-    juice_config.cb_state_changed = IceTransport::OnJuiceStateChanged;
+    juice_config.cb_state_changed = IceTransport::OnStateChanged;
     juice_config.cb_candidate = IceTransport::OnJuiceCandidateGathered;
     juice_config.cb_gathering_done = IceTransport::OnJuiceGetheringDone;
     juice_config.cb_recv = IceTransport::OnJuiceDataReceived;
@@ -51,8 +54,8 @@ void IceTransport::InitJuice(const RtcConfiguration& config) {
 
     // Pick a stun server
     for (auto& server : ice_servers) {
-        if (!server.host_name().empty() && server.type() == IceServer::Type::STUN) {
-            juice_config.stun_server_host = server.host_name().c_str();
+        if (!server.hostname().empty() && server.type() == IceServer::Type::STUN) {
+            juice_config.stun_server_host = server.hostname().c_str();
             juice_config.stun_server_port = server.port() != 0 ? server.port() : 3478 /* STUN UDP Port */;
             break;
         }
@@ -64,8 +67,8 @@ void IceTransport::InitJuice(const RtcConfiguration& config) {
 
     int index = 0;
     for (auto& server : ice_servers) {
-        if (!server.host_name().empty() && server.type() == IceServer::Type::TURN) {
-            turn_servers[index].host = server.host_name().c_str();
+        if (!server.hostname().empty() && server.type() == IceServer::Type::TURN) {
+            turn_servers[index].host = server.hostname().c_str();
             turn_servers[index].username = server.username().c_str();
             turn_servers[index].password = server.password().c_str();
             turn_servers[index].port = server.port() != 0 ? server.port() : 3478 /* STUN UDP Port */;
@@ -94,21 +97,9 @@ void IceTransport::InitJuice(const RtcConfiguration& config) {
 
 }
 
-void IceTransport::OnJuiceStateChanged(State state) {
-    Transport::UpdateState(state);
-}
-
 void IceTransport::OnJuiceCandidateGathered(const char* sdp) {
     task_queue_.Post([this, sdp = std::move(sdp)](){
         this->SignalCandidateGathered(std::move(Candidate(sdp, this->curr_mid_)));
-    });
-}
-
-void IceTransport::OnJuiceGetheringStateChanged(GatheringState state) {
-    task_queue_.Post([this, state](){
-        if (this->gathering_state_.exchange(state) != state) {
-            this->SignalGatheringStateChanged(state);
-        }
     });
 }
 
@@ -165,7 +156,7 @@ void IceTransport::OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state
             break;
         case JUICE_STATE_GATHERING:
             // Gathering is not considerd as a connection state
-            ice_transport->OnJuiceGetheringStateChanged(GatheringState::GATHERING);
+            ice_transport->OnGetheringStateChanged(GatheringState::GATHERING);
             break;
         case JUICE_STATE_COMPLETED:
             ice_transport->OnJuiceStateChanged(State::COMPLETED);
@@ -183,7 +174,7 @@ void IceTransport::OnJuiceCandidateGathered(juice_agent_t* agent, const char* sd
 
 void IceTransport::OnJuiceGetheringDone(juice_agent_t* agent, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
-    ice_transport->OnJuiceGetheringStateChanged(GatheringState::COMPLETED);
+    ice_transport->OnGetheringStateChanged(GatheringState::COMPLETED);
 }
 
 void IceTransport::OnJuiceDataReceived(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
@@ -192,3 +183,5 @@ void IceTransport::OnJuiceDataReceived(juice_agent_t* agent, const char* data, s
 }
 
 }
+
+#endif // USE_NICE = 0

@@ -59,6 +59,12 @@ private:
     void InitNice(const RtcConfiguration& config);
 
     static void OnNiceLog(const gchar* log_domain, GLogLevelFlags log_level, const gchar* message, gpointer user_data);
+    static void OnNiceStateChanged(NiceAgent *agent, guint streamId, guint componentId, guint state, gpointer userData);
+    static void OnNiceCandidateGathered(NiceAgent *agent, NiceCandidate *candidate, gpointer userData);
+	static void OnNiceGetheringDone(NiceAgent *agent, guint streamId, gpointer userData);
+	static void OnNiceDataReceived(NiceAgent *agent, guint stream_id, guint component_id, guint len, gchar *buf, gpointer userData);
+	static gboolean OnNiceTimeout(gpointer userData);
+
 #else
     void InitJuice(const RtcConfiguration& config);
 

@@ -49,7 +49,6 @@ set(LIB_SOURCES
     src/pc/sdp/sdp_defines.cpp
     src/pc/transports/transport.cpp
     src/pc/transports/ice_transport.cpp
-    src/pc/transports/ice_transport_juice_delegate.cpp
     src/pc/transports/sctp_transport.cpp
     src/pc/transports/sctp_transport_usrsctp_delegate.cpp
     src/pc/transports/sctp_packet.cpp
@@ -72,6 +71,16 @@ set(LIB_SOURCES
     src/pc/media/media_track.cpp
     src/pc/media/media_track_sdp_builder.cpp
 )
+
+if(USE_NICE)
+    set(LIB_SOURCES ${LIB_SOURCES}
+        src/pc/transports/ice_transport_nice_delegate.cpp
+    )
+else()
+    set(LIB_SOURCES ${LIB_SOURCES}
+        src/pc/transports/ice_transport_juice_delegate.cpp
+    )
+endif()
 
 set(LIB_HEADERS
     include/base/defines.hpp
@@ -138,16 +147,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC plog::plog)
 if(USE_NICE)
     # libnice
     find_package(LibNice REQUIRED)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE USE_NICE=1)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_NICE=1)
     target_link_libraries(${PROJECT_NAME} PUBLIC LibNice::LibNice)
 else()
     # libjuice
     add_subdirectory(deps/libjuice EXCLUDE_FROM_ALL)
-    target_compile_definitions(${PROJECT_NAME} PIRVATE USE_NCIE=0)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_NICE=0)
     target_link_libraries(${PROJECT_NAME} PUBLIC LibJuice::LibJuiceStatic)
 endif()
-
-
 
 # sigslot
 add_subdirectory(deps/sigslot EXCLUDE_FROM_ALL)
