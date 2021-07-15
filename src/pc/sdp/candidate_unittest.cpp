@@ -10,38 +10,38 @@ namespace naivertc {
 namespace test {
 
 TEST(CandidateTest, CreateFromSDPLine) {
-    const std::string sdp = "a=candidate:1 1 UDP 9654321 212.223.223.223 12345 typ srflx raddr 10.216.33.9 rport 54321";
+    const std::string sdp = "a=candidate: 2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     naivertc::Candidate candidate(sdp);
 
-    EXPECT_EQ(candidate.foundation(), "1");
+    EXPECT_EQ(candidate.foundation(), "2550170968");
     EXPECT_EQ(candidate.component_id(), 1);
     EXPECT_EQ(candidate.transport_type(), Candidate::TransportType::UDP);
-    EXPECT_EQ(candidate.priority(), 9654321);
-    EXPECT_EQ(candidate.hostname(), "212.223.223.223");
-    EXPECT_EQ(candidate.service(), "12345");
-    EXPECT_EQ(candidate.type(), Candidate::Type::SERVER_REFLEXIVE);
+    EXPECT_EQ(candidate.priority(), 8265471);
+    EXPECT_EQ(candidate.hostname(), "45.76.53.21");
+    EXPECT_EQ(candidate.server_port(), "52823");
+    EXPECT_EQ(candidate.type(), Candidate::Type::RELAYED);
     EXPECT_EQ(candidate.isResolved(), false);
 
 }
 
 TEST(CandidateTest, BuildFromCandidateSDP) {
-    const std::string sdp = "candidate:1 1 UDP 9654321 212.223.223.223 12345 typ srflx raddr 10.216.33.9 rport 54321";
+    const std::string sdp = "candidate: 2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     naivertc::Candidate candidate(sdp);
 
-    EXPECT_EQ(candidate.foundation(), "1");
+    EXPECT_EQ(candidate.foundation(), "2550170968");
     EXPECT_EQ(candidate.component_id(), 1);
     EXPECT_EQ(candidate.transport_type(), Candidate::TransportType::UDP);
-    EXPECT_EQ(candidate.priority(), 9654321);
-    EXPECT_EQ(candidate.hostname(), "212.223.223.223");
-    EXPECT_EQ(candidate.service(), "12345");
-    EXPECT_EQ(candidate.type(), Candidate::Type::SERVER_REFLEXIVE);
+    EXPECT_EQ(candidate.priority(), 8265471);
+    EXPECT_EQ(candidate.hostname(), "45.76.53.21");
+    EXPECT_EQ(candidate.server_port(), "52823");
+    EXPECT_EQ(candidate.type(), Candidate::Type::RELAYED);
     EXPECT_EQ(candidate.isResolved(), false);
 }
 
 TEST(CandidateTest, ToString) {
-    const std::string sdp = "candidate:1 1 UDP 9654321 212.223.223.223 12345 typ srflx raddr 10.216.33.9 rport 54321";
+    const std::string sdp = "candidate: 2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     naivertc::Candidate candidate(sdp);
 
@@ -51,7 +51,7 @@ TEST(CandidateTest, ToString) {
 }
 
 TEST(CandidateTest, BuildSDPLine) {
-    const std::string sdp = "a=candidate:1 1 UDP 9654321 212.223.223.223 12345 typ srflx raddr 10.216.33.9 rport 54321";
+    const std::string sdp = "a=candidate: 2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     naivertc::Candidate candidate(sdp);
 
