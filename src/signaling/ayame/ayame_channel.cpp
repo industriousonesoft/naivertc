@@ -78,7 +78,9 @@ void AyameChannel::OnConnect(boost::system::error_code ec) {
     is_connecting_ = false;
     if (ec) {
         is_connected_ = false;
-        std::cout << __FUNCTION__ << " error: "<< ec.message() << std::endl;
+        if (auto ob = observer_.lock()) {
+            ob->OnClosed(ec);
+        }
         return;
     }
     is_connected_ = true;
