@@ -149,17 +149,16 @@ void IceTransport::SetRemoteDescription(const sdp::SessionDescription& remote_sd
         throw std::logic_error("Incompatible roles with remote description.");
     }
     curr_mid_ = remote_sdp.bundle_id();
+    int ret = -1;
 #if !USE_NICE
-    if (juice_set_remote_description(juice_agent_.get(), remote_sdp.GenerateSDP("\r\n", true /* sdp without audio or video media lines */).c_str())) {
-        throw std::runtime_error("Failed to parse ICE settings from remote SDP");
-    }
+    ret = juice_set_remote_description(juice_agent_.get(), remote_sdp.GenerateSDP("\r\n", true /* sdp without audio or video media lines */).c_str())
 #else
     trickle_timeout_ = 30s;
-
-    if (nice_agent_parse_remote_sdp(nice_agent_.get(), remote_sdp.GenerateSDP("\n" /* libnice expects "\n" as end of line */, true /* sdp without media tracks */).c_str())) {
+    ret = nice_agent_parse_remote_sdp(nice_agent_.get(), remote_sdp.GenerateSDP("\n" /* libnice expects "\n" as end of line */, true /* sdp without media tracks */).c_str());
+#endif
+    if (ret < 0) {
         throw std::runtime_error("Failed to parse ICE settings from remote SDP");
     }
-#endif
 }
 
 std::pair<std::optional<Candidate>, std::optional<Candidate>> IceTransport::GetSelectedCandidatePair() {
