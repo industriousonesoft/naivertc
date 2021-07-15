@@ -53,13 +53,26 @@ namespace random {} // namespace random
 // Network
 namespace network {
 
-std::optional<ResolveResult> Resolve(std::string hostname, std::string server_port, FamilyType family_type, ProtocolType protocol_type, ResolveMode resolve_mode) {
+std::optional<ResolveResult> UnspecfiedResolve(std::string hostname, std::string server_port, ProtocolType protocol_type, bool is_simple) {
+    return Resolve(std::move(hostname), std::move(server_port), FamilyType::UNSPEC, protocol_type, is_simple);
+}
+
+std::optional<ResolveResult> IPv4Resolve(std::string hostname, std::string server_port, ProtocolType protocol_type, bool is_simple) {
+    return Resolve(std::move(hostname), std::move(server_port), FamilyType::IP_V4, protocol_type, is_simple);
+}
+
+std::optional<ResolveResult> IPv6Resolve(std::string hostname, std::string server_port, ProtocolType protocol_type, bool is_simple) {
+    return Resolve(std::move(hostname), std::move(server_port), FamilyType::IP_V6, protocol_type, is_simple);
+}
+
+std::optional<ResolveResult> Resolve(std::string hostname, std::string server_port, FamilyType family_type, ProtocolType protocol_type, bool is_simple) {
     
     if (hostname.empty()) {
         throw std::invalid_argument("Hostname is not supposed to be empty");
     }
 
     struct addrinfo hints = {};
+    // Family
     if (family_type == FamilyType::IP_V4) {
         hints.ai_family = AF_INET;
     }else if (family_type == FamilyType::IP_V6) {
@@ -68,7 +81,7 @@ std::optional<ResolveResult> Resolve(std::string hostname, std::string server_po
         hints.ai_family = AF_UNSPEC;
     }
     
-    hints.ai_flags = AI_ADDRCONFIG;
+    // Protocol
     if (protocol_type == ProtocolType::UDP) {
         hints.ai_socktype = SOCK_DGRAM;
         hints.ai_protocol = IPPROTO_UDP;
@@ -77,7 +90,10 @@ std::optional<ResolveResult> Resolve(std::string hostname, std::string server_po
         hints.ai_protocol = IPPROTO_TCP;
     }
 
-    if (resolve_mode == ResolveMode::SIMPLE) {
+    hints.ai_flags = AI_ADDRCONFIG;
+
+    // Host representd as numeric
+    if (is_simple) {
         hints.ai_flags |= AI_NUMERICHOST;
     }
 

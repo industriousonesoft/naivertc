@@ -136,18 +136,16 @@ enum class ProtocolType {
     TCP
 };
 
-enum class ResolveMode {
-    SIMPLE,
-    LOOK_UP
-};
-
 struct RTC_CPP_EXPORT ResolveResult {
     std::string address;
     uint16_t port;
     bool is_ipv6;
 };
 
-RTC_CPP_EXPORT std::optional<ResolveResult> Resolve(std::string hostname, std::string server_port, FamilyType family_type, ProtocolType protocol_type, ResolveMode resolve_mode = ResolveMode::SIMPLE);
+RTC_CPP_EXPORT std::optional<ResolveResult> Resolve(std::string hostname, std::string server_port, FamilyType family_type, ProtocolType protocol_type, bool is_simple = true);
+RTC_CPP_EXPORT std::optional<ResolveResult> UnspecfiedResolve(std::string hostname, std::string server_port, ProtocolType protocol_type, bool is_simple = true);
+RTC_CPP_EXPORT std::optional<ResolveResult> IPv4Resolve(std::string hostname, std::string server_port, ProtocolType protocol_type, bool is_simple = true);
+RTC_CPP_EXPORT std::optional<ResolveResult> IPv6Resolve(std::string hostname, std::string server_port, ProtocolType protocol_type, bool is_simple = true);
 
 } // namespace network
 

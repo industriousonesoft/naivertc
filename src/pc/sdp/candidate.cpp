@@ -141,8 +141,7 @@ bool Candidate::Resolve(ResolveMode mode) {
         protocol_type = utils::network::ProtocolType::TCP;
     }
 
-    utils::network::ResolveMode resolve_mode = mode == ResolveMode::SIMPLE ? utils::network::ResolveMode::SIMPLE : utils::network::ResolveMode::LOOK_UP;
-    auto resolve_result = utils::network::Resolve(hostname_, server_port_, utils::network::FamilyType::UNSPEC, protocol_type, resolve_mode);
+    auto resolve_result = utils::network::UnspecfiedResolve(hostname_, server_port_, protocol_type, mode == ResolveMode::SIMPLE);
 
     if (resolve_result.has_value()) {
         family_ = resolve_result.value().is_ipv6 ? Family::IP_V6 : Family::IP_V4;
