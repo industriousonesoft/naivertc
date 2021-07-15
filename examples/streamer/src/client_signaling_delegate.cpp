@@ -22,15 +22,16 @@ void Client::OnConnected(bool is_initiator) {
             this->peer_conn_->CreateOffer([this](const sdp::SessionDescription& local_sdp){
                 std::cout << "Did create local offer sdp " << std::endl;
                 this->SendLocalSDP(std::move(local_sdp), true);
-            }, [](const std::exception& exp){
+            }, [this](const std::exception& exp){
                 std::cout << "Failed to create offer: " << exp.what() << std::endl;
+                this->peer_conn_->Close();
             });
         }
     }));
 }
 
 void Client::OnClosed(boost::system::error_code ec) {
-    std::cout << __FUNCTION__ << ": Signaling channel did close" <<std::endl;
+    std::cout << __FUNCTION__ << ": Signaling channel did close" << std::endl;
 }
 
 void Client::OnRemoteSDP(const std::string sdp, bool is_offer) {
@@ -41,17 +42,20 @@ void Client::OnRemoteSDP(const std::string sdp, bool is_offer) {
                 this->peer_conn_->CreateAnswer([this](const sdp::SessionDescription& local_sdp){
                     std::cout << "Did create local answer sdp" << std::endl;
                     this->SendLocalSDP(std::move(local_sdp), false);
-                }, [](const std::exception& exp){
+                }, [this](const std::exception& exp){
                     std::cout << "Failed to create answer: " << exp.what() << std::endl;
+                    this->peer_conn_->Close();
                 });
-            }, [](const std::exception& exp){
+            }, [this](const std::exception& exp){
                 std::cout << "Failed to set remote offer: " << exp.what() << std::endl;
+                this->peer_conn_->Close();
             });
         }else {
             this->peer_conn_->SetAnswer(std::move(remote_sdp), [](){
                 std::cout << "Did set remote answer " << std::endl;
-            }, [](const std::exception& exp){
+            }, [this](const std::exception& exp){
                 std::cout << "Failed to set remote answer: " << exp.what() << std::endl;
+                this->peer_conn_->Close();
             });
         }
     }));
