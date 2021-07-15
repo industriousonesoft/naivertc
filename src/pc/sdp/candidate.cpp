@@ -7,13 +7,6 @@
 #include <array>
 #include <sstream>
 
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-
-const size_t MAX_NUMERICNODE_LEN = 48; // Max IPv6 string representation length
-const size_t MAX_NUMERICSERV_LEN = 6;  // Max port string representation length
-
 namespace naivertc {
 
 Candidate::Candidate() :
@@ -22,7 +15,7 @@ Candidate::Candidate() :
     priority_(0),
     transport_type_(TransportType::UNKNOWN),
     hostname_("0.0.0.0"),
-    service_("9"),
+    server_port_("9"),
     type_(Type::UNKNOWN),
     family_(Family::UNRESOVLED) {}
 
@@ -68,8 +61,8 @@ std::string Candidate::hostname() const {
     return hostname_;
 }
 
-std::string Candidate::service() const {
-    return service_;
+std::string Candidate::server_port() const {
+    return server_port_;
 }
 
 std::string Candidate::mid() const {
@@ -95,7 +88,7 @@ Candidate::operator std::string() const {
     if (isResolved()) {
         oss << address_ << sp << port_;
     }else {
-        oss << hostname_ << sp << service_;
+        oss << hostname_ << sp << server_port_;
     }
 
     oss << sp << "typ" << sp << type_str_;
@@ -125,7 +118,7 @@ std::optional<uint16_t> Candidate::port() const {
 
 bool Candidate::operator==(const Candidate& other) const {
     return (foundation_ == other.foundation_ && 
-            service_ == other.service_ &&
+            server_port_ == other.server_port_ &&
             hostname_ == other.hostname_
             );
 }
@@ -139,46 +132,26 @@ bool Candidate::operator!=(const Candidate& other) const {
 bool Candidate::Resolve(ResolveMode mode) {
     PLOG_VERBOSE << "Resolving candidate (mode="
                  << (mode == ResolveMode::SIMPLE ? "simple" : "lookup") 
-                 << "): " << hostname_ << ":" << service_;
+                 << "): " << hostname_ << ":" << server_port_;
 
-    struct addrinfo hints = {};
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_flags = AI_ADDRCONFIG;
+    utils::network::ProtocolType protocol_type = utils::network::ProtocolType::UNKNOWN;
     if (transport_type_ == TransportType::UDP) {
-        hints.ai_socktype = SOCK_DGRAM;
-        hints.ai_protocol = IPPROTO_UDP;
+        protocol_type = utils::network::ProtocolType::UDP;
     }else if (transport_type_ != TransportType::UNKNOWN) {
-        hints.ai_socktype = SOCK_STREAM;
-        hints.ai_protocol = IPPROTO_TCP;
+        protocol_type = utils::network::ProtocolType::TCP;
     }
 
-    if (mode == ResolveMode::SIMPLE) {
-        hints.ai_flags |= AI_NUMERICHOST;
-    }
+    utils::network::ResolveMode resolve_mode = mode == ResolveMode::SIMPLE ? utils::network::ResolveMode::SIMPLE : utils::network::ResolveMode::LOOK_UP;
+    auto resolve_result = utils::network::Resolve(hostname_, server_port_, utils::network::FamilyType::UNSPEC, protocol_type, resolve_mode);
 
-    struct addrinfo *result = nullptr;
-    if (getaddrinfo(hostname_.c_str(), service_.c_str(), &hints, &result) == 0) {
-        for (auto p = result; p; p = p ->ai_next) {
-            char nodebuffer[MAX_NUMERICNODE_LEN];
-            char servbuffer[MAX_NUMERICSERV_LEN];
-            if (getnameinfo(p->ai_addr, socklen_t(p->ai_addrlen), nodebuffer,
-				                MAX_NUMERICNODE_LEN, servbuffer, MAX_NUMERICSERV_LEN,
-				                NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
-                try {
-                    port_ = uint16_t(std::stoul(servbuffer));
-                } catch (...) {
-                    return false;
-                }
-                address_ = nodebuffer;
-                family_ = p->ai_family == AF_INET6 ? Family::IP_V6 : Family::IP_V4;
-                PLOG_VERBOSE << "Resolved candidate public ip: " << address_ << ":" << port_;
-                break;
-            }
-        }
-        freeaddrinfo(result);
+    if (resolve_result.has_value()) {
+        family_ = resolve_result.value().is_ipv6 ? Family::IP_V6 : Family::IP_V4;
+        address_ = std::move(resolve_result.value().address);
+        port_ = resolve_result.value().port;
+        return true;
+    }else {
+        return false;
     }
-
-    return family_ != Family::UNRESOVLED;
 }
 
 // Private Methods
@@ -215,7 +188,7 @@ void Candidate::Parse(std::string candidate) {
     // transport yype = UDP 
     // priority = 9654321
     // host name（公网ip或域名）= 212.223.223.223
-    // service (公网端口) = 12345
+    // server port (公网端口) = 12345
     // typ = indicate the next one is candidate type 
     // candidate type = srflx
     // base host = 10.216.33.9
@@ -223,7 +196,7 @@ void Candidate::Parse(std::string candidate) {
     std::string type_indicator;
     // 使用istringstream对格式化的字符串（以空格隔开）进行重定向
     if (!(iss >> foundation_ >> component_id_ >> transport_type_str_ >> priority_ 
-        >> hostname_ >> service_ >> type_indicator >> type_str_) && type_indicator == "typ") {
+        >> hostname_ >> server_port_ >> type_indicator >> type_str_) && type_indicator == "typ") {
         throw std::invalid_argument("Invalid candidate format");
     }
 

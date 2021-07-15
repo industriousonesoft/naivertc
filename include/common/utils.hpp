@@ -1,6 +1,8 @@
 #ifndef _COMMON_STR_UTILS_H_
 #define _COMMON_STR_UTILS_H_
 
+#include "base/defines.hpp"
+
 #include <string>
 #include <vector>
 #include <functional>
@@ -9,7 +11,8 @@
 #include <chrono>
 #include <type_traits>
 #include <limits>
-
+#include <optional>
+#include <utility>
 
 namespace naivertc {
 namespace utils {
@@ -32,11 +35,12 @@ struct overload : overloadInt{
 };
 */
 // overloaded helper
-template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts> RTC_CPP_EXPORT struct overloaded : Ts... { using Ts::operator()...; };
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 // weak_bind
-template <typename F, typename T, typename... Args> auto weak_bind(F&& f, T* t, Args&& ..._args) {
+template <typename F, typename T, typename... Args> 
+RTC_CPP_EXPORT auto weak_bind(F&& f, T* t, Args&& ..._args) {
     return [bound = std::bind(f, t, _args...), weak_this = t->weak_from_this()](auto &&...args) {
         if (auto shared_this = weak_this.lock()) {
             return bound(args...);
@@ -54,7 +58,7 @@ template<
     // 只有当第一个模板参数: std::is_integral<T>::value = true 时，则将类型T启用为成员类型enable_if :: type，未定义enable_if :: type，产生编译错误
     typename = typename std::enable_if<std::is_integral<T>::value, T>::type
 >
-uint16_t to_uint16(T i) {
+RTC_CPP_EXPORT uint16_t to_uint16(T i) {
     if (i >= 0 && static_cast<typename std::make_unsigned<T>::type>(i) <= std::numeric_limits<uint16_t>::max())
 		return static_cast<uint16_t>(i);
 	else
@@ -65,7 +69,7 @@ template<
     typename T,
     typename = typename std::enable_if<std::is_integral<T>::value, T>::type
 >
-uint32_t to_uint32(T i) {
+RTC_CPP_EXPORT uint32_t to_uint32(T i) {
     if (i >=0 && static_cast<typename std::make_unsigned<T>::type>(i) <= std::numeric_limits<uint32_t>::max()) {
         return static_cast<uint32_t>(i);
     }else {
@@ -78,12 +82,13 @@ uint32_t to_uint32(T i) {
 // string
 namespace string {
 
-bool match_prefix(const std::string_view str, const std::string_view prefix);
-void trim_begin(std::string &str);
-void trim_end(std::string &str);
-std::pair<std::string_view, std::string_view> parse_pair(std::string_view attr);
+RTC_CPP_EXPORT bool match_prefix(const std::string_view str, const std::string_view prefix);
+RTC_CPP_EXPORT void trim_begin(std::string &str);
+RTC_CPP_EXPORT void trim_end(std::string &str);
+RTC_CPP_EXPORT std::pair<std::string_view, std::string_view> parse_pair(std::string_view attr);
 
-template<typename T> T to_integer(std::string_view s) {
+template<typename T> 
+RTC_CPP_EXPORT T to_integer(std::string_view s) {
       const std::string str(s);
     try {
         return std::is_signed<T>::value ? T(std::stol(str)) : T(std::stoul(str));
@@ -101,7 +106,7 @@ template <
     typename T, 
     typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type
 >
-T generate_random() {
+RTC_CPP_EXPORT T generate_random() {
     auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
     std::default_random_engine generator(seed);
     std::uniform_int_distribution<T> uniform;
@@ -109,12 +114,42 @@ T generate_random() {
 };
 
 template<typename T> 
-void shuffle(std::vector<T> list){
+RTC_CPP_EXPORT void shuffle(std::vector<T> list){
     auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
     std::shuffle(list.begin(), list.end(), std::default_random_engine(seed));
 };
 
-} 
+} // namspace random
+
+// network
+namespace network {
+
+enum class FamilyType: int {
+    UNSPEC = 0,
+    IP_V4,
+    IP_V6
+};
+
+enum class ProtocolType {
+    UNKNOWN,
+    UDP,
+    TCP
+};
+
+enum class ResolveMode {
+    SIMPLE,
+    LOOK_UP
+};
+
+struct RTC_CPP_EXPORT ResolveResult {
+    std::string address;
+    uint16_t port;
+    bool is_ipv6;
+};
+
+RTC_CPP_EXPORT std::optional<ResolveResult> Resolve(std::string hostname, std::string server_port, FamilyType family_type, ProtocolType protocol_type, ResolveMode resolve_mode = ResolveMode::SIMPLE);
+
+} // namespace network
 
 } // namespace utils
 } // namespace naivertc
