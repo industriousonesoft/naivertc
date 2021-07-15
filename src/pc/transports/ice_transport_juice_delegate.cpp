@@ -42,7 +42,7 @@ void IceTransport::InitJuice(const RtcConfiguration& config) {
     juice_set_log_level(level);
 
     juice_config_t juice_config = {};
-    juice_config.cb_state_changed = IceTransport::OnStateChanged;
+    juice_config.cb_state_changed = IceTransport::OnJuiceStateChanged;
     juice_config.cb_candidate = IceTransport::OnJuiceCandidateGathered;
     juice_config.cb_gathering_done = IceTransport::OnJuiceGetheringDone;
     juice_config.cb_recv = IceTransport::OnJuiceDataReceived;
@@ -97,24 +97,6 @@ void IceTransport::InitJuice(const RtcConfiguration& config) {
 
 }
 
-void IceTransport::OnJuiceCandidateGathered(const char* sdp) {
-    task_queue_.Post([this, sdp = std::move(sdp)](){
-        this->SignalCandidateGathered(std::move(Candidate(sdp, this->curr_mid_)));
-    });
-}
-
-void IceTransport::OnJuiceDataReceived(const char* data, size_t size) {
-    task_queue_.Post([this, data = std::move(data), size](){
-        try {
-            PLOG_VERBOSE << "Incoming size: " << size;
-            auto packet = Packet::Create(data, size);
-            HandleIncomingPacket(packet);
-        } catch(const std::exception &e) {
-            PLOG_WARNING << e.what();
-        }
-    });
-}
-
 // Juice callback methods
 void IceTransport::OnJuiceLog(juice_log_level_t level, const char* message) {
     plog::Severity severity;
@@ -143,23 +125,22 @@ void IceTransport::OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state
     try {
         switch (state) {
         case JUICE_STATE_DISCONNECTED:
-            ice_transport->OnJuiceStateChanged(State::DISCONNECTED);
+            ice_transport->OnStateChanged(State::DISCONNECTED);
             break;
         case JUICE_STATE_CONNECTING:
-            ice_transport->OnJuiceStateChanged(State::CONNECTING);
+            ice_transport->OnStateChanged(State::CONNECTING);
             break;
         case JUICE_STATE_CONNECTED:
-            ice_transport->OnJuiceStateChanged(State::CONNECTED);
+            ice_transport->OnStateChanged(State::CONNECTED);
             break;
         case JUICE_STATE_FAILED:
-            ice_transport->OnJuiceStateChanged(State::FAILED);
+            ice_transport->OnStateChanged(State::FAILED);
             break;
         case JUICE_STATE_GATHERING:
             // Gathering is not considerd as a connection state
-            ice_transport->OnGetheringStateChanged(GatheringState::GATHERING);
             break;
         case JUICE_STATE_COMPLETED:
-            ice_transport->OnJuiceStateChanged(State::COMPLETED);
+            ice_transport->OnStateChanged(State::COMPLETED);
             break;
         }
     } catch (const std::exception &e) {
@@ -169,7 +150,7 @@ void IceTransport::OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state
 
 void IceTransport::OnJuiceCandidateGathered(juice_agent_t* agent, const char* sdp, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
-    ice_transport->OnJuiceCandidateGathered(sdp);
+    ice_transport->OnCandidateGathered(std::move(sdp));
 }
 
 void IceTransport::OnJuiceGetheringDone(juice_agent_t* agent, void* user_ptr) {
@@ -179,7 +160,7 @@ void IceTransport::OnJuiceGetheringDone(juice_agent_t* agent, void* user_ptr) {
 
 void IceTransport::OnJuiceDataReceived(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
-    ice_transport->OnJuiceDataReceived(data, size);
+    ice_transport->OnDataReceived(data, size);
 }
 
 }

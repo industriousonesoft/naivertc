@@ -239,6 +239,11 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
         sdp << "a=ice-pwd:" << *ice_pwd_ << eol;
     }
 
+    // Offer and Answer can contain any set of candidates, A trickle ICE session (including
+    // the "trickle" token for the "a=ice-options" attribute) MAY contain no candidates at all
+    // See https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-trickle-ice-02#section-5.1
+    sdp << "a=ice-options:trickle" << eol;
+
     if (fingerprint_) {
         sdp << "a=fingerprint:sha-256 " << *fingerprint_ << eol;
     }

@@ -121,7 +121,7 @@ void IceTransport::InitNice(const RtcConfiguration& config) {
                 break;
             }
 
-            nice_agent_set_relay_info(nice_agent_.get(), stream_id_, 1, resolve_result.value().address.c_str(), resolve_result.value().port, ice_server.username().c_str(), ice_server.password().c_str(), nice_relay_type);
+            nice_agent_set_relay_info(nice_agent_.get(), stream_id_, component_id_, resolve_result.value().address.c_str(), resolve_result.value().port, ice_server.username().c_str(), ice_server.password().c_str(), nice_relay_type);
         }
     }
 
@@ -130,33 +130,119 @@ void IceTransport::InitNice(const RtcConfiguration& config) {
     g_signal_connect(G_OBJECT(nice_agent_.get()), "candidate-gathering-done", G_CALLBACK(OnNiceGetheringDone), this);
 
     nice_agent_set_stream_name(nice_agent_.get(), stream_id_, "application");
-    nice_agent_set_port_range(nice_agent_.get(), stream_id_, 1, config.port_range_begin, config.port_range_end);
+    nice_agent_set_port_range(nice_agent_.get(), stream_id_, component_id_, config.port_range_begin, config.port_range_end);
 
-    nice_agent_attach_recv(nice_agent_.get(), stream_id_, 1, g_main_loop_get_context(main_loop_.get()), OnNiceDataReceived, this);
+    nice_agent_attach_recv(nice_agent_.get(), stream_id_, component_id_, g_main_loop_get_context(main_loop_.get()), OnNiceDataReceived, this);
 
 }
 
+std::string IceTransport::NiceAddressToString(const NiceAddress& nice_addr) const {
+    char buffer[NICE_ADDRESS_STRING_LEN];
+    nice_address_to_string(&nice_addr, buffer);
+    unsigned int port = nice_address_get_port(&nice_addr);
+    return std::string(buffer) + ":" + std::to_string(port);
+}
+
+void IceTransport::ProcessNiceTimeout() {
+    task_queue_.Post([this](){
+        PLOG_WARNING << "ICE timeout";
+        timeout_id_ = 0;
+        OnStateChanged(State::FAILED);
+    });
+}
+
+void IceTransport::ProcessNiceState(guint state) {
+    if (state == NICE_COMPONENT_STATE_FAILED && trickle_timeout_.count() > 0) {
+        if (timeout_id_)
+            g_source_remove(timeout_id_);
+        timeout_id_ = g_timeout_add(trickle_timeout_.count() /* ms */, OnNiceTimeout, this);
+        return;
+    }
+
+    if (state == NICE_COMPONENT_STATE_CONNECTED && timeout_id_) {
+        g_source_remove(timeout_id_);
+        timeout_id_ = 0;
+    }
+
+    switch (state) {
+    case NICE_COMPONENT_STATE_DISCONNECTED:
+        OnStateChanged(State::DISCONNECTED);
+        break;
+    case NICE_COMPONENT_STATE_CONNECTING:
+        OnStateChanged(State::CONNECTING);
+        break;
+    case NICE_COMPONENT_STATE_CONNECTED:
+        OnStateChanged(State::CONNECTED);
+        break;
+    case NICE_COMPONENT_STATE_READY:
+        OnStateChanged(State::COMPLETED);
+        break;
+    case NICE_COMPONENT_STATE_FAILED:
+        OnStateChanged(State::FAILED);
+        break;
+    };
+}
+
+// libnice callbacks
 void IceTransport::OnNiceLog(const gchar* log_domain, GLogLevelFlags log_level, const gchar* message, gpointer user_data) {
+    plog::Severity severity;
+	unsigned int flags = log_level & G_LOG_LEVEL_MASK;
+	if (flags & G_LOG_LEVEL_ERROR)
+		severity = plog::fatal;
+	else if (flags & G_LOG_LEVEL_CRITICAL)
+		severity = plog::error;
+	else if (flags & G_LOG_LEVEL_WARNING)
+		severity = plog::warning;
+	else if (flags & G_LOG_LEVEL_MESSAGE)
+		severity = plog::info;
+	else if (flags & G_LOG_LEVEL_INFO)
+		severity = plog::info;
+	else
+		severity = plog::verbose; // libnice debug as verbose
 
+	PLOG(severity) << "nice: " << message;
 }
 
-void IceTransport::OnNiceStateChanged(NiceAgent *agent, guint streamId, guint componentId, guint state, gpointer userData) {
-
+void IceTransport::OnNiceStateChanged(NiceAgent *agent, guint stream_id, guint component_id, guint state, gpointer user_data) {
+    auto ice_transport = static_cast<IceTransport*>(user_data);
+    try {
+        ice_transport->ProcessNiceState(state);
+    }catch (const std::exception& exp) {
+        PLOG_WARNING << exp.what();
+    }
 }
 
-void IceTransport::OnNiceCandidateGathered(NiceAgent *agent, NiceCandidate *candidate, gpointer userData) {
-
+void IceTransport::OnNiceCandidateGathered(NiceAgent *agent, NiceCandidate *candidate, gpointer user_data) {
+    auto ice_transport = static_cast<IceTransport*>(user_data);
+    try {
+        gchar* sdp = nice_agent_generate_local_candidate_sdp(agent, candidate);
+        ice_transport->OnCandidateGathered(std::move(sdp));
+    }catch (const std::exception& exp) {
+        PLOG_WARNING << exp.what();
+    }
 }
 
-void IceTransport::OnNiceGetheringDone(NiceAgent *agent, guint streamId, gpointer userData) {
-
+void IceTransport::OnNiceGetheringDone(NiceAgent *agent, guint stream_id, gpointer user_data) {
+    auto ice_transport = static_cast<IceTransport*>(user_data);
+    ice_transport->OnGetheringStateChanged(GatheringState::COMPLETED);
 }
 
-void IceTransport::OnNiceDataReceived(NiceAgent *agent, guint stream_id, guint component_id, guint len, gchar *buf, gpointer userData) {
-
+void IceTransport::OnNiceDataReceived(NiceAgent *agent, guint stream_id, guint component_id, guint size, gchar *data, gpointer user_data) {
+    auto ice_transport = static_cast<IceTransport*>(user_data);
+    try {
+        ice_transport->OnDataReceived(std::move(data), size);
+    }catch (const std::exception& exp) {
+        PLOG_WARNING << exp.what();
+    }
 }
 
-gboolean IceTransport::OnNiceTimeout(gpointer userData) {
+gboolean IceTransport::OnNiceTimeout(gpointer user_data) {
+    auto ice_transport = static_cast<IceTransport*>(user_data);
+    try {
+        ice_transport->ProcessNiceTimeout();
+    }catch (const std::exception& exp) {
+        PLOG_WARNING << exp.what();
+    }
     return false;
 }
     
