@@ -1,4 +1,4 @@
-#include "rtc/sdp/sdp_entry.hpp"
+#include "rtc/sdp/sdp_media_entry.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
 #include "common/utils.hpp"
 
@@ -9,8 +9,7 @@
 namespace naivertc {
 namespace sdp {
 
-// Entry
-Entry::Entry(const std::string& mline, std::string mid, Direction direction) 
+MediaEntry::MediaEntry(const std::string& mline, std::string mid, Direction direction) 
     : mid_(std::move(mid)), direction_(direction) {
     unsigned int port;
     std::istringstream ss(mline);
@@ -18,7 +17,7 @@ Entry::Entry(const std::string& mline, std::string mid, Direction direction)
     type_ = type_string_to_type(type_string_);
 }
 
-Entry::Type Entry::type_string_to_type(std::string type_string) const {
+MediaEntry::Type MediaEntry::type_string_to_type(std::string type_string) const {
     if (type_string == "application" || type_string == "APPLICATION") {
         return Type::APPLICATION;
     }else if (type_string == "audio" || type_string == "AUDIO") {
@@ -30,11 +29,11 @@ Entry::Type Entry::type_string_to_type(std::string type_string) const {
     }
 }
 
-void Entry::set_direction(Direction direction) {
+void MediaEntry::set_direction(Direction direction) {
     direction_ = direction;
 }
 
-std::string Entry::GenerateSDP(std::string_view eol, std::string_view addr, std::string_view port) const {
+std::string MediaEntry::GenerateSDP(std::string_view eol, std::string_view addr, std::string_view port) const {
     std::ostringstream sdp;
     std::string sp = " ";
     sdp << "m=" << type_string() << sp << port << sp << description() << eol;
@@ -43,7 +42,7 @@ std::string Entry::GenerateSDP(std::string_view eol, std::string_view addr, std:
     // addrtype: address type, eg: IPv4, IPv6
     // connection-address
     sdp << "c=IN" << sp << "IP4" << sp <<  addr << eol;
-    if (type_ != sdp::Entry::Type::APPLICATION) {
+    if (type_ != Type::APPLICATION) {
         sdp << "a=rtcp:" << port << sp << "IN" << sp << "IP4" << sp << addr;
     }
     sdp << GenerateSDPLines(eol);
@@ -51,7 +50,7 @@ std::string Entry::GenerateSDP(std::string_view eol, std::string_view addr, std:
     return sdp.str();
 }
 
-std::string Entry::GenerateSDPLines(std::string_view eol) const {
+std::string MediaEntry::GenerateSDPLines(std::string_view eol) const {
     std::ostringstream sdp;
     // 与属性a=group:BUNDLE配合使用，表示多个media使用同一个端口
     // 'bundle-only' which can be used to request that specified meida
@@ -90,7 +89,8 @@ std::string Entry::GenerateSDPLines(std::string_view eol) const {
     return sdp.str();
 }
 
-void Entry::ParseSDPLine(std::string_view line) {
+void MediaEntry::ParseSDPLine(std::string_view line) {
+
     if (utils::string::match_prefix(line, "a=")) {
         std::string_view attr = line.substr(2);
         auto [key, value] = utils::string::parse_pair(attr);
@@ -133,10 +133,13 @@ void Entry::ParseSDPLine(std::string_view line) {
         }else {
             attributes_.emplace_back(std::move(attr));
         }
+    // Connection
+    }else if (utils::string::match_prefix(line, "c=")) {
+        // Ignore
     }
 }  
 
-void Entry::set_fingerprint(std::string fingerprint) {
+void MediaEntry::set_fingerprint(std::string fingerprint) {
 
     if (!IsSHA256Fingerprint(fingerprint)) {
         throw std::invalid_argument("Invalid SHA265 fingerprint: " + fingerprint);

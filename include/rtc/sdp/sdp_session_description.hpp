@@ -4,8 +4,9 @@
 #include "base/defines.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/sdp/sdp_entry.hpp"
-#include "rtc/sdp/sdp_entry_application.hpp"
-#include "rtc/sdp/sdp_entry_media.hpp"
+#include "rtc/sdp/sdp_media_entry_application.hpp"
+#include "rtc/sdp/sdp_media_entry_audio.hpp"
+#include "rtc/sdp/sdp_media_entry_video.hpp"
 
 #include <string>
 #include <variant>
@@ -51,7 +52,7 @@ public:
     Application* application();
 
 private:
-    std::shared_ptr<Entry> CreateEntry(std::string mline, std::string mid, Direction direction);
+    std::shared_ptr<MediaEntry> CreateMediaEntry(std::string mline, std::string mid, Direction direction);
 
     void Parse(std::string sdp);
 
@@ -69,8 +70,8 @@ private:
     // DTLS attribute
     std::optional<std::string> fingerprint_ = std::nullopt;
 
-    // Entries
-    std::vector<std::shared_ptr<Entry>> entries_;
+    // Media Entries
+    std::vector<std::shared_ptr<MediaEntry>> entries_;
 
 };
 

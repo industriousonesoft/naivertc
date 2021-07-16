@@ -1,12 +1,12 @@
-#ifndef _RTC_SDP_ENTRY_APPLICATION_H_
-#define _RTC_SDP_ENTRY_APPLICATION_H_
+#ifndef _RTC_SDP_MEDIA_ENTRY_APPLICATION_H_
+#define _RTC_SDP_MEDIA_ENTRY_APPLICATION_H_
 
-#include "rtc/sdp/sdp_entry.hpp"
+#include "rtc/sdp/sdp_media_entry.hpp"
 
 namespace naivertc {
 namespace sdp {
 
-struct RTC_CPP_EXPORT Application : public Entry {
+struct RTC_CPP_EXPORT Application : public MediaEntry {
 public:
     Application(std::string mid);
     virtual ~Application() = default;

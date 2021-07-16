@@ -47,11 +47,12 @@ set(LIB_SOURCES
     src/rtc/sdp/sdp_utils.cpp
     src/rtc/sdp/candidate.cpp
     src/rtc/sdp/sdp_session_description.cpp
-    src/rtc/sdp/sdp_entry.cpp
-    src/rtc/sdp/sdp_entry_application.cpp
-    src/rtc/sdp/sdp_entry_media.cpp
-    src/rtc/sdp/sdp_entry_media_audio.cpp
-    src/rtc/sdp/sdp_entry_media_video.cpp
+    src/rtc/sdp/sdp_media_entry.cpp
+    src/rtc/sdp/sdp_session_entry.cpp
+    src/rtc/sdp/sdp_media_entry_application.cpp
+    src/rtc/sdp/sdp_media_entry_media.cpp
+    src/rtc/sdp/sdp_media_entry_audio.cpp
+    src/rtc/sdp/sdp_media_entry_video.cpp
     src/rtc/transports/transport.cpp
     src/rtc/transports/ice_transport.cpp
     src/rtc/transports/sctp_transport.cpp
@@ -111,10 +112,12 @@ set(LIB_HEADERS
     include/rtc/sdp/candidate.hpp
     include/rtc/sdp/sdp_session_description.hpp
     include/rtc/sdp/sdp_entry.hpp
-    include/rtc/sdp/sdp_entry_application.hpp
-    include/rtc/sdp/sdp_entry_media.hpp
-    include/rtc/sdp/sdp_entry_media_audio.hpp
-    include/rtc/sdp/sdp_entry_media_video.hpp
+    include/rtc/sdp/sdp_media_entry.hpp
+    include/rtc/sdp/sdp_session_entry.hpp
+    include/rtc/sdp/sdp_media_entry_application.hpp
+    include/rtc/sdp/sdp_media_entry_media.hpp
+    include/rtc/sdp/sdp_media_entry_audio.hpp
+    include/rtc/sdp/sdp_media_entry_video.hpp
     include/rtc/transports/transport.hpp
     include/rtc/transports/ice_transport.hpp
     include/rtc/transports/sctp_transport.hpp
@@ -211,7 +214,7 @@ add_subdirectory(deps/googletest)
 set(TEST_SOURCES
     # src/common/task_queue_unittest.cpp
     src/rtc/media/media_track_unittest.cpp
-    src/rtc/sdp/sdp_entry_unittest.cpp
+    src/rtc/sdp/sdp_media_entry_unittest.cpp
     src/rtc/sdp/candidate_unittest.cpp
     src/rtc/pc/peer_connection_configuration_unittest.cpp
     src/rtc/rtp_rtcp/rtp_defines_unittest.cpp

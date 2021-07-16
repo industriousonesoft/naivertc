@@ -2,7 +2,7 @@
 #define _RTC_MEDIA_TRACK_H_
 
 #include "base/defines.hpp"
-#include "rtc/sdp/sdp_entry_media.hpp"
+#include "rtc/sdp/sdp_media_entry_media.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 
 #include <string>

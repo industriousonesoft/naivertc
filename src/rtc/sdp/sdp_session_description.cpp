@@ -1,7 +1,5 @@
 #include "rtc/sdp/sdp_session_description.hpp"
 #include "common/utils.hpp"
-#include "rtc/sdp/sdp_entry_media_audio.hpp"
-#include "rtc/sdp/sdp_entry_media_video.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
 
 #include <plog/Log.h>
@@ -99,7 +97,7 @@ void SessionDescription::ClearMedia() {
 
 bool SessionDescription::HasApplication() const {
     for (auto entry : entries_) {
-        if (entry->type() == sdp::Entry::Type::APPLICATION) {
+        if (entry->type() == sdp::MediaEntry::Type::APPLICATION) {
             return true;
         } 
     }
@@ -108,7 +106,7 @@ bool SessionDescription::HasApplication() const {
 
 bool SessionDescription::HasAudio() const {
     for (auto entry : entries_) {
-        if (entry->type() == sdp::Entry::Type::AUDIO) {
+        if (entry->type() == sdp::MediaEntry::Type::AUDIO) {
             return true;
         } 
     }
@@ -117,7 +115,7 @@ bool SessionDescription::HasAudio() const {
 
 bool SessionDescription::HasVieo() const {
     for (auto entry : entries_) {
-        if (entry->type() == sdp::Entry::Type::VIDEO) {
+        if (entry->type() == sdp::MediaEntry::Type::VIDEO) {
             return true;
         } 
     }
@@ -145,6 +143,7 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     // Header
     // sdp版本号，一直为0,rfc4566规定
     sdp << "v=0" << eol;
+    // 会话发起者
     // o=<username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
     // username如何没有使用-代替，7017624586836067756是整个会话的编号，2代表会话版本，如果在会话
     // 过程中有改变编码之类的操作，重新生成sdp时,sess-id不变，sess-version加1
@@ -195,7 +194,7 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     }
     
     for (const auto& entry : entries_) {
-        if (application_only && entry->type() != Entry::Type::APPLICATION) {
+        if (application_only && entry->type() != MediaEntry::Type::APPLICATION) {
             continue;
         }
         // 0.0.0.0：表示你要用来接收或者发送音频使用的IP地址，webrtc使用ice传输，不使用这个地址
@@ -210,7 +209,7 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
 void SessionDescription::Parse(std::string sdp) {
     int index = -1;
     std::istringstream ss(sdp);
-    std::shared_ptr<Entry> curr_entry;
+    std::shared_ptr<MediaEntry> curr_entry;
     while (ss) {
         std::string line;
         std::getline(ss, line);
@@ -218,15 +217,29 @@ void SessionDescription::Parse(std::string sdp) {
         if (line.empty())
             continue;
 
-        // m-line
+        // version
         if (utils::string::match_prefix(line, "m=")) {
-            curr_entry = CreateEntry(line.substr(2), std::to_string(++index), Direction::UNKNOWN);
-        // o=<username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
-        }else if (utils::string::match_prefix(line, "o=")) {
+            // Ignore
+        }
+        // session initiator
+        else if (utils::string::match_prefix(line, "o=")) {
             std::istringstream origin(line.substr(2));
             origin >> user_name_ >> session_id_;
+        }
+        // session name
+        else if (utils::string::match_prefix(line, "s=")) {
+            // Ignore
+        }
+        // session time range
+        else if (utils::string::match_prefix(line, "t=")) {
+            // Ignore
+        }
+        // media
+        else if (utils::string::match_prefix(line, "m=")) {
+            curr_entry = CreateMediaEntry(line.substr(2), std::to_string(++index), Direction::UNKNOWN);
+        }
         // attribute line
-        }else if (utils::string::match_prefix(line, "a=")) {
+        else if (utils::string::match_prefix(line, "a=")) {
             std::string attr = line.substr(2);
             auto [key, value] = utils::string::parse_pair(attr);
             // media-level takes precedence
@@ -274,7 +287,7 @@ void SessionDescription::Parse(std::string sdp) {
     }
 }
 
-std::shared_ptr<Entry> SessionDescription::CreateEntry(std::string mline, std::string mid, Direction direction) {
+std::shared_ptr<MediaEntry> SessionDescription::CreateMediaEntry(std::string mline, std::string mid, Direction direction) {
     std::string type = mline.substr(0, mline.find(' '));
     if (type == "application") {
         auto app = std::make_shared<Application>(std::move(mid));
@@ -293,7 +306,7 @@ std::variant<Media*, Application*> SessionDescription::media(unsigned int index)
     }
 
     const auto& entry = entries_[index];
-    if (entry->type() == Entry::Type::APPLICATION) {
+    if (entry->type() == MediaEntry::Type::APPLICATION) {
         auto app = dynamic_cast<Application*>(entry.get());
         if (!app) {
             throw std::logic_error("Bad type of application in description.");
@@ -314,7 +327,7 @@ std::variant<const Media*, const Application*> SessionDescription::media(unsigne
     }
 
     const auto& entry = entries_[index];
-    if (entry->type() == Entry::Type::APPLICATION) {
+    if (entry->type() == MediaEntry::Type::APPLICATION) {
         auto app = dynamic_cast<Application*>(entry.get());
         if (!app) {
             throw std::logic_error("Bad type of application in description.");
@@ -335,7 +348,7 @@ unsigned int SessionDescription::media_count() const {
 
 const Application* SessionDescription::application() const {
     for (auto entry : entries_) {
-        if (entry->type() == sdp::Entry::Type::APPLICATION) {
+        if (entry->type() == sdp::MediaEntry::Type::APPLICATION) {
             return static_cast<Application* >(entry.get());
         } 
     }
@@ -344,7 +357,7 @@ const Application* SessionDescription::application() const {
 
 Application* SessionDescription::application() {
     for (auto entry : entries_) {
-        if (entry->type() == sdp::Entry::Type::APPLICATION) {
+        if (entry->type() == sdp::MediaEntry::Type::APPLICATION) {
             return static_cast<Application* >(entry.get());
         } 
     }

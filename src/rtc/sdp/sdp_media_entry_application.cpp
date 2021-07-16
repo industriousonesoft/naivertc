@@ -1,4 +1,4 @@
-#include "rtc/sdp/sdp_entry_application.hpp"
+#include "rtc/sdp/sdp_media_entry_application.hpp"
 
 #include "common/utils.hpp"
 
@@ -8,10 +8,10 @@ namespace naivertc {
 namespace sdp {
 
 Application::Application(std::string mid)
-    : Entry("application 9 UDP/DTLS/SCTP", std::move(mid), Direction::SEND_RECV) {}
+    : MediaEntry("application 9 UDP/DTLS/SCTP", std::move(mid), Direction::SEND_RECV) {}
 
 std::string Application::description() const {
-    return Entry::description() + " webrtc-datachannel";
+    return MediaEntry::description() + " webrtc-datachannel";
 }
 
 Application Application::reciprocate() const {
@@ -30,16 +30,16 @@ void Application::ParseSDPLine(std::string_view line) {
         }else if (key == "max-message-size") {
             max_message_size_ = utils::string::to_integer<size_t>(value);
         }else {
-            Entry::ParseSDPLine(line);
+            MediaEntry::ParseSDPLine(line);
         }
     }else {
-        Entry::ParseSDPLine(line);
+        MediaEntry::ParseSDPLine(line);
     }
 }
 
 std::string Application::GenerateSDPLines(std::string_view eol) const {
     std::ostringstream sdp;
-    sdp << Entry::GenerateSDPLines(eol);
+    sdp << MediaEntry::GenerateSDPLines(eol);
 
     if (sctp_port_) {
         sdp << "a=sctp-port:" << *sctp_port_ << eol;

@@ -1,7 +1,7 @@
-#ifndef _RTC_SDP_ENTRY_MEDIA_VIDEO_H_
-#define _RTC_SDP_ENTRY_MEDIA_VIDEO_H_
+#ifndef _RTC_SDP_MEDIA_ENTRY_VIDEO_H_
+#define _RTC_SDP_MEDIA_ENTRY_VIDEO_H_
 
-#include "rtc/sdp/sdp_entry_media.hpp"
+#include "rtc/sdp/sdp_media_entry_media.hpp"
 
 namespace naivertc {
 namespace sdp {

@@ -1,12 +1,12 @@
-#ifndef _RTC_SDP_ENTRY_MEDIA_H_
-#define _RTC_SDP_ENTRY_MEDIA_H_
+#ifndef _RTC_SDP_MEDIA_ENTRY_MEDIA_H_
+#define _RTC_SDP_MEDIA_ENTRY_MEDIA_H_
 
-#include "rtc/sdp/sdp_entry.hpp"
+#include "rtc/sdp/sdp_media_entry.hpp"
 
 namespace naivertc {
 namespace sdp {
 
-struct RTC_CPP_EXPORT Media : public Entry {
+struct RTC_CPP_EXPORT Media : public MediaEntry {
 public:
     struct RTPMap {
     public:

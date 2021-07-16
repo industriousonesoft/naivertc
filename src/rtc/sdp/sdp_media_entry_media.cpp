@@ -1,4 +1,4 @@
-#include "rtc/sdp/sdp_entry_media.hpp"
+#include "rtc/sdp/sdp_media_entry_media.hpp"
 
 #include "common/utils.hpp"
 
@@ -8,14 +8,14 @@ namespace naivertc {
 namespace sdp {
 
 Media::Media(const std::string& sdp) 
-    : Entry(sdp, "", Direction::UNKNOWN) {}
+    : MediaEntry(sdp, "", Direction::UNKNOWN) {}
     
 Media::Media(const std::string& mline, std::string mid, Direction direction) 
-    : Entry(mline, std::move(mid), direction) {}
+    : MediaEntry(mline, std::move(mid), direction) {}
 
 std::string Media::description() const {
     std::ostringstream desc;
-    desc << Entry::description();
+    desc << MediaEntry::description();
     
     for (auto it = rtp_map_.begin(); it != rtp_map_.end(); ++it) {
         desc << ' ' << it->first;
@@ -26,7 +26,7 @@ std::string Media::description() const {
 
 std::string Media::GenerateSDPLines(std::string_view eol) const {
     std::ostringstream sdp;
-    sdp << Entry::GenerateSDPLines(eol);
+    sdp << MediaEntry::GenerateSDPLines(eol);
     sdp << "a=rtcp-mux" << eol;
 
     for (auto it = rtp_map_.begin(); it != rtp_map_.end(); ++it) {
@@ -185,14 +185,14 @@ void Media::ParseSDPLine(std::string_view line) {
             }
             attributes_.emplace_back(attr);
         }else {
-            Entry::ParseSDPLine(line);
+            MediaEntry::ParseSDPLine(line);
         }
     // 'b=AS', is used to negotiate the maximum bandwidth
     // eg: b=AS:80
     }else if (utils::string::match_prefix(line, "b=AS")) {
         bandwidth_max_value_ = utils::string::to_integer<int>(line.substr(line.find(':') + 1));
     }else {
-        Entry::ParseSDPLine(line);
+        MediaEntry::ParseSDPLine(line);
     }
 }
 
