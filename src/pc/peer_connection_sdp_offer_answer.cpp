@@ -160,9 +160,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     UpdateSignalingState(new_signaling_state);
 
     // Start to gather local candidate after local sdp was set.
-    if (gathering_state_ == GatheringState::NEW && local_session_description_) {
-        ice_transport_->GatheringLocalCandidate(local_session_description_->bundle_id());
-    }
+    TryToGatherLocalCandidate();
 }
 
 void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
@@ -466,6 +464,14 @@ void PeerConnection::ShiftDataChannelIfNeccessary() {
         }
     }
 
+}
+
+void PeerConnection::TryToGatherLocalCandidate() {
+    if (gathering_state_ == GatheringState::NEW && 
+        local_session_description_.has_value()) {
+        PLOG_DEBUG << "Start to gather local candidates";
+        ice_transport_->GatherLocalCandidate(local_session_description_.value().bundle_id());
+    }
 }
 
 } // namespace naivertc

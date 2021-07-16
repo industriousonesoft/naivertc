@@ -34,7 +34,7 @@ public:
     void Stop(StopedCallback callback = nullptr) override;
 
     sdp::Role role() const;
-    void GatheringLocalCandidate(std::string mid);
+    void GatherLocalCandidate(std::string mid);
     bool AddRemoteCandidate(const Candidate& candidate);
 
     sdp::SessionDescription GetLocalDescription(sdp::Type type) const;
@@ -55,6 +55,8 @@ private:
     void OnGetheringStateChanged(GatheringState state);
     void OnCandidateGathered(const char* sdp);
     void OnDataReceived(const char* data, size_t size);
+
+    void ParseIceSettingFromSDP(NiceAgent *agent, const gchar *sdp);
     
     // Override from Transport
     void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;

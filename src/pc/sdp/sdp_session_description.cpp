@@ -212,21 +212,24 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     // 两个值分别是会话的起始时间和结束时间，这里都是0代表没有限制
     sdp << "t=0 0" << eol;
 
-    // Bundle (RFC8843 Negotiating Media Multiplexing Using the Session Description Protocol)
-    // https://tools.ietf.org/html/rfc8843
-    // 需要共用一个传输通道传输的媒体，如果没有这一行，音视频、数据就会分别单独用一个udp端口来发送
-    // eg: a=group:BUNDLE audio video data 
-    sdp << "a=group:BUNDLE";
-    for (const auto &entry : entries_) {
-        sdp << " " << entry->mid();
+    // 除了data channel之外还有音视频流时设置此属性，共用一个传输通道传输的媒体，
+    // 如果没有设置该属性，音、视频、data channel就会分别单独用一个udp端口来传输数据
+    if (application_only == false) {
+        // Bundle (RFC8843 Negotiating Media Multiplexing Using the Session Description Protocol)
+        // https://tools.ietf.org/html/rfc8843
+        // eg: a=group:BUNDLE audio video data 
+        sdp << "a=group:BUNDLE";
+        for (const auto &entry : entries_) {
+            sdp << " " << entry->mid();
+        }
+        sdp << eol;
     }
-    sdp << eol;
-
+    
     // WMS是WebRTC Media Stram的缩写，这里给Media Stream定义了一个唯一的标识符。
     // 一个Media Stream可以有多个track（video track、audio track），
     // 这些track就是通过这个唯一标识符关联起来的，具体见下面的媒体行(m=)以及它对应的附加属性(a=ssrc:)
     // 可以参考这里 http://tools.ietf.org/html/draft-ietf-mmusic-msid
-    sdp << "a=msid-semantic:WMS *" << eol;
+    sdp << "a=msid-semantic: WMS" << eol;
     // 这行代表本客户端在dtls协商过程中的角色，做客户端或服务端，或均可，参考rfc4145 rfc4572
     sdp << "a=setup:" << RoleToString(role_) << eol;
 

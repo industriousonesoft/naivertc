@@ -51,6 +51,7 @@ void PeerConnection::OnDtlsTransportStateChange(DtlsTransport::State transport_s
         switch (transport_state)
         {
         case DtlsSrtpTransport::State::CONNECTED: {
+            PLOG_DEBUG << "DTLS transport connected";
             // DataChannel enabled
             if (auto remote_sdp = this->remote_session_description_; remote_sdp && remote_sdp->HasApplication()) {
                 this->InitSctpTransport();

@@ -52,7 +52,7 @@ void IceTransport::Stop(StopedCallback callback) {
 #endif
 }
 
-void IceTransport::GatheringLocalCandidate(std::string mid) {
+void IceTransport::GatherLocalCandidate(std::string mid) {
     curr_mid_ = std::move(mid);
     // Change state now as candidates start to gather can be synchronous
     OnGetheringStateChanged(GatheringState::GATHERING);
@@ -149,12 +149,21 @@ void IceTransport::SetRemoteDescription(const sdp::SessionDescription& remote_sd
         throw std::logic_error("Incompatible roles with remote description.");
     }
     curr_mid_ = remote_sdp.bundle_id();
-    int ret = -1;
+    int ret = 0;
+    // sdp without audio or video media stream
+    const bool application_only = true;
 #if !USE_NICE
-    ret = juice_set_remote_description(juice_agent_.get(), remote_sdp.GenerateSDP("\r\n", true /* sdp without audio or video media lines */).c_str())
+    auto eol = "\r\n";
+    ret = juice_set_remote_description(juice_agent_.get(), remote_sdp.GenerateSDP(eol, application_only).c_str())
 #else
     trickle_timeout_ = 30s;
-    ret = nice_agent_parse_remote_sdp(nice_agent_.get(), remote_sdp.GenerateSDP("\n" /* libnice expects "\n" as end of line */, true /* sdp without media tracks */).c_str());
+    // libnice expects "\n" as end of line
+    auto eol = "\n";
+    auto remote_sdp_string = remote_sdp.GenerateSDP(eol, application_only);
+    PLOG_DEBUG << "Nice ready to set remote sdp: \n" << remote_sdp_string;
+    // warning: the applicaion sdp line 'm=application' MUST be in front of 'a=ice-ufrag' and 'a=ice-pwd' or contains the both attributes, 
+    // otherwise it will be faild to parse ICE settings from sdp.
+    ret = nice_agent_parse_remote_sdp(nice_agent_.get(), remote_sdp_string.c_str());
 #endif
     if (ret < 0) {
         throw std::runtime_error("Failed to parse ICE settings from remote SDP");
@@ -268,6 +277,26 @@ void IceTransport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallba
     if (callback) {
         callback(bRet);
     }
+}
+
+void IceTransport::ParseIceSettingFromSDP(NiceAgent *agent, const gchar *sdp) {
+    gchar **sdp_lines = NULL;
+    gint ret = 0;
+
+    sdp_lines = g_strsplit (sdp, "\n", 0);
+    for (gint i = 0; sdp_lines && sdp_lines[i]; i++) {
+
+        if (g_str_has_prefix (sdp_lines[i], "m=")) {
+            PLOG_DEBUG << "has app";
+        } else if (g_str_has_prefix (sdp_lines[i], "a=ice-ufrag:")) {
+            PLOG_DEBUG << "has ice-ufrag";
+        } else if (g_str_has_prefix (sdp_lines[i], "a=ice-pwd:")) {
+            PLOG_DEBUG << "has ice-pwd";
+        }
+  }
+
+  if (sdp_lines)
+    g_strfreev(sdp_lines);
 }
 
 } // namespace naivertc

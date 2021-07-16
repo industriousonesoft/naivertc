@@ -22,7 +22,7 @@ public:
     };
 public:
     virtual ~Entry() = default;
-
+       
     virtual std::string description() const { return description_; }
     virtual void ParseSDPLine(std::string_view line);
 
@@ -32,7 +32,7 @@ public:
     Direction direction() const { return direction_; }
     void set_direction(Direction direction);
 
-    std::string GenerateSDP(std::string_view eol, std::string addr, std::string_view port) const;
+    std::string GenerateSDP(std::string_view eol, std::string_view addr, std::string_view port) const;
 
 protected:
     Entry(const std::string& mline, std::string mid, Direction direction = Direction::UNKNOWN);

@@ -31,6 +31,7 @@ void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state
             this->UpdateConnectionState(ConnectionState::CONNECTING);
             break;
         case Transport::State::CONNECTED:
+            PLOG_DEBUG << "ICE transport connected";
             InitDtlsTransport();
             break;
         case Transport::State::FAILED: 

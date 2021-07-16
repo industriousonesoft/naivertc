@@ -207,7 +207,8 @@ void Candidate::Parse(std::string candidate) {
         type_ = Type::UNKNOWN;
     }
 
-    // Keep a copy of substring after type
+    // Keep a copy of left parameters after 'type', like network-id, network-cost
+    // see https://datatracker.ietf.org/doc/html/draft-thatcher-ice-network-cost-00
     std::getline(iss, various_tail_);
     utils::string::trim_begin(various_tail_);
     utils::string::trim_end(various_tail_);

@@ -31,7 +31,7 @@ void Entry::set_direction(Direction direction) {
     direction_ = direction;
 }
 
-std::string Entry::GenerateSDP(std::string_view eol, std::string addr, std::string_view port) const {
+std::string Entry::GenerateSDP(std::string_view eol, std::string_view addr, std::string_view port) const {
     std::ostringstream sdp;
     sdp << "m=" << type_string() << ' ' << port << ' ' << description() << eol;
     sdp << "c=IN " << addr << eol;

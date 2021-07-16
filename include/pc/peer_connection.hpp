@@ -117,6 +117,8 @@ private:
     void ProcessLocalDescription(sdp::SessionDescription session_description);
     void ProcessRemoteDescription(sdp::SessionDescription session_description);
     void ValidRemoteDescription(const sdp::SessionDescription& session_description);
+
+    void TryToGatherLocalCandidate();
     void ProcessRemoteCandidates();
     void ProcessRemoteCandidate(Candidate candidate);
     void AddRemoteCandidate(const Candidate& candidate);

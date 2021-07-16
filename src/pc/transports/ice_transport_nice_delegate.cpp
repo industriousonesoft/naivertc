@@ -30,7 +30,7 @@ void IceTransport::InitNice(const RtcConfiguration& config) {
 
     main_loop_thread_ = std::thread(g_main_loop_run, main_loop_.get());
 
-    stream_id_ = nice_agent_add_stream(nice_agent_.get(), 1);
+    stream_id_ = nice_agent_add_stream(nice_agent_.get(), component_id_);
     if (!stream_id_) {
         throw std::runtime_error("Failed to add a nice stream");
     }

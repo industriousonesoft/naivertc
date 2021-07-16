@@ -60,9 +60,10 @@ private:
     Role role_;
     std::string user_name_;
     std::string session_id_;
-    // FIXME: Does ice_ufrag and ice_pwd created by libjuice?
+    // ICE attribute
     std::optional<std::string> ice_ufrag_;
     std::optional<std::string> ice_pwd_;
+    // DTLS attribute
     std::optional<std::string> fingerprint_;
 
     // Entries
