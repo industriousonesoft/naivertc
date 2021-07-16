@@ -1,4 +1,6 @@
 #include "pc/media/media_track.hpp"
+#include "pc/sdp/sdp_entry_media_audio.hpp"
+#include "pc/sdp/sdp_entry_media_video.hpp"
 
 namespace {
 

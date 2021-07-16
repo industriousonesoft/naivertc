@@ -2,7 +2,7 @@
 #define _PC_MEDIA_TRACK_H_
 
 #include "base/defines.hpp"
-#include "pc/sdp/sdp_entry.hpp"
+#include "pc/sdp/sdp_entry_media.hpp"
 #include "pc/sdp/sdp_defines.hpp"
 
 #include <string>

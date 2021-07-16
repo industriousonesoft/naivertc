@@ -43,10 +43,14 @@ set(LIB_SOURCES
     src/signaling/base/websocket.cpp
     src/signaling/ayame/ayame_channel.cpp
 
+    src/pc/sdp/sdp_defines.cpp
     src/pc/sdp/candidate.cpp
     src/pc/sdp/sdp_session_description.cpp
     src/pc/sdp/sdp_entry.cpp
-    src/pc/sdp/sdp_defines.cpp
+    src/pc/sdp/sdp_entry_application.cpp
+    src/pc/sdp/sdp_entry_media.cpp
+    src/pc/sdp/sdp_entry_media_audio.cpp
+    src/pc/sdp/sdp_entry_media_video.cpp
     src/pc/transports/transport.cpp
     src/pc/transports/ice_transport.cpp
     src/pc/transports/sctp_transport.cpp
@@ -101,10 +105,14 @@ set(LIB_HEADERS
     include/signaling/base/websocket.hpp
     include/signaling/ayame/ayame_channel.hpp
 
+    include/pc/sdp/sdp_defines.hpp
     include/pc/sdp/candidate.hpp
     include/pc/sdp/sdp_session_description.hpp
     include/pc/sdp/sdp_entry.hpp
-    include/pc/sdp/sdp_defines.hpp
+    include/pc/sdp/sdp_entry_application.hpp
+    include/pc/sdp/sdp_entry_media.hpp
+    include/pc/sdp/sdp_entry_media_audio.hpp
+    include/pc/sdp/sdp_entry_media_video.hpp
     include/pc/transports/transport.hpp
     include/pc/transports/ice_transport.hpp
     include/pc/transports/sctp_transport.hpp

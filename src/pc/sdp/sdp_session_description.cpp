@@ -1,5 +1,7 @@
 #include "pc/sdp/sdp_session_description.hpp"
 #include "common/utils.hpp"
+#include "pc/sdp/sdp_entry_media_audio.hpp"
+#include "pc/sdp/sdp_entry_media_video.hpp"
 
 #include <plog/Log.h>
 
