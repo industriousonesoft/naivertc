@@ -1,7 +1,7 @@
 #ifndef _SIGNALING_CHANNEL_H_
 #define _SIGNALING_CHANNEL_H_
 
-#include "pc/peer_connection_configuration.hpp"
+#include "rtc/pc/peer_connection_configuration.hpp"
 
 #include <boost/system/error_code.hpp>
 

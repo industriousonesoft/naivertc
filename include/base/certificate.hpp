@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "base/tls.hpp"
-#include "pc/peer_connection_configuration.hpp"
+#include "rtc/pc/peer_connection_configuration.hpp"
 
 #include <string>
 #include <memory>

@@ -1,9 +1,9 @@
 #include "base/init.hpp"
 #include "common/logger.hpp"
-#include "pc/transports/dtls_transport.hpp"
-#include "pc/transports/dtls_srtp_transport.hpp"
-#include "pc/transports/sctp_transport.hpp"
-#include "pc/transports/sctp_transport_usr_sctp_settings.hpp"
+#include "rtc/transports/dtls_transport.hpp"
+#include "rtc/transports/dtls_srtp_transport.hpp"
+#include "rtc/transports/sctp_transport.hpp"
+#include "rtc/transports/sctp_transport_usr_sctp_settings.hpp"
 
 namespace naivertc {
 

@@ -2,7 +2,7 @@
 #define _CLIENT_H_
 
 #include <signaling/ayame/ayame_channel.hpp>
-#include <pc/peer_connection.hpp>
+#include <rtc/pc/peer_connection.hpp>
 
 // boost
 #include <boost/asio/io_context_strand.hpp>

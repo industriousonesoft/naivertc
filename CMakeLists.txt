@@ -43,46 +43,46 @@ set(LIB_SOURCES
     src/signaling/base/websocket.cpp
     src/signaling/ayame/ayame_channel.cpp
 
-    src/pc/sdp/sdp_defines.cpp
-    src/pc/sdp/candidate.cpp
-    src/pc/sdp/sdp_session_description.cpp
-    src/pc/sdp/sdp_entry.cpp
-    src/pc/sdp/sdp_entry_application.cpp
-    src/pc/sdp/sdp_entry_media.cpp
-    src/pc/sdp/sdp_entry_media_audio.cpp
-    src/pc/sdp/sdp_entry_media_video.cpp
-    src/pc/transports/transport.cpp
-    src/pc/transports/ice_transport.cpp
-    src/pc/transports/sctp_transport.cpp
-    src/pc/transports/sctp_transport_usrsctp_delegate.cpp
-    src/pc/transports/sctp_packet.cpp
-    src/pc/transports/dtls_transport.cpp
-    src/pc/transports/dtls_transport_openssl_delegate.cpp
-    src/pc/transports/dtls_srtp_transport.cpp
-    src/pc/transports/dtls_srtp_transport_srtp_delegate.cpp
-    src/pc/peer_connection.cpp
-    src/pc/peer_connection_configuration.cpp
-    src/pc/peer_connection_ice_transport_delegate.cpp
-    src/pc/peer_connection_dtls_transport_delegate.cpp
-    src/pc/peer_connection_sctp_transport_delegate.cpp
-    src/pc/peer_connection_sdp_offer_answer.cpp
-    src/pc/peer_connection_media_handler.cpp
-    src/pc/channels/channel.cpp
-    src/pc/channels/data_channel.cpp
-    src/pc/channels/media_channel.cpp
-    src/pc/rtp_rtcp/rtp_packet.cpp
-    src/pc/rtp_rtcp/rtp_defines.cpp
-    src/pc/media/media_track.cpp
-    src/pc/media/media_track_sdp_builder.cpp
+    src/rtc/sdp/sdp_defines.cpp
+    src/rtc/sdp/candidate.cpp
+    src/rtc/sdp/sdp_session_description.cpp
+    src/rtc/sdp/sdp_entry.cpp
+    src/rtc/sdp/sdp_entry_application.cpp
+    src/rtc/sdp/sdp_entry_media.cpp
+    src/rtc/sdp/sdp_entry_media_audio.cpp
+    src/rtc/sdp/sdp_entry_media_video.cpp
+    src/rtc/transports/transport.cpp
+    src/rtc/transports/ice_transport.cpp
+    src/rtc/transports/sctp_transport.cpp
+    src/rtc/transports/sctp_transport_usrsctp_delegate.cpp
+    src/rtc/transports/sctp_packet.cpp
+    src/rtc/transports/dtls_transport.cpp
+    src/rtc/transports/dtls_transport_openssl_delegate.cpp
+    src/rtc/transports/dtls_srtp_transport.cpp
+    src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
+    src/rtc/pc/peer_connection.cpp
+    src/rtc/pc/peer_connection_configuration.cpp
+    src/rtc/pc/peer_connection_ice_transport_delegate.cpp
+    src/rtc/pc/peer_connection_dtls_transport_delegate.cpp
+    src/rtc/pc/peer_connection_sctp_transport_delegate.cpp
+    src/rtc/pc/peer_connection_sdp_offer_answer.cpp
+    src/rtc/pc/peer_connection_media_handler.cpp
+    src/rtc/channels/channel.cpp
+    src/rtc/channels/data_channel.cpp
+    src/rtc/channels/media_channel.cpp
+    src/rtc/rtp_rtcp/rtp_packet.cpp
+    src/rtc/rtp_rtcp/rtp_defines.cpp
+    src/rtc/media/media_track.cpp
+    src/rtc/media/media_track_sdp_builder.cpp
 )
 
 if(USE_NICE)
     set(LIB_SOURCES ${LIB_SOURCES}
-        src/pc/transports/ice_transport_nice_delegate.cpp
+        src/rtc/transports/ice_transport_nice_delegate.cpp
     )
 else()
     set(LIB_SOURCES ${LIB_SOURCES}
-        src/pc/transports/ice_transport_juice_delegate.cpp
+        src/rtc/transports/ice_transport_juice_delegate.cpp
     )
 endif()
 
@@ -105,29 +105,29 @@ set(LIB_HEADERS
     include/signaling/base/websocket.hpp
     include/signaling/ayame/ayame_channel.hpp
 
-    include/pc/sdp/sdp_defines.hpp
-    include/pc/sdp/candidate.hpp
-    include/pc/sdp/sdp_session_description.hpp
-    include/pc/sdp/sdp_entry.hpp
-    include/pc/sdp/sdp_entry_application.hpp
-    include/pc/sdp/sdp_entry_media.hpp
-    include/pc/sdp/sdp_entry_media_audio.hpp
-    include/pc/sdp/sdp_entry_media_video.hpp
-    include/pc/transports/transport.hpp
-    include/pc/transports/ice_transport.hpp
-    include/pc/transports/sctp_transport.hpp
-    include/pc/transports/sctp_transport_usr_sctp_settings.hpp
-    include/pc/transports/sctp_packet.hpp
-    include/pc/transports/dtls_transport.hpp
-    include/pc/transports/dtls_srtp_transport.hpp
-    include/pc/peer_connection_configuration.hpp
-    include/pc/peer_connection.hpp
-    include/pc/channels/channel.hpp
-    include/pc/channels/data_channel.hpp
-    include/pc/channels/media_channel.hpp
-    include/pc/rtp_rtcp/rtp_packet.hpp
-    include/pc/rtp_rtcp/rtp_defines.hpp
-    include/pc/media/media_track.hpp
+    include/rtc/sdp/sdp_defines.hpp
+    include/rtc/sdp/candidate.hpp
+    include/rtc/sdp/sdp_session_description.hpp
+    include/rtc/sdp/sdp_entry.hpp
+    include/rtc/sdp/sdp_entry_application.hpp
+    include/rtc/sdp/sdp_entry_media.hpp
+    include/rtc/sdp/sdp_entry_media_audio.hpp
+    include/rtc/sdp/sdp_entry_media_video.hpp
+    include/rtc/transports/transport.hpp
+    include/rtc/transports/ice_transport.hpp
+    include/rtc/transports/sctp_transport.hpp
+    include/rtc/transports/sctp_transport_usr_sctp_settings.hpp
+    include/rtc/transports/sctp_packet.hpp
+    include/rtc/transports/dtls_transport.hpp
+    include/rtc/transports/dtls_srtp_transport.hpp
+    include/rtc/pc/peer_connection_configuration.hpp
+    include/rtc/pc/peer_connection.hpp
+    include/rtc/channels/channel.hpp
+    include/rtc/channels/data_channel.hpp
+    include/rtc/channels/media_channel.hpp
+    include/rtc/rtp_rtcp/rtp_packet.hpp
+    include/rtc/rtp_rtcp/rtp_defines.hpp
+    include/rtc/media/media_track.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
@@ -208,11 +208,11 @@ add_subdirectory(deps/googletest)
 
 set(TEST_SOURCES
     # src/common/task_queue_unittest.cpp
-    src/pc/media/media_track_unittest.cpp
-    src/pc/sdp/sdp_entry_unittest.cpp
-    src/pc/sdp/candidate_unittest.cpp
-    src/pc/peer_connection_configuration_unittest.cpp
-    src/pc/rtp_rtcp/rtp_defines_unittest.cpp
+    src/rtc/media/media_track_unittest.cpp
+    src/rtc/sdp/sdp_entry_unittest.cpp
+    src/rtc/sdp/candidate_unittest.cpp
+    src/rtc/pc/peer_connection_configuration_unittest.cpp
+    src/rtc/rtp_rtcp/rtp_defines_unittest.cpp
 
     testing/gtest_main.cpp
 )
