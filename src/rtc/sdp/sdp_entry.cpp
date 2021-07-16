@@ -1,5 +1,8 @@
 #include "rtc/sdp/sdp_entry.hpp"
+#include "rtc/sdp/sdp_utils.hpp"
 #include "common/utils.hpp"
+
+#include <plog/Log.h>
 
 #include <sstream>
 
@@ -33,8 +36,16 @@ void Entry::set_direction(Direction direction) {
 
 std::string Entry::GenerateSDP(std::string_view eol, std::string_view addr, std::string_view port) const {
     std::ostringstream sdp;
-    sdp << "m=" << type_string() << ' ' << port << ' ' << description() << eol;
-    sdp << "c=IN " << addr << eol;
+    std::string sp = " ";
+    sdp << "m=" << type_string() << sp << port << sp << description() << eol;
+    // connection line: c=<nettype> <addrtype> <connection-address>
+    // nettype: network type, eg: IN represents Internet
+    // addrtype: address type, eg: IPv4, IPv6
+    // connection-address
+    sdp << "c=IN" << sp << "IP4" << sp <<  addr << eol;
+    if (type_ != sdp::Entry::Type::APPLICATION) {
+        sdp << "a=rtcp:" << port << sp << "IN" << sp << "IP4" << sp << addr;
+    }
     sdp << GenerateSDPLines(eol);
 
     return sdp.str();
@@ -42,6 +53,10 @@ std::string Entry::GenerateSDP(std::string_view eol, std::string_view addr, std:
 
 std::string Entry::GenerateSDPLines(std::string_view eol) const {
     std::ostringstream sdp;
+    // 与属性a=group:BUNDLE配合使用，表示多个media使用同一个端口
+    // 'bundle-only' which can be used to request that specified meida
+    // is only used if kept within a BUNDLE group.
+    // See https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-bundle-negotiation-38#section-6
     sdp << "a=bundle-only" << eol;
     sdp << "a=mid:" << mid_ << eol;
 
@@ -92,11 +107,48 @@ void Entry::ParseSDPLine(std::string_view line) {
             direction_ = Direction::INACTIVE;
         }else if (attr == "bundle-only") {
             // Added already
+        }else if (key == "setup") {
+            if (value == "active") {
+                role_.emplace(Role::ACTIVE);
+            }else if (value == "passive") {
+                role_.emplace(Role::PASSIVE);
+            }else {
+                role_.emplace(Role::ACT_PASS);
+            }
+        }else if (key == "fingerprint") {
+            auto fingerprint = ParseFingerprintAttribute(value);
+            if (fingerprint.has_value()) {
+                set_fingerprint(std::move(fingerprint.value()));
+            }else {
+                PLOG_WARNING << "Failed to parse fingerprint format: " << value;
+            }
+        }else if (key == "ice-ufrag") {
+            ice_ufrag_.emplace(std::move(value));
+        }else if (key == "ice-pwd") {
+            ice_pwd_.emplace(std::move(value));
+        }else if (key == "candidate") {
+            // TODO：add candidate from sdp
+        }else if (key == "end-of-candidate") {
+            // TODO：add candidate from sdp
         }else {
             attributes_.emplace_back(std::move(attr));
         }
     }
-}   
+}  
+
+void Entry::set_fingerprint(std::string fingerprint) {
+
+    if (!IsSHA256Fingerprint(fingerprint)) {
+        throw std::invalid_argument("Invalid SHA265 fingerprint: " + fingerprint);
+    }
+
+    // make sure All the chars in finger print is uppercase.
+    std::transform(fingerprint.begin(), fingerprint.end(), fingerprint.begin(), [](char c) {
+        return char(std::toupper(c));
+    });
+
+    fingerprint_.emplace(std::move(fingerprint));
+}
 
 } // namespace sdp
 } // namespace naivertc

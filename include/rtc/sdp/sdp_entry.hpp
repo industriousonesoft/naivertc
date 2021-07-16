@@ -12,7 +12,6 @@
 namespace naivertc {
 namespace sdp {
 
-// Entry
 struct RTC_CPP_EXPORT Entry : public std::enable_shared_from_this<Entry> {
 public:
     enum class Type {
@@ -42,12 +41,23 @@ protected:
 
     Type type_string_to_type(std::string type_string) const;
 
+    void set_fingerprint(std::string fingerprint);
+
 private:
     Type type_;
     std::string type_string_;
     std::string description_;
     std::string mid_;
     Direction direction_;
+
+    // Attributes below appear in both session-level and media-leval
+    std::optional<Role> role_ = std::nullopt;
+    // ICE attribute
+    // See https://tools.ietf.org/id/draft-ietf-mmusic-ice-sip-sdp-14.html#rfc.section.5.4
+    std::optional<std::string> ice_ufrag_ = std::nullopt;
+    std::optional<std::string> ice_pwd_ = std::nullopt;
+    // DTLS attribute
+    std::optional<std::string> fingerprint_ = std::nullopt;
 };
 
 } // namespace sdp

@@ -44,6 +44,7 @@ set(LIB_SOURCES
     src/signaling/ayame/ayame_channel.cpp
 
     src/rtc/sdp/sdp_defines.cpp
+    src/rtc/sdp/sdp_utils.cpp
     src/rtc/sdp/candidate.cpp
     src/rtc/sdp/sdp_session_description.cpp
     src/rtc/sdp/sdp_entry.cpp
@@ -106,6 +107,7 @@ set(LIB_HEADERS
     include/signaling/ayame/ayame_channel.hpp
 
     include/rtc/sdp/sdp_defines.hpp
+    include/rtc/sdp/sdp_utils.hpp
     include/rtc/sdp/candidate.hpp
     include/rtc/sdp/sdp_session_description.hpp
     include/rtc/sdp/sdp_entry.hpp

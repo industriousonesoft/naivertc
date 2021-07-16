@@ -53,20 +53,21 @@ public:
 private:
     std::shared_ptr<Entry> CreateEntry(std::string mline, std::string mid, Direction direction);
 
-    static bool IsSHA256Fingerprint(std::string_view fingerprint);
+    void Parse(std::string sdp);
 
 private:
 
     Type type_;
     // Session-level attributes
-    Role role_;
     std::string user_name_;
     std::string session_id_;
+    Role role_;
     // ICE attribute
-    std::optional<std::string> ice_ufrag_;
-    std::optional<std::string> ice_pwd_;
+    // See https://tools.ietf.org/id/draft-ietf-mmusic-ice-sip-sdp-14.html#rfc.section.5.4
+    std::optional<std::string> ice_ufrag_ = std::nullopt;
+    std::optional<std::string> ice_pwd_ = std::nullopt;
     // DTLS attribute
-    std::optional<std::string> fingerprint_;
+    std::optional<std::string> fingerprint_ = std::nullopt;
 
     // Entries
     std::vector<std::shared_ptr<Entry>> entries_;

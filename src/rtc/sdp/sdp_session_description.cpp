@@ -2,6 +2,7 @@
 #include "common/utils.hpp"
 #include "rtc/sdp/sdp_entry_media_audio.hpp"
 #include "rtc/sdp/sdp_entry_media_video.hpp"
+#include "rtc/sdp/sdp_utils.hpp"
 
 #include <plog/Log.h>
 
@@ -13,71 +14,9 @@ namespace sdp {
 SessionDescription::SessionDescription(const std::string& sdp, Type type, Role role) : 
     type_(Type::UNSPEC),
     role_(role) {
+        
     hintType(type);
-
-    int index = -1;
-    std::istringstream ss(sdp);
-    std::shared_ptr<Entry> curr_entry;
-    while (ss) {
-        std::string line;
-        std::getline(ss, line);
-        utils::string::trim_end(line);
-        if (line.empty())
-            continue;
-
-        // m-line
-        if (utils::string::match_prefix(line, "m=")) {
-            curr_entry = CreateEntry(line.substr(2), std::to_string(++index), Direction::UNKNOWN);
-        // o=<username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
-        }else if (utils::string::match_prefix(line, "o=")) {
-            std::istringstream origin(line.substr(2));
-            origin >> user_name_ >> session_id_;
-        // attribute line
-        }else if (utils::string::match_prefix(line, "a=")) {
-            std::string attr = line.substr(2);
-            auto [key, value] = utils::string::parse_pair(attr);
-
-            if (key == "setup") {
-                if (value == "active") {
-                    role_ = Role::ACTIVE;
-                }else if (value == "passive") {
-                    role_ = Role::PASSIVE;
-                }else {
-                    role_ = Role::ACT_PASS;
-                }
-            }else if (key == "fingerprint") {
-                if (utils::string::match_prefix(value, "sha-256")) {
-                    std::string fingerprint{value.substr(7)};
-                    utils::string::trim_begin(fingerprint);
-                    set_fingerprint(fingerprint);
-                }else {
-                    PLOG_WARNING << "Unknown SDP fingerprint format: " << value;
-                }
-            }else if (key == "ice-ufrag") {
-                ice_ufrag_ = value;
-            }else if (key == "ice-pwd") {
-                ice_pwd_ = value;
-            }else if (key == "candidate") {
-                // TODO：add candidate from sdp
-            }else if (key == "end-of-candidate") {
-                // TODO：add candidate from sdp
-            }else if (curr_entry) {
-                curr_entry->ParseSDPLine(std::move(line));
-            }
-        }else if (curr_entry) {
-            curr_entry->ParseSDPLine(std::move(line));
-        }
-    } // end of while
-
-    // username如果没有则使用'-'代替
-    if (user_name_.empty()) {
-        user_name_ = "-";
-    }
-
-    if (session_id_.empty()) {
-        session_id_ = std::to_string(utils::random::generate_random<uint32_t>());
-    }
-
+    Parse(std::move(sdp));
 }
 
 SessionDescription::SessionDescription(const std::string& sdp, std::string type_string) : 
@@ -119,6 +58,7 @@ void SessionDescription::hintType(Type type) {
 }
 
 void SessionDescription::set_fingerprint(std::string fingerprint) {
+
     if (!IsSHA256Fingerprint(fingerprint)) {
         throw std::invalid_argument("Invalid SHA265 fingerprint: " + fingerprint );
     }
@@ -198,9 +138,10 @@ SessionDescription::operator std::string() const {
 }
 
 // GenerateSDP
+#warning Be careful, there is no space after '=' and only has one space between two parts in a line.
 std::string SessionDescription::GenerateSDP(std::string_view eol, bool application_only) const {
     std::ostringstream sdp;
-    #warning Be careful, there is no space after '=' and only has one space between two parts in a line.
+    std::string sp = " ";
     // Header
     // sdp版本号，一直为0,rfc4566规定
     sdp << "v=0" << eol;
@@ -208,7 +149,7 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     // username如何没有使用-代替，7017624586836067756是整个会话的编号，2代表会话版本，如果在会话
     // 过程中有改变编码之类的操作，重新生成sdp时,sess-id不变，sess-version加1
     // eg: o=- 7017624586836067756 2 IN IP4 127.0.0.1
-    sdp << "o=" << user_name_ << " " << session_id_ << " 0 IN IP4 127.0.0.1" << eol;
+    sdp << "o=" << user_name_ << sp << session_id_ << " 0 IN IP4 127.0.0.1" << eol;
     // 会话名，没有的话使用-代替
     sdp << "s=-" << eol;
     // 两个值分别是会话的起始时间和结束时间，这里都是0代表没有限制
@@ -222,7 +163,7 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
         // eg: a=group:BUNDLE audio video data 
         sdp << "a=group:BUNDLE";
         for (const auto &entry : entries_) {
-            sdp << " " << entry->mid();
+            sdp << sp << entry->mid();
         }
         sdp << eol;
     }
@@ -231,16 +172,16 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     // 一个Media Stream可以有多个track（video track、audio track），
     // 这些track就是通过这个唯一标识符关联起来的，具体见下面的媒体行(m=)以及它对应的附加属性(a=ssrc:)
     // 可以参考这里 http://tools.ietf.org/html/draft-ietf-mmusic-msid
-    sdp << "a=msid-semantic: WMS" << eol;
+    sdp << "a=msid-semantic:" << sp << "WMS" << eol;
     // 这行代表本客户端在dtls协商过程中的角色，做客户端或服务端，或均可，参考rfc4145 rfc4572
     sdp << "a=setup:" << RoleToString(role_) << eol;
-
-    // Username fragment
-    if (ice_ufrag_) {
+    
+    // The "ice-pwd" and "ice-ufrag" attributes can appear at either the session-level or media-level.
+    // When present in both, the value in the media-level takes precedence. Thus, the value at the session-level
+    // is effectively a default that applies to all media streams, unless overridden by a media-level value.
+    // See https://tools.ietf.org/id/draft-ietf-mmusic-ice-sip-sdp-14.html#rfc.section.5.4
+    if (ice_ufrag_ && ice_pwd_) {
         sdp << "a=ice-ufrag:" << *ice_ufrag_ << eol;
-    }
-
-    if (ice_pwd_) {
         sdp << "a=ice-pwd:" << *ice_pwd_ << eol;
     }
 
@@ -250,22 +191,89 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     sdp << "a=ice-options:trickle" << eol;
 
     if (fingerprint_) {
-        sdp << "a=fingerprint:sha-256 " << *fingerprint_ << eol;
+        sdp << "a=fingerprint:sha-256" << sp << *fingerprint_ << eol;
     }
-
+    
     for (const auto& entry : entries_) {
-        // IP4 0.0.0.0：表示你要用来接收或者发送音频使用的IP地址，webrtc使用ice传输，不使用这个地址
-        // 9：代表音频使用端口9来传输
         if (application_only && entry->type() != Entry::Type::APPLICATION) {
             continue;
         }
-        sdp << entry->GenerateSDP(eol, "IP4 0.0.0.0", "9");
+        // 0.0.0.0：表示你要用来接收或者发送音频使用的IP地址，webrtc使用ice传输，不使用这个地址
+        // 9：代表音频使用端口9来传输
+        sdp << entry->GenerateSDP(eol, "0.0.0.0", "9");
     }
     return sdp.str();
 
 }
 
 // private methods
+void SessionDescription::Parse(std::string sdp) {
+    int index = -1;
+    std::istringstream ss(sdp);
+    std::shared_ptr<Entry> curr_entry;
+    while (ss) {
+        std::string line;
+        std::getline(ss, line);
+        utils::string::trim_end(line);
+        if (line.empty())
+            continue;
+
+        // m-line
+        if (utils::string::match_prefix(line, "m=")) {
+            curr_entry = CreateEntry(line.substr(2), std::to_string(++index), Direction::UNKNOWN);
+        // o=<username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
+        }else if (utils::string::match_prefix(line, "o=")) {
+            std::istringstream origin(line.substr(2));
+            origin >> user_name_ >> session_id_;
+        // attribute line
+        }else if (utils::string::match_prefix(line, "a=")) {
+            std::string attr = line.substr(2);
+            auto [key, value] = utils::string::parse_pair(attr);
+            // media-level takes precedence
+            if (curr_entry) {
+                curr_entry->ParseSDPLine(std::move(line));
+            // session-level
+            }else {
+                if (key == "setup") {
+                    if (value == "active") {
+                        role_ = Role::ACTIVE;
+                    }else if (value == "passive") {
+                        role_ = Role::PASSIVE;
+                    }else {
+                        role_ = Role::ACT_PASS;
+                    }
+                }else if (key == "fingerprint") {
+                    auto fingerprint = ParseFingerprintAttribute(value);
+                    if (fingerprint.has_value()) {
+                        set_fingerprint(std::move(fingerprint.value()));
+                    }else {
+                        PLOG_WARNING << "Failed to parse fingerprint format: " << value;
+                    }
+                }else if (key == "ice-ufrag") {
+                    ice_ufrag_.emplace(std::move(value));
+                }else if (key == "ice-pwd") {
+                    ice_pwd_.emplace(std::move(value));
+                }else if (key == "candidate") {
+                    // TODO：add candidate from sdp
+                }else if (key == "end-of-candidate") {
+                    // TODO：add candidate from sdp
+                }
+            }
+        }else if (curr_entry) {
+            curr_entry->ParseSDPLine(std::move(line));
+        }
+    } // end of while
+
+    // username如果没有则使用'-'代替
+    if (user_name_.empty()) {
+        user_name_ = "-";
+    }
+
+    if (session_id_.empty()) {
+        session_id_ = std::to_string(utils::random::generate_random<uint32_t>());
+    }
+}
+
 std::shared_ptr<Entry> SessionDescription::CreateEntry(std::string mline, std::string mid, Direction direction) {
     std::string type = mline.substr(0, mline.find(' '));
     if (type == "application") {
@@ -343,28 +351,6 @@ Application* SessionDescription::application() {
     return nullptr;
 }
 
-// a=fingerprint:sha-256 A9:CA:95:47:CB:8D:81:DE:E4:78:38:1E:70:6B:AA:14:66:6C:AF:7F:89:D7:B7:C7:1A:A9:45:09:83:CC:0D:03
-// 常规的SHA256哈希值是一个长度为32个字节的数组，通常用一个长度为64的十六进制字符串来表示
-// SDP中的fingerprint在每两个个字节之间加入了一个间隔符”:“，因此长度=32 * 2 +（32 - 1）
-constexpr int kSHA256FixedLength = 32 * 3 - 1;
-bool SessionDescription::IsSHA256Fingerprint(std::string_view fingerprint) {
-    if (fingerprint.size() != kSHA256FixedLength) {
-        return false;
-    }
 
-    for (size_t i = 0; i < fingerprint.size(); ++i) {
-        if (i % 3 == 2) {
-            if (fingerprint[i] != ':') {
-                return false;
-            }
-        }else {
-            if (!std::isxdigit(fingerprint[i])) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-}
+} // namespace sdp
 } // namespace naivertc

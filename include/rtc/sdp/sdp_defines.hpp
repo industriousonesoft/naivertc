@@ -34,7 +34,7 @@ std::string TypeToString(sdp::Type type);
 
 std::string RoleToString(sdp::Role role);
 
-}
-}
+} // namespace sdp
+} // namespace naivertc
 
 #endif

@@ -181,7 +181,7 @@ void Candidate::Parse(std::string candidate) {
     PLOG_VERBOSE << "Parsing candidate: " << candidate;
 
     std::istringstream iss(candidate);
-    // “a=candidate:1 1 UDP 9654321 212.223.223.223 12345 typ srflx raddr 10.216.33.9 rport 54321”
+    // “a=candidate:1 1 UDP 9654321 212.223.223.223 12345 typ srflx raddr 10.216.33.9 rport 54321 generation 0 ufrag CE1b network-id 1 network-cost 10”
     // foundation = 1
     // component id = 1 (1: RTP, 2: RTCP)
     // transport yype = UDP 
@@ -191,7 +191,11 @@ void Candidate::Parse(std::string candidate) {
     // typ = indicate the next one is candidate type 
     // candidate type = srflx
     // base host = 10.216.33.9
-    // base port = 54321”
+    // base port = 54321
+    // generation =0
+    // ufrag (the username fragment that uniquely identifies a single ICE interaction session) = CE1b, 
+    // see https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidate/usernameFragment
+    // network-id = 1 and network-cost = 10, see https://datatracker.ietf.org/doc/html/draft-thatcher-ice-network-cost-00#section-5
     std::string type_indicator;
     // 使用istringstream对格式化的字符串（以空格隔开）进行重定向
     if (!(iss >> foundation_ >> component_id_ >> transport_type_str_ >> priority_ 
