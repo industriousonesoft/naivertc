@@ -33,44 +33,53 @@ void MediaEntry::set_direction(Direction direction) {
     direction_ = direction;
 }
 
-std::string MediaEntry::GenerateSDP(std::string_view eol, std::string_view addr, std::string_view port) const {
-    std::ostringstream sdp;
+std::string MediaEntry::GenerateSDP(std::string_view eol, Role role) const {
+    std::ostringstream oss;
     std::string sp = " ";
-    sdp << "m=" << type_string() << sp << port << sp << description() << eol;
+
+    // 0.0.0.0：表示你要用来接收或者发送音频使用的IP地址，webrtc使用ice传输，不使用这个地址
+    // 9：代表音频使用端口9来传输
+    const auto addr = "0.0.0.0";
+    const auto port = "9";
+    oss << "m=" << type_string() << sp << port << sp << description() << eol;
     // connection line: c=<nettype> <addrtype> <connection-address>
     // nettype: network type, eg: IN represents Internet
     // addrtype: address type, eg: IPv4, IPv6
     // connection-address
-    sdp << "c=IN" << sp << "IP4" << sp <<  addr << eol;
+    oss << "c=IN" << sp << "IP4" << sp <<  addr << eol;
     if (type_ != Type::APPLICATION) {
-        sdp << "a=rtcp:" << port << sp << "IN" << sp << "IP4" << sp << addr;
+        oss << "a=rtcp:" << port << sp << "IN" << sp << "IP4" << sp << addr;
     }
-    sdp << GenerateSDPLines(eol);
+    // ICE and DTLS lines
+    oss << Entry::GenerateSDP(eol, role);
+    
+    // Media-level attributes
+    oss << GenerateSDPLines(eol);
 
-    return sdp.str();
+    return oss.str();
 }
 
 std::string MediaEntry::GenerateSDPLines(std::string_view eol) const {
-    std::ostringstream sdp;
+    std::ostringstream oss;
     // 与属性a=group:BUNDLE配合使用，表示多个media使用同一个端口
     // 'bundle-only' which can be used to request that specified meida
     // is only used if kept within a BUNDLE group.
     // See https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-bundle-negotiation-38#section-6
-    sdp << "a=bundle-only" << eol;
-    sdp << "a=mid:" << mid_ << eol;
+    oss << "a=bundle-only" << eol;
+    oss << "a=mid:" << mid_ << eol;
 
     switch(direction_) {
     case Direction::SEND_ONLY: 
-        sdp << "a=sendonly" << eol;
+        oss << "a=sendonly" << eol;
         break;
     case Direction::RECV_ONLY: 
-        sdp << "a=recvonly" << eol;
+        oss << "a=recvonly" << eol;
         break;
     case Direction::SEND_RECV: 
-        sdp << "a=sendrecv" << eol;
+        oss << "a=sendrecv" << eol;
         break;
     case Direction::INACTIVE: 
-        sdp << "a=inactive" << eol;
+        oss << "a=inactive" << eol;
         break;
     default:
         break;
@@ -82,11 +91,11 @@ std::string MediaEntry::GenerateSDPLines(std::string_view eol) const {
         // TODO: Except "extmap" and "rtcp-rsize", but why?
         // 是不是表示当前版本暂不支持这个两个属性
         if (attr.find("extmap") == std::string::npos && attr.find("rtcp-rsize") == std::string::npos) {
-            sdp << "a=" << attr << eol;
+            oss << "a=" << attr << eol;
         }
     }
 
-    return sdp.str();
+    return oss.str();
 }
 
 void MediaEntry::ParseSDPLine(std::string_view line) {
@@ -108,28 +117,7 @@ void MediaEntry::ParseSDPLine(std::string_view line) {
         }else if (attr == "bundle-only") {
             // Added already
         }else if (key == "setup") {
-            if (value == "active") {
-                role_.emplace(Role::ACTIVE);
-            }else if (value == "passive") {
-                role_.emplace(Role::PASSIVE);
-            }else {
-                role_.emplace(Role::ACT_PASS);
-            }
-        }else if (key == "fingerprint") {
-            auto fingerprint = ParseFingerprintAttribute(value);
-            if (fingerprint.has_value()) {
-                set_fingerprint(std::move(fingerprint.value()));
-            }else {
-                PLOG_WARNING << "Failed to parse fingerprint format: " << value;
-            }
-        }else if (key == "ice-ufrag") {
-            ice_ufrag_.emplace(std::move(value));
-        }else if (key == "ice-pwd") {
-            ice_pwd_.emplace(std::move(value));
-        }else if (key == "candidate") {
-            // TODO：add candidate from sdp
-        }else if (key == "end-of-candidate") {
-            // TODO：add candidate from sdp
+            // Parsed at session-level
         }else {
             attributes_.emplace_back(std::move(attr));
         }

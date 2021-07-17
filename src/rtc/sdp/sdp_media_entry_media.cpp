@@ -25,35 +25,35 @@ std::string Media::description() const {
 }
 
 std::string Media::GenerateSDPLines(std::string_view eol) const {
-    std::ostringstream sdp;
-    sdp << MediaEntry::GenerateSDPLines(eol);
-    sdp << "a=rtcp-mux" << eol;
+    std::ostringstream oss;
+    oss << MediaEntry::GenerateSDPLines(eol);
+    oss << "a=rtcp-mux" << eol;
 
     for (auto it = rtp_map_.begin(); it != rtp_map_.end(); ++it) {
         auto &map = it->second;
 
         // a=rtpmap
-        sdp << "a=rtpmap:" << map.pt << ' ' << map.format << "/" << map.clock_rate;
+        oss << "a=rtpmap:" << map.pt << ' ' << map.format << "/" << map.clock_rate;
         if (!map.codec_params.empty()) {
-            sdp << "/" << map.codec_params;
+            oss << "/" << map.codec_params;
         }
-        sdp << eol;
+        oss << eol;
 
         // a=rtcp-fb
         for (const auto& val : map.rtcp_feedbacks) {
             // TODO: Add transport-cc support
             if (val != "transport-cc") {
-                sdp << "a=rtcp-fb" << map.pt << ' ' << val << eol;
+                oss << "a=rtcp-fb" << map.pt << ' ' << val << eol;
             }
         }
 
         // a=fmtp
         for (const auto& val : map.fmt_profiles) {
-            sdp << "a=fmtp:" << map.pt << ' ' << val << eol;
+            oss << "a=fmtp:" << map.pt << ' ' << val << eol;
         }
     }
 
-    return sdp.str();
+    return oss.str();
 }
 
 Media Media::reciprocate() const {

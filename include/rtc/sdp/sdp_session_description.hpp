@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/sdp/sdp_entry.hpp"
+#include "rtc/sdp/sdp_session_entry.hpp"
 #include "rtc/sdp/sdp_media_entry_application.hpp"
 #include "rtc/sdp/sdp_media_entry_audio.hpp"
 #include "rtc/sdp/sdp_media_entry_video.hpp"
@@ -59,19 +60,11 @@ private:
 private:
 
     Type type_;
-    // Session-level attributes
-    std::string user_name_;
-    std::string session_id_;
     Role role_;
-    // ICE attribute
-    // See https://tools.ietf.org/id/draft-ietf-mmusic-ice-sip-sdp-14.html#rfc.section.5.4
-    std::optional<std::string> ice_ufrag_ = std::nullopt;
-    std::optional<std::string> ice_pwd_ = std::nullopt;
-    // DTLS attribute
-    std::optional<std::string> fingerprint_ = std::nullopt;
-
-    // Media Entries
-    std::vector<std::shared_ptr<MediaEntry>> entries_;
+    // Session-level entries
+    SessionEntry session_entry_; 
+    // Media-level Entries
+    std::vector<std::shared_ptr<MediaEntry>> media_entries_;
 
 };
 

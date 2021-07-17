@@ -47,6 +47,7 @@ set(LIB_SOURCES
     src/rtc/sdp/sdp_utils.cpp
     src/rtc/sdp/candidate.cpp
     src/rtc/sdp/sdp_session_description.cpp
+    src/rtc/sdp/sdp_entry.cpp
     src/rtc/sdp/sdp_media_entry.cpp
     src/rtc/sdp/sdp_session_entry.cpp
     src/rtc/sdp/sdp_media_entry_application.cpp

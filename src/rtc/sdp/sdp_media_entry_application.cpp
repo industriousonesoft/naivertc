@@ -38,18 +38,18 @@ void Application::ParseSDPLine(std::string_view line) {
 }
 
 std::string Application::GenerateSDPLines(std::string_view eol) const {
-    std::ostringstream sdp;
-    sdp << MediaEntry::GenerateSDPLines(eol);
+    std::ostringstream oss;
+    oss << MediaEntry::GenerateSDPLines(eol);
 
     if (sctp_port_) {
-        sdp << "a=sctp-port:" << *sctp_port_ << eol;
+        oss << "a=sctp-port:" << *sctp_port_ << eol;
     }
 
     if (max_message_size_) {
-        sdp << "a=max-message-size:" << *max_message_size_ << eol;
+        oss << "a=max-message-size:" << *max_message_size_ << eol;
     }
 
-    return sdp.str();
+    return oss.str();
 }
     
 } // namespace sdp
