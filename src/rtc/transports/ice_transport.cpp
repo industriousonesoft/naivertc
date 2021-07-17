@@ -123,7 +123,7 @@ std::optional<std::string> IceTransport::GetRemoteAddress() const {
 #endif
     return std::nullopt;
 }
-sdp::SessionDescription IceTransport::GetLocalDescription(sdp::Type type) const {
+sdp::Description IceTransport::GetLocalDescription(sdp::Type type) const {
 #if !USE_NICE
     char sdp[JUICE_MAX_SDP_STRING_LEN];
     if (juice_get_local_description(juice_agent_.get(), sdp, JUICE_MAX_SDP_STRING_LEN) < 0) {
@@ -138,10 +138,10 @@ sdp::SessionDescription IceTransport::GetLocalDescription(sdp::Type type) const 
 #endif
     // RFC 5763: The endpoint that is the offer MUST use the setup attribute value of setup::actpass
     // See https://tools.ietf.org/html/rfc5763#section-5
-    return sdp::SessionDescription(std::string(sdp.get()), type, type == sdp::Type::OFFER ? sdp::Role::ACT_PASS : role_);
+    return sdp::Description(std::string(sdp.get()), type, type == sdp::Type::OFFER ? sdp::Role::ACT_PASS : role_);
 }
 
-void IceTransport::SetRemoteDescription(const sdp::SessionDescription& remote_sdp) {
+void IceTransport::SetRemoteDescription(const sdp::Description& remote_sdp) {
     if (role_ == sdp::Role::ACT_PASS) {
         role_ = remote_sdp.role() == sdp::Role::ACTIVE ? sdp::Role::PASSIVE : sdp::Role::ACTIVE;
     }

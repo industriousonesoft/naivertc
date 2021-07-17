@@ -2,6 +2,7 @@
 #include "common/utils.hpp"
 #include "base/internals.hpp"
 #include "rtc/sdp/sdp_entry.hpp"
+#include "rtc/sdp/sdp_utils.hpp"
 
 #include <plog/Log.h>
 
@@ -16,8 +17,8 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
     handle_queue_.Post([this, on_success, on_failure](){
         try {
             this->SetLocalDescription(sdp::Type::OFFER);
-            if (this->local_session_description_.has_value()) {
-                auto local_sdp = this->local_session_description_.value();
+            if (this->local_sdp_.has_value()) {
+                auto local_sdp = this->local_sdp_.value();
                 on_success(std::move(local_sdp));
             }else {
                 throw std::runtime_error("Failed to create local offer sdp.");
@@ -33,8 +34,8 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
     handle_queue_.Post([this, on_success, on_failure](){
         try {
             this->SetLocalDescription(sdp::Type::ANSWER);
-            if (this->local_session_description_.has_value()) {
-                auto local_sdp = this->local_session_description_.value();
+            if (this->local_sdp_.has_value()) {
+                auto local_sdp = this->local_sdp_.value();
                 on_success(std::move(local_sdp));
             }else {
                 throw std::runtime_error("Failed to create local answer sdp.");
@@ -50,7 +51,7 @@ void PeerConnection::SetOffer(const std::string sdp,
                                 SDPSetFailureCallback on_failure) {
     handle_queue_.Post([this, sdp = std::move(sdp), on_success, on_failure](){
         try {
-            auto remote_sdp = sdp::SessionDescription(sdp, sdp::Type::OFFER);
+            auto remote_sdp = sdp::Description(sdp, sdp::Type::OFFER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
         }catch(const std::exception& exp) {
@@ -64,7 +65,7 @@ void PeerConnection::SetAnswer(const std::string sdp,
                                 SDPSetFailureCallback on_failure) {
     handle_queue_.Post([this, sdp = std::move(sdp), on_success, on_failure](){
         try {
-            auto remote_sdp = sdp::SessionDescription(sdp, sdp::Type::ANSWER);
+            auto remote_sdp = sdp::Description(sdp, sdp::Type::ANSWER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
         }catch (const std::exception& exp) {
@@ -86,7 +87,7 @@ void PeerConnection::AddRemoteCandidate(const Candidate& candidate) {
         remote_candidates_.emplace_back(std::move(candidate));
 
         // Start to process remote candidate if remote sdp is ready
-        if (remote_session_description_) {
+        if (remote_sdp_) {
             ProcessRemoteCandidates();
         }
     });
@@ -116,7 +117,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
 
     // Only a local offer resets the negotiation needed flag
     if (type == sdp::Type::OFFER) {
-        if (local_session_description_ && negotiation_needed_ == false) {
+        if (local_sdp_ && negotiation_needed_ == false) {
             PLOG_DEBUG << "No negotiation needed.";
             return;
         }
@@ -154,8 +155,8 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
         return;
     }
 
-    auto session_description = ice_transport_->GetLocalDescription(type);
-    ProcessLocalDescription(std::move(session_description));
+    auto local_sdp = ice_transport_->GetLocalDescription(type);
+    ProcessLocalDescription(std::move(local_sdp));
 
     UpdateSignalingState(new_signaling_state);
 
@@ -163,18 +164,18 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     TryToGatherLocalCandidate();
 }
 
-void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
-    PLOG_VERBOSE << "Setting remote sdp: " << sdp::TypeToString(description.type());
+void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
+    PLOG_VERBOSE << "Setting remote sdp: " << sdp::TypeToString(remote_sdp.type());
 
     // This is basically not gonna happen since we accept any offer
-    if (description.type() == sdp::Type::ROLLBACK) {
+    if (remote_sdp.type() == sdp::Type::ROLLBACK) {
         PLOG_VERBOSE << "Rolling back pending remote sdp.";
         UpdateSignalingState(SignalingState::STABLE);
         return;
     }
 
     // To check if remote sdp is valid or not
-    ValidRemoteDescription(description);
+    ValidRemoteDescription(remote_sdp);
 
     // Switch to new signaling state
     SignalingState new_signaling_state;
@@ -183,20 +184,20 @@ void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
     // If signaling state is stable, which means the local sdp is not create yet, so we assume the remote peer as offerer.
     case SignalingState::STABLE: {
         // TODO: Do we need to accept a remote pr-answer sdp in stable signaling state, not only the remote offer sdp?
-        description.hintType(sdp::Type::OFFER);
-        if (description.type() != sdp::Type::OFFER) {
-            throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(description.type()) + " in signaling state: stable");
+        remote_sdp.hintType(sdp::Type::OFFER);
+        if (remote_sdp.type() != sdp::Type::OFFER) {
+            throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: stable");
         }
         new_signaling_state = SignalingState::HAVE_REMOTE_OFFER;
         break;
     }
     case SignalingState::HAVE_LOCAL_OFFER: {
-        description.hintType(sdp::Type::ANSWER);
-        if (description.type() != sdp::Type::ANSWER &&
-            description.type() != sdp::Type::PRANSWER) {
-            throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(description.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
+        remote_sdp.hintType(sdp::Type::ANSWER);
+        if (remote_sdp.type() != sdp::Type::ANSWER &&
+            remote_sdp.type() != sdp::Type::PRANSWER) {
+            throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
         }
-        if (description.type() == sdp::Type::OFFER) {
+        if (remote_sdp.type() == sdp::Type::OFFER) {
             // The ICE agent will intiate a rollback automatically when a peer had
             // pervoiusly created an offer receives an offer from the remote peer.
             SetLocalDescription(sdp::Type::ROLLBACK);
@@ -209,25 +210,25 @@ void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
     }
     // If we already have a remote pr-answer sdp, we try to replace it with new remote sdp.
     case SignalingState::HAVE_REMOTE_PRANSWER: {
-        description.hintType(sdp::Type::ANSWER);
-        if (description.type() != sdp::Type::ANSWER &&
-            description.type() != sdp::Type::PRANSWER) {
-            throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(description.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
+        remote_sdp.hintType(sdp::Type::ANSWER);
+        if (remote_sdp.type() != sdp::Type::ANSWER &&
+            remote_sdp.type() != sdp::Type::PRANSWER) {
+            throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
         }
         new_signaling_state = SignalingState::STABLE;
         break;
     }
     default:
         // TODO: Do we need to accept a remote offer sdp in the HAVE_REMOTE_OFFER state, and repalce the old remote offer sdp with the new one?
-        throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(description.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
+        throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
     }
 
-    ProcessRemoteDescription(std::move(description));
+    ProcessRemoteDescription(std::move(remote_sdp));
 
     UpdateSignalingState(new_signaling_state);
 
     // If this is an offer, we need to answer it
-    if (remote_session_description_ && remote_session_description_->type() == sdp::Type::OFFER && rtc_config_.auto_negotiation) {
+    if (remote_sdp_ && remote_sdp_->type() == sdp::Type::OFFER && rtc_config_.auto_negotiation) {
         SetLocalDescription(sdp::Type::ANSWER);
     }
 
@@ -235,15 +236,15 @@ void PeerConnection::SetRemoteDescription(sdp::SessionDescription description) {
     ProcessRemoteCandidates();
 }
 
-void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_description) {
+void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
     const uint16_t local_sctp_port = DEFAULT_SCTP_PORT;
     const size_t local_max_message_size = rtc_config_.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
 
     // Clean up the application entry added by ICE transport already.
-    session_description.ClearMedia();  
+    local_sdp.ClearMedia();  
 
     // Reciprocate remote session description
-    if (auto remote = this->remote_session_description_) {
+    if (auto remote = this->remote_sdp_) {
         // https://wanghenshui.github.io/2018/08/15/variant-visit
         for (unsigned int i = 0; i < remote->media_count(); ++i) {
             std::visit(utils::overloaded {
@@ -256,7 +257,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
                        
                         PLOG_DEBUG << "Adding application to local description, mid= " << local_app.mid();
 
-                        session_description.AddApplication(std::move(local_app));
+                        local_sdp.AddApplication(std::move(local_app));
 
                    }else {
                         auto reciprocated = remote_app->reciprocate();
@@ -267,7 +268,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
                             << "Reciprocating application in local description, mid: " 
                             << reciprocated.mid();
 
-                        session_description.AddApplication(std::move(reciprocated));
+                        local_sdp.AddApplication(std::move(reciprocated));
                    }
                 },
                 [&](sdp::Media* remote_media) {
@@ -280,7 +281,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
                                         << ", active=" << std::boolalpha
                                         << (local_media.direction() != sdp::Direction::INACTIVE);
 
-                            session_description.AddMedia(std::move(local_media));
+                            local_sdp.AddMedia(std::move(local_media));
                         // Local track was removed
                         }else {
                             auto reciprocated = remote_media->reciprocate();
@@ -288,7 +289,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
 
                             PLOG_DEBUG << "Adding inactive media to local description, mid=" << reciprocated.mid();
 
-                            session_description.AddMedia(std::move(reciprocated));
+                            local_sdp.AddMedia(std::move(reciprocated));
                         }
                     }else {
                         auto reciprocated = remote_media->reciprocate();
@@ -297,20 +298,20 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
 
                         PLOG_DEBUG << "Reciprocating media in local description, mid: " 
                                 << reciprocated.mid();
-                        session_description.AddMedia(std::move(reciprocated));
+                        local_sdp.AddMedia(std::move(reciprocated));
                     }
                 }
             }, remote->media(i));
         }
     } 
 
-    if (session_description.type() == sdp::Type::OFFER) {
+    if (local_sdp.type() == sdp::Type::OFFER) {
         // If this is a offer, add locally created data channels and tracks
         // Add application for data channels
-        if (session_description.HasApplication() == false) {
+        if (local_sdp.HasApplication() == false) {
             if (data_channels_.empty() == false) {
                 StreamId new_mid = 0;
-                while (session_description.HasMid(std::to_string(new_mid))) {
+                while (local_sdp.HasMid(std::to_string(new_mid))) {
                     ++new_mid;
                 }
                 // FIXME: Do we need to update data channle stream id here other than to shift it after received remote sdp later.
@@ -320,7 +321,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
 
                 PLOG_DEBUG << "Adding application to local description, mid=" + app.mid();
 
-                session_description.AddApplication(std::move(app));
+                local_sdp.AddApplication(std::move(app));
             }
         }
 
@@ -328,7 +329,7 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
         for (auto it = media_tracks_.begin(); it != media_tracks_.end(); ++it) {
             if (auto track = it->second) {
                 // Filter existed tracks
-                if (session_description.HasMid(track->mid())) {
+                if (local_sdp.HasMid(track->mid())) {
                     continue;
                 }
                 auto media = track->description();
@@ -337,41 +338,41 @@ void PeerConnection::ProcessLocalDescription(sdp::SessionDescription session_des
                             << ", active=" << std::boolalpha
                             << (media.direction() != sdp::Direction::INACTIVE);
 
-                session_description.AddMedia(std::move(media));
+                local_sdp.AddMedia(std::move(media));
             }
         }
     } 
 
     // Set local fingerprint (wait for certificate if necessary)
-    session_description.set_fingerprint(certificate_.get()->fingerprint());
+    local_sdp.set_fingerprint(certificate_.get()->fingerprint());
 
     // TODO: Add candidates existed in old local sdp
 
-    PLOG_VERBOSE << "Did process local sdp: " << std::string(session_description);
+    PLOG_VERBOSE << "Did process local sdp: " << std::string(local_sdp);
 
-    local_session_description_ = std::move(session_description);
+    local_sdp_ = std::move(local_sdp);
    
     // TODO: Reciprocated tracks might need to be open
 
 }
-void PeerConnection::ProcessRemoteDescription(sdp::SessionDescription session_description) {
+void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
     
-    ice_transport_->SetRemoteDescription(session_description);
+    ice_transport_->SetRemoteDescription(remote_sdp);
 
     // Since we assumed passive role during DataChannel creatation, we might need to 
     // shift the stream id form odd to even
     ShiftDataChannelIfNeccessary();
 
     // If both the local and remote sdp have application, we need to create sctp transport for data channel
-    if (session_description.HasApplication()) {
+    if (remote_sdp.HasApplication()) {
         if (!sctp_transport_ && dtls_transport_ && dtls_transport_->state() == Transport::State::CONNECTED) {
             InitSctpTransport();
         }
     }
 
-    PLOG_VERBOSE << "Did process remote sdp: " << std::string(session_description);
+    PLOG_VERBOSE << "Did process remote sdp: " << std::string(remote_sdp);
 
-    remote_session_description_ = std::move(session_description);
+    remote_sdp_ = std::move(remote_sdp);
 }
 
 void PeerConnection::ProcessRemoteCandidates() {
@@ -384,7 +385,7 @@ void PeerConnection::ProcessRemoteCandidates() {
 void PeerConnection::ProcessRemoteCandidate(Candidate candidate) {
     PLOG_VERBOSE << "Adding remote candidate: " << std::string(candidate);
 
-    if (!remote_session_description_) {
+    if (!remote_sdp_) {
         throw std::logic_error("Failed to process remote candidate without remote sdp");
     }
 
@@ -393,7 +394,7 @@ void PeerConnection::ProcessRemoteCandidate(Candidate candidate) {
     }
 
     // We assume all medias are multiplex
-    candidate.HintMid(remote_session_description_->bundle_id());
+    candidate.HintMid(remote_sdp_->bundle_id());
     candidate.Resolve(Candidate::ResolveMode::SIMPLE);
 
     if (candidate.isResolved()) {
@@ -407,25 +408,25 @@ void PeerConnection::ProcessRemoteCandidate(Candidate candidate) {
 
 }
 
-void PeerConnection::ValidRemoteDescription(const sdp::SessionDescription& session_description) {
-    if (!session_description.ice_ufrag()) {
+void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) {
+    if (!remote_sdp.ice_ufrag()) {
         throw std::invalid_argument("Remote sdp has no ICE user fragment");
     }
 
-    if (!session_description.ice_pwd()) {
+    if (!remote_sdp.ice_pwd()) {
         throw std::invalid_argument("Remote sdp has no ICE password");
     }
 
-    if (!session_description.fingerprint()) {
+    if (!remote_sdp.fingerprint()) {
         throw std::invalid_argument("Remote sdp has no valid fingerprint");
     }
 
-    if (!session_description.media_count()) {
+    if (!remote_sdp.media_count()) {
         throw std::invalid_argument("Remote sdp has no media line");
     }
 
     int active_media_count = 0;
-    for(unsigned int i = 0; i < session_description.media_count(); ++i ) {
+    for(unsigned int i = 0; i < remote_sdp.media_count(); ++i ) {
         std::visit(utils::overloaded{
             [&](const sdp::Application*) {
                 ++active_media_count;
@@ -435,16 +436,16 @@ void PeerConnection::ValidRemoteDescription(const sdp::SessionDescription& sessi
                     ++active_media_count;
                 }
             }
-        }, session_description.media(i));
+        }, remote_sdp.media(i));
     }
 
     if (active_media_count == 0) {
         throw std::invalid_argument("Remote sdp has no active media");
     }
 
-    if (local_session_description_) {
-        if (local_session_description_->ice_ufrag() == session_description.ice_ufrag() &&
-            local_session_description_->ice_pwd() == session_description.ice_pwd()) {
+    if (local_sdp_) {
+        if (local_sdp_->ice_ufrag() == remote_sdp.ice_ufrag() &&
+            local_sdp_->ice_pwd() == remote_sdp.ice_pwd()) {
             throw std::logic_error("Got a local sdp as remote sdp");
         }
     }
@@ -468,9 +469,9 @@ void PeerConnection::ShiftDataChannelIfNeccessary() {
 
 void PeerConnection::TryToGatherLocalCandidate() {
     if (gathering_state_ == GatheringState::NEW && 
-        local_session_description_.has_value()) {
+        local_sdp_.has_value()) {
         PLOG_DEBUG << "Start to gather local candidates";
-        ice_transport_->GatherLocalCandidate(local_session_description_.value().bundle_id());
+        ice_transport_->GatherLocalCandidate(local_sdp_.value().bundle_id());
     }
 }
 

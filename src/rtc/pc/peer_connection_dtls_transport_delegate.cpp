@@ -23,7 +23,7 @@ void PeerConnection::InitDtlsTransport() {
 
         std::shared_ptr<DtlsTransport> dtls_transport = nullptr;
         // DTLS-SRTP
-        if (auto local_sdp = local_session_description_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVieo())) {
+        if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVieo())) {
             auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(lower, std::move(dtls_init_config));
             dtls_srtp_transport->OnReceivedRtpPacket(utils::weak_bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1));
             dtls_transport = dtls_srtp_transport;
@@ -53,7 +53,7 @@ void PeerConnection::OnDtlsTransportStateChange(DtlsTransport::State transport_s
         case DtlsSrtpTransport::State::CONNECTED: {
             PLOG_DEBUG << "DTLS transport connected";
             // DataChannel enabled
-            if (auto remote_sdp = this->remote_session_description_; remote_sdp && remote_sdp->HasApplication()) {
+            if (auto remote_sdp = this->remote_sdp_; remote_sdp && remote_sdp->HasApplication()) {
                 this->InitSctpTransport();
             }else {
                 this->UpdateConnectionState(ConnectionState::CONNECTED);

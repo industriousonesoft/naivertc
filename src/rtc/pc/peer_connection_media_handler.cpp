@@ -79,7 +79,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
             // TODO: To open channel if SCTP transport is created so far.
 
             // Renegotiation is needed if the curren local description does not have application
-            if (!local_session_description_ || local_session_description_->HasApplication() == false) {
+            if (!local_sdp_ || local_sdp_->HasApplication() == false) {
                 this->negotiation_needed_ = true;
             }
 

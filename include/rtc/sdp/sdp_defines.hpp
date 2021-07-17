@@ -29,11 +29,6 @@ enum class Direction {
     UNKNOWN
 };
 
-sdp::Type StringToType(const std::string& type_string);
-std::string TypeToString(sdp::Type type);
-
-std::string RoleToString(sdp::Role role);
-
 } // namespace sdp
 } // namespace naivertc
 

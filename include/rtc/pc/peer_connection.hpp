@@ -7,7 +7,7 @@
 #include "common/task_queue.hpp"
 #include "rtc/pc/peer_connection_configuration.hpp"
 #include "rtc/sdp/candidate.hpp"
-#include "rtc/sdp/sdp_session_description.hpp"
+#include "rtc/sdp/sdp_description.hpp"
 #include "rtc/transports/ice_transport.hpp"
 #include "rtc/transports/dtls_transport.hpp"
 #include "rtc/transports/sctp_transport.hpp"
@@ -60,7 +60,7 @@ public:
     using CandidateCallback = std::function<void(const Candidate& candidate)>;
     using SignalingStateCallback = std::function<void(SignalingState new_state)>;
 
-    using SDPCreateSuccessCallback = std::function<void(const sdp::SessionDescription& sdp)>;
+    using SDPCreateSuccessCallback = std::function<void(const sdp::Description& sdp)>;
     using SDPCreateFailureCallback = std::function<void(const std::exception& exp)>;
 
     using SDPSetSuccessCallback = std::function<void()>;
@@ -112,18 +112,18 @@ private:
     bool UpdateSignalingState(SignalingState state);
 
     void SetLocalDescription(sdp::Type type);
-    void SetRemoteDescription(sdp::SessionDescription description);
+    void SetRemoteDescription(sdp::Description remote_sdp);
 
-    void ProcessLocalDescription(sdp::SessionDescription session_description);
-    void ProcessRemoteDescription(sdp::SessionDescription session_description);
-    void ValidRemoteDescription(const sdp::SessionDescription& session_description);
+    void ProcessLocalDescription(sdp::Description local_sdp);
+    void ProcessRemoteDescription(sdp::Description remote_sdp);
+    void ValidRemoteDescription(const sdp::Description& remote_sdp);
 
     void TryToGatherLocalCandidate();
     void ProcessRemoteCandidates();
     void ProcessRemoteCandidate(Candidate candidate);
     void AddRemoteCandidate(const Candidate& candidate);
 
-    void AddReciprocatedMediaTrack(sdp::Media description);
+    void AddReciprocatedMediaTrack(sdp::Media media_sdp);
     void ShiftDataChannelIfNeccessary();
 
     void ResetCallbacks();
@@ -166,8 +166,8 @@ private:
     CandidateCallback candidate_callback_ = nullptr;
     SignalingStateCallback signaling_state_callback_ = nullptr;
 
-    std::optional<sdp::SessionDescription> local_session_description_ = std::nullopt;
-    std::optional<sdp::SessionDescription> remote_session_description_ = std::nullopt;
+    std::optional<sdp::Description> local_sdp_ = std::nullopt;
+    std::optional<sdp::Description> remote_sdp_ = std::nullopt;
 
     // Using std::shared_ptr instead of std::weak_ptr to make sure them still valid during the peer connection
     std::unordered_map<StreamId, std::shared_ptr<DataChannel>> data_channels_;

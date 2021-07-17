@@ -1,5 +1,5 @@
-#ifndef _RTC_SDP_SESSION_DESCRIPTION_H_
-#define _RTC_SDP_SESSION_DESCRIPTION_H_
+#ifndef _RTC_SDP_DESCRIPTION_H_
+#define _RTC_SDP_DESCRIPTION_H_
 
 #include "base/defines.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
@@ -15,10 +15,10 @@
 namespace naivertc {
 namespace sdp {
 
-class RTC_CPP_EXPORT SessionDescription {
+class RTC_CPP_EXPORT Description {
 public:
-    SessionDescription(const std::string& sdp, Type type = Type::UNSPEC, Role role = Role::ACT_PASS);
-    SessionDescription(const std::string& sdp, std::string type_string);
+    Description(const std::string& sdp, Type type = Type::UNSPEC, Role role = Role::ACT_PASS);
+    Description(const std::string& sdp, std::string type_string);
 
     Type type() const;
     Role role() const;

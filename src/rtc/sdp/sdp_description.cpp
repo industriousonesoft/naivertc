@@ -1,4 +1,4 @@
-#include "rtc/sdp/sdp_session_description.hpp"
+#include "rtc/sdp/sdp_description.hpp"
 #include "common/utils.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
 
@@ -9,7 +9,7 @@
 
 namespace naivertc {
 namespace sdp {
-SessionDescription::SessionDescription(const std::string& sdp, Type type, Role role) : 
+Description::Description(const std::string& sdp, Type type, Role role) : 
     type_(Type::UNSPEC),
     role_(role) {
         
@@ -17,35 +17,35 @@ SessionDescription::SessionDescription(const std::string& sdp, Type type, Role r
     Parse(std::move(sdp));
 }
 
-SessionDescription::SessionDescription(const std::string& sdp, std::string type_string) : 
-    SessionDescription(sdp, StringToType(type_string), Role::ACT_PASS) {
+Description::Description(const std::string& sdp, std::string type_string) : 
+    Description(sdp, StringToType(type_string), Role::ACT_PASS) {
 }
 
-Type SessionDescription::type() const {
+Type Description::type() const {
     return type_;
 }
 
-Role SessionDescription::role() const {
+Role Description::role() const {
     return role_;
 }
 
-std::string SessionDescription::bundle_id() const {
+std::string Description::bundle_id() const {
     return !media_entries_.empty() ? media_entries_[0]->mid() : "0";
 }
 
-std::optional<std::string> SessionDescription::ice_ufrag() const {
+std::optional<std::string> Description::ice_ufrag() const {
     return session_entry_.ice_ufrag();
 }
 
-std::optional<std::string> SessionDescription::ice_pwd() const {
+std::optional<std::string> Description::ice_pwd() const {
     return session_entry_.ice_pwd();
 }
 
-std::optional<std::string> SessionDescription::fingerprint() const {
+std::optional<std::string> Description::fingerprint() const {
     return session_entry_.fingerprint();
 }
 
-void SessionDescription::hintType(Type type) {
+void Description::hintType(Type type) {
     if (type_ == Type::UNSPEC) {
         type_ = type;
         if (type_ == Type::ANSWER && role_ == Role::ACT_PASS) {
@@ -55,37 +55,37 @@ void SessionDescription::hintType(Type type) {
     }
 }
 
-void SessionDescription::set_fingerprint(std::string fingerprint) {
+void Description::set_fingerprint(std::string fingerprint) {
     session_entry_.set_fingerprint(std::move(fingerprint));
 }
 
-int SessionDescription::AddMedia(Media media) {
+int Description::AddMedia(Media media) {
     media_entries_.emplace_back(std::make_shared<Media>(std::move(media)));
     return int(media_entries_.size()) - 1;
 }
 
-int SessionDescription::AddApplication(Application app) {
+int Description::AddApplication(Application app) {
     media_entries_.emplace_back(std::make_shared<Application>(std::move(app)));
     return int(media_entries_.size()) - 1;
 }
 
-int SessionDescription::AddApplication(std::string mid) {
+int Description::AddApplication(std::string mid) {
     return AddApplication(Application(std::move(mid)));
 }
 
-int SessionDescription::AddAudio(std::string mid, Direction direction) {
+int Description::AddAudio(std::string mid, Direction direction) {
     return AddMedia(Audio(std::move(mid), direction));
 }
 
-int SessionDescription::AddVideo(std::string mid, Direction direction) {
+int Description::AddVideo(std::string mid, Direction direction) {
     return AddMedia(Video(std::move(mid), direction));
 }
 
-void SessionDescription::ClearMedia() {
+void Description::ClearMedia() {
     media_entries_.clear();
 }
 
-bool SessionDescription::HasApplication() const {
+bool Description::HasApplication() const {
     for (auto entry : media_entries_) {
         if (entry->type() == sdp::MediaEntry::Type::APPLICATION) {
             return true;
@@ -94,7 +94,7 @@ bool SessionDescription::HasApplication() const {
     return false;
 }
 
-bool SessionDescription::HasAudio() const {
+bool Description::HasAudio() const {
     for (auto entry : media_entries_) {
         if (entry->type() == sdp::MediaEntry::Type::AUDIO) {
             return true;
@@ -103,7 +103,7 @@ bool SessionDescription::HasAudio() const {
     return false;
 }
 
-bool SessionDescription::HasVieo() const {
+bool Description::HasVieo() const {
     for (auto entry : media_entries_) {
         if (entry->type() == sdp::MediaEntry::Type::VIDEO) {
             return true;
@@ -112,7 +112,7 @@ bool SessionDescription::HasVieo() const {
     return false;
 }
 
-bool SessionDescription::HasMid(std::string_view mid) const {
+bool Description::HasMid(std::string_view mid) const {
     for (auto entry : media_entries_) {
         if (entry->mid() == mid) {
             return true;
@@ -121,16 +121,17 @@ bool SessionDescription::HasMid(std::string_view mid) const {
     return false;
 }
 
-SessionDescription::operator std::string() const {
+Description::operator std::string() const {
     return GenerateSDP("\r\n");
 }
 
 // GenerateSDP
 #warning Be careful, there is no space after '=' and only has one space between two parts in a line.
-std::string SessionDescription::GenerateSDP(std::string_view eol, bool application_only) const {
+std::string Description::GenerateSDP(std::string_view eol, bool application_only) const {
     std::ostringstream oss;
     std::string sp = " ";
     
+    // Session-level lines
     oss << session_entry_.GenerateSDP(eol, role_);
 
     // 除了data channel之外还有音视频流时设置此属性，共用一个传输通道传输的媒体，
@@ -152,18 +153,19 @@ std::string SessionDescription::GenerateSDP(std::string_view eol, bool applicati
     // 可以参考这里 http://tools.ietf.org/html/draft-ietf-mmusic-msid
     oss << "a=msid-semantic:" << sp << "WMS" << eol;
         
+     // Media-level lines
     for (const auto& entry : media_entries_) {
         if (application_only && entry->type() != MediaEntry::Type::APPLICATION) {
             continue;
         }
         oss << entry->GenerateSDP(eol, role_);
     }
-    return oss.str();
 
+    return oss.str();
 }
 
 // private methods
-void SessionDescription::Parse(std::string sdp) {
+void Description::Parse(std::string sdp) {
     int index = -1;
     std::istringstream ss(sdp);
     std::shared_ptr<MediaEntry> curr_entry;
@@ -211,7 +213,7 @@ void SessionDescription::Parse(std::string sdp) {
     } // end of while
 }
 
-std::shared_ptr<MediaEntry> SessionDescription::CreateMediaEntry(std::string mline, std::string mid, Direction direction) {
+std::shared_ptr<MediaEntry> Description::CreateMediaEntry(std::string mline, std::string mid, Direction direction) {
     std::string type = mline.substr(0, mline.find(' '));
     if (type == "application") {
         auto app = std::make_shared<Application>(std::move(mid));
@@ -224,7 +226,7 @@ std::shared_ptr<MediaEntry> SessionDescription::CreateMediaEntry(std::string mli
     }
 }
 
-std::variant<Media*, Application*> SessionDescription::media(unsigned int index) {
+std::variant<Media*, Application*> Description::media(unsigned int index) {
     if (index >= media_entries_.size()) {
         throw std::out_of_range("Media index out of range.");
     }
@@ -245,7 +247,7 @@ std::variant<Media*, Application*> SessionDescription::media(unsigned int index)
     }
 }
 
-std::variant<const Media*, const Application*> SessionDescription::media(unsigned int index) const {
+std::variant<const Media*, const Application*> Description::media(unsigned int index) const {
      if (index >= media_entries_.size()) {
         throw std::out_of_range("Media index out of range.");
     }
@@ -266,11 +268,11 @@ std::variant<const Media*, const Application*> SessionDescription::media(unsigne
     }
 }
 
-unsigned int SessionDescription::media_count() const {
+unsigned int Description::media_count() const {
     return unsigned(media_entries_.size());
 }
 
-const Application* SessionDescription::application() const {
+const Application* Description::application() const {
     for (auto entry : media_entries_) {
         if (entry->type() == sdp::MediaEntry::Type::APPLICATION) {
             return static_cast<Application* >(entry.get());
@@ -279,7 +281,7 @@ const Application* SessionDescription::application() const {
     return nullptr;
 }
 
-Application* SessionDescription::application() {
+Application* Description::application() {
     for (auto entry : media_entries_) {
         if (entry->type() == sdp::MediaEntry::Type::APPLICATION) {
             return static_cast<Application* >(entry.get());

@@ -19,7 +19,7 @@ void Client::OnConnected(bool is_initiator) {
     ioc_.post(strand_.wrap([this, is_initiator](){
         // If we are not initiator, we act as a offer
         if (!is_initiator) {
-            this->peer_conn_->CreateOffer([this](const sdp::SessionDescription& local_sdp){
+            this->peer_conn_->CreateOffer([this](const sdp::Description& local_sdp){
                 std::cout << "Did create local offer sdp " << std::endl;
                 this->SendLocalSDP(std::move(local_sdp), true);
             }, [this](const std::exception& exp){
@@ -39,7 +39,7 @@ void Client::OnRemoteSDP(const std::string sdp, bool is_offer) {
         if (is_offer) {
             this->peer_conn_->SetOffer(std::move(remote_sdp), [this](){
                 std::cout << "Did set remote offer " << std::endl;
-                this->peer_conn_->CreateAnswer([this](const sdp::SessionDescription& local_sdp){
+                this->peer_conn_->CreateAnswer([this](const sdp::Description& local_sdp){
                     std::cout << "Did create local answer sdp" << std::endl;
                     this->SendLocalSDP(std::move(local_sdp), false);
                 }, [this](const std::exception& exp){

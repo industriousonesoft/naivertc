@@ -6,7 +6,7 @@
 #include "rtc/pc/peer_connection_configuration.hpp"
 #include "rtc/sdp/candidate.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
-#include "rtc/sdp/sdp_session_description.hpp"
+#include "rtc/sdp/sdp_description.hpp"
 
 #include <sigslot.h>
 
@@ -37,8 +37,8 @@ public:
     void GatherLocalCandidate(std::string mid);
     bool AddRemoteCandidate(const Candidate& candidate);
 
-    sdp::SessionDescription GetLocalDescription(sdp::Type type) const;
-    void SetRemoteDescription(const sdp::SessionDescription& remote_sdp);
+    sdp::Description GetLocalDescription(sdp::Type type) const;
+    void SetRemoteDescription(const sdp::Description& remote_sdp);
 
     std::optional<std::string> GetLocalAddress() const;
     std::optional<std::string> GetRemoteAddress() const;

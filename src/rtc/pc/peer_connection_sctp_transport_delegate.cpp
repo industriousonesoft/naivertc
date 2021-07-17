@@ -18,11 +18,11 @@ void PeerConnection::InitSctpTransport() {
             throw std::logic_error("No underlying DTLS transport for SCTP transport");
         }
         
-        if (!remote_session_description_ || !remote_session_description_->application()) {
+        if (!remote_sdp_ || !remote_sdp_->application()) {
             throw std::logic_error("Failed to start to create SCTP transport without application sdp.");
         }
 
-        uint16_t sctp_port = remote_session_description_->application()->sctp_port().value_or(DEFAULT_SCTP_PORT);
+        uint16_t sctp_port = remote_sdp_->application()->sctp_port().value_or(DEFAULT_SCTP_PORT);
 
         // This is the last chance to ensure the stream numbers are coherent with the role
         ShiftDataChannelIfNeccessary();
