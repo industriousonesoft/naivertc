@@ -7,7 +7,7 @@
 namespace naivertc {
 namespace sdp {
 
-Application::Application(std::string mid)
+Application::Application(const std::string mid)
     : MediaEntry("application 9 UDP/DTLS/SCTP", std::move(mid), Direction::SEND_RECV) {}
 
 std::string Application::description() const {

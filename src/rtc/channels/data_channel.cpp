@@ -77,10 +77,10 @@ DataChannel::Config::Config(const std::string _label, const std::string _protoco
 }
 
 // Implement of DataChannel
-DataChannel::DataChannel(StreamId stream_id, std::string label, std::string protocol) 
+DataChannel::DataChannel(StreamId stream_id, const std::string label, const std::string protocol) 
     : stream_id_(stream_id),
-    label_(label),
-    protocol_(protocol) {
+    label_(std::move(label)),
+    protocol_(std::move(protocol)) {
 }
 
 DataChannel::~DataChannel() {}
@@ -89,11 +89,11 @@ StreamId DataChannel::stream_id() const {
     return stream_id_;
 }
 
-std::string DataChannel::label() const {
+const std::string DataChannel::label() const {
     return label_;
 }
 
-std::string DataChannel::protocol() const {
+const std::string DataChannel::protocol() const {
     return protocol_;
 }
 

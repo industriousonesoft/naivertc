@@ -20,12 +20,12 @@ public:
         Config(const std::string label, const std::string protocol = "", std::optional<StreamId> stream_id = std::nullopt);
     };
 public:
-    DataChannel(StreamId stream_id, std::string label, std::string protocol);
+    DataChannel(const StreamId stream_id, const std::string label, const std::string protocol);
     virtual ~DataChannel();
 
     StreamId stream_id() const;
-    std::string label() const;
-    std::string protocol() const;
+    const std::string label() const;
+    const std::string protocol() const;
     void HintStreamIdForRole(sdp::Role role);
 
 private:

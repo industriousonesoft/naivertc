@@ -18,7 +18,7 @@ namespace signaling {
 
 using json = nlohmann::json;
 
-bool AyameChannel::ParseURL(const std::string signaling_url, URLParts& parts) {
+bool AyameChannel::ParseURL(const std::string& signaling_url, URLParts& parts) {
   if (!URLParts::Parse(signaling_url, parts)) {
     throw std::exception();
   }
@@ -256,7 +256,7 @@ void AyameChannel::OnRead(boost::system::error_code ec,
 void AyameChannel::SendLocalSDP(const std::string sdp, bool is_offer) {
     json json_message = {
         {"type", is_offer ? "offer" : "answer"}, 
-        {"sdp", sdp}
+        {"sdp", std::move(sdp)}
     };
     ws_->WriteText(json_message.dump());
 }
@@ -267,9 +267,9 @@ void AyameChannel::SendLocalCandidate(const std::string sdp_mid, const int sdp_m
         {"type", "candidate"}
     };
     // Set candidate information as object in ice property and send
-    json_message["ice"] = {{"candidate", candidate},
+    json_message["ice"] = {{"candidate", std::move(candidate)},
                             {"sdpMLineIndex", sdp_mlineindex},
-                            {"sdpMid", sdp_mid}};
+                            {"sdpMid", std::move(sdp_mid)}};
     ws_->WriteText(json_message.dump());
 }
 

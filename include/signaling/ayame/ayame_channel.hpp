@@ -25,7 +25,7 @@ public:
     void SendLocalCandidate(const std::string sdp_mid, const int sdp_mlineindex, const std::string sdp) override;
 
 private:
-    bool ParseURL(const std::string signaling_url, URLParts& parts);
+    bool ParseURL(const std::string& signaling_url, URLParts& parts);
 
 private:
     void DoRead();

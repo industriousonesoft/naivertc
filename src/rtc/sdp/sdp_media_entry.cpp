@@ -9,7 +9,7 @@
 namespace naivertc {
 namespace sdp {
 
-MediaEntry::MediaEntry(const std::string& mline, std::string mid, Direction direction) 
+MediaEntry::MediaEntry(const std::string& mline, const std::string mid, Direction direction) 
     : mid_(std::move(mid)), direction_(direction) {
     unsigned int port;
     std::istringstream ss(mline);
@@ -17,7 +17,7 @@ MediaEntry::MediaEntry(const std::string& mline, std::string mid, Direction dire
     type_ = type_string_to_type(type_string_);
 }
 
-MediaEntry::Type MediaEntry::type_string_to_type(std::string type_string) const {
+MediaEntry::Type MediaEntry::type_string_to_type(const std::string& type_string) const {
     if (type_string == "application" || type_string == "APPLICATION") {
         return Type::APPLICATION;
     }else if (type_string == "audio" || type_string == "AUDIO") {

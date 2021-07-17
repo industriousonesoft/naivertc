@@ -13,7 +13,7 @@ public:
         RTPMap(std::string_view mline);
         RTPMap() {}
 
-        void AddFeedback(const std::string& line);
+        void AddFeedback(const std::string line);
         void RemoveFeedback(const std::string& line);
         void AddAttribute(std::string attr) { fmt_profiles.emplace_back(std::move(attr)); }
 
@@ -30,7 +30,7 @@ public:
     };
 public:
     Media(const std::string& sdp);
-    Media(const std::string& mline, std::string mid, Direction direction = Direction::SEND_ONLY);
+    Media(const std::string& mline, const std::string mid, Direction direction = Direction::SEND_ONLY);
     virtual ~Media() = default;
 
     std::string description() const override;

@@ -279,22 +279,8 @@ void IceTransport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallba
     }
 }
 
-void IceTransport::ParseIceSettingFromSDP(NiceAgent *agent, const gchar *sdp) {
-    gchar **sdp_lines = NULL;
-    sdp_lines = g_strsplit (sdp, "\n", 0);
-    for (gint i = 0; sdp_lines && sdp_lines[i]; i++) {
+void IceTransport::ParseIceSettingFromSDP(const std::string& sdp) {
 
-        if (g_str_has_prefix (sdp_lines[i], "m=")) {
-            PLOG_DEBUG << "has app";
-        } else if (g_str_has_prefix (sdp_lines[i], "a=ice-ufrag:")) {
-            PLOG_DEBUG << "has ice-ufrag";
-        } else if (g_str_has_prefix (sdp_lines[i], "a=ice-pwd:")) {
-            PLOG_DEBUG << "has ice-pwd";
-        }
-  }
-
-  if (sdp_lines)
-    g_strfreev(sdp_lines);
 }
 
 } // namespace naivertc

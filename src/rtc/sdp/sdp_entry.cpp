@@ -27,7 +27,7 @@ std::optional<std::string> Entry::fingerprint() const {
 
 std::string Entry::GenerateSDP(std::string_view eol, Role role) const {
     std::ostringstream oss;
-    std::string sp = " ";
+    const std::string sp = " ";
 
     // The "ice-pwd" and "ice-ufrag" attributes can appear at either the session-level or media-level.
     // When present in both, the value in the media-level takes precedence. Thus, the value at the session-level

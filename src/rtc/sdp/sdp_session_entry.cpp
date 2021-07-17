@@ -10,15 +10,15 @@ SessionEntry::SessionEntry() {
 
 }
 
-std::string SessionEntry::user_name() const {
+const std::string SessionEntry::user_name() const {
     return user_name_;
 }
 
-std::string SessionEntry::session_id() const {
+const std::string SessionEntry::session_id() const {
     return session_id_;
 }
 
-std::string SessionEntry::GenerateSDP(std::string_view eol, Role role) const {
+std::string SessionEntry::GenerateSDP(const std::string_view eol, Role role) const {
     std::ostringstream oss;
     std::string sp = " ";
 

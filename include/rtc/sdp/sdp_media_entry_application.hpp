@@ -8,7 +8,7 @@ namespace sdp {
 
 struct RTC_CPP_EXPORT Application : public MediaEntry {
 public:
-    Application(std::string mid);
+    Application(const std::string mid);
     virtual ~Application() = default;
 
     std::string description() const override;

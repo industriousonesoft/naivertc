@@ -17,22 +17,22 @@ struct RTC_CPP_EXPORT IceServer {
     IceServer(const std::string& url);
 
     // STUN
-    IceServer(std::string hostname, uint16_t port);
-    IceServer(std::string hostname, std::string service);
+    IceServer(const std::string hostname, uint16_t port);
+    IceServer(const std::string hostname, const std::string service);
 
     // TURN
-    IceServer(std::string hostname, uint16_t port, std::string username, std::string password, RelayType relay_type = RelayType::TURN_UDP);
-    IceServer(std::string hostname, std::string service, std::string username, std::string password, RelayType relay_type = RelayType::TURN_UDP);
+    IceServer(const std::string hostname, uint16_t port, const std::string username, const std::string password, RelayType relay_type = RelayType::TURN_UDP);
+    IceServer(const std::string hostname, const std::string service, const std::string username, const std::string password, RelayType relay_type = RelayType::TURN_UDP);
 
-    std::string hostname() const { return hostname_; }
+    const std::string hostname() const { return hostname_; }
     uint16_t port() const { return port_; }
     Type type() const { return type_; }
     RelayType relay_type() const { return relay_type_; }
-    std::string username() const { return username_; }
-    std::string password() const { return password_; }
+    const std::string username() const { return username_; }
+    const std::string password() const { return password_; }
 
-    void set_username(std::string username) { username_ = username; }
-    void set_password(std::string password) { password_ = password; }
+    void set_username(const std::string username) { username_ = username; }
+    void set_password(const std::string password) { password_ = password; }
 
     operator std::string() const;
 
@@ -72,7 +72,7 @@ struct RTC_CPP_EXPORT ProxyServer {
     std::string username;
     std::string password;
 
-    ProxyServer(Type type, std::string hostname, uint16_t port, std::string username = "", std::string password = "");
+    ProxyServer(Type type, const std::string hostname, uint16_t port, const std::string username = "", const std::string password = "");
 };
 
 #endif

@@ -26,7 +26,7 @@ Candidate::Candidate(std::string candidate) : Candidate() {
     }
 }
 
-Candidate::Candidate(std::string candidate, std::string mid) : Candidate() {
+Candidate::Candidate(std::string candidate, const std::string mid) : Candidate() {
     if (!candidate.empty()) {
         Parse(std::move(candidate));
     }
@@ -38,7 +38,7 @@ Candidate::Candidate(std::string candidate, std::string mid) : Candidate() {
 Candidate::~Candidate() {}
 
 // Accessor
-std::string Candidate::foundation() const {
+const std::string Candidate::foundation() const {
     return foundation_;
 }
 
@@ -58,15 +58,15 @@ uint32_t Candidate::priority() const {
     return priority_;
 }
 
-std::string Candidate::hostname() const {
+const std::string Candidate::hostname() const {
     return hostname_;
 }
 
-std::string Candidate::server_port() const {
+const std::string Candidate::server_port() const {
     return server_port_;
 }
 
-std::string Candidate::mid() const {
+const std::string Candidate::mid() const {
     return mid_.value_or("0");
 }
 
@@ -173,7 +173,7 @@ void Candidate::Parse(std::string candidate) {
     };
 
     const std::array<std::string, 2> prefixes = {"a=", "candidate:"};
-    for (std::string prefix : prefixes) {
+    for (const std::string& prefix : prefixes) {
         if (utils::string::match_prefix(candidate, prefix)) {
             candidate.erase(0, prefix.size());
         }

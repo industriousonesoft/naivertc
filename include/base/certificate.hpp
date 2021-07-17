@@ -16,18 +16,19 @@ class RTC_CPP_EXPORT Certificate {
 public:
     static std::future<std::shared_ptr<Certificate>> MakeCertificate(CertificateType type = CertificateType::DEFAULT);
 public:
-    Certificate(std::string crt_pem, std::string key_pem);
+    Certificate(std::string_view crt_pem, std::string_view key_pem);
     Certificate(std::shared_ptr<X509> x509, std::shared_ptr<EVP_PKEY> pkey);
     std::tuple<X509 *, EVP_PKEY *> credentials() const;
 
     ~Certificate();
 
-    std::string fingerprint() const;
+    const std::string fingerprint() const;
+    std::string fingerprint();
 
     static std::string MakeFingerprint(X509* x509);
 
 private:
-    static std::shared_ptr<Certificate> Generate(CertificateType type, const std::string common_name);
+    static std::shared_ptr<Certificate> Generate(CertificateType type, std::string_view common_name);
 private:
     std::shared_ptr<X509> x509_;
     std::shared_ptr<EVP_PKEY> pkey_;

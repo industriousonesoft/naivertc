@@ -8,7 +8,7 @@
 
 namespace naivertc {
 
-Certificate::Certificate(std::string crt_pem, std::string key_pem) {
+Certificate::Certificate(std::string_view crt_pem, std::string_view key_pem) {
     BIO *bio = BIO_new(BIO_s_mem());
 	BIO_write(bio, crt_pem.data(), int(crt_pem.size()));
 	x509_ = std::shared_ptr<X509>(PEM_read_bio_X509(bio, nullptr, 0, 0), X509_free);
@@ -41,7 +41,11 @@ Certificate::~Certificate() {
     pkey_.reset();
 }
 
-std::string Certificate::fingerprint() const {
+const std::string Certificate::fingerprint() const {
+    return fingerprint_;
+}
+
+std::string Certificate::fingerprint() {
     return fingerprint_;
 }
 
@@ -66,7 +70,7 @@ std::string Certificate::MakeFingerprint(X509* x509) {
     return oss.str();
 }
 
-std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, const std::string common_name) {
+std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, std::string_view common_name) {
 
     PLOG_DEBUG << "Generating certificate with OpenSSL.";
 
@@ -130,7 +134,7 @@ std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, const s
     }
 
     const size_t serialSize = 16;
-	auto *commonNameBytes = reinterpret_cast<unsigned char *>(const_cast<char *>(common_name.c_str()));
+	auto *commonNameBytes = reinterpret_cast<unsigned char *>(const_cast<char *>(common_name.data()));
 
 	if (!X509_set_pubkey(x509.get(), pkey.get()))
 		throw std::runtime_error("Unable to set certificate public key");

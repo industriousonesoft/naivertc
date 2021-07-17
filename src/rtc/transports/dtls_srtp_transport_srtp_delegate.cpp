@@ -10,7 +10,7 @@ namespace {
     "EXTRACTOR" prefix is for historical compatibility.)
     RFC 5764 4.2.  Key Derivation
     */
-    static std::string kDtlsSrtpExporterLabel = "EXTRACTOR-dtls_srtp";
+    static const std::string kDtlsSrtpExporterLabel = "EXTRACTOR-dtls_srtp";
 }
 
 namespace naivertc {

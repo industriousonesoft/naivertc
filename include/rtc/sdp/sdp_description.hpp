@@ -18,11 +18,11 @@ namespace sdp {
 class RTC_CPP_EXPORT Description {
 public:
     Description(const std::string& sdp, Type type = Type::UNSPEC, Role role = Role::ACT_PASS);
-    Description(const std::string& sdp, std::string type_string);
+    Description(const std::string& sdp, const std::string& type_string);
 
     Type type() const;
     Role role() const;
-    std::string bundle_id() const;
+    const std::string bundle_id() const;
     std::optional<std::string> ice_ufrag() const;
     std::optional<std::string> ice_pwd() const;
     std::optional<std::string> fingerprint() const;
@@ -53,9 +53,9 @@ public:
     Application* application();
 
 private:
-    std::shared_ptr<MediaEntry> CreateMediaEntry(std::string mline, std::string mid, Direction direction);
+    std::shared_ptr<MediaEntry> CreateMediaEntry(const std::string& mline, const std::string mid, Direction direction);
 
-    void Parse(std::string sdp);
+    void Parse(const std::string& sdp);
 
 private:
 

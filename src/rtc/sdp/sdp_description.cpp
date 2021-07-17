@@ -14,10 +14,10 @@ Description::Description(const std::string& sdp, Type type, Role role) :
     role_(role) {
         
     hintType(type);
-    Parse(std::move(sdp));
+    Parse(sdp);
 }
 
-Description::Description(const std::string& sdp, std::string type_string) : 
+Description::Description(const std::string& sdp, const std::string& type_string) : 
     Description(sdp, StringToType(type_string), Role::ACT_PASS) {
 }
 
@@ -29,7 +29,7 @@ Role Description::role() const {
     return role_;
 }
 
-std::string Description::bundle_id() const {
+const std::string Description::bundle_id() const {
     return !media_entries_.empty() ? media_entries_[0]->mid() : "0";
 }
 
@@ -129,7 +129,7 @@ Description::operator std::string() const {
 #warning Be careful, there is no space after '=' and only has one space between two parts in a line.
 std::string Description::GenerateSDP(std::string_view eol, bool application_only) const {
     std::ostringstream oss;
-    std::string sp = " ";
+    const std::string sp = " ";
     
     // Session-level lines
     oss << session_entry_.GenerateSDP(eol, role_);
@@ -165,7 +165,7 @@ std::string Description::GenerateSDP(std::string_view eol, bool application_only
 }
 
 // private methods
-void Description::Parse(std::string sdp) {
+void Description::Parse(const std::string& sdp) {
     int index = -1;
     std::istringstream ss(sdp);
     std::shared_ptr<MediaEntry> curr_entry;
@@ -213,14 +213,14 @@ void Description::Parse(std::string sdp) {
     } // end of while
 }
 
-std::shared_ptr<MediaEntry> Description::CreateMediaEntry(std::string mline, std::string mid, Direction direction) {
+std::shared_ptr<MediaEntry> Description::CreateMediaEntry(const std::string& mline, const std::string mid, Direction direction) {
     std::string type = mline.substr(0, mline.find(' '));
     if (type == "application") {
         auto app = std::make_shared<Application>(std::move(mid));
         media_entries_.emplace_back(app);
         return app;
     }else {
-        auto media = std::make_shared<Media>(std::move(mline), std::move(mid), direction);
+        auto media = std::make_shared<Media>(mline, std::move(mid), direction);
         media_entries_.emplace_back(media);
         return media;
     }

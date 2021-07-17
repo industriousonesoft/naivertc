@@ -13,8 +13,8 @@ public:
     SessionEntry();
     virtual ~SessionEntry() = default;
 
-    std::string user_name() const;
-    std::string session_id() const;
+    const std::string user_name() const;
+    const std::string session_id() const;
 
     void ParseSDPLine(std::string_view line) override;
     std::string GenerateSDP(std::string_view eol, Role role) const override;

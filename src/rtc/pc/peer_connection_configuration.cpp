@@ -69,11 +69,11 @@ IceServer::IceServer(const std::string& url) {
 	}
 }
 
-IceServer::IceServer(std::string hostname, uint16_t port) 
+IceServer::IceServer(const std::string hostname, uint16_t port) 
     : hostname_(hostname), port_(port), type_(Type::STUN) {}
 
-IceServer::IceServer(std::string hostname, std::string service) 
-    : hostname_(hostname), type_(Type::STUN) {
+IceServer::IceServer(const std::string hostname, const std::string service) 
+    : hostname_(std::move(hostname)), type_(Type::STUN) {
     try {
 		port_ = uint16_t(std::stoul(service));
 	} catch (...) {
@@ -81,11 +81,11 @@ IceServer::IceServer(std::string hostname, std::string service)
 	}
 }
 
-IceServer::IceServer(std::string hostname, uint16_t port, std::string username, std::string password, RelayType relay_type) 
-    : hostname_(hostname), port_(port), type_(Type::TURN), username_(username), password_(password), relay_type_(relay_type) {}
+IceServer::IceServer(const std::string hostname, uint16_t port, const std::string username, const std::string password, RelayType relay_type) 
+    : hostname_(std::move(hostname)), port_(port), type_(Type::TURN), username_(std::move(username)), password_(std::move(password)), relay_type_(relay_type) {}
 
-IceServer::IceServer(std::string hostname, std::string service, std::string username, std::string password, RelayType relay_type) 
-    : hostname_(hostname), type_(Type::TURN), username_(username), password_(password), relay_type_(relay_type) {
+IceServer::IceServer(const std::string hostname, const std::string service, const std::string username, const std::string password, RelayType relay_type) 
+    : hostname_(std::move(hostname)), type_(Type::TURN), username_(std::move(username)), password_(std::move(password)), relay_type_(relay_type) {
     try {
 		port_ = uint16_t(std::stoul(service));
 	} catch (...) {
@@ -129,11 +129,11 @@ std::string IceServer::relay_type_to_string() const {
 }
 
 // ProxyServer
-ProxyServer::ProxyServer(Type type_, std::string hostname_, uint16_t port_, std::string username_, std::string password_) 
+ProxyServer::ProxyServer(Type type_, const std::string hostname_, uint16_t port_, const std::string username_, const std::string password_) 
     : type(type_),
-    hostname(hostname_),
+    hostname(std::move(hostname_)),
     port(port_),
-    username(username_),
-    password(password_) {}
+    username(std::move(username_)),
+    password(std::move(password_)) {}
 
 }

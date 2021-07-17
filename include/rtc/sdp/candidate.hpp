@@ -50,7 +50,7 @@ public:
 
     Candidate();
     Candidate(std::string candidate);
-    Candidate(std::string candidate, std::string mid);
+    Candidate(std::string candidate, const std::string mid);
 
     ~Candidate();
 
@@ -58,16 +58,16 @@ public:
     // 我猜测的原因有两个：
     // 一是避免函数名与自定义的类型命名冲突,
     // 二是根据函数名可识别出是Get\Set函数，以区分于普通函数
-    std::string foundation() const;
+    const std::string foundation() const;
     uint32_t component_id() const;
     Type type() const;
     TransportType transport_type() const;
     uint32_t priority() const;
-    std::string hostname() const;
-    std::string server_port() const;
+    const std::string hostname() const;
+    const std::string server_port() const;
     Family family() const;
 
-    std::string mid() const;
+    const std::string mid() const;
     void HintMid(std::string mid);
 
     // NOTE: 对于普通的函数使用驼峰命名方式

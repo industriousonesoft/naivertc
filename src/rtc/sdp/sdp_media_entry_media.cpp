@@ -10,7 +10,7 @@ namespace sdp {
 Media::Media(const std::string& sdp) 
     : MediaEntry(sdp, "", Direction::UNKNOWN) {}
     
-Media::Media(const std::string& mline, std::string mid, Direction direction) 
+Media::Media(const std::string& mline, const std::string mid, Direction direction) 
     : MediaEntry(mline, std::move(mid), direction) {}
 
 std::string Media::description() const {
@@ -241,8 +241,8 @@ int Media::RTPMap::ParsePayloadType(std::string_view line) {
     return utils::string::to_integer<int>(line.substr(0, p));
 }
 
-void Media::RTPMap::AddFeedback(const std::string& line) {
-    this->rtcp_feedbacks.emplace_back(line);
+void Media::RTPMap::AddFeedback(const std::string line) {
+    this->rtcp_feedbacks.emplace_back(std::move(line));
 }
 
 void Media::RTPMap::RemoveFeedback(const std::string& line) {

@@ -56,7 +56,7 @@ private:
     void OnCandidateGathered(const char* sdp);
     void OnDataReceived(const char* data, size_t size);
 
-    void ParseIceSettingFromSDP(NiceAgent *agent, const gchar *sdp);
+    void ParseIceSettingFromSDP(const std::string& sdp);
     
     // Override from Transport
     void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
@@ -103,6 +103,9 @@ private:
     std::string curr_mid_;
     sdp::Role role_;
     std::atomic<GatheringState> gathering_state_ = GatheringState::NEW;
+
+    std::optional<std::string> ice_ufrag_ = std::nullopt;
+    std::optional<std::string> ice_pwd_ = std::nullopt;
 };
 
 }

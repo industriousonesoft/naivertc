@@ -79,6 +79,7 @@ public:
     void CreateAnswer(SDPCreateSuccessCallback on_success = nullptr, 
                     SDPCreateFailureCallback on_failure = nullptr);
 
+    // Passing 'sdp' by value other than reference in a async method
     void SetOffer(const std::string sdp,
                 SDPSetSuccessCallback on_success = nullptr, 
                 SDPSetFailureCallback on_failure = nullptr);

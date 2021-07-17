@@ -17,7 +17,7 @@ namespace numeric {
 // string
 namespace string {
 
-bool match_prefix(const std::string_view str, const std::string_view prefix) {
+bool match_prefix(std::string_view str, std::string_view prefix) {
     return str.size() >= prefix.size() && std::mismatch(prefix.begin(), prefix.end(), str.begin()).first == prefix.end();
 }
 
@@ -53,19 +53,19 @@ namespace random {} // namespace random
 // Network
 namespace network {
 
-std::optional<ResolveResult> UnspecfiedResolve(std::string hostname, std::string server_port, ProtocolType protocol_type, bool is_simple) {
+std::optional<ResolveResult> UnspecfiedResolve(const std::string& hostname, const std::string& server_port, ProtocolType protocol_type, bool is_simple) {
     return Resolve(std::move(hostname), std::move(server_port), FamilyType::UNSPEC, protocol_type, is_simple);
 }
 
-std::optional<ResolveResult> IPv4Resolve(std::string hostname, std::string server_port, ProtocolType protocol_type, bool is_simple) {
+std::optional<ResolveResult> IPv4Resolve(const std::string& hostname, const std::string& server_port, ProtocolType protocol_type, bool is_simple) {
     return Resolve(std::move(hostname), std::move(server_port), FamilyType::IP_V4, protocol_type, is_simple);
 }
 
-std::optional<ResolveResult> IPv6Resolve(std::string hostname, std::string server_port, ProtocolType protocol_type, bool is_simple) {
+std::optional<ResolveResult> IPv6Resolve(const std::string& hostname, const std::string& server_port, ProtocolType protocol_type, bool is_simple) {
     return Resolve(std::move(hostname), std::move(server_port), FamilyType::IP_V6, protocol_type, is_simple);
 }
 
-std::optional<ResolveResult> Resolve(std::string hostname, std::string server_port, FamilyType family_type, ProtocolType protocol_type, bool is_simple) {
+std::optional<ResolveResult> Resolve(const std::string& hostname, const std::string& server_port, FamilyType family_type, ProtocolType protocol_type, bool is_simple) {
     
     if (hostname.empty()) {
         throw std::invalid_argument("Hostname is not supposed to be empty");

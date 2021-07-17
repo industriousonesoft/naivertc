@@ -22,7 +22,7 @@ std::string error_string(unsigned long err) {
 	return std::string(buffer);
 }
 
-bool check(int success, const std::string &message) {
+bool check(int success, const std::string& message) {
 	if (success)
 		return true;
 
@@ -31,7 +31,7 @@ bool check(int success, const std::string &message) {
 	throw std::runtime_error(message + ": " + str);
 }
 
-bool check(SSL *ssl, int ret, const std::string &message) {
+bool check(SSL *ssl, int ret, const std::string& message) {
 	if (ret == BIO_EOF)
 		return true;
 

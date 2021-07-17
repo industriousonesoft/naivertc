@@ -10,7 +10,7 @@ struct RTC_CPP_EXPORT Audio : public Media {
 public:
     Audio(std::string mid, Direction direction = Direction::SEND_ONLY);
 
-    void AddCodec(int payload_type, std::string codec, int clock_rate = 48000, int channels = 2, std::optional<std::string> profile = std::nullopt);
+    void AddCodec(int payload_type, const std::string codec, int clock_rate = 48000, int channels = 2, std::optional<const std::string> profile = std::nullopt);
 
 };
 
