@@ -35,7 +35,7 @@ public:
 
     sdp::Role role() const;
     void GatherLocalCandidate(std::string mid);
-    bool AddRemoteCandidate(const Candidate& candidate);
+    bool AddRemoteCandidate(const sdp::Candidate& candidate);
 
     sdp::Description GetLocalDescription(sdp::Type type) const;
     void SetRemoteDescription(const sdp::Description& remote_sdp);
@@ -43,9 +43,9 @@ public:
     std::optional<std::string> GetLocalAddress() const;
     std::optional<std::string> GetRemoteAddress() const;
 
-    std::pair<std::optional<Candidate>, std::optional<Candidate>> GetSelectedCandidatePair();
+    std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>> GetSelectedCandidatePair();
 
-    sigslot::signal1<Candidate> SignalCandidateGathered;
+    sigslot::signal1<sdp::Candidate> SignalCandidateGathered;
     sigslot::signal1<GatheringState> SignalGatheringStateChanged;
 
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;

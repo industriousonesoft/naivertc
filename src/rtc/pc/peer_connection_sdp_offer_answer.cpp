@@ -76,12 +76,12 @@ void PeerConnection::SetAnswer(const std::string sdp,
 
 void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string sdp) {
     handle_queue_.Post([this, mid = std::move(mid), sdp = std::move(sdp)](){
-        auto candidate = Candidate(sdp, mid);
+        auto candidate = sdp::Candidate(sdp, mid);
         AddRemoteCandidate(std::move(candidate));
     });
 }
 
-void PeerConnection::AddRemoteCandidate(const Candidate& candidate) {
+void PeerConnection::AddRemoteCandidate(const sdp::Candidate& candidate) {
     handle_queue_.Post([this, candidate = std::move(candidate)](){
 
         remote_candidates_.emplace_back(std::move(candidate));
@@ -382,7 +382,7 @@ void PeerConnection::ProcessRemoteCandidates() {
     remote_candidates_.clear();
 }
 
-void PeerConnection::ProcessRemoteCandidate(Candidate candidate) {
+void PeerConnection::ProcessRemoteCandidate(sdp::Candidate candidate) {
     PLOG_VERBOSE << "Adding remote candidate: " << std::string(candidate);
 
     if (!remote_sdp_) {
@@ -395,12 +395,12 @@ void PeerConnection::ProcessRemoteCandidate(Candidate candidate) {
 
     // We assume all medias are multiplex
     candidate.HintMid(remote_sdp_->bundle_id());
-    candidate.Resolve(Candidate::ResolveMode::SIMPLE);
+    candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
 
     if (candidate.isResolved()) {
         ice_transport_->AddRemoteCandidate(std::move(candidate));
     // We might need a lookup
-    }else if (candidate.Resolve(Candidate::ResolveMode::LOOK_UP)) {
+    }else if (candidate.Resolve(sdp::Candidate::ResolveMode::LOOK_UP)) {
         ice_transport_->AddRemoteCandidate(std::move(candidate));
     }else {
         throw std::runtime_error("Failed to resolve remote candidate");

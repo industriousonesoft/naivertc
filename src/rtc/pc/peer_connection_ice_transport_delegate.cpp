@@ -65,7 +65,7 @@ void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gather
     });
 }
 
-void PeerConnection::OnCandidateGathered(Candidate candidate) {
+void PeerConnection::OnCandidateGathered(sdp::Candidate candidate) {
     handle_queue_.Post([this, candidate = std::move(candidate)](){
         if (this->candidate_callback_) {
             this->candidate_callback_(std::move(candidate));

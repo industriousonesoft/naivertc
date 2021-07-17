@@ -102,7 +102,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
         std::cout << conn_state_str << std::endl;
     });
 
-    peer_conn_->OnIceCandidate([this](const Candidate& candidate){
+    peer_conn_->OnIceCandidate([this](const sdp::Candidate& candidate){
         std::cout << "Local candidate: " << std::string(candidate) << std::endl;
         auto mid = candidate.mid();
         auto sdp = std::string(candidate);

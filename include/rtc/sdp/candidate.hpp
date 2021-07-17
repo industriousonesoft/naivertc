@@ -7,6 +7,7 @@
 #include <optional>
 
 namespace naivertc {
+namespace sdp {
 
 struct RTC_CPP_EXPORT Candidate {
 public: 
@@ -107,6 +108,7 @@ private:
     
 };
 
-}
+} // namespace sdp
+} // namespace naivertc
 
 #endif

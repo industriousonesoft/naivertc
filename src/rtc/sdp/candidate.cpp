@@ -8,6 +8,7 @@
 #include <sstream>
 
 namespace naivertc {
+namespace sdp {
 
 Candidate::Candidate() :
     foundation_("none"),
@@ -237,39 +238,40 @@ void Candidate::Parse(std::string candidate) {
     }
 }
 
-} // namespace naive rtc
+} // namespace sdp
+} // namespace naivertc
 
-std::ostream &operator<<(std::ostream &out, const naivertc::Candidate& candidate) {
+std::ostream &operator<<(std::ostream &out, const naivertc::sdp::Candidate& candidate) {
     return out << std::string(candidate);
 }
 
-std::ostream &operator<<(std::ostream &out, const naivertc::Candidate::Type type) {
+std::ostream &operator<<(std::ostream &out, const naivertc::sdp::Candidate::Type type) {
     switch(type) {
-    case naivertc::Candidate::Type::HOST:
+    case naivertc::sdp::Candidate::Type::HOST:
         return out << "host";
-    case naivertc::Candidate::Type::PEER_REFLEXIVE:
+    case naivertc::sdp::Candidate::Type::PEER_REFLEXIVE:
         return out << "prflx";
-    case naivertc::Candidate::Type::SERVER_REFLEXIVE:
+    case naivertc::sdp::Candidate::Type::SERVER_REFLEXIVE:
         return out << "srflx";
-    case naivertc::Candidate::Type::RELAYED:
+    case naivertc::sdp::Candidate::Type::RELAYED:
         return out << "relay";
     default:
         return out << "unknown";
     }
 }
 
-std::ostream &operator<<(std::ostream &out, const naivertc::Candidate::TransportType type) {
+std::ostream &operator<<(std::ostream &out, const naivertc::sdp::Candidate::TransportType type) {
     switch (type)
     {
-    case naivertc::Candidate::TransportType::UDP:
+    case naivertc::sdp::Candidate::TransportType::UDP:
         return out << "UDP";
-    case naivertc::Candidate::TransportType::TCP_ACTIVE:
+    case naivertc::sdp::Candidate::TransportType::TCP_ACTIVE:
         return out << "TCP_ACTIVE";
-    case naivertc::Candidate::TransportType::TCP_PASSIVE:
+    case naivertc::sdp::Candidate::TransportType::TCP_PASSIVE:
         return out << "TCP_PASSIVE";
-    case naivertc::Candidate::TransportType::TCP_S_O:
+    case naivertc::sdp::Candidate::TransportType::TCP_S_O:
         return out << "TCP_S_O";
-    case naivertc::Candidate::TransportType::TCP_UNKNOWN:
+    case naivertc::sdp::Candidate::TransportType::TCP_UNKNOWN:
         return out << "TCP_UNKNOWN";
     default:
         return out << "unknown";

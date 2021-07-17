@@ -68,7 +68,7 @@ void IceTransport::GatherLocalCandidate(std::string mid) {
 #endif
 }
 
-bool IceTransport::AddRemoteCandidate(const Candidate& candidate) {
+bool IceTransport::AddRemoteCandidate(const sdp::Candidate& candidate) {
     if (!candidate.isResolved()) {
         PLOG_WARNING << "Don't try to pass unresolved candidates for more safety.";
         return false;
@@ -170,20 +170,20 @@ void IceTransport::SetRemoteDescription(const sdp::Description& remote_sdp) {
     }
 }
 
-std::pair<std::optional<Candidate>, std::optional<Candidate>> IceTransport::GetSelectedCandidatePair() {
-    std::optional<Candidate> selected_local_candidate = std::nullopt;
-    std::optional<Candidate> selected_remote_candidate = std::nullopt;
+std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>> IceTransport::GetSelectedCandidatePair() {
+    std::optional<sdp::Candidate> selected_local_candidate = std::nullopt;
+    std::optional<sdp::Candidate> selected_remote_candidate = std::nullopt;
 #if !USE_NICE
     char local_candidate_sdp[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
 	char remote_candidate_sdp[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
     if (juice_get_selected_candidates(mAgent.get(), local_candidate_sdp, JUICE_MAX_CANDIDATE_SDP_STRING_LEN,
 	                                  remote_candidate_sdp, JUICE_MAX_CANDIDATE_SDP_STRING_LEN) == 0) {
-        auto local_candidate = Candidate(local_candidate_sdp, curr_mid_);
-        local_candidate.Resolve(Candidate::ResolveMode::SIMPLE);
+        auto local_candidate = sdp::Candidate(local_candidate_sdp, curr_mid_);
+        local_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
 		selected_local_candidate= std::make_optional(std::move(local_candidate));
 
-        auto remote_candidate = Candidate(remote_candidate_sdp, curr_mid_);
-        remote_candidate.Resolve(Candidate::ResolveMode::SIMPLE);
+        auto remote_candidate = sdp::Candidate(remote_candidate_sdp, curr_mid_);
+        remote_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
 		selected_remote_candidate = std::make_optional(std::move(remote_candidate));
 	}
 #else
@@ -193,15 +193,15 @@ std::pair<std::optional<Candidate>, std::optional<Candidate>> IceTransport::GetS
     }
     gchar* local_candidate_sdp = nice_agent_generate_local_candidate_sdp(nice_agent_.get(), nice_local_candidate);
     if (local_candidate_sdp) {
-        auto local_candidate = Candidate(local_candidate_sdp, curr_mid_);
-        local_candidate.Resolve(Candidate::ResolveMode::SIMPLE);
+        auto local_candidate = sdp::Candidate(local_candidate_sdp, curr_mid_);
+        local_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
         selected_local_candidate = std::make_optional(std::move(local_candidate));
     }
 
     gchar* remote_candidate_sdp = nice_agent_generate_local_candidate_sdp(nice_agent_.get(), nice_remote_candidate);
     if (remote_candidate_sdp) {
-        auto remote_candidate = Candidate(remote_candidate_sdp, curr_mid_);
-        remote_candidate.Resolve(Candidate::ResolveMode::SIMPLE);
+        auto remote_candidate = sdp::Candidate(remote_candidate_sdp, curr_mid_);
+        remote_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
         selected_remote_candidate = std::make_optional(std::move(remote_candidate));
     }
 
@@ -227,7 +227,7 @@ void IceTransport::OnGetheringStateChanged(GatheringState state) {
 
 void IceTransport::OnCandidateGathered(const char* sdp) {
     task_queue_.Post([this, sdp = std::move(sdp)](){
-        this->SignalCandidateGathered(std::move(Candidate(sdp, this->curr_mid_)));
+        this->SignalCandidateGathered(std::move(sdp::Candidate(sdp, this->curr_mid_)));
     });
 }
 
