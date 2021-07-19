@@ -11,21 +11,13 @@
 
 namespace naivertc {
 namespace sdp {
-Description::Description(const std::string& sdp, Type type, Role role) : 
-    type_(Type::UNSPEC),
-    role_(role) {
-        
-    hintType(type);
-    Parse(sdp);
-}
-
-Description::Description(const std::string& sdp, const std::string& type_string) : 
-    Description(sdp, StringToType(type_string), Role::ACT_PASS) {
-}
 
 Description::Description(Type type, Role role, std::optional<std::string> ice_ufrag, std::optional<std::string> ice_pwd, std::optional<std::string> fingerprint) 
-    : type_(Type::UNSPEC),
-    role_(role) {
+    : type_(type),
+    role_(Role::ACT_PASS) {
+
+    HintRole(role);
+
     if (ice_ufrag.has_value() && ice_pwd.has_value()) {
         session_entry_.set_ice_ufrag(ice_ufrag.value());
         session_entry_.set_ice_pwd(ice_pwd.value());
@@ -63,13 +55,31 @@ std::optional<std::string> Description::fingerprint() const {
     return session_entry_.fingerprint();
 }
 
-void Description::hintType(Type type) {
+void Description::set_ice_ufrag(const std::string ice_ufrag) {
+    session_entry_.set_ice_ufrag(std::move(ice_ufrag));
+}
+
+void Description::set_ice_pwd(const std::string ice_pwd) {
+    session_entry_.set_ice_pwd(std::move(ice_pwd));
+}
+
+void Description::set_fingerprint(std::string fingerprint) {
+    session_entry_.set_fingerprint(std::move(fingerprint));
+}
+
+void Description::HintType(Type type) {
     if (type_ == Type::UNSPEC) {
         type_ = type;
-        if (type_ == Type::ANSWER && role_ == Role::ACT_PASS) {
-            // ActPass is illegal for an answer, so reset to Passive
-            role_ = Role::PASSIVE;
-        }
+        HintRole(role_);
+    }
+}
+
+void Description::HintRole(Role role) {
+    if (type_ == Type::ANSWER && role == Role::ACT_PASS) {
+        // ActPass is illegal for an answer, so reset to Passive
+        role_ = Role::PASSIVE;
+    }else {
+        role_ = role;
     }
 }
 
@@ -114,15 +124,23 @@ bool Description::HasMid(std::string_view mid) const {
 }
 
 void Description::AddApplication(Application app) {
-    media_entries_.emplace_back(std::make_shared<Application>(std::move(app)));
+   AddApplication(std::make_shared<Application>(std::move(app)));
+}
+
+void Description::AddApplication(std::shared_ptr<Application> app) {
+    media_entries_.emplace_back(app);
+}
+
+void Description::AddMedia(Media media) {
+    AddMedia(std::make_shared<Media>(std::move(media)));
+}
+
+void Description::AddMedia(std::shared_ptr<Media> media) {
+    media_entries_.emplace_back(media);
 }
 
 void Description::AddApplication(std::string mid) {
     AddApplication(Application(std::move(mid)));
-}
-
-void Description::AddMedia(Media media) {
-    media_entries_.emplace_back(std::make_shared<Media>(std::move(media)));
 }
 
 void Description::AddAudio(std::string mid, Direction direction) {
@@ -170,72 +188,11 @@ std::string Description::GenerateSDP(std::string_view eol, bool application_only
         if (application_only && entry->type() != MediaEntry::Type::APPLICATION) {
             continue;
         }
+        // TODO: Hit ICE settings
         oss << entry->GenerateSDP(eol, role_);
     }
 
     return oss.str();
-}
-
-// private methods
-void Description::Parse(const std::string& sdp) {
-    int index = -1;
-    std::istringstream iss(sdp);
-    std::shared_ptr<MediaEntry> curr_entry;
-    while (iss) {
-        std::string line;
-        std::getline(iss, line);
-        utils::string::trim_end(line);
-        if (line.empty())
-            continue;
-
-        // Media-level lines
-        if (utils::string::match_prefix(line, "m=")) {
-            curr_entry = CreateMediaEntry(line.substr(2), std::to_string(++index), Direction::UNKNOWN);
-        }
-        // attributes which can appear at either session-level or media-level
-        else if (utils::string::match_prefix(line, "a=")) {
-
-            std::string attr = line.substr(2);
-            auto [key, value] = utils::string::parse_pair(attr);
-            // 'setup' attribute parsed at session-level
-            if (key == "setup") {
-                if (value == "active") {
-                    role_ = Role::ACTIVE;
-                }else if (value == "passive") {
-                    role_ = Role::PASSIVE;
-                }else {
-                    role_ = Role::ACT_PASS;
-                }
-            }
-            // media-level takes precedence
-            else if (curr_entry) {
-                curr_entry->ParseSDPLine(std::move(line));
-            }
-            // session-level
-            else {
-                session_entry_.ParseSDPLine(std::move(line));
-            }
-        }else if (curr_entry) {
-            curr_entry->ParseSDPLine(std::move(line));
-        }
-        // Session-level lines
-        else {
-            session_entry_.ParseSDPLine(std::move(line));
-        }
-    } // end of while
-}
-
-std::shared_ptr<MediaEntry> Description::CreateMediaEntry(const std::string& mline, const std::string mid, Direction direction) {
-    std::string type = mline.substr(0, mline.find(' '));
-    if (type == "application") {
-        auto app = std::make_shared<Application>(std::move(mid));
-        media_entries_.emplace_back(app);
-        return app;
-    }else {
-        auto media = std::make_shared<Media>(mline, std::move(mid), direction);
-        media_entries_.emplace_back(media);
-        return media;
-    }
 }
 
 std::variant<Media*, Application*> Description::media(unsigned int index) {

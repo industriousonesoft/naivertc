@@ -51,7 +51,7 @@ void PeerConnection::SetOffer(const std::string sdp,
                                 SDPSetFailureCallback on_failure) {
     handle_queue_.Post([this, sdp = std::move(sdp), on_success, on_failure](){
         try {
-            auto remote_sdp = sdp::Description(sdp, sdp::Type::OFFER);
+            auto remote_sdp = sdp::Description::Parser::Parse(std::move(sdp), sdp::Type::OFFER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
         }catch(const std::exception& exp) {
@@ -65,7 +65,7 @@ void PeerConnection::SetAnswer(const std::string sdp,
                                 SDPSetFailureCallback on_failure) {
     handle_queue_.Post([this, sdp = std::move(sdp), on_success, on_failure](){
         try {
-            auto remote_sdp = sdp::Description(sdp, sdp::Type::ANSWER);
+            auto remote_sdp = sdp::Description::Parser::Parse(std::move(sdp), sdp::Type::ANSWER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
         }catch (const std::exception& exp) {
@@ -190,7 +190,7 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
     // If signaling state is stable, which means the local sdp is not create yet, so we assume the remote peer as offerer.
     case SignalingState::STABLE: {
         // TODO: Do we need to accept a remote pr-answer sdp in stable signaling state, not only the remote offer sdp?
-        remote_sdp.hintType(sdp::Type::OFFER);
+        remote_sdp.HintType(sdp::Type::OFFER);
         if (remote_sdp.type() != sdp::Type::OFFER) {
             throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: stable");
         }
@@ -198,7 +198,7 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
         break;
     }
     case SignalingState::HAVE_LOCAL_OFFER: {
-        remote_sdp.hintType(sdp::Type::ANSWER);
+        remote_sdp.HintType(sdp::Type::ANSWER);
         if (remote_sdp.type() != sdp::Type::ANSWER &&
             remote_sdp.type() != sdp::Type::PRANSWER) {
             throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
@@ -216,7 +216,7 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
     }
     // If we already have a remote pr-answer sdp, we try to replace it with new remote sdp.
     case SignalingState::HAVE_REMOTE_PRANSWER: {
-        remote_sdp.hintType(sdp::Type::ANSWER);
+        remote_sdp.HintType(sdp::Type::ANSWER);
         if (remote_sdp.type() != sdp::Type::ANSWER &&
             remote_sdp.type() != sdp::Type::PRANSWER) {
             throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));

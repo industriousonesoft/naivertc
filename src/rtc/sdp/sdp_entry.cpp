@@ -33,6 +33,10 @@ void Entry::set_fingerprint(std::string fingerprint) {
     fingerprint_.emplace(std::move(fingerprint));
 }
 
+void Entry::set_role(Role role) {
+    role_.emplace(role);
+}
+
 std::optional<std::string> Entry::ice_ufrag() const {
     return ice_ufrag_;
 }
@@ -43,6 +47,10 @@ std::optional<std::string> Entry::ice_pwd() const {
 
 std::optional<std::string> Entry::fingerprint() const {
     return fingerprint_;
+}
+
+std::optional<sdp::Role> Entry::role() const {
+    return role_;
 }
 
 std::string Entry::GenerateSDP(std::string_view eol, Role role) const {
@@ -74,27 +82,46 @@ std::string Entry::GenerateSDP(std::string_view eol, Role role) const {
     return oss.str();
 }
 
-void Entry::ParseSDPLine(std::string_view line) {
+bool Entry::ParseSDPLine(std::string_view line) {
     if (utils::string::match_prefix(line, "a=")) {
         std::string_view attr = line.substr(2);
         auto [key, value] = utils::string::parse_pair(attr);
-        if (key == "fingerprint") {
-            auto fingerprint = ParseFingerprintAttribute(value);
-            if (fingerprint.has_value()) {
-                set_fingerprint(std::move(fingerprint.value()));
-            }else {
-                PLOG_WARNING << "Failed to parse fingerprint format: " << value;
-            }
-        }else if (key == "ice-ufrag") {
-            ice_ufrag_.emplace(std::move(value));
-        }else if (key == "ice-pwd") {
-            ice_pwd_.emplace(std::move(value));
-        }else if (key == "candidate") {
-            // TODO：add candidate from sdp
-        }else if (key == "end-of-candidate") {
-            // TODO：add candidate from sdp
+        return ParseSDPAttributeField(key, value);
+    }
+    return false;
+}
+
+bool Entry::ParseSDPAttributeField(std::string_view key, std::string_view value) {
+    if (key == "fingerprint") {
+        auto fingerprint = ParseFingerprintAttribute(value);
+        if (fingerprint.has_value()) {
+            set_fingerprint(std::move(fingerprint.value()));
+        }else {
+            PLOG_WARNING << "Failed to parse fingerprint format: " << value;
+        }
+        return true;
+    }else if (key == "ice-ufrag") {
+        ice_ufrag_.emplace(std::move(value));
+        return true;
+    }else if (key == "ice-pwd") {
+        ice_pwd_.emplace(std::move(value));
+        return true;
+    }else if (key == "candidate") {
+        // TODO：add candidate from sdp
+        return true;
+    }else if (key == "end-of-candidate") {
+        // TODO：add candidate from sdp
+        return true;
+    }else if (key == "setup") {
+        if (value == "active") {
+            role_.emplace(Role::ACTIVE);
+        }else if (value == "passive") {
+            role_.emplace(Role::PASSIVE);
+        }else {
+            role_.emplace(Role::ACT_PASS);
         }
     }
+    return false;
 }
 
 } // namespace sdp

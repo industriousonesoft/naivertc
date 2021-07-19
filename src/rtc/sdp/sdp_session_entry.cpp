@@ -38,43 +38,35 @@ std::string SessionEntry::GenerateSDP(const std::string_view eol, Role role) con
     return oss.str();
 } 
 
-void SessionEntry::ParseSDPLine(std::string_view line) {
+bool SessionEntry::ParseSDPLine(std::string_view line) {
 
     // version
     if (utils::string::match_prefix(line, "v=")) {
         // Ignore
+        return true;
     }
     // session initiator
     else if (utils::string::match_prefix(line, "o=")) {
         std::string value{line.substr(2)};
         std::istringstream origin(std::move(value));
         origin >> user_name_ >> session_id_;
+        return true;
     }
     // session name
     else if (utils::string::match_prefix(line, "s=")) {
         // Ignore
+        return true;
     }
     // session time range
     else if (utils::string::match_prefix(line, "t=")) {
         // Ignore
+        return true;
     }
     // attribute line
     else if (utils::string::match_prefix(line, "a=")) {
         std::string_view attr = line.substr(2);
         auto [key, value] = utils::string::parse_pair(attr);
-
-        // a=group:BUNDLE
-        if (key == "group") {
-
-        // a=msid-semantic: WMS
-        }else if (key == "msid-semantic") {
-
-        }else {
-
-        }
-
-    }else {
-
+        return ParseSDPAttributeField(key, value);
     }
 
     // username如果没有则使用'-'代替
@@ -84,6 +76,20 @@ void SessionEntry::ParseSDPLine(std::string_view line) {
 
     if (session_id_.empty()) {
         session_id_ = std::to_string(utils::random::generate_random<uint32_t>());
+    }
+
+    return false;
+}
+
+bool SessionEntry::ParseSDPAttributeField(std::string_view key, std::string_view value) {
+    // a=group:BUNDLE
+    if (key == "group") {
+        return true;
+    // a=msid-semantic: WMS
+    }else if (key == "msid-semantic") {
+        return true;
+    }else {
+        return Entry::ParseSDPAttributeField(key, value);
     }
 }
 

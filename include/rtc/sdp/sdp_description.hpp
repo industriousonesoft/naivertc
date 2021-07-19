@@ -39,10 +39,14 @@ private:
 
 };
 
+// Parser
+class RTC_CPP_EXPORT Parser {
 public:
-    Description(const std::string& sdp, Type type = Type::UNSPEC, Role role = Role::ACT_PASS);
-    Description(const std::string& sdp, const std::string& type_string);
+    static Description Parse(const std::string& sdp, Type type);
+};
 
+// Description
+public:
     virtual ~Description();
 
     Type type() const;
@@ -52,7 +56,12 @@ public:
     std::optional<std::string> ice_pwd() const;
     std::optional<std::string> fingerprint() const;
 
-    void hintType(Type type);
+    void set_ice_ufrag(const std::string ice_ufrag);
+    void set_ice_pwd(const std::string ice_pwd);
+    void set_fingerprint(std::string fingerprint);
+
+    void HintType(Type type);
+    void HintRole(Role role);
     void ClearMedia();
 
     operator std::string() const;
@@ -70,23 +79,21 @@ public:
     const Application* application() const;
     Application* application();
 
+    void AddApplication(std::shared_ptr<Application> app);
     void AddApplication(Application app);
-    void AddApplication(std::string mid = "data");
     void AddMedia(Media media);
+    void AddMedia(std::shared_ptr<Media> media);
+
+    void AddApplication(std::string mid = "data");
     void AddAudio(std::string mid = "audio", Direction direction = Direction::SEND_ONLY);
     void AddVideo(std::string mid = "video", Direction direction = Direction::SEND_ONLY);
 
-protected:
+private:
     Description(Type type = Type::UNSPEC, 
                 Role role = Role::ACT_PASS, 
                 std::optional<std::string> ice_ufrag = std::nullopt, 
                 std::optional<std::string> ice_pwd = std::nullopt, 
                 std::optional<std::string> fingerprint = std::nullopt);
-
-private:
-    std::shared_ptr<MediaEntry> CreateMediaEntry(const std::string& mline, const std::string mid, Direction direction);
-
-    void Parse(const std::string& sdp);
 
 protected:
     Type type_;

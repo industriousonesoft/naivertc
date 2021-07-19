@@ -22,14 +22,16 @@ public:
     std::optional<std::string> ice_ufrag() const;
     std::optional<std::string> ice_pwd() const;
     std::optional<std::string> fingerprint() const;
-
-    virtual void ParseSDPLine(std::string_view line);
-    virtual std::string GenerateSDP(std::string_view eol, Role role) const;
+    std::optional<sdp::Role> role() const;
 
     void set_ice_ufrag(const std::string ice_ufrag);
     void set_ice_pwd(const std::string ice_pwd);
     void set_fingerprint(std::string fingerprint);
+    void set_role(Role role);
 
+    virtual bool ParseSDPLine(std::string_view line);
+    virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value);
+    virtual std::string GenerateSDP(std::string_view eol, Role role) const;
 protected:
     Entry();
 private:
@@ -40,6 +42,7 @@ private:
     std::optional<std::string> ice_pwd_ = std::nullopt;
     // DTLS attribute
     std::optional<std::string> fingerprint_ = std::nullopt;
+    std::optional<sdp::Role> role_ = std::nullopt;
 
 };
 

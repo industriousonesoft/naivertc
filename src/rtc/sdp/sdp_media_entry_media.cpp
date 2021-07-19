@@ -8,10 +8,20 @@ namespace naivertc {
 namespace sdp {
 
 Media::Media(const std::string& sdp) 
-    : MediaEntry(sdp, "", Direction::UNKNOWN) {}
+    : MediaEntry(sdp, ""),
+    direction_(Direction::UNKNOWN) {}
     
 Media::Media(const std::string& mline, const std::string mid, Direction direction) 
-    : MediaEntry(mline, std::move(mid), direction) {}
+    : MediaEntry(mline, std::move(mid)),
+    direction_(direction) {}
+
+Direction Media::direction() const {
+    return direction_;
+}
+
+void Media::set_direction(Direction direction) {
+    direction_ = direction;
+}
 
 std::string Media::description() const {
     std::ostringstream desc;
@@ -27,6 +37,24 @@ std::string Media::description() const {
 std::string Media::GenerateSDPLines(std::string_view eol) const {
     std::ostringstream oss;
     oss << MediaEntry::GenerateSDPLines(eol);
+
+    switch(direction_) {
+    case Direction::SEND_ONLY: 
+        oss << "a=sendonly" << eol;
+        break;
+    case Direction::RECV_ONLY: 
+        oss << "a=recvonly" << eol;
+        break;
+    case Direction::SEND_RECV: 
+        oss << "a=sendrecv" << eol;
+        break;
+    case Direction::INACTIVE: 
+        oss << "a=inactive" << eol;
+        break;
+    default:
+        break;
+    }
+
     oss << "a=rtcp-mux" << eol;
 
     for (auto it = rtp_map_.begin(); it != rtp_map_.end(); ++it) {
@@ -137,62 +165,95 @@ bool Media::HasPayloadType(int pt) const {
     return rtp_map_.find(pt) != rtp_map_.end();
 }
 
-void Media::ParseSDPLine(std::string_view line) {
+bool Media::ParseSDPLine(std::string_view line) {
     if (utils::string::match_prefix(line, "a=")) {
         std::string_view attr = line.substr(2);
         auto [key, value] = utils::string::parse_pair(attr);
-
-        // eg: a=rtpmap:101 VP9/90000
-        if (key == "rtpmap") {
-            auto pt = RTPMap::ParsePayloadType(value);
-            auto it = rtp_map_.find(pt);
-            if (it == rtp_map_.end()) {
-                it = rtp_map_.insert(std::make_pair(pt, RTPMap(value))).first;
-            }else {
-                it->second.SetMLine(value);
-            }
-        // eg: a=rtcp-fb:101 nack pli
-        // eg: a=rtcp-fb:101 goog-remb
-        }else if (key == "rtcp-fb") {
-            size_t sp = value.find(' ');
-            int pt = utils::string::to_integer<int>(value.substr(0, sp));
-            auto it = rtp_map_.find(pt);
-            if (it == rtp_map_.end()) {
-                it = rtp_map_.insert(std::make_pair(pt, RTPMap())).first;
-            }
-            it->second.rtcp_feedbacks.emplace_back(value.substr(sp + 1));
-        // eg: a=fmtp:107 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
-        }else if (key == "fmtp") {
-            size_t sp = value.find(' ');
-            int pt = utils::string::to_integer<int>(value.substr(0, sp));
-            auto it = rtp_map_.find(pt);
-            if (it == rtp_map_.end()) {
-                it = rtp_map_.insert(std::make_pair(pt, RTPMap())).first;
-            }
-            it->second.fmt_profiles.emplace_back(value.substr(sp + 1));
-        }else if (key == "rtcp-mux") {
-            // Added by default
-        // eg: a=ssrc:3463951252 cname:sTjtznXLCNH7nbRw
-        }else if (key == "ssrc") {
-            auto ssrc = utils::string::to_integer<uint32_t>(value);
-            if (!HasSSRC(ssrc)) {
-                ssrcs_.emplace_back(ssrc);
-            }
-            auto cname_pos = value.find("cname:");
-            if (cname_pos != std::string::npos) {
-                auto cname = value.substr(cname_pos + 6);
-                cname_map_.emplace(ssrc, cname);
-            }
-            attributes_.emplace_back(attr);
-        }else {
-            MediaEntry::ParseSDPLine(line);
-        }
+        return ParseSDPAttributeField(key, value);
     // 'b=AS', is used to negotiate the maximum bandwidth
     // eg: b=AS:80
     }else if (utils::string::match_prefix(line, "b=AS")) {
         bandwidth_max_value_ = utils::string::to_integer<int>(line.substr(line.find(':') + 1));
+        return true;
     }else {
-        MediaEntry::ParseSDPLine(line);
+        return MediaEntry::ParseSDPLine(line);
+    }
+}
+
+bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value) {
+    // Direction
+    if (value == "sendonly") {
+        direction_ = Direction::SEND_ONLY;
+        return true;
+    }else if (value == "recvonly") {
+        direction_ = Direction::RECV_ONLY;
+        return true;
+    }else if (value == "sendrecv") {
+        direction_ = Direction::SEND_RECV;
+        return true;
+    }else if (value == "inactive") {
+        direction_ = Direction::INACTIVE;
+        return true;
+    }
+    // eg: a=rtpmap:101 VP9/90000
+    else if (key == "rtpmap") {
+        auto pt = RTPMap::ParsePayloadType(value);
+        auto it = rtp_map_.find(pt);
+        if (it == rtp_map_.end()) {
+            it = rtp_map_.insert(std::make_pair(pt, RTPMap(value))).first;
+        }else {
+            it->second.SetMLine(value);
+        }
+        return true;
+    }
+    // eg: a=rtcp-fb:101 nack pli
+    // eg: a=rtcp-fb:101 goog-remb
+    else if (key == "rtcp-fb") {
+        size_t sp = value.find(' ');
+        int pt = utils::string::to_integer<int>(value.substr(0, sp));
+        auto it = rtp_map_.find(pt);
+        if (it == rtp_map_.end()) {
+            it = rtp_map_.insert(std::make_pair(pt, RTPMap())).first;
+        }
+        it->second.rtcp_feedbacks.emplace_back(value.substr(sp + 1));
+        return true;
+    }
+    // eg: a=fmtp:107 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+    else if (key == "fmtp") {
+        size_t sp = value.find(' ');
+        int pt = utils::string::to_integer<int>(value.substr(0, sp));
+        auto it = rtp_map_.find(pt);
+        if (it == rtp_map_.end()) {
+            it = rtp_map_.insert(std::make_pair(pt, RTPMap())).first;
+        }
+        it->second.fmt_profiles.emplace_back(value.substr(sp + 1));
+        return true;
+    }else if (key == "rtcp-mux") {
+        // Added by default
+        return true;
+    }
+    // eg: a=ssrc:3463951252 cname:sTjtznXLCNH7nbRw
+    else if (key == "ssrc") {
+        auto ssrc = utils::string::to_integer<uint32_t>(value);
+        if (!HasSSRC(ssrc)) {
+            ssrcs_.emplace_back(ssrc);
+        }
+        auto cname_pos = value.find("cname:");
+        if (cname_pos != std::string::npos) {
+            auto cname = value.substr(cname_pos + 6);
+            cname_map_.emplace(ssrc, cname);
+        }
+        attributes_.emplace_back("ssrc:" + std::string(value));
+        return true;
+    }
+    // TODO: Support more attributes
+    else if (key == "extmap" ||
+                key == "rtcp-rsize") {
+        attributes_.emplace_back(std::string(value));
+        return true;
+    }
+    else {
+        return MediaEntry::ParseSDPAttributeField(key, value);
     }
 }
 

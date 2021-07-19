@@ -33,6 +33,9 @@ public:
     Media(const std::string& mline, const std::string mid, Direction direction = Direction::SEND_ONLY);
     virtual ~Media() = default;
 
+    Direction direction() const;
+    void set_direction(Direction direction);
+
     std::string description() const override;
     Media reciprocate() const;
 
@@ -48,7 +51,8 @@ public:
 
     bool HasPayloadType(int pt) const;
 
-    virtual void ParseSDPLine(std::string_view line) override;
+    virtual bool ParseSDPLine(std::string_view line) override;
+    virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
 
     void AddRTPMap(const RTPMap& map);
 
@@ -56,6 +60,8 @@ private:
     virtual std::string GenerateSDPLines(std::string_view eol) const override;
 
 private:
+    Direction direction_;
+    
     std::map<int, RTPMap> rtp_map_;
     std::vector<uint32_t> ssrcs_;
     std::map<uint32_t, std::string> cname_map_;

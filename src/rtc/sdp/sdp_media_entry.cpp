@@ -9,8 +9,8 @@
 namespace naivertc {
 namespace sdp {
 
-MediaEntry::MediaEntry(const std::string& mline, const std::string mid, Direction direction) 
-    : mid_(std::move(mid)), direction_(direction) {
+MediaEntry::MediaEntry(const std::string& mline, const std::string mid) 
+    : mid_(std::move(mid)) {
     unsigned int port;
     std::istringstream ss(mline);
     ss >> type_string_ >> port >> description_;
@@ -27,10 +27,6 @@ MediaEntry::Type MediaEntry::type_string_to_type(std::string_view type_string) c
     }else {
         throw std::invalid_argument("Unknown entry type" + std::string(type_string));
     }
-}
-
-void MediaEntry::set_direction(Direction direction) {
-    direction_ = direction;
 }
 
 std::string MediaEntry::GenerateSDP(std::string_view eol, Role role) const {
@@ -68,23 +64,7 @@ std::string MediaEntry::GenerateSDPLines(std::string_view eol) const {
     oss << "a=bundle-only" << eol;
     oss << "a=mid:" << mid_ << eol;
 
-    switch(direction_) {
-    case Direction::SEND_ONLY: 
-        oss << "a=sendonly" << eol;
-        break;
-    case Direction::RECV_ONLY: 
-        oss << "a=recvonly" << eol;
-        break;
-    case Direction::SEND_RECV: 
-        oss << "a=sendrecv" << eol;
-        break;
-    case Direction::INACTIVE: 
-        oss << "a=inactive" << eol;
-        break;
-    default:
-        break;
-    }
-
+    // Extra attributes
     for (const auto& attr : attributes_) {
         // extmap：表示rtp报头拓展的映射，可能有多个，eg: a=extmap:5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
         // rtcp-resize(rtcp reduced size), 表示rtcp包是使用固定算法缩小过的
@@ -98,47 +78,32 @@ std::string MediaEntry::GenerateSDPLines(std::string_view eol) const {
     return oss.str();
 }
 
-void MediaEntry::ParseSDPLine(std::string_view line) {
-
+bool MediaEntry::ParseSDPLine(std::string_view line) {
     if (utils::string::match_prefix(line, "a=")) {
         std::string_view attr = line.substr(2);
         auto [key, value] = utils::string::parse_pair(attr);
-
-        if (key == "mid") {
-            mid_ = value;
-        }else if (attr == "sendonly") {
-            direction_ = Direction::SEND_ONLY;
-        }else if (attr == "recvonly") {
-            direction_ = Direction::RECV_ONLY;
-        }else if (attr == "sendrecv") {
-            direction_ = Direction::SEND_RECV;
-        }else if (attr == "inactive") {
-            direction_ = Direction::INACTIVE;
-        }else if (attr == "bundle-only") {
-            // Added already
-        }else if (key == "setup") {
-            // Parsed at session-level
-        }else {
-            attributes_.emplace_back(std::move(attr));
-        }
+        return ParseSDPAttributeField(key, value);    
     // Connection
     }else if (utils::string::match_prefix(line, "c=")) {
         // Ignore
+        return true;
     }
+    return false;
 }  
 
-void MediaEntry::set_fingerprint(std::string fingerprint) {
-
-    if (!IsSHA256Fingerprint(fingerprint)) {
-        throw std::invalid_argument("Invalid SHA265 fingerprint: " + fingerprint);
+bool MediaEntry::ParseSDPAttributeField(std::string_view key, std::string_view value) {
+    if (key == "mid") {
+        mid_ = value;
+        return true;
+    }else if (value == "bundle-only") {
+        // Added already
+        return true;
+    }else if (key == "setup") {
+        // Parsed at session-level
+        return false;
+    }else {
+        return Entry::ParseSDPAttributeField(key, value);
     }
-
-    // make sure All the chars in finger print is uppercase.
-    std::transform(fingerprint.begin(), fingerprint.end(), fingerprint.begin(), [](char c) {
-        return char(std::toupper(c));
-    });
-
-    fingerprint_.emplace(std::move(fingerprint));
 }
 
 } // namespace sdp

@@ -113,7 +113,6 @@ set(LIB_HEADERS
     include/rtc/sdp/sdp_utils.hpp
     include/rtc/sdp/candidate.hpp
     include/rtc/sdp/sdp_description.hpp
-    include/rtc/sdp/sdp_description_parser.hpp
     include/rtc/sdp/sdp_entry.hpp
     include/rtc/sdp/sdp_media_entry.hpp
     include/rtc/sdp/sdp_session_entry.hpp

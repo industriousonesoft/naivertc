@@ -26,21 +26,19 @@ public:
     Type type() const { return type_; }
     std::string type_string() const { return type_string_; }
     std::string mid() const { return mid_; };
-    Direction direction() const { return direction_; }
-    void set_direction(Direction direction);
-
+    
     virtual std::string description() const { return description_; }
-    virtual void ParseSDPLine(std::string_view line) override;
+    virtual bool ParseSDPLine(std::string_view line) override;
+    virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
     std::string GenerateSDP(std::string_view eol, Role role) const override;
 
 protected:
-    MediaEntry(const std::string& mline, const std::string mid, Direction direction = Direction::UNKNOWN);
+    MediaEntry(const std::string& mline, const std::string mid);
 
     virtual std::string GenerateSDPLines(std::string_view eol) const;   
 
     Type type_string_to_type(std::string_view type_string) const;
-    void set_fingerprint(std::string fingerprint);
-
+   
     std::vector<std::string> attributes_;
 
 private:
@@ -48,7 +46,6 @@ private:
     std::string type_string_;
     std::string description_;
     std::string mid_;
-    Direction direction_;
 
     // ICE attribute
     // See https://tools.ietf.org/id/draft-ietf-mmusic-ice-sip-sdp-14.html#rfc.section.5.4

@@ -1,5 +1,0 @@
-#ifnder _RTC_SDP_DESCRIPTION_PARSER_H_
-#define _RTC_SDP_DESCRIPTION_PARSER_H_
-
-
-#endif

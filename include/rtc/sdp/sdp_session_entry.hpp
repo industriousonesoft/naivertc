@@ -16,7 +16,8 @@ public:
     const std::string user_name() const;
     const std::string session_id() const;
 
-    void ParseSDPLine(std::string_view line) override;
+    bool ParseSDPLine(std::string_view line) override;
+    bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
     std::string GenerateSDP(std::string_view eol, Role role) const override;
 
 private:

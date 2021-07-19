@@ -8,6 +8,7 @@ namespace sdp {
 
 struct RTC_CPP_EXPORT Application : public MediaEntry {
 public:
+    Application(const std::string& mline, const std::string mid);
     Application(const std::string mid);
     virtual ~Application() = default;
 
@@ -21,7 +22,8 @@ public:
     std::optional<size_t> max_message_size() const { return max_message_size_; }
     void set_max_message_size(size_t size) { max_message_size_ = size; }
 
-    virtual void ParseSDPLine(std::string_view line) override;
+    bool ParseSDPLine(std::string_view line) override;
+    bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
 
 private:
     virtual std::string GenerateSDPLines(std::string_view eol) const override;
