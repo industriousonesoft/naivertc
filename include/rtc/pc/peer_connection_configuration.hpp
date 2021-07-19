@@ -14,7 +14,7 @@ struct RTC_CPP_EXPORT IceServer {
     enum class Type { STUN, TURN };
     enum class RelayType { TURN_UDP, TURN_TCP, TURN_TLS };
 
-    IceServer(const std::string& url);
+    IceServer(const std::string& url_string);
 
     // STUN
     IceServer(const std::string hostname, uint16_t port);

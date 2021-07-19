@@ -38,7 +38,7 @@ protected:
 
     virtual std::string GenerateSDPLines(std::string_view eol) const;   
 
-    Type type_string_to_type(const std::string& type_string) const;
+    Type type_string_to_type(std::string_view type_string) const;
     void set_fingerprint(std::string fingerprint);
 
     std::vector<std::string> attributes_;

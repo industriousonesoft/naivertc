@@ -142,11 +142,10 @@ struct RTC_CPP_EXPORT ResolveResult {
     bool is_ipv6;
 };
 
-// const std::string& -> std::string_view
-RTC_CPP_EXPORT std::optional<ResolveResult> Resolve(const std::string& hostname, const std::string& server_port, FamilyType family_type, ProtocolType protocol_type, bool is_simple = true);
-RTC_CPP_EXPORT std::optional<ResolveResult> UnspecfiedResolve(const std::string& hostname, const std::string& server_port, ProtocolType protocol_type, bool is_simple = true);
-RTC_CPP_EXPORT std::optional<ResolveResult> IPv4Resolve(const std::string& hostname, const std::string& server_port, ProtocolType protocol_type, bool is_simple = true);
-RTC_CPP_EXPORT std::optional<ResolveResult> IPv6Resolve(const std::string& hostname, const std::string& server_port, ProtocolType protocol_type, bool is_simple = true);
+RTC_CPP_EXPORT std::optional<ResolveResult> Resolve(std::string_view hostname, std::string_view server_port, FamilyType family_type, ProtocolType protocol_type, bool is_simple = true);
+RTC_CPP_EXPORT std::optional<ResolveResult> UnspecfiedResolve(std::string_view hostname, std::string_view server_port, ProtocolType protocol_type, bool is_simple = true);
+RTC_CPP_EXPORT std::optional<ResolveResult> IPv4Resolve(std::string_view hostname, std::string_view server_port, ProtocolType protocol_type, bool is_simple = true);
+RTC_CPP_EXPORT std::optional<ResolveResult> IPv6Resolve(std::string_view hostname, std::string_view server_port, ProtocolType protocol_type, bool is_simple = true);
 
 } // namespace network
 

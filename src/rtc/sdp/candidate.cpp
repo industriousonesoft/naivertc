@@ -173,7 +173,7 @@ void Candidate::Parse(std::string candidate) {
     };
 
     const std::array<std::string, 2> prefixes = {"a=", "candidate:"};
-    for (const std::string& prefix : prefixes) {
+    for (std::string_view prefix : prefixes) {
         if (utils::string::match_prefix(candidate, prefix)) {
             candidate.erase(0, prefix.size());
         }

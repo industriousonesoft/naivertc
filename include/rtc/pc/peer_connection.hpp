@@ -138,7 +138,7 @@ private:
 
     // DtlsTransport callbacks
     void OnDtlsTransportStateChange(DtlsTransport::State transport_state);
-    bool OnDtlsVerify(const std::string& fingerprint);
+    bool OnDtlsVerify(std::string_view fingerprint);
     void OnRtpPacketReceived(std::shared_ptr<RtpPacket> in_packet);
 
     // SctpTransport callbacks

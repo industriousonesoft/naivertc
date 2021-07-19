@@ -75,7 +75,7 @@ void PeerConnection::OnDtlsTransportStateChange(DtlsTransport::State transport_s
     });
 }
 
-bool PeerConnection::OnDtlsVerify(const std::string& fingerprint) {
+bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
     return true;
 }
 

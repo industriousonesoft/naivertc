@@ -31,7 +31,7 @@ public:
 
     bool is_client() const { return is_client_; }
 
-    using VerifyCallback = std::function<bool(const std::string& fingerprint)>;
+    using VerifyCallback = std::function<bool(std::string_view fingerprint)>;
     void OnVerify(VerifyCallback callback);
 
     virtual void Start(StartedCallback callback = nullptr) override;
@@ -60,7 +60,7 @@ protected:
     static int BioMethodWrite(BIO* bio, const char* in, int in_size);
     static long BioMethodCtrl(BIO* bio, int cmd, long num, void* ptr);
 
-    bool HandleVerify(const std::string& fingerprint);
+    bool HandleVerify(std::string_view fingerprint);
 
 protected:
     virtual void Incoming(std::shared_ptr<Packet> in_packet) override;

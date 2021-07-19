@@ -29,7 +29,7 @@ void DtlsTransport::OnVerify(VerifyCallback callback) {
     });
 }
 
-bool DtlsTransport::HandleVerify(const std::string& fingerprint) {
+bool DtlsTransport::HandleVerify(std::string_view fingerprint) {
     return task_queue_.SyncPost<bool>([this, &fingerprint]() -> bool {
         return verify_callback_ != nullptr ? verify_callback_(fingerprint) : false;
     });

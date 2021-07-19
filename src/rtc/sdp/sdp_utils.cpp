@@ -4,8 +4,8 @@
 namespace naivertc {
 namespace sdp {
 
-sdp::Type StringToType(const std::string& type_string) {
-    using type_map_t = std::unordered_map<std::string, sdp::Type>;
+sdp::Type StringToType(std::string_view type_string) {
+    using type_map_t = std::unordered_map<std::string_view, sdp::Type>;
     static const type_map_t type_map = {
         {"unspec", sdp::Type::UNSPEC},
         {"offer", sdp::Type::OFFER},

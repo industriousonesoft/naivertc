@@ -10,7 +10,7 @@
 namespace naivertc {
 namespace sdp {
 
-RTC_CPP_EXPORT sdp::Type StringToType(const std::string& type_string);
+RTC_CPP_EXPORT sdp::Type StringToType(std::string_view type_string);
 RTC_CPP_EXPORT std::string TypeToString(sdp::Type type);
 RTC_CPP_EXPORT std::string RoleToString(sdp::Role role);
 

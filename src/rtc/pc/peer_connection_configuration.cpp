@@ -11,7 +11,7 @@ namespace naivertc {
 
 // eg: stun:stun.l.google.com:19302
 // eg: turn:numb.viagenie.ca:3478?transport=udp&username=28224511:1379330808&credential=JZEOEt2V3Qb0y27GRntt2u2PAYA
-IceServer::IceServer(const std::string& url) {
+IceServer::IceServer(const std::string& url_string) {
     // Parsing a URI Reference with a Regular Expression
     // Modified regex from RFC 3986, see https://tools.ietf.org/html/rfc3986#appendix-B
     // TODO(cwp): 这段正则表达式怎么理解?
@@ -20,8 +20,8 @@ IceServer::IceServer(const std::string& url) {
 	static const std::regex r(rs, std::regex::extended);
 
     std::smatch m;
-    if (!std::regex_match(url, m, r) || m[10].length() == 0) {
-        throw std::invalid_argument("Invalid Ice server url: " + url);
+    if (!std::regex_match(url_string, m, r) || m[10].length() == 0) {
+        throw std::invalid_argument("Invalid Ice server url: " + url_string);
     }
 
     std::vector<std::optional<std::string>> components(m.size());

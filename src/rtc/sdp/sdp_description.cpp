@@ -126,8 +126,8 @@ Description::operator std::string() const {
 }
 
 // GenerateSDP
-#warning Be careful, there is no space after '=' and only has one space between two parts in a line.
 std::string Description::GenerateSDP(std::string_view eol, bool application_only) const {
+    // warning: Be careful, there is no space after '=' and only has one space between two parts in a line.
     std::ostringstream oss;
     const std::string sp = " ";
     

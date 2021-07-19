@@ -57,8 +57,8 @@ void AyameChannel::Connect(Config config) {
     URLParts parts;
     
     if (config.ice_server_urls.size() > 0) {
-        for (const std::string& url : config.ice_server_urls) {
-            naivertc::IceServer ice_server(url);
+        for (const std::string url : config.ice_server_urls) {
+            naivertc::IceServer ice_server(std::move(url));
             ice_servers_.push_back(ice_server);
         }
     }

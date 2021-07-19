@@ -53,19 +53,19 @@ namespace random {} // namespace random
 // Network
 namespace network {
 
-std::optional<ResolveResult> UnspecfiedResolve(const std::string& hostname, const std::string& server_port, ProtocolType protocol_type, bool is_simple) {
+std::optional<ResolveResult> UnspecfiedResolve(std::string_view hostname, std::string_view server_port, ProtocolType protocol_type, bool is_simple) {
     return Resolve(std::move(hostname), std::move(server_port), FamilyType::UNSPEC, protocol_type, is_simple);
 }
 
-std::optional<ResolveResult> IPv4Resolve(const std::string& hostname, const std::string& server_port, ProtocolType protocol_type, bool is_simple) {
+std::optional<ResolveResult> IPv4Resolve(std::string_view hostname, std::string_view server_port, ProtocolType protocol_type, bool is_simple) {
     return Resolve(std::move(hostname), std::move(server_port), FamilyType::IP_V4, protocol_type, is_simple);
 }
 
-std::optional<ResolveResult> IPv6Resolve(const std::string& hostname, const std::string& server_port, ProtocolType protocol_type, bool is_simple) {
+std::optional<ResolveResult> IPv6Resolve(std::string_view hostname, std::string_view server_port, ProtocolType protocol_type, bool is_simple) {
     return Resolve(std::move(hostname), std::move(server_port), FamilyType::IP_V6, protocol_type, is_simple);
 }
 
-std::optional<ResolveResult> Resolve(const std::string& hostname, const std::string& server_port, FamilyType family_type, ProtocolType protocol_type, bool is_simple) {
+std::optional<ResolveResult> Resolve(std::string_view hostname, std::string_view server_port, FamilyType family_type, ProtocolType protocol_type, bool is_simple) {
     
     if (hostname.empty()) {
         throw std::invalid_argument("Hostname is not supposed to be empty");
@@ -98,7 +98,7 @@ std::optional<ResolveResult> Resolve(const std::string& hostname, const std::str
     }
 
     struct addrinfo *result = nullptr;
-    if (getaddrinfo(hostname.c_str(), server_port.c_str(), &hints, &result) == 0) {
+    if (getaddrinfo(hostname.data(), server_port.data(), &hints, &result) == 0) {
         ResolveResult resolve_result;
         bool resovled = false;
         for (auto p = result; p; p = p ->ai_next) {

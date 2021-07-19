@@ -17,7 +17,7 @@ MediaEntry::MediaEntry(const std::string& mline, const std::string mid, Directio
     type_ = type_string_to_type(type_string_);
 }
 
-MediaEntry::Type MediaEntry::type_string_to_type(const std::string& type_string) const {
+MediaEntry::Type MediaEntry::type_string_to_type(std::string_view type_string) const {
     if (type_string == "application" || type_string == "APPLICATION") {
         return Type::APPLICATION;
     }else if (type_string == "audio" || type_string == "AUDIO") {
@@ -25,7 +25,7 @@ MediaEntry::Type MediaEntry::type_string_to_type(const std::string& type_string)
     }else if (type_string == "video" || type_string == "VIDEO") {
         return Type::VIDEO;
     }else {
-        throw std::invalid_argument("Unknown entry type: " + type_string);
+        throw std::invalid_argument("Unknown entry type" + std::string(type_string));
     }
 }
 
