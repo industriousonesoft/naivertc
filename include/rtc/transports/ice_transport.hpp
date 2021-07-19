@@ -37,7 +37,7 @@ public:
     void GatherLocalCandidate(std::string mid);
     bool AddRemoteCandidate(const sdp::Candidate& candidate);
 
-    sdp::Description GetLocalDescription(sdp::Type type) const;
+    sdp::Description::Builder GetLocalDescription(sdp::Type type) const;
     void SetRemoteDescription(const sdp::Description& remote_sdp);
 
     std::optional<std::string> GetLocalAddress() const;
@@ -56,7 +56,7 @@ private:
     void OnCandidateGathered(const char* sdp);
     void OnDataReceived(const char* data, size_t size);
 
-    void ParseIceSettingFromSDP(const std::string& sdp);
+    sdp::IceSettingPair ParseIceSettingFromSDP(const std::string& sdp) const;
     
     // Override from Transport
     void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
@@ -103,9 +103,6 @@ private:
     std::string curr_mid_;
     sdp::Role role_;
     std::atomic<GatheringState> gathering_state_ = GatheringState::NEW;
-
-    std::optional<std::string> ice_ufrag_ = std::nullopt;
-    std::optional<std::string> ice_pwd_ = std::nullopt;
 };
 
 }

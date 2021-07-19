@@ -6,8 +6,7 @@
 #include "rtc/sdp/sdp_entry.hpp"
 #include "rtc/sdp/sdp_session_entry.hpp"
 #include "rtc/sdp/sdp_media_entry_application.hpp"
-#include "rtc/sdp/sdp_media_entry_audio.hpp"
-#include "rtc/sdp/sdp_media_entry_video.hpp"
+#include "rtc/sdp/sdp_media_entry_media.hpp"
 
 #include <string>
 #include <variant>
@@ -17,8 +16,34 @@ namespace sdp {
 
 class RTC_CPP_EXPORT Description {
 public:
+// Builder
+class RTC_CPP_EXPORT Builder {
+public:
+    Builder();
+    ~Builder();
+
+    Builder& set_type(Type type);
+    Builder& set_role(Role role);
+    Builder& set_ice_ufrag(std::optional<std::string> ice_ufrag);
+    Builder& set_ice_pwd(std::optional<std::string> ice_pwd);
+    Builder& set_fingerprint(std::optional<std::string> fingerprint);
+
+    Description Build();
+
+private:
+    Type type_ = Type::UNSPEC;
+    Role role_ = Role::ACT_PASS;
+    std::optional<std::string> ice_ufrag_ = std::nullopt;
+    std::optional<std::string> ice_pwd_ = std::nullopt;
+    std::optional<std::string> fingerprint_ = std::nullopt;
+
+};
+
+public:
     Description(const std::string& sdp, Type type = Type::UNSPEC, Role role = Role::ACT_PASS);
     Description(const std::string& sdp, const std::string& type_string);
+
+    virtual ~Description();
 
     Type type() const;
     Role role() const;
@@ -28,7 +53,7 @@ public:
     std::optional<std::string> fingerprint() const;
 
     void hintType(Type type);
-    void set_fingerprint(std::string fingerprint);
+    void ClearMedia();
 
     operator std::string() const;
     std::string GenerateSDP(std::string_view eol, bool application_only = false) const;
@@ -38,13 +63,6 @@ public:
     bool HasVieo() const;
     bool HasMid(std::string_view mid) const;
 
-    int AddMedia(Media media);
-    int AddApplication(Application app);
-    int AddApplication(std::string mid = "data");
-    int AddAudio(std::string mid = "audio", Direction direction = Direction::SEND_ONLY);
-    int AddVideo(std::string mid = "video", Direction direction = Direction::SEND_ONLY);
-    void ClearMedia();
-
     std::variant<Media*, Application*> media(unsigned int index);
     std::variant<const Media*, const Application*> media(unsigned int index) const;
     unsigned int media_count() const;
@@ -52,13 +70,25 @@ public:
     const Application* application() const;
     Application* application();
 
+    void AddApplication(Application app);
+    void AddApplication(std::string mid = "data");
+    void AddMedia(Media media);
+    void AddAudio(std::string mid = "audio", Direction direction = Direction::SEND_ONLY);
+    void AddVideo(std::string mid = "video", Direction direction = Direction::SEND_ONLY);
+
+protected:
+    Description(Type type = Type::UNSPEC, 
+                Role role = Role::ACT_PASS, 
+                std::optional<std::string> ice_ufrag = std::nullopt, 
+                std::optional<std::string> ice_pwd = std::nullopt, 
+                std::optional<std::string> fingerprint = std::nullopt);
+
 private:
     std::shared_ptr<MediaEntry> CreateMediaEntry(const std::string& mline, const std::string mid, Direction direction);
 
     void Parse(const std::string& sdp);
 
-private:
-
+protected:
     Type type_;
     Role role_;
     // Session-level entries

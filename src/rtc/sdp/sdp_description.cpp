@@ -1,6 +1,8 @@
 #include "rtc/sdp/sdp_description.hpp"
 #include "common/utils.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
+#include "rtc/sdp/sdp_media_entry_audio.hpp"
+#include "rtc/sdp/sdp_media_entry_video.hpp"
 
 #include <plog/Log.h>
 
@@ -19,6 +21,22 @@ Description::Description(const std::string& sdp, Type type, Role role) :
 
 Description::Description(const std::string& sdp, const std::string& type_string) : 
     Description(sdp, StringToType(type_string), Role::ACT_PASS) {
+}
+
+Description::Description(Type type, Role role, std::optional<std::string> ice_ufrag, std::optional<std::string> ice_pwd, std::optional<std::string> fingerprint) 
+    : type_(Type::UNSPEC),
+    role_(role) {
+    if (ice_ufrag.has_value() && ice_pwd.has_value()) {
+        session_entry_.set_ice_ufrag(ice_ufrag.value());
+        session_entry_.set_ice_pwd(ice_pwd.value());
+    }
+    if (fingerprint.has_value()) {
+        session_entry_.set_fingerprint(fingerprint.value());
+    }
+}
+
+Description::~Description() {
+    media_entries_.clear();
 }
 
 Type Description::type() const {
@@ -53,32 +71,6 @@ void Description::hintType(Type type) {
             role_ = Role::PASSIVE;
         }
     }
-}
-
-void Description::set_fingerprint(std::string fingerprint) {
-    session_entry_.set_fingerprint(std::move(fingerprint));
-}
-
-int Description::AddMedia(Media media) {
-    media_entries_.emplace_back(std::make_shared<Media>(std::move(media)));
-    return int(media_entries_.size()) - 1;
-}
-
-int Description::AddApplication(Application app) {
-    media_entries_.emplace_back(std::make_shared<Application>(std::move(app)));
-    return int(media_entries_.size()) - 1;
-}
-
-int Description::AddApplication(std::string mid) {
-    return AddApplication(Application(std::move(mid)));
-}
-
-int Description::AddAudio(std::string mid, Direction direction) {
-    return AddMedia(Audio(std::move(mid), direction));
-}
-
-int Description::AddVideo(std::string mid, Direction direction) {
-    return AddMedia(Video(std::move(mid), direction));
 }
 
 void Description::ClearMedia() {
@@ -119,6 +111,26 @@ bool Description::HasMid(std::string_view mid) const {
         } 
     }
     return false;
+}
+
+void Description::AddApplication(Application app) {
+    media_entries_.emplace_back(std::make_shared<Application>(std::move(app)));
+}
+
+void Description::AddApplication(std::string mid) {
+    AddApplication(Application(std::move(mid)));
+}
+
+void Description::AddMedia(Media media) {
+    media_entries_.emplace_back(std::make_shared<Media>(std::move(media)));
+}
+
+void Description::AddAudio(std::string mid, Direction direction) {
+    AddMedia(Audio(std::move(mid), direction));
+}
+
+void Description::AddVideo(std::string mid, Direction direction) {
+    AddMedia(Video(std::move(mid), direction));
 }
 
 Description::operator std::string() const {
@@ -167,11 +179,11 @@ std::string Description::GenerateSDP(std::string_view eol, bool application_only
 // private methods
 void Description::Parse(const std::string& sdp) {
     int index = -1;
-    std::istringstream ss(sdp);
+    std::istringstream iss(sdp);
     std::shared_ptr<MediaEntry> curr_entry;
-    while (ss) {
+    while (iss) {
         std::string line;
-        std::getline(ss, line);
+        std::getline(iss, line);
         utils::string::trim_end(line);
         if (line.empty())
             continue;

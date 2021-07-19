@@ -9,8 +9,28 @@
 namespace naivertc {
 namespace sdp {
 
-Entry::Entry() {
+Entry::Entry() {}
 
+void Entry::set_ice_ufrag(const std::string ice_ufrag) {
+    ice_ufrag_.emplace(std::move(ice_ufrag));
+}
+
+void Entry::set_ice_pwd(const std::string ice_pwd) {
+    ice_pwd_.emplace(std::move(ice_pwd));
+}
+
+void Entry::set_fingerprint(std::string fingerprint) {
+
+    if (!IsSHA256Fingerprint(fingerprint)) {
+        throw std::invalid_argument("Invalid SHA265 fingerprint: " + fingerprint);
+    }
+
+    // make sure All the chars in finger print is uppercase.
+    std::transform(fingerprint.begin(), fingerprint.end(), fingerprint.begin(), [](char c) {
+        return char(std::toupper(c));
+    });
+
+    fingerprint_.emplace(std::move(fingerprint));
 }
 
 std::optional<std::string> Entry::ice_ufrag() const {
@@ -75,20 +95,6 @@ void Entry::ParseSDPLine(std::string_view line) {
             // TODO：add candidate from sdp
         }
     }
-}
-
-void Entry::set_fingerprint(std::string fingerprint) {
-
-    if (!IsSHA256Fingerprint(fingerprint)) {
-        throw std::invalid_argument("Invalid SHA265 fingerprint: " + fingerprint);
-    }
-
-    // make sure All the chars in finger print is uppercase.
-    std::transform(fingerprint.begin(), fingerprint.end(), fingerprint.begin(), [](char c) {
-        return char(std::toupper(c));
-    });
-
-    fingerprint_.emplace(std::move(fingerprint));
 }
 
 } // namespace sdp

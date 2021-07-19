@@ -155,7 +155,13 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
         return;
     }
 
-    auto local_sdp = ice_transport_->GetLocalDescription(type);
+    // Build local sdp
+    auto local_sdp_builder = ice_transport_->GetLocalDescription(type);
+    auto local_sdp = local_sdp_builder
+                    // Set local fingerprint (wait for certificate if necessary)
+                    .set_fingerprint(certificate_.get()->fingerprint())
+                    .Build();
+
     ProcessLocalDescription(std::move(local_sdp));
 
     UpdateSignalingState(new_signaling_state);
@@ -241,7 +247,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
     const size_t local_max_message_size = rtc_config_.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
 
     // Clean up the application entry added by ICE transport already.
-    local_sdp.ClearMedia();  
+    local_sdp.ClearMedia();
 
     // Reciprocate remote session description
     if (auto remote = this->remote_sdp_) {
@@ -342,9 +348,6 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
             }
         }
     } 
-
-    // Set local fingerprint (wait for certificate if necessary)
-    local_sdp.set_fingerprint(certificate_.get()->fingerprint());
 
     // TODO: Add candidates existed in old local sdp
 

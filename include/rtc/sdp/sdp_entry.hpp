@@ -26,10 +26,12 @@ public:
     virtual void ParseSDPLine(std::string_view line);
     virtual std::string GenerateSDP(std::string_view eol, Role role) const;
 
+    void set_ice_ufrag(const std::string ice_ufrag);
+    void set_ice_pwd(const std::string ice_pwd);
     void set_fingerprint(std::string fingerprint);
+
 protected:
     Entry();
-
 private:
     // Attributes below can appear at either the session-level or media-level
     // ICE attribute

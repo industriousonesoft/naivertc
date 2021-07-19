@@ -46,6 +46,8 @@ set(LIB_SOURCES
     src/rtc/sdp/sdp_utils.cpp
     src/rtc/sdp/candidate.cpp
     src/rtc/sdp/sdp_description.cpp
+    src/rtc/sdp/sdp_description_builder.cpp
+    src/rtc/sdp/sdp_description_parser.cpp
     src/rtc/sdp/sdp_entry.cpp
     src/rtc/sdp/sdp_media_entry.cpp
     src/rtc/sdp/sdp_session_entry.cpp
@@ -111,6 +113,7 @@ set(LIB_HEADERS
     include/rtc/sdp/sdp_utils.hpp
     include/rtc/sdp/candidate.hpp
     include/rtc/sdp/sdp_description.hpp
+    include/rtc/sdp/sdp_description_parser.hpp
     include/rtc/sdp/sdp_entry.hpp
     include/rtc/sdp/sdp_media_entry.hpp
     include/rtc/sdp/sdp_session_entry.hpp
