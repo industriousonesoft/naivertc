@@ -3,6 +3,8 @@
 
 #include "rtc/sdp/sdp_media_entry.hpp"
 
+#include <map>
+
 namespace naivertc {
 namespace sdp {
 

@@ -121,6 +121,9 @@ bool Entry::ParseSDPAttributeField(std::string_view key, std::string_view value)
     }else if (key == "ice-pwd") {
         ice_pwd_.emplace(std::move(value));
         return true;
+    }else if (key == "ice-options" && value == "trickle") {
+        // Default setting
+        return true;
     }else if (key == "candidate") {
         // TODO：add candidate from sdp
         return true;
@@ -135,6 +138,7 @@ bool Entry::ParseSDPAttributeField(std::string_view key, std::string_view value)
         }else {
             role_.emplace(Role::ACT_PASS);
         }
+        return true;
     }
     return false;
 }

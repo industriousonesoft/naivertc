@@ -50,16 +50,23 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
                 }
             }
             // session-level
-            else {
-                description.session_entry_.ParseSDPAttributeField(key, value);
-            }
-
-        }else  {
-            // media-level takes precedence
-            if (curr_entry && curr_entry->ParseSDPLine(std::move(line))) {
+            else if (description.session_entry_.ParseSDPAttributeField(key, value)) {
+                // Do nothing
+            }else if (curr_entry && curr_entry->ParseSDPLine(line)) {
+                // Do nothing
+            }else if (description.session_entry_.ParseSDPLine(line)){
                 // Do nothing
             }else {
-                description.session_entry_.ParseSDPLine(std::move(line));
+                PLOG_WARNING << "Unknown attribute: [" << key << ":" << value << "]";
+            }
+        }else  {
+            // media-level takes precedence
+            if (curr_entry && curr_entry->ParseSDPLine(line)) {
+                // Do nothing
+            }else if (description.session_entry_.ParseSDPLine(line)){
+                // Do nothing
+            }else {
+                PLOG_WARNING << "Unknown filed: " << line;
             }
         }
         

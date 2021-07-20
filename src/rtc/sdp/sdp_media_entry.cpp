@@ -44,7 +44,7 @@ std::string MediaEntry::GenerateSDP(std::string_view eol, Role role) const {
     // connection-address
     oss << "c=IN" << sp << "IP4" << sp <<  addr << eol;
     if (type_ != Type::APPLICATION) {
-        oss << "a=rtcp:" << port << sp << "IN" << sp << "IP4" << sp << addr;
+        oss << "a=rtcp:" << port << sp << "IN" << sp << "IP4" << sp << addr << eol;
     }
     // ICE and DTLS lines
     oss << Entry::GenerateSDP(eol, role);
@@ -98,9 +98,6 @@ bool MediaEntry::ParseSDPAttributeField(std::string_view key, std::string_view v
     }else if (value == "bundle-only") {
         // Added already
         return true;
-    }else if (key == "setup") {
-        // Parsed at session-level
-        return false;
     }else {
         return Entry::ParseSDPAttributeField(key, value);
     }

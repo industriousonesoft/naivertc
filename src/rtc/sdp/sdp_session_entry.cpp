@@ -6,8 +6,9 @@
 namespace naivertc {
 namespace sdp {
 
-SessionEntry::SessionEntry() {
-
+SessionEntry::SessionEntry() 
+    : user_name_("-"),
+    session_id_(std::to_string(utils::random::generate_random<uint32_t>())) {
 }
 
 const std::string SessionEntry::user_name() const {
@@ -69,7 +70,6 @@ bool SessionEntry::ParseSDPLine(std::string_view line) {
         return ParseSDPAttributeField(key, value);
     }
 
-    // username如果没有则使用'-'代替
     if (user_name_.empty()) {
         user_name_ = "-";
     }

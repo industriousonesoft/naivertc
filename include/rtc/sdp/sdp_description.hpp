@@ -7,9 +7,12 @@
 #include "rtc/sdp/sdp_session_entry.hpp"
 #include "rtc/sdp/sdp_media_entry_application.hpp"
 #include "rtc/sdp/sdp_media_entry_media.hpp"
+#include <rtc/sdp/sdp_media_entry_audio.hpp>
+#include <rtc/sdp/sdp_media_entry_video.hpp>
 
 #include <string>
 #include <variant>
+#include <vector>
 
 namespace naivertc {
 namespace sdp {
@@ -76,9 +79,9 @@ public:
     void AddMedia(Media media);
     void AddMedia(std::shared_ptr<Media> media);
 
-    void AddApplication(std::string mid = "data");
-    void AddAudio(std::string mid = "audio", Direction direction = Direction::SEND_ONLY);
-    void AddVideo(std::string mid = "video", Direction direction = Direction::SEND_ONLY);
+    std::shared_ptr<Application> AddApplication(std::string mid = "data");
+    std::shared_ptr<Audio> AddAudio(std::string mid = "audio", Direction direction = Direction::SEND_ONLY);
+    std::shared_ptr<Video> AddVideo(std::string mid = "video", Direction direction = Direction::SEND_ONLY);
 
     void ClearMedia();
 
