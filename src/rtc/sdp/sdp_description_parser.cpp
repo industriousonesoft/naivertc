@@ -14,7 +14,6 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
     int index = -1;
     std::istringstream iss(sdp);
     std::shared_ptr<MediaEntry> curr_entry;
-    std::optional<Role> parsed_role;
     while (iss) {
         std::string line;
         std::getline(iss, line);
@@ -45,8 +44,15 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
 
             // media-level takes precedence
             if (curr_entry && curr_entry->ParseSDPAttributeField(key, value)) {
-                if (curr_entry->role()) {
-                    parsed_role.emplace(curr_entry->role().value());
+                // Update ICE and DTLS settings 
+                if (key == "ice-ufrag" && curr_entry->ice_ufrag()) {
+                    description.session_entry_.set_ice_ufrag(curr_entry->ice_ufrag().value());
+                }else if (key == "ice-pwd" && curr_entry->ice_pwd()) {
+                    description.session_entry_.set_ice_pwd(curr_entry->ice_pwd().value());
+                }else if (key == "setup" && curr_entry->role()) {
+                    description.HintRole(curr_entry->role().value());
+                }else if (key == "fingerprint" && curr_entry->fingerprint()) {
+                    description.session_entry_.set_fingerprint(curr_entry->fingerprint().value());
                 }
             }
             // session-level
@@ -71,15 +77,6 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
         }
         
     } // end of while
-
-    // Using session-level DTLS role if neccessary
-    if (!parsed_role && description.session_entry_.role()) {
-        parsed_role.emplace(description.session_entry_.role().value());
-    }
-
-    if (parsed_role) {
-        description.HintRole(parsed_role.value());
-    }
 
     return description;
 }

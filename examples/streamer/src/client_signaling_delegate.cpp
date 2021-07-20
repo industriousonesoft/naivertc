@@ -31,7 +31,7 @@ void Client::OnConnected(bool is_initiator) {
 }
 
 void Client::OnClosed(boost::system::error_code ec) {
-    std::cout << __FUNCTION__ << ": Signaling channel did close" << std::endl;
+    std::cout << __FUNCTION__ << ": Signaling channel did close: " << ec.message() <<std::endl;
 }
 
 void Client::OnRemoteSDP(const std::string sdp, bool is_offer) {
