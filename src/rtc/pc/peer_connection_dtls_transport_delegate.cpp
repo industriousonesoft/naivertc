@@ -23,7 +23,7 @@ void PeerConnection::InitDtlsTransport() {
 
         std::shared_ptr<DtlsTransport> dtls_transport = nullptr;
         // DTLS-SRTP
-        if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVieo())) {
+        if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVideo())) {
             auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(lower, std::move(dtls_init_config));
             dtls_srtp_transport->OnReceivedRtpPacket(utils::weak_bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1));
             dtls_transport = dtls_srtp_transport;

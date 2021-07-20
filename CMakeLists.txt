@@ -216,9 +216,13 @@ add_subdirectory(deps/googletest)
 set(TEST_SOURCES
     # src/common/task_queue_unittest.cpp
     src/rtc/media/media_track_unittest.cpp
+
     src/rtc/sdp/sdp_media_entry_unittest.cpp
     src/rtc/sdp/candidate_unittest.cpp
+    src/rtc/sdp/sdp_description_unittest.cpp
+
     src/rtc/pc/peer_connection_configuration_unittest.cpp
+    
     src/rtc/rtp_rtcp/rtp_defines_unittest.cpp
 
     testing/gtest_main.cpp

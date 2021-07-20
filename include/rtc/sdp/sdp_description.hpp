@@ -63,15 +63,13 @@ public:
 
     bool HasApplication() const;
     bool HasAudio() const;
-    bool HasVieo() const;
+    bool HasVideo() const;
     bool HasMid(std::string_view mid) const;
 
-    std::variant<Media*, Application*> media(unsigned int index);
-    std::variant<const Media*, const Application*> media(unsigned int index) const;
+    std::variant<std::shared_ptr<Media>, std::shared_ptr<Application>> media(unsigned int index) const;
     unsigned int media_count() const;
 
-    const Application* application() const;
-    Application* application();
+    std::shared_ptr<Application> application() const;
 
     void AddApplication(std::shared_ptr<Application> app);
     void AddApplication(Application app);

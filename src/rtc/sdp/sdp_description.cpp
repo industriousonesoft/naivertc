@@ -93,7 +93,7 @@ bool Description::HasAudio() const {
     return false;
 }
 
-bool Description::HasVieo() const {
+bool Description::HasVideo() const {
     for (auto entry : media_entries_) {
         if (entry->type() == sdp::MediaEntry::Type::VIDEO) {
             return true;
@@ -186,41 +186,19 @@ std::string Description::GenerateSDP(std::string_view eol, bool application_only
     return oss.str();
 }
 
-std::variant<Media*, Application*> Description::media(unsigned int index) {
-    if (index >= media_entries_.size()) {
-        throw std::out_of_range("Media index out of range.");
-    }
-
-    const auto& entry = media_entries_[index];
-    if (entry->type() == MediaEntry::Type::APPLICATION) {
-        auto app = dynamic_cast<Application*>(entry.get());
-        if (!app) {
-            throw std::logic_error("Bad type of application in description.");
-        }
-        return app;
-    }else {
-        auto media = dynamic_cast<Media*>(entry.get());
-        if (!media) {
-            throw std::logic_error("Bad type of media in description.");
-        }
-        return media;
-    }
-}
-
-std::variant<const Media*, const Application*> Description::media(unsigned int index) const {
+std::variant<std::shared_ptr<Media>, std::shared_ptr<Application>> Description::media(unsigned int index) const {
      if (index >= media_entries_.size()) {
         throw std::out_of_range("Media index out of range.");
     }
-
     const auto& entry = media_entries_[index];
     if (entry->type() == MediaEntry::Type::APPLICATION) {
-        auto app = dynamic_cast<Application*>(entry.get());
-        if (!app) {
+        auto app = std::dynamic_pointer_cast<Application>(entry);
+        if (!entry) {
             throw std::logic_error("Bad type of application in description.");
         }
         return app;
     }else {
-        auto media = dynamic_cast<Media*>(entry.get());
+        auto media = std::dynamic_pointer_cast<Media>(entry);
         if (!media) {
             throw std::logic_error("Bad type of media in description.");
         }
@@ -232,24 +210,14 @@ unsigned int Description::media_count() const {
     return unsigned(media_entries_.size());
 }
 
-const Application* Description::application() const {
+std::shared_ptr<Application> Description::application() const {
     for (auto entry : media_entries_) {
         if (entry->type() == sdp::MediaEntry::Type::APPLICATION) {
-            return static_cast<Application* >(entry.get());
+            return std::dynamic_pointer_cast<Application>(entry);
         } 
     }
     return nullptr;
 }
-
-Application* Description::application() {
-    for (auto entry : media_entries_) {
-        if (entry->type() == sdp::MediaEntry::Type::APPLICATION) {
-            return static_cast<Application* >(entry.get());
-        } 
-    }
-    return nullptr;
-}
-
 
 } // namespace sdp
 } // namespace naivertc

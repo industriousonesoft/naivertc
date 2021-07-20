@@ -254,7 +254,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
         // https://wanghenshui.github.io/2018/08/15/variant-visit
         for (unsigned int i = 0; i < remote->media_count(); ++i) {
             std::visit(utils::overloaded {
-                [&](sdp::Application* remote_app) {
+                [&](std::shared_ptr<sdp::Application> remote_app) {
                     // Prefer local description
                    if (!data_channels_.empty()) {
                         sdp::Application local_app(remote_app->mid());
@@ -277,7 +277,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                         local_sdp.AddApplication(std::move(reciprocated));
                    }
                 },
-                [&](sdp::Media* remote_media) {
+                [&](std::shared_ptr<sdp::Media> remote_media) {
                     // Prefer local media track
                     if (auto it = media_tracks_.find(remote_media->mid()); it != media_tracks_.end()) {
                         if (auto local_track = it->second) {
@@ -431,10 +431,10 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
     int active_media_count = 0;
     for(unsigned int i = 0; i < remote_sdp.media_count(); ++i ) {
         std::visit(utils::overloaded{
-            [&](const sdp::Application*) {
+            [&](std::shared_ptr<sdp::Application> app) {
                 ++active_media_count;
             },
-            [&](const sdp::Media* media) {
+            [&](std::shared_ptr<sdp::Media> media) {
                 if (media->direction() != sdp::Direction::INACTIVE) {
                     ++active_media_count;
                 }

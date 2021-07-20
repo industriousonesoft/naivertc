@@ -18,6 +18,7 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
     while (iss) {
         std::string line;
         std::getline(iss, line);
+        utils::string::trim_begin(line);
         utils::string::trim_end(line);
         if (line.empty())
             continue;
@@ -25,7 +26,8 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
         // Media-level lines
         if (utils::string::match_prefix(line, "m=")) {
             auto mline = line.substr(2);
-            std::string type = mline.substr(0, mline.find(' '));
+            auto sp = " ";
+            std::string type = mline.substr(0, mline.find(sp));
             if (type == "application") {
                 auto app = std::make_shared<Application>(mline, std::to_string(++index));
                 description.media_entries_.emplace_back(app);
