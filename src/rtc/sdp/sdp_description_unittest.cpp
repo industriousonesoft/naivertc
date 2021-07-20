@@ -56,7 +56,7 @@ TEST(DescriptionTest, ParseAnOffer) {
     a=ice-options:trickle
     a=fingerprint:sha-256 8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB
     a=setup:active
-    a=mid:2
+    a=mid:1
     a=recvonly
     a=rtcp-mux
     a=rtpmap:111 opus/48000/2
@@ -69,13 +69,16 @@ TEST(DescriptionTest, ParseAnOffer) {
     a=ice-options:trickle
     a=fingerprint:sha-256 8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB
     a=setup:active
-    a=mid:1
+    a=mid:2
     a=recvonly
     a=rtcp-mux
     a=rtpmap:102 h264/90000
     a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f)";
 
     auto remote_sdp = sdp::Description::Parser::Parse(remote_sdp_string, sdp::Type::OFFER);
+    auto app = remote_sdp.application();
+    auto audio = remote_sdp.media("1");
+    auto video = remote_sdp.media("2");
 
     EXPECT_EQ(remote_sdp.type(), sdp::Type::OFFER);
     EXPECT_EQ(remote_sdp.role(), sdp::Role::ACTIVE);
@@ -86,13 +89,35 @@ TEST(DescriptionTest, ParseAnOffer) {
     EXPECT_EQ(remote_sdp.HasAudio(), true);
     EXPECT_EQ(remote_sdp.HasVideo(), true);
     EXPECT_EQ(remote_sdp.media_count(), 3);
-    EXPECT_EQ(remote_sdp.application()->mid(), "0");
-    EXPECT_EQ(remote_sdp.application()->ice_ufrag().has_value(), true);
-    EXPECT_EQ(remote_sdp.application()->ice_ufrag().value(), "KTqE");
-    EXPECT_EQ(remote_sdp.application()->ice_pwd().has_value(), true);
-    EXPECT_EQ(remote_sdp.application()->ice_pwd().value(), "u8XPW6fYzsDGjQmCYCQ+9W8S");
-    EXPECT_EQ(remote_sdp.application()->fingerprint().has_value(), true);
-    EXPECT_EQ(remote_sdp.application()->fingerprint().value(), "8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB");
+
+    EXPECT_NE(app, nullptr);
+    EXPECT_EQ(app->mid(), "0");
+    EXPECT_EQ(app->ice_ufrag().has_value(), true);
+    EXPECT_EQ(app->ice_ufrag().value(), "KTqE");
+    EXPECT_EQ(app->ice_pwd().has_value(), true);
+    EXPECT_EQ(app->ice_pwd().value(), "u8XPW6fYzsDGjQmCYCQ+9W8S");
+    EXPECT_EQ(app->fingerprint().has_value(), true);
+    EXPECT_EQ(app->fingerprint().value(), "8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB");
+
+    EXPECT_NE(audio, nullptr);
+    EXPECT_EQ(audio->mid(), "1");
+    EXPECT_EQ(audio->ice_ufrag().has_value(), true);
+    EXPECT_EQ(audio->ice_ufrag().value(), "KTqE");
+    EXPECT_EQ(audio->ice_pwd().has_value(), true);
+    EXPECT_EQ(audio->ice_pwd().value(), "u8XPW6fYzsDGjQmCYCQ+9W8S");
+    EXPECT_EQ(audio->fingerprint().has_value(), true);
+    EXPECT_EQ(audio->fingerprint().value(), "8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB");
+    EXPECT_EQ(audio->direction(), sdp::Direction::RECV_ONLY);
+
+    EXPECT_NE(video, nullptr);
+    EXPECT_EQ(video->mid(), "2");
+    EXPECT_EQ(video->ice_ufrag().has_value(), true);
+    EXPECT_EQ(video->ice_ufrag().value(), "KTqE");
+    EXPECT_EQ(video->ice_pwd().has_value(), true);
+    EXPECT_EQ(video->ice_pwd().value(), "u8XPW6fYzsDGjQmCYCQ+9W8S");
+    EXPECT_EQ(video->fingerprint().has_value(), true);
+    EXPECT_EQ(video->fingerprint().value(), "8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB");
+    EXPECT_EQ(video->direction(), sdp::Direction::RECV_ONLY);
 
 }
 

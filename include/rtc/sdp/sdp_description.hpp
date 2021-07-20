@@ -70,9 +70,11 @@ public:
     bool HasMid(std::string_view mid) const;
 
     std::variant<std::shared_ptr<Media>, std::shared_ptr<Application>> media(unsigned int index) const;
+    
     unsigned int media_count() const;
 
     std::shared_ptr<Application> application() const;
+    std::shared_ptr<Media> media(std::string_view mid) const;
 
     void AddApplication(std::shared_ptr<Application> app);
     void AddApplication(Application app);

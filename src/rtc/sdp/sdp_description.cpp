@@ -212,6 +212,19 @@ std::variant<std::shared_ptr<Media>, std::shared_ptr<Application>> Description::
     }
 }
 
+std::shared_ptr<Media> Description::media(std::string_view mid) const {
+    for (auto entry : media_entries_) {
+        if (entry->mid() == mid && entry->type() != MediaEntry::Type::APPLICATION) {
+             auto media = std::dynamic_pointer_cast<Media>(entry);
+            if (!media) {
+                throw std::logic_error("Bad type of media in description.");
+            }
+            return media;
+        }
+    }
+    return nullptr;
+}
+
 unsigned int Description::media_count() const {
     return unsigned(media_entries_.size());
 }
