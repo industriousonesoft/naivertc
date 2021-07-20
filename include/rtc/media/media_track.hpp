@@ -46,14 +46,14 @@ public:
     };
 
 public:
-    MediaTrack(const sdp::Media& description);
+    MediaTrack(const sdp::Media description);
     ~MediaTrack();
 
     std::string mid() const;
     sdp::Direction direction() const;
     sdp::Media description() const;
 
-    void UpdateDescription(const sdp::Media& description);
+    void UpdateDescription(const sdp::Media description);
     
 public:
     static std::string kind_to_string(Kind kind);

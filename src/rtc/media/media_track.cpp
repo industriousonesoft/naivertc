@@ -21,7 +21,7 @@ MediaTrack::Config::Config::Config(std::string _mid,
     track_id(std::move(_track_id)) {}
 
 // Media track
-MediaTrack::MediaTrack(const sdp::Media& description) 
+MediaTrack::MediaTrack(const sdp::Media description) 
     : description_(std::move(description)) {;
 }
 
@@ -39,7 +39,7 @@ sdp::Media MediaTrack::description() const {
     return description_;
 }
 
-void MediaTrack::UpdateDescription(const sdp::Media& description) {
+void MediaTrack::UpdateDescription(const sdp::Media description) {
     description_ = std::move(description);
 }
 
