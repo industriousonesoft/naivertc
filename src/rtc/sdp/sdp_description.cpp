@@ -55,18 +55,6 @@ std::optional<std::string> Description::fingerprint() const {
     return session_entry_.fingerprint();
 }
 
-void Description::set_ice_ufrag(const std::string ice_ufrag) {
-    session_entry_.set_ice_ufrag(std::move(ice_ufrag));
-}
-
-void Description::set_ice_pwd(const std::string ice_pwd) {
-    session_entry_.set_ice_pwd(std::move(ice_pwd));
-}
-
-void Description::set_fingerprint(std::string fingerprint) {
-    session_entry_.set_fingerprint(std::move(fingerprint));
-}
-
 void Description::HintType(Type type) {
     if (type_ == Type::UNSPEC) {
         type_ = type;
@@ -128,6 +116,8 @@ void Description::AddApplication(Application app) {
 }
 
 void Description::AddApplication(std::shared_ptr<Application> app) {
+    // Update ICE and DTLS attributes
+    app->Hint(session_entry_);
     media_entries_.emplace_back(app);
 }
 
@@ -136,6 +126,8 @@ void Description::AddMedia(Media media) {
 }
 
 void Description::AddMedia(std::shared_ptr<Media> media) {
+    // Update ICE and DTLS attributes
+    media->Hint(session_entry_);
     media_entries_.emplace_back(media);
 }
 
@@ -188,7 +180,6 @@ std::string Description::GenerateSDP(std::string_view eol, bool application_only
         if (application_only && entry->type() != MediaEntry::Type::APPLICATION) {
             continue;
         }
-        // TODO: Hit ICE settings
         oss << entry->GenerateSDP(eol, role_);
     }
 

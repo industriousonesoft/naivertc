@@ -29,6 +29,8 @@ public:
     void set_fingerprint(std::string fingerprint);
     void set_role(Role role);
 
+    void Hint(const Entry& other);
+
     virtual bool ParseSDPLine(std::string_view line);
     virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value);
     virtual std::string GenerateSDP(std::string_view eol, Role role) const;

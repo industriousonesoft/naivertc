@@ -19,10 +19,9 @@ public:
 // Builder
 class RTC_CPP_EXPORT Builder {
 public:
-    Builder();
+    Builder(Type type);
     ~Builder();
 
-    Builder& set_type(Type type);
     Builder& set_role(Role role);
     Builder& set_ice_ufrag(std::optional<std::string> ice_ufrag);
     Builder& set_ice_pwd(std::optional<std::string> ice_pwd);
@@ -56,13 +55,8 @@ public:
     std::optional<std::string> ice_pwd() const;
     std::optional<std::string> fingerprint() const;
 
-    void set_ice_ufrag(const std::string ice_ufrag);
-    void set_ice_pwd(const std::string ice_pwd);
-    void set_fingerprint(std::string fingerprint);
-
     void HintType(Type type);
     void HintRole(Role role);
-    void ClearMedia();
 
     operator std::string() const;
     std::string GenerateSDP(std::string_view eol, bool application_only = false) const;
@@ -88,6 +82,8 @@ public:
     void AddAudio(std::string mid = "audio", Direction direction = Direction::SEND_ONLY);
     void AddVideo(std::string mid = "video", Direction direction = Direction::SEND_ONLY);
 
+    void ClearMedia();
+
 private:
     Description(Type type = Type::UNSPEC, 
                 Role role = Role::ACT_PASS, 
@@ -95,7 +91,7 @@ private:
                 std::optional<std::string> ice_pwd = std::nullopt, 
                 std::optional<std::string> fingerprint = std::nullopt);
 
-protected:
+private:
     Type type_;
     Role role_;
     // Session-level entries

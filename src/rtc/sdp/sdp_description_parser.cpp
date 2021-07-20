@@ -15,7 +15,6 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
     std::istringstream iss(sdp);
     std::shared_ptr<MediaEntry> curr_entry;
     std::optional<Role> parsed_role;
-    SessionEntry session_entry;
     while (iss) {
         std::string line;
         std::getline(iss, line);
@@ -29,11 +28,11 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
             std::string type = mline.substr(0, mline.find(' '));
             if (type == "application") {
                 auto app = std::make_shared<Application>(mline, std::to_string(++index));
-                description.AddApplication(app);
+                description.media_entries_.emplace_back(app);
                 curr_entry = app;
             }else {
                 auto media = std::make_shared<Media>(mline, std::to_string(++index), Direction::UNKNOWN);
-                description.AddMedia(media);
+                description.media_entries_.emplace_back(media);
                 curr_entry = media;
             }
         }
@@ -50,7 +49,7 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
             }
             // session-level
             else {
-                session_entry.ParseSDPAttributeField(key, value);
+                description.session_entry_.ParseSDPAttributeField(key, value);
             }
 
         }else  {
@@ -58,26 +57,15 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
             if (curr_entry && curr_entry->ParseSDPLine(std::move(line))) {
                 // Do nothing
             }else {
-                session_entry.ParseSDPLine(std::move(line));
+                description.session_entry_.ParseSDPLine(std::move(line));
             }
         }
         
     } // end of while
 
-    // ICE settings
-    if (session_entry.ice_ufrag().has_value() && session_entry.ice_pwd().has_value()) {
-        description.set_ice_ufrag(session_entry.ice_ufrag().value());
-        description.set_ice_pwd(session_entry.ice_pwd().value());
-    }
-
-    // DTLS fingerprint
-    if (session_entry.fingerprint().has_value()) {
-        description.set_fingerprint(session_entry.fingerprint().value());
-    }
-
-    // DTLS Role
-    if (!parsed_role && session_entry.role()) {
-        parsed_role.emplace(session_entry.role().value());
+    // Using session-level DTLS role if neccessary
+    if (!parsed_role && description.session_entry_.role()) {
+        parsed_role.emplace(description.session_entry_.role().value());
     }
 
     if (parsed_role) {

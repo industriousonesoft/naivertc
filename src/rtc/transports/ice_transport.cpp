@@ -143,8 +143,7 @@ sdp::Description::Builder IceTransport::GetLocalDescription(sdp::Type type) cons
     // See https://tools.ietf.org/html/rfc5763#section-5
     auto role = type == sdp::Type::OFFER ? sdp::Role::ACT_PASS : role_;
     auto [ice_ufrag, ice_pwd] = ParseIceSettingFromSDP(std::string(sdp_buffer.get()));
-    auto builder = sdp::Description::Builder()
-                    .set_type(type)
+    auto builder = sdp::Description::Builder(type)
                     .set_role(role)
                     .set_ice_ufrag(ice_ufrag)
                     .set_ice_pwd(ice_pwd);

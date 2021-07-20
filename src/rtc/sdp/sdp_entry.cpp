@@ -53,6 +53,21 @@ std::optional<sdp::Role> Entry::role() const {
     return role_;
 }
 
+void Entry::Hint(const Entry& other) {
+    if (!ice_ufrag_ && other.ice_ufrag_) {
+        ice_ufrag_.emplace(other.ice_ufrag_.value());
+    }
+    if (!ice_pwd_ && other.ice_pwd_) {
+        ice_pwd_.emplace(other.ice_pwd_.value());
+    }
+    if (!fingerprint_ && other.fingerprint_) {
+        fingerprint_.emplace(other.fingerprint_.value());
+    }
+    if (!role_ && other.role_) {
+        role_.emplace(other.role_.value());
+    }
+}
+
 std::string Entry::GenerateSDP(std::string_view eol, Role role) const {
     std::ostringstream oss;
     const std::string sp = " ";
