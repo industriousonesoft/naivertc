@@ -131,16 +131,22 @@ void Description::AddMedia(std::shared_ptr<Media> media) {
     media_entries_.emplace_back(media);
 }
 
-void Description::AddApplication(std::string mid) {
-    AddApplication(Application(std::move(mid)));
+std::shared_ptr<Application> Description::AddApplication(std::string mid) {
+    auto app = std::make_shared<Application>(std::move(mid));
+    AddApplication(app);
+    return app;
 }
 
-void Description::AddAudio(std::string mid, Direction direction) {
-    AddMedia(Audio(std::move(mid), direction));
+std::shared_ptr<Audio> Description::AddAudio(std::string mid, Direction direction) {
+    auto audio = std::make_shared<Audio>(std::move(mid), direction);
+    AddMedia(audio);
+    return audio;
 }
 
-void Description::AddVideo(std::string mid, Direction direction) {
-    AddMedia(Video(std::move(mid), direction));
+std::shared_ptr<Video> Description::AddVideo(std::string mid, Direction direction) {
+    auto video = std::make_shared<Video>(std::move(mid), direction);
+    AddMedia(video);
+    return video;
 }
 
 Description::operator std::string() const {

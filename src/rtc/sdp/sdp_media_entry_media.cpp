@@ -168,8 +168,10 @@ bool Media::HasPayloadType(int pt) const {
 bool Media::ParseSDPLine(std::string_view line) {
     if (utils::string::match_prefix(line, "a=")) {
         std::string_view attr = line.substr(2);
+
         auto [key, value] = utils::string::parse_pair(attr);
         return ParseSDPAttributeField(key, value);
+        
     // 'b=AS', is used to negotiate the maximum bandwidth
     // eg: b=AS:80
     }else if (utils::string::match_prefix(line, "b=AS")) {

@@ -5,6 +5,7 @@
 #include <common/logger.hpp>
 
 #include <future>
+#include <iostream>
 
 namespace taskqueue {
     
@@ -15,26 +16,26 @@ void DelayPostTest() {
     auto start = boost::posix_time::second_clock::universal_time();
     task_queue.PostDelay(5, [start](){
         if (task_queue.is_in_current_queue()) {
-            PLOG_DEBUG << "in the same queue.";
+            std::cout  << "in the same queue." << std::endl;
         }else {
-            PLOG_DEBUG << "in the other queue.";
+            std::cout  << "in the other queue." << std::endl;
         }
         auto end = boost::posix_time::second_clock::universal_time();
         auto delay_in_sec = end - start;
-        PLOG_DEBUG << "delay_in_sec: " << delay_in_sec.seconds();
+        std::cout  << "delay_in_sec: " << delay_in_sec.seconds() << std::endl;
     });
 }
 
 void PostTest() {
     std::promise<bool> promise;
     auto future = promise.get_future(); 
-    PLOG_DEBUG << "Post started.";
+    std::cout  << "Post started." << std::endl;
     task_queue.Post([&promise](){
         promise.set_value(true);
-        PLOG_DEBUG << "Post in progress.";
+        std::cout  << "Post in progress." << std::endl;
     });
     future.get();
-    PLOG_DEBUG << "Post ended.";
+    std::cout  << "Post ended." << std::endl;
 }
 
 } // namespace taskqueue

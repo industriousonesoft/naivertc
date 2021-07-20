@@ -40,7 +40,8 @@ std::pair<std::string_view, std::string_view> parse_pair(std::string_view attr) 
         key = attr.substr(0, separator);
         value = attr.substr(separator+1);
     }else {
-        key = attr;
+        key = "";
+        value = attr;
     }
     return std::make_pair(std::move(key), std::move(value));
 }
