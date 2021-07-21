@@ -93,6 +93,8 @@
         "typeindex": "cpp",
         "valarray": "cpp",
         "*.ipp": "cpp",
-        "__memory": "cpp"
+        "__memory": "cpp",
+        "__functional_base_03": "cpp",
+        "__functional_03": "cpp"
     }
 }

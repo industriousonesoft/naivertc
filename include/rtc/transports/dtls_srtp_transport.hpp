@@ -43,7 +43,7 @@ private:
     unsigned char client_write_key_[SRTP_AES_128_KEY_LEN + SRTP_SALT_LEN];
     unsigned char server_write_key_[SRTP_AES_128_KEY_LEN + SRTP_SALT_LEN];
 
-    RtpPacketRecvCallback rtp_packet_recv_callback_;
+    RtpPacketRecvCallback rtp_packet_recv_callback_ = nullptr;
 
 };
 

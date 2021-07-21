@@ -34,8 +34,13 @@ void PeerConnection::InitSctpTransport() {
         sctp_config.max_message_size = rtc_config_.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
 
         sctp_transport_ = std::make_shared<SctpTransport>(lower, std::move(sctp_config));
-        sctp_transport_->SignalStateChanged.connect(this, &PeerConnection::OnSctpTransportStateChanged);
-        sctp_transport_->SignalBufferedAmountChanged.connect(this, &PeerConnection::OnBufferedAmountChanged);
+
+        if (!sctp_transport_) {
+            throw std::logic_error("Failed to init SCTP transport");
+        }
+
+        sctp_transport_->OnStateChanged(utils::weak_bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
+        sctp_transport_->OnSignalBufferedAmountChanged(utils::weak_bind(&PeerConnection::OnBufferedAmountChanged, this, std::placeholders::_1, std::placeholders::_2));
         sctp_transport_->OnPacketReceived(utils::weak_bind(&PeerConnection::OnSctpPacketReceived, this, std::placeholders::_1));
 
         sctp_transport_->Start();

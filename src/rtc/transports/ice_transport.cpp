@@ -32,6 +32,18 @@ sdp::Role IceTransport::role() const {
     return role_;
 }
 
+void IceTransport::OnCandidateGathered(CandidateGatheredCallback callback) {
+    task_queue_.Post([this, callback](){
+        this->candidate_gathered_callback_ = std::move(callback);
+    });
+}
+
+void IceTransport::OnGatheringStateChanged(GatheringStateChangedCallback callback) {
+    task_queue_.Post([this, callback](){
+        this->gathering_state_changed_callback_ = std::move(callback);
+    });
+}
+
 void IceTransport::Stop(StopedCallback callback) {
 #if !USE_NICE
     Transport::Stop(callback);
@@ -57,7 +69,7 @@ void IceTransport::Stop(StopedCallback callback) {
 void IceTransport::GatherLocalCandidate(std::string mid) {
     curr_mid_ = std::move(mid);
     // Change state now as candidates start to gather can be synchronous
-    OnGetheringStateChanged(GatheringState::GATHERING);
+    UpdateGatheringState(GatheringState::GATHERING);
 
 #if !USE_NICE
     if (juice_gather_candidates(juice_agent_.get()) < 0) {
@@ -222,25 +234,29 @@ std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>> IceTrans
 }
 
 // State Callbacks
-void IceTransport::OnStateChanged(State state) {
+void IceTransport::UpdateState(State state) {
     Transport::UpdateState(state);
 }
 
-void IceTransport::OnGetheringStateChanged(GatheringState state) {
+void IceTransport::UpdateGatheringState(GatheringState state) {
     task_queue_.Post([this, state](){
         if (this->gathering_state_.exchange(state) != state) {
-            this->SignalGatheringStateChanged(state);
+            if (this->gathering_state_changed_callback_) {
+                this->gathering_state_changed_callback_(state);
+            }
         }
     });
 }
 
-void IceTransport::OnCandidateGathered(const char* sdp) {
+void IceTransport::ProcessGatheredCandidate(const char* sdp) {
     task_queue_.Post([this, sdp = std::move(sdp)](){
-        this->SignalCandidateGathered(std::move(sdp::Candidate(sdp, this->curr_mid_)));
+        if (this->candidate_gathered_callback_) {
+            this->candidate_gathered_callback_(std::move(sdp::Candidate(sdp, this->curr_mid_)));
+        }
     });
 }
 
-void IceTransport::OnDataReceived(const char* data, size_t size) {
+void IceTransport::ProcessReceivedData(const char* data, size_t size) {
     task_queue_.Post([this, data = std::move(data), size](){
         try {
             PLOG_VERBOSE << "Incoming size: " << size;

@@ -90,7 +90,9 @@ void Transport::UpdateState(State state) {
     if (state_ == state) 
         return;
     state_ = state;
-    SignalStateChanged(state);
+    if (state_changed_callback_) {
+        state_changed_callback_(state);
+    }
 }
 
 void Transport::HandleIncomingPacket(std::shared_ptr<Packet> packet) {
@@ -107,6 +109,12 @@ void Transport::HandleIncomingPacket(std::shared_ptr<Packet> packet) {
     } catch (std::exception& exp) {
         PLOG_WARNING << exp.what();
     }
+}
+
+void Transport::OnStateChanged(StateChangedCallback callback) {
+    task_queue_.Post([this, callback](){
+        this->state_changed_callback_ = std::move(callback);
+    });
 }
 
 void Transport::OnPacketReceived(PacketReceivedCallback callback) {

@@ -69,7 +69,7 @@ protected:
 private:
     Config config_;
     const bool is_client_;
-    VerifyCallback verify_callback_;
+    VerifyCallback verify_callback_ = nullptr;
 
     unsigned int curr_dscp_;
     static constexpr size_t DEFAULT_SSL_BUFFER_SIZE = 4096;

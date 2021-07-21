@@ -1,4 +1,5 @@
 #include "rtc/pc/peer_connection.hpp"
+#include "common/utils.hpp"
 
 #include <plog/Log.h>
 
@@ -10,9 +11,9 @@ void PeerConnection::InitIceTransport() {
 
        ice_transport_.reset(new IceTransport(rtc_config_));
 
-       ice_transport_->SignalStateChanged.connect(this, &PeerConnection::OnIceTransportStateChanged);
-       ice_transport_->SignalGatheringStateChanged.connect(this, &PeerConnection::OnGatheringStateChanged);
-       ice_transport_->SignalCandidateGathered.connect(this, &PeerConnection::OnCandidateGathered);
+       ice_transport_->OnStateChanged(utils::weak_bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
+       ice_transport_->OnGatheringStateChanged(utils::weak_bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));
+       ice_transport_->OnCandidateGathered(utils::weak_bind(&PeerConnection::OnCandidateGathered, this, std::placeholders::_1));
 
        ice_transport_->Start();
 
@@ -32,7 +33,7 @@ void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state
             break;
         case Transport::State::CONNECTED:
             PLOG_DEBUG << "ICE transport connected";
-            InitDtlsTransport();
+            this->InitDtlsTransport();
             break;
         case Transport::State::FAILED: 
             this->UpdateConnectionState(ConnectionState::FAILED);

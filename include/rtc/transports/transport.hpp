@@ -5,14 +5,12 @@
 #include "base/packet.hpp"
 #include "common/task_queue.hpp"
 
-#include <sigslot.h>
-
 #include <memory>
 #include <functional>
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT Transport : public sigslot::has_slots<>, public std::enable_shared_from_this<Transport> {
+class RTC_CPP_EXPORT Transport : public std::enable_shared_from_this<Transport> {
 public:
     enum class State {
         DISCONNECTED,
@@ -26,7 +24,7 @@ public:
     virtual ~Transport();
 
     // SHOULD connect slots after created instance immediately to avoiding racing.
-    sigslot::signal1<State> SignalStateChanged;
+    // sigslot::signal1<State> SignalStateChanged;
 
     bool is_stoped() const;
     State state() const;
@@ -35,6 +33,9 @@ public:
     using StopedCallback = std::function<void(std::optional<const std::exception>)>;
     virtual void Start(StartedCallback callback = nullptr);
     virtual void Stop(StopedCallback callback = nullptr);
+
+    using StateChangedCallback = std::function<void(State state)>;
+    void OnStateChanged(StateChangedCallback callback);
 
     using PacketReceivedCallback = std::function<void(std::shared_ptr<Packet> in_packet)>;
     void OnPacketReceived(PacketReceivedCallback callback);
@@ -53,7 +54,8 @@ protected:
 
 private:
     std::shared_ptr<Transport> lower_;
-    PacketReceivedCallback packet_recv_callback_;
+    PacketReceivedCallback packet_recv_callback_ = nullptr;
+    StateChangedCallback state_changed_callback_ = nullptr;
     bool is_stoped_;
     State state_;
 

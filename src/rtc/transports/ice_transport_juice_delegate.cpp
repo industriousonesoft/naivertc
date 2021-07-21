@@ -125,22 +125,22 @@ void IceTransport::OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state
     try {
         switch (state) {
         case JUICE_STATE_DISCONNECTED:
-            ice_transport->OnStateChanged(State::DISCONNECTED);
+            ice_transport->UpdateState(State::DISCONNECTED);
             break;
         case JUICE_STATE_CONNECTING:
-            ice_transport->OnStateChanged(State::CONNECTING);
+            ice_transport->UpdateState(State::CONNECTING);
             break;
         case JUICE_STATE_CONNECTED:
-            ice_transport->OnStateChanged(State::CONNECTED);
+            ice_transport->UpdateState(State::CONNECTED);
             break;
         case JUICE_STATE_FAILED:
-            ice_transport->OnStateChanged(State::FAILED);
+            ice_transport->UpdateState(State::FAILED);
             break;
         case JUICE_STATE_GATHERING:
             // Gathering is not considerd as a connection state
             break;
         case JUICE_STATE_COMPLETED:
-            ice_transport->OnStateChanged(State::COMPLETED);
+            ice_transport->UpdateState(State::COMPLETED);
             break;
         }
     } catch (const std::exception &e) {
@@ -150,17 +150,17 @@ void IceTransport::OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state
 
 void IceTransport::OnJuiceCandidateGathered(juice_agent_t* agent, const char* sdp, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
-    ice_transport->OnCandidateGathered(std::move(sdp));
+    ice_transport->ProcessGatheredCandidate(std::move(sdp));
 }
 
 void IceTransport::OnJuiceGetheringDone(juice_agent_t* agent, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
-    ice_transport->OnGetheringStateChanged(GatheringState::COMPLETED);
+    ice_transport->UpdateGatheringState(GatheringState::COMPLETED);
 }
 
 void IceTransport::OnJuiceDataReceived(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
-    ice_transport->OnDataReceived(data, size);
+    ice_transport->ProcessReceivedData(data, size);
 }
 
 }

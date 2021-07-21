@@ -32,10 +32,12 @@ void PeerConnection::InitDtlsTransport() {
             dtls_transport = std::make_shared<DtlsTransport>(lower, std::move(dtls_init_config));
         }
 
-        if (dtls_transport) {
-            dtls_transport_->SignalStateChanged.connect(this, &PeerConnection::OnDtlsTransportStateChange);
-            dtls_transport_->OnVerify(utils::weak_bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
+        if (!dtls_transport) {
+            throw std::logic_error("Failed to init DTLS transport");
         }
+
+        dtls_transport_->OnStateChanged(utils::weak_bind(&PeerConnection::OnDtlsTransportStateChanged, this, std::placeholders::_1));
+        dtls_transport_->OnVerify(utils::weak_bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
         
         dtls_transport->Start();
         
@@ -46,7 +48,7 @@ void PeerConnection::InitDtlsTransport() {
     }
 }
 
-void PeerConnection::OnDtlsTransportStateChange(DtlsTransport::State transport_state) {
+void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_state) {
     handle_queue_.Post([this, transport_state](){
         switch (transport_state)
         {

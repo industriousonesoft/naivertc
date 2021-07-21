@@ -6,8 +6,8 @@
 #include "rtc/transports/sctp_packet.hpp"
 #include "rtc/transports/sctp_transport_usr_sctp_settings.hpp"
 
-#include <sigslot.h>
 #include <usrsctp.h>
+
 #include <functional>
 #include <optional>
 #include <vector>
@@ -41,7 +41,8 @@ public:
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
     bool Flush();
 
-    sigslot::signal2<StreamId, size_t> SignalBufferedAmountChanged;
+    using SignalBufferedAmountChangedCallback = std::function<void(StreamId, size_t)>;
+    void OnSignalBufferedAmountChanged(SignalBufferedAmountChangedCallback callback);
 
 private:
     // Order seems wrong but these are the actual values
@@ -106,6 +107,8 @@ private:
 
     std::queue<std::shared_ptr<SctpPacket>> send_message_queue_;
     std::map<uint16_t, size_t> buffered_amount_;
+
+    SignalBufferedAmountChangedCallback signal_buffered_amount_changed_callback_ = nullptr;
 };
 
 }

@@ -157,7 +157,7 @@ std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, std::st
 }
 
 const std::string COMMON_NAME = "libnaivertc";
-std::future<std::shared_ptr<Certificate>> Certificate::MakeCertificate(CertificateType type) {
+std::shared_future<std::shared_ptr<Certificate>> Certificate::MakeCertificate(CertificateType type) {
     auto future = std::async(std::launch::async, Certificate::Generate, type, COMMON_NAME);
     return future;
 }

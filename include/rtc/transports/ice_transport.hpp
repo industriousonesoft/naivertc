@@ -8,8 +8,6 @@
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/sdp/sdp_description.hpp"
 
-#include <sigslot.h>
-
 #if USE_NICE
 #include <nice/agent.h>
 #include <thread>
@@ -17,6 +15,8 @@
 #else
 #include <juice/juice.h>
 #endif
+
+#include <functional>
 
 namespace naivertc {
 
@@ -45,16 +45,19 @@ public:
 
     std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>> GetSelectedCandidatePair();
 
-    sigslot::signal1<sdp::Candidate> SignalCandidateGathered;
-    sigslot::signal1<GatheringState> SignalGatheringStateChanged;
+    using GatheringStateChangedCallback = std::function<void(GatheringState)>;
+    void OnGatheringStateChanged(GatheringStateChangedCallback callback);
+
+    using CandidateGatheredCallback = std::function<void(sdp::Candidate)>;
+    void OnCandidateGathered(CandidateGatheredCallback callback);
 
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
 
 private:
-    void OnStateChanged(State state);
-    void OnGetheringStateChanged(GatheringState state);
-    void OnCandidateGathered(const char* sdp);
-    void OnDataReceived(const char* data, size_t size);
+    void UpdateState(State state);
+    void UpdateGatheringState(GatheringState state);
+    void ProcessGatheredCandidate(const char* sdp);
+    void ProcessReceivedData(const char* data, size_t size);
 
     sdp::IceSettingPair ParseIceSettingFromSDP(const std::string& sdp) const;
     
@@ -100,9 +103,12 @@ private:
 #else
     std::unique_ptr<juice_agent_t, void (*)(juice_agent_t *)> juice_agent_{nullptr, nullptr};
 #endif
+
     std::string curr_mid_;
     sdp::Role role_;
     std::atomic<GatheringState> gathering_state_ = GatheringState::NEW;
+    CandidateGatheredCallback candidate_gathered_callback_ = nullptr;
+    GatheringStateChangedCallback gathering_state_changed_callback_ = nullptr;
 };
 
 }

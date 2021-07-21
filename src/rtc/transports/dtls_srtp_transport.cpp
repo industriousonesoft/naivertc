@@ -79,7 +79,9 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
             unsigned int ssrc = 0;
             in_packet->Resize(unprotected_data_size);
             auto rtcp_packet = RtpPacket::Create(std::move(in_packet), RtpPacket::Type::RTCP, ssrc);
-            rtp_packet_recv_callback_(rtcp_packet);
+            if (rtp_packet_recv_callback_) {
+                rtp_packet_recv_callback_(rtcp_packet);
+            }
         }else {
             PLOG_VERBOSE << "Incoming SRTP packet, size: " << packet_size;
             int unprotected_data_size = int(packet_size);
@@ -99,7 +101,9 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
             // shrink size
             in_packet->Resize(unprotected_data_size);
             auto rtp_packet = RtpPacket::Create(std::move(in_packet), RtpPacket::Type::RTP, ssrc);
-            rtp_packet_recv_callback_(rtp_packet);
+            if (rtp_packet_recv_callback_) {
+                rtp_packet_recv_callback_(rtp_packet);
+            }
         }
     }else {
         PLOG_VERBOSE <<  "Unknown packet type, value: " << first_byte << ", size: " << packet_size;
@@ -197,7 +201,7 @@ void DtlsSrtpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback 
 
 void DtlsSrtpTransport::OnReceivedRtpPacket(RtpPacketRecvCallback callback) {
     task_queue_.Post([this, callback](){
-        rtp_packet_recv_callback_ = callback;
+        this->rtp_packet_recv_callback_ = callback;
     });
 }
     

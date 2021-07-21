@@ -172,8 +172,9 @@ else()
 endif()
 
 # sigslot
-add_subdirectory(deps/sigslot EXCLUDE_FROM_ALL)
-target_link_libraries(${PROJECT_NAME} PUBLIC sigslot)
+# add_subdirectory(deps/sigslot EXCLUDE_FROM_ALL)
+# target_link_libraries(${PROJECT_NAME} PUBLIC sigslot)
+
 # boost libraries
 # PUBLIC: 表示关联naivertc库的库或执行文件可共享naivertc所关联的库
 target_include_directories(${PROJECT_NAME} PUBLIC ${LIBBOOST_INCLUDE_PATH})

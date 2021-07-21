@@ -43,6 +43,12 @@ SctpTransport::~SctpTransport() {
     WeakPtrManager::SharedInstance()->Deregister(this);
 }
 
+void SctpTransport::OnSignalBufferedAmountChanged(SignalBufferedAmountChangedCallback callback) {
+	task_queue_.Post([this, callback](){
+        this->signal_buffered_amount_changed_callback_ = std::move(callback);
+    });
+}
+
 void SctpTransport::Start(Transport::StartedCallback callback) {
 	task_queue_.Post([this, callback](){
 		try {
@@ -286,7 +292,10 @@ void SctpTransport::UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta) {
 	}else {
 		it->second = amount;
 	}
-	SignalBufferedAmountChanged(stream_id, amount);
+
+	if (signal_buffered_amount_changed_callback_) {
+		signal_buffered_amount_changed_callback_(stream_id, amount);
+	}
 }
 
 void SctpTransport::DoRecv() {

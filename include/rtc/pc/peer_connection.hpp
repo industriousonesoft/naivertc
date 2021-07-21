@@ -15,7 +15,6 @@
 #include "rtc/channels/data_channel.hpp"
 #include "rtc/rtp_rtcp/rtp_packet.hpp"
 
-#include <sigslot.h>
 
 #include <exception>
 #include <unordered_map>
@@ -23,8 +22,7 @@
 namespace naivertc {
 
 // PeerConnection
-class RTC_CPP_EXPORT PeerConnection final : public sigslot::has_slots<>, 
-                                            public std::enable_shared_from_this<PeerConnection> {
+class RTC_CPP_EXPORT PeerConnection final : public std::enable_shared_from_this<PeerConnection> {
 public:
     // ConnectionState
     enum class ConnectionState: int {
@@ -137,7 +135,7 @@ private:
     void OnCandidateGathered(sdp::Candidate candidate);
 
     // DtlsTransport callbacks
-    void OnDtlsTransportStateChange(DtlsTransport::State transport_state);
+    void OnDtlsTransportStateChanged(DtlsTransport::State transport_state);
     bool OnDtlsVerify(std::string_view fingerprint);
     void OnRtpPacketReceived(std::shared_ptr<RtpPacket> in_packet);
 
@@ -150,7 +148,7 @@ private:
     TaskQueue handle_queue_;
 
     const RtcConfiguration rtc_config_;
-    std::future<std::shared_ptr<Certificate>> certificate_;
+    std::shared_future<std::shared_ptr<Certificate>> certificate_;
 
     ConnectionState connection_state_ = ConnectionState::CLOSED;
     GatheringState gathering_state_ = GatheringState::NEW;
