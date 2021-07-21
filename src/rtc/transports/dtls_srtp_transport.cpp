@@ -37,13 +37,12 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
         return;
     }
 
-    // RFC 5764 5.1.2. Reception
 	// https://tools.ietf.org/html/rfc5764#section-5.1.2
 	// The process for demultiplexing a packet is as follows. The receiver looks at the first byte
 	// of the packet. [...] If the value is in between 128 and 191 (inclusive), then the packet is
 	// RTP (or RTCP [...]). If the value is between 20 and 63 (inclusive), the packet is DTLS.
-    uint8_t first_byte = std::to_integer<uint8_t>(in_packet->bytes().front());
-    PLOG_VERBOSE << "Demultiplexing DTLS and SRTP/SRTCP with firt byte: " << first_byte;
+    uint8_t first_byte = in_packet->bytes().front();
+    PLOG_VERBOSE << "Demultiplexing DTLS and SRTP/SRTCP with first byte: " << std::to_string(first_byte);
 
     // DTLS packet
     if (first_byte >= 20 && first_byte <= 63) {
@@ -57,8 +56,8 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
             return;
         }
 
-        uint8_t payload_type = std::to_integer<uint8_t>(in_packet->bytes()[1]) & 0x7F;
-        PLOG_VERBOSE << "Demultiplexing SRTP and SRTCP with RTP payload type: " << payload_type;
+        uint8_t payload_type = (in_packet->bytes()[1]) & 0x7F;
+        PLOG_VERBOSE << "Demultiplexing SRTP and SRTCP with RTP payload type: " << std::to_string(payload_type);
 
         // RTCP packet: Range [64,95] 
         if (payload_type >= 64 && payload_type <= 95) {
@@ -147,7 +146,7 @@ void DtlsSrtpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback 
     // into the location in memory immediately following the RTP packet.
     packet->Resize(packet_size + SRTP_MAX_TRAILER_LEN);
 
-    uint8_t payload_type = std::to_integer<uint8_t>((packet->bytes()[1])) & 0x7f;
+    uint8_t payload_type = (packet->bytes()[1]) & 0x7f;
     PLOG_VERBOSE << "Demultiplexing SRTP and SRTCP with RTP payload type: " << payload_type;
 
     // RFC 5761 Multiplexing RTP and RTCP 4. Distinguishable RTP and RTCP Packets

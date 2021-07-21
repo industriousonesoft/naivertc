@@ -69,18 +69,18 @@ private:
     bool TrySendMessage(std::shared_ptr<SctpPacket> message);
     void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
 
-    void UpdateTransportState(State state);
+    // void UpdateTransportState(State state);
 
-    void OnSCTPRecvDataIsReady();
-    int OnSCTPSendDataIsReady(const void* data, size_t len, uint8_t tos, uint8_t set_df);
+    void HandleSCTPUpCall();
+    int HandleSCTPWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
 
     void ProcessNotification(const union sctp_notification* notification, size_t len);
-    void ProcessMessage(std::vector<std::byte>&& data, StreamId stream_id, PayloadId payload_id);
+    void ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_id, PayloadId payload_id);
 
     void InitUsrsctp(const Config& config);
     // usrsctp callbacks
-    static void sctp_recv_data_ready_cb(struct socket* socket, void* arg, int flags);
-    static int sctp_send_data_ready_cb(void* ptr, void* data, size_t lent, uint8_t tos, uint8_t set_df);
+    static void OnSCTPUpCall(struct socket* socket, void* arg, int flags);
+    static int OnSCTPWrite(void* ptr, void* data, size_t lent, uint8_t tos, uint8_t set_df);
 
 protected:
     void Incoming(std::shared_ptr<Packet> in_packet) override;
@@ -91,12 +91,12 @@ private:
     struct socket* socket_;
   
     static const size_t buffer_size_ = 65536;
-	std::byte buffer_[buffer_size_];
-    std::vector<std::byte> notification_data_fragments_;
-    std::vector<std::byte> message_data_fragments_;
+	uint8_t buffer_[buffer_size_];
+    std::vector<uint8_t> notification_data_fragments_;
+    std::vector<uint8_t> message_data_fragments_;
 
-    std::vector<std::byte> string_data_fragments_;
-    std::vector<std::byte> binary_data_fragments_;
+    std::vector<uint8_t> string_data_fragments_;
+    std::vector<uint8_t> binary_data_fragments_;
 
     size_t bytes_sent_ = 0;
     size_t bytes_recv_ = 0;

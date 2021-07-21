@@ -94,9 +94,7 @@ void  SctpTransport::Connect() {
 		throw std::logic_error("Attempted to connect with closed sctp socket.");
 	}
 
-	PLOG_DEBUG << "SCTP connecting...";
-
-	Transport::UpdateState(State::CONNECTING);
+	UpdateState(State::CONNECTING);
 
 	struct sockaddr_conn sock_conn = {};
 	sock_conn.sconn_family = AF_CONN;
@@ -128,7 +126,7 @@ void SctpTransport::Shutdown() {
 	}
 
 	Close();
-	Transport::UpdateState(State::DISCONNECTED);
+	UpdateState(State::DISCONNECTED);
 	PLOG_INFO << "SCTP disconnected.";
 
 }
@@ -357,7 +355,7 @@ void SctpTransport::DoFlush() {
 }
 
 void SctpTransport::CloseStream(StreamId stream_id) {
-	const std::byte stream_close_message{0x0};
+	const uint8_t stream_close_message{0x0};
 	auto message = SctpPacket::Create(&stream_close_message, 1, SctpPacket::Type::RESET, stream_id);
 	Send(message);
 }
@@ -371,7 +369,7 @@ void SctpTransport::ResetStream(StreamId stream_id) {
 
 	using srs_t = struct sctp_reset_streams;
 	const size_t len = sizeof(srs_t) + sizeof(StreamId);
-	std::byte buffer[len] = {};
+	uint8_t buffer[len] = {};
 	srs_t& srs = *reinterpret_cast<srs_t *>(buffer);
 	srs.srs_flags = SCTP_STREAM_RESET_OUTGOING;
 	srs.srs_number_streams = 1;
@@ -458,7 +456,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 		}
 
 		if (flags & SCTP_STREAM_RESET_INCOMING_SSN) {
-			const std::byte data_channel_close_message{0x04};
+			const uint8_t data_channel_close_message{0x04};
 			for (int i = 0; i < count; ++i) {
 				StreamId stream_id = reset_event.strreset_stream_list[i];
 				auto message = SctpPacket::Create(&data_channel_close_message, 1, SctpPacket::Type::CONTROL, stream_id);
@@ -473,7 +471,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 	}
 }
 
-void SctpTransport::ProcessMessage(std::vector<std::byte>&& data, StreamId stream_id, SctpTransport::PayloadId payload_id) {
+void SctpTransport::ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_id, SctpTransport::PayloadId payload_id) {
 	// RFC 8831: The usage of the PPIDs "WebRTC String Partial" and "WebRTC Binary Partial" is
 	// deprecated. They were used for a PPID-based fragmentation and reassembly of user messages
 	// belonging to reliable and ordered data channels.
@@ -538,10 +536,12 @@ void SctpTransport::ProcessMessage(std::vector<std::byte>&& data, StreamId strea
 }
 
 // SCTP callback methods
-void SctpTransport::OnSCTPRecvDataIsReady() {
+void SctpTransport::HandleSCTPUpCall() {
 	task_queue_.Post([this](){
 		if (this->socket_ == nullptr)
 			return;
+
+		PLOG_VERBOSE << "Handle SCTP upcall";
 
 		int events = usrsctp_get_events(this->socket_);
 
@@ -555,7 +555,7 @@ void SctpTransport::OnSCTPRecvDataIsReady() {
 	});
 }
     
-int SctpTransport::OnSCTPSendDataIsReady(const void* data, size_t len, uint8_t tos, uint8_t set_df) {
+int SctpTransport::HandleSCTPWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df) {
 	std::unique_lock lock(write_mutex_);
 	bool isWritten = false;
 	auto packet = Packet::Create(static_cast<const char*>(data), len);
@@ -588,15 +588,15 @@ void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 	}
 
 	if (!in_packet) {
-		Transport::UpdateState(State::DISCONNECTED);
+		UpdateState(State::DISCONNECTED);
 		// To notify the recv callback
 		HandleIncomingPacket(nullptr);
 		return;
 	}
 
-	PLOG_VERBOSE << "Incoming size: " << in_packet->size();
+	PLOG_VERBOSE << "Incoming SCTP packet size: " << in_packet->size();
 
-	// 触发回调函数sctp_recv_data_ready_cb？
+	// This will trigger 'sctp_recv_data_ready_cb'
 	usrsctp_conninput(this, in_packet->data(), in_packet->size(), 0);
 }
 

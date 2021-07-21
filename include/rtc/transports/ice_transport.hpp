@@ -54,7 +54,6 @@ public:
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
 
 private:
-    void UpdateState(State state);
     void UpdateGatheringState(GatheringState state);
     void ProcessGatheredCandidate(const char* sdp);
     void ProcessReceivedData(const char* data, size_t size);

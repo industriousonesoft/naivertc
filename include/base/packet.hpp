@@ -11,20 +11,18 @@ namespace naivertc {
 class RTC_CPP_EXPORT Packet : public std::enable_shared_from_this<Packet> {
 public:
     static std::shared_ptr<Packet> Create(const char* data, size_t size) {
-        // 使用reinterpret_cast(re+interpret+cast：重新诠释转型)对data中的数据格式进行重新映射: char -> byte
-        auto bytes = reinterpret_cast<const std::byte*>(data);
-        return std::shared_ptr<Packet>(new Packet(bytes,  size));
-    }
-    static std::shared_ptr<Packet> Create(const std::byte* bytes, size_t size) {
+        auto bytes = reinterpret_cast<const uint8_t*>(data);
         return std::shared_ptr<Packet>(new Packet(bytes, size));
     }
-
+    static std::shared_ptr<Packet> Create(const uint8_t* bytes, size_t size) {
+        return std::shared_ptr<Packet>(new Packet(bytes, size));
+    }
     virtual ~Packet();
 
-    const char* data() const;
-    char* data();
     size_t size() const;
-    const std::vector<std::byte> bytes() const;
+    const std::vector<uint8_t> bytes() const;
+    const uint8_t* data() const;
+    uint8_t* data();
 
     unsigned int dscp() const { return dscp_; };
     void set_dscp(unsigned int dscp) { dscp_ = dscp; }
@@ -34,10 +32,10 @@ public:
     void Resize(size_t new_size);
 
 protected:
-    Packet(const std::byte* bytes, size_t size);
-    Packet(std::vector<std::byte>&& bytes);
+    Packet(const uint8_t* bytes, size_t size);
+    Packet(std::vector<uint8_t>&& bytes);
 private:
-    std::vector<std::byte> bytes_;
+    std::vector<uint8_t> bytes_;
 
     // Differentiated Services Code Point
     unsigned int dscp_;

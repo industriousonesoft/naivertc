@@ -322,7 +322,7 @@ int DtlsTransport::BioMethodWrite(BIO* bio, const char* in, int in_size) {
     }
     auto transport = reinterpret_cast<DtlsTransport*>(BIO_get_data(bio));
     if (WeakPtrManager::SharedInstance()->TryLock(transport)) {
-        auto bytes = reinterpret_cast<const std::byte*>(in);
+        auto bytes = reinterpret_cast<const uint8_t*>(in);
         auto pakcet = Packet::Create(std::move(bytes), in_size);
         transport->Outgoing(pakcet);
         return in_size;

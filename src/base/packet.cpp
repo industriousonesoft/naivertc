@@ -2,27 +2,29 @@
 
 namespace naivertc {
 
-Packet::Packet(const std::byte* bytes, size_t size) 
+Packet::Packet(const uint8_t* bytes, size_t size) 
     : dscp_(0) {
-    bytes_.assign(bytes, bytes + size);
+    if (bytes != nullptr && size > 0) {
+        bytes_.assign(bytes, bytes + size);
+    }
 }
 
-Packet::Packet(std::vector<std::byte>&& bytes) 
+Packet::Packet(std::vector<uint8_t>&& bytes) 
     : bytes_(std::move(bytes)),
     dscp_(0) {
 }
 
 Packet::~Packet() {}
 
-const char* Packet::data() const {
-    return reinterpret_cast<const char*>(bytes_.data());
+const uint8_t* Packet::data() const {
+    return bytes_.data();
 }
 
-char* Packet::data() {
-    return reinterpret_cast<char*>(bytes_.data());
+uint8_t* Packet::data() {
+    return bytes_.data();
 }
 
-const std::vector<std::byte> Packet::bytes() const {
+const std::vector<uint8_t> Packet::bytes() const {
     return bytes_;
 }
 

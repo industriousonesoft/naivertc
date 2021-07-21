@@ -57,6 +57,7 @@ void PeerConnection::OnSctpTransportStateChanged(Transport::State transport_stat
     handle_queue_.Post([this, transport_state](){
         switch(transport_state) {
         case SctpTransport::State::CONNECTED:
+            PLOG_DEBUG << "SCTP transport connected";
             this->UpdateConnectionState(ConnectionState::CONNECTED);
             // TODO: open data channel
             break;
@@ -68,6 +69,7 @@ void PeerConnection::OnSctpTransportStateChanged(Transport::State transport_stat
         case SctpTransport::State::DISCONNECTED:
             this->UpdateConnectionState(ConnectionState::DISCONNECTED);
             // TODO: open close channel
+            PLOG_DEBUG << "SCTP transport disconnected";
             break;
         default:
             break;

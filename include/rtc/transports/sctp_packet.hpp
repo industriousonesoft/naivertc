@@ -28,15 +28,15 @@ public:
 public:
     static std::shared_ptr<SctpPacket> Create(const char* data, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
         // 使用reinterpret_cast(re+interpret+cast：重新诠释转型)对data中的数据格式进行重新映射: char -> byte
-        auto bytes = reinterpret_cast<const std::byte*>(data);
+        auto bytes = reinterpret_cast<const uint8_t*>(data);
         return std::shared_ptr<SctpPacket>(new SctpPacket(bytes, size, type, stream_id, reliability));
     }
 
-    static std::shared_ptr<SctpPacket> Create(const std::byte* bytes, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
+    static std::shared_ptr<SctpPacket> Create(const uint8_t* bytes, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
         return std::shared_ptr<SctpPacket>(new SctpPacket(bytes, size, type, stream_id, reliability));
     }
 
-    static std::shared_ptr<SctpPacket> Create(std::vector<std::byte>&& bytes, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
+    static std::shared_ptr<SctpPacket> Create(std::vector<uint8_t>&& bytes, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
         return std::shared_ptr<SctpPacket>(new SctpPacket(std::move(bytes), type, stream_id, reliability));
     }
   
@@ -55,8 +55,8 @@ public:
     }
    
 protected:
-    SctpPacket(const std::byte* data, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
-    SctpPacket(std::vector<std::byte>&& bytes, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
+    SctpPacket(const uint8_t* data, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
+    SctpPacket(std::vector<uint8_t>&& bytes, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
 
 private:
     Type type_;

@@ -83,7 +83,7 @@ void DtlsSrtpTransport::InitSrtp() {
     outbound.allow_repeat_tx = true;
     outbound.next = nullptr;
 
-    if (srtp_err_status_t err = srtp_add_stream(srtp_in_, &inbound)) {
+    if (srtp_err_status_t err = srtp_add_stream(srtp_out_, &outbound)) {
         throw std::runtime_error("Failed to add SRTP outbound stream, status: " + std::to_string(static_cast<int>(err)));
     }
 }

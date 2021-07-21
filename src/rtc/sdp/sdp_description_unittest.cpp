@@ -82,9 +82,9 @@ TEST(DescriptionTest, ParseAnOffer) {
 
     EXPECT_EQ(remote_sdp.type(), sdp::Type::OFFER);
     EXPECT_EQ(remote_sdp.role(), sdp::Role::ACTIVE);
-    EXPECT_EQ(remote_sdp.ice_ufrag().has_value(), false);
-    EXPECT_EQ(remote_sdp.ice_pwd().has_value(), false);
-    EXPECT_EQ(remote_sdp.fingerprint().has_value(), false);
+    EXPECT_EQ(remote_sdp.ice_ufrag().has_value(), true);
+    EXPECT_EQ(remote_sdp.ice_pwd().has_value(), true);
+    EXPECT_EQ(remote_sdp.fingerprint().has_value(), true);
     EXPECT_EQ(remote_sdp.HasApplication(), true);
     EXPECT_EQ(remote_sdp.HasAudio(), true);
     EXPECT_EQ(remote_sdp.HasVideo(), true);

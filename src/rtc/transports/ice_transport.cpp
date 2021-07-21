@@ -234,9 +234,6 @@ std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>> IceTrans
 }
 
 // State Callbacks
-void IceTransport::UpdateState(State state) {
-    Transport::UpdateState(state);
-}
 
 void IceTransport::UpdateGatheringState(GatheringState state) {
     task_queue_.Post([this, state](){
@@ -259,7 +256,7 @@ void IceTransport::ProcessGatheredCandidate(const char* sdp) {
 void IceTransport::ProcessReceivedData(const char* data, size_t size) {
     task_queue_.Post([this, data = std::move(data), size](){
         try {
-            PLOG_VERBOSE << "Incoming size: " << size;
+            PLOG_VERBOSE << "Incoming ICE packet size: " << size;
             auto packet = Packet::Create(data, size);
             HandleIncomingPacket(packet);
         } catch(const std::exception &e) {

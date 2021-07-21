@@ -103,6 +103,8 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
         return;
     }
     try {
+        PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet->size();
+
         // Write into SSL in BIO, and will be retrieved by SSL_read
         BIO_write(in_bio_, in_packet->data(), int(in_packet->size()));
 
@@ -121,16 +123,20 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
             }
         // Do SSL reading after connected
         }else if (curr_state != State::CONNECTED) {
+            PLOG_VERBOSE << "DTLS is not connected yet.";
             return;
         }
 
-        std::byte read_buffer[DEFAULT_SSL_BUFFER_SIZE];
+        uint8_t read_buffer[DEFAULT_SSL_BUFFER_SIZE];
         int read_size = SSL_read(ssl_, read_buffer, DEFAULT_SSL_BUFFER_SIZE);
 
         // Read failed
         if (!openssl::check(ssl_, read_size)) {
+            PLOG_ERROR << "Failed to read from ssl ";
             return;
         }
+
+        PLOG_VERBOSE << "SSL read size: " << read_size;
 
         if (read_size > 0) {
             HandleIncomingPacket(Packet::Create(read_buffer, size_t(read_size)));
