@@ -39,6 +39,7 @@ template <class... Ts> RTC_CPP_EXPORT struct overloaded : Ts... { using Ts::oper
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 // weak_bind
+// WARNING: weak_bind DO NOT call in a constructor, since weak_from_this() is NOT allowed used in a constructor.
 template <typename F, typename T, typename... Args> 
 RTC_CPP_EXPORT auto weak_bind(F&& f, T* t, Args&& ..._args) {
     return [bound = std::bind(f, t, _args...), weak_this = t->weak_from_this()](auto &&...args) {

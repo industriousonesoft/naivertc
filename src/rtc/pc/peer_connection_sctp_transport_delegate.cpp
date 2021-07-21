@@ -39,9 +39,9 @@ void PeerConnection::InitSctpTransport() {
             throw std::logic_error("Failed to init SCTP transport");
         }
 
-        sctp_transport_->OnStateChanged(utils::weak_bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
-        sctp_transport_->OnSignalBufferedAmountChanged(utils::weak_bind(&PeerConnection::OnBufferedAmountChanged, this, std::placeholders::_1, std::placeholders::_2));
-        sctp_transport_->OnPacketReceived(utils::weak_bind(&PeerConnection::OnSctpPacketReceived, this, std::placeholders::_1));
+        sctp_transport_->OnStateChanged(std::bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
+        sctp_transport_->OnSignalBufferedAmountChanged(std::bind(&PeerConnection::OnBufferedAmountChanged, this, std::placeholders::_1, std::placeholders::_2));
+        sctp_transport_->OnPacketReceived(std::bind(&PeerConnection::OnSctpPacketReceived, this, std::placeholders::_1));
 
         sctp_transport_->Start();
 

@@ -21,25 +21,24 @@ void PeerConnection::InitDtlsTransport() {
         dtls_init_config.certificate = std::move(certificate);
         dtls_init_config.mtu = rtc_config_.mtu;
 
-        std::shared_ptr<DtlsTransport> dtls_transport = nullptr;
         // DTLS-SRTP
         if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVideo())) {
             auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(lower, std::move(dtls_init_config));
-            dtls_srtp_transport->OnReceivedRtpPacket(utils::weak_bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1));
-            dtls_transport = dtls_srtp_transport;
+            dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1));
+            dtls_transport_ = dtls_srtp_transport;
         // DTLS only
         }else {
-            dtls_transport = std::make_shared<DtlsTransport>(lower, std::move(dtls_init_config));
+            dtls_transport_ = std::make_shared<DtlsTransport>(lower, std::move(dtls_init_config));
         }
 
-        if (!dtls_transport) {
+        if (!dtls_transport_) {
             throw std::logic_error("Failed to init DTLS transport");
         }
 
-        dtls_transport_->OnStateChanged(utils::weak_bind(&PeerConnection::OnDtlsTransportStateChanged, this, std::placeholders::_1));
-        dtls_transport_->OnVerify(utils::weak_bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
+        dtls_transport_->OnStateChanged(std::bind(&PeerConnection::OnDtlsTransportStateChanged, this, std::placeholders::_1));
+        dtls_transport_->OnVerify(std::bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
         
-        dtls_transport->Start();
+        dtls_transport_->Start();
         
     }catch (const std::exception& exp) {
         PLOG_ERROR << "Failed to init dtls transport: " << exp.what();
