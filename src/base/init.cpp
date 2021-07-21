@@ -13,7 +13,7 @@ void Init() {
     SctpTransport::Init();
     // TODO: Add public APIs for user customizing sctp
     auto sctp_settings = SctpCustomizedSettings();
-    SctpTransport::CustomizeSctp(std::move(sctp_settings));
+    SctpTransport::CustomizeSctp(sctp_settings);
 }
 
 void Cleanup() {

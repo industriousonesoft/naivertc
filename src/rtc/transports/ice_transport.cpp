@@ -18,9 +18,9 @@ IceTransport::IceTransport(const RtcConfiguration& config)
     if (config.enable_ice_tcp) {
         PLOG_WARNING << "ICE-TCP is not supported with libjuice.";
     }
-    InitJuice(std::move(config));
+    InitJuice(config);
 #else 
-    InitNice(std::move(config));
+    InitNice(config);
 #endif
 }
 

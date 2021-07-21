@@ -33,7 +33,7 @@ public:
     static void CustomizeSctp(const SctpCustomizedSettings& settings);
     static void Cleanup();
 public:
-    SctpTransport(std::shared_ptr<Transport> lower, const Config& config);
+    SctpTransport(std::shared_ptr<Transport> lower, const Config config);
     ~SctpTransport();
 
     void Start(Transport::StartedCallback callback = nullptr) override;

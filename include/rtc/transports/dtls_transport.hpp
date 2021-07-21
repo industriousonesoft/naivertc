@@ -26,7 +26,7 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsTransport(std::shared_ptr<IceTransport> lower, const Config& config);
+    DtlsTransport(std::shared_ptr<IceTransport> lower, const Config config);
     ~DtlsTransport();
 
     bool is_client() const { return is_client_; }

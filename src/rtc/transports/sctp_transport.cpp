@@ -30,10 +30,10 @@
 namespace naivertc {
 
 // SctpTransport
-SctpTransport::SctpTransport(std::shared_ptr<Transport> lower, const Config& config) 
+SctpTransport::SctpTransport(std::shared_ptr<Transport> lower, const Config config) 
     : Transport(lower),
     config_(std::move(config)) {
-    InitUsrsctp(std::move(config));
+    InitUsrsctp(config_);
 	WeakPtrManager::SharedInstance()->Register(this);
 }
 

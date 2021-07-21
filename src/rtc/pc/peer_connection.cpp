@@ -8,7 +8,7 @@
 
 namespace naivertc {
 
-PeerConnection::PeerConnection(const RtcConfiguration& config) 
+PeerConnection::PeerConnection(const RtcConfiguration config) 
     : rtc_config_(std::move(config)),
     certificate_(Certificate::MakeCertificate(rtc_config_.certificate_type)) {
 

@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-DtlsSrtpTransport::DtlsSrtpTransport(std::shared_ptr<IceTransport> lower, const DtlsTransport::Config& config) 
+DtlsSrtpTransport::DtlsSrtpTransport(std::shared_ptr<IceTransport> lower, const DtlsTransport::Config config) 
     : DtlsTransport(lower, std::move(config)),
     srtp_init_done_(false) {
     PLOG_DEBUG << "Initializing DTLS-SRTP transport";

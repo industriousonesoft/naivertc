@@ -10,7 +10,7 @@ void PeerConnection::InitIceTransport() {
        PLOG_VERBOSE << "Init Ice transport";
 
        ice_transport_.reset(new IceTransport(rtc_config_));
-
+       
        ice_transport_->OnStateChanged(utils::weak_bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
        ice_transport_->OnGatheringStateChanged(utils::weak_bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));
        ice_transport_->OnCandidateGathered(utils::weak_bind(&PeerConnection::OnCandidateGathered, this, std::placeholders::_1));
