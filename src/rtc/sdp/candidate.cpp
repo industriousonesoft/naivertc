@@ -84,7 +84,7 @@ std::string Candidate::sdp_line() const {
 Candidate::operator std::string() const {
     const char sp{' '};
     std::ostringstream oss;
-    oss << "candidate:" << sp;
+    oss << "candidate:";
     oss << foundation_ << sp << component_id_ << sp << transport_type_str_ << sp << priority_ << sp;
     if (isResolved()) {
         oss << address_ << sp << port_;
