@@ -22,7 +22,7 @@ void WeakPtrManager::Deregister(void* ptr) {
     ptr_set_.erase(ptr);
 }
 
-std::optional<std::shared_lock<std::shared_mutex>> WeakPtrManager::TryLock(void* ptr) {
+std::optional<std::shared_lock<std::shared_mutex>> WeakPtrManager::Lock(void* ptr) {
     // 共享锁: 多读一写
     std::shared_lock<std::shared_mutex> lock(mutex_);
     if (!ptr) return std::nullopt;

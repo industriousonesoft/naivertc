@@ -21,7 +21,7 @@ public:
     void Register(void* ptr);
     void Deregister(void* ptr);
 
-    std::optional<std::shared_lock<std::shared_mutex>> TryLock(void* ptr);
+    std::optional<std::shared_lock<std::shared_mutex>> Lock(void* ptr);
 
 private:
     WeakPtrManager();
