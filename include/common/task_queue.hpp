@@ -17,9 +17,9 @@ public:
     TaskQueue();
     ~TaskQueue();
 
-    void Post(std::function<void()> handler) const;
-    void Dispatch(std::function<void()> handler) const;
-    void PostDelay(TimeInterval delay_in_sec ,std::function<void()> handler);
+    void Post(const std::function<void()>& handler) const;
+    void Dispatch(const std::function<void()>& handler) const;
+    void PostDelay(TimeInterval delay_in_sec, const std::function<void()>& handler);
 
     bool is_in_current_queue() const;
 
