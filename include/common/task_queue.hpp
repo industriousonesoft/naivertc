@@ -17,21 +17,25 @@ public:
     TaskQueue();
     ~TaskQueue();
 
-    void Post(std::function<void()> handler) const;
-    void Dispatch(std::function<void()> handler) const;
-    void PostDelay(TimeInterval delay_in_sec ,std::function<void()> handler);
+    void Post(const std::function<void()>& handler) const;
+    void Dispatch(const std::function<void()>& handler) const;
+    void PostDelay(TimeInterval delay_in_sec, const std::function<void()>& handler);
 
     bool is_in_current_queue() const;
 
     template<typename T>
     T SyncPost(std::function<T(void)> handler) const {
-        boost::unique_lock<boost::mutex> lock(mutex_);
         T ret;
-        Post([this, handler = std::move(handler), &ret](){
+        if (is_in_current_queue()) {
             ret = handler();
-            cond_.notify_one();
-        });
-        cond_.wait(lock);
+        }else {
+            boost::unique_lock<boost::mutex> lock(mutex_);
+            boost::asio::dispatch(strand_, [this, handler = std::move(handler), &ret](){
+                ret = handler();
+                cond_.notify_one();
+            });
+            cond_.wait(lock);
+        }
         return ret;
     }
 
