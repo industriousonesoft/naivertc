@@ -32,8 +32,6 @@ private:
     void DtlsHandshakeDone() override;
     void Incoming(std::shared_ptr<Packet> in_packet) override;
 
-    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
-    
 private:
     std::atomic<bool> srtp_init_done_ = false;
 

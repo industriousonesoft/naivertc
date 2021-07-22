@@ -16,10 +16,12 @@ namespace {
 namespace naivertc {
 
 void DtlsSrtpTransport::Init() {
+    PLOG_VERBOSE << "SRTP init";
     srtp_init();
 }
 
 void DtlsSrtpTransport::Cleanup() {
+    PLOG_VERBOSE << "SRTP cleanup";
     srtp_shutdown();
 }
 
