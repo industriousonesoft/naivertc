@@ -59,6 +59,7 @@ IceTransport::Description IceTransport::Description::Parse(std::string sdp, sdp:
     while(iss) {
         std::string line;
         std::getline(iss, line);
+        utils::string::trim_begin(line);
         utils::string::trim_end(line);
         if (line.empty()) {
             continue;
