@@ -35,125 +35,127 @@ bool DtlsTransport::HandleVerify(std::string_view fingerprint) {
     });
 }
 
-void DtlsTransport::Start(StartedCallback callback) { 
-    Transport::Start([this, callback](std::optional<const std::exception> exp){
-        if (exp) {
-            if (callback) {
-                callback(exp);
-            }
-            PLOG_ERROR << "Failed to start, err: " << exp->what();
-            return;
-        }
-        try {
+bool DtlsTransport::Start() { 
+    return task_queue_.SyncPost<bool>([this](){
+        if (is_stoped_) {
             this->UpdateState(State::CONNECTING);
             // Start to handshake
             this->InitHandshake();
             // TODO: Do we should use delay post to check handshake timeout in 30s here?
-            if (callback) {
-                callback(std::nullopt);
-            }
-        }catch(const std::exception& exp) {
-            PLOG_ERROR << "Failed to start, err: " << exp.what();
-            if (callback) {
-                callback(exp);
-            }
+            RegisterIncoming();
+            is_stoped_ = false;
         }
+        return true;
     });
 }
 
-void DtlsTransport::Stop(StopedCallback callback) {
-    Transport::Stop([this, callback](std::optional<const std::exception> exp){
-        if (exp) {
-            if (callback) {
-                callback(exp);
-            }
-            PLOG_ERROR << "Failed to stop, err: " << exp->what();
-            // return;
-        }
-        if (this->ssl_) {
+bool DtlsTransport::Stop() {
+    return task_queue_.SyncPost<bool>([this](){
+        if (!is_stoped_) {
             SSL_shutdown(this->ssl_);
             this->ssl_ = NULL;
+            DeregisterIncoming();
+            is_stoped_ = true;
         }
-        if (callback) {
-            callback(std::move(exp));
-        }
+        return true;
     });
 }
 
 void DtlsTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
-    task_queue_.Post([this, packet, callback](){
-        if (!packet || state() != State::CONNECTED) {
-            if (callback) {
-                callback(false);
-            }
-            return;
-        }
+    task_queue_.Post([this, packet = std::move(packet), callback](){
+        bool sent_size = SendInternal(std::move(packet));
+        callback(sent_size);
+    });
+}
 
-        this->curr_dscp_ = packet->dscp();
-        int ret = SSL_write(this->ssl_, packet->data(), int(packet->size()));
-        int bRet = openssl::check(this->ssl_, ret);
-        if (callback) {
-            callback(bRet);
-        }
+int DtlsTransport::Send(std::shared_ptr<Packet> packet) {
+    return task_queue_.SyncPost<int>([this, packet = std::move(packet)](){
+        return SendInternal(std::move(packet));
     });
 }
 
 void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
-    if (!in_packet || !ssl_) {
-        return;
-    }
-    try {
-        PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet->size();
+    task_queue_.Post([this, in_packet = std::move(in_packet)](){
+        if (!in_packet || !ssl_) {
+            return;
+        }
+        try {
+            PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet->size();
 
-        // Write into SSL in BIO, and will be retrieved by SSL_read
-        BIO_write(in_bio_, in_packet->data(), int(in_packet->size()));
+            // Write into SSL in BIO, and will be retrieved by SSL_read
+            BIO_write(in_bio_, in_packet->data(), int(in_packet->size()));
 
-        auto curr_state = state();
+            auto curr_state = state();
 
-        // In non-blocking mode, We may try to do handshake multiple time. 
-        if (curr_state == State::CONNECTING) {
-            if (TryToHandshake()) {
-                // DTLS Connected
-                UpdateState(State::CONNECTED);
-            }else {
-                if (IsHandshakeTimeout()) {
-                    UpdateState(State::FAILED);
+            // In non-blocking mode, We may try to do handshake multiple time. 
+            if (curr_state == State::CONNECTING) {
+                if (TryToHandshake()) {
+                    // DTLS Connected
+                    UpdateState(State::CONNECTED);
+                }else {
+                    if (IsHandshakeTimeout()) {
+                        UpdateState(State::FAILED);
+                    }
+                    return;
                 }
+            // Do SSL reading after connected
+            }else if (curr_state != State::CONNECTED) {
+                PLOG_VERBOSE << "DTLS is not connected yet.";
                 return;
             }
-        // Do SSL reading after connected
-        }else if (curr_state != State::CONNECTED) {
-            PLOG_VERBOSE << "DTLS is not connected yet.";
-            return;
+
+            uint8_t read_buffer[DEFAULT_SSL_BUFFER_SIZE];
+            int read_size = SSL_read(ssl_, read_buffer, DEFAULT_SSL_BUFFER_SIZE);
+
+            // Read failed
+            if (!openssl::check(ssl_, read_size)) {
+                PLOG_ERROR << "Failed to read from ssl ";
+                return;
+            }
+
+            PLOG_VERBOSE << "SSL read size: " << read_size;
+
+            if (read_size > 0) {
+                ForwardIncomingPacket(Packet::Create(read_buffer, size_t(read_size)));
+            }
+
+        }catch (const std::exception& exp) {
+            PLOG_WARNING << "Error occurred when processing incoming packet: " << exp.what();
         }
+    });
+}
 
-        uint8_t read_buffer[DEFAULT_SSL_BUFFER_SIZE];
-        int read_size = SSL_read(ssl_, read_buffer, DEFAULT_SSL_BUFFER_SIZE);
-
-        // Read failed
-        if (!openssl::check(ssl_, read_size)) {
-            PLOG_ERROR << "Failed to read from ssl ";
-            return;
-        }
-
-        PLOG_VERBOSE << "SSL read size: " << read_size;
-
-        if (read_size > 0) {
-            HandleIncomingPacket(Packet::Create(read_buffer, size_t(read_size)));
-        }
-
-    }catch (const std::exception& exp) {
-        PLOG_WARNING << "Error occurred when processing incoming packet: " << exp.what();
-    }
+int DtlsTransport::HandleDtlsWrite(const char* in_data, int in_size) {
+    return task_queue_.SyncPost<int>([this, in_data, in_size](){
+        auto bytes = reinterpret_cast<const uint8_t*>(in_data);
+        auto pakcet = Packet::Create(std::move(bytes), in_size);
+        return Outgoing(std::move(pakcet));
+    });
 }
     
-void DtlsTransport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
-    task_queue_.Post([this, out_packet, callback](){
-        if (out_packet->dscp() == 0) {
-            out_packet->set_dscp(curr_dscp_);
-        }
-        Transport::Outgoing(out_packet, callback);
-    });
+int DtlsTransport::Outgoing(std::shared_ptr<Packet> out_packet) {
+    if (out_packet->dscp() == 0) {
+        out_packet->set_dscp(curr_dscp_);
+    }
+    return ForwardOutgoingPacket(std::move(out_packet));
+}
+
+int DtlsTransport::SendInternal(std::shared_ptr<Packet> packet) {
+     if (!packet || state() != State::CONNECTED) {
+        return -1;
+    }
+
+    this->curr_dscp_ = packet->dscp();
+    int ret = SSL_write(this->ssl_, packet->data(), int(packet->size()));
+
+    if (openssl::check(this->ssl_, ret)) {
+        PLOG_VERBOSE << "Did send size=" << ret;
+        return ret;
+    }else {
+        PLOG_VERBOSE << "Failed to send size=" << ret;
+        return -1;
+    }
+    
 }
     
 } // namespace naivertc

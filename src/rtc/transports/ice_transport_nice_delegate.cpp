@@ -152,35 +152,37 @@ void IceTransport::ProcessNiceTimeout() {
 }
 
 void IceTransport::ProcessNiceState(guint state) {
-    if (state == NICE_COMPONENT_STATE_FAILED && trickle_timeout_.count() > 0) {
-        if (timeout_id_)
+    task_queue_.Post([this, state](){
+        if (state == NICE_COMPONENT_STATE_FAILED && trickle_timeout_.count() > 0) {
+            if (timeout_id_)
+                g_source_remove(timeout_id_);
+            timeout_id_ = g_timeout_add(trickle_timeout_.count() /* ms */, OnNiceTimeout, this);
+            return;
+        }
+
+        if (state == NICE_COMPONENT_STATE_CONNECTED && timeout_id_) {
             g_source_remove(timeout_id_);
-        timeout_id_ = g_timeout_add(trickle_timeout_.count() /* ms */, OnNiceTimeout, this);
-        return;
-    }
+            timeout_id_ = 0;
+        }
 
-    if (state == NICE_COMPONENT_STATE_CONNECTED && timeout_id_) {
-        g_source_remove(timeout_id_);
-        timeout_id_ = 0;
-    }
-
-    switch (state) {
-    case NICE_COMPONENT_STATE_DISCONNECTED:
-        UpdateState(State::DISCONNECTED);
-        break;
-    case NICE_COMPONENT_STATE_CONNECTING:
-        UpdateState(State::CONNECTING);
-        break;
-    case NICE_COMPONENT_STATE_CONNECTED:
-        UpdateState(State::CONNECTED);
-        break;
-    case NICE_COMPONENT_STATE_READY:
-        UpdateState(State::COMPLETED);
-        break;
-    case NICE_COMPONENT_STATE_FAILED:
-        UpdateState(State::FAILED);
-        break;
-    };
+        switch (state) {
+        case NICE_COMPONENT_STATE_DISCONNECTED:
+            UpdateState(State::DISCONNECTED);
+            break;
+        case NICE_COMPONENT_STATE_CONNECTING:
+            UpdateState(State::CONNECTING);
+            break;
+        case NICE_COMPONENT_STATE_CONNECTED:
+            UpdateState(State::CONNECTED);
+            break;
+        case NICE_COMPONENT_STATE_READY:
+            UpdateState(State::COMPLETED);
+            break;
+        case NICE_COMPONENT_STATE_FAILED:
+            UpdateState(State::FAILED);
+            break;
+        };
+    });
 }
 
 // libnice callbacks

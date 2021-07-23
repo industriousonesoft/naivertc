@@ -19,7 +19,8 @@ public:
     DtlsSrtpTransport(std::shared_ptr<IceTransport> lower, const DtlsTransport::Config config);
     ~DtlsSrtpTransport();
 
-    void SendRtpPacket(std::shared_ptr<RtpPacket> packet, PacketSentCallback callback = nullptr);
+    void SendRtpPacket(std::shared_ptr<RtpPacket> packet, PacketSentCallback callback);
+    int SendRtpPacket(std::shared_ptr<RtpPacket> packet);
 
     using RtpPacketRecvCallback = std::function<void(std::shared_ptr<RtpPacket>)>;
     void OnReceivedRtpPacket(RtpPacketRecvCallback callback);
@@ -31,6 +32,8 @@ private:
 
     void DtlsHandshakeDone() override;
     void Incoming(std::shared_ptr<Packet> in_packet) override;
+
+    bool EncryptPacket(std::shared_ptr<Packet> packet);
 
 private:
     std::atomic<bool> srtp_init_done_ = false;

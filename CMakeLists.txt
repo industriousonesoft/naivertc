@@ -216,6 +216,7 @@ add_subdirectory(deps/googletest)
 
 set(TEST_SOURCES
     src/base/packet_unittest.cpp
+    src/common/weak_ptr_manager_unittest.cpp
     # src/common/task_queue_unittest.cpp
     src/rtc/media/media_track_unittest.cpp
 

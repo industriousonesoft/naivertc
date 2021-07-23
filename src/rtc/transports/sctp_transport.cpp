@@ -33,7 +33,7 @@ namespace naivertc {
 SctpTransport::SctpTransport(std::shared_ptr<Transport> lower, const Config config) 
     : Transport(lower),
     config_(std::move(config)) {
-    InitUsrsctp(config_);
+    InitUsrSCTP(config_);
 	WeakPtrManager::SharedInstance()->Register(this);
 }
 
@@ -49,50 +49,57 @@ void SctpTransport::OnSignalBufferedAmountChanged(SignalBufferedAmountChangedCal
     });
 }
 
-void SctpTransport::Start(Transport::StartedCallback callback) {
-	task_queue_.Post([this, callback](){
-		try {
-			Transport::Start();
+bool SctpTransport::Start() {
+	return task_queue_.SyncPost<bool>([this](){
+		if (is_stoped_) {
+			Reset();
 			this->Connect();
-			if (callback) {
-				callback(std::nullopt);
-			}
-		} catch (const std::exception& exp) {
-			if (callback) {
-				callback(std::make_optional<std::exception>(exp));
-			}
+			RegisterIncoming();
+			is_stoped_ = false;
 		}
+		return true;
 	});
 }
 
-void SctpTransport::Stop(Transport::StopedCallback callback) {
-	task_queue_.Post([this, callback](){
-		if (this->is_stoped()) {
-			if (callback) {
-				callback(std::nullopt);
-			}
-			return;
+bool SctpTransport::Stop() {
+	return task_queue_.SyncPost<bool>([this](){
+		if (!is_stoped_) {
+			this->Shutdown();
+			this->OnPacketReceived(nullptr);
+			DeregisterIncoming();
+			is_stoped_ = true;
 		}
-		Transport::Stop();
-		this->Shutdown();
-		this->OnPacketReceived(nullptr);
-		if (callback) {
-			callback(std::nullopt);
-		}
+		return true;
 	});
 }
 
-void  SctpTransport::Close() {
+void SctpTransport::Close() {
 	if (socket_) {
 		usrsctp_close(socket_);
 		socket_ = nullptr;
 	}
 }
 
-void  SctpTransport::Connect() {
+void SctpTransport::Reset() {
+	bytes_sent_ = 0;
+    bytes_recv_ = 0;
+	
+	notification_data_fragments_.clear();
+    message_data_fragments_.clear();
+
+    string_data_fragments_.clear();
+    binary_data_fragments_.clear();
+
+	std::queue<std::shared_ptr<SctpPacket>>().swap(send_packet_queue_);
+	std::queue<std::shared_ptr<Packet>>().swap(pending_incoming_packets_);
+}
+
+void SctpTransport::Connect() {
 	if (socket_ == nullptr) {
 		throw std::logic_error("Attempted to connect with closed sctp socket.");
 	}
+
+	PLOG_DEBUG << "SCTP connecting";
 
 	UpdateState(State::CONNECTING);
 
@@ -114,6 +121,8 @@ void  SctpTransport::Connect() {
 		throw std::runtime_error("Failed to connect usrsctp socket, errno: " + std::to_string(errno));
 	}
 
+	PLOG_DEBUG << "SCTP did send conntct message";
+
 }
 
 void SctpTransport::Shutdown() {
@@ -133,18 +142,15 @@ void SctpTransport::Shutdown() {
 
 // Send
 bool SctpTransport::Flush() {
-	if (!task_queue_.is_in_current_queue()) {
-		return task_queue_.SyncPost<bool>([this]() -> bool {
-			return this->Flush();
-		});
-	}
-	try {
-		TrySendQueue();
-		return true;
-	} catch(const std::exception& exp) {
-		PLOG_WARNING << "Faild to flush messages: " << exp.what();
-		return false;
-	}
+	return task_queue_.SyncPost<bool>([this]() -> bool {
+		try {
+			TrySendQueue();
+			return true;
+		} catch(const std::exception& exp) {
+			PLOG_WARNING << "Faild to flush messages: " << exp.what();
+			return false;
+		}
+	});
 }
 
 void SctpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
@@ -174,7 +180,7 @@ void SctpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback call
 		}
 
 		// enqueue
-		this->send_message_queue_.push(message);
+		this->send_packet_queue_.push(message);
 		this->UpdateBufferedAmount(message->stream_id(), ptrdiff_t(message->message_size()));
 		if (callback) {
 			callback(false);
@@ -183,12 +189,12 @@ void SctpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback call
 }
 
 bool SctpTransport::TrySendQueue() {
-	while (auto next = send_message_queue_.back()) {
+	while (auto next = send_packet_queue_.back()) {
 		auto message = std::move(next);
 		if (!TrySendMessage(message)) {
 			return false;
 		}
-		send_message_queue_.pop();
+		send_packet_queue_.pop();
 		UpdateBufferedAmount(message->stream_id(), -ptrdiff_t(message->message_size()));
 	}
 	return false;
@@ -318,7 +324,7 @@ void SctpTransport::DoRecv() {
 				}
 			}
 
-			PLOG_VERBOSE << "SCTP recv len: " << len;
+			PLOG_VERBOSE << "SCTP received length: " << len;
 
 			// SCTP_FRAGMENT_INTERLEAVE does not seem to work as expected for message > 64KB
 			// therefore partinal notifications and messages need to be handled separately.
@@ -408,8 +414,6 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 				PLOG_INFO << "SCTP disconnected.";
 				UpdateState(State::DISCONNECTED);
 			}
-			// SCTP 连接失败意味着不可能发送消息
-			written_condition_.notify_all();
 		}
 		break;
 	}
@@ -460,7 +464,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 			for (int i = 0; i < count; ++i) {
 				StreamId stream_id = reset_event.strreset_stream_list[i];
 				auto message = SctpPacket::Create(&data_channel_close_message, 1, SctpPacket::Type::CONTROL, stream_id);
-				HandleIncomingPacket(message);
+				ForwardIncomingPacket(message);
 			}
 		}
 
@@ -480,7 +484,7 @@ void SctpTransport::ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_
 	switch (payload_id) {
 	case PayloadId::PPID_CONTROL: {
 		auto message = SctpPacket::Create(std::move(data), SctpPacket::Type::CONTROL, stream_id);
-		HandleIncomingPacket(message);
+		ForwardIncomingPacket(message);
 		break;
 	}
 	case PayloadId::PPID_STRING_PARTIAL: 
@@ -490,19 +494,19 @@ void SctpTransport::ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_
 		if (string_data_fragments_.empty()) {
 			bytes_recv_ += data.size();
 			auto message = SctpPacket::Create(std::move(data), SctpPacket::Type::STRING, stream_id);
-			HandleIncomingPacket(message);
+			ForwardIncomingPacket(message);
 		}else {
 			string_data_fragments_.insert(string_data_fragments_.end(), data.begin(), data.end());
 			bytes_recv_ += data.size();
 			auto message = SctpPacket::Create(std::move(string_data_fragments_), SctpPacket::Type::STRING, stream_id);
-			HandleIncomingPacket(message);
+			ForwardIncomingPacket(message);
 			string_data_fragments_.clear();
 		}
 		break;
 	}
 	case PayloadId::PPID_STRING_EMPTY: {
 		auto message = SctpPacket::Create(std::move(string_data_fragments_), SctpPacket::Type::STRING, stream_id);
-		HandleIncomingPacket(message);
+		ForwardIncomingPacket(message);
 		string_data_fragments_.clear();
 		break;
 	}
@@ -513,19 +517,19 @@ void SctpTransport::ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_
 		if (binary_data_fragments_.empty()) {
 			bytes_recv_ += data.size();
 			auto message = SctpPacket::Create(std::move(data), SctpPacket::Type::BINARY, stream_id);
-			HandleIncomingPacket(message);
+			ForwardIncomingPacket(message);
 		}else {
 			binary_data_fragments_.insert(binary_data_fragments_.end(), data.begin(), data.end());
 			bytes_recv_ += data.size();
 			auto message = SctpPacket::Create(std::move(binary_data_fragments_), SctpPacket::Type::BINARY, stream_id);
-			HandleIncomingPacket(message);
+			ForwardIncomingPacket(message);
 			binary_data_fragments_.clear();
 		}
 		break;
 	}
 	case PayloadId::PPID_BINARY_EMPTY: {
 		auto message = SctpPacket::Create(std::move(binary_data_fragments_), SctpPacket::Type::BINARY, stream_id);
-		HandleIncomingPacket(message);
+		ForwardIncomingPacket(message);
 		binary_data_fragments_.clear();
 		break;
 	}
@@ -536,7 +540,7 @@ void SctpTransport::ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_
 }
 
 // SCTP callback methods
-void SctpTransport::HandleSCTPUpCall() {
+void SctpTransport::HandleSctpUpCall() {
 	task_queue_.Post([this](){
 		if (this->socket_ == nullptr)
 			return;
@@ -555,58 +559,66 @@ void SctpTransport::HandleSCTPUpCall() {
 	});
 }
     
-int SctpTransport::HandleSCTPWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df) {
-	std::unique_lock lock(write_mutex_);
-	bool isWritten = false;
-	auto packet = Packet::Create(static_cast<const char*>(data), len);
-	Outgoing(std::move(packet), [this, &isWritten](bool success){
+int SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
+	return task_queue_.SyncPost<int>([this, in_data, in_size](){
+		PLOG_VERBOSE << "Handle SCTP write size: " << in_size;
+		auto packet = Packet::Create(static_cast<const char*>(in_data), in_size);
+		int sent_size = this->Outgoing(std::move(packet));
 		// Reset the sent flag and ready to handle the incoming message
-		if (!this->has_sent_once_) {
-			this->has_sent_once_ = success;
+		if (sent_size >= 0 && !this->has_sent_once_) {
+			PLOG_VERBOSE << "SCTP has set once";
+			ProcessPendingIncomingPackets();
+			this->has_sent_once_ = true;
 		}
-		isWritten = success;
-		this->written_condition_.notify_all();
+		return sent_size;
 	});
-	written_condition_.wait(lock, [isWritten]() {
-		// return false if the waiting should be continued.
-		return isWritten;
-	});
-	return isWritten ? 0 : -1;
 }
 
-// Override methods
-void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
-	// There could be a race condition here where we receive the remote INIT before the local one is
-	// sent, which would result in the connection being aborted. Therefore, we need to wait for data
-	// to be sent on our side (i.e. the local INIT) before proceeding.
-	if (!has_sent_once_) {
-		std::unique_lock lock(write_mutex_);
-		written_condition_.wait(lock, [&]() {
-			// return false if the waiting should be continued.
-			return has_sent_once_.load();
-		});
+void SctpTransport::ProcessPendingIncomingPackets() {
+	while (auto next = pending_incoming_packets_.back()) {
+		ProcessIncomingPacket(std::move(next));
+		pending_incoming_packets_.pop();
 	}
+}
+
+void SctpTransport::ProcessIncomingPacket(std::shared_ptr<Packet> in_packet) {
+
+	PLOG_VERBOSE << "Process incoming SCTP packet size: " << in_packet->size();
 
 	if (!in_packet) {
 		UpdateState(State::DISCONNECTED);
 		// To notify the recv callback
-		HandleIncomingPacket(nullptr);
+		ForwardIncomingPacket(nullptr);
 		return;
 	}
 
-	PLOG_VERBOSE << "Incoming SCTP packet size: " << in_packet->size();
-
-	// This will trigger 'sctp_recv_data_ready_cb'
+	// This will trigger 'on_sctp_upcall'
 	usrsctp_conninput(this, in_packet->data(), in_packet->size(), 0);
 }
 
-void SctpTransport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
-	task_queue_.Post([=](){
-		// Set recommended medium-priority DSCP value
-		// See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
-		out_packet->set_dscp(10); // AF11: Assured Forwarding class 1, low drop probability
-		return Transport::Outgoing(std::move(out_packet), callback);
+// Override methods
+void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
+	task_queue_.Post([this, in_packet=std::move(in_packet)](){
+		// There could be a race condition here where we receive the remote INIT before the local one is
+		// sent, which would result in the connection being aborted. Therefore, we need to wait for data
+		// to be sent on our side (i.e. the local INIT) before proceeding.
+		if (!has_sent_once_) {
+			PLOG_VERBOSE << "Pending incoming SCTP packet size: " << in_packet->size();
+			pending_incoming_packets_.push(std::move(in_packet));
+			return;
+		}
+
+		PLOG_VERBOSE << "Incoming SCTP packet size: " << in_packet->size();
+
+		ProcessIncomingPacket(std::move(in_packet));
 	});
+}
+
+int SctpTransport::Outgoing(std::shared_ptr<Packet> out_packet) {
+	// Set recommended medium-priority DSCP value
+	// See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
+	out_packet->set_dscp(10); // AF11: Assured Forwarding class 1, low drop probability
+	return ForwardOutgoingPacket(std::move(out_packet));
 }
 
 }

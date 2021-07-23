@@ -66,14 +66,12 @@ void PeerConnection::CloseTransports() {
 
     if (sctp_transport_) {
         sctp_transport_->Stop();
-        sctp_transport_.reset();
+        sctp_transport_.reset();  
     }
-
     if (dtls_transport_) {
         dtls_transport_->Stop();
         dtls_transport_.reset();
     }
-
     if (ice_transport_) {
         ice_transport_->Stop();
         ice_transport_.reset();

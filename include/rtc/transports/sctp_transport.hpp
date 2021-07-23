@@ -36,9 +36,11 @@ public:
     SctpTransport(std::shared_ptr<Transport> lower, const Config config);
     ~SctpTransport();
 
-    void Start(Transport::StartedCallback callback = nullptr) override;
-    void Stop(Transport::StopedCallback callback = nullptr) override;
-    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
+    bool Start() override;
+    bool Stop() override;
+
+    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override;
+    int Send(std::shared_ptr<Packet> packet) override;
     bool Flush();
 
     using SignalBufferedAmountChangedCallback = std::function<void(StreamId, size_t)>;
@@ -60,6 +62,7 @@ private:
     void Connect();
     void Shutdown();
     void Close();
+    void Reset();
     void DoRecv();
     void DoFlush();
     void ResetStream(StreamId stream_id);
@@ -69,22 +72,22 @@ private:
     bool TrySendMessage(std::shared_ptr<SctpPacket> message);
     void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
 
-    // void UpdateTransportState(State state);
+    void HandleSctpUpCall();
+    int HandleSctpWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
 
-    void HandleSCTPUpCall();
-    int HandleSCTPWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
-
+    void ProcessPendingIncomingPackets();
+    void ProcessIncomingPacket(std::shared_ptr<Packet> in_packet);
     void ProcessNotification(const union sctp_notification* notification, size_t len);
     void ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_id, PayloadId payload_id);
 
-    void InitUsrsctp(const Config& config);
+    void InitUsrSCTP(const Config& config);
     // usrsctp callbacks
-    static void OnSCTPUpCall(struct socket* socket, void* arg, int flags);
-    static int OnSCTPWrite(void* ptr, void* data, size_t lent, uint8_t tos, uint8_t set_df);
+    static void on_sctp_upcall(struct socket* socket, void* arg, int flags);
+    static int on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8_t tos, uint8_t set_df);
 
 protected:
     void Incoming(std::shared_ptr<Packet> in_packet) override;
-    void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
+    int Outgoing(std::shared_ptr<Packet> out_packet) override;
 
 private:
     Config config_;
@@ -101,12 +104,12 @@ private:
     size_t bytes_sent_ = 0;
     size_t bytes_recv_ = 0;
 
-    std::mutex write_mutex_;
-    std::condition_variable written_condition_;
-    std::atomic<bool> has_sent_once_ = false;
+    bool has_sent_once_ = false;
 
-    std::queue<std::shared_ptr<SctpPacket>> send_message_queue_;
+    std::queue<std::shared_ptr<SctpPacket>> send_packet_queue_;
     std::map<uint16_t, size_t> buffered_amount_;
+
+    std::queue<std::shared_ptr<Packet>> pending_incoming_packets_;
 
     SignalBufferedAmountChangedCallback signal_buffered_amount_changed_callback_ = nullptr;
 };

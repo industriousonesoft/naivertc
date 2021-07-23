@@ -19,45 +19,52 @@ public:
         COMPLETED,
         FAILED
     };
+
+    using StartedCallback = std::function<void(std::optional<const std::exception>)>;
+    using StopedCallback = std::function<void(std::optional<const std::exception>)>;
+    using PacketSentCallback = std::function<void(size_t sent_size)>;
+
+    using StateChangedCallback = std::function<void(State state)>;
+    using PacketReceivedCallback = std::function<void(std::shared_ptr<Packet> in_packet)>;
 public:
     Transport(std::shared_ptr<Transport> lower = nullptr);
     virtual ~Transport();
 
-    // SHOULD connect slots after created instance immediately to avoiding racing.
-    // sigslot::signal1<State> SignalStateChanged;
-
     bool is_stoped() const;
     State state() const;
 
-    using StartedCallback = std::function<void(std::optional<const std::exception>)>;
-    using StopedCallback = std::function<void(std::optional<const std::exception>)>;
-    virtual void Start(StartedCallback callback = nullptr);
-    virtual void Stop(StopedCallback callback = nullptr);
+    virtual bool Start() = 0;
+    virtual bool Stop() = 0;
+    
+    virtual void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) = 0;
+    virtual int Send(std::shared_ptr<Packet> packet) = 0;
 
-    using StateChangedCallback = std::function<void(State state)>;
-    void OnStateChanged(StateChangedCallback callback);
-
-    using PacketReceivedCallback = std::function<void(std::shared_ptr<Packet> in_packet)>;
+    void OnStateChanged(StateChangedCallback callback);    
     void OnPacketReceived(PacketReceivedCallback callback);
     
-    using PacketSentCallback = std::function<void(bool success)>;
-    virtual void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr);
+protected:
+    virtual void Incoming(std::shared_ptr<Packet> in_packet) = 0;
+    virtual int Outgoing(std::shared_ptr<Packet> in_packet) = 0;
+  
+    void UpdateState(State state);
+
+    void RegisterIncoming();
+    void DeregisterIncoming();
+
+    void ForwardIncomingPacket(std::shared_ptr<Packet> packet);
+    void ForwardOutgoingPacket(std::shared_ptr<Packet> out_packet, PacketSentCallback callback);
+    int ForwardOutgoingPacket(std::shared_ptr<Packet> out_packet);
 
 protected:
-    virtual void Incoming(std::shared_ptr<Packet> in_packet);
-    virtual void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr);
-
-    void UpdateState(State state);
-    void HandleIncomingPacket(std::shared_ptr<Packet> packet);
+    std::shared_ptr<Transport> lower_;
 
     TaskQueue task_queue_;
-
-private:
-    std::shared_ptr<Transport> lower_;
-    PacketReceivedCallback packet_recv_callback_ = nullptr;
-    StateChangedCallback state_changed_callback_ = nullptr;
+    
     bool is_stoped_;
     State state_;
+
+    PacketReceivedCallback packet_recv_callback_ = nullptr;
+    StateChangedCallback state_changed_callback_ = nullptr;
 
 };
 

@@ -31,7 +31,11 @@ public:
     IceTransport(const RtcConfiguration& config);
     ~IceTransport();
 
-    void Stop(StopedCallback callback = nullptr) override;
+    bool Start() override;
+    bool Stop() override;
+
+    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override;
+    int Send(std::shared_ptr<Packet> packet) override;
 
     sdp::Role role() const;
     void GatherLocalCandidate(std::string mid);
@@ -51,8 +55,6 @@ public:
     using CandidateGatheredCallback = std::function<void(sdp::Candidate)>;
     void OnCandidateGathered(CandidateGatheredCallback callback);
 
-    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
-
 private:
     void UpdateGatheringState(GatheringState state);
     void ProcessGatheredCandidate(const char* sdp);
@@ -60,8 +62,10 @@ private:
 
     sdp::IceSettingPair ParseIceSettingFromSDP(const std::string& sdp) const;
     
-    // Override from Transport
-    void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
+    void Incoming(std::shared_ptr<Packet> in_packet) override;
+    int Outgoing(std::shared_ptr<Packet> out_packet) override;
+
+    int SendInternal(std::shared_ptr<Packet> packet);
 
 private:
 #if USE_NICE

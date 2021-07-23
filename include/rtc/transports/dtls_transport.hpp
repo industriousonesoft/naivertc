@@ -34,9 +34,11 @@ public:
     using VerifyCallback = std::function<bool(std::string_view fingerprint)>;
     void OnVerify(VerifyCallback callback);
 
-    virtual void Start(StartedCallback callback = nullptr) override;
-    virtual void Stop(StopedCallback callback = nullptr) override;
-    virtual void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback = nullptr) override;
+    virtual bool Start() override;
+    virtual bool Stop() override;
+
+    virtual int Send(std::shared_ptr<Packet> packet) override;
+    virtual void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override;
 
 protected:
     void InitOpenSSL(const Config& config);
@@ -57,14 +59,17 @@ protected:
 
     static openssl_bool BioMethodNew(BIO* bio);
     static openssl_bool BioMethodFree(BIO* bio);
-    static int BioMethodWrite(BIO* bio, const char* in, int in_size);
+    static int BioMethodWrite(BIO* bio, const char* in_data, int in_size);
     static long BioMethodCtrl(BIO* bio, int cmd, long num, void* ptr);
 
     bool HandleVerify(std::string_view fingerprint);
 
 protected:
     virtual void Incoming(std::shared_ptr<Packet> in_packet) override;
-    virtual void Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback = nullptr) override;
+    virtual int Outgoing(std::shared_ptr<Packet> out_packet) override;
+
+    int SendInternal(std::shared_ptr<Packet> packet);
+    int HandleDtlsWrite(const char* in_data, int in_size);
 
 private:
     Config config_;

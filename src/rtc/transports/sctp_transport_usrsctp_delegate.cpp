@@ -14,7 +14,8 @@ using namespace std::chrono_literals;
 using namespace utils::numeric;
 
 void SctpTransport::Init() {
-	usrsctp_init(0, &SctpTransport::OnSCTPWrite, nullptr);
+	PLOG_VERBOSE << "SCTP init";
+	usrsctp_init(0, &SctpTransport::on_sctp_write, nullptr);
 	// Enable Partial Reliability Extension (RFC 3758)
 	usrsctp_sysctl_set_sctp_pr_enable(1);
 	// Disable Explicit Congestion Notification
@@ -67,13 +68,14 @@ void SctpTransport::CustomizeSctp(const SctpCustomizedSettings& settings) {
 }
 
 void SctpTransport::Cleanup() {
+	PLOG_VERBOSE << "SCTP cleanup";
 	// Waiting util sctp finished
 	while (usrsctp_finish() != 0) {
 		std::this_thread::sleep_for(100ms);
 	}
 }
 
-void SctpTransport::InitUsrsctp(const Config& config) {
+void SctpTransport::InitUsrSCTP(const Config& config) {
     PLOG_VERBOSE << "Initializing SCTP transport.";
 
     // Register this class as an address for usrsctp, This is used by SCTP to 
@@ -87,7 +89,7 @@ void SctpTransport::InitUsrsctp(const Config& config) {
         throw std::runtime_error("Failed to create SCTP socket, errno: " + std::to_string(errno));
     }
 
-    usrsctp_set_upcall(socket_, &SctpTransport::OnSCTPUpCall, this);
+    usrsctp_set_upcall(socket_, &SctpTransport::on_sctp_upcall, this);
 
     if (usrsctp_set_non_blocking(socket_, 1) != 0) {
         throw std::runtime_error("Unable to set non-blocking mode, errno: " + std::to_string(errno));
@@ -220,19 +222,19 @@ void SctpTransport::InitUsrsctp(const Config& config) {
 }
 
 // usrsctp callbacks
-void SctpTransport::OnSCTPUpCall(struct socket* socket, void* arg, int flags) {
+void SctpTransport::on_sctp_upcall(struct socket* socket, void* arg, int flags) {
     auto* transport = static_cast<SctpTransport*>(arg);
-    if (WeakPtrManager::SharedInstance()->TryLock(transport)) {
-        transport->HandleSCTPUpCall();
+    if (WeakPtrManager::SharedInstance()->Lock(transport)) {
+        transport->HandleSctpUpCall();
     }
 }
 
-int SctpTransport::OnSCTPWrite(void* ptr, void* data, size_t len, uint8_t tos, uint8_t set_df) {
+int SctpTransport::on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
     auto* transport = static_cast<SctpTransport*>(ptr);
     // In case of Sending callback is invoked on a already closed registered class instance.(transport).
     // https://github.com/sctplab/usrsctp/issues/405
-    if (WeakPtrManager::SharedInstance()->TryLock(transport)) {
-        return transport->HandleSCTPWrite(data, len, tos, set_df);
+    if (WeakPtrManager::SharedInstance()->Lock(transport)) {
+        return transport->HandleSctpWrite(in_data, in_size, tos, set_df);
     }else {
         return -1;
     }

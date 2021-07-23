@@ -39,6 +39,19 @@ public:
         return ret;
     }
 
+    void SyncPost(std::function<void(void)> handler) const {
+        if (is_in_current_queue()) {
+           handler();
+        }else {
+            boost::unique_lock<boost::mutex> lock(mutex_);
+            boost::asio::dispatch(strand_, [this, handler = std::move(handler)](){
+                handler();
+                cond_.notify_one();
+            });
+            cond_.wait(lock);
+        }
+    }
+
 public:
     static void PostInGlobalQueue(std::function<void()> handler);
     static void DispatchInGlobalQueue(std::function<void()> handler);

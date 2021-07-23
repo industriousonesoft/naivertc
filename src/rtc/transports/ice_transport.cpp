@@ -44,26 +44,35 @@ void IceTransport::OnGatheringStateChanged(GatheringStateChangedCallback callbac
     });
 }
 
-void IceTransport::Stop(StopedCallback callback) {
-#if !USE_NICE
-    Transport::Stop(callback);
-#else
-    Transport::Stop([this, callback](std::optional<const std::exception> exp){
-        if (timeout_id_ > 0) {
-            g_source_remove(timeout_id_);
-            timeout_id_ = 0;
+bool IceTransport::Start() {
+    return task_queue_.SyncPost<bool>([this](){
+        if (is_stoped_) {
+            RegisterIncoming();
+            is_stoped_= false;
         }
-
-        PLOG_DEBUG << "Stopping ICE thread";
-        nice_agent_attach_recv(nice_agent_.get(), stream_id_, component_id_, g_main_loop_get_context(main_loop_.get()), NULL, NULL);
-        nice_agent_remove_stream(nice_agent_.get(), stream_id_);
-        g_main_loop_quit(main_loop_.get());
-        main_loop_thread_.join();
-        if (callback) {
-            callback(std::move(exp));
-        }
+        return true;
     });
+}
+
+bool IceTransport::Stop() {
+    return task_queue_.SyncPost<bool>([this](){
+        if (!is_stoped_) {
+#if USE_NICE
+            if (timeout_id_ > 0) {
+                g_source_remove(timeout_id_);
+                timeout_id_ = 0;
+            }
+            PLOG_DEBUG << "Stopping NICE ICE thread";
+            nice_agent_attach_recv(nice_agent_.get(), stream_id_, component_id_, g_main_loop_get_context(main_loop_.get()), NULL, NULL);
+            nice_agent_remove_stream(nice_agent_.get(), stream_id_);
+            g_main_loop_quit(main_loop_.get());
+            main_loop_thread_.join();
 #endif
+            DeregisterIncoming();
+            is_stoped_ = true;
+        }
+        return true;
+    });
 }
 
 void IceTransport::GatherLocalCandidate(std::string mid) {
@@ -233,8 +242,15 @@ std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>> IceTrans
     return std::make_pair(selected_local_candidate, selected_remote_candidate);
 }
 
-// State Callbacks
+int IceTransport::SendInternal(std::shared_ptr<Packet> packet) {
+    if (!packet || (state_ != State::CONNECTED && state_ != State::COMPLETED)) {
+        return -1;
+    }
+    PLOG_VERBOSE << "Will Send size=" << packet->size();
+    return Outgoing(std::move(packet));
+}
 
+// State Callbacks
 void IceTransport::UpdateGatheringState(GatheringState state) {
     task_queue_.Post([this, state](){
         if (this->gathering_state_.exchange(state) != state) {
@@ -258,7 +274,7 @@ void IceTransport::ProcessReceivedData(const char* data, size_t size) {
         try {
             PLOG_VERBOSE << "Incoming ICE packet size: " << size;
             auto packet = Packet::Create(data, size);
-            HandleIncomingPacket(packet);
+            Incoming(packet);
         } catch(const std::exception &e) {
             PLOG_WARNING << e.what();
         }
@@ -267,25 +283,28 @@ void IceTransport::ProcessReceivedData(const char* data, size_t size) {
 
 // Override 
 void IceTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
-    task_queue_.Post([this, packet, callback](){
-        // A filter for valid packet and state
-        auto state = this->state();
-        if (!packet || (state != State::CONNECTED && state != State::COMPLETED)) {
-            if (callback) {
-                callback(false);
-            }
-            return;
-        }
-        this->Outgoing(packet, callback);
+    task_queue_.Post([this, packet = std::move(packet), callback](){
+        int sent_size = SendInternal(std::move(packet));
+        callback(sent_size);
     });
 }
 
-void IceTransport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
-    bool bRet = false;
+int IceTransport::Send(std::shared_ptr<Packet> packet) {
+    return task_queue_.SyncPost<int>([this, packet=std::move(packet)](){
+        return SendInternal(std::move(packet));
+    });
+}
+
+void IceTransport::Incoming(std::shared_ptr<Packet> in_packet) {
+    ForwardIncomingPacket(std::move(in_packet));
+}
+
+int IceTransport::Outgoing(std::shared_ptr<Packet> out_packet) {
+    int ret = false;
 #if !USE_NICE
     // Explicit Congestion Notification takes the least-significant 2 bits of the DS field.
     int ds = int(out_packet->dscp() << 2);
-    bRet = juice_send_diffserv(juice_agent_.get(), out_packet->data(), out_packet->size(), ds) >= 0;
+    ret = juice_send_diffserv(juice_agent_.get(), out_packet->data(), out_packet->size(), ds);
 #else
     if (outgoing_dscp_ != out_packet->dscp()) {
         outgoing_dscp_ = out_packet->dscp();
@@ -294,11 +313,10 @@ void IceTransport::Outgoing(std::shared_ptr<Packet> out_packet, PacketSentCallba
         // ToS is the lagacy name for DS
         nice_agent_set_stream_tos(nice_agent_.get(), stream_id_, ds);
     }
-    bRet = nice_agent_send(nice_agent_.get(), stream_id_, component_id_, out_packet->size(), reinterpret_cast<const char*>(out_packet->data())) >= 0;
+    ret = nice_agent_send(nice_agent_.get(), stream_id_, component_id_, out_packet->size(), reinterpret_cast<const char*>(out_packet->data()));
 #endif
-    if (callback) {
-        callback(bRet);
-    }
+    PLOG_VERBOSE << "Did send size=" << ret;
+    return ret;
 }
 
 /* SDP generated by libnice

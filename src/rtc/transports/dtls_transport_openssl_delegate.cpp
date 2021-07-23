@@ -17,6 +17,7 @@ std::mutex DtlsTransport::global_mutex_;
 
 // Static methods
 void DtlsTransport::Init() {
+    PLOG_VERBOSE << "SCTP init";
     std::lock_guard lock(global_mutex_);
 
     openssl::init();
@@ -37,6 +38,7 @@ void DtlsTransport::Init() {
 }
 
 void DtlsTransport::Cleanup() {
+    PLOG_VERBOSE << "SCTP cleanup";
     // Nothing to do
 }
 
@@ -234,7 +236,7 @@ openssl_bool DtlsTransport::CertificateCallback(int preverify_ok, X509_STORE_CTX
     SSL* ssl = static_cast<SSL *>(X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx()));
     DtlsTransport* transport = static_cast<DtlsTransport*>(SSL_get_ex_data(ssl, DtlsTransport::transport_ex_index_));
     // Detect the tansport pointer is still available
-    if (WeakPtrManager::SharedInstance()->TryLock(transport)) {
+    if (WeakPtrManager::SharedInstance()->Lock(transport)) {
         X509* crt = X509_STORE_CTX_get_current_cert(ctx);
         std::string fingerprint = Certificate::MakeFingerprint(crt);
         return transport->HandleVerify(fingerprint) ? openssl_true /* true */ : openssl_false /* false */;
@@ -262,34 +264,34 @@ void DtlsTransport::InfoCallback(const SSL* ssl, int where, int ret) {
 
     // Callback has been called to indicate state change inside a loop.
     if (where & SSL_CB_LOOP) {
-        PLOG_INFO << "Loop state changed: " << SSL_alert_desc_string_long(ret);
+        PLOG_INFO << "SSL loop state changed: " << SSL_alert_desc_string_long(ret);
     // Callback has been called to indicate error exit of a handshake function.
     }else if (where & SSL_CB_EXIT) {
         PLOG_INFO << "Exit error: " << SSL_alert_desc_string_long(ret);
     // Callback has been called during read operation.
     }else if (where & SSL_CB_READ) {
-        
+        PLOG_INFO << "SSL read";
     // Callback has been called during write operation.
     }else if (where & SSL_CB_WRITE) {
-        
+        PLOG_INFO << "SSL write";
     }else if (where & SSL_CB_READ_ALERT) {
-        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+        PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
     }else if (where & SSL_CB_WRITE_ALERT) {
-        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+        PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
     }else if (where & SSL_CB_ACCEPT_LOOP) {
-        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+        PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
     }else if (where & SSL_CB_ACCEPT_EXIT) {
-        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+        PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
     }else if (where & SSL_CB_CONNECT_LOOP) {
-        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+        PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
     }else if (where & SSL_CB_CONNECT_EXIT) {
-        PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
+        PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
     // Callback has been called because a new handshake is started.
     }else if (where & SSL_CB_HANDSHAKE_START) {
-        PLOG_INFO << "Handshake start";
+        PLOG_INFO << "SSL Handshake start";
     // Callback has been called because a handshake is finished.
     }else if (where & SSL_CB_HANDSHAKE_DONE) {
-        PLOG_INFO << "handshake done";
+        PLOG_INFO << "SSL handshake done";
     }else {
         if (where & SSL_CB_ALERT) {
             if (ret != 256) {
@@ -316,16 +318,14 @@ openssl_bool DtlsTransport::BioMethodFree(BIO* bio) {
     }
 }
 
-int DtlsTransport::BioMethodWrite(BIO* bio, const char* in, int in_size) {
+int DtlsTransport::BioMethodWrite(BIO* bio, const char* in_data, int in_size) {
     if (in_size <= 0) {
         return in_size;
     }
     auto transport = reinterpret_cast<DtlsTransport*>(BIO_get_data(bio));
-    if (WeakPtrManager::SharedInstance()->TryLock(transport)) {
-        auto bytes = reinterpret_cast<const uint8_t*>(in);
-        auto pakcet = Packet::Create(std::move(bytes), in_size);
-        transport->Outgoing(pakcet);
-        return in_size;
+    if (WeakPtrManager::SharedInstance()->Lock(transport)) {
+        PLOG_VERBOSE << "Handle DTLS write size: " << in_size;
+        return transport->HandleDtlsWrite(in_data, in_size);
     }
     return -1;
 }
