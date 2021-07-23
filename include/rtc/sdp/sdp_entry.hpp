@@ -33,7 +33,7 @@ public:
 
     virtual bool ParseSDPLine(std::string_view line);
     virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value);
-    virtual std::string GenerateSDP(std::string_view eol, Role role) const;
+    virtual std::string GenerateSDP(const std::string eol, Role role) const;
 protected:
     Entry();
 private:

@@ -68,7 +68,7 @@ void Entry::Hint(const Entry& other) {
     }
 }
 
-std::string Entry::GenerateSDP(std::string_view eol, Role role) const {
+std::string Entry::GenerateSDP(const std::string eol, Role role) const {
     std::ostringstream oss;
     const std::string sp = " ";
 

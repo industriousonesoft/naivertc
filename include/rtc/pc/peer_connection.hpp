@@ -58,11 +58,11 @@ public:
     using CandidateCallback = std::function<void(const sdp::Candidate& candidate)>;
     using SignalingStateCallback = std::function<void(SignalingState new_state)>;
 
-    using SDPCreateSuccessCallback = std::function<void(const sdp::Description& sdp)>;
-    using SDPCreateFailureCallback = std::function<void(const std::exception& exp)>;
+    using SDPCreateSuccessCallback = std::function<void(const sdp::Description sdp)>;
+    using SDPCreateFailureCallback = std::function<void(const std::exception exp)>;
 
     using SDPSetSuccessCallback = std::function<void()>;
-    using SDPSetFailureCallback = std::function<void(const std::exception& exp)>;
+    using SDPSetFailureCallback = std::function<void(const std::exception exp)>;
 public:
     static std::shared_ptr<PeerConnection> Create(const RtcConfiguration config) {
         return std::shared_ptr<PeerConnection>(new PeerConnection(std::move(config)));

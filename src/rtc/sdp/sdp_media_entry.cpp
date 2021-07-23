@@ -29,7 +29,7 @@ MediaEntry::Type MediaEntry::type_string_to_type(std::string_view type_string) c
     }
 }
 
-std::string MediaEntry::GenerateSDP(std::string_view eol, Role role) const {
+std::string MediaEntry::GenerateSDP(const std::string eol, Role role) const {
     std::ostringstream oss;
     std::string sp = " ";
 
@@ -55,7 +55,7 @@ std::string MediaEntry::GenerateSDP(std::string_view eol, Role role) const {
     return oss.str();
 }
 
-std::string MediaEntry::GenerateSDPLines(std::string_view eol) const {
+std::string MediaEntry::GenerateSDPLines(const std::string eol) const {
     std::ostringstream oss;
     // 与属性a=group:BUNDLE配合使用，表示多个media使用同一个端口
     // 'bundle-only' which can be used to request that specified meida

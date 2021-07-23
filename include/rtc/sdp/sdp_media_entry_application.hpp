@@ -26,7 +26,7 @@ public:
     bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
 
 private:
-    virtual std::string GenerateSDPLines(std::string_view eol) const override;
+    virtual std::string GenerateSDPLines(const std::string eol) const override;
 
     std::optional<uint16_t> sctp_port_;
     std::optional<size_t> max_message_size_;

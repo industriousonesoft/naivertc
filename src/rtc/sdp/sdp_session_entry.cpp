@@ -19,7 +19,7 @@ const std::string SessionEntry::session_id() const {
     return session_id_;
 }
 
-std::string SessionEntry::GenerateSDP(const std::string_view eol, Role role) const {
+std::string SessionEntry::GenerateSDP(const std::string eol, Role role) const {
     std::ostringstream oss;
     std::string sp = " ";
 

@@ -62,7 +62,7 @@ public:
     void HintRole(Role role);
 
     operator std::string() const;
-    std::string GenerateSDP(std::string_view eol, bool application_only = false) const;
+    std::string GenerateSDP(const std::string eol, bool application_only = false) const;
 
     bool HasApplication() const;
     bool HasAudio() const;

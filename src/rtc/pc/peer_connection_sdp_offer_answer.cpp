@@ -156,8 +156,12 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     }
 
     // Build local sdp
-    auto local_sdp_builder = ice_transport_->GetLocalDescription(type);
+    auto ice_sdp = ice_transport_->GetLocalDescription(type);
+    auto local_sdp_builder = sdp::Description::Builder(type);
     auto local_sdp = local_sdp_builder
+                    .set_role(ice_sdp.role())
+                    .set_ice_ufrag(ice_sdp.ice_ufrag())
+                    .set_ice_pwd(ice_sdp.ice_pwd())
                     // Set local fingerprint (wait for certificate if necessary)
                     .set_fingerprint(certificate_.get()->fingerprint())
                     .Build();
@@ -168,6 +172,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
 
     // Start to gather local candidate after local sdp was set.
     TryToGatherLocalCandidate();
+
 }
 
 void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
@@ -360,7 +365,8 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 }
 void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
     
-    ice_transport_->SetRemoteDescription(remote_sdp);
+    auto ice_remote_sdp = IceTransport::Description(remote_sdp.type(), remote_sdp.role(), remote_sdp.ice_ufrag(), remote_sdp.ice_pwd());
+    ice_transport_->SetRemoteDescription(ice_remote_sdp);
 
     // Since we assumed passive role during DataChannel creatation, we might need to 
     // shift the stream id form odd to even
@@ -474,7 +480,7 @@ void PeerConnection::TryToGatherLocalCandidate() {
     if (gathering_state_ == GatheringState::NEW && 
         local_sdp_.has_value()) {
         PLOG_DEBUG << "Start to gather local candidates";
-        ice_transport_->GatherLocalCandidate(local_sdp_.value().bundle_id());
+        ice_transport_->StartToGatherLocalCandidate(local_sdp_.value().bundle_id());
     }
 }
 

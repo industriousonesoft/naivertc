@@ -46,7 +46,7 @@ bool Application::ParseSDPAttributeField(std::string_view key, std::string_view 
     }
 }
 
-std::string Application::GenerateSDPLines(std::string_view eol) const {
+std::string Application::GenerateSDPLines(const std::string eol) const {
     std::ostringstream oss;
     oss << MediaEntry::GenerateSDPLines(eol);
 

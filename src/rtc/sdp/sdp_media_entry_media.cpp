@@ -34,7 +34,7 @@ std::string Media::description() const {
     return desc.str();
 }
 
-std::string Media::GenerateSDPLines(std::string_view eol) const {
+std::string Media::GenerateSDPLines(const std::string eol) const {
     std::ostringstream oss;
     oss << MediaEntry::GenerateSDPLines(eol);
 

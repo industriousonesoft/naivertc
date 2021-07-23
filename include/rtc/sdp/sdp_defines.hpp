@@ -29,8 +29,6 @@ enum class Direction {
     UNKNOWN
 };
 
-using IceSettingPair = std::pair<std::optional<std::string>, std::optional<std::string>>;
-
 } // namespace sdp
 } // namespace naivertc
 

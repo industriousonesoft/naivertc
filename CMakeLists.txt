@@ -57,6 +57,7 @@ set(LIB_SOURCES
     src/rtc/sdp/sdp_media_entry_video.cpp
     src/rtc/transports/transport.cpp
     src/rtc/transports/ice_transport.cpp
+    src/rtc/transports/ice_transport_description.cpp
     src/rtc/transports/sctp_transport.cpp
     src/rtc/transports/sctp_transport_usrsctp_delegate.cpp
     src/rtc/transports/sctp_packet.cpp

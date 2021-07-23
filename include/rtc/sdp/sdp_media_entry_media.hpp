@@ -59,7 +59,7 @@ public:
     void AddRTPMap(const RTPMap& map);
 
 private:
-    virtual std::string GenerateSDPLines(std::string_view eol) const override;
+    virtual std::string GenerateSDPLines(const std::string eol) const override;
 
 private:
     Direction direction_;
