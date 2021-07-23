@@ -26,7 +26,7 @@ void PeerConnection::InitIceTransport() {
 
 // IceTransport delegate
 void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state) {
-    handle_queue_.Post([this, transport_state](){
+    handle_queue_.Async([this, transport_state](){
         switch (transport_state) {
         case Transport::State::CONNECTING:
             this->UpdateConnectionState(ConnectionState::CONNECTING);
@@ -49,7 +49,7 @@ void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state
 }
 
 void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gathering_state) {
-    handle_queue_.Post([this, gathering_state](){
+    handle_queue_.Async([this, gathering_state](){
         switch (gathering_state) {
         case IceTransport::GatheringState::NEW:
             this->UpdateGatheringState(GatheringState::NEW);
@@ -67,7 +67,7 @@ void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gather
 }
 
 void PeerConnection::OnCandidateGathered(sdp::Candidate candidate) {
-    handle_queue_.Post([this, candidate = std::move(candidate)](){
+    handle_queue_.Async([this, candidate = std::move(candidate)](){
         if (this->candidate_callback_) {
             this->candidate_callback_(std::move(candidate));
         }

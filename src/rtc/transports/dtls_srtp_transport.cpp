@@ -27,7 +27,7 @@ void DtlsSrtpTransport::DtlsHandshakeDone() {
 }
 
 void DtlsSrtpTransport::SendRtpPacket(std::shared_ptr<RtpPacket> rtc_packet, PacketSentCallback callback) {
-    task_queue_.Post([this, rtc_packet=std::move(rtc_packet), callback](){
+    task_queue_.Async([this, rtc_packet=std::move(rtc_packet), callback](){
         auto packet = rtc_packet->raw_packet();
         if (EncryptPacket(packet)) {
             ForwardOutgoingPacket(std::move(packet), callback);
@@ -38,7 +38,7 @@ void DtlsSrtpTransport::SendRtpPacket(std::shared_ptr<RtpPacket> rtc_packet, Pac
 }
 
 int DtlsSrtpTransport::SendRtpPacket(std::shared_ptr<RtpPacket> rtc_packet) {
-    return task_queue_.SyncPost<int>([this, rtc_packet=std::move(rtc_packet)](){
+    return task_queue_.Sync<int>([this, rtc_packet=std::move(rtc_packet)](){
         auto packet = rtc_packet->raw_packet();
         if (EncryptPacket(packet)) {
             return ForwardOutgoingPacket(std::move(packet));
@@ -117,13 +117,13 @@ bool DtlsSrtpTransport::EncryptPacket(std::shared_ptr<Packet> packet) {
 }
 
 void DtlsSrtpTransport::OnReceivedRtpPacket(RtpPacketRecvCallback callback) {
-    task_queue_.Post([this, callback](){
+    task_queue_.Async([this, callback](){
         this->rtp_packet_recv_callback_ = callback;
     });
 }
 
 void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
-    task_queue_.Post([this, in_packet=std::move(in_packet)](){
+    task_queue_.Async([this, in_packet=std::move(in_packet)](){
         // DTLS handshake is still in progress
         if (!srtp_init_done_) {
             DtlsTransport::Incoming(in_packet);

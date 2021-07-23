@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-std::shared_ptr<TaskQueue> TaskQueue::GlobalTaskQueue = std::make_shared<TaskQueue>();
+// std::shared_ptr<TaskQueue> TaskQueue::GlobalTaskQueue = std::make_shared<TaskQueue>();
 
 TaskQueue::TaskQueue() 
     : work_guard_(boost::asio::make_work_guard(ioc_)),
@@ -24,7 +24,20 @@ TaskQueue::~TaskQueue() {
     ioc_thread_.reset();
 }
 
-void TaskQueue::Post(const std::function<void()>& handler) const {
+void TaskQueue::Sync(std::function<void(void)> handler) const {
+    if (is_in_current_queue()) {
+        handler();
+    }else {
+        boost::unique_lock<boost::mutex> lock(mutex_);
+        boost::asio::dispatch(strand_, [this, handler = std::move(handler)](){
+            handler();
+            cond_.notify_one();
+        });
+        cond_.wait(lock);
+    }
+}
+
+void TaskQueue::Async(const std::function<void()>& handler) const {
     if (is_in_current_queue()) {
         handler();
     }else {
@@ -40,7 +53,7 @@ void TaskQueue::Dispatch(const std::function<void()>& handler) const {
     }
 }
 
-void TaskQueue::PostDelay(TimeInterval delay_in_sec, const std::function<void()>& handler) {
+void TaskQueue::AsyncAfter(TimeInterval delay_in_sec, const std::function<void()>& handler) {
     // Construct a timer without setting an expiry time.
     timer_.expires_from_now(boost::posix_time::seconds(delay_in_sec));
     // Start an asynchronous wait
@@ -53,16 +66,5 @@ bool TaskQueue::is_in_current_queue() const {
     return ioc_thread_id_ == boost::this_thread::get_id();    
 }
 
-void TaskQueue::PostInGlobalQueue(std::function<void()> handler) {
-    GlobalTaskQueue->Post(std::move(handler));
-}
-
-void TaskQueue::DispatchInGlobalQueue(std::function<void()> handler) {
-    GlobalTaskQueue->Dispatch(std::move(handler));
-}
-
-void TaskQueue::PostDelayInGlobalQueue(TimeInterval delay_in_sec ,std::function<void()> handler) {
-    GlobalTaskQueue->PostDelay(delay_in_sec, std::move(handler));
-}
 
 }

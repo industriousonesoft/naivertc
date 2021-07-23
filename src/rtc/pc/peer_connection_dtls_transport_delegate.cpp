@@ -48,7 +48,7 @@ void PeerConnection::InitDtlsTransport() {
 }
 
 void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_state) {
-    handle_queue_.Post([this, transport_state](){
+    handle_queue_.Async([this, transport_state](){
         switch (transport_state)
         {
         case DtlsSrtpTransport::State::CONNECTED: {

@@ -54,7 +54,7 @@ void PeerConnection::InitSctpTransport() {
 
 // SctpTransport delegate
 void PeerConnection::OnSctpTransportStateChanged(Transport::State transport_state) {
-    handle_queue_.Post([this, transport_state](){
+    handle_queue_.Async([this, transport_state](){
         switch(transport_state) {
         case SctpTransport::State::CONNECTED:
             PLOG_DEBUG << "SCTP transport connected";

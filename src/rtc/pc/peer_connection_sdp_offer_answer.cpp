@@ -14,7 +14,7 @@ namespace naivertc {
 // Offer && Answer
 void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success, 
                                     SDPCreateFailureCallback on_failure) {
-    handle_queue_.Post([this, on_success, on_failure](){
+    handle_queue_.Async([this, on_success, on_failure](){
         try {
             this->SetLocalDescription(sdp::Type::OFFER);
             if (this->local_sdp_.has_value()) {
@@ -31,7 +31,7 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
 
 void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success, 
                                     SDPCreateFailureCallback on_failure) {
-    handle_queue_.Post([this, on_success, on_failure](){
+    handle_queue_.Async([this, on_success, on_failure](){
         try {
             this->SetLocalDescription(sdp::Type::ANSWER);
             if (this->local_sdp_.has_value()) {
@@ -49,7 +49,7 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
 void PeerConnection::SetOffer(const std::string sdp,
                                 SDPSetSuccessCallback on_success,
                                 SDPSetFailureCallback on_failure) {
-    handle_queue_.Post([this, sdp = std::move(sdp), on_success, on_failure](){
+    handle_queue_.Async([this, sdp = std::move(sdp), on_success, on_failure](){
         try {
             auto remote_sdp = sdp::Description::Parser::Parse(std::move(sdp), sdp::Type::OFFER);
             this->SetRemoteDescription(std::move(remote_sdp));
@@ -63,7 +63,7 @@ void PeerConnection::SetOffer(const std::string sdp,
 void PeerConnection::SetAnswer(const std::string sdp, 
                                 SDPSetSuccessCallback on_success, 
                                 SDPSetFailureCallback on_failure) {
-    handle_queue_.Post([this, sdp = std::move(sdp), on_success, on_failure](){
+    handle_queue_.Async([this, sdp = std::move(sdp), on_success, on_failure](){
         try {
             auto remote_sdp = sdp::Description::Parser::Parse(std::move(sdp), sdp::Type::ANSWER);
             this->SetRemoteDescription(std::move(remote_sdp));
@@ -75,14 +75,14 @@ void PeerConnection::SetAnswer(const std::string sdp,
 }
 
 void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string sdp) {
-    handle_queue_.Post([this, mid = std::move(mid), sdp = std::move(sdp)](){
+    handle_queue_.Async([this, mid = std::move(mid), sdp = std::move(sdp)](){
         auto candidate = sdp::Candidate(sdp, mid);
         AddRemoteCandidate(std::move(candidate));
     });
 }
 
 void PeerConnection::AddRemoteCandidate(const sdp::Candidate& candidate) {
-    handle_queue_.Post([this, candidate = std::move(candidate)](){
+    handle_queue_.Async([this, candidate = std::move(candidate)](){
 
         remote_candidates_.emplace_back(std::move(candidate));
 

@@ -25,14 +25,14 @@ protected:
 
 TEST_F(TaskQueueTest, CheckIsInCurrentQueue) {
     EXPECT_FALSE(task_queue_.is_in_current_queue());
-    task_queue_.Post([this](){
+    task_queue_.Async([this](){
         EXPECT_TRUE(task_queue_.is_in_current_queue());
     });
 }
 
-TEST_F(TaskQueueTest, SyncPost) {
+TEST_F(TaskQueueTest, AsyncPost) {
     int ret = 1;
-    ret = task_queue_.SyncPost<int>([]() {
+    ret = task_queue_.Sync<int>([]() {
         return 100;
     });
     EXPECT_EQ(ret, 100);

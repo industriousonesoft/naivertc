@@ -24,19 +24,19 @@ DtlsTransport::~DtlsTransport() {
 }
 
 void DtlsTransport::OnVerify(VerifyCallback callback) {
-    task_queue_.Post([this, callback](){
+    task_queue_.Async([this, callback](){
         verify_callback_ = callback;
     });
 }
 
 bool DtlsTransport::HandleVerify(std::string_view fingerprint) {
-    return task_queue_.SyncPost<bool>([this, &fingerprint]() -> bool {
+    return task_queue_.Sync<bool>([this, &fingerprint]() -> bool {
         return verify_callback_ != nullptr ? verify_callback_(fingerprint) : false;
     });
 }
 
 bool DtlsTransport::Start() { 
-    return task_queue_.SyncPost<bool>([this](){
+    return task_queue_.Sync<bool>([this](){
         if (is_stoped_) {
             this->UpdateState(State::CONNECTING);
             // Start to handshake
@@ -50,7 +50,7 @@ bool DtlsTransport::Start() {
 }
 
 bool DtlsTransport::Stop() {
-    return task_queue_.SyncPost<bool>([this](){
+    return task_queue_.Sync<bool>([this](){
         if (!is_stoped_) {
             SSL_shutdown(this->ssl_);
             this->ssl_ = NULL;
@@ -62,20 +62,20 @@ bool DtlsTransport::Stop() {
 }
 
 void DtlsTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
-    task_queue_.Post([this, packet = std::move(packet), callback](){
+    task_queue_.Async([this, packet = std::move(packet), callback](){
         bool sent_size = SendInternal(std::move(packet));
         callback(sent_size);
     });
 }
 
 int DtlsTransport::Send(std::shared_ptr<Packet> packet) {
-    return task_queue_.SyncPost<int>([this, packet = std::move(packet)](){
+    return task_queue_.Sync<int>([this, packet = std::move(packet)](){
         return SendInternal(std::move(packet));
     });
 }
 
 void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
-    task_queue_.Post([this, in_packet = std::move(in_packet)](){
+    task_queue_.Async([this, in_packet = std::move(in_packet)](){
         if (!in_packet || !ssl_) {
             return;
         }
@@ -126,7 +126,7 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 }
 
 int DtlsTransport::HandleDtlsWrite(const char* in_data, int in_size) {
-    return task_queue_.SyncPost<int>([this, in_data, in_size](){
+    return task_queue_.Sync<int>([this, in_data, in_size](){
         auto bytes = reinterpret_cast<const uint8_t*>(in_data);
         auto pakcet = Packet::Create(std::move(bytes), in_size);
         return Outgoing(std::move(pakcet));

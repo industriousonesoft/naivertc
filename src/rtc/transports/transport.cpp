@@ -14,25 +14,25 @@ Transport::Transport(std::shared_ptr<Transport> lower)
 Transport::~Transport() {}
 
 bool Transport::is_stoped() const {
-    return task_queue_.SyncPost<bool>([this]() -> bool {
+    return task_queue_.Sync<bool>([this]() -> bool {
         return is_stoped_;
     });
 }
 
 Transport::State Transport::state() const {
-    return task_queue_.SyncPost<Transport::State>([this]() -> Transport::State {
+    return task_queue_.Sync<Transport::State>([this]() -> Transport::State {
         return state_;
     });
 }
 
 void Transport::OnStateChanged(StateChangedCallback callback) {
-    task_queue_.Post([this, callback](){
+    task_queue_.Async([this, callback](){
         this->state_changed_callback_ = std::move(callback);
     });
 }
 
 void Transport::OnPacketReceived(PacketReceivedCallback callback) {
-    task_queue_.Post([this, callback](){
+    task_queue_.Async([this, callback](){
         this->packet_recv_callback_ = std::move(callback);
     });
 }
@@ -62,7 +62,7 @@ void Transport::UpdateState(State state) {
 }
 
 void Transport::ForwardOutgoingPacket(std::shared_ptr<Packet> out_packet, PacketSentCallback callback) {
-    task_queue_.Post([this, out_packet = std::move(out_packet), callback](){
+    task_queue_.Async([this, out_packet = std::move(out_packet), callback](){
         if (lower_) {
             lower_->Send(std::move(out_packet), callback);
         }else {

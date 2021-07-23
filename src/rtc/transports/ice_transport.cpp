@@ -33,19 +33,19 @@ sdp::Role IceTransport::role() const {
 }
 
 void IceTransport::OnCandidateGathered(CandidateGatheredCallback callback) {
-    task_queue_.Post([this, callback](){
+    task_queue_.Async([this, callback](){
         this->candidate_gathered_callback_ = std::move(callback);
     });
 }
 
 void IceTransport::OnGatheringStateChanged(GatheringStateChangedCallback callback) {
-    task_queue_.Post([this, callback](){
+    task_queue_.Async([this, callback](){
         this->gathering_state_changed_callback_ = std::move(callback);
     });
 }
 
 bool IceTransport::Start() {
-    return task_queue_.SyncPost<bool>([this](){
+    return task_queue_.Sync<bool>([this](){
         if (is_stoped_) {
             RegisterIncoming();
             is_stoped_= false;
@@ -55,7 +55,7 @@ bool IceTransport::Start() {
 }
 
 bool IceTransport::Stop() {
-    return task_queue_.SyncPost<bool>([this](){
+    return task_queue_.Sync<bool>([this](){
         if (!is_stoped_) {
 #if USE_NICE
             if (timeout_id_ > 0) {
@@ -252,7 +252,7 @@ int IceTransport::SendInternal(std::shared_ptr<Packet> packet) {
 
 // State Callbacks
 void IceTransport::UpdateGatheringState(GatheringState state) {
-    task_queue_.Post([this, state](){
+    task_queue_.Async([this, state](){
         if (this->gathering_state_.exchange(state) != state) {
             if (this->gathering_state_changed_callback_) {
                 this->gathering_state_changed_callback_(state);
@@ -262,7 +262,7 @@ void IceTransport::UpdateGatheringState(GatheringState state) {
 }
 
 void IceTransport::ProcessGatheredCandidate(const char* sdp) {
-    task_queue_.Post([this, sdp = std::move(sdp)](){
+    task_queue_.Async([this, sdp = std::move(sdp)](){
         if (this->candidate_gathered_callback_) {
             this->candidate_gathered_callback_(std::move(sdp::Candidate(sdp, this->curr_mid_)));
         }
@@ -270,7 +270,7 @@ void IceTransport::ProcessGatheredCandidate(const char* sdp) {
 }
 
 void IceTransport::ProcessReceivedData(const char* data, size_t size) {
-    task_queue_.Post([this, data = std::move(data), size](){
+    task_queue_.Async([this, data = std::move(data), size](){
         try {
             PLOG_VERBOSE << "Incoming ICE packet size: " << size;
             auto packet = Packet::Create(data, size);
@@ -283,14 +283,14 @@ void IceTransport::ProcessReceivedData(const char* data, size_t size) {
 
 // Override 
 void IceTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
-    task_queue_.Post([this, packet = std::move(packet), callback](){
+    task_queue_.Async([this, packet = std::move(packet), callback](){
         int sent_size = SendInternal(std::move(packet));
         callback(sent_size);
     });
 }
 
 int IceTransport::Send(std::shared_ptr<Packet> packet) {
-    return task_queue_.SyncPost<int>([this, packet=std::move(packet)](){
+    return task_queue_.Sync<int>([this, packet=std::move(packet)](){
         return SendInternal(std::move(packet));
     });
 }

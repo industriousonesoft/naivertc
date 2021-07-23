@@ -17,14 +17,12 @@ public:
     TaskQueue();
     ~TaskQueue();
 
-    void Post(const std::function<void()>& handler) const;
-    void Dispatch(const std::function<void()>& handler) const;
-    void PostDelay(TimeInterval delay_in_sec, const std::function<void()>& handler);
-
-    bool is_in_current_queue() const;
+    void Sync(std::function<void(void)> handler) const;
+    void Async(const std::function<void()>& handler) const;
+    void AsyncAfter(TimeInterval delay_in_sec, const std::function<void()>& handler);
 
     template<typename T>
-    T SyncPost(std::function<T(void)> handler) const {
+    T Sync(std::function<T(void)> handler) const {
         T ret;
         if (is_in_current_queue()) {
             ret = handler();
@@ -39,23 +37,9 @@ public:
         return ret;
     }
 
-    void SyncPost(std::function<void(void)> handler) const {
-        if (is_in_current_queue()) {
-           handler();
-        }else {
-            boost::unique_lock<boost::mutex> lock(mutex_);
-            boost::asio::dispatch(strand_, [this, handler = std::move(handler)](){
-                handler();
-                cond_.notify_one();
-            });
-            cond_.wait(lock);
-        }
-    }
+    void Dispatch(const std::function<void()>& handler) const;
 
-public:
-    static void PostInGlobalQueue(std::function<void()> handler);
-    static void DispatchInGlobalQueue(std::function<void()> handler);
-    static void PostDelayInGlobalQueue(TimeInterval delay_in_sec ,std::function<void()> handler);
+    bool is_in_current_queue() const;
 
 private:
     boost::asio::io_context ioc_;

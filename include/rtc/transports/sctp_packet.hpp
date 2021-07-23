@@ -46,7 +46,7 @@ public:
     StreamId stream_id() const { return stream_id_; }
     const std::shared_ptr<Reliability> reliability() const { return reliability_; }
 
-    size_t message_size() {
+    size_t payload_size() {
         return (type_ == Type::BINARY || type_ == Type::STRING) ? size() : 0;
     }
 

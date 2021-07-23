@@ -37,7 +37,7 @@ PeerConnection::~PeerConnection() {
 
 void PeerConnection::Close() {
 
-    handle_queue_.Post([this](){
+    handle_queue_.Async([this](){
         PLOG_VERBOSE << "Closing PeerConnection";
 
         this->negotiation_needed_ = false;
@@ -130,25 +130,25 @@ std::string PeerConnection::signaling_state_to_string(SignalingState state) {
 
 // state && candidate callback
 void PeerConnection::OnConnectionStateChanged(ConnectionStateCallback callback) {
-    handle_queue_.Post([this, callback](){
+    handle_queue_.Async([this, callback](){
         this->connection_state_callback_ = callback;
     });
 }
 
 void PeerConnection::OnIceGatheringStateChanged(GatheringStateCallback callback) {
-    handle_queue_.Post([this, callback](){
+    handle_queue_.Async([this, callback](){
         this->gathering_state_callback_ = callback;
     });
 }
 
 void PeerConnection::OnIceCandidate(CandidateCallback callback) {
-    handle_queue_.Post([this, callback](){
+    handle_queue_.Async([this, callback](){
         this->candidate_callback_ = callback;
     });
 }
 
 void PeerConnection::OnSignalingStateChanged(SignalingStateCallback callback) {
-    handle_queue_.Post([this, callback](){
+    handle_queue_.Async([this, callback](){
         this->signaling_state_callback_ = callback;
     });
 }
