@@ -17,6 +17,7 @@
 #endif
 
 #include <functional>
+#include <exception>
 
 namespace naivertc {
 
@@ -27,9 +28,43 @@ public:
         GATHERING,
         COMPLETED
     };
+
+    using AddressCallback = std::function<void(std::optional<std::string>)>;
+    using SelectedCandidatePairCallback = std::function<void(std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>>)>;
+
+    using GatheringStateChangedCallback = std::function<void(GatheringState)>;
+    using CandidateGatheredCallback = std::function<void(sdp::Candidate)>;
+
+public:
+    class Description {
+    public:
+        static Description Parse(std::string sdp, sdp::Type type = sdp::Type::UNSPEC, sdp::Role role = sdp::Role::ACT_PASS);
+    public:
+        Description(sdp::Type type = sdp::Type::UNSPEC, 
+                    sdp::Role role = sdp::Role::ACT_PASS, 
+                    std::optional<std::string> ice_ufrag = std::nullopt, 
+                    std::optional<std::string> ice_pwd = std::nullopt);
+        ~Description();
+
+        sdp::Type type() const;
+        sdp::Role role() const;
+        std::optional<std::string> ice_ufrag() const;
+        std::optional<std::string> ice_pwd() const;
+
+        std::string GenerateSDP(const std::string eol) const;
+
+    private:
+        sdp::Type type_;
+        sdp::Role role_;
+        std::optional<std::string> ice_ufrag_;
+        std::optional<std::string> ice_pwd_;
+    };
 public:
     IceTransport(const RtcConfiguration& config);
     ~IceTransport();
+
+    sdp::Role role() const;
+    std::exception_ptr last_exception() const;
 
     bool Start() override;
     bool Stop() override;
@@ -37,22 +72,17 @@ public:
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override;
     int Send(std::shared_ptr<Packet> packet) override;
 
-    sdp::Role role() const;
-    void GatherLocalCandidate(std::string mid);
-    bool AddRemoteCandidate(const sdp::Candidate& candidate);
+    void StartToGatherLocalCandidate(std::string mid);
+    void AddRemoteCandidate(const sdp::Candidate& candidate);
 
-    sdp::Description::Builder GetLocalDescription(sdp::Type type) const;
-    void SetRemoteDescription(const sdp::Description& remote_sdp);
+    Description GetLocalDescription(sdp::Type type) const;
+    void SetRemoteDescription(const Description& remote_sdp);
 
-    std::optional<std::string> GetLocalAddress() const;
-    std::optional<std::string> GetRemoteAddress() const;
+    void GetLocalAddress(AddressCallback callback) const;
+    void GetRemoteAddress(AddressCallback callback) const;
+    void GetSelectedCandidatePair(SelectedCandidatePairCallback callback) const;
 
-    std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>> GetSelectedCandidatePair();
-
-    using GatheringStateChangedCallback = std::function<void(GatheringState)>;
     void OnGatheringStateChanged(GatheringStateChangedCallback callback);
-
-    using CandidateGatheredCallback = std::function<void(sdp::Candidate)>;
     void OnCandidateGathered(CandidateGatheredCallback callback);
 
 private:
@@ -60,8 +90,6 @@ private:
     void ProcessGatheredCandidate(const char* sdp);
     void ProcessReceivedData(const char* data, size_t size);
 
-    sdp::IceSettingPair ParseIceSettingFromSDP(const std::string& sdp) const;
-    
     void Incoming(std::shared_ptr<Packet> in_packet) override;
     int Outgoing(std::shared_ptr<Packet> out_packet) override;
 
@@ -112,6 +140,8 @@ private:
     std::atomic<GatheringState> gathering_state_ = GatheringState::NEW;
     CandidateGatheredCallback candidate_gathered_callback_ = nullptr;
     GatheringStateChangedCallback gathering_state_changed_callback_ = nullptr;
+    
+    std::exception_ptr last_exception_;
 };
 
 }

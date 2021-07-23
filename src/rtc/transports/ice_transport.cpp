@@ -1,5 +1,4 @@
 #include "rtc/transports/ice_transport.hpp"
-#include "common/utils.hpp"
 
 #include <plog/Log.h>
 
@@ -29,7 +28,15 @@ IceTransport::~IceTransport() {
 }
 
 sdp::Role IceTransport::role() const {
-    return role_;
+    return task_queue_.Sync<sdp::Role>([this](){
+        return role_;
+    });
+}
+
+std::exception_ptr IceTransport::last_exception() const {
+    return task_queue_.Sync<std::exception_ptr>([this](){
+        return last_exception_;
+    });
 }
 
 void IceTransport::OnCandidateGathered(CandidateGatheredCallback callback) {
@@ -75,171 +82,198 @@ bool IceTransport::Stop() {
     });
 }
 
-void IceTransport::GatherLocalCandidate(std::string mid) {
-    curr_mid_ = std::move(mid);
-    // Change state now as candidates start to gather can be synchronous
-    UpdateGatheringState(GatheringState::GATHERING);
+void IceTransport::StartToGatherLocalCandidate(std::string mid) {
+    task_queue_.Async([this, mid=std::move(mid)](){
+        try {
+            curr_mid_ = std::move(mid);
+            // Change state now as candidates start to gather can be synchronous
+            UpdateGatheringState(GatheringState::GATHERING);
 
-#if !USE_NICE
-    if (juice_gather_candidates(juice_agent_.get()) < 0) {
-        throw std::runtime_error("Failed to gather local ICE candidate");
-    }
-#else
-    if (nice_agent_gather_candidates(nice_agent_.get(), stream_id_) == false) {
-        throw std::runtime_error("Failed to gather local ICE candidates");
-    }
-#endif
+        #if !USE_NICE
+            if (juice_gather_candidates(juice_agent_.get()) < 0) {
+                throw std::runtime_error("Failed to gather local ICE candidate");
+            }
+        #else
+            if (nice_agent_gather_candidates(nice_agent_.get(), stream_id_) == false) {
+                throw std::runtime_error("Failed to gather local ICE candidates");
+            }
+        #endif
+        }catch (...) {
+            last_exception_ = std::current_exception();
+        }    
+    });
 }
 
-bool IceTransport::AddRemoteCandidate(const sdp::Candidate& candidate) {
-    if (!candidate.isResolved()) {
-        PLOG_WARNING << "Don't try to pass unresolved candidates for more safety.";
-        return false;
-    }
-#if !USE_NICE
-    // juice_send_diffserv
-    return juice_add_remote_candidate(juice_agent_.get(), std::string(candidate).c_str()) >= 0;
-#else
-    // The candidate string must start with "a=candidate" and it must not end with 
-    // a newline or whitespace, else libnice will reject it.
-    auto candidate_sdp = candidate.sdp_line();
-    NiceCandidate* nice_candidate = nice_agent_parse_remote_candidate_sdp(nice_agent_.get(), stream_id_, candidate_sdp.c_str());
-    if (!nice_candidate) {
-        PLOG_WARNING << "libnice rejected ICE candidate: " << candidate_sdp;
-        return false;
-    }
-    GSList* list = g_slist_append(nullptr, nice_candidate);
-    int ret = nice_agent_set_remote_candidates(nice_agent_.get(), stream_id_, component_id_, list);
-    g_slist_free_full(list, reinterpret_cast<GDestroyNotify>(nice_candidate_free));
-    return ret > 0;
-#endif
+void IceTransport::AddRemoteCandidate(const sdp::Candidate& candidate) {
+    task_queue_.Async([this, &candidate](){
+        try {
+            bool bRet = false;
+            if (!candidate.isResolved()) {
+                throw std::invalid_argument("Don't try to pass unresolved candidates for more safety.");
+            }
+            auto candidate_sdp = candidate.sdp_line();
+        #if !USE_NICE
+            // juice_send_diffserv
+            bRet = juice_add_remote_candidate(juice_agent_.get(), candidate_sdp.c_str()) >= 0;
+        #else
+            // The candidate string must start with "a=candidate" and it must not end with 
+            // a newline or whitespace, else libnice will reject it.
+            NiceCandidate* nice_candidate = nice_agent_parse_remote_candidate_sdp(nice_agent_.get(), stream_id_, candidate_sdp.c_str());
+            if (!nice_candidate) {
+                throw std::runtime_error("Failed to parse remote candidate: " + candidate_sdp);
+            }
+            GSList* list = g_slist_append(nullptr, nice_candidate);
+            bRet = nice_agent_set_remote_candidates(nice_agent_.get(), stream_id_, component_id_, list) > 0;
+            g_slist_free_full(list, reinterpret_cast<GDestroyNotify>(nice_candidate_free));
+        #endif
+            if (!bRet) {
+                throw std::runtime_error("Failed to add remote candidate: " + candidate_sdp);
+            }  
+        }catch (...) {
+            last_exception_ = std::current_exception();
+        }
+    });
 }
 
-std::optional<std::string> IceTransport::GetLocalAddress() const {
-#if !USE_NICE
-    char buffer[JUICE_MAX_ADDRESS_STRING_LEN];
-    if (juice_get_selected_addresses(juice_agent_.get(), buffer, JUICE_MAX_ADDRESS_STRING_LEN, NULL, 0) == 0) {
-        return std::make_optional(std::string(buffer));
-    }
-#else
-    NiceCandidate* local = nullptr;
-    NiceCandidate* remote = nullptr;
-    if (nice_agent_get_selected_pair(nice_agent_.get(), stream_id_, component_id_, &local, &remote)) {
-        return std::make_optional(NiceAddressToString(local->addr));
-    }
-#endif
-    return std::nullopt;
+void IceTransport::GetLocalAddress(AddressCallback callback) const {
+    task_queue_.Async([this, callback](){
+    #if !USE_NICE
+        char buffer[JUICE_MAX_ADDRESS_STRING_LEN];
+        if (juice_get_selected_addresses(juice_agent_.get(), buffer, JUICE_MAX_ADDRESS_STRING_LEN, NULL, 0) == 0) {
+            callback(std::make_optional(std::string(buffer)));
+            return;
+        }
+    #else
+        NiceCandidate* local = nullptr;
+        NiceCandidate* remote = nullptr;
+        if (nice_agent_get_selected_pair(nice_agent_.get(), stream_id_, component_id_, &local, &remote)) {
+            callback(std::make_optional(NiceAddressToString(local->addr)));
+            return;
+        }
+    #endif
+        callback(std::nullopt);
+    });
 }
 
-std::optional<std::string> IceTransport::GetRemoteAddress() const {
-#if !USE_NICE
-    char buffer[JUICE_MAX_ADDRESS_STRING_LEN];
-    if (juice_get_selected_addresses(juice_agent_.get(), NULL, 0, buffer, JUICE_MAX_ADDRESS_STRING_LEN) == 0) {
-        return std::make_optional(std::string(buffer));
-    }
-#else 
-    NiceCandidate* local = nullptr;
-    NiceCandidate* remote = nullptr;
-    if (nice_agent_get_selected_pair(nice_agent_.get(), stream_id_, component_id_, &local, &remote)) {
-        return std::make_optional(NiceAddressToString(remote->addr));
-    }
-#endif
-    return std::nullopt;
+void IceTransport::GetRemoteAddress(AddressCallback callback) const {
+    task_queue_.Async([this, callback](){
+    #if !USE_NICE
+        char buffer[JUICE_MAX_ADDRESS_STRING_LEN];
+        if (juice_get_selected_addresses(juice_agent_.get(), NULL, 0, buffer, JUICE_MAX_ADDRESS_STRING_LEN) == 0) {
+            callback(std::make_optional(std::string(buffer)));
+            return;
+        }
+    #else 
+        NiceCandidate* local = nullptr;
+        NiceCandidate* remote = nullptr;
+        if (nice_agent_get_selected_pair(nice_agent_.get(), stream_id_, component_id_, &local, &remote)) {
+            callback(std::make_optional(NiceAddressToString(remote->addr)));
+            return;
+        }
+    #endif
+        callback(std::nullopt);
+    });
 }
 
-sdp::Description::Builder IceTransport::GetLocalDescription(sdp::Type type) const {
-#if !USE_NICE
-    char sdp_buffer[JUICE_MAX_SDP_STRING_LEN];
-    if (juice_get_local_description(juice_agent_.get(), sdp_buffer, JUICE_MAX_SDP_STRING_LEN) < 0) {
-        throw std::runtime_error("Failed to generate local SDP.");
-    }
-#else
-    // RFC 8445: The initiating agent that started the ICE porcess MUST take the controlling 
-    // role, and the other MUST take the controlled role.
-    g_object_set(G_OBJECT(nice_agent_.get()), "controlling-mode", type == sdp::Type::OFFER ? TRUE : FALSE, nullptr);
-
-    std::unique_ptr<gchar[], void(*)(void *)> sdp_buffer(nice_agent_generate_local_sdp(nice_agent_.get()), g_free);
-#endif
-    // RFC 5763: The endpoint that is the offer MUST use the setup attribute value of setup::actpass
-    // See https://tools.ietf.org/html/rfc5763#section-5
-    auto role = type == sdp::Type::OFFER ? sdp::Role::ACT_PASS : role_;
-    auto [ice_ufrag, ice_pwd] = ParseIceSettingFromSDP(std::string(sdp_buffer.get()));
-    auto builder = sdp::Description::Builder(type)
-                    .set_role(role)
-                    .set_ice_ufrag(ice_ufrag)
-                    .set_ice_pwd(ice_pwd);
-    return builder;
+IceTransport::Description IceTransport::GetLocalDescription(sdp::Type type) const {
+    return task_queue_.Sync<IceTransport::Description>([this, type](){
+        // RFC 5763: The endpoint that is the offer MUST use the setup attribute value of setup::actpass
+        // See https://tools.ietf.org/html/rfc5763#section-5
+        auto role = type == sdp::Type::OFFER ? sdp::Role::ACT_PASS : role_;
+    #if !USE_NICE
+        char sdp_buffer[JUICE_MAX_SDP_STRING_LEN];
+        if (juice_get_local_description(juice_agent_.get(), sdp_buffer, JUICE_MAX_SDP_STRING_LEN) < 0) {
+            return Description(type, role);
+        }
+    #else
+        // RFC 8445: The initiating agent that started the ICE porcess MUST take the controlling 
+        // role, and the other MUST take the controlled role.
+        g_object_set(G_OBJECT(nice_agent_.get()), "controlling-mode", type == sdp::Type::OFFER ? TRUE : FALSE, nullptr);
+        auto sdp = nice_agent_generate_local_sdp(nice_agent_.get());
+        if (sdp == NULL) {
+            return Description(type, role);
+        }
+        std::unique_ptr<gchar[], void(*)(void *)> sdp_buffer(std::move(sdp), g_free);
+    #endif
+        return Description::Parse(std::string(sdp_buffer.get()), type, role);
+    });
 }
 
-void IceTransport::SetRemoteDescription(const sdp::Description& remote_sdp) {
-    if (role_ == sdp::Role::ACT_PASS) {
-        role_ = remote_sdp.role() == sdp::Role::ACTIVE ? sdp::Role::PASSIVE : sdp::Role::ACTIVE;
-    }
-    if (role_ == remote_sdp.role()) {
-        throw std::logic_error("Incompatible roles with remote description.");
-    }
-    curr_mid_ = remote_sdp.bundle_id();
-    int ret = 0;
-    // sdp without audio or video media stream
-    const bool application_only = true;
-#if !USE_NICE
-    auto eol = "\r\n";
-    ret = juice_set_remote_description(juice_agent_.get(), remote_sdp.GenerateSDP(eol, application_only).c_str())
-#else
-    trickle_timeout_ = 30s;
-    // libnice expects "\n" as end of line
-    auto eol = "\n";
-    auto remote_sdp_string = remote_sdp.GenerateSDP(eol, application_only);
-    PLOG_DEBUG << "Nice ready to set remote sdp: \n" << remote_sdp_string;
-    // warning: the applicaion sdp line 'm=application' MUST be in front of 'a=ice-ufrag' and 'a=ice-pwd' or contains the both attributes, 
-    // otherwise it will be faild to parse ICE settings from sdp.
-    ret = nice_agent_parse_remote_sdp(nice_agent_.get(), remote_sdp_string.c_str());
-#endif
-    if (ret < 0) {
-        throw std::runtime_error("Failed to parse ICE settings from remote SDP");
-    }
+void IceTransport::SetRemoteDescription(const Description& remote_sdp) {
+    task_queue_.Async([this, &remote_sdp](){
+        try {
+            if (role_ == sdp::Role::ACT_PASS) {
+                role_ = remote_sdp.role() == sdp::Role::ACTIVE ? sdp::Role::PASSIVE : sdp::Role::ACTIVE;
+            }
+            if (role_ == remote_sdp.role()) {
+                throw std::logic_error("Incompatible roles with remote description.");
+            }
+            int ret = 0;
+        #if !USE_NICE
+            auto eol = "\r\n";
+            ret = juice_set_remote_description(juice_agent_.get(), remote_sdp.GenerateSDP(eol).c_str())
+        #else
+            trickle_timeout_ = 30s;
+            // libnice expects "\n" as end of line
+            auto eol = "\n";
+            auto remote_sdp_string = remote_sdp.GenerateSDP(eol);
+            PLOG_DEBUG << "Nice ready to set remote sdp: \n" << remote_sdp_string;
+            // warning: the applicaion sdp line 'm=application' MUST be in front of 'a=ice-ufrag' and 'a=ice-pwd' or contains the both attributes, 
+            // otherwise it will be faild to parse ICE settings from sdp.
+            ret = nice_agent_parse_remote_sdp(nice_agent_.get(), remote_sdp_string.c_str());
+        #endif
+            if (ret < 0) {
+                throw std::runtime_error("Failed to parse ICE settings from remote SDP");
+            }
+        }catch(...) {
+            last_exception_ = std::current_exception();
+        }
+    });
 }
 
-std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>> IceTransport::GetSelectedCandidatePair() {
-    std::optional<sdp::Candidate> selected_local_candidate = std::nullopt;
-    std::optional<sdp::Candidate> selected_remote_candidate = std::nullopt;
-#if !USE_NICE
-    char local_candidate_sdp[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
-	char remote_candidate_sdp[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
-    if (juice_get_selected_candidates(mAgent.get(), local_candidate_sdp, JUICE_MAX_CANDIDATE_SDP_STRING_LEN,
-	                                  remote_candidate_sdp, JUICE_MAX_CANDIDATE_SDP_STRING_LEN) == 0) {
-        auto local_candidate = sdp::Candidate(local_candidate_sdp, curr_mid_);
-        local_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
-		selected_local_candidate= std::make_optional(std::move(local_candidate));
+void IceTransport::GetSelectedCandidatePair(SelectedCandidatePairCallback callback) const {
+    task_queue_.Async([this, callback](){
+        std::optional<sdp::Candidate> selected_local_candidate = std::nullopt;
+        std::optional<sdp::Candidate> selected_remote_candidate = std::nullopt;
+    #if !USE_NICE
+        char local_candidate_sdp[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
+        char remote_candidate_sdp[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
+        if (juice_get_selected_candidates(mAgent.get(), local_candidate_sdp, JUICE_MAX_CANDIDATE_SDP_STRING_LEN,
+                                        remote_candidate_sdp, JUICE_MAX_CANDIDATE_SDP_STRING_LEN) == 0) {
+            auto local_candidate = sdp::Candidate(local_candidate_sdp, curr_mid_);
+            local_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
+            selected_local_candidate= std::make_optional(std::move(local_candidate));
 
-        auto remote_candidate = sdp::Candidate(remote_candidate_sdp, curr_mid_);
-        remote_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
-		selected_remote_candidate = std::make_optional(std::move(remote_candidate));
-	}
-#else
-    NiceCandidate *nice_local_candidate, *nice_remote_candidate;
-    if (!nice_agent_get_selected_pair(nice_agent_.get(), stream_id_, component_id_, &nice_local_candidate, &nice_remote_candidate)) {
-        return std::make_pair(std::nullopt, std::nullopt);
-    }
-    gchar* local_candidate_sdp = nice_agent_generate_local_candidate_sdp(nice_agent_.get(), nice_local_candidate);
-    if (local_candidate_sdp) {
-        auto local_candidate = sdp::Candidate(local_candidate_sdp, curr_mid_);
-        local_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
-        selected_local_candidate = std::make_optional(std::move(local_candidate));
-    }
+            auto remote_candidate = sdp::Candidate(remote_candidate_sdp, curr_mid_);
+            remote_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
+            selected_remote_candidate = std::make_optional(std::move(remote_candidate));
+        }
+    #else
+        NiceCandidate *nice_local_candidate, *nice_remote_candidate;
+        if (!nice_agent_get_selected_pair(nice_agent_.get(), stream_id_, component_id_, &nice_local_candidate, &nice_remote_candidate)) {
+            callback(std::make_pair(std::nullopt, std::nullopt));
+            return;
+        }
+        gchar* local_candidate_sdp = nice_agent_generate_local_candidate_sdp(nice_agent_.get(), nice_local_candidate);
+        if (local_candidate_sdp) {
+            auto local_candidate = sdp::Candidate(local_candidate_sdp, curr_mid_);
+            local_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
+            selected_local_candidate = std::make_optional(std::move(local_candidate));
+        }
 
-    gchar* remote_candidate_sdp = nice_agent_generate_local_candidate_sdp(nice_agent_.get(), nice_remote_candidate);
-    if (remote_candidate_sdp) {
-        auto remote_candidate = sdp::Candidate(remote_candidate_sdp, curr_mid_);
-        remote_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
-        selected_remote_candidate = std::make_optional(std::move(remote_candidate));
-    }
+        gchar* remote_candidate_sdp = nice_agent_generate_local_candidate_sdp(nice_agent_.get(), nice_remote_candidate);
+        if (remote_candidate_sdp) {
+            auto remote_candidate = sdp::Candidate(remote_candidate_sdp, curr_mid_);
+            remote_candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
+            selected_remote_candidate = std::make_optional(std::move(remote_candidate));
+        }
 
-    g_free(local_candidate_sdp);
-    g_free(remote_candidate_sdp);
+        g_free(local_candidate_sdp);
+        g_free(remote_candidate_sdp);
 
-#endif
-    return std::make_pair(selected_local_candidate, selected_remote_candidate);
+    #endif
+        callback(std::make_pair(selected_local_candidate, selected_remote_candidate));
+    });
 }
 
 int IceTransport::SendInternal(std::shared_ptr<Packet> packet) {
@@ -317,42 +351,6 @@ int IceTransport::Outgoing(std::shared_ptr<Packet> out_packet) {
 #endif
     PLOG_VERBOSE << "Did send size=" << ret;
     return ret;
-}
-
-/* SDP generated by libnice
-m=application 0 ICE/SDP
-c=IN IP4 0.0.0.0
-a=ice-ufrag:5gAx
-a=ice-pwd:UaOtA7vsDocYINrXSTPWph
-*/
-sdp::IceSettingPair IceTransport::ParseIceSettingFromSDP(const std::string& sdp) const {
-    std::istringstream iss(sdp);
-    std::optional<std::string> ice_ufrag;
-    std::optional<std::string> ice_pwd;
-    while(iss) {
-        std::string line;
-        std::getline(iss, line);
-        utils::string::trim_end(line);
-        if (line.empty()) {
-            continue;
-        }
-
-        if (utils::string::match_prefix(line, "a")) {
-            std::string attr = line.substr(2);
-            auto [key, value] = utils::string::parse_pair(attr);
-
-            if (key == "ice-ufrag") {
-                ice_ufrag.emplace(std::move(value));
-            }else if (key == "ice-pwd") {
-                ice_pwd.emplace(std::move(value));
-            }
-
-            if (ice_ufrag.has_value() && ice_pwd.has_value()) {
-                break;
-            }
-        }
-    }
-    return std::make_pair(ice_ufrag, ice_pwd);
 }
 
 } // namespace naivertc
