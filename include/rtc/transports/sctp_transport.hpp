@@ -68,8 +68,8 @@ private:
     void ResetStream(StreamId stream_id);
     void CloseStream(StreamId stream_id);
 
-    bool TrySendQueue();
-    bool TrySendMessage(std::shared_ptr<SctpPacket> message);
+    bool FlushPendingPackets();
+    int TrySendPacket(std::shared_ptr<SctpPacket> packet);
     void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
 
     void HandleSctpUpCall();
@@ -79,6 +79,8 @@ private:
     void ProcessIncomingPacket(std::shared_ptr<Packet> in_packet);
     void ProcessNotification(const union sctp_notification* notification, size_t len);
     void ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_id, PayloadId payload_id);
+
+    int SendInternal(std::shared_ptr<Packet> packet);
 
     void InitUsrSCTP(const Config& config);
     // usrsctp callbacks

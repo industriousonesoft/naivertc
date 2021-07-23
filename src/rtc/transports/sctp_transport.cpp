@@ -44,13 +44,13 @@ SctpTransport::~SctpTransport() {
 }
 
 void SctpTransport::OnSignalBufferedAmountChanged(SignalBufferedAmountChangedCallback callback) {
-	task_queue_.Post([this, callback](){
+	task_queue_.Async([this, callback](){
         this->signal_buffered_amount_changed_callback_ = std::move(callback);
     });
 }
 
 bool SctpTransport::Start() {
-	return task_queue_.SyncPost<bool>([this](){
+	return task_queue_.Sync<bool>([this](){
 		if (is_stoped_) {
 			Reset();
 			this->Connect();
@@ -62,7 +62,7 @@ bool SctpTransport::Start() {
 }
 
 bool SctpTransport::Stop() {
-	return task_queue_.SyncPost<bool>([this](){
+	return task_queue_.Sync<bool>([this](){
 		if (!is_stoped_) {
 			this->Shutdown();
 			this->OnPacketReceived(nullptr);
@@ -142,97 +142,91 @@ void SctpTransport::Shutdown() {
 
 // Send
 bool SctpTransport::Flush() {
-	return task_queue_.SyncPost<bool>([this]() -> bool {
-		try {
-			TrySendQueue();
-			return true;
-		} catch(const std::exception& exp) {
-			PLOG_WARNING << "Faild to flush messages: " << exp.what();
-			return false;
-		}
+	return task_queue_.Sync<bool>([this]() -> bool {
+		return FlushPendingPackets();
 	});
 }
 
 void SctpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
-	task_queue_.Post([=](){
-		if (!utils::instanceof<SctpPacket>(packet.get())) {
-			PLOG_WARNING << "Try to send a non-sctp message.";
-			if (callback) {
-				callback(false);
-			}
-			return;
-		}
-
-		if (!packet) {
-			auto bRet = this->TrySendQueue();
-			if (callback) {
-				callback(bRet);
-			}
-			return;
-		}
-		auto message = std::dynamic_pointer_cast<SctpPacket>(packet);
-		// Flush the queue, and if nothing is pending, try to send directly
-		if (this->TrySendQueue() && this->TrySendMessage(message)) {
-			if (callback) {
-				callback(true);
-			}
-			return;
-		}
-
-		// enqueue
-		this->send_packet_queue_.push(message);
-		this->UpdateBufferedAmount(message->stream_id(), ptrdiff_t(message->message_size()));
-		if (callback) {
-			callback(false);
-		}
+	task_queue_.Async([this, packet=std::move(packet), callback](){
+		int sent_size = SendInternal(std::move(packet));
+		callback(sent_size);
 	});
 }
 
-bool SctpTransport::TrySendQueue() {
+int SctpTransport::Send(std::shared_ptr<Packet> packet) {
+	return task_queue_.Sync<int>([this, packet=std::move(packet)](){
+		return SendInternal(std::move(packet));
+	});
+}
+
+int SctpTransport::SendInternal(std::shared_ptr<Packet> packet) {
+	if (!utils::instanceof<SctpPacket>(packet.get())) {
+		PLOG_WARNING << "Try to send a non-sctp packet.";
+		return -1;
+	}
+
+	if (!packet) {
+		return this->FlushPendingPackets() ? 0 : -1;
+	}
+
+	auto sctp_packet = std::dynamic_pointer_cast<SctpPacket>(packet);
+	// Flush the queue, and if nothing is pending, try to send directly
+	if (this->FlushPendingPackets()) {
+		return this->TrySendPacket(sctp_packet);
+	}
+
+	// enqueue
+	this->send_packet_queue_.push(sctp_packet);
+	this->UpdateBufferedAmount(sctp_packet->stream_id(), ptrdiff_t(sctp_packet->payload_size()));
+	return 0;
+}
+
+bool SctpTransport::FlushPendingPackets() {
 	while (auto next = send_packet_queue_.back()) {
-		auto message = std::move(next);
-		if (!TrySendMessage(message)) {
+		auto packet = std::move(next);
+		if (TrySendPacket(packet) < 0) {
 			return false;
 		}
 		send_packet_queue_.pop();
-		UpdateBufferedAmount(message->stream_id(), -ptrdiff_t(message->message_size()));
+		UpdateBufferedAmount(packet->stream_id(), -ptrdiff_t(packet->payload_size()));
 	}
-	return false;
+	return true;
 }
 
-bool SctpTransport::TrySendMessage(std::shared_ptr<SctpPacket> message) {
+int SctpTransport::TrySendPacket(std::shared_ptr<SctpPacket> packet) {
 	if (!socket_ || state() == State::CONNECTED) {
-		return false;
+		return -1;
 	}
 	PayloadId ppid;
-	switch (message->type()) {
+	switch (packet->type()) {
 	case SctpPacket::Type::STRING:
-		ppid = message->is_empty() ? PayloadId::PPID_STRING_EMPTY : PayloadId::PPID_STRING;
+		ppid = packet->is_empty() ? PayloadId::PPID_STRING_EMPTY : PayloadId::PPID_STRING;
 		break;
 	case SctpPacket::Type::BINARY:
-		ppid = message->is_empty() ? PayloadId::PPID_BINARY_EMPTY : PayloadId::PPID_BINARY;
+		ppid = packet->is_empty() ? PayloadId::PPID_BINARY_EMPTY : PayloadId::PPID_BINARY;
 		break;
 	case SctpPacket::Type::CONTROL:
 		ppid = PayloadId::PPID_CONTROL;	
 		break;
 	case SctpPacket::Type::RESET:
-		ResetStream(message->stream_id());
-		return true;
+		ResetStream(packet->stream_id());
+		return 0;
 	default:
 		// Ignore
-		return true;
+		return 0;
 	}
 
 	// TODO: Implement SCTP ndata specification draft when supported everywhere
 	// See https://tools.ietf.org/html/draft-ietf-tsvwg-sctp-ndata-08
 
-	const auto reliability = message->reliability() ? *message->reliability() : SctpPacket::Reliability();
+	const auto reliability = packet->reliability() ? *packet->reliability() : SctpPacket::Reliability();
 	
 	struct sctp_sendv_spa spa = {};
 	
 	// set sndinfo
 	spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
-	spa.sendv_sndinfo.snd_sid = message->stream_id();
+	spa.sendv_sndinfo.snd_sid = packet->stream_id();
 	spa.sendv_sndinfo.snd_ppid = htonl(uint32_t(ppid));
 	spa.sendv_sndinfo.snd_flags |= SCTP_EOR;
 
@@ -261,8 +255,8 @@ bool SctpTransport::TrySendMessage(std::shared_ptr<SctpPacket> message) {
 	}
 
 	ssize_t ret;
-	if (!message->is_empty()) {
-		ret = usrsctp_sendv(socket_, message->data(), message->size(), nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
+	if (!packet->is_empty()) {
+		ret = usrsctp_sendv(socket_, packet->data(), packet->size(), nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
 	}else {
 		const char zero = 0;
 		ret = usrsctp_sendv(socket_, &zero, 1, nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
@@ -271,20 +265,20 @@ bool SctpTransport::TrySendMessage(std::shared_ptr<SctpPacket> message) {
 	if (ret < 0) {
 		if (errno == EWOULDBLOCK || errno == EAGAIN) {
 			PLOG_WARNING << "SCTP sending not possible.";
-			return false;
+			return -1;
 		}
 
 		PLOG_ERROR << "SCTP sending failed, errno: " << errno;
 		throw std::runtime_error("Faild to send SCTP message, errno: " + std::to_string(errno));
 	}
 
-	PLOG_VERBOSE << "SCTP send size: " << message->size();
+	PLOG_VERBOSE << "SCTP send size: " << ret;
 
-	if (message->type() == SctpPacket::Type::STRING || message->type() == SctpPacket::Type::BINARY) {
-		bytes_sent_ += message->size();
+	if (packet->type() == SctpPacket::Type::STRING || packet->type() == SctpPacket::Type::BINARY) {
+		bytes_sent_ += ret;
 	}
 
-	return true;
+	return ret;
 }
 
 void SctpTransport::UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta) {
@@ -354,7 +348,7 @@ void SctpTransport::DoRecv() {
 
 void SctpTransport::DoFlush() {
 	try {
-		TrySendQueue();
+		FlushPendingPackets();
 	} catch(const std::exception& exp) {
 		PLOG_WARNING << exp.what();
 	}
@@ -362,8 +356,8 @@ void SctpTransport::DoFlush() {
 
 void SctpTransport::CloseStream(StreamId stream_id) {
 	const uint8_t stream_close_message{0x0};
-	auto message = SctpPacket::Create(&stream_close_message, 1, SctpPacket::Type::RESET, stream_id);
-	Send(message);
+	auto sctp_packet = SctpPacket::Create(&stream_close_message, 1, SctpPacket::Type::RESET, stream_id);
+	SendInternal(sctp_packet);
 }
 
 void SctpTransport::ResetStream(StreamId stream_id) {
@@ -541,7 +535,7 @@ void SctpTransport::ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_
 
 // SCTP callback methods
 void SctpTransport::HandleSctpUpCall() {
-	task_queue_.Post([this](){
+	task_queue_.Async([this](){
 		if (this->socket_ == nullptr)
 			return;
 
@@ -560,7 +554,7 @@ void SctpTransport::HandleSctpUpCall() {
 }
     
 int SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
-	return task_queue_.SyncPost<int>([this, in_data, in_size](){
+	return task_queue_.Sync<int>([this, in_data, in_size](){
 		PLOG_VERBOSE << "Handle SCTP write size: " << in_size;
 		auto packet = Packet::Create(static_cast<const char*>(in_data), in_size);
 		int sent_size = this->Outgoing(std::move(packet));
@@ -598,7 +592,7 @@ void SctpTransport::ProcessIncomingPacket(std::shared_ptr<Packet> in_packet) {
 
 // Override methods
 void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
-	task_queue_.Post([this, in_packet=std::move(in_packet)](){
+	task_queue_.Async([this, in_packet=std::move(in_packet)](){
 		// There could be a race condition here where we receive the remote INIT before the local one is
 		// sent, which would result in the connection being aborted. Therefore, we need to wait for data
 		// to be sent on our side (i.e. the local INIT) before proceeding.
