@@ -136,8 +136,6 @@ void SctpTransport::Shutdown() {
 
 	Close();
 	UpdateState(State::DISCONNECTED);
-	PLOG_INFO << "SCTP disconnected.";
-
 }
 
 // Send

@@ -107,11 +107,11 @@ void IceTransport::StartToGatherLocalCandidate(std::string mid) {
 void IceTransport::AddRemoteCandidate(const sdp::Candidate candidate) {
     task_queue_.Async([this, candidate=std::move(candidate)](){
         try {
-            bool bRet = false;
             // Don't try to pass unresolved candidates for more safety.
             if (!candidate.isResolved()) {
                 return;
             }
+            bool bRet = false;
             auto candidate_sdp = candidate.sdp_line();
         #if !USE_NICE
             // juice_send_diffserv

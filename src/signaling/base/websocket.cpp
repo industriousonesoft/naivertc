@@ -213,7 +213,8 @@ void Websocket::OnRead(read_callback_t on_read,
                        boost::system::error_code ec,
                        std::size_t bytes_transferred) {
   if (ec) {
-    std::cout << __FUNCTION__ << ": " << ec.message() << std::endl;
+    std::cout << __FUNCTION__ << ": error occured: " << ec.message() << std::endl;
+    return;
   }
 
   const auto text = boost::beast::buffers_to_string(read_buffer_.data());

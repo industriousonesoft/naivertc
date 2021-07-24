@@ -86,8 +86,10 @@ void PeerConnection::AddRemoteCandidate(const sdp::Candidate& candidate) {
 
         remote_candidates_.emplace_back(std::move(candidate));
 
-        // Start to process remote candidate if remote sdp is ready
-        if (remote_sdp_) {
+        // Start to process remote candidate if the remote sdp is ready and the connection is not started yet.
+        if (remote_sdp_ && 
+            (connection_state_ == ConnectionState::CONNECTED || 
+            connection_state_ == ConnectionState::CONNECTING)) {
             ProcessRemoteCandidates();
         }
     });
