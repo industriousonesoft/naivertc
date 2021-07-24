@@ -17,9 +17,9 @@ public:
     TaskQueue();
     ~TaskQueue();
 
-    void Sync(std::function<void(void)> handler) const;
-    void Async(const std::function<void()>& handler) const;
-    void AsyncAfter(TimeInterval delay_in_sec, const std::function<void()>& handler);
+    void Sync(const std::function<void(void)> handler) const;
+    void Async(const std::function<void()> handler) const;
+    void AsyncAfter(TimeInterval delay_in_sec, const std::function<void()> handler);
 
     template<typename T>
     T Sync(std::function<T(void)> handler) const {
@@ -37,7 +37,7 @@ public:
         return ret;
     }
 
-    void Dispatch(const std::function<void()>& handler) const;
+    void Dispatch(const std::function<void()> handler) const;
 
     bool is_in_current_queue() const;
 
@@ -46,13 +46,11 @@ private:
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard_;
     boost::asio::io_context::strand strand_;
     std::unique_ptr<boost::thread> ioc_thread_;
-    boost::thread::id ioc_thread_id_;
     boost::asio::deadline_timer timer_;
 
     mutable boost::mutex mutex_;
     mutable boost::condition_variable cond_;
 
-    static std::shared_ptr<TaskQueue> GlobalTaskQueue;
 };
 
 }
