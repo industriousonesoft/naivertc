@@ -1,13 +1,23 @@
 #ifndef _TASK_QUEUE_TESTS_H_
 #define _TASK_QUEUE_TESTS_H_
 
+#include <common/task_queue.hpp>
+
 namespace taskqueue {
 
-void DelayPostTest();
+class Example {
+public:
+    Example();
+    ~Example();
 
-void PostTest();
+    void DelayPost();
+    void Post();
 
-    
+private:
+    naivertc::TaskQueue task_queue_;
+
+};
+
 } // namespace taskqueue
 
 

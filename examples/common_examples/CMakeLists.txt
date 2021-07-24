@@ -7,11 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCE_FILES
     src/main.cpp
-    # src/task_queue_examples.cpp
+    src/task_queue_examples.cpp
     src/sdp_description_examples.cpp
     # src/volatile_examples.cpp
 
-    # include/task_queue_examples.hpp
+    include/task_queue_examples.hpp
     include/sdp_description_examples.hpp
     # include/volatile_examples.hpp
 )
