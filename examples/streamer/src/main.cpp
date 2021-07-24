@@ -10,10 +10,8 @@
 #include <iostream>
 
 int main(int argc, const char* argv[]) {
-
-    naivertc::Init();
-    // Logger
-    naivertc::InitLogger(naivertc::LoggingLevel::VERBOSE);
+  
+    naivertc::Init(naivertc::LoggingLevel::VERBOSE);
 
     boost::asio::io_context ioc;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());

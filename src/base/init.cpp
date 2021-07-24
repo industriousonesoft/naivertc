@@ -7,7 +7,12 @@
 
 namespace naivertc {
 
-void Init() {
+void InitLogger(LoggingLevel level);
+
+void Init(LoggingLevel level) {
+
+    InitLogger(level);
+
     DtlsTransport::Init();
     DtlsSrtpTransport::Init();
     SctpTransport::Init();
