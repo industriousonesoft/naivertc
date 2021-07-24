@@ -73,10 +73,10 @@ public:
     int Send(std::shared_ptr<Packet> packet) override;
 
     void StartToGatherLocalCandidate(std::string mid);
-    void AddRemoteCandidate(const sdp::Candidate& candidate);
+    void AddRemoteCandidate(const sdp::Candidate candidate);
 
     Description GetLocalDescription(sdp::Type type) const;
-    void SetRemoteDescription(const Description& remote_sdp);
+    void SetRemoteDescription(const Description remote_sdp);
 
     void GetLocalAddress(AddressCallback callback) const;
     void GetRemoteAddress(AddressCallback callback) const;

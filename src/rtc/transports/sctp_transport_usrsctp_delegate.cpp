@@ -234,7 +234,7 @@ int SctpTransport::on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8
     // In case of Sending callback is invoked on a already closed registered class instance.(transport).
     // https://github.com/sctplab/usrsctp/issues/405
     if (WeakPtrManager::SharedInstance()->Lock(transport)) {
-        return transport->HandleSctpWrite(in_data, in_size, tos, set_df);
+        return transport->HandleSctpWrite(in_data, in_size, tos, set_df);;
     }else {
         return -1;
     }

@@ -53,8 +53,8 @@ bool SctpTransport::Start() {
 	return task_queue_.Sync<bool>([this](){
 		if (is_stoped_) {
 			Reset();
-			this->Connect();
 			RegisterIncoming();
+			this->Connect();
 			is_stoped_ = false;
 		}
 		return true;
@@ -64,9 +64,10 @@ bool SctpTransport::Start() {
 bool SctpTransport::Stop() {
 	return task_queue_.Sync<bool>([this](){
 		if (!is_stoped_) {
+			DeregisterIncoming();
+			// Shutdwon SCTP connection
 			this->Shutdown();
 			this->OnPacketReceived(nullptr);
-			DeregisterIncoming();
 			is_stoped_ = true;
 		}
 		return true;
@@ -117,12 +118,11 @@ void SctpTransport::Connect() {
 	// simultaneous-open manner, irrelevent to the SDP setup role.
 	// See https://tools.ietf.org/html/rfc8841#section-9.3
 	int ret = usrsctp_connect(socket_, reinterpret_cast<struct sockaddr *>(&sock_conn), sizeof(sock_conn));
-	if ( ret != 0 || ret != EINPROGRESS) {
-		throw std::runtime_error("Failed to connect usrsctp socket, errno: " + std::to_string(errno));
+	if (ret < 0 && errno != EINPROGRESS) {
+		auto err_str = std::to_string(errno);
+		PLOG_ERROR << "usrsctp connect errno: " << err_str;
+		throw std::runtime_error("Failed to connect usrsctp socket, errno: " + err_str);
 	}
-
-	PLOG_DEBUG << "SCTP did send conntct message";
-
 }
 
 void SctpTransport::Shutdown() {
@@ -183,8 +183,8 @@ int SctpTransport::SendInternal(std::shared_ptr<Packet> packet) {
 }
 
 bool SctpTransport::FlushPendingPackets() {
-	while (auto next = send_packet_queue_.back()) {
-		auto packet = std::move(next);
+	while (!send_packet_queue_.empty()) {
+		auto packet = send_packet_queue_.front();
 		if (TrySendPacket(packet) < 0) {
 			return false;
 		}
@@ -298,11 +298,7 @@ void SctpTransport::UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta) {
 
 void SctpTransport::DoRecv() {
 	try {
-		while (true) {
-			auto state = State();
-			if (state == State::DISCONNECTED || state == State::FAILED) {
-				break;
-			}
+		while (state_ != State::DISCONNECTED && state_ != State::FAILED) {
 			socklen_t from_len = 0;
 			struct sctp_rcvinfo info = {};
 			socklen_t info_len = sizeof(info);
@@ -385,7 +381,7 @@ void SctpTransport::ResetStream(StreamId stream_id) {
 }
 
 void SctpTransport::ProcessNotification(const union sctp_notification* notification, size_t len) {
-	if (len != sizeof(notification->sn_header.sn_length)) {
+	if (len != size_t(notification->sn_header.sn_length)) {
 		PLOG_WARNING << "Invalid SCTP notification length";
 		return;
 	}
@@ -539,15 +535,15 @@ void SctpTransport::HandleSctpUpCall() {
 		if (this->socket_ == nullptr)
 			return;
 
-		PLOG_VERBOSE << "Handle SCTP upcall";
-
 		int events = usrsctp_get_events(this->socket_);
 
-		if (events > 0 && SCTP_EVENT_READ) {
+		if (events & SCTP_EVENT_READ) {
+			PLOG_VERBOSE << "Handle SCTP upcall: do Recv";
 			this->DoRecv();
 		}
 
-		if (events > 0 && SCTP_EVENT_WRITE) {
+		if (events & SCTP_EVENT_WRITE) {
+			PLOG_VERBOSE << "Handle SCTP upcall: do flush";
 			this->DoFlush();
 		}
 	});
@@ -555,7 +551,7 @@ void SctpTransport::HandleSctpUpCall() {
     
 int SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
 	return task_queue_.Sync<int>([this, in_data, in_size](){
-		PLOG_VERBOSE << "Handle SCTP write size: " << in_size;
+		PLOG_VERBOSE << "Handle SCTP write: " << in_size;
 		auto packet = Packet::Create(static_cast<const char*>(in_data), in_size);
 		int sent_size = this->Outgoing(std::move(packet));
 		// Reset the sent flag and ready to handle the incoming message
@@ -569,8 +565,9 @@ int SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t 
 }
 
 void SctpTransport::ProcessPendingIncomingPackets() {
-	while (auto next = pending_incoming_packets_.back()) {
-		ProcessIncomingPacket(std::move(next));
+	while (!pending_incoming_packets_.empty()) {
+		auto packet = pending_incoming_packets_.front();
+		ProcessIncomingPacket(std::move(packet));
 		pending_incoming_packets_.pop();
 	}
 }
@@ -592,6 +589,9 @@ void SctpTransport::ProcessIncomingPacket(std::shared_ptr<Packet> in_packet) {
 
 // Override methods
 void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
+
+	PLOG_VERBOSE << "Incoming packet size: " << in_packet->size();
+
 	task_queue_.Async([this, in_packet=std::move(in_packet)](){
 		// There could be a race condition here where we receive the remote INIT before the local one is
 		// sent, which would result in the connection being aborted. Therefore, we need to wait for data
@@ -601,9 +601,6 @@ void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 			pending_incoming_packets_.push(std::move(in_packet));
 			return;
 		}
-
-		PLOG_VERBOSE << "Incoming SCTP packet size: " << in_packet->size();
-
 		ProcessIncomingPacket(std::move(in_packet));
 	});
 }

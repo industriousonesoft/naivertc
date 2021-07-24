@@ -104,12 +104,13 @@ void IceTransport::StartToGatherLocalCandidate(std::string mid) {
     });
 }
 
-void IceTransport::AddRemoteCandidate(const sdp::Candidate& candidate) {
-    task_queue_.Async([this, &candidate](){
+void IceTransport::AddRemoteCandidate(const sdp::Candidate candidate) {
+    task_queue_.Async([this, candidate=std::move(candidate)](){
         try {
             bool bRet = false;
+            // Don't try to pass unresolved candidates for more safety.
             if (!candidate.isResolved()) {
-                throw std::invalid_argument("Don't try to pass unresolved candidates for more safety.");
+                return;
             }
             auto candidate_sdp = candidate.sdp_line();
         #if !USE_NICE
@@ -120,14 +121,17 @@ void IceTransport::AddRemoteCandidate(const sdp::Candidate& candidate) {
             // a newline or whitespace, else libnice will reject it.
             NiceCandidate* nice_candidate = nice_agent_parse_remote_candidate_sdp(nice_agent_.get(), stream_id_, candidate_sdp.c_str());
             if (!nice_candidate) {
-                throw std::runtime_error("Failed to parse remote candidate: " + candidate_sdp);
+                // throw std::runtime_error("Failed to parse remote candidate: " + candidate_sdp);
+                PLOG_WARNING << "Rejected ICE candidate: " << candidate_sdp;
+                return;
             }
             GSList* list = g_slist_append(nullptr, nice_candidate);
             bRet = nice_agent_set_remote_candidates(nice_agent_.get(), stream_id_, component_id_, list) > 0;
             g_slist_free_full(list, reinterpret_cast<GDestroyNotify>(nice_candidate_free));
         #endif
             if (!bRet) {
-                throw std::runtime_error("Failed to add remote candidate: " + candidate_sdp);
+                // throw std::runtime_error("Failed to add remote candidate: " + candidate_sdp);
+                PLOG_WARNING << "Failed to add remote candidate: " << candidate_sdp;
             }  
         }catch (...) {
             last_exception_ = std::current_exception();
@@ -199,8 +203,8 @@ IceTransport::Description IceTransport::GetLocalDescription(sdp::Type type) cons
     });
 }
 
-void IceTransport::SetRemoteDescription(const Description& remote_sdp) {
-    task_queue_.Async([this, &remote_sdp](){
+void IceTransport::SetRemoteDescription(const Description remote_sdp) {
+    task_queue_.Async([this, remote_sdp=std::move(remote_sdp)](){
         try {
             if (role_ == sdp::Role::ACT_PASS) {
                 role_ = remote_sdp.role() == sdp::Role::ACTIVE ? sdp::Role::PASSIVE : sdp::Role::ACTIVE;
@@ -280,7 +284,6 @@ int IceTransport::SendInternal(std::shared_ptr<Packet> packet) {
     if (!packet || (state_ != State::CONNECTED && state_ != State::COMPLETED)) {
         return -1;
     }
-    PLOG_VERBOSE << "Will Send size=" << packet->size();
     return Outgoing(std::move(packet));
 }
 
@@ -349,7 +352,7 @@ int IceTransport::Outgoing(std::shared_ptr<Packet> out_packet) {
     }
     ret = nice_agent_send(nice_agent_.get(), stream_id_, component_id_, out_packet->size(), reinterpret_cast<const char*>(out_packet->data()));
 #endif
-    PLOG_VERBOSE << "Did send size=" << ret;
+    PLOG_VERBOSE << "Send size=" << ret;
     return ret;
 }
 

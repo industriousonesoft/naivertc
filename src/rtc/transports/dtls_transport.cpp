@@ -52,9 +52,11 @@ bool DtlsTransport::Start() {
 bool DtlsTransport::Stop() {
     return task_queue_.Sync<bool>([this](){
         if (!is_stoped_) {
+            // Cut down incomming data
+            DeregisterIncoming();
+            // Shutdown SSL connection
             SSL_shutdown(this->ssl_);
             this->ssl_ = NULL;
-            DeregisterIncoming();
             is_stoped_ = true;
         }
         return true;
@@ -149,7 +151,7 @@ int DtlsTransport::SendInternal(std::shared_ptr<Packet> packet) {
     int ret = SSL_write(this->ssl_, packet->data(), int(packet->size()));
 
     if (openssl::check(this->ssl_, ret)) {
-        PLOG_VERBOSE << "Did send size=" << ret;
+        PLOG_VERBOSE << "Send size=" << ret;
         return ret;
     }else {
         PLOG_VERBOSE << "Failed to send size=" << ret;
