@@ -30,8 +30,8 @@
 namespace naivertc {
 
 // SctpTransport
-SctpTransport::SctpTransport(std::shared_ptr<Transport> lower, const Config config) 
-    : Transport(lower),
+SctpTransport::SctpTransport(const Config config, std::shared_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue) 
+    : Transport(std::move(lower), std::move(task_queue)),
     config_(std::move(config)) {
     InitUsrSCTP(config_);
 	WeakPtrManager::SharedInstance()->Register(this);
@@ -44,13 +44,13 @@ SctpTransport::~SctpTransport() {
 }
 
 void SctpTransport::OnSignalBufferedAmountChanged(SignalBufferedAmountChangedCallback callback) {
-	task_queue_.Async([this, callback](){
+	task_queue_->Async([this, callback](){
         this->signal_buffered_amount_changed_callback_ = std::move(callback);
     });
 }
 
 bool SctpTransport::Start() {
-	return task_queue_.Sync<bool>([this](){
+	return task_queue_->Sync<bool>([this](){
 		if (is_stoped_) {
 			Reset();
 			RegisterIncoming();
@@ -62,7 +62,7 @@ bool SctpTransport::Start() {
 }
 
 bool SctpTransport::Stop() {
-	return task_queue_.Sync<bool>([this](){
+	return task_queue_->Sync<bool>([this](){
 		if (!is_stoped_) {
 			DeregisterIncoming();
 			// Shutdwon SCTP connection
@@ -140,26 +140,26 @@ void SctpTransport::Shutdown() {
 
 // Send
 bool SctpTransport::Flush() {
-	return task_queue_.Sync<bool>([this]() -> bool {
+	return task_queue_->Sync<bool>([this]() -> bool {
 		return FlushPendingPackets();
 	});
 }
 
 void SctpTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
-	task_queue_.Async([this, packet=std::move(packet), callback](){
+	task_queue_->Async([this, packet=std::move(packet), callback](){
 		int sent_size = SendInternal(std::move(packet));
 		callback(sent_size);
 	});
 }
 
 int SctpTransport::Send(std::shared_ptr<Packet> packet) {
-	return task_queue_.Sync<int>([this, packet=std::move(packet)](){
+	return task_queue_->Sync<int>([this, packet=std::move(packet)](){
 		return SendInternal(std::move(packet));
 	});
 }
 
 int SctpTransport::SendInternal(std::shared_ptr<Packet> packet) {
-	if (!utils::instanceof<SctpPacket>(packet.get())) {
+	if (!utils::instance_of<SctpPacket>(packet.get())) {
 		PLOG_WARNING << "Try to send a non-sctp packet.";
 		return -1;
 	}
@@ -529,7 +529,7 @@ void SctpTransport::ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_
 
 // SCTP callback methods
 void SctpTransport::HandleSctpUpCall() {
-	task_queue_.Async([this](){
+	task_queue_->Async([this](){
 		if (this->socket_ == nullptr)
 			return;
 
@@ -548,7 +548,7 @@ void SctpTransport::HandleSctpUpCall() {
 }
     
 int SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
-	return task_queue_.Sync<int>([this, in_data, in_size](){
+	return task_queue_->Sync<int>([this, in_data, in_size](){
 		PLOG_VERBOSE << "Handle SCTP write: " << in_size;
 		auto packet = Packet::Create(static_cast<const char*>(in_data), in_size);
 		int sent_size = this->Outgoing(std::move(packet));
@@ -590,7 +590,7 @@ void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 
 	PLOG_VERBOSE << "Incoming packet size: " << in_packet->size();
 
-	task_queue_.Async([this, in_packet=std::move(in_packet)](){
+	task_queue_->Async([this, in_packet=std::move(in_packet)](){
 		// There could be a race condition here where we receive the remote INIT before the local one is
 		// sent, which would result in the connection being aborted. Therefore, we need to wait for data
 		// to be sent on our side (i.e. the local INIT) before proceeding.

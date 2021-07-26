@@ -1,7 +1,6 @@
 #include "rtc/transports/dtls_transport.hpp"
 #include "common/weak_ptr_manager.hpp"
 #include "base/packet.hpp"
-#include "base/internals.hpp"
 
 #include <plog/Log.h>
 
@@ -90,7 +89,7 @@ void DtlsTransport::InitOpenSSL(const Config& config) {
         // pass this pointer to the callback
         SSL_set_ex_data(ssl_, transport_ex_index_, this);
 
-        if (is_client_) {
+        if (is_client()) {
             SSL_set_connect_state(ssl_);
         }else {
             SSL_set_accept_state(ssl_);

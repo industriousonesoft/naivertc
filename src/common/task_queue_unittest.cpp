@@ -24,15 +24,15 @@ protected:
 };
 
 TEST_F(TaskQueueTest, CheckIsInCurrentQueue) {
-    EXPECT_FALSE(task_queue_.is_in_current_queue());
-    task_queue_.Async([this](){
-        EXPECT_TRUE(task_queue_.is_in_current_queue());
+    EXPECT_FALSE(task_queue_->is_in_current_queue());
+    task_queue_->Async([this](){
+        EXPECT_TRUE(task_queue_->is_in_current_queue());
     });
 }
 
 TEST_F(TaskQueueTest, AsyncPost) {
     int ret = 1;
-    ret = task_queue_.Sync<int>([]() {
+    ret = task_queue_->Sync<int>([]() {
         return 100;
     });
     EXPECT_EQ(ret, 100);
@@ -44,8 +44,8 @@ TEST_F(TaskQueueTest, AsyncPost) {
 //     std::promise<bool> promise;
 //     auto future = promise_.get_future();
 //     promise_ = std::move(promise);
-//     task_queue_.PostDelay(3, [this, start](){
-//         EXPECT_TRUE(task_queue_.is_in_current_queue());
+//     task_queue_->PostDelay(3, [this, start](){
+//         EXPECT_TRUE(task_queue_->is_in_current_queue());
 //         auto end = boost::posix_time::second_clock::universal_time();
 //         auto delay_in_sec = end - start;
 //         EXPECT_GE(delay_in_sec.seconds(), 3);

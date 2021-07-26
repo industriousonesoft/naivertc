@@ -145,8 +145,6 @@ private:
     void OnSctpPacketReceived(std::shared_ptr<Packet> in_packet);
 
 private:
-    TaskQueue handle_queue_;
-
     const RtcConfiguration rtc_config_;
     std::shared_future<std::shared_ptr<Certificate>> certificate_;
 
@@ -155,6 +153,10 @@ private:
     SignalingState signaling_state_ = SignalingState::STABLE;
 
     bool negotiation_needed_ = false;
+
+    std::unique_ptr<TaskQueue> signal_task_queue_ = nullptr;
+    std::shared_ptr<TaskQueue> network_task_queue_ = nullptr;
+    std::unique_ptr<TaskQueue> work_task_queue_ = nullptr;
 
     std::shared_ptr<IceTransport> ice_transport_ = nullptr;
     std::shared_ptr<DtlsTransport> dtls_transport_ = nullptr;

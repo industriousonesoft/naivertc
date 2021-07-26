@@ -33,7 +33,7 @@ public:
     static void CustomizeSctp(const SctpCustomizedSettings& settings);
     static void Cleanup();
 public:
-    SctpTransport(std::shared_ptr<Transport> lower, const Config config);
+    SctpTransport(const Config config, std::shared_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
     ~SctpTransport();
 
     bool Start() override;
@@ -93,7 +93,7 @@ protected:
 
 private:
     Config config_;
-    struct socket* socket_;
+    struct socket* socket_ = NULL;
   
     static const size_t buffer_size_ = 65536;
 	uint8_t buffer_[buffer_size_];

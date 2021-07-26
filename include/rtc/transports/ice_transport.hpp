@@ -60,7 +60,7 @@ public:
         std::optional<std::string> ice_pwd_;
     };
 public:
-    IceTransport(const RtcConfiguration& config);
+    IceTransport(const RtcConfiguration& config, std::shared_ptr<TaskQueue> task_queue = nullptr);
     ~IceTransport();
 
     sdp::Role role() const;

@@ -33,7 +33,7 @@ void PeerConnection::InitSctpTransport() {
         sctp_config.mtu = rtc_config_.mtu.value_or(DEFAULT_MTU_SIZE);
         sctp_config.max_message_size = rtc_config_.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
 
-        sctp_transport_ = std::make_shared<SctpTransport>(lower, std::move(sctp_config));
+        sctp_transport_ = std::make_shared<SctpTransport>(std::move(sctp_config), lower, network_task_queue_);
 
         if (!sctp_transport_) {
             throw std::logic_error("Failed to init SCTP transport");
@@ -54,7 +54,7 @@ void PeerConnection::InitSctpTransport() {
 
 // SctpTransport delegate
 void PeerConnection::OnSctpTransportStateChanged(Transport::State transport_state) {
-    handle_queue_.Async([this, transport_state](){
+    signal_task_queue_->Async([this, transport_state](){
         switch(transport_state) {
         case SctpTransport::State::CONNECTED:
             PLOG_DEBUG << "SCTP transport connected";

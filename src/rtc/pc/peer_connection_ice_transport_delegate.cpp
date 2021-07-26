@@ -8,8 +8,8 @@ namespace naivertc {
 void PeerConnection::InitIceTransport() {
     try {
        PLOG_VERBOSE << "Init Ice transport";
-
-       ice_transport_.reset(new IceTransport(rtc_config_));
+    
+       ice_transport_.reset(new IceTransport(rtc_config_, network_task_queue_));
        
        ice_transport_->OnStateChanged(std::bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
        ice_transport_->OnGatheringStateChanged(std::bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));
@@ -26,7 +26,7 @@ void PeerConnection::InitIceTransport() {
 
 // IceTransport delegate
 void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state) {
-    handle_queue_.Async([this, transport_state](){
+    signal_task_queue_->Async([this, transport_state](){
         switch (transport_state) {
         case Transport::State::CONNECTING:
             this->UpdateConnectionState(ConnectionState::CONNECTING);
@@ -49,7 +49,7 @@ void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state
 }
 
 void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gathering_state) {
-    handle_queue_.Async([this, gathering_state](){
+    signal_task_queue_->Async([this, gathering_state](){
         switch (gathering_state) {
         case IceTransport::GatheringState::NEW:
             this->UpdateGatheringState(GatheringState::NEW);
@@ -67,7 +67,7 @@ void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gather
 }
 
 void PeerConnection::OnCandidateGathered(sdp::Candidate candidate) {
-    handle_queue_.Async([this, candidate = std::move(candidate)](){
+    signal_task_queue_->Async([this, candidate = std::move(candidate)](){
         if (this->candidate_callback_) {
             this->candidate_callback_(std::move(candidate));
         }

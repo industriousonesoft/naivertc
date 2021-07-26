@@ -8,12 +8,14 @@ namespace naivertc {
 
 // std::shared_ptr<TaskQueue> TaskQueue::GlobalTaskQueue = std::make_shared<TaskQueue>();
 
-TaskQueue::TaskQueue() 
+TaskQueue::TaskQueue(const std::string name) 
     : work_guard_(boost::asio::make_work_guard(ioc_)),
       strand_(ioc_),
       timer_(ioc_) {
     // The thread will start immediately after created
     ioc_thread_.reset(new boost::thread(boost::bind(&boost::asio::io_context::run, &ioc_)));
+    // TODO: Set a name for thread
+    PLOG_VERBOSE << "Task queue name: " << name << " in thread: " << ioc_thread_->get_id();
 }
 
 TaskQueue::~TaskQueue() {
@@ -23,7 +25,7 @@ TaskQueue::~TaskQueue() {
     // Indicate that the work is no longer working, ioc will exit later.
     work_guard_.reset();
     if (ioc_.stopped()) {
-        PLOG_VERBOSE << "Task queue exited";
+        PLOG_VERBOSE << "io_context of task queue exited";
     }
     
     // It is considered an error to desctory a C++ thread object while it is

@@ -27,17 +27,24 @@ PeerConnection::PeerConnection(const RtcConfiguration config)
         }
     }
 
+    signal_task_queue_ = std::make_unique<TaskQueue>("SignalTaskQueue");
+    network_task_queue_ = std::make_shared<TaskQueue>("NetworkTaskQueue");
+    // work_task_queue_ = std::make_unique<TaskQueue>("WorkTaskQueue");
+
     InitIceTransport();
 }
 
 PeerConnection::~PeerConnection() {
-    ice_transport_.reset();
-    sctp_transport_.reset();
+    CloseTransports();
+
+    signal_task_queue_.reset();
+    network_task_queue_.reset();
+    work_task_queue_.reset();
 }
 
 void PeerConnection::Close() {
 
-    handle_queue_.Async([this](){
+    signal_task_queue_->Async([this](){
         PLOG_VERBOSE << "Closing PeerConnection";
 
         this->negotiation_needed_ = false;
@@ -76,6 +83,7 @@ void PeerConnection::CloseTransports() {
         ice_transport_->Stop();
         ice_transport_.reset();
     }
+
 }
 
 bool PeerConnection::UpdateConnectionState(ConnectionState state) {
@@ -130,25 +138,25 @@ std::string PeerConnection::signaling_state_to_string(SignalingState state) {
 
 // state && candidate callback
 void PeerConnection::OnConnectionStateChanged(ConnectionStateCallback callback) {
-    handle_queue_.Async([this, callback](){
+    signal_task_queue_->Async([this, callback](){
         this->connection_state_callback_ = callback;
     });
 }
 
 void PeerConnection::OnIceGatheringStateChanged(GatheringStateCallback callback) {
-    handle_queue_.Async([this, callback](){
+    signal_task_queue_->Async([this, callback](){
         this->gathering_state_callback_ = callback;
     });
 }
 
 void PeerConnection::OnIceCandidate(CandidateCallback callback) {
-    handle_queue_.Async([this, callback](){
+    signal_task_queue_->Async([this, callback](){
         this->candidate_callback_ = callback;
     });
 }
 
 void PeerConnection::OnSignalingStateChanged(SignalingStateCallback callback) {
-    handle_queue_.Async([this, callback](){
+    signal_task_queue_->Async([this, callback](){
         this->signaling_state_callback_ = callback;
     });
 }

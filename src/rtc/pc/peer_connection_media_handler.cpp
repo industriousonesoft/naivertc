@@ -5,7 +5,7 @@
 namespace naivertc {
     
 std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Config& config) {
-    return handle_queue_.Sync<std::shared_ptr<MediaTrack>>([this, init_config = std::move(config)]() -> std::shared_ptr<MediaTrack> {
+    return signal_task_queue_->Sync<std::shared_ptr<MediaTrack>>([this, init_config = std::move(config)]() -> std::shared_ptr<MediaTrack> {
         try {
             auto description = MediaTrack::BuildDescription(std::move(init_config));
 
@@ -44,7 +44,7 @@ void PeerConnection::AddReciprocatedMediaTrack(sdp::Media description) {
 
 // Data Channels
 std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Config& config) {
-    return handle_queue_.Sync<std::shared_ptr<DataChannel>>([this, init_config = std::move(config)]() -> std::shared_ptr<DataChannel> {
+    return signal_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, init_config = std::move(config)]() -> std::shared_ptr<DataChannel> {
         StreamId stream_id;
         try {
             if (init_config.stream_id) {

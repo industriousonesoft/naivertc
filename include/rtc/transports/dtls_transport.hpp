@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "base/certificate.hpp"
 #include "base/tls.hpp"
+#include "base/internals.hpp"
 #include "rtc/transports/ice_transport.hpp"
 
 #include <optional>
@@ -26,10 +27,10 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsTransport(std::shared_ptr<IceTransport> lower, const Config config);
+    DtlsTransport(const Config config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
     ~DtlsTransport();
 
-    bool is_client() const { return is_client_; }
+    bool is_client() const;
 
     using VerifyCallback = std::function<bool(std::string_view fingerprint)>;
     void OnVerify(VerifyCallback callback);
@@ -63,6 +64,7 @@ protected:
     static long BioMethodCtrl(BIO* bio, int cmd, long num, void* ptr);
 
     bool HandleVerify(std::string_view fingerprint);
+    bool IsClient() const;
 
 protected:
     virtual void Incoming(std::shared_ptr<Packet> in_packet) override;
@@ -77,7 +79,6 @@ private:
     VerifyCallback verify_callback_ = nullptr;
 
     unsigned int curr_dscp_;
-    static constexpr size_t DEFAULT_SSL_BUFFER_SIZE = 4096;
 
     SSL_CTX* ctx_ = NULL;
     SSL* ssl_ = NULL;
@@ -88,6 +89,8 @@ private:
     static BIO_METHOD* bio_methods_;
     static int transport_ex_index_;
     static std::mutex global_mutex_;
+
+    static constexpr size_t DEFAULT_SSL_BUFFER_SIZE = 4096;
 };
 
 }

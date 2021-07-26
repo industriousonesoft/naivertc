@@ -19,7 +19,7 @@ namespace utils {
 
 // instanceof
 template<typename Base, typename T>
-inline bool instanceof(const T*) {
+inline bool instance_of(const T*) {
    return std::is_base_of<Base, T>::value;
 }
 

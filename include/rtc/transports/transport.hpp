@@ -27,7 +27,7 @@ public:
     using StateChangedCallback = std::function<void(State state)>;
     using PacketReceivedCallback = std::function<void(std::shared_ptr<Packet> in_packet)>;
 public:
-    Transport(std::shared_ptr<Transport> lower = nullptr);
+    Transport(std::shared_ptr<Transport> lower = nullptr, std::shared_ptr<TaskQueue> task_queue = nullptr);
     virtual ~Transport();
 
     bool is_stoped() const;
@@ -57,11 +57,10 @@ protected:
 
 protected:
     std::shared_ptr<Transport> lower_;
-
-    TaskQueue task_queue_;
-    
     bool is_stoped_;
     State state_;
+
+    std::shared_ptr<TaskQueue> task_queue_;
 
     PacketReceivedCallback packet_recv_callback_ = nullptr;
     StateChangedCallback state_changed_callback_ = nullptr;

@@ -144,7 +144,7 @@ std::string IceTransport::NiceAddressToString(const NiceAddress& nice_addr) cons
 }
 
 void IceTransport::ProcessNiceTimeout() {
-    task_queue_.Async([this](){
+    task_queue_->Async([this](){
         PLOG_WARNING << "ICE timeout";
         timeout_id_ = 0;
         UpdateState(State::FAILED);
@@ -152,7 +152,7 @@ void IceTransport::ProcessNiceTimeout() {
 }
 
 void IceTransport::ProcessNiceState(guint state) {
-    task_queue_.Async([this, state](){
+    task_queue_->Async([this, state](){
         if (state == NICE_COMPONENT_STATE_FAILED && trickle_timeout_.count() > 0) {
             if (timeout_id_)
                 g_source_remove(timeout_id_);

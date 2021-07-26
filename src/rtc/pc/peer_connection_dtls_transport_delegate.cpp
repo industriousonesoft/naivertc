@@ -23,12 +23,12 @@ void PeerConnection::InitDtlsTransport() {
 
         // DTLS-SRTP
         if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVideo())) {
-            auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(lower, std::move(dtls_init_config));
+            auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(std::move(dtls_init_config), lower, network_task_queue_);
             dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1));
             dtls_transport_ = dtls_srtp_transport;
         // DTLS only
         }else {
-            dtls_transport_ = std::make_shared<DtlsTransport>(lower, std::move(dtls_init_config));
+            dtls_transport_ = std::make_shared<DtlsTransport>(std::move(dtls_init_config), lower, network_task_queue_);
         }
 
         if (!dtls_transport_) {
@@ -48,7 +48,7 @@ void PeerConnection::InitDtlsTransport() {
 }
 
 void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_state) {
-    handle_queue_.Async([this, transport_state](){
+    signal_task_queue_->Async([this, transport_state](){
         switch (transport_state)
         {
         case DtlsSrtpTransport::State::CONNECTED: {

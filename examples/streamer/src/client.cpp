@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#define HAS_MEDIA 0
+
 Client::Client(boost::asio::io_context& ioc) 
     : ioc_(ioc), 
     strand_(ioc_) {}
@@ -42,6 +44,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 
     peer_conn_ = PeerConnection::Create(std::move(rtc_config));
 
+#if HAS_MEDIA
     std::string media_stream_id = "naivertc-media-stream";
     // Video track
     MediaTrack::Config video_track_config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264, {102}, 1, "video-stream", media_stream_id, "video-track1");
@@ -50,6 +53,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     // Audio track
     MediaTrack::Config audio_track_config("2", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS, {111}, 2, "audio-stream", media_stream_id, "audio-track1");
     peer_conn_->AddTrack(std::move(audio_track_config));
+#endif
 
     // Data channel
     DataChannel::Config data_channel_config("chat-data-channel");
