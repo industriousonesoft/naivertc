@@ -29,7 +29,7 @@ PeerConnection::PeerConnection(const RtcConfiguration config)
 
     signal_task_queue_ = std::make_unique<TaskQueue>("SignalTaskQueue");
     network_task_queue_ = std::make_shared<TaskQueue>("NetworkTaskQueue");
-    // work_task_queue_ = std::make_unique<TaskQueue>("WorkTaskQueue");
+    work_task_queue_ = std::make_unique<TaskQueue>("WorkTaskQueue");
 
     InitIceTransport();
 }
@@ -43,7 +43,6 @@ PeerConnection::~PeerConnection() {
 }
 
 void PeerConnection::Close() {
-
     signal_task_queue_->Async([this](){
         PLOG_VERBOSE << "Closing PeerConnection";
 
@@ -158,6 +157,19 @@ void PeerConnection::OnIceCandidate(CandidateCallback callback) {
 void PeerConnection::OnSignalingStateChanged(SignalingStateCallback callback) {
     signal_task_queue_->Async([this, callback](){
         this->signaling_state_callback_ = callback;
+    });
+}
+
+void PeerConnection::OnDataChannel(DataChannelCallback callback) {
+    signal_task_queue_->Async([this, callback](){
+        this->data_channel_callback_ = callback;
+        // Flush pending data channels
+        if (this->data_channel_callback_) {
+            for (auto data_channel : pending_data_channels_) {
+                this->data_channel_callback_(data_channel);
+            }
+            pending_data_channels_.clear();
+        }
     });
 }
     

@@ -57,6 +57,7 @@ public:
     using GatheringStateCallback = std::function<void(GatheringState new_state)>;
     using CandidateCallback = std::function<void(const sdp::Candidate& candidate)>;
     using SignalingStateCallback = std::function<void(SignalingState new_state)>;
+    using DataChannelCallback = std::function<void(std::shared_ptr<DataChannel>)>;
 
     using SDPCreateSuccessCallback = std::function<void(const sdp::Description sdp)>;
     using SDPCreateFailureCallback = std::function<void(const std::exception exp)>;
@@ -69,8 +70,8 @@ public:
     }
     ~PeerConnection();
 
-    std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Config& config);
-    std::shared_ptr<DataChannel> CreateDataChannel(const DataChannel::Config& config);
+    std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Config config);
+    std::shared_ptr<DataChannel> CreateDataChannel(const DataChannel::Init config);
 
     void CreateOffer(SDPCreateSuccessCallback on_success = nullptr, 
                     SDPCreateFailureCallback on_failure = nullptr);
@@ -95,6 +96,7 @@ public:
     void OnIceGatheringStateChanged(GatheringStateCallback callback);
     void OnIceCandidate(CandidateCallback callback);
     void OnSignalingStateChanged(SignalingStateCallback callback);
+    void OnDataChannel(DataChannelCallback callback);
 
     static std::string signaling_state_to_string(SignalingState state);
 
@@ -127,6 +129,13 @@ private:
 
     void ResetCallbacks();
     void CloseTransports();
+
+    // DataChannel
+    void OpenDataChannels();
+    void CloseDataChannels();
+    void RemoteCloseDataChannels();
+    void OnRemoteDataChannelOpened(StreamId stream_id);
+    std::shared_ptr<DataChannel> FindDataChannel(StreamId stream_id);
   
 private:
     // IceTransport callbacks
@@ -142,7 +151,7 @@ private:
     // SctpTransport callbacks
     void OnSctpTransportStateChanged(SctpTransport::State transport_state);
     void OnBufferedAmountChanged(StreamId stream_id, size_t amount);
-    void OnSctpPacketReceived(std::shared_ptr<Packet> in_packet);
+    void OnSctpMessageReceived(std::shared_ptr<Packet> in_packet);
 
 private:
     const RtcConfiguration rtc_config_;
@@ -166,6 +175,7 @@ private:
     GatheringStateCallback gathering_state_callback_ = nullptr;
     CandidateCallback candidate_callback_ = nullptr;
     SignalingStateCallback signaling_state_callback_ = nullptr;
+    DataChannelCallback data_channel_callback_ = nullptr;
 
     std::optional<sdp::Description> local_sdp_ = std::nullopt;
     std::optional<sdp::Description> remote_sdp_ = std::nullopt;
@@ -175,6 +185,7 @@ private:
     std::unordered_map<std::string /* mid */, std::shared_ptr<MediaTrack>> media_tracks_;
 
     std::vector<const sdp::Candidate> remote_candidates_;
+    std::vector<std::shared_ptr<DataChannel>> pending_data_channels_;
 
 };
 

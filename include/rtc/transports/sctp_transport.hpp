@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/transports/transport.hpp"
-#include "rtc/transports/sctp_packet.hpp"
+#include "rtc/transports/sctp_message.hpp"
 #include "rtc/transports/sctp_transport_usr_sctp_settings.hpp"
 
 #include <usrsctp.h>
@@ -39,12 +39,13 @@ public:
     bool Start() override;
     bool Stop() override;
 
-    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override;
-    int Send(std::shared_ptr<Packet> packet) override;
+    void Send(std::shared_ptr<SctpMessage> message, PacketSentCallback callback);
+    int Send(std::shared_ptr<SctpMessage> message);
     bool Flush();
+    void CloseStream(StreamId stream_id);
 
-    using SignalBufferedAmountChangedCallback = std::function<void(StreamId, size_t)>;
-    void OnSignalBufferedAmountChanged(SignalBufferedAmountChangedCallback callback);
+    using BufferedAmountChangedCallback = std::function<void(StreamId, size_t)>;
+    void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
 
 private:
     // Order seems wrong but these are the actual values
@@ -66,10 +67,9 @@ private:
     void DoRecv();
     void DoFlush();
     void ResetStream(StreamId stream_id);
-    void CloseStream(StreamId stream_id);
 
-    bool FlushPendingPackets();
-    int TrySendPacket(std::shared_ptr<SctpPacket> packet);
+    bool FlushPendingMessages();
+    int TrySendMessage(std::shared_ptr<SctpMessage> message);
     void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
 
     void HandleSctpUpCall();
@@ -80,16 +80,19 @@ private:
     void ProcessNotification(const union sctp_notification* notification, size_t len);
     void ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_id, PayloadId payload_id);
 
-    int SendInternal(std::shared_ptr<Packet> packet);
-
     void InitUsrSCTP(const Config& config);
     // usrsctp callbacks
     static void on_sctp_upcall(struct socket* socket, void* arg, int flags);
     static int on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8_t tos, uint8_t set_df);
 
-protected:
+private:
     void Incoming(std::shared_ptr<Packet> in_packet) override;
     int Outgoing(std::shared_ptr<Packet> out_packet) override;
+
+    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override { callback(-1); };
+    int Send(std::shared_ptr<Packet> packet) override { return -1; };
+
+    int SendMessageInternal(std::shared_ptr<SctpMessage> message);
 
 private:
     Config config_;
@@ -108,12 +111,12 @@ private:
 
     bool has_sent_once_ = false;
 
-    std::queue<std::shared_ptr<SctpPacket>> send_packet_queue_;
+    std::queue<std::shared_ptr<SctpMessage>> pending_outgoing_messages_;
     std::map<uint16_t, size_t> buffered_amount_;
 
-    std::queue<std::shared_ptr<Packet>> pending_incoming_packets_;
+    std::queue<std::shared_ptr<Packet>> pending_incoming_messages_;
 
-    SignalBufferedAmountChangedCallback signal_buffered_amount_changed_callback_ = nullptr;
+    BufferedAmountChangedCallback buffered_amount_changed_callback_ = nullptr;
 };
 
 }

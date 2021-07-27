@@ -4,10 +4,10 @@
 
 namespace naivertc {
     
-std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Config& config) {
-    return signal_task_queue_->Sync<std::shared_ptr<MediaTrack>>([this, init_config = std::move(config)]() -> std::shared_ptr<MediaTrack> {
+std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Config config) {
+    return signal_task_queue_->Sync<std::shared_ptr<MediaTrack>>([this, config = std::move(config)]() -> std::shared_ptr<MediaTrack> {
         try {
-            auto description = MediaTrack::BuildDescription(std::move(init_config));
+            auto description = MediaTrack::BuildDescription(std::move(config));
 
             std::shared_ptr<MediaTrack> media_track = nullptr;
 
@@ -43,7 +43,7 @@ void PeerConnection::AddReciprocatedMediaTrack(sdp::Media description) {
 }
 
 // Data Channels
-std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Config& config) {
+std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Init config) {
     return signal_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, init_config = std::move(config)]() -> std::shared_ptr<DataChannel> {
         StreamId stream_id;
         try {
@@ -73,20 +73,20 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
             }
 
             // We assume the DataChannel is not negotiacted
-            auto data_channel = std::make_shared<DataChannel>(stream_id, init_config.label, init_config.protocol);
-            data_channels_.emplace(std::make_pair(stream_id, data_channel));
-
-            // TODO: To open channel if SCTP transport is created so far.
+            auto data_channel = std::make_shared<DataChannel>(init_config.label, init_config.protocol, stream_id, init_config.unordered);
+    
+            // If sctp transport is connected yet, we open the data channel immidiately
+            if (sctp_transport_ && sctp_transport_->state() == SctpTransport::State::CONNECTED) {
+                data_channel->AttachTo(sctp_transport_);
+                data_channel->Open();
+            }
 
             // Renegotiation is needed if the curren local description does not have application
             if (!local_sdp_ || local_sdp_->HasApplication() == false) {
                 this->negotiation_needed_ = true;
             }
 
-            if (this->rtc_config_.auto_negotiation) {
-                // TODO: To negotiate automatically
-            }
-
+            data_channels_.emplace(std::make_pair(stream_id, data_channel));
             return data_channel;
 
         }catch (const std::exception& exp) {

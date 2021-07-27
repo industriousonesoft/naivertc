@@ -472,7 +472,7 @@ void PeerConnection::ShiftDataChannelIfNeccessary() {
     // We need to update the mid of data channel as a active 
     for (auto it = data_channels_.begin(); it != data_channels_.end(); ++it) {
         if (auto data_channel = it->second) {
-            data_channel.get()->HintStreamIdForRole(sdp::Role::ACTIVE);
+            data_channel.get()->HintStreamId(sdp::Role::ACTIVE);
         }
     }
 

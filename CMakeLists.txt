@@ -7,7 +7,9 @@ project(naivertc VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 代码平台无关
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# Modules path
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 
 # options
@@ -60,7 +62,7 @@ set(LIB_SOURCES
     src/rtc/transports/ice_transport_description.cpp
     src/rtc/transports/sctp_transport.cpp
     src/rtc/transports/sctp_transport_usrsctp_delegate.cpp
-    src/rtc/transports/sctp_packet.cpp
+    src/rtc/transports/sctp_message.cpp
     src/rtc/transports/dtls_transport.cpp
     src/rtc/transports/dtls_transport_openssl_delegate.cpp
     src/rtc/transports/dtls_srtp_transport.cpp
@@ -72,8 +74,8 @@ set(LIB_SOURCES
     src/rtc/pc/peer_connection_sctp_transport_delegate.cpp
     src/rtc/pc/peer_connection_sdp_offer_answer.cpp
     src/rtc/pc/peer_connection_media_handler.cpp
-    src/rtc/channels/channel.cpp
     src/rtc/channels/data_channel.cpp
+    src/rtc/channels/data_channel_message.cpp
     src/rtc/channels/media_channel.cpp
     src/rtc/rtp_rtcp/rtp_packet.cpp
     src/rtc/rtp_rtcp/rtp_defines.cpp
@@ -125,12 +127,11 @@ set(LIB_HEADERS
     include/rtc/transports/ice_transport.hpp
     include/rtc/transports/sctp_transport.hpp
     include/rtc/transports/sctp_transport_usr_sctp_settings.hpp
-    include/rtc/transports/sctp_packet.hpp
+    include/rtc/transports/sctp_message.hpp
     include/rtc/transports/dtls_transport.hpp
     include/rtc/transports/dtls_srtp_transport.hpp
     include/rtc/pc/peer_connection_configuration.hpp
     include/rtc/pc/peer_connection.hpp
-    include/rtc/channels/channel.hpp
     include/rtc/channels/data_channel.hpp
     include/rtc/channels/media_channel.hpp
     include/rtc/rtp_rtcp/rtp_packet.hpp

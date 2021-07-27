@@ -56,8 +56,8 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 #endif
 
     // Data channel
-    DataChannel::Config data_channel_config("chat-data-channel");
-    peer_conn_->CreateDataChannel(std::move(data_channel_config));
+    DataChannel::Init data_channel_init("chat-data-channel");
+    peer_conn_->CreateDataChannel(std::move(data_channel_init));
 
     peer_conn_->OnConnectionStateChanged([](PeerConnection::ConnectionState new_state){
         std::string conn_state_str = "Peer connection state: ";
