@@ -74,6 +74,12 @@ bool SctpTransport::Stop() {
 	});
 }
 
+void SctpTransport::ShutdownStream(StreamId stream_id) {
+	task_queue_->Async([this, stream_id](){
+		CloseStream(stream_id);
+	});
+}
+
 void SctpTransport::Close() {
 	if (socket_) {
 		usrsctp_close(socket_);
@@ -90,6 +96,8 @@ void SctpTransport::Reset() {
 
     string_data_fragments_.clear();
     binary_data_fragments_.clear();
+
+	stream_buffered_amounts_.clear();
 
 	std::queue<std::shared_ptr<SctpMessage>>().swap(pending_outgoing_messages_);
 	std::queue<std::shared_ptr<Packet>>().swap(pending_incoming_messages_);
@@ -275,10 +283,10 @@ int SctpTransport::TrySendMessage(std::shared_ptr<SctpMessage> message) {
 
 void SctpTransport::UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta) {
 	// Find the pair for stream_id, or create a new pair
-	auto it = buffered_amount_.insert(std::make_pair(stream_id, 0)).first;
+	auto it = stream_buffered_amounts_.insert(std::make_pair(stream_id, 0)).first;
 	size_t amount = size_t(std::max(ptrdiff_t(it->second) + delta, ptrdiff_t(0)));
 	if (amount == 0) {
-		buffered_amount_.erase(it);
+		stream_buffered_amounts_.erase(it);
 	}else {
 		it->second = amount;
 	}
@@ -349,7 +357,7 @@ void SctpTransport::CloseStream(StreamId stream_id) {
 }
 
 void SctpTransport::ResetStream(StreamId stream_id) {
-	if (socket_ == nullptr || state() == State::CONNECTED) {
+	if (!socket_ || state_ != State::CONNECTED) {
 		return;
 	}
 

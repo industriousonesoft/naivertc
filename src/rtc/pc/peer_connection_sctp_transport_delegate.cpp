@@ -112,7 +112,7 @@ void PeerConnection::OnSctpMessageReceived(std::shared_ptr<Packet> in_packet) {
                     remote_data_channel->OnIncomingMessage(message);
                 }else {
                     PLOG_WARNING << "Try to close a received remote data channel with invalid stream id: " << stream_id;
-                    sctp_transport_->CloseStream(stream_id);
+                    sctp_transport_->ShutdownStream(stream_id);
                     return;
                 }
             }

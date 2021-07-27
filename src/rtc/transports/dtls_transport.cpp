@@ -149,7 +149,7 @@ int DtlsTransport::Outgoing(std::shared_ptr<Packet> out_packet) {
 }
 
 int DtlsTransport::SendInternal(std::shared_ptr<Packet> packet) {
-     if (!packet || state() != State::CONNECTED) {
+     if (!packet || state_ != State::CONNECTED) {
         return -1;
     }
 

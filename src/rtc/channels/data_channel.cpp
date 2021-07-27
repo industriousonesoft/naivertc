@@ -64,7 +64,7 @@ void DataChannel::Close() {
         throw std::runtime_error("DataChannel has no transport");
     }
     is_opened_ = false;
-    transport->CloseStream(stream_id_);
+    transport->ShutdownStream(stream_id_);
 }
 
 void DataChannel::RemoteClose() {

@@ -42,7 +42,7 @@ public:
     void Send(std::shared_ptr<SctpMessage> message, PacketSentCallback callback);
     int Send(std::shared_ptr<SctpMessage> message);
     bool Flush();
-    void CloseStream(StreamId stream_id);
+    void ShutdownStream(StreamId stream_id);
 
     using BufferedAmountChangedCallback = std::function<void(StreamId, size_t)>;
     void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
@@ -67,6 +67,7 @@ private:
     void DoRecv();
     void DoFlush();
     void ResetStream(StreamId stream_id);
+    void CloseStream(StreamId stream_id);
 
     bool FlushPendingMessages();
     int TrySendMessage(std::shared_ptr<SctpMessage> message);
@@ -112,7 +113,7 @@ private:
     bool has_sent_once_ = false;
 
     std::queue<std::shared_ptr<SctpMessage>> pending_outgoing_messages_;
-    std::map<uint16_t, size_t> buffered_amount_;
+    std::map<uint16_t, size_t> stream_buffered_amounts_;
 
     std::queue<std::shared_ptr<Packet>> pending_incoming_messages_;
 
