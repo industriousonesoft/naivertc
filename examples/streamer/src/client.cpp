@@ -4,6 +4,8 @@
 
 #define HAS_MEDIA 0
 
+template <class T> std::weak_ptr<T> make_weak_ptr(std::shared_ptr<T> ptr) { return ptr; }
+
 Client::Client(boost::asio::io_context& ioc) 
     : ioc_(ioc), 
     strand_(ioc_) {}
@@ -43,21 +45,6 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     }
 
     peer_conn_ = PeerConnection::Create(std::move(rtc_config));
-
-#if HAS_MEDIA
-    std::string media_stream_id = "naivertc-media-stream";
-    // Video track
-    MediaTrack::Config video_track_config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264, {102}, 1, "video-stream", media_stream_id, "video-track1");
-    peer_conn_->AddTrack(std::move(video_track_config));
-
-    // Audio track
-    MediaTrack::Config audio_track_config("2", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS, {111}, 2, "audio-stream", media_stream_id, "audio-track1");
-    peer_conn_->AddTrack(std::move(audio_track_config));
-#endif
-
-    // Data channel
-    DataChannel::Init data_channel_init("naivertc-chat-data-channel");
-    peer_conn_->CreateDataChannel(std::move(data_channel_init));
 
     peer_conn_->OnConnectionStateChanged([](PeerConnection::ConnectionState new_state){
         std::string conn_state_str = "Peer connection state: ";
@@ -118,6 +105,45 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     peer_conn_->OnDataChannel([](std::shared_ptr<DataChannel> data_channel){
         std::cout << "Remote data channel: " << data_channel->label() << std::endl;
     }); 
+
+#if HAS_MEDIA
+    std::string media_stream_id = "naivertc-media-stream";
+    // Video track
+    MediaTrack::Config video_track_config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264, {102}, 1, "video-stream", media_stream_id, "video-track1");
+    peer_conn_->AddTrack(std::move(video_track_config));
+
+    // Audio track
+    MediaTrack::Config audio_track_config("2", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS, {111}, 2, "audio-stream", media_stream_id, "audio-track1");
+    peer_conn_->AddTrack(std::move(audio_track_config));
+#endif
+
+    // Data channel
+    DataChannel::Init data_channel_init("naivertc-chat-data-channel");
+    data_channel_ = peer_conn_->CreateDataChannel(std::move(data_channel_init));
+
+    data_channel_->OnOpened([weak_dc=make_weak_ptr(data_channel_)](StreamId stream_id){
+        if (auto dc = weak_dc.lock()) {
+            dc->Send("ping");
+        }
+    });
+
+    data_channel_->OnClosed([](StreamId stream_id){
+
+    });
+
+    data_channel_->OnTextMessageReceivedCallback([weak_dc=make_weak_ptr(data_channel_)](const std::string text){
+        if (auto dc = weak_dc.lock()) {
+            dc->Send("Pong: " + text);
+        }
+    });
+
+    data_channel_->OnBinaryMessageReceivedCallback([](const uint8_t* in_data, size_t in_size){
+
+    });
+
+    data_channel_->OnBufferedAmountChanged([](uint64_t previous_amount){
+
+    });
 
 }
 

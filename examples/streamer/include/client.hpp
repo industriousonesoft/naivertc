@@ -40,6 +40,8 @@ private:
 
     std::unique_ptr<signaling::AyameChannel> ayame_channel_;
     std::shared_ptr<PeerConnection> peer_conn_;
+
+    std::shared_ptr<DataChannel> data_channel_;
 };
 
 #endif

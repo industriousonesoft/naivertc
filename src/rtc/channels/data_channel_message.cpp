@@ -147,84 +147,6 @@ void DataChannel::OnIncomingMessage(std::shared_ptr<SctpMessage> message) {
     }
 }
 
-bool DataChannel::IsOpenMessage(std::shared_ptr<SctpMessage> message) {
-    if (message->type() != SctpMessage::Type::CONTROL) {
-        return false;
-    }
-    auto message_type = message::Type(message->data()[0]);
-    return message_type == message::Type::OPEN;
-}
-
-void DataChannel::SendOpenMessage() const {
-    auto transport = sctp_transport_.lock();
-    if (!transport) {
-        throw std::runtime_error("DataChannel has no transport");
-    }
-    uint8_t channel_type;
-    uint32_t reliability_parameter;
-    switch (reliability_->policy) {
-        case SctpMessage::Reliability::Policy::RTX: {
-            channel_type = uint8_t(message::ChannelType::PARTIAL_RELIABLE_REXMIT);
-            reliability_parameter = uint32_t(std::max(std::get<int>(reliability_->rexmit), 0));
-            break;
-        }
-        case SctpMessage::Reliability::Policy::TTL: {
-            channel_type = uint8_t(message::ChannelType::PARTIAL_RELIABLE_TIMED);
-            reliability_parameter = uint32_t(std::get<std::chrono::milliseconds>(reliability_->rexmit).count());
-            break;
-        }
-        default: {
-            channel_type = uint8_t(message::ChannelType::RELIABLE);
-            reliability_parameter = 0;
-            break;
-        }
-    }
-
-    if (reliability_->unordered) {
-        channel_type |= 0x80;
-    }
-
-    const size_t len = sizeof(message::Open) + label_.size() + protocol_.size();
-    std::vector<uint8_t> buffer(len, 0);
-    auto &open_msg_fixed_part = *reinterpret_cast<message::Open*>(buffer.data());
-    open_msg_fixed_part.type = uint8_t(message::Type::OPEN);
-    open_msg_fixed_part.channel_type = channel_type;
-    open_msg_fixed_part.priority = htons(0);
-    open_msg_fixed_part.reliability_parameter = reliability_parameter;
-    open_msg_fixed_part.label_length = htons(uint16_t(label_.size()));
-    open_msg_fixed_part.protocol_length = htons(uint16_t(protocol_.size()));
-
-    auto open_msg_variable_part = reinterpret_cast<char*>(buffer.data() + sizeof(open_msg_fixed_part));
-    std::copy(label_.begin(), label_.end(), open_msg_variable_part);
-    std::copy(protocol_.begin(), protocol_.end(), open_msg_variable_part + label_.size());
-
-    transport->Send(SctpMessage::Create(buffer.data(), buffer.size(), SctpMessage::Type::CONTROL, stream_id_, reliability_));
-}
-
-void DataChannel::SendAckMessage() const {
-    auto transport = sctp_transport_.lock();
-    if (!transport) {
-        throw std::runtime_error("DataChannel has no transport");
-    }
-    std::vector<uint8_t> buffer(sizeof(message::Ack), 0);
-    auto &ack_msg = *reinterpret_cast<message::Ack *>(buffer.data());
-    ack_msg.type = uint8_t(message::Type::ACK);
-
-    transport->Send(SctpMessage::Create(buffer.data(), buffer.size(), SctpMessage::Type::CONTROL, stream_id_, reliability_));
-}
-
-void DataChannel::SendCloseMessage() const {
-    auto transport = sctp_transport_.lock();
-    if (!transport) {
-        throw std::runtime_error("DataChannel has no transport");
-    }
-    std::vector<uint8_t> buffer(sizeof(message::Close), 0);
-    auto &ack_msg = *reinterpret_cast<message::Close *>(buffer.data());
-    ack_msg.type = uint8_t(message::Type::CLOSE);
-
-    transport->Send(SctpMessage::Create(buffer.data(), buffer.size(), SctpMessage::Type::CONTROL, stream_id_, reliability_));
-}
-
 void DataChannel::ProcessOpenMessage(const uint8_t* in_data, size_t in_size) {
     auto transport = sctp_transport_.lock();
     if (!transport) {
@@ -291,6 +213,93 @@ void DataChannel::ProcessPendingMessages() {
         }
         recv_message_queue_.pop();
     }
+}
+
+bool DataChannel::IsOpenMessage(std::shared_ptr<SctpMessage> message) {
+    if (message->type() != SctpMessage::Type::CONTROL) {
+        return false;
+    }
+    auto message_type = message::Type(message->data()[0]);
+    return message_type == message::Type::OPEN;
+}
+
+// Send
+void DataChannel::SendOpenMessage() const {
+    auto transport = sctp_transport_.lock();
+    if (!transport) {
+        throw std::logic_error("DataChannel has no transport");
+    }
+    uint8_t channel_type;
+    uint32_t reliability_parameter;
+    switch (reliability_->policy) {
+        case SctpMessage::Reliability::Policy::RTX: {
+            channel_type = uint8_t(message::ChannelType::PARTIAL_RELIABLE_REXMIT);
+            reliability_parameter = uint32_t(std::max(std::get<int>(reliability_->rexmit), 0));
+            break;
+        }
+        case SctpMessage::Reliability::Policy::TTL: {
+            channel_type = uint8_t(message::ChannelType::PARTIAL_RELIABLE_TIMED);
+            reliability_parameter = uint32_t(std::get<std::chrono::milliseconds>(reliability_->rexmit).count());
+            break;
+        }
+        default: {
+            channel_type = uint8_t(message::ChannelType::RELIABLE);
+            reliability_parameter = 0;
+            break;
+        }
+    }
+
+    if (reliability_->unordered) {
+        channel_type |= 0x80;
+    }
+
+    const size_t len = sizeof(message::Open) + label_.size() + protocol_.size();
+    std::vector<uint8_t> buffer(len, 0);
+    auto &open_msg_fixed_part = *reinterpret_cast<message::Open*>(buffer.data());
+    open_msg_fixed_part.type = uint8_t(message::Type::OPEN);
+    open_msg_fixed_part.channel_type = channel_type;
+    open_msg_fixed_part.priority = htons(0);
+    open_msg_fixed_part.reliability_parameter = reliability_parameter;
+    open_msg_fixed_part.label_length = htons(uint16_t(label_.size()));
+    open_msg_fixed_part.protocol_length = htons(uint16_t(protocol_.size()));
+
+    auto open_msg_variable_part = reinterpret_cast<char*>(buffer.data() + sizeof(open_msg_fixed_part));
+    std::copy(label_.begin(), label_.end(), open_msg_variable_part);
+    std::copy(protocol_.begin(), protocol_.end(), open_msg_variable_part + label_.size());
+
+    transport->Send(SctpMessage::Create(buffer.data(), buffer.size(), SctpMessage::Type::CONTROL, stream_id_, reliability_));
+}
+
+void DataChannel::SendAckMessage() const {
+    auto transport = sctp_transport_.lock();
+    if (!transport) {
+        throw std::logic_error("DataChannel has no transport");
+    }
+    std::vector<uint8_t> buffer(sizeof(message::Ack), 0);
+    auto &ack_msg = *reinterpret_cast<message::Ack *>(buffer.data());
+    ack_msg.type = uint8_t(message::Type::ACK);
+
+    transport->Send(SctpMessage::Create(buffer.data(), buffer.size(), SctpMessage::Type::CONTROL, stream_id_, reliability_));
+}
+
+void DataChannel::SendCloseMessage() const {
+    auto transport = sctp_transport_.lock();
+    if (!transport) {
+        throw std::logic_error("DataChannel has no transport");
+    }
+    std::vector<uint8_t> buffer(sizeof(message::Close), 0);
+    auto &ack_msg = *reinterpret_cast<message::Close *>(buffer.data());
+    ack_msg.type = uint8_t(message::Type::CLOSE);
+
+    transport->Send(SctpMessage::Create(buffer.data(), buffer.size(), SctpMessage::Type::CONTROL, stream_id_, reliability_));
+}
+
+void DataChannel::Send(const std::string text) {
+    auto transport = sctp_transport_.lock();
+    if (!transport) {
+        throw std::logic_error("DataChannel has no transport");
+    }
+    transport->Send(SctpMessage::Create(text.c_str(), text.length(), SctpMessage::Type::STRING, stream_id_, reliability_));
 }
     
 } // namespace naivertc

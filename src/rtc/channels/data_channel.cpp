@@ -84,6 +84,7 @@ void DataChannel::AttachTo(std::weak_ptr<SctpTransport> sctp_transport) {
     sctp_transport_ = sctp_transport;
 }
 
+// Callback
 void DataChannel::OnOpened(OpenedCallback callback) {
     opened_callback_ = callback;
 }

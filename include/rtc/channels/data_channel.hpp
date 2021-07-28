@@ -45,6 +45,8 @@ public:
     void Close();
     void RemoteClose();
 
+    void Send(const std::string text);
+
     void OnIncomingMessage(std::shared_ptr<SctpMessage> message);
     void OnBufferedAmount(size_t amount);
     static bool IsOpenMessage(std::shared_ptr<SctpMessage> message);
