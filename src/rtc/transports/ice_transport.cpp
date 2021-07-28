@@ -51,6 +51,12 @@ void IceTransport::OnGatheringStateChanged(GatheringStateChangedCallback callbac
     });
 }
 
+void IceTransport::OnRoleChanged(RoleChangedCallback callback) {
+    task_queue_->Async([this, callback](){
+        this->role_changed_callback_ = std::move(callback);
+    });
+}
+
 bool IceTransport::Start() {
     return task_queue_->Sync<bool>([this](){
         if (is_stoped_) {
@@ -206,12 +212,7 @@ IceTransport::Description IceTransport::GetLocalDescription(sdp::Type type) cons
 void IceTransport::SetRemoteDescription(const Description remote_sdp) {
     task_queue_->Async([this, remote_sdp=std::move(remote_sdp)](){
         try {
-            if (role_ == sdp::Role::ACT_PASS) {
-                role_ = remote_sdp.role() == sdp::Role::ACTIVE ? sdp::Role::PASSIVE : sdp::Role::ACTIVE;
-            }
-            if (role_ == remote_sdp.role()) {
-                throw std::logic_error("Incompatible roles with remote description.");
-            }
+            NegotiateRole(remote_sdp.role());
             int ret = 0;
         #if !USE_NICE
             auto eol = "\r\n";
@@ -287,6 +288,20 @@ int IceTransport::SendInternal(std::shared_ptr<Packet> packet) {
     return Outgoing(std::move(packet));
 }
 
+void IceTransport::NegotiateRole(sdp::Role remote_role) {
+    // If we can act the both DTLS server and client, to decide local role according to remote role.
+    if (role_ == sdp::Role::ACT_PASS) {
+        role_ = remote_role == sdp::Role::ACTIVE ? sdp::Role::PASSIVE : sdp::Role::ACTIVE;
+        if (role_changed_callback_) {
+            role_changed_callback_(role_);
+        }
+    }
+    // To make the role of local is not same as the remote after negotiation
+    if (role_ == remote_role) {
+        throw std::logic_error("Incompatible roles with remote description.");
+    }
+}
+
 // State Callbacks
 void IceTransport::UpdateGatheringState(GatheringState state) {
     task_queue_->Async([this, state](){
@@ -309,7 +324,7 @@ void IceTransport::ProcessGatheredCandidate(const char* sdp) {
 void IceTransport::ProcessReceivedData(const char* data, size_t size) {
     task_queue_->Async([this, data = std::move(data), size](){
         try {
-            PLOG_VERBOSE << "Incoming ICE packet size: " << size;
+            // PLOG_VERBOSE << "Incoming ICE packet size: " << size;
             auto packet = Packet::Create(data, size);
             Incoming(packet);
         } catch(const std::exception &e) {
@@ -352,7 +367,7 @@ int IceTransport::Outgoing(std::shared_ptr<Packet> out_packet) {
     }
     ret = nice_agent_send(nice_agent_.get(), stream_id_, component_id_, out_packet->size(), reinterpret_cast<const char*>(out_packet->data()));
 #endif
-    PLOG_VERBOSE << "Send size=" << ret;
+    // PLOG_VERBOSE << "Send size=" << ret;
     return ret;
 }
 

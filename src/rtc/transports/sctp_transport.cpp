@@ -155,18 +155,18 @@ bool SctpTransport::Flush() {
 
 void SctpTransport::Send(std::shared_ptr<SctpMessage> message, PacketSentCallback callback) {
 	task_queue_->Async([this, message=std::move(message), callback](){
-		int sent_size = SendMessageInternal(std::move(message));
+		int sent_size = SendInternal(std::move(message));
 		callback(sent_size);
 	});
 }
 
 int SctpTransport::Send(std::shared_ptr<SctpMessage> message) {
 	return task_queue_->Sync<int>([this, message=std::move(message)](){
-		return SendMessageInternal(std::move(message));
+		return SendInternal(std::move(message));
 	});
 }
 
-int SctpTransport::SendMessageInternal(std::shared_ptr<SctpMessage> message) {
+int SctpTransport::SendInternal(std::shared_ptr<SctpMessage> message) {
 	if (!message) {
 		return this->FlushPendingMessages() ? 0 : -1;
 	}
@@ -353,7 +353,7 @@ void SctpTransport::DoFlush() {
 void SctpTransport::CloseStream(StreamId stream_id) {
 	const uint8_t stream_close_message{0x0};
 	auto sctp_message = SctpMessage::Create(&stream_close_message, 1, SctpMessage::Type::RESET, stream_id);
-	SendMessageInternal(sctp_message);
+	SendInternal(sctp_message);
 }
 
 void SctpTransport::ResetStream(StreamId stream_id) {
@@ -466,6 +466,9 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 }
 
 void SctpTransport::ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_id, SctpTransport::PayloadId payload_id) {
+
+	PLOG_VERBOSE << "Process message, stream id: " << stream_id << ", payload id: " << int(payload_id);
+
 	// RFC 8831: The usage of the PPIDs "WebRTC String Partial" and "WebRTC Binary Partial" is
 	// deprecated. They were used for a PPID-based fragmentation and reassembly of user messages
 	// belonging to reliable and ordered data channels.
@@ -543,7 +546,7 @@ void SctpTransport::HandleSctpUpCall() {
 		}
 
 		if (events & SCTP_EVENT_WRITE) {
-			PLOG_VERBOSE << "Handle SCTP upcall: do flush";
+			// PLOG_VERBOSE << "Handle SCTP upcall: do flush";
 			this->DoFlush();
 		}
 	});
@@ -551,7 +554,7 @@ void SctpTransport::HandleSctpUpCall() {
     
 int SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
 	return task_queue_->Sync<int>([this, in_data, in_size](){
-		PLOG_VERBOSE << "Handle SCTP write: " << in_size;
+		// PLOG_VERBOSE << "Handle SCTP write: " << in_size;
 		auto packet = Packet::Create(static_cast<const char*>(in_data), in_size);
 		int sent_size = this->Outgoing(std::move(packet));
 		// Reset the sent flag and ready to handle the incoming message
@@ -574,7 +577,7 @@ void SctpTransport::ProcessPendingIncomingPackets() {
 
 void SctpTransport::ProcessIncomingPacket(std::shared_ptr<Packet> in_packet) {
 
-	PLOG_VERBOSE << "Process incoming SCTP packet size: " << in_packet->size();
+	// PLOG_VERBOSE << "Process incoming SCTP packet size: " << in_packet->size();
 
 	if (!in_packet) {
 		UpdateState(State::DISCONNECTED);
@@ -590,7 +593,7 @@ void SctpTransport::ProcessIncomingPacket(std::shared_ptr<Packet> in_packet) {
 // Override methods
 void SctpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 
-	PLOG_VERBOSE << "Incoming packet size: " << in_packet->size();
+	// PLOG_VERBOSE << "Incoming packet size: " << in_packet->size();
 
 	task_queue_->Async([this, in_packet=std::move(in_packet)](){
 		// There could be a race condition here where we receive the remote INIT before the local one is

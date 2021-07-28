@@ -1,5 +1,7 @@
 #include "rtc/channels/data_channel.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
 namespace message {
 
@@ -275,6 +277,7 @@ void DataChannel::ProcessPendingMessages() {
             }
         }else if (message->type() == SctpMessage::Type::STRING) {
             std::string text = std::string(message->data(), message->data() + message->size());
+            PLOG_INFO << "Receive text: " << text;
             if (text_message_received_callback_) {
                 text_message_received_callback_(text);
             }

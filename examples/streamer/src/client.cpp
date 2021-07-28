@@ -56,7 +56,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 #endif
 
     // Data channel
-    DataChannel::Init data_channel_init("chat-data-channel");
+    DataChannel::Init data_channel_init("naivertc-chat-data-channel");
     peer_conn_->CreateDataChannel(std::move(data_channel_init));
 
     peer_conn_->OnConnectionStateChanged([](PeerConnection::ConnectionState new_state){
@@ -114,6 +114,10 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
             this->SendLocalCandidate(std::move(mid), std::move(sdp));
         }));
     });
+
+    peer_conn_->OnDataChannel([](std::shared_ptr<DataChannel> data_channel){
+        std::cout << "Remote data channel: " << data_channel->label() << std::endl;
+    }); 
 
 }
 

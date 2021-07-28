@@ -35,6 +35,8 @@ public:
     using GatheringStateChangedCallback = std::function<void(GatheringState)>;
     using CandidateGatheredCallback = std::function<void(sdp::Candidate)>;
 
+    using RoleChangedCallback = std::function<void(sdp::Role)>;
+
 public:
     class Description {
     public:
@@ -84,8 +86,11 @@ public:
 
     void OnGatheringStateChanged(GatheringStateChangedCallback callback);
     void OnCandidateGathered(CandidateGatheredCallback callback);
+    void OnRoleChanged(RoleChangedCallback callback);
 
 private:
+    void NegotiateRole(sdp::Role remote_role);
+
     void UpdateGatheringState(GatheringState state);
     void ProcessGatheredCandidate(const char* sdp);
     void ProcessReceivedData(const char* data, size_t size);
@@ -140,6 +145,7 @@ private:
     std::atomic<GatheringState> gathering_state_ = GatheringState::NEW;
     CandidateGatheredCallback candidate_gathered_callback_ = nullptr;
     GatheringStateChangedCallback gathering_state_changed_callback_ = nullptr;
+    RoleChangedCallback role_changed_callback_ = nullptr;
     
     std::exception_ptr last_exception_;
 };

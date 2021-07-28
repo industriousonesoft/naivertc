@@ -125,7 +125,7 @@ private:
     void AddRemoteCandidate(const sdp::Candidate& candidate);
 
     void AddReciprocatedMediaTrack(sdp::Media media_sdp);
-    void ShiftDataChannelIfNeccessary();
+    void ShiftDataChannelIfNeccessary(sdp::Role role);
 
     void ResetCallbacks();
     void CloseTransports();
@@ -142,6 +142,7 @@ private:
     void OnIceTransportStateChanged(Transport::State transport_state);
     void OnGatheringStateChanged(IceTransport::GatheringState gathering_state);
     void OnCandidateGathered(sdp::Candidate candidate);
+    void OnRoleChanged(sdp::Role role);
 
     // DtlsTransport callbacks
     void OnDtlsTransportStateChanged(DtlsTransport::State transport_state);

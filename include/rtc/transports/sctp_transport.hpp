@@ -93,7 +93,7 @@ private:
     void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override { callback(-1); };
     int Send(std::shared_ptr<Packet> packet) override { return -1; };
 
-    int SendMessageInternal(std::shared_ptr<SctpMessage> message);
+    int SendInternal(std::shared_ptr<SctpMessage> message);
 
 private:
     Config config_;

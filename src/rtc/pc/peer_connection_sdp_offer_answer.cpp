@@ -158,12 +158,12 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     }
 
     // Build local sdp
-    auto ice_sdp = ice_transport_->GetLocalDescription(type);
+    auto local_ice_sdp = ice_transport_->GetLocalDescription(type);
     auto local_sdp_builder = sdp::Description::Builder(type);
     auto local_sdp = local_sdp_builder
-                    .set_role(ice_sdp.role())
-                    .set_ice_ufrag(ice_sdp.ice_ufrag())
-                    .set_ice_pwd(ice_sdp.ice_pwd())
+                    .set_role(local_ice_sdp.role())
+                    .set_ice_ufrag(local_ice_sdp.ice_ufrag())
+                    .set_ice_pwd(local_ice_sdp.ice_pwd())
                     // Set local fingerprint (wait for certificate if necessary)
                     .set_fingerprint(certificate_.get()->fingerprint())
                     .Build();
@@ -320,22 +320,27 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 
     if (local_sdp.type() == sdp::Type::OFFER) {
         // If this is a offer, add locally created data channels and tracks
-        // Add application for data channels
-        if (local_sdp.HasApplication() == false) {
-            if (data_channels_.empty() == false) {
-                StreamId new_mid = 0;
-                while (local_sdp.HasMid(std::to_string(new_mid))) {
-                    ++new_mid;
-                }
-                // FIXME: Do we need to update data channle stream id here other than to shift it after received remote sdp later.
-                sdp::Application app(std::to_string(new_mid));
-                app.set_sctp_port(local_sctp_port);
-                app.set_max_message_size(local_max_message_size);
-
-                PLOG_DEBUG << "Adding application to local description, mid=" + app.mid();
-
-                local_sdp.AddApplication(std::move(app));
+        // The two conditions necessary for adding application entry:
+        // 1. There is no one in local SDP yet.
+        // 2. We have one or more data channels added by users
+        // NOTE: All of data channels distiguished with stream id will use one SCTP connection for communication, 
+        // that's why we just need to add one application here.
+        if (!local_sdp.HasApplication() && !data_channels_.empty()) {
+            // FIXME: Do we need to update data channle stream id here other than to shift it after received remote sdp later.
+            // FIXED: No matter we are either DTLS client or server, we still need to create a data channel with mid started from 0,
+            // since the data channel is owned by both of peers(the DTLS client and server). The only thing we need to do is to correct the mid of data channel 
+            // added by user after the DTLS role of local peer was negotiated(After the remote sdp was processed by ICE transport).
+            StreamId new_mid = 0;
+            while (local_sdp.HasMid(std::to_string(new_mid))) {
+                ++new_mid;
             }
+            sdp::Application app(std::to_string(new_mid));
+            app.set_sctp_port(local_sctp_port);
+            app.set_max_message_size(local_max_message_size);
+
+            PLOG_DEBUG << "Adding application to local description, mid=" + app.mid();
+
+            local_sdp.AddApplication(std::move(app));
         }
 
         // Add media for local tracks
@@ -367,12 +372,8 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 }
 void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
     
-    auto ice_remote_sdp = IceTransport::Description(remote_sdp.type(), remote_sdp.role(), remote_sdp.ice_ufrag(), remote_sdp.ice_pwd());
-    ice_transport_->SetRemoteDescription(ice_remote_sdp);
-
-    // Since we assumed passive role during DataChannel creatation, we might need to 
-    // shift the stream id form odd to even
-    ShiftDataChannelIfNeccessary();
+    auto remote_ice_sdp = IceTransport::Description(remote_sdp.type(), remote_sdp.role(), remote_sdp.ice_ufrag(), remote_sdp.ice_pwd());
+    ice_transport_->SetRemoteDescription(remote_ice_sdp);
 
     // If both the local and remote sdp have application, we need to create sctp transport for data channel
     if (remote_sdp.HasApplication()) {
@@ -462,20 +463,15 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
     }
 }
 
-void PeerConnection::ShiftDataChannelIfNeccessary() {
-    // If sctp transport was created which means we have no chance to change the role any more
-    // or ice transport does not acts as active role cause we assumed we are passive role at first
-    if (sctp_transport_ && ice_transport_ && ice_transport_->role() != sdp::Role::ACTIVE) {
-        return;
-    }
-
-    // We need to update the mid of data channel as a active 
+void PeerConnection::ShiftDataChannelIfNeccessary(sdp::Role role) {
+    decltype(data_channels_) new_data_channels;
     for (auto it = data_channels_.begin(); it != data_channels_.end(); ++it) {
         if (auto data_channel = it->second) {
-            data_channel.get()->HintStreamId(sdp::Role::ACTIVE);
+            data_channel.get()->HintStreamId(role);
+            new_data_channels.emplace(data_channel->stream_id(), data_channel);
         }
     }
-
+    std::swap(data_channels_, new_data_channels);
 }
 
 void PeerConnection::TryToGatherLocalCandidate() {

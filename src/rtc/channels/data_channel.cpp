@@ -1,6 +1,8 @@
 #include "rtc/channels/data_channel.hpp"
 #include "common/utils.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
 
 // Implement of DataChannel::Init
@@ -55,10 +57,12 @@ void DataChannel::HintStreamId(sdp::Role role) {
 }
 
 void DataChannel::Open() {
+    PLOG_VERBOSE << __FUNCTION__;
     SendOpenMessage();
 }
 
 void DataChannel::Close() {
+    PLOG_VERBOSE << __FUNCTION__;
     auto transport = sctp_transport_.lock();
     if (!transport) {
         throw std::runtime_error("DataChannel has no transport");
@@ -68,6 +72,7 @@ void DataChannel::Close() {
 }
 
 void DataChannel::RemoteClose() {
+    PLOG_VERBOSE << __FUNCTION__;
     if (!is_opened_) {
         return;
     }
@@ -100,6 +105,7 @@ void DataChannel::OnBufferedAmountChanged(BufferedAmountChangedCallback callback
 }
 
 void DataChannel::TriggerOpen() {
+    PLOG_VERBOSE << __FUNCTION__;
     if (is_opened_) {
         return;
     }
@@ -110,12 +116,14 @@ void DataChannel::TriggerOpen() {
 }
 
 void DataChannel::TriggerClose() {
+    PLOG_VERBOSE << __FUNCTION__;
     if (closed_callback_) {
         closed_callback_(stream_id_);
     }
 }
 
 void DataChannel::TriggerAvailable(size_t count) {
+    PLOG_VERBOSE << __FUNCTION__ << " => count: " << count;
     if (!is_opened_) {
         return;
     }
@@ -123,6 +131,7 @@ void DataChannel::TriggerAvailable(size_t count) {
 }
 
 void DataChannel::TriggerBufferedAmount(size_t amount) {
+    PLOG_VERBOSE << __FUNCTION__ << " => amount: " << amount;
     if (buffered_amount_changed_callback_) {
         buffered_amount_changed_callback_(amount);
     }

@@ -88,7 +88,7 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
             return;
         }
         try {
-            PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet->size();
+            // PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet->size();
 
             // Write into SSL in BIO, and will be retrieved by SSL_read
             BIO_write(in_bio_, in_packet->data(), int(in_packet->size()));
@@ -117,11 +117,11 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 
             // Read failed
             if (!openssl::check(ssl_, read_size)) {
-                PLOG_ERROR << "Failed to read from ssl ";
+                PLOG_ERROR << "Failed to read from ssl: " << read_size;
                 return;
             }
 
-            PLOG_VERBOSE << "SSL read size: " << read_size;
+            // PLOG_VERBOSE << "SSL read size: " << read_size;
 
             if (read_size > 0) {
                 ForwardIncomingPacket(Packet::Create(read_buffer, size_t(read_size)));
@@ -157,7 +157,7 @@ int DtlsTransport::SendInternal(std::shared_ptr<Packet> packet) {
     int ret = SSL_write(this->ssl_, packet->data(), int(packet->size()));
 
     if (openssl::check(this->ssl_, ret)) {
-        PLOG_VERBOSE << "Send size=" << ret;
+        // PLOG_VERBOSE << "Send size=" << ret;
         return ret;
     }else {
         PLOG_VERBOSE << "Failed to send size=" << ret;

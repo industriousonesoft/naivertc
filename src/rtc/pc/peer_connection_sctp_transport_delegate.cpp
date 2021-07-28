@@ -24,9 +24,6 @@ void PeerConnection::InitSctpTransport() {
 
         uint16_t sctp_port = remote_sdp_->application()->sctp_port().value_or(DEFAULT_SCTP_PORT);
 
-        // This is the last chance to ensure the stream numbers are coherent with the role
-        ShiftDataChannelIfNeccessary();
-
         // Create SCTP tansport
         SctpTransport::Config sctp_config;
         sctp_config.port = sctp_port;
@@ -87,10 +84,11 @@ void PeerConnection::OnBufferedAmountChanged(StreamId stream_id, size_t amount) 
 
 void PeerConnection::OnSctpMessageReceived(std::shared_ptr<Packet> in_packet) {
     signal_task_queue_->Async([this, in_packet=std::move(in_packet)](){
-        if (!in_packet || !utils::instance_of<SctpMessage>(in_packet.get())) {
+        auto message = std::dynamic_pointer_cast<SctpMessage>(in_packet);
+        if (!message) {
+            PLOG_WARNING << "Received non-sctp message";
             return;
         }
-        auto message = std::dynamic_pointer_cast<SctpMessage>(in_packet);
         auto stream_id = message->stream_id();
         auto data_channel = FindDataChannel(stream_id);
         if (!data_channel) {
@@ -103,12 +101,13 @@ void PeerConnection::OnSctpMessageReceived(std::shared_ptr<Packet> in_packet) {
                 // which the corresponding incoming and outgoing streams are unused. If the side is acting as the DTLS client,
                 // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
                 // See https://tools.ietf.org/html/rfc8832#section-6
-                StreamId remote_parity = ice_transport_->role() == sdp::Role::ACTIVE ? 1 : 0;
+                bool is_remote_a_dtls_server= ice_transport_->role() == sdp::Role::ACTIVE ? true : false;
+                StreamId remote_parity = is_remote_a_dtls_server ? 1 : 0;
                 if (stream_id % 2 == remote_parity) {
                     auto remote_data_channel = std::make_shared<DataChannel>(stream_id);
                     remote_data_channel->AttachTo(sctp_transport_);
                     remote_data_channel->OnOpened(std::bind(&PeerConnection::OnRemoteDataChannelOpened, this, std::placeholders::_1));
-                    data_channels_.emplace(std::make_pair(stream_id, remote_data_channel));
+                    data_channels_.emplace(stream_id, remote_data_channel);
                     remote_data_channel->OnIncomingMessage(message);
                 }else {
                     PLOG_WARNING << "Try to close a received remote data channel with invalid stream id: " << stream_id;

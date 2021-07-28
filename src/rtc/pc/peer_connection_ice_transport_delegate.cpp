@@ -14,6 +14,7 @@ void PeerConnection::InitIceTransport() {
        ice_transport_->OnStateChanged(std::bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
        ice_transport_->OnGatheringStateChanged(std::bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));
        ice_transport_->OnCandidateGathered(std::bind(&PeerConnection::OnCandidateGathered, this, std::placeholders::_1));
+       ice_transport_->OnRoleChanged(std::bind(&PeerConnection::OnRoleChanged, this, std::placeholders::_1));
 
        ice_transport_->Start();
 
@@ -71,6 +72,23 @@ void PeerConnection::OnCandidateGathered(sdp::Candidate candidate) {
         if (this->candidate_callback_) {
             this->candidate_callback_(std::move(candidate));
         }
+    });
+}
+
+void PeerConnection::OnRoleChanged(sdp::Role role) {
+    signal_task_queue_->Async([this, role](){
+        // The role of DTLS is not changed(since we assumed as a DTLS server)
+        if (role != sdp::Role::ACTIVE) {
+            return;
+        }
+        // If sctp transport is created already, which means we have no chance to change the role any more
+        if (sctp_transport_) {
+            throw std::logic_error("Can not change the DTLS role of data channel after SCTP transport was created.");
+        }
+
+        // Since we assumed passive role during DataChannel creatation, we might need to 
+        // shift the stream id of data channel from odd to even 
+        ShiftDataChannelIfNeccessary(role);
     });
 }
 
