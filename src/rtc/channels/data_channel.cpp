@@ -106,7 +106,6 @@ void DataChannel::OnBufferedAmountChanged(BufferedAmountChangedCallback callback
 }
 
 void DataChannel::TriggerOpen() {
-    PLOG_VERBOSE << __FUNCTION__;
     if (is_opened_) {
         return;
     }
@@ -117,7 +116,6 @@ void DataChannel::TriggerOpen() {
 }
 
 void DataChannel::TriggerClose() {
-    PLOG_VERBOSE << __FUNCTION__;
     if (closed_callback_) {
         closed_callback_(stream_id_);
     }

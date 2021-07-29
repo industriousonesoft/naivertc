@@ -93,10 +93,8 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
             // Write into SSL in BIO, and will be retrieved by SSL_read
             BIO_write(in_bio_, in_packet->data(), int(in_packet->size()));
 
-            auto curr_state = state();
-
             // In non-blocking mode, We may try to do handshake multiple time. 
-            if (curr_state == State::CONNECTING) {
+            if (state_ == State::CONNECTING) {
                 if (TryToHandshake()) {
                     // DTLS Connected
                     UpdateState(State::CONNECTED);
@@ -107,7 +105,7 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                     return;
                 }
             // Do SSL reading after connected
-            }else if (curr_state != State::CONNECTED) {
+            }else if (state_ != State::CONNECTED) {
                 PLOG_VERBOSE << "DTLS is not connected yet.";
                 return;
             }

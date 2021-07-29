@@ -122,30 +122,28 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     data_channel_ = peer_conn_->CreateDataChannel(std::move(data_channel_init));
 
     data_channel_->OnOpened([weak_dc=make_weak_ptr(data_channel_)](StreamId stream_id){
-        // if (auto dc = weak_dc.lock()) {
-        //     dc->Send("ping");
-        // }
+        std::cout << __FUNCTION__ << " : " << stream_id << std::endl;
     });
 
     data_channel_->OnClosed([](StreamId stream_id){
-
+        std::cout << __FUNCTION__ << " : " << stream_id << std::endl;
     });
 
     data_channel_->OnTextMessageReceivedCallback([weak_dc=make_weak_ptr(data_channel_)](const std::string text){
-        std::cout << "Received message: " << text << std::endl;
+        std::cout << __FUNCTION__ << " : " << text << std::endl;
         if (auto dc = weak_dc.lock()) {
-            auto res = "Pong: " + text;
+            auto res = "Hi, " + text;
             std::cout << "Response: " << res << std::endl;
             dc->Send(res);
         }
     });
 
     data_channel_->OnBinaryMessageReceivedCallback([](const uint8_t* in_data, size_t in_size){
-
+        std::cout << __FUNCTION__ << " : " << in_size << std::endl;
     });
 
     data_channel_->OnBufferedAmountChanged([](uint64_t previous_amount){
-
+        std::cout << __FUNCTION__ << " : " << previous_amount << std::endl;
     });
 
 }

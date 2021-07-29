@@ -47,10 +47,8 @@ void PeerConnection::Close() {
         PLOG_VERBOSE << "Closing PeerConnection";
 
         this->negotiation_needed_ = false;
-
-        // TODO: Close data channels asynchronously
-
-        CloseTransports();
+        this->CloseDataChannels();
+        this->CloseTransports();
     });
 
 }
@@ -72,16 +70,17 @@ void PeerConnection::CloseTransports() {
 
     if (sctp_transport_) {
         sctp_transport_->Stop();
-        sctp_transport_.reset();  
     }
     if (dtls_transport_) {
         dtls_transport_->Stop();
-        dtls_transport_.reset();
     }
     if (ice_transport_) {
         ice_transport_->Stop();
-        ice_transport_.reset();
     }
+
+    sctp_transport_.reset();  
+    dtls_transport_.reset();
+    ice_transport_.reset();
 
 }
 
