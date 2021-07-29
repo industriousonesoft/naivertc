@@ -58,11 +58,17 @@ void DataChannel::HintStreamId(sdp::Role role) {
 
 void DataChannel::Open() {
     PLOG_VERBOSE << __FUNCTION__;
+    if (is_opened_) {
+        return;
+    }
     SendOpenMessage();
 }
 
 void DataChannel::Close() {
     PLOG_VERBOSE << __FUNCTION__;
+    if (!is_opened_) {
+        return;
+    }
     auto transport = sctp_transport_.lock();
     if (!transport) {
         throw std::runtime_error("DataChannel has no transport");
