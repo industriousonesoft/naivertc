@@ -104,7 +104,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     if (type == sdp::Type::ROLLBACK) {
         if (signaling_state_ == SignalingState::HAVE_LOCAL_OFFER ||
             signaling_state_ == SignalingState::HAVE_LOCAL_PRANSWER) {
-            // TODO: to rollbak local sdp
+            // TODO: to rollback local sdp
             UpdateSignalingState(SignalingState::STABLE);
         }
         return;
