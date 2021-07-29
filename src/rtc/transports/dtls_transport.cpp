@@ -157,7 +157,7 @@ int DtlsTransport::SendInternal(std::shared_ptr<Packet> packet) {
     int ret = SSL_write(this->ssl_, packet->data(), int(packet->size()));
 
     if (openssl::check(this->ssl_, ret)) {
-        // PLOG_VERBOSE << "Send size=" << ret;
+        PLOG_VERBOSE << "Send size=" << ret;
         return ret;
     }else {
         PLOG_VERBOSE << "Failed to send size=" << ret;

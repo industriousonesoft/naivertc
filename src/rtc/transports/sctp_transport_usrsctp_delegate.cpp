@@ -234,7 +234,9 @@ int SctpTransport::on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8
     // In case of Sending callback is invoked on a already closed registered class instance.(transport).
     // https://github.com/sctplab/usrsctp/issues/405
     if (WeakPtrManager::SharedInstance()->Lock(transport)) {
-        return transport->HandleSctpWrite(in_data, in_size, tos, set_df);;
+		// NOTE: the result MUST BE 0(success) or -1(failure), 
+		// returning a positive number which is greater than zero will result multiple sctp upcall to do flush for more data.
+        return transport->HandleSctpWrite(in_data, in_size, tos, set_df) == true ? 0 : -1;
     }else {
         return -1;
     }

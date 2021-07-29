@@ -74,7 +74,7 @@ private:
     void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
 
     void HandleSctpUpCall();
-    int HandleSctpWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
+    bool HandleSctpWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
 
     void ProcessPendingIncomingPackets();
     void ProcessIncomingPacket(std::shared_ptr<Packet> in_packet);

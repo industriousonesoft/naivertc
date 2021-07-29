@@ -552,8 +552,8 @@ void SctpTransport::HandleSctpUpCall() {
 	});
 }
     
-int SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
-	return task_queue_->Sync<int>([this, in_data, in_size](){
+bool SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
+	return task_queue_->Sync<bool>([this, in_data, in_size](){
 		// PLOG_VERBOSE << "Handle SCTP write: " << in_size;
 		auto packet = Packet::Create(static_cast<const char*>(in_data), in_size);
 		int sent_size = this->Outgoing(std::move(packet));
@@ -563,7 +563,7 @@ int SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t 
 			ProcessPendingIncomingPackets();
 			this->has_sent_once_ = true;
 		}
-		return sent_size;
+		return sent_size >= 0 ? true : false;
 	});
 }
 

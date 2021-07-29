@@ -16,7 +16,9 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
                                     SDPCreateFailureCallback on_failure) {
     signal_task_queue_->Async([this, on_success, on_failure](){
         try {
-            this->SetLocalDescription(sdp::Type::OFFER);
+            if (this->signaling_state_ != SignalingState::HAVE_REMOTE_OFFER) {
+                this->SetLocalDescription(sdp::Type::OFFER);
+            }
             if (this->local_sdp_.has_value()) {
                 auto local_sdp = this->local_sdp_.value();
                 on_success(std::move(local_sdp));
@@ -33,7 +35,9 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
                                     SDPCreateFailureCallback on_failure) {
     signal_task_queue_->Async([this, on_success, on_failure](){
         try {
-            this->SetLocalDescription(sdp::Type::ANSWER);
+            if (this->signaling_state_ == SignalingState::HAVE_REMOTE_OFFER) {
+                this->SetLocalDescription(sdp::Type::ANSWER);
+            }
             if (this->local_sdp_.has_value()) {
                 auto local_sdp = this->local_sdp_.value();
                 on_success(std::move(local_sdp));

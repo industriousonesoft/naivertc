@@ -122,9 +122,9 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     data_channel_ = peer_conn_->CreateDataChannel(std::move(data_channel_init));
 
     data_channel_->OnOpened([weak_dc=make_weak_ptr(data_channel_)](StreamId stream_id){
-        if (auto dc = weak_dc.lock()) {
-            dc->Send("ping");
-        }
+        // if (auto dc = weak_dc.lock()) {
+        //     dc->Send("ping");
+        // }
     });
 
     data_channel_->OnClosed([](StreamId stream_id){
@@ -132,8 +132,11 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     });
 
     data_channel_->OnTextMessageReceivedCallback([weak_dc=make_weak_ptr(data_channel_)](const std::string text){
+        std::cout << "Received message: " << text << std::endl;
         if (auto dc = weak_dc.lock()) {
-            dc->Send("Pong: " + text);
+            auto res = "Pong: " + text;
+            std::cout << "Response: " << res << std::endl;
+            dc->Send(res);
         }
     });
 
