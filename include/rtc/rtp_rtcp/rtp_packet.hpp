@@ -2,7 +2,7 @@
 #define _RTC_RTP_PACKET_H_
 
 #include "base/defines.hpp"
-#include "base/packet.hpp"
+#include "rtc/base/packet.hpp"
 
 #include <memory>
 

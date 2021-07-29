@@ -79,7 +79,7 @@ private:
     void ProcessPendingIncomingPackets();
     void ProcessIncomingPacket(std::shared_ptr<Packet> in_packet);
     void ProcessNotification(const union sctp_notification* notification, size_t len);
-    void ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_id, PayloadId payload_id);
+    void ProcessMessage(BinaryBuffer& message_data, StreamId stream_id, PayloadId payload_id);
 
     void InitUsrSCTP(const Config& config);
     // usrsctp callbacks
@@ -101,11 +101,11 @@ private:
   
     static const size_t buffer_size_ = 65536;
 	uint8_t buffer_[buffer_size_];
-    std::vector<uint8_t> notification_data_fragments_;
-    std::vector<uint8_t> message_data_fragments_;
+    BinaryBuffer notification_data_fragments_;
+    BinaryBuffer message_data_fragments_;
 
-    std::vector<uint8_t> string_data_fragments_;
-    std::vector<uint8_t> binary_data_fragments_;
+    BinaryBuffer string_data_fragments_;
+    BinaryBuffer binary_data_fragments_;
 
     size_t bytes_sent_ = 0;
     size_t bytes_recv_ = 0;

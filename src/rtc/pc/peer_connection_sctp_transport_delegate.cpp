@@ -1,5 +1,5 @@
 #include "rtc/pc/peer_connection.hpp"
-#include "base/internals.hpp"
+#include "rtc/base/internals.hpp"
 #include "common/utils.hpp"
 
 #include <plog/Log.h>

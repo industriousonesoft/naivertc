@@ -1,4 +1,4 @@
-#include "base/packet.hpp"
+#include "rtc/base/packet.hpp"
 
 #include <gtest/gtest.h>
 
@@ -10,8 +10,8 @@ TEST(PacketTest, BuildPacket) {
     auto packet = Packet::Create(bytes, 5);
 
     EXPECT_EQ(packet->size(), 5);
-    EXPECT_EQ(packet->bytes().front(), 0x20);
-    EXPECT_EQ(packet->bytes()[1], 0x30);
+    EXPECT_EQ(packet->front(), 0x20);
+    EXPECT_EQ(packet->data()[1], 0x30);
 }
 
 }

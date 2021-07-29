@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "base/certificate.hpp"
 #include "base/tls.hpp"
-#include "base/internals.hpp"
+#include "rtc/base/internals.hpp"
 #include "rtc/transports/ice_transport.hpp"
 
 #include <optional>

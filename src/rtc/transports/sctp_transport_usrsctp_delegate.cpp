@@ -1,5 +1,5 @@
 #include "rtc/transports/sctp_transport.hpp"
-#include "base/internals.hpp"
+#include "rtc/base/internals.hpp"
 #include "common/utils.hpp"
 #include "common/weak_ptr_manager.hpp"
 

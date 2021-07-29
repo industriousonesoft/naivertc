@@ -206,9 +206,9 @@ void DataChannel::ProcessPendingMessages() {
             }
         }else {
             // Close message from remote peer
-            if (!message->is_empty() && 
+            if (!message->empty() && 
                 message->type() == SctpMessage::Type::CONTROL &&
-                message->bytes()[0] == uint8_t(message::Type::CLOSE)) {
+                message->data()[0] == uint8_t(message::Type::CLOSE)) {
                 RemoteClose();
             }
         }

@@ -201,10 +201,10 @@ int SctpTransport::TrySendMessage(std::shared_ptr<SctpMessage> message) {
 	PayloadId ppid;
 	switch (message->type()) {
 	case SctpMessage::Type::STRING:
-		ppid = message->is_empty() ? PayloadId::PPID_STRING_EMPTY : PayloadId::PPID_STRING;
+		ppid = message->empty() ? PayloadId::PPID_STRING_EMPTY : PayloadId::PPID_STRING;
 		break;
 	case SctpMessage::Type::BINARY:
-		ppid = message->is_empty() ? PayloadId::PPID_BINARY_EMPTY : PayloadId::PPID_BINARY;
+		ppid = message->empty() ? PayloadId::PPID_BINARY_EMPTY : PayloadId::PPID_BINARY;
 		break;
 	case SctpMessage::Type::CONTROL:
 		ppid = PayloadId::PPID_CONTROL;	
@@ -255,7 +255,7 @@ int SctpTransport::TrySendMessage(std::shared_ptr<SctpMessage> message) {
 	}
 
 	ssize_t ret;
-	if (!message->is_empty()) {
+	if (!message->empty()) {
 		ret = usrsctp_sendv(socket_, message->data(), message->size(), nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
 	}else {
 		const char zero = 0;
@@ -332,7 +332,7 @@ void SctpTransport::DoRecv() {
 					if (info_type != SCTP_RECVV_RCVINFO) {
 						throw std::runtime_error("Missing SCTP recv info.");
 					}
-					ProcessMessage(std::move(message_data_fragments_), info.rcv_sid, PayloadId(ntohl(info.rcv_ppid)));
+					ProcessMessage(message_data_fragments_, info.rcv_sid, PayloadId(ntohl(info.rcv_ppid)));
 					message_data_fragments_.clear();
 				}
 			}
@@ -465,7 +465,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 	}
 }
 
-void SctpTransport::ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_id, SctpTransport::PayloadId payload_id) {
+void SctpTransport::ProcessMessage(BinaryBuffer& message_data, StreamId stream_id, SctpTransport::PayloadId payload_id) {
 
 	PLOG_VERBOSE << "Process message, stream id: " << stream_id << ", payload id: " << int(payload_id);
 
@@ -476,53 +476,60 @@ void SctpTransport::ProcessMessage(std::vector<uint8_t>&& data, StreamId stream_
 	// We handle those PPIDs at reception for compatibility reasons but shall never send them.
 	switch (payload_id) {
 	case PayloadId::PPID_CONTROL: {
-		auto message = SctpMessage::Create(std::move(data), SctpMessage::Type::CONTROL, stream_id);
-		ForwardIncomingPacket(message);
+		auto sctp_message = SctpMessage::Create(SctpMessage::Type::CONTROL, stream_id);
+		sctp_message->swap(message_data);
+		ForwardIncomingPacket(sctp_message);
 		break;
 	}
 	case PayloadId::PPID_STRING_PARTIAL: 
-		string_data_fragments_.insert(string_data_fragments_.end(), data.begin(), data.end());
+		string_data_fragments_.insert(string_data_fragments_.end(), message_data.begin(), message_data.end());
 		break;
 	case PayloadId::PPID_STRING: {
 		if (string_data_fragments_.empty()) {
-			bytes_recv_ += data.size();
-			auto message = SctpMessage::Create(std::move(data), SctpMessage::Type::STRING, stream_id);
-			ForwardIncomingPacket(message);
+			bytes_recv_ += message_data.size();
+			auto sctp_message = SctpMessage::Create(SctpMessage::Type::STRING, stream_id);
+			sctp_message->swap(message_data);
+			ForwardIncomingPacket(sctp_message);
 		}else {
-			string_data_fragments_.insert(string_data_fragments_.end(), data.begin(), data.end());
-			bytes_recv_ += data.size();
-			auto message = SctpMessage::Create(std::move(string_data_fragments_), SctpMessage::Type::STRING, stream_id);
-			ForwardIncomingPacket(message);
+			string_data_fragments_.insert(string_data_fragments_.end(), message_data.begin(), message_data.end());
+			bytes_recv_ += message_data.size();
+			auto sctp_message = SctpMessage::Create(SctpMessage::Type::STRING, stream_id);
+			sctp_message->swap(string_data_fragments_);
+			ForwardIncomingPacket(sctp_message);
 			string_data_fragments_.clear();
 		}
 		break;
 	}
 	case PayloadId::PPID_STRING_EMPTY: {
-		auto message = SctpMessage::Create(std::move(string_data_fragments_), SctpMessage::Type::STRING, stream_id);
-		ForwardIncomingPacket(message);
+		auto sctp_message = SctpMessage::Create(SctpMessage::Type::STRING, stream_id);
+		sctp_message->swap(string_data_fragments_);
+		ForwardIncomingPacket(sctp_message);
 		string_data_fragments_.clear();
 		break;
 	}
 	case PayloadId::PPID_BINARY_PARTIAL: 
-		binary_data_fragments_.insert(binary_data_fragments_.end(), data.begin(), data.end());
+		binary_data_fragments_.insert(binary_data_fragments_.end(), message_data.begin(), message_data.end());
 		break;
 	case PayloadId::PPID_BINARY: {
 		if (binary_data_fragments_.empty()) {
-			bytes_recv_ += data.size();
-			auto message = SctpMessage::Create(std::move(data), SctpMessage::Type::BINARY, stream_id);
-			ForwardIncomingPacket(message);
+			bytes_recv_ += message_data.size();
+			auto sctp_message = SctpMessage::Create(SctpMessage::Type::BINARY, stream_id);
+			sctp_message->swap(message_data);
+			ForwardIncomingPacket(sctp_message);
 		}else {
-			binary_data_fragments_.insert(binary_data_fragments_.end(), data.begin(), data.end());
-			bytes_recv_ += data.size();
-			auto message = SctpMessage::Create(std::move(binary_data_fragments_), SctpMessage::Type::BINARY, stream_id);
-			ForwardIncomingPacket(message);
+			binary_data_fragments_.insert(binary_data_fragments_.end(), message_data.begin(), message_data.end());
+			bytes_recv_ += message_data.size();
+			auto sctp_message = SctpMessage::Create(SctpMessage::Type::BINARY, stream_id);
+			sctp_message->swap(binary_data_fragments_);
+			ForwardIncomingPacket(sctp_message);
 			binary_data_fragments_.clear();
 		}
 		break;
 	}
 	case PayloadId::PPID_BINARY_EMPTY: {
-		auto message = SctpMessage::Create(std::move(binary_data_fragments_), SctpMessage::Type::BINARY, stream_id);
-		ForwardIncomingPacket(message);
+		auto sctp_message = SctpMessage::Create(SctpMessage::Type::BINARY, stream_id);
+		sctp_message->swap(binary_data_fragments_);
+		ForwardIncomingPacket(sctp_message);
 		binary_data_fragments_.clear();
 		break;
 	}

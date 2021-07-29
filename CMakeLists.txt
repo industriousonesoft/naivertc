@@ -33,7 +33,6 @@ endif()
 set(LIB_SOURCES
     src/base/certificate.cpp
     src/base/tls.cpp
-    src/base/packet.cpp
     src/base/init.cpp
 
     src/common/task_queue.cpp
@@ -45,6 +44,7 @@ set(LIB_SOURCES
     src/signaling/base/websocket.cpp
     src/signaling/ayame/ayame_channel.cpp
 
+    src/rtc/base/packet.cpp
     src/rtc/sdp/sdp_utils.cpp
     src/rtc/sdp/candidate.cpp
     src/rtc/sdp/sdp_description.cpp
@@ -97,8 +97,6 @@ set(LIB_HEADERS
     include/base/defines.hpp
     include/base/certificate.hpp
     include/base/tls.hpp
-    include/base/internals.hpp
-    include/base/packet.hpp
     include/base/init.hpp
 
     include/common/task_queue.hpp
@@ -112,6 +110,8 @@ set(LIB_HEADERS
     include/signaling/base/websocket.hpp
     include/signaling/ayame/ayame_channel.hpp
 
+    include/rtc/base/internals.hpp
+    include/rtc/base/packet.hpp
     include/rtc/sdp/sdp_defines.hpp
     include/rtc/sdp/sdp_utils.hpp
     include/rtc/sdp/candidate.hpp
@@ -217,10 +217,11 @@ if(ENABLE_TESTS)
 add_subdirectory(deps/googletest)
 
 set(TEST_SOURCES
-    src/base/packet_unittest.cpp
     src/common/weak_ptr_manager_unittest.cpp
     # src/common/task_queue_unittest.cpp
     src/rtc/media/media_track_unittest.cpp
+
+    src/rtc/base/packet_unittest.cpp
 
     src/rtc/sdp/sdp_media_entry_unittest.cpp
     src/rtc/sdp/candidate_unittest.cpp

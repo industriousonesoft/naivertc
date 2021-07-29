@@ -1,6 +1,6 @@
 #include "rtc/pc/peer_connection.hpp"
 #include "common/utils.hpp"
-#include "base/internals.hpp"
+#include "rtc/base/internals.hpp"
 #include "rtc/sdp/sdp_entry.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
 

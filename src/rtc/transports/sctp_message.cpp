@@ -2,14 +2,20 @@
 
 namespace naivertc {
 
-SctpMessage::SctpMessage(const uint8_t* data, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability) 
-    : Packet(std::move(data), size),
+SctpMessage::SctpMessage(Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability) 
+    : Packet(),
     type_(type), 
     stream_id_(stream_id),
     reliability_(reliability) {}
 
-SctpMessage::SctpMessage(std::vector<uint8_t>&& bytes, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability) 
-    : Packet(std::move(bytes)),
+SctpMessage::SctpMessage(const uint8_t* data, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability) 
+    : Packet(data, size),
+    type_(type), 
+    stream_id_(stream_id),
+    reliability_(reliability) {}
+
+SctpMessage::SctpMessage(const BinaryBuffer& buffer, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability) 
+    : Packet(buffer),
     type_(type), 
     stream_id_(stream_id),
     reliability_(reliability) {}

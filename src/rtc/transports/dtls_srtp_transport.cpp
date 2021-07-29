@@ -68,9 +68,9 @@ bool DtlsSrtpTransport::EncryptPacket(std::shared_ptr<Packet> packet) {
 
     // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
     // into the location in memory immediately following the RTP packet.
-    packet->Resize(packet_size + SRTP_MAX_TRAILER_LEN);
+    packet->resize(packet_size + SRTP_MAX_TRAILER_LEN);
 
-    uint8_t payload_type = (packet->bytes()[1]) & 0x7f;
+    uint8_t payload_type = (packet->data()[1]) & 0x7f;
     PLOG_VERBOSE << "Demultiplexing SRTP and SRTCP with RTP payload type: " << payload_type;
 
     // RFC 5761 Multiplexing RTP and RTCP 4. Distinguishable RTP and RTCP Packets
@@ -104,7 +104,7 @@ bool DtlsSrtpTransport::EncryptPacket(std::shared_ptr<Packet> packet) {
         PLOG_VERBOSE << "Protected SRTP packet, size=" << protectd_data_size;
     }
 
-    packet->Resize(protectd_data_size);
+    packet->resize(protectd_data_size);
 
     if (packet->dscp() == 0) {
         // Set recommended medium-priority DSCP value
@@ -139,7 +139,7 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
         // The process for demultiplexing a packet is as follows. The receiver looks at the first byte
         // of the packet. [...] If the value is in between 128 and 191 (inclusive), then the packet is
         // RTP (or RTCP [...]). If the value is between 20 and 63 (inclusive), the packet is DTLS.
-        uint8_t first_byte = in_packet->bytes().front();
+        uint8_t first_byte = in_packet->data()[0];
         PLOG_VERBOSE << "Demultiplexing DTLS and SRTP/SRTCP with first byte: " << std::to_string(first_byte);
 
         // DTLS packet
@@ -154,7 +154,7 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                 return;
             }
 
-            uint8_t payload_type = (in_packet->bytes()[1]) & 0x7F;
+            uint8_t payload_type = in_packet->data()[1] & 0x7F;
             PLOG_VERBOSE << "Demultiplexing SRTP and SRTCP with RTP payload type: " << std::to_string(payload_type);
 
             // RTCP packet: Range [64,95] 
@@ -174,7 +174,7 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                 PLOG_VERBOSE << "Unprotected SRTCP packet, size: " << unprotected_data_size;
                 // TODO: To parse rtcp sr and get ssrc
                 unsigned int ssrc = 0;
-                in_packet->Resize(unprotected_data_size);
+                in_packet->resize(unprotected_data_size);
                 auto rtcp_packet = RtpPacket::Create(std::move(in_packet), RtpPacket::Type::RTCP, ssrc);
                 if (rtp_packet_recv_callback_) {
                     rtp_packet_recv_callback_(rtcp_packet);
@@ -196,7 +196,7 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                 // TODO: To parse rtp and get ssrc
                 unsigned int ssrc = 0;
                 // shrink size
-                in_packet->Resize(unprotected_data_size);
+                in_packet->resize(unprotected_data_size);
                 auto rtp_packet = RtpPacket::Create(std::move(in_packet), RtpPacket::Type::RTP, ssrc);
                 if (rtp_packet_recv_callback_) {
                     rtp_packet_recv_callback_(rtp_packet);
