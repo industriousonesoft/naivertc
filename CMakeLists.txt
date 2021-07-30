@@ -77,8 +77,8 @@ set(LIB_SOURCES
     src/rtc/channels/data_channel.cpp
     src/rtc/channels/data_channel_message.cpp
     src/rtc/channels/media_channel.cpp
-    src/rtc/rtp_rtcp/rtp_packet.cpp
-    src/rtc/rtp_rtcp/rtp_defines.cpp
+    src/rtc/rtp_rtcp/base/rtp_packet.cpp
+    src/rtc/rtp_rtcp/base/rtp_defines.cpp
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
 )
@@ -112,6 +112,9 @@ set(LIB_HEADERS
 
     include/rtc/base/internals.hpp
     include/rtc/base/packet.hpp
+    include/rtc/base/byte_io.hpp
+    include/rtc/base/byte_io_reader.hpp
+    include/rtc/base/byte_io_writer.hpp
     include/rtc/sdp/sdp_defines.hpp
     include/rtc/sdp/sdp_utils.hpp
     include/rtc/sdp/candidate.hpp
@@ -134,8 +137,8 @@ set(LIB_HEADERS
     include/rtc/pc/peer_connection.hpp
     include/rtc/channels/data_channel.hpp
     include/rtc/channels/media_channel.hpp
-    include/rtc/rtp_rtcp/rtp_packet.hpp
-    include/rtc/rtp_rtcp/rtp_defines.hpp
+    include/rtc/rtp_rtcp/base/rtp_packet.hpp
+    include/rtc/rtp_rtcp/base/rtp_defines.hpp
     include/rtc/media/media_track.hpp
 )
 
@@ -222,6 +225,7 @@ set(TEST_SOURCES
     src/rtc/media/media_track_unittest.cpp
 
     src/rtc/base/packet_unittest.cpp
+    src/rtc/base/byte_io_unittest.cpp
 
     src/rtc/sdp/sdp_media_entry_unittest.cpp
     src/rtc/sdp/candidate_unittest.cpp
@@ -229,7 +233,7 @@ set(TEST_SOURCES
 
     src/rtc/pc/peer_connection_configuration_unittest.cpp
     
-    src/rtc/rtp_rtcp/rtp_defines_unittest.cpp
+    src/rtc/rtp_rtcp/base/rtp_defines_unittest.cpp
 
     src/rtc/transports/ice_transport_description_unittest.cpp
 
