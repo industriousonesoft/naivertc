@@ -234,6 +234,7 @@ set(TEST_SOURCES
     src/rtc/pc/peer_connection_configuration_unittest.cpp
     
     src/rtc/rtp_rtcp/base/rtp_defines_unittest.cpp
+    src/rtc/rtp_rtcp/base/rtp_packet_unittest.cpp
 
     src/rtc/transports/ice_transport_description_unittest.cpp
 

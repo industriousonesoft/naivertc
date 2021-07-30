@@ -8,8 +8,6 @@
 
 namespace naivertc {
 
-using BinaryBuffer = std::vector<uint8_t>;
-
 class RTC_CPP_EXPORT Packet : public BinaryBuffer, public std::enable_shared_from_this<Packet> {
 public:
     static std::shared_ptr<Packet> Create() {
@@ -32,7 +30,7 @@ protected:
     Packet(const uint8_t* bytes, size_t size);
     Packet(const Packet& other);
     Packet(const BinaryBuffer& buffer);
-private:
+protected:
     // Differentiated Services Code Point
     size_t dscp_;
 };

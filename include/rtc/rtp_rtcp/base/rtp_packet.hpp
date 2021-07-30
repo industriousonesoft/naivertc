@@ -6,37 +6,71 @@
 
 #include <memory>
 
-namespace {
-using SSRCId = unsigned int;
-}
-
 namespace naivertc {
-    
-class RTC_CPP_EXPORT RtpPacket : public std::enable_shared_from_this<RtpPacket> {
-public:
-    enum class Type {
-        RTP,
-        RTCP
-    };
-public:
-    static std::shared_ptr<RtpPacket> Create(std::shared_ptr<Packet> raw_packet, Type type, SSRCId ssrc_id) {
-        return std::shared_ptr<RtpPacket>(new RtpPacket(std::move(raw_packet), type, ssrc_id));
-    }
 
+class RTC_CPP_EXPORT RtpPacket : public Packet {
+public:
+    static std::shared_ptr<RtpPacket> Create() {
+        return std::shared_ptr<RtpPacket>();
+    }
     ~RtpPacket();
 
-    Type type() const { return type_; }
-    SSRCId ssrc_id() const { return ssrc_id_; }
-
-    std::shared_ptr<Packet> raw_packet() const { return raw_packet_; }
-
 protected:
-    RtpPacket(std::shared_ptr<Packet> raw_packet, Type type, SSRCId ssrc_id);
-    
+    RtpPacket();
+
+    // Header
+    bool marker() const { return marker_; }
+    uint8_t payload_type() const { return payload_type_; }
+    bool has_padding() const { return data()[0] & 0x20; }
+    bool padding_size() const { return padding_size_; }
+    uint16_t sequence_number() const { return sequence_num_; }
+    uint32_t timestamp() const { return timestamp_; }
+    uint32_t ssrc() const { return ssrc_; }
+    std::vector<uint32_t> csrcs() const;
+
+    size_t header_size() const { return payload_offset_; }
+    // Payload
+    size_t payload_size() const { return payload_size_; }
+    BinaryBuffer Payload() const {
+        auto paylaod_begin = begin() + payload_offset_;
+        return BinaryBuffer(paylaod_begin, paylaod_begin + payload_size_);
+    }
+
+    size_t size() const {
+        return payload_offset_ + payload_size_ + padding_size_;
+    }
+    size_t FreeCapacity() const { return capacity() - size(); }
+    size_t MaxPayloadSize() const { return capacity() - header_size(); }
+
+    // Reset all fields and buffer
+    void Clear();
+
+    // Header setters
+    void set_marker(bool marker);
+    void set_payload_type(uint8_t payload_type);
+    void set_sequence_number(uint16_t sequence_num);
+    void set_timestamp(uint32_t timestamp);
+    void set_ssrc(uint32_t ssrc);
+
+    void SetCsrcs(std::vector<uint32_t> csrcs);
+    void CopyHeaderFrom(const RtpPacket& other);
+
 private:
-    std::shared_ptr<Packet> raw_packet_{nullptr};
-    Type type_;
-    SSRCId ssrc_id_;
+    inline void WriteAt(size_t offset, uint8_t byte);
+    uint8_t* WriteAt(size_t offset);
+
+private:
+    bool marker_;
+    uint8_t payload_type_;
+    uint8_t padding_size_;
+    uint16_t sequence_num_;
+    uint32_t timestamp_;
+    uint32_t ssrc_;
+    // Payload offset match header size with csrcs and extensions
+    size_t payload_offset_;
+    size_t payload_size_;
+
+    size_t extensions_size_ = 0;
 };
 
 } // namespace naivertc
