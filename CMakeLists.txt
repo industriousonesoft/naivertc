@@ -242,6 +242,7 @@ set(TEST_SOURCES
     
     src/rtc/rtp_rtcp/rtp_defines_unittest.cpp
     src/rtc/rtp_rtcp/rtp_packet_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/common_header_unittest.cpp
 
     src/rtc/transports/ice_transport_description_unittest.cpp
 
