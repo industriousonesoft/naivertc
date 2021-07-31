@@ -157,7 +157,7 @@ inline uint8_t* RtpPacket::WriteAt(size_t offset) {
 }
 
 // Parse
-bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
+bool RtpPacket::ParseFrom(const uint8_t* buffer, size_t size) {
     if (size < kFixedHeaderSize) {
         return false;
     }

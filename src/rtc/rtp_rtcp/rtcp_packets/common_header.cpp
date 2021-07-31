@@ -14,9 +14,9 @@ namespace rtcp {
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-bool CommonHeader::Parse(const uint8_t* buffer, size_t size) {
+bool CommonHeader::ParseFrom(const uint8_t* buffer, size_t size) {
     constexpr uint8_t kVersion = 2;
-    if (size < kHeaderSizeBytes) {
+    if (size < kFixedHeaderSize) {
         PLOG_WARNING << "Too little data remaining in buffer to parse RTCP header (4 bytes).";
         return false;
     }
@@ -31,12 +31,12 @@ bool CommonHeader::Parse(const uint8_t* buffer, size_t size) {
     count_or_fmt_ = buffer[0] & 0x1F;
     packet_type_ = buffer[1];
     payload_size_ = ByteReader<uint16_t>::ReadBigEndian(&buffer[2]) * 4;
-    if (size < kHeaderSizeBytes + payload_size_) {
+    if (size < kFixedHeaderSize + payload_size_) {
         PLOG_WARNING << "Buffer too small to fit an RTCP packet with a header and " << payload_size_ << " bytes.";
         return false;
     }
 
-    payload_ = buffer + kHeaderSizeBytes;
+    payload_ = buffer + kFixedHeaderSize;
 
     padding_size_ = 0;
     if (has_padding) {

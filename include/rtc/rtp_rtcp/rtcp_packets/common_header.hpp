@@ -8,7 +8,7 @@ namespace rtcp {
 
 class RTC_CPP_EXPORT CommonHeader {
 public:
-    static constexpr size_t kHeaderSizeBytes = 4;
+    static constexpr size_t kFixedHeaderSize = 4;
 
     CommonHeader() {};
     CommonHeader(const CommonHeader&) = default;
@@ -23,7 +23,7 @@ public:
     uint32_t payload_size() const { return payload_size_; }
     const uint8_t* payload() const { return payload_; }
     size_t packet_size() const {
-        return kHeaderSizeBytes + payload_size_ + padding_size_;
+        return kFixedHeaderSize + payload_size_ + padding_size_;
     }
 
     // Returns pointer to the next RTCP packet in compound packet
@@ -31,7 +31,7 @@ public:
         return payload_ + payload_size_ + padding_size_;
     }
 
-    bool Parse(const uint8_t* buffer, size_t size);
+    bool ParseFrom(const uint8_t* buffer, size_t size);
 
 private:
     uint8_t packet_type_ = 0;

@@ -82,6 +82,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp_packet.cpp
     src/rtc/rtp_rtcp/rtcp_packets/compound_packet.cpp
     src/rtc/rtp_rtcp/rtcp_packets/common_header.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/report_block.cpp
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
 )
@@ -146,6 +147,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp_packet.hpp
     include/rtc/rtp_rtcp/rtcp_packets/compound_packet.hpp
     include/rtc/rtp_rtcp/rtcp_packets/common_header.hpp
+    include/rtc/rtp_rtcp/rtcp_packets/report_block.hpp
     include/rtc/media/media_track.hpp
 )
 
@@ -243,6 +245,7 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/rtp_defines_unittest.cpp
     src/rtc/rtp_rtcp/rtp_packet_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/common_header_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/report_block_unittest.cpp
 
     src/rtc/transports/ice_transport_description_unittest.cpp
 

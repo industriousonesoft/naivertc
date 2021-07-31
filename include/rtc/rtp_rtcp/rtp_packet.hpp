@@ -54,7 +54,7 @@ public:
     void CopyHeaderFrom(const RtpPacket& other);
 
     // Parser
-    bool Parse(const uint8_t* buffer, size_t size);
+    bool ParseFrom(const uint8_t* buffer, size_t size);
 protected:
     RtpPacket();
     RtpPacket(size_t capacity);
