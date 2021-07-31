@@ -48,11 +48,10 @@ RTC_CPP_EXPORT auto weak_bind(F&& f, T* t, Args&& ..._args) {
 // numeric
 namespace numeric {
 
-template<
+template <
     typename T,
     // 只有当第一个模板参数: std::is_integral<T>::value = true 时，则将类型T启用为成员类型enable_if :: type，未定义enable_if :: type，产生编译错误
-    typename = typename std::enable_if<std::is_integral<T>::value, T>::type
->
+    typename = typename std::enable_if<std::is_integral<T>::value, T>::type>
 RTC_CPP_EXPORT uint16_t to_uint16(T i) {
     if (i >= 0 && static_cast<typename std::make_unsigned<T>::type>(i) <= std::numeric_limits<uint16_t>::max())
 		return static_cast<uint16_t>(i);
@@ -60,16 +59,20 @@ RTC_CPP_EXPORT uint16_t to_uint16(T i) {
 		throw std::invalid_argument("Integer out of range");
 };
 
-template<
+template <
     typename T,
-    typename = typename std::enable_if<std::is_integral<T>::value, T>::type
->
+    typename = typename std::enable_if<std::is_integral<T>::value, T>::type>
 RTC_CPP_EXPORT uint32_t to_uint32(T i) {
     if (i >=0 && static_cast<typename std::make_unsigned<T>::type>(i) <= std::numeric_limits<uint32_t>::max()) {
         return static_cast<uint32_t>(i);
     }else {
         throw std::invalid_argument("Integer out of range.");
     }
+};
+
+template <typename Dst, typename Src>
+RTC_CPP_EXPORT bool is_value_in_range(Src value) {
+    return value > std::numeric_limits<Dst>::lowest() && value < std::numeric_limits<Dst>::max();
 };
 
 }

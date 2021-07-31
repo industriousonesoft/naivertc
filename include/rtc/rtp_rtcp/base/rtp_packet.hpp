@@ -8,12 +8,6 @@
 
 namespace naivertc {
 
-namespace {
-constexpr size_t kFixedHeaderSize = 12;
-constexpr uint8_t kRtpVersion = 2;
-constexpr uint16_t kDefaultPacketSize = 1500;
-} // namespace
-
 class RTC_CPP_EXPORT RtpPacket : public Packet {
 public:
     static std::shared_ptr<RtpPacket> Create() {
@@ -57,6 +51,9 @@ public:
 
     void SetCsrcs(std::vector<uint32_t> csrcs);
     void CopyHeaderFrom(const RtpPacket& other);
+
+    // Parser
+    bool Parse(const uint8_t* buffer, size_t size);
 protected:
     RtpPacket();
     RtpPacket(size_t capacity);
@@ -64,6 +61,18 @@ protected:
 private:
     inline void WriteAt(size_t offset, uint8_t byte);
     uint8_t* WriteAt(size_t offset);
+
+private:
+    struct ExtensionInfo {
+        explicit ExtensionInfo(uint8_t id) : ExtensionInfo(id, 0, 0) {}
+        ExtensionInfo(uint8_t id, uint8_t length, uint16_t offset)
+            : id(id), length(length), offset(offset) {}
+        uint8_t id;
+        uint8_t length;
+        uint16_t offset;
+    };
+
+    ExtensionInfo& FindOrCreateExtensionInfo(int id);
 
 private:
     bool marker_;
@@ -77,6 +86,7 @@ private:
     size_t payload_size_;
 
     size_t extensions_size_ = 0;
+    std::vector<ExtensionInfo> extension_entries_;
 };
 
 } // namespace naivertc

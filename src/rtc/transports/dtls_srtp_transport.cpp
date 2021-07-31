@@ -171,7 +171,7 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                 }
                 PLOG_VERBOSE << "Unprotected SRTCP packet, size: " << unprotected_data_size;
                 // TODO: To parse rtcp sr and get ssrc
-                unsigned int ssrc = 0;
+                // unsigned int ssrc = 0;
                 in_packet->resize(unprotected_data_size);
                 // auto rtcp_packet = RtpPacket::Create(std::move(in_packet), RtpPacket::Type::RTCP, ssrc);
                 // if (rtp_packet_recv_callback_) {
@@ -192,7 +192,7 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                 }
                 PLOG_VERBOSE << "Unprotected SRTP packet, size: " << unprotected_data_size;
                 // TODO: To parse rtp and get ssrc
-                unsigned int ssrc = 0;
+                // unsigned int ssrc = 0;
                 // shrink size
                 in_packet->resize(unprotected_data_size);
                 // auto rtp_packet = RtpPacket::Create(std::move(in_packet), RtpPacket::Type::RTP, ssrc);
