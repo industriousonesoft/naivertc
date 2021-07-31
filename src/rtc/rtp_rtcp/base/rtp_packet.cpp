@@ -4,12 +4,6 @@
 
 namespace naivertc {
 
-namespace {
-constexpr size_t kFixedHeaderSize = 12;
-constexpr uint8_t kRtpVersion = 2;
-constexpr uint16_t kDefaultPacketSize = 1500;
-} // namespace
-
 /*
 0                   1                   2                   3
 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -36,7 +30,12 @@ constexpr uint16_t kDefaultPacketSize = 1500;
 */
 
 RtpPacket::RtpPacket() 
-    : Packet(){}
+    : RtpPacket(kDefaultPacketSize) {}
+
+RtpPacket::RtpPacket(size_t capacity) 
+    : Packet(capacity) {
+    Clear();
+}
     
 RtpPacket::~RtpPacket() {
 }

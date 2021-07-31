@@ -8,21 +8,24 @@
 
 namespace naivertc {
 
+namespace {
+constexpr size_t kFixedHeaderSize = 12;
+constexpr uint8_t kRtpVersion = 2;
+constexpr uint16_t kDefaultPacketSize = 1500;
+} // namespace
+
 class RTC_CPP_EXPORT RtpPacket : public Packet {
 public:
     static std::shared_ptr<RtpPacket> Create() {
-        return std::shared_ptr<RtpPacket>();
+        return std::shared_ptr<RtpPacket>(new RtpPacket());
     }
     ~RtpPacket();
-
-protected:
-    RtpPacket();
 
     // Header
     bool marker() const { return marker_; }
     uint8_t payload_type() const { return payload_type_; }
     bool has_padding() const { return data()[0] & 0x20; }
-    bool padding_size() const { return padding_size_; }
+    uint8_t padding_size() const { return padding_size_; }
     uint16_t sequence_number() const { return sequence_num_; }
     uint32_t timestamp() const { return timestamp_; }
     uint32_t ssrc() const { return ssrc_; }
@@ -54,6 +57,9 @@ protected:
 
     void SetCsrcs(std::vector<uint32_t> csrcs);
     void CopyHeaderFrom(const RtpPacket& other);
+protected:
+    RtpPacket();
+    RtpPacket(size_t capacity);
 
 private:
     inline void WriteAt(size_t offset, uint8_t byte);

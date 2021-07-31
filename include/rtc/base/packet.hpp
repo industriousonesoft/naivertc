@@ -10,8 +10,8 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT Packet : public BinaryBuffer, public std::enable_shared_from_this<Packet> {
 public:
-    static std::shared_ptr<Packet> Create() {
-        return std::shared_ptr<Packet>(new Packet());
+    static std::shared_ptr<Packet> Create(size_t capacity) {
+        return std::shared_ptr<Packet>(new Packet(capacity));
     }
     static std::shared_ptr<Packet> Create(const char* data, size_t size) {
         auto bytes = reinterpret_cast<const uint8_t*>(data);
@@ -26,7 +26,7 @@ public:
     void set_dscp(size_t dscp);
 
 protected:
-    Packet();
+    Packet(size_t capacity);
     Packet(const uint8_t* bytes, size_t size);
     Packet(const Packet& other);
     Packet(const BinaryBuffer& buffer);

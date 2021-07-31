@@ -2,8 +2,8 @@
 
 namespace naivertc {
 
-SctpMessage::SctpMessage(Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability) 
-    : Packet(),
+SctpMessage::SctpMessage(size_t capacity, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability) 
+    : Packet(capacity),
     type_(type), 
     stream_id_(stream_id),
     reliability_(reliability) {}

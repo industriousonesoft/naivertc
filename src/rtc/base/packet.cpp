@@ -2,8 +2,8 @@
 
 namespace naivertc {
 
-Packet::Packet() 
-    : BinaryBuffer(),
+Packet::Packet(size_t capacity) 
+    : BinaryBuffer(capacity),
     dscp_(0) {}
 
 Packet::Packet(const uint8_t* bytes, size_t size) 

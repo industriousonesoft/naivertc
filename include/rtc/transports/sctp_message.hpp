@@ -27,8 +27,13 @@ public:
         std::variant<int, std::chrono::milliseconds> rexmit;
     };
 public:
+
     static std::shared_ptr<SctpMessage> Create(Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
-        return std::shared_ptr<SctpMessage>(new SctpMessage(type, stream_id, reliability));
+        return std::shared_ptr<SctpMessage>(new SctpMessage(0, type, stream_id, reliability));
+    }
+
+    static std::shared_ptr<SctpMessage> Create(size_t capacity, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
+        return std::shared_ptr<SctpMessage>(new SctpMessage(capacity, type, stream_id, reliability));
     }
 
     static std::shared_ptr<SctpMessage> Create(const char* bytes, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
@@ -56,7 +61,7 @@ public:
     }
 
 protected:
-    SctpMessage(Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
+    SctpMessage(size_t capacity, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
     SctpMessage(const uint8_t* data, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
     SctpMessage(const BinaryBuffer& buffer, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
 private:
