@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/packet.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 
 #include <memory>
 

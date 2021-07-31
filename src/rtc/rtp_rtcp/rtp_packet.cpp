@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/base/rtp_packet.hpp"
+#include "rtc/rtp_rtcp/rtp_packet.hpp"
 #include "rtc/base/byte_io_reader.hpp"
 #include "rtc/base/byte_io_writer.hpp"
 #include "common/utils.hpp"
@@ -15,7 +15,6 @@ constexpr uint16_t kTwoByteExtensionProfiledId = 0x1000;
 constexpr uint16_t kTwoByteExtensionProfiledIdAppBitsFilter = 0xFFF0;
 constexpr size_t kOneByteExtensionHeaderLength = 1;
 constexpr size_t kTwoByteExtensionHeaderLength = 2;
-constexpr uint16_t kDefaultPacketSize = 1500;
 } // namespace
 
 /* RTP packet

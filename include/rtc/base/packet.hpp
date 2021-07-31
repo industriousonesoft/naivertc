@@ -30,7 +30,7 @@ protected:
     Packet(const uint8_t* bytes, size_t size);
     Packet(const Packet& other);
     Packet(const BinaryBuffer& buffer);
-protected:
+private:
     // Differentiated Services Code Point
     size_t dscp_;
 };

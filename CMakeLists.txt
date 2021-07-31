@@ -77,8 +77,11 @@ set(LIB_SOURCES
     src/rtc/channels/data_channel.cpp
     src/rtc/channels/data_channel_message.cpp
     src/rtc/channels/media_channel.cpp
-    src/rtc/rtp_rtcp/base/rtp_packet.cpp
-    src/rtc/rtp_rtcp/base/rtp_defines.cpp
+    src/rtc/rtp_rtcp/rtp_defines.cpp
+    src/rtc/rtp_rtcp/rtp_packet.cpp
+    src/rtc/rtp_rtcp/rtcp_packet.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/compound_packet.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/common_header.cpp
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
 )
@@ -137,8 +140,12 @@ set(LIB_HEADERS
     include/rtc/pc/peer_connection.hpp
     include/rtc/channels/data_channel.hpp
     include/rtc/channels/media_channel.hpp
-    include/rtc/rtp_rtcp/base/rtp_packet.hpp
-    include/rtc/rtp_rtcp/base/rtp_defines.hpp
+    include/rtc/rtp_rtcp/rtp_defines.hpp
+    include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
+    include/rtc/rtp_rtcp/rtp_packet.hpp
+    include/rtc/rtp_rtcp/rtcp_packet.hpp
+    include/rtc/rtp_rtcp/rtcp_packets/compound_packet.hpp
+    include/rtc/rtp_rtcp/rtcp_packets/common_header.hpp
     include/rtc/media/media_track.hpp
 )
 
@@ -233,8 +240,8 @@ set(TEST_SOURCES
 
     src/rtc/pc/peer_connection_configuration_unittest.cpp
     
-    src/rtc/rtp_rtcp/base/rtp_defines_unittest.cpp
-    src/rtc/rtp_rtcp/base/rtp_packet_unittest.cpp
+    src/rtc/rtp_rtcp/rtp_defines_unittest.cpp
+    src/rtc/rtp_rtcp/rtp_packet_unittest.cpp
 
     src/rtc/transports/ice_transport_description_unittest.cpp
 
