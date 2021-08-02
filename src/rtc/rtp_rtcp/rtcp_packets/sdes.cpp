@@ -57,14 +57,18 @@ Sdes::Sdes() : packet_size_(RtcpPacket::kFixedRtcpCommonHeaderSize) {}
 Sdes::~Sdes() {}
 
 bool Sdes::AddCName(uint32_t ssrc, std::string cname) {
-    if (cname.length() <= 0xFFu /* One byte */) {
+    if (cname.length() > 0xFFu /* One byte */) {
+        PLOG_WARNING << "Max cname length reached.";
+        return false;
+    }
+    if (chunks_.size() >= kMaxNumberOfChunks) {
         PLOG_WARNING << "Max SDES chunks reached.";
         return false;
     }
     Chunk chunk;
     chunk.ssrc = ssrc;
     chunk.cname = std::move(cname);
-    packet_size_ = CalculateChunkSize(chunk);
+    packet_size_ += CalculateChunkSize(chunk);
     chunks_.push_back(std::move(chunk));
     return true;
 }
@@ -161,15 +165,16 @@ bool Sdes::PackInto(uint8_t* buffer,
         ByteWriter<uint8_t>::WriteBigEndian(&buffer[*index + 4], kCNameTag);
         ByteWriter<uint8_t>::WriteBigEndian(&buffer[*index + 5], static_cast<uint8_t>(chunk.cname.size()));
         memcpy(&buffer[*index + 6], chunk.cname.data(), chunk.cname.size());
-        *index += (6 + chunk.cname.size());
+        size_t chunk_size = 6 + chunk.cname.size();
+        *index += chunk_size;
 
-        size_t padding_size = 4 - ((6 + chunk.cname.size()) % 4);
+        size_t padding_size = 4 - (chunk_size % 4);
         memset(buffer + *index, kPaddingValue, padding_size);
         *index += padding_size;
     }
 
-    assert(*index == index_end && "Unmatched index end.");
-
+    assert(*index == index_end && "Unmatched end of index");
+   
     return true;
 }
     

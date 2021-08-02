@@ -58,8 +58,8 @@ void RtcpPacket::CreateCommonHeader(
         uint8_t packet_type,
         size_t payload_size,
         uint8_t* buffer,
-        size_t* pos) {
-    CreateCommonHeader(count_or_format, packet_type, payload_size, /* padding=*/false , buffer, pos);
+        size_t* index) {
+    CreateCommonHeader(count_or_format, packet_type, payload_size, /* padding=*/false , buffer, index);
 }
 
 void RtcpPacket::CreateCommonHeader(
@@ -68,18 +68,18 @@ void RtcpPacket::CreateCommonHeader(
         size_t payload_size,
         bool padding,
         uint8_t* buffer,
-        size_t* pos) {
+        size_t* index) {
     assert(payload_size <= 0xFFFFU);
     assert(count_or_format <= 0x1F);
     constexpr uint8_t kVersionBits = 2 << 6;
     uint8_t padding_bit = padding ? 1 << 5 : 0;
     // Payload size saved in 32-bit word
     size_t payload_size_in_32bit = payload_size / 4;
-    buffer[*pos + 0] = kVersionBits | padding_bit | static_cast<uint8_t>(count_or_format);
-    buffer[*pos + 1] = packet_type;
-    buffer[*pos + 2] = (payload_size_in_32bit >> 8) & 0xFF;
-    buffer[*pos + 3] = payload_size_in_32bit & 0xFF;
-    *pos += kFixedRtcpCommonHeaderSize;
+    buffer[*index + 0] = kVersionBits | padding_bit | static_cast<uint8_t>(count_or_format);
+    buffer[*index + 1] = packet_type;
+    buffer[*index + 2] = (payload_size_in_32bit >> 8) & 0xFF;
+    buffer[*index + 3] = payload_size_in_32bit & 0xFF;
+    *index += kFixedRtcpCommonHeaderSize;
 }
     
 } // namespace naivertc
