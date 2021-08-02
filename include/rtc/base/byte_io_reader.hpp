@@ -1,5 +1,5 @@
-#ifndef _RTC_BYTE_READER_H_
-#define _RTC_BYTE_READER_H_
+#ifndef _RTC_BASE_BYTE_READER_H_
+#define _RTC_BASE_BYTE_READER_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/byte_io.hpp"

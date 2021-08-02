@@ -1,5 +1,5 @@
-#ifndef _BASE_INTERNALS_H_
-#define _BASE_INTERNALS_H_
+#ifndef _RTC_BASE_INTERNALS_H_
+#define _RTC_BASE_INTERNALS_H_
 
 #include <stddef.h>
 #include <cstdint>

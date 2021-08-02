@@ -1,5 +1,5 @@
-#ifndef _RTC_BYTE_IO_H_
-#define _RTC_BYTE_IO_H_
+#ifndef _RTC_BASE_BYTE_IO_H_
+#define _RTC_BASE_BYTE_IO_H_
 
 #include <stdint.h>
 #include <limits>
