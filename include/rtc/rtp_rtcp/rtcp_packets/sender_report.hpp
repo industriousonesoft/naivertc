@@ -51,7 +51,7 @@ public:
     // Pack data into the given buffer at the given position.
     bool PackInto(uint8_t* buffer,
                   size_t* index,
-                  size_t max_length,
+                  size_t max_size,
                   PacketReadyCallback callback) const override;
 
 private:

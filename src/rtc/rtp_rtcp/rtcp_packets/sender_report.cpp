@@ -58,7 +58,7 @@ bool SenderReport::SetReportBlocks(std::vector<ReportBlock> blocks) {
 
 bool SenderReport::Parse(const CommonHeader& packet) {
     if (packet.type() != kPacketType) {
-        PLOG_WARNING << "Try to parse a packet which is not a Sender Report.";
+        PLOG_WARNING << "Incoming packet is not a Sender Report.";
         return false;
     }
     const uint8_t report_block_count = packet.count();
@@ -104,9 +104,9 @@ size_t SenderReport::PacketSize() const {
 
 bool SenderReport::PackInto(uint8_t* buffer,
                             size_t* index,
-                            size_t max_length,
+                            size_t max_size,
                             PacketReadyCallback callback) const {
-    while (*index + PacketSize() > max_length) {
+    while (*index + PacketSize() > max_size) {
         if (!OnBufferFull(buffer, index, callback)) {
             return false;
         }
@@ -114,7 +114,7 @@ bool SenderReport::PackInto(uint8_t* buffer,
 
     const size_t index_end = *index + PacketSize();
     
-    RtcpPacket::CreateCommonHeader(report_blocks_.size(), kPacketType, PayloadSize(), buffer, index);
+    RtcpPacket::CreateCommonHeader(report_blocks_.size(), kPacketType, PacketSizeWithoutCommonHeader(), buffer, index);
 
     // Write SenderReport header
     ByteWriter<uint32_t>::WriteBigEndian(&buffer[*index + 0], sender_ssrc());

@@ -12,7 +12,7 @@ class RTC_CPP_EXPORT RtcpPacket {
 public:
     // Callback used to signal that an RTCP packet is ready. Note that this 
     // may not contain all data in the RtcpPacket; if a packet can not fit in 
-    // max_length bytes, it will be fragmented and multiple calls to this 
+    // max_size bytes, it will be fragmented and multiple calls to this 
     // callback will be made.
     using PacketReadyCallback = std::function<void(BinaryBuffer)>;
 
@@ -27,10 +27,10 @@ public:
     // Pack data into the given buffer at the given position.
     virtual bool PackInto(uint8_t* buffer,
                           size_t* index,
-                          size_t max_length,
+                          size_t max_size,
                           PacketReadyCallback callback) const  = 0;
 
-    bool Build(size_t max_length, PacketReadyCallback callback) const;
+    bool Build(size_t max_size, PacketReadyCallback callback) const;
 
     // Convenience method mostly used for test. Creates packet without
     // fragmentation using BlockSize() to allocate big enough buffer.
@@ -56,7 +56,7 @@ protected:
 
     bool OnBufferFull(uint8_t* buffer, size_t* index, PacketReadyCallback callback) const;
 
-    size_t PayloadSize() const;
+    size_t PacketSizeWithoutCommonHeader() const;
     
 private:
     uint32_t sender_ssrc_ = 0;

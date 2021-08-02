@@ -17,10 +17,10 @@ size_t CompoundPacket::PacketSize() const {
 
 bool CompoundPacket::PackInto(uint8_t* buffer,
                               size_t* index,
-                              size_t max_length,
+                              size_t max_size,
                               PacketReadyCallback callback) const {
     for (const auto& appended : appended_packets_) {
-        if (!appended->PackInto(buffer, index, max_length, callback)) {
+        if (!appended->PackInto(buffer, index, max_size, callback)) {
             return false;
         }
     }

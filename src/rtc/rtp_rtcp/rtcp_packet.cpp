@@ -14,11 +14,11 @@ BinaryBuffer RtcpPacket::Build() const {
     return packet;
 }
 
-bool RtcpPacket::Build(size_t max_length, PacketReadyCallback callback) const {
-    assert(max_length <= kDefaultPacketSize);
+bool RtcpPacket::Build(size_t max_size, PacketReadyCallback callback) const {
+    assert(max_size <= kDefaultPacketSize);
     uint8_t buffer[kDefaultPacketSize];
     size_t index = 0;
-    if (!PackInto(buffer, &index, max_length, callback)) {
+    if (!PackInto(buffer, &index, max_size, callback)) {
         return false;
     }
     return OnBufferFull(buffer, &index, callback);
@@ -37,7 +37,7 @@ bool RtcpPacket::OnBufferFull(uint8_t* buffer, size_t* index, PacketReadyCallbac
     return true;
 }
 
-size_t RtcpPacket::PayloadSize() const {
+size_t RtcpPacket::PacketSizeWithoutCommonHeader() const {
     size_t length_in_bytes = PacketSize();
     assert(length_in_bytes > 0);
     assert(length_in_bytes % 4 == 0 && "Padding must be handled by each subclass.");
@@ -45,13 +45,13 @@ size_t RtcpPacket::PayloadSize() const {
     return (length_in_bytes - kFixedRtcpCommonHeaderSize);
 }
 
-/* From RFC 3550, RTCP header format.
-  0                   1                   2                   3
-  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
- +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- |V=2|P| RC/FMT  |      PT       |             length            |
- +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-*/
+// From RFC 3550, RTCP header format.
+//   0                   1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |V=2|P| RC/FMT  |      PT       |             length            |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 
 void RtcpPacket::CreateCommonHeader(
         size_t count_or_format,
