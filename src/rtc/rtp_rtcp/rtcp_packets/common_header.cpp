@@ -14,7 +14,7 @@ namespace rtcp {
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-bool CommonHeader::ParseFrom(const uint8_t* buffer, size_t size) {
+bool CommonHeader::Parse(const uint8_t* buffer, size_t size) {
     constexpr uint8_t kVersion = 2;
     if (size < kFixedHeaderSize) {
         PLOG_WARNING << "Too little data remaining in buffer to parse RTCP header (4 bytes).";

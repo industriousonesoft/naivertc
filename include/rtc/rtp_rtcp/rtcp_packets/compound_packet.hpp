@@ -14,12 +14,12 @@ public:
     CompoundPacket();
     ~CompoundPacket() override;
 
-    size_t BlockLength() const override;
+    size_t PacketSize() const override;
 
-    bool Create(uint8_t* packet,
-                size_t* index,
-                size_t max_length,
-                PacketReadyCallback callback) const override;
+    bool PackInto(uint8_t* packet,
+                  size_t* index,
+                  size_t max_length,
+                  PacketReadyCallback callback) const override;
 
 protected:
     std::vector<std::unique_ptr<RtcpPacket>> appended_packets_;

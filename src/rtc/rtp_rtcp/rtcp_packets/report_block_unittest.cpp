@@ -2,10 +2,10 @@
 
 #include <gtest/gtest.h>
 
+using namespace naivertc::rtcp;
+
 namespace naivertc {
 namespace test {
-
-using namespace naivertc::rtcp;
 
 constexpr uint32_t kRemoteSsrc = 0x1EF834FF;
 constexpr uint8_t kFractionLost = 33;
@@ -34,7 +34,7 @@ TEST(RtcpReportBlockTest, ParseMatchPack) {
     rb.PackInto(buffer, buffer_size);
 
     ReportBlock parsed_rb;
-    EXPECT_TRUE(parsed_rb.ParseFrom(buffer, buffer_size));
+    EXPECT_TRUE(parsed_rb.Parse(buffer, buffer_size));
 
     EXPECT_EQ(parsed_rb.ssrc(), kRemoteSsrc);
     EXPECT_EQ(parsed_rb.fraction_lost(), kFractionLost);

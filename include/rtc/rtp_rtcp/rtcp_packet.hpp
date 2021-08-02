@@ -22,38 +22,41 @@ public:
     void set_sender_ssrc(uint32_t ssrc) { sender_ssrc_ = ssrc; }
 
     // Size of this packet in bytes including headers
-    virtual size_t BlockLength() const = 0;
+    virtual size_t PacketSize() const = 0;
 
-    // Creates packet in the given buffer at the given position.
-    virtual bool Create(uint8_t* packet,
-                        size_t* index,
-                        size_t max_length,
-                        PacketReadyCallback callback) const  = 0;
+    // Pack data into the given buffer at the given position.
+    virtual bool PackInto(uint8_t* buffer,
+                          size_t* index,
+                          size_t max_length,
+                          PacketReadyCallback callback) const  = 0;
 
     bool Build(size_t max_length, PacketReadyCallback callback) const;
 
+    // Convenience method mostly used for test. Creates packet without
+    // fragmentation using BlockSize() to allocate big enough buffer.
+    BinaryBuffer Build() const;
+
 protected:
     // Size of the RTCP common header
-    static constexpr size_t kHeaderLength = 4;
+    static constexpr size_t kFixedRtcpCommonHeaderSize = 4;
     RtcpPacket() {}
 
-    static void CreateHeader(size_t count_or_format, // Depends on packet type
-                             uint8_t packet_type,
-                             size_t block_length, // Payload size in 32-bit words
-                             uint8_t* buffer,
-                             size_t* pos);
+    static void CreateCommonHeader(size_t count_or_format, // Depends on packet type
+                                    uint8_t packet_type,
+                                    size_t payload_size,
+                                    uint8_t* buffer,
+                                    size_t* pos);
 
-    static void CreateHeader(size_t count_or_format,
-                             uint8_t packet_type,
-                             size_t block_length, // Payload size in 32-bit words
-                             bool padding,
-                             uint8_t* buffer,
-                             size_t* pos);
+    static void CreateCommonHeader(size_t count_or_format,
+                                    uint8_t packet_type,
+                                    size_t payload_size, 
+                                    bool padding,
+                                    uint8_t* buffer,
+                                    size_t* pos);
 
-    bool OnBufferFull(uint8_t* packet, size_t* index, PacketReadyCallback callback) const;
+    bool OnBufferFull(uint8_t* buffer, size_t* index, PacketReadyCallback callback) const;
 
-    // Size of the RTCP packet as written in header
-    size_t HeaderLength() const;
+    size_t PayloadSize() const;
     
 private:
     uint32_t sender_ssrc_ = 0;

@@ -31,7 +31,7 @@ public:
         return payload_ + payload_size_ + padding_size_;
     }
 
-    bool ParseFrom(const uint8_t* buffer, size_t size);
+    bool Parse(const uint8_t* buffer, size_t size);
 
 private:
     uint8_t packet_type_ = 0;

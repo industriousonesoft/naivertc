@@ -1,32 +1,48 @@
 #include "rtc/rtp_rtcp/rtcp_packet.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
+
+BinaryBuffer RtcpPacket::Build() const {
+    BinaryBuffer packet(PacketSize());
+
+    size_t size = 0;
+    bool created = PackInto(packet.data(), &size, packet.capacity(), nullptr);
+    assert(created == true && "Invalid packet is not supported.");
+    assert(size == packet.size() && "PacketSize mispredicted size used.");
+    return packet;
+}
 
 bool RtcpPacket::Build(size_t max_length, PacketReadyCallback callback) const {
     assert(max_length <= kDefaultPacketSize);
     uint8_t buffer[kDefaultPacketSize];
     size_t index = 0;
-    if (!Create(buffer, &index, max_length, callback)) {
+    if (!PackInto(buffer, &index, max_length, callback)) {
         return false;
     }
     return OnBufferFull(buffer, &index, callback);
 }
 
-bool RtcpPacket::OnBufferFull(uint8_t* packet, size_t* index, PacketReadyCallback callback) const {
+bool RtcpPacket::OnBufferFull(uint8_t* buffer, size_t* index, PacketReadyCallback callback) const {
     if (*index == 0) {
         return false;
     }
-    // TODO: Call callback
-    // callback()
+    if (callback == nullptr) {
+        PLOG_WARNING << "Fragment not supported.";
+        return false;
+    }
+    callback(BinaryBuffer(buffer, buffer + *index));
+    *index = 0;
     return true;
 }
 
-size_t RtcpPacket::HeaderLength() const {
-    size_t length_in_bytes = BlockLength();
+size_t RtcpPacket::PayloadSize() const {
+    size_t length_in_bytes = PacketSize();
     assert(length_in_bytes > 0);
     assert(length_in_bytes % 4 == 0 && "Padding must be handled by each subclass.");
     // Length in 32-bit words without common header
-    return (length_in_bytes - kHeaderLength) / 4;
+    return (length_in_bytes - kFixedRtcpCommonHeaderSize);
 }
 
 /* From RFC 3550, RTCP header format.
@@ -37,31 +53,33 @@ size_t RtcpPacket::HeaderLength() const {
  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-void RtcpPacket::CreateHeader(
+void RtcpPacket::CreateCommonHeader(
         size_t count_or_format,
         uint8_t packet_type,
-        size_t block_length,
+        size_t payload_size,
         uint8_t* buffer,
         size_t* pos) {
-    CreateHeader(count_or_format, packet_type, block_length, /* padding=*/false , buffer, pos);
+    CreateCommonHeader(count_or_format, packet_type, payload_size, /* padding=*/false , buffer, pos);
 }
 
-void RtcpPacket::CreateHeader(
+void RtcpPacket::CreateCommonHeader(
         size_t count_or_format,
         uint8_t packet_type,
-        size_t block_length,
+        size_t payload_size,
         bool padding,
         uint8_t* buffer,
         size_t* pos) {
-    assert(block_length <= 0xFFFFU);
+    assert(payload_size <= 0xFFFFU);
     assert(count_or_format <= 0x1F);
     constexpr uint8_t kVersionBits = 2 << 6;
     uint8_t padding_bit = padding ? 1 << 5 : 0;
+    // Payload size saved in 32-bit word
+    size_t payload_size_in_32bit = payload_size / 4;
     buffer[*pos + 0] = kVersionBits | padding_bit | static_cast<uint8_t>(count_or_format);
     buffer[*pos + 1] = packet_type;
-    buffer[*pos + 2] = (block_length >> 8) & 0xFF;
-    buffer[*pos + 3] = block_length & 0xFF;
-    *pos += kHeaderLength;
+    buffer[*pos + 2] = (payload_size_in_32bit >> 8) & 0xFF;
+    buffer[*pos + 3] = payload_size_in_32bit & 0xFF;
+    *pos += kFixedRtcpCommonHeaderSize;
 }
     
 } // namespace naivertc

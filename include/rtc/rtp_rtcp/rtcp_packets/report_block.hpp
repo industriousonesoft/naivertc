@@ -32,7 +32,7 @@ public:
     void set_last_sr_ntp_timestamp(uint32_t last_sr_ntp_timestamp) { last_sr_ntp_timestamp_ = last_sr_ntp_timestamp; }
     void set_delay_sr_since_last_sr(uint32_t delay_since_last_sr) { delay_since_last_sr_ = delay_since_last_sr; }
 
-    bool ParseFrom(const uint8_t* buffer, size_t size);
+    bool Parse(const uint8_t* buffer, size_t size);
     bool PackInto(uint8_t* buffer, size_t size) const;
 
 private:

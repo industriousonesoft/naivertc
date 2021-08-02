@@ -54,7 +54,7 @@ bool ReportBlock::PackInto(uint8_t* buffer, size_t size) const {
     return true;
 }
 
-bool ReportBlock::ParseFrom(const uint8_t* buffer, size_t size) {
+bool ReportBlock::Parse(const uint8_t* buffer, size_t size) {
     assert(buffer != nullptr);
     if (size < kFixedReportBlockSize) {
         PLOG_WARNING << "Too little data remaining in buffer to parse Report Block (24 bytes).";
