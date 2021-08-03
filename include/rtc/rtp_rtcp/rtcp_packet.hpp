@@ -41,18 +41,18 @@ protected:
     static constexpr size_t kFixedRtcpCommonHeaderSize = 4;
     RtcpPacket() {}
 
-    static void CreateCommonHeader(size_t count_or_format, // Depends on packet type
-                                    uint8_t packet_type,
-                                    size_t payload_size,
-                                    uint8_t* buffer,
-                                    size_t* index);
+    static void PackCommonHeader(size_t count_or_format, // Depends on packet type
+                                 uint8_t packet_type,
+                                 size_t payload_size,
+                                 uint8_t* buffer,
+                                 size_t* index);
 
-    static void CreateCommonHeader(size_t count_or_format,
-                                    uint8_t packet_type,
-                                    size_t payload_size, 
-                                    bool padding,
-                                    uint8_t* buffer,
-                                    size_t* index);
+    static void PackCommonHeader(size_t count_or_format,
+                                 uint8_t packet_type,
+                                 size_t payload_size, 
+                                 bool padding,
+                                 uint8_t* buffer,
+                                 size_t* index);
 
     bool OnBufferFull(uint8_t* buffer, size_t* index, PacketReadyCallback callback) const;
 

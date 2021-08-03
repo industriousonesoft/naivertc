@@ -53,16 +53,16 @@ size_t RtcpPacket::PacketSizeWithoutCommonHeader() const {
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 
-void RtcpPacket::CreateCommonHeader(
+void RtcpPacket::PackCommonHeader(
         size_t count_or_format,
         uint8_t packet_type,
         size_t payload_size,
         uint8_t* buffer,
         size_t* index) {
-    CreateCommonHeader(count_or_format, packet_type, payload_size, /* padding=*/false , buffer, index);
+    PackCommonHeader(count_or_format, packet_type, payload_size, /* padding=*/false , buffer, index);
 }
 
-void RtcpPacket::CreateCommonHeader(
+void RtcpPacket::PackCommonHeader(
         size_t count_or_format,
         uint8_t packet_type,
         size_t payload_size,

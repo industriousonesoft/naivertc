@@ -159,7 +159,7 @@ bool Sdes::PackInto(uint8_t* buffer,
         }
     }
     const size_t index_end = *index + PacketSize();
-    RtcpPacket::CreateCommonHeader(chunks_.size(), kPacketType, PacketSizeWithoutCommonHeader(), buffer, index);
+    RtcpPacket::PackCommonHeader(chunks_.size(), kPacketType, PacketSizeWithoutCommonHeader(), buffer, index);
 
     for (const auto& chunk : chunks_) {
         ByteWriter<uint32_t>::WriteBigEndian(&buffer[*index + 0], chunk.ssrc);

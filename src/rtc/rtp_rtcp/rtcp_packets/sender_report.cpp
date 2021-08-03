@@ -114,7 +114,7 @@ bool SenderReport::PackInto(uint8_t* buffer,
 
     const size_t index_end = *index + PacketSize();
     
-    RtcpPacket::CreateCommonHeader(report_blocks_.size(), kPacketType, PacketSizeWithoutCommonHeader(), buffer, index);
+    RtcpPacket::PackCommonHeader(report_blocks_.size(), kPacketType, PacketSizeWithoutCommonHeader(), buffer, index);
 
     // Write SenderReport header
     ByteWriter<uint32_t>::WriteBigEndian(&buffer[*index + 0], sender_ssrc());
