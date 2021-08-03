@@ -86,29 +86,30 @@ bool Sdes::Parse(const CommonHeader& packet) {
     }
     uint8_t number_of_chunks = packet.count();
     size_t packet_size = kFixedRtcpCommonHeaderSize;
-    const uint8_t* buffer = packet.payload();
-    size_t buffer_size = packet.payload_size();
+
+    const uint8_t* payload_buffer = packet.payload();
+    size_t payload_size = packet.payload_size();
     size_t index = 0;
     std::vector<Chunk> chunks_tmp;
     chunks_tmp.resize(number_of_chunks);
     for (size_t i = 0; i < number_of_chunks;) {
         // Each chunk consumes at least 8 bytes.
-        if (packet_size - index < kChunkBaseSize ) {
+        if (payload_size - index < kChunkBaseSize ) {
             PLOG_WARNING << "Not enough space left for chunk #" << (i + 1);
             return false;
         }
-        chunks_tmp[i].ssrc = ByteReader<uint32_t>::ReadBigEndian(&buffer[index]);
+        chunks_tmp[i].ssrc = ByteReader<uint32_t>::ReadBigEndian(&payload_buffer[index]);
         index += sizeof(uint32_t);
         bool cname_found = false;
         uint8_t item_type;
-        while ((item_type = buffer[index++]) != kTerminatorTag) {
-            if (index >= buffer_size) {
+        while ((item_type = payload_buffer[index++]) != kTerminatorTag) {
+            if (index >= payload_size) {
                 PLOG_WARNING << "Unexpected end of packet while reading chunk #" << (i + 1)
                              << ". Expected to find length of the cname.";
                 return false;
             }
-            uint8_t item_length = buffer[index++];
-            if (index + item_length + kTerminatorSize > buffer_size) {
+            uint8_t item_length = payload_buffer[index++];
+            if (index + item_length + kTerminatorSize > payload_size) {
                 PLOG_WARNING << "Unexpected end of packet while reading chunk #" << (i + 1)
                              << ". Expected to find cname of length: " << item_length;
                 return false;
@@ -120,7 +121,7 @@ bool Sdes::Parse(const CommonHeader& packet) {
                     return false;
                 }
                 cname_found = true;
-                chunks_tmp[i].cname.assign(reinterpret_cast<const char*>(&buffer[index]), item_length);
+                chunks_tmp[i].cname.assign(reinterpret_cast<const char*>(&payload_buffer[index]), item_length);
             }
             index += item_length;
         } // end of while
@@ -136,7 +137,7 @@ bool Sdes::Parse(const CommonHeader& packet) {
             chunks_tmp.resize(number_of_chunks);
         }
         // Add padding of current chunk to adjust to 23-bit boundary
-        index += (buffer_size - index) % 4;
+        index += (payload_size - index) % 4;
     } // end of for
 
     chunks_.swap(chunks_tmp);
