@@ -26,7 +26,7 @@ namespace rtcp {
 
 
 ReportBlock::ReportBlock() 
-    : ssrc_(0),
+    : source_ssrc_(0),
     fraction_lost_(0),
     cumulative_packet_lost_(0),
     seq_num_cycles_(0),
@@ -42,7 +42,7 @@ bool ReportBlock::PackInto(uint8_t* buffer, size_t size) const {
         PLOG_WARNING << "Too small space left in buffer to pack report block (24 bytes)";
         return false;
     }
-    ByteWriter<uint32_t>::WriteBigEndian(&buffer[0], ssrc_);
+    ByteWriter<uint32_t>::WriteBigEndian(&buffer[0], source_ssrc_);
     ByteWriter<uint8_t>::WriteBigEndian(&buffer[4], fraction_lost_);
     ByteWriter<int32_t, 3>::WriteBigEndian(&buffer[5], cumulative_packet_lost_);
     ByteWriter<uint16_t>::WriteBigEndian(&buffer[8], seq_num_cycles_);
@@ -60,7 +60,7 @@ bool ReportBlock::Parse(const uint8_t* buffer, size_t size) {
         return false;
     }
 
-    ssrc_ = ByteReader<uint32_t>::ReadBigEndian(&buffer[0]);
+    source_ssrc_ = ByteReader<uint32_t>::ReadBigEndian(&buffer[0]);
     fraction_lost_ = buffer[4];
     cumulative_packet_lost_ = ByteReader<int32_t, 3>::ReadBigEndian(&buffer[5]);
     seq_num_cycles_ = ByteReader<uint16_t>::ReadBigEndian(&buffer[8]);

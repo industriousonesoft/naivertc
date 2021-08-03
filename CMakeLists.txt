@@ -87,6 +87,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp_packets/rtp_feedback.cpp
     src/rtc/rtp_rtcp/rtcp_packets/sdes.cpp
     src/rtc/rtp_rtcp/rtcp_packets/receiver_report.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/remb.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/psfb.cpp
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
 )
@@ -156,6 +158,8 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp_packets/rtp_feedback.hpp
     include/rtc/rtp_rtcp/rtcp_packets/sdes.hpp
     include/rtc/rtp_rtcp/rtcp_packets/receiver_report.hpp
+    include/rtc/rtp_rtcp/rtcp_packets/remb.hpp
+    include/rtc/rtp_rtcp/rtcp_packets/psfb.hpp
     include/rtc/media/media_track.hpp
 )
 

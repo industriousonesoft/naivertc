@@ -6,6 +6,8 @@
 namespace naivertc {
 namespace rtcp {
 
+// A ReportBlock represents the Sender Report packet from
+// RFC 3550 section 6.4.1.
 class RTC_CPP_EXPORT ReportBlock {
 public:
     static constexpr size_t kFixedReportBlockSize = 24;
@@ -13,7 +15,7 @@ public:
     ReportBlock();
     ~ReportBlock();
 
-    uint32_t ssrc() const { return ssrc_; }
+    uint32_t source_ssrc() const { return source_ssrc_; }
     uint8_t fraction_lost() const { return fraction_lost_; }
     int32_t cumulative_packet_lost() const { return cumulative_packet_lost_; }
     uint16_t sequence_num_cycles() const { return seq_num_cycles_; }
@@ -22,7 +24,7 @@ public:
     uint32_t last_sr_ntp_timestamp() const { return last_sr_ntp_timestamp_; }
     uint32_t delay_since_last_sr() const { return delay_since_last_sr_; }
 
-    void set_ssrc(uint32_t ssrc) { ssrc_ = ssrc; }
+    void set_media_ssrc(uint32_t ssrc) { source_ssrc_ = ssrc; }
     void set_fraction_lost(uint8_t fraction_lost) { fraction_lost_ = fraction_lost; }
     bool set_cumulative_packet_lost(int32_t cumulative_lost);
     void set_seq_num_cycles(uint16_t seq_num_cycles) { seq_num_cycles_ = seq_num_cycles; }
@@ -36,8 +38,8 @@ public:
     bool PackInto(uint8_t* buffer, size_t size) const;
 
 private:
-     // ssrc
-    uint32_t ssrc_;
+     // ssrc of source
+    uint32_t source_ssrc_;
     // fraction lost is high 8-bits value, cumulative packets lost is low signed 24-bits value
     uint8_t fraction_lost_;
     int32_t cumulative_packet_lost_;

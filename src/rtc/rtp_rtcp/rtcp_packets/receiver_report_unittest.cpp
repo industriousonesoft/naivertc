@@ -38,7 +38,7 @@ TEST(RtcpReceiverReportTest, ParseWithOneReportBlock) {
     EXPECT_TRUE(rr.Parse(common_header));
     EXPECT_EQ(1u, rr.report_blocks().size());
     EXPECT_EQ(kSenderSsrc, rr.sender_ssrc());
-    EXPECT_EQ(kRemoteSsrc, rr.report_blocks()[0].ssrc());
+    EXPECT_EQ(kRemoteSsrc, rr.report_blocks()[0].source_ssrc());
     EXPECT_EQ(kFractionLost, rr.report_blocks()[0].fraction_lost());
     EXPECT_EQ(kCumulativeLost, rr.report_blocks()[0].cumulative_packet_lost());
     EXPECT_EQ(0x2223, rr.report_blocks()[0].sequence_num_cycles());
@@ -53,7 +53,7 @@ TEST(RtcpReceiverReportTest, CreateWithOneReportBlock) {
     ReceiverReport rr;
     rr.set_sender_ssrc(kSenderSsrc);
     ReportBlock rb;
-    rb.set_ssrc(kRemoteSsrc);
+    rb.set_media_ssrc(kRemoteSsrc);
     rb.set_fraction_lost(kFractionLost);
     rb.set_cumulative_packet_lost(kCumulativeLost);
     rb.set_extended_highest_sequence_num(kExtHighestSeqNum);

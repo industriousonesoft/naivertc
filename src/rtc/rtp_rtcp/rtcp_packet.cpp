@@ -52,7 +52,6 @@ size_t RtcpPacket::PacketSizeWithoutCommonHeader() const {
 //  |V=2|P| RC/FMT  |      PT       |             length            |
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-
 void RtcpPacket::PackCommonHeader(
         size_t count_or_format,
         uint8_t packet_type,

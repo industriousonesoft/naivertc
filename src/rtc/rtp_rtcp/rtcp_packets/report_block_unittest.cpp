@@ -19,7 +19,7 @@ constexpr uint32_t kDelaySinceLastSr = 0x89D67F50;
 
 TEST(RtcpReportBlockTest, ParseMatchPack) {
     ReportBlock rb;
-    rb.set_ssrc(kRemoteSsrc);
+    rb.set_media_ssrc(kRemoteSsrc);
     rb.set_fraction_lost(kFractionLost);
     rb.set_cumulative_packet_lost(kCumulativePacketLost);
     // rb.set_seq_num_cycles(kSeqNumCycles);
@@ -36,7 +36,7 @@ TEST(RtcpReportBlockTest, ParseMatchPack) {
     ReportBlock parsed_rb;
     EXPECT_TRUE(parsed_rb.Parse(buffer, buffer_size));
 
-    EXPECT_EQ(parsed_rb.ssrc(), kRemoteSsrc);
+    EXPECT_EQ(parsed_rb.source_ssrc(), kRemoteSsrc);
     EXPECT_EQ(parsed_rb.fraction_lost(), kFractionLost);
     EXPECT_EQ(parsed_rb.cumulative_packet_lost(), kCumulativePacketLost);
     EXPECT_EQ(parsed_rb.sequence_num_cycles(), kSeqNumCycles);
