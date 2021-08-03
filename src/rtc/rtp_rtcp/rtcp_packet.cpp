@@ -42,7 +42,7 @@ size_t RtcpPacket::PacketSizeWithoutCommonHeader() const {
     assert(length_in_bytes > 0);
     assert(length_in_bytes % 4 == 0 && "Padding must be handled by each subclass.");
     // Length in 32-bit words without common header
-    return (length_in_bytes - kFixedRtcpCommonHeaderSize);
+    return (length_in_bytes - kRtcpCommonHeaderSize);
 }
 
 // From RFC 3550, RTCP header format.
@@ -78,7 +78,7 @@ void RtcpPacket::PackCommonHeader(
     buffer[*index + 1] = packet_type;
     buffer[*index + 2] = (payload_size_in_32bit >> 8) & 0xFF;
     buffer[*index + 3] = payload_size_in_32bit & 0xFF;
-    *index += kFixedRtcpCommonHeaderSize;
+    *index += kRtcpCommonHeaderSize;
 }
     
 } // namespace naivertc

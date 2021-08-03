@@ -260,6 +260,7 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/rtcp_packets/sender_report_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/sdes_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/receiver_report_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/remb_unittest.cpp
 
     src/rtc/transports/ice_transport_description_unittest.cpp
 

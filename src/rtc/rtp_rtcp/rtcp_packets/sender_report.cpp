@@ -99,7 +99,7 @@ bool SenderReport::Parse(const CommonHeader& packet) {
 
 // Override RtcpPacket
 size_t SenderReport::PacketSize() const {
-    return kFixedRtcpCommonHeaderSize + kSenderReportFixedSize + report_blocks_.size() * ReportBlock::kFixedReportBlockSize;
+    return kRtcpCommonHeaderSize + kSenderReportFixedSize + report_blocks_.size() * ReportBlock::kFixedReportBlockSize;
 }
 
 bool SenderReport::PackInto(uint8_t* buffer,

@@ -56,7 +56,7 @@ bool ReceiverReport::Parse(const CommonHeader& packet) {
 }
 
 size_t ReceiverReport::PacketSize() const {
-    return kFixedRtcpCommonHeaderSize + kReceiverReportBaseSize + report_blocks_.size() * ReportBlock::kFixedReportBlockSize;
+    return kRtcpCommonHeaderSize + kReceiverReportBaseSize + report_blocks_.size() * ReportBlock::kFixedReportBlockSize;
 }
 
 bool ReceiverReport::PackInto(uint8_t* buffer,

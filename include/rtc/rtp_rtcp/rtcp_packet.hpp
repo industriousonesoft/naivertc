@@ -10,6 +10,9 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT RtcpPacket {
 public:
+    // Size of the RTCP common header
+    static constexpr size_t kRtcpCommonHeaderSize = 4;
+public:
     // Callback used to signal that an RTCP packet is ready. Note that this 
     // may not contain all data in the RtcpPacket; if a packet can not fit in 
     // max_size bytes, it will be fragmented and multiple calls to this 
@@ -37,8 +40,6 @@ public:
     BinaryBuffer Build() const;
 
 protected:
-    // Size of the RTCP common header
-    static constexpr size_t kFixedRtcpCommonHeaderSize = 4;
     RtcpPacket() {}
 
     static void PackCommonHeader(size_t count_or_format, // Depends on packet type

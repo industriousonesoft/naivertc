@@ -52,7 +52,7 @@ size_t CalculateChunkSize(const Sdes::Chunk& chunk) {
 
 }
 
-Sdes::Sdes() : packet_size_(RtcpPacket::kFixedRtcpCommonHeaderSize) {}
+Sdes::Sdes() : packet_size_(RtcpPacket::kRtcpCommonHeaderSize) {}
 
 Sdes::~Sdes() {}
 
@@ -85,7 +85,7 @@ bool Sdes::Parse(const CommonHeader& packet) {
         return false;
     }
     uint8_t number_of_chunks = packet.count();
-    size_t packet_size = kFixedRtcpCommonHeaderSize;
+    size_t packet_size = kRtcpCommonHeaderSize;
 
     const uint8_t* payload_buffer = packet.payload();
     size_t payload_size = packet.payload_size();
