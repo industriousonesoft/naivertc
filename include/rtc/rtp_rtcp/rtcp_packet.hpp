@@ -31,7 +31,7 @@ public:
     virtual bool PackInto(uint8_t* buffer,
                           size_t* index,
                           size_t max_size,
-                          PacketReadyCallback callback) const  = 0;
+                          PacketReadyCallback callback) const = 0;
 
     bool Build(size_t max_size, PacketReadyCallback callback) const;
 

@@ -57,7 +57,7 @@ bool Remb::PackInto(uint8_t* buffer,
         }
     }
     if (Psfb::media_ssrc() != 0) {
-        PLOG_WARNING << "Unused media ssrc is supposed to be zero.";
+        PLOG_WARNING << "Media ssrc unused in REMB packet is supposed to be zero.";
         return false;
     }
     size_t index_end = *index + PacketSize();
