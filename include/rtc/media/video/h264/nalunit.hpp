@@ -41,18 +41,20 @@ class RTC_CPP_EXPORT NalUnit : public BinaryBuffer {
 public:
     NalUnit();
     NalUnit(const NalUnit&);
-    NalUnit(NalUnit&&);
+    NalUnit(BinaryBuffer&&);
+    NalUnit(const uint8_t* buffer, size_t size);
     NalUnit(size_t size, bool including_header = true);
 
     bool forbidden_bit() const;
     uint8_t nri() const;
-    uint8_t uint_type() const;
+    uint8_t unit_type() const;
     BinaryBuffer payload() const;
 
     void set_forbidden_bit(bool is_set);
     void set_nri(uint8_t nri);
     void set_unit_type(uint8_t type);
     void set_payload(BinaryBuffer payload);
+    void set_payload(const uint8_t* buffer, size_t size);
 };
     
 } // namespace h264

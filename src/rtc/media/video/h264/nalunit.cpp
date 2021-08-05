@@ -7,11 +7,14 @@ NalUnit::NalUnit() : BinaryBuffer(1) {}
 
 NalUnit::NalUnit(const NalUnit&) = default;
 
-NalUnit::NalUnit(NalUnit&& other) 
+NalUnit::NalUnit(BinaryBuffer&& other) 
     : BinaryBuffer(std::move(other)) {}
 
 NalUnit::NalUnit(size_t size, bool including_header) 
-    : BinaryBuffer(size + (including_header ? 1 : 0)) {}
+    : BinaryBuffer(size + (including_header ? 0 : 1)) {}
+
+NalUnit::NalUnit(const uint8_t* buffer, size_t size) 
+    : BinaryBuffer(buffer, buffer + size) {}
 
 // Getter
 bool NalUnit::forbidden_bit() const { 
@@ -22,7 +25,7 @@ uint8_t NalUnit::nri() const {
     return at(0) >> 5 & 0x03; 
 }
 
-uint8_t NalUnit::uint_type() const { 
+uint8_t NalUnit::unit_type() const { 
     return at(0) & 0x1F; 
 }
 
@@ -48,6 +51,10 @@ void NalUnit::set_payload(BinaryBuffer payload) {
     assert(size() >= 1);
     erase(begin() + 1, end());
     insert(end(), payload.begin(), payload.end());
+}
+
+void NalUnit::set_payload(const uint8_t* buffer, size_t size) {
+    set_payload(BinaryBuffer(buffer, buffer + size));
 }
     
 } // namespace h264

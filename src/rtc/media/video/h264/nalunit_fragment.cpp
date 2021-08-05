@@ -15,6 +15,11 @@ NalUnitFragmentA::NalUnitFragmentA(FragmentType type, bool forbidden_bit, uint8_
     set_unit_type(unit_type);
     std::copy(payload_data.begin(), payload_data.end(), begin() + 2);
 }
+
+NalUnitFragmentA::NalUnitFragmentA(FragmentType type, bool forbidden_bit, uint8_t nri, 
+                                   uint8_t unit_type, const uint8_t* payload_buffer, 
+                                   size_t payload_size) 
+    : NalUnitFragmentA(type, forbidden_bit, nri, unit_type, BinaryBuffer(payload_buffer, payload_buffer + payload_size)) {}
 // Getter
 bool NalUnitFragmentA::is_start() const { 
     return at(1) >> 7; 
@@ -28,7 +33,7 @@ bool NalUnitFragmentA::is_reserved_bit_set() const {
     return (at(1) >> 5 & 0x01); 
 }
 
-uint8_t NalUnitFragmentA::uint_type() const { 
+uint8_t NalUnitFragmentA::unit_type() const { 
     return at(1) & 0x1F; 
 }
 
@@ -78,7 +83,7 @@ void NalUnitFragmentA::set_fragment_type(FragmentType type) {
 }
 
 std::vector<std::shared_ptr<NalUnitFragmentA>> 
-NalUnitFragmentA::fragmentsFrom(std::shared_ptr<NalUnit> nalu, uint16_t max_fragment_size) {
+NalUnitFragmentA::FragmentsFrom(std::shared_ptr<NalUnit> nalu, uint16_t max_fragment_size) {
     if (nalu->size() <= max_fragment_size) {
         // We need to change 'max_fragment_size' to have at least two fragments
         max_fragment_size = nalu->size() / 2;
@@ -90,10 +95,10 @@ NalUnitFragmentA::fragmentsFrom(std::shared_ptr<NalUnit> nalu, uint16_t max_frag
     max_fragment_size -= 2;
     auto forbidden_bit = nalu->forbidden_bit();
     uint8_t nri = nalu->nri() & 0x03;
-    uint8_t uint_type = nalu->uint_type() & 0x1F;
+    uint8_t unit_type = nalu->unit_type() & 0x1F;
     auto payload = nalu->payload();
 
-    std::vector<std::shared_ptr<NalUnitFragmentA>> fragments{};
+    std::vector<std::shared_ptr<NalUnitFragmentA>> fragments;
     uint64_t offset = 0;
     while (offset < payload.size()) {
         FragmentType fragment_type;
@@ -108,7 +113,7 @@ NalUnitFragmentA::fragmentsFrom(std::shared_ptr<NalUnit> nalu, uint16_t max_frag
             fragment_type = FragmentType::END;
         }
         BinaryBuffer fragment_data = {payload.begin() + offset, payload.begin() + offset + max_fragment_size};
-        fragments.push_back(std::make_shared<NalUnitFragmentA>(fragment_type, forbidden_bit, nri, uint_type, fragment_data));
+        fragments.push_back(std::make_shared<NalUnitFragmentA>(fragment_type, forbidden_bit, nri, unit_type, fragment_data));
         offset += max_fragment_size;
     }
     return fragments;

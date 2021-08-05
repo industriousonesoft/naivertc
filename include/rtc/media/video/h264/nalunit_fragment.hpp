@@ -17,14 +17,15 @@ class RTC_CPP_EXPORT NalUnitFragmentA : public NalUnit {
 public:
     enum class FragmentType { START, MIDDLE, END };
 
-    static std::vector<std::shared_ptr<NalUnitFragmentA>> fragmentsFrom(std::shared_ptr<NalUnit> nalu, uint16_t max_fragment_size);
+    static std::vector<std::shared_ptr<NalUnitFragmentA>> FragmentsFrom(std::shared_ptr<NalUnit> nalu, uint16_t max_fragment_size);
 public:
     NalUnitFragmentA(FragmentType type, bool forbidden_bit, uint8_t nri, uint8_t unit_type, BinaryBuffer payload_data);
+    NalUnitFragmentA(FragmentType type, bool forbidden_bit, uint8_t nri, uint8_t unit_type, const uint8_t* payload_buffer, size_t payload_size);
 
     bool is_start() const;
     bool is_end() const;
     bool is_reserved_bit_set() const;
-    uint8_t uint_type() const;
+    uint8_t unit_type() const;
     FragmentType fragment_type() const;
 
     BinaryBuffer payload() const;

@@ -254,6 +254,8 @@ set(TEST_SOURCES
     src/common/weak_ptr_manager_unittest.cpp
     # src/common/task_queue_unittest.cpp
     src/rtc/media/media_track_unittest.cpp
+    src/rtc/media/video/h264/nalunit_unittest.cpp 
+    src/rtc/media/video/h264/nalunit_fragment_unittest.cpp
 
     src/rtc/base/packet_unittest.cpp
     src/rtc/base/byte_io_unittest.cpp
