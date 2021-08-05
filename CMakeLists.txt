@@ -94,6 +94,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp_packets/nack.cpp
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
+    src/rtc/media/video/h264/nalunit.cpp
+    src/rtc/media/video/h264/nalunit_fragment.cpp
 )
 
 if(USE_NICE)
@@ -167,6 +169,8 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp_packets/fir.hpp
     include/rtc/rtp_rtcp/rtcp_packets/nack.hpp
     include/rtc/media/media_track.hpp
+    include/rtc/media/video/h264/nalunit.hpp
+    include/rtc/media/video/h264/nalunit_fragment.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
