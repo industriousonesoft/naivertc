@@ -1,12 +1,14 @@
 #include "rtc/media/video/h264/nalunit_fragment.hpp"
 
+#include <cmath>
+
 namespace naivertc {
 namespace h264 {
 
 NalUnitFragmentA::NalUnitFragmentA(FragmentType type, bool forbidden_bit, uint8_t nri, 
                                    uint8_t unit_type, BinaryBuffer payload_data) 
     : NalUnit(payload_data.size() + 2) {
-    set_forbidden_zero_bit(forbidden_bit);
+    set_forbidden_bit(forbidden_bit);
     set_nri(nri);
     NalUnit::set_unit_type(kNalUnitTypeFuA);
     set_fragment_type(type);
@@ -40,6 +42,11 @@ NalUnitFragmentA::FragmentType NalUnitFragmentA::fragment_type() const {
     }
 }
 
+BinaryBuffer NalUnitFragmentA::payload() const {
+    assert(size() >= 2);
+    return {begin() + 2, end()};
+}
+
 // Setter
 void NalUnitFragmentA::set_start(bool is_set) { 
     at(1) = (at(1) & 0x7F) | (uint8_t(is_set ? 1 : 0) << 7); 
@@ -68,6 +75,43 @@ void NalUnitFragmentA::set_fragment_type(FragmentType type) {
         set_start(false);
         set_end(false);
     }
+}
+
+std::vector<std::shared_ptr<NalUnitFragmentA>> 
+NalUnitFragmentA::fragmentsFrom(std::shared_ptr<NalUnit> nalu, uint16_t max_fragment_size) {
+    if (nalu->size() <= max_fragment_size) {
+        // We need to change 'max_fragment_size' to have at least two fragments
+        max_fragment_size = nalu->size() / 2;
+    }
+    auto fragments_cout = ceil(double(nalu->size()) / max_fragment_size);
+    max_fragment_size = ceil(nalu->size() / fragments_cout);
+
+    // 2 bytes for FU indicator and FU header
+    max_fragment_size -= 2;
+    auto forbidden_bit = nalu->forbidden_bit();
+    uint8_t nri = nalu->nri() & 0x03;
+    uint8_t uint_type = nalu->uint_type() & 0x1F;
+    auto payload = nalu->payload();
+
+    std::vector<std::shared_ptr<NalUnitFragmentA>> fragments{};
+    uint64_t offset = 0;
+    while (offset < payload.size()) {
+        FragmentType fragment_type;
+        if (offset == 0) {
+            fragment_type = FragmentType::START;
+        }else if (offset + max_fragment_size < payload.size()) {
+            fragment_type = FragmentType::MIDDLE;
+        }else {
+            if (offset + max_fragment_size > payload.size()) {
+                max_fragment_size = payload.size() - offset;
+            }
+            fragment_type = FragmentType::END;
+        }
+        BinaryBuffer fragment_data = {payload.begin() + offset, payload.begin() + offset + max_fragment_size};
+        fragments.push_back(std::make_shared<NalUnitFragmentA>(fragment_type, forbidden_bit, nri, uint_type, fragment_data));
+        offset += max_fragment_size;
+    }
+    return fragments;
 }
     
 } // namespace h264

@@ -44,13 +44,15 @@ public:
     NalUnit(NalUnit&&);
     NalUnit(size_t size, bool including_header = true);
 
-    bool forbidden_zero_bit() const;
+    bool forbidden_bit() const;
     uint8_t nri() const;
     uint8_t uint_type() const;
+    BinaryBuffer payload() const;
 
-    void set_forbidden_zero_bit(bool is_set);
+    void set_forbidden_bit(bool is_set);
     void set_nri(uint8_t nri);
     void set_unit_type(uint8_t type);
+    void set_payload(BinaryBuffer payload);
 };
     
 } // namespace h264

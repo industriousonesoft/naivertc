@@ -16,6 +16,8 @@ namespace h264 {
 class RTC_CPP_EXPORT NalUnitFragmentA : public NalUnit {
 public:
     enum class FragmentType { START, MIDDLE, END };
+
+    static std::vector<std::shared_ptr<NalUnitFragmentA>> fragmentsFrom(std::shared_ptr<NalUnit> nalu, uint16_t max_fragment_size);
 public:
     NalUnitFragmentA(FragmentType type, bool forbidden_bit, uint8_t nri, uint8_t unit_type, BinaryBuffer payload_data);
 
@@ -24,6 +26,8 @@ public:
     bool is_reserved_bit_set() const;
     uint8_t uint_type() const;
     FragmentType fragment_type() const;
+
+    BinaryBuffer payload() const;
 
     void set_start(bool is_set);
     void set_end(bool is_set);
