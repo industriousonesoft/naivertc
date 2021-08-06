@@ -49,7 +49,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
         try {
             if (init_config.stream_id) {
                 stream_id = *init_config.stream_id;
-                if (stream_id > STREAM_ID_MAX_VALUE) {
+                if (stream_id > kStreamIdMaxValue) {
                     throw std::invalid_argument("Invalid DataChannel stream id.");
                 }
             }else {
@@ -66,7 +66,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
                 stream_id = (role == sdp::Role::ACTIVE) ? 0 : 1;
                 // Avoid conflict with existed data channel
                 while (data_channels_.find(stream_id) != data_channels_.end()) {
-                    if (stream_id >= STREAM_ID_MAX_VALUE - 2) {
+                    if (stream_id >= kStreamIdMaxValue - 2) {
                         throw std::overflow_error("Too many DataChannels");
                     }
                     stream_id += 2;

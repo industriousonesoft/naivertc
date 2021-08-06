@@ -22,13 +22,13 @@ void PeerConnection::InitSctpTransport() {
             throw std::logic_error("Failed to start to create SCTP transport without application sdp.");
         }
 
-        uint16_t sctp_port = remote_sdp_->application()->sctp_port().value_or(DEFAULT_SCTP_PORT);
+        uint16_t sctp_port = remote_sdp_->application()->sctp_port().value_or(kDefaultSctpPort);
 
         // Create SCTP tansport
         SctpTransport::Config sctp_config;
         sctp_config.port = sctp_port;
-        sctp_config.mtu = rtc_config_.mtu.value_or(DEFAULT_MTU_SIZE);
-        sctp_config.max_message_size = rtc_config_.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
+        sctp_config.mtu = rtc_config_.mtu.value_or(kDefaultMtuSize);
+        sctp_config.max_message_size = rtc_config_.max_message_size.value_or(kDefaultLocalMaxMessageSize);
 
         sctp_transport_ = std::make_shared<SctpTransport>(std::move(sctp_config), lower, network_task_queue_);
 

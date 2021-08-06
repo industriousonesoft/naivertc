@@ -167,7 +167,7 @@ void SctpTransport::InitUsrSCTP(const Config& config) {
 		spp.spp_flags |= SPP_PMTUD_DISABLE;
 		// The MTU value provided specifies the space available for chunks in the
 		// packet, so we also subtract the SCTP header size.
-		size_t pmtu = config.mtu.value_or(DEFAULT_MTU_SIZE) - 12 - 37 - 8 - 40; // SCTP/DTLS/UDP/IPv6
+		size_t pmtu = config.mtu.value_or(kDefaultMtuSize) - 12 - 37 - 8 - 40; // SCTP/DTLS/UDP/IPv6
 		spp.spp_pathmtu = utils::numeric::to_uint32(pmtu);
 		PLOG_VERBOSE << "Path MTU discovery disabled, SCTP MTU set to " << pmtu;
 	}
@@ -207,7 +207,7 @@ void SctpTransport::InitUsrSCTP(const Config& config) {
 		                         std::to_string(errno));
 
 	// Ensure the buffer is also large enough to accomodate the largest messages
-	const size_t maxMessageSize = config.max_message_size.value_or(DEFAULT_LOCAL_MAX_MESSAGE_SIZE);
+	const size_t maxMessageSize = config.max_message_size.value_or(kDefaultLocalMaxMessageSize);
 	const int minBuf = int(std::min(maxMessageSize, size_t(std::numeric_limits<int>::max())));
 	rcvBuf = std::max(rcvBuf, minBuf);
 	sndBuf = std::max(sndBuf, minBuf);

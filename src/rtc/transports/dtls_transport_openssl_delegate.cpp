@@ -138,7 +138,7 @@ void DtlsTransport::InitHandshake() {
         throw std::runtime_error("SSL instance is not created yet.");
     }
     // 握手成功之前的MTU值
-    size_t mtu = config_.mtu.value_or(DEFAULT_MTU_SIZE) - 8 - 40; // UDP/IPv6
+    size_t mtu = config_.mtu.value_or(kDefaultMtuSize) - 8 - 40; // UDP/IPv6
     SSL_set_mtu(ssl_, static_cast<unsigned int>(mtu));
 
     PLOG_VERBOSE << "SSL MTU set to " << mtu;
