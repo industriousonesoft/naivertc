@@ -46,7 +46,7 @@ RtpPacket::RtpPacket()
 
 RtpPacket::RtpPacket(size_t capacity) 
     : Packet(capacity) {
-    Clear();
+    Reset();
 }
 
 RtpPacket::~RtpPacket() {}
@@ -177,7 +177,7 @@ void RtpPacket::CopyHeaderFrom(const RtpPacket& other) {
     padding_size_ = 0;
 }
 
-void RtpPacket::Clear() {
+void RtpPacket::Reset() {
     marker_ = false;
     payload_type_ = 0;
     sequence_num_ = 0;

@@ -44,7 +44,7 @@ public:
     size_t MaxPayloadSize() const { return capacity() - header_size(); }
 
     // Reset all fields and buffer
-    void Clear();
+    void Reset();
 
     // Header setters
     void set_has_padding(bool has_padding);
