@@ -26,7 +26,7 @@ public:
 
     const std::vector<Chunk>& chunks() const { return chunks_; }
 
-    bool AddCName(uint32_t ssrc, std::string cname);
+    bool AddCName(uint32_t ssrc, const std::string cname);
 
     bool Parse(const CommonHeader& packet);
 

@@ -3,7 +3,7 @@
 namespace naivertc {
 
 // Config
-MediaTrack::Config::Config::Config(std::string _mid, 
+MediaTrack::Config::Config::Config(const std::string _mid, 
                                     Kind _kind, 
                                     Codec _codec, 
                                     const std::vector<int> _payload_types, 

@@ -53,7 +53,7 @@ public:
     void set_forbidden_bit(bool is_set);
     void set_nri(uint8_t nri);
     void set_unit_type(uint8_t type);
-    void set_payload(BinaryBuffer payload);
+    void set_payload(const BinaryBuffer& payload);
     void set_payload(const uint8_t* buffer, size_t size);
 };
     

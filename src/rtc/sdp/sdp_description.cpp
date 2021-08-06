@@ -102,7 +102,7 @@ bool Description::HasVideo() const {
     return false;
 }
 
-bool Description::HasMid(std::string_view mid) const {
+bool Description::HasMid(const std::string_view mid) const {
     for (auto entry : media_entries_) {
         if (entry->mid() == mid) {
             return true;
@@ -131,19 +131,19 @@ void Description::AddMedia(std::shared_ptr<Media> media) {
     media_entries_.emplace_back(media);
 }
 
-std::shared_ptr<Application> Description::AddApplication(std::string mid) {
+std::shared_ptr<Application> Description::AddApplication(const std::string mid) {
     auto app = std::make_shared<Application>(std::move(mid));
     AddApplication(app);
     return app;
 }
 
-std::shared_ptr<Audio> Description::AddAudio(std::string mid, Direction direction) {
+std::shared_ptr<Audio> Description::AddAudio(const std::string mid, Direction direction) {
     auto audio = std::make_shared<Audio>(std::move(mid), direction);
     AddMedia(audio);
     return audio;
 }
 
-std::shared_ptr<Video> Description::AddVideo(std::string mid, Direction direction) {
+std::shared_ptr<Video> Description::AddVideo(const std::string mid, Direction direction) {
     auto video = std::make_shared<Video>(std::move(mid), direction);
     AddMedia(video);
     return video;

@@ -56,7 +56,7 @@ Sdes::Sdes() : packet_size_(RtcpPacket::kRtcpCommonHeaderSize) {}
 
 Sdes::~Sdes() {}
 
-bool Sdes::AddCName(uint32_t ssrc, std::string cname) {
+bool Sdes::AddCName(uint32_t ssrc, const std::string cname) {
     if (cname.length() > 0xFFu /* One byte */) {
         PLOG_WARNING << "Max cname length reached.";
         return false;

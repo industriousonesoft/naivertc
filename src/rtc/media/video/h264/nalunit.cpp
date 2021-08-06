@@ -47,7 +47,7 @@ void NalUnit::set_unit_type(uint8_t type) {
     at(0) = (at(0) & 0xE0) | (type & 0x1F); 
 }
 
-void NalUnit::set_payload(BinaryBuffer payload) {
+void NalUnit::set_payload(const BinaryBuffer& payload) {
     assert(size() >= 1);
     erase(begin() + 1, end());
     insert(end(), payload.begin(), payload.end());

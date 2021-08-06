@@ -67,23 +67,23 @@ public:
     bool HasApplication() const;
     bool HasAudio() const;
     bool HasVideo() const;
-    bool HasMid(std::string_view mid) const;
+    bool HasMid(const std::string_view mid) const;
 
     std::variant<std::shared_ptr<Media>, std::shared_ptr<Application>> media(unsigned int index) const;
     
     unsigned int media_count() const;
 
     std::shared_ptr<Application> application() const;
-    std::shared_ptr<Media> media(std::string_view mid) const;
+    std::shared_ptr<Media> media(const std::string_view mid) const;
 
     void AddApplication(std::shared_ptr<Application> app);
     void AddApplication(Application app);
     void AddMedia(Media media);
     void AddMedia(std::shared_ptr<Media> media);
 
-    std::shared_ptr<Application> AddApplication(std::string mid = "data");
-    std::shared_ptr<Audio> AddAudio(std::string mid = "audio", Direction direction = Direction::SEND_ONLY);
-    std::shared_ptr<Video> AddVideo(std::string mid = "video", Direction direction = Direction::SEND_ONLY);
+    std::shared_ptr<Application> AddApplication(const std::string mid = "data");
+    std::shared_ptr<Audio> AddAudio(const std::string mid = "audio", Direction direction = Direction::SEND_ONLY);
+    std::shared_ptr<Video> AddVideo(const std::string mid = "video", Direction direction = Direction::SEND_ONLY);
 
     void ClearMedia();
 

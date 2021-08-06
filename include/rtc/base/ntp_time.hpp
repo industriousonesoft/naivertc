@@ -11,6 +11,7 @@
 namespace naivertc {
 namespace rtcp {
 
+// NTP协议使用的基准点是：1900-1-1-0:0:0（UTC）
 class RTC_CPP_EXPORT NtpTime {
 public:
     static constexpr uint64_t kFractionsPerSecond = 0x100000000; // 2^32

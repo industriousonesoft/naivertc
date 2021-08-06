@@ -80,6 +80,8 @@ set(LIB_SOURCES
     src/rtc/channels/media_channel.cpp
     src/rtc/rtp_rtcp/rtp_packet.cpp
     src/rtc/rtp_rtcp/rtcp_packet.cpp
+    src/rtc/rtp_rtcp/rtp_packetization_config.cpp
+    src/rtc/rtp_rtcp/rtp_packetizer.cpp
     src/rtc/rtp_rtcp/rtcp_packets/compound_packet.cpp
     src/rtc/rtp_rtcp/rtcp_packets/common_header.cpp
     src/rtc/rtp_rtcp/rtcp_packets/report_block.cpp
@@ -156,6 +158,8 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
     include/rtc/rtp_rtcp/rtp_packet.hpp
     include/rtc/rtp_rtcp/rtcp_packet.hpp
+    include/rtc/rtp_rtcp/rtp_packetization_config.hpp
+    include/rtc/rtp_rtcp/rtp_packetizer.hpp
     include/rtc/rtp_rtcp/rtcp_packets/compound_packet.hpp
     include/rtc/rtp_rtcp/rtcp_packets/common_header.hpp
     include/rtc/rtp_rtcp/rtcp_packets/report_block.hpp
