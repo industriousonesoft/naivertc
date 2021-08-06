@@ -14,12 +14,15 @@ public:
     static std::shared_ptr<RtpPacket> Create() {
         return std::shared_ptr<RtpPacket>(new RtpPacket());
     }
+    static std::shared_ptr<RtpPacket> Create(size_t capacity) {
+        return std::shared_ptr<RtpPacket>(new RtpPacket(capacity));
+    }
     ~RtpPacket();
 
     // Header
     bool marker() const { return marker_; }
     uint8_t payload_type() const { return payload_type_; }
-    bool has_padding() const { return data()[0] & 0x20; }
+    bool has_padding() const { return has_padding_; }
     uint8_t padding_size() const { return padding_size_; }
     uint16_t sequence_number() const { return sequence_num_; }
     uint32_t timestamp() const { return timestamp_; }
@@ -44,16 +47,21 @@ public:
     void Clear();
 
     // Header setters
+    void set_has_padding(bool has_padding);
     void set_marker(bool marker);
     void set_payload_type(uint8_t payload_type);
     void set_sequence_number(uint16_t sequence_num);
     void set_timestamp(uint32_t timestamp);
     void set_ssrc(uint32_t ssrc);
-
+    void set_payload(const BinaryBuffer& payload);
+    void set_payload(const uint8_t* buffer, size_t size);
+    
     void SetCsrcs(std::vector<uint32_t> csrcs);
     void CopyHeaderFrom(const RtpPacket& other);
-
-    // Parser
+    bool SetPadding(uint8_t padding_size);
+    
+    // Helper function for Parse. Fill header fields using data in given buffer,
+    // but does not touch packet own buffer, leaving packet in invalid state.
     bool Parse(const uint8_t* buffer, size_t size);
 protected:
     RtpPacket();
@@ -76,6 +84,7 @@ private:
     ExtensionInfo& FindOrCreateExtensionInfo(int id);
 
 private:
+    bool has_padding_;
     bool marker_;
     uint8_t payload_type_;
     uint8_t padding_size_;

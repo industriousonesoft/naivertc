@@ -28,8 +28,8 @@ public:
 protected:
     Packet(size_t capacity);
     Packet(const uint8_t* bytes, size_t size);
-    Packet(const Packet& other);
-    Packet(const BinaryBuffer& buffer);
+    Packet(const BinaryBuffer& raw_packet);
+    Packet(BinaryBuffer&& raw_packet);
 private:
     // Differentiated Services Code Point
     size_t dscp_;

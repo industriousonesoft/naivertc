@@ -48,10 +48,10 @@ RtpPacket::RtpPacket(size_t capacity)
     : Packet(capacity) {
     Clear();
 }
-    
-RtpPacket::~RtpPacket() {
-}
 
+RtpPacket::~RtpPacket() {}
+
+// Getter
 std::vector<uint32_t> RtpPacket::csrcs() const {
     size_t num_csrc = data()[0] & 0x0F;
     assert((kFixedHeaderSize + num_csrc * 4) <= capacity());
@@ -62,6 +62,16 @@ std::vector<uint32_t> RtpPacket::csrcs() const {
         offset += 4;
     }
     return csrcs;
+}
+
+// Setter
+void RtpPacket::set_has_padding(bool has_padding) {
+    has_padding_ = has_padding;
+    if (has_padding) {
+        WriteAt(0, data()[0] | 0x20);
+    }else {
+        WriteAt(0, data()[0] & ~0x20);
+    }
 }
 
 void RtpPacket::set_marker(bool marker) {
@@ -92,6 +102,43 @@ void RtpPacket::set_timestamp(uint32_t timestamp) {
 void RtpPacket::set_ssrc(uint32_t ssrc) {
     ssrc_ = ssrc;
     ByteWriter<uint32_t>::WriteBigEndian(WriteAt(8), ssrc_);
+}
+
+bool RtpPacket::SetPadding(uint8_t padding_size) {
+    if (payload_offset_ + payload_size_ + padding_size > capacity()) {
+        PLOG_WARNING << "Cannot set padding size " << padding_size
+                     << " , only"
+                     << (capacity() - payload_offset_ - payload_size_)
+                     << " bytes left in buffer.";
+        return false;
+    }
+    padding_size_ = padding_size;
+    resize(payload_offset_ + payload_size_ + padding_size_);
+    if (padding_size_ > 0) {
+        size_t padding_offset = payload_offset_ + payload_size_;
+        size_t padding_end = padding_offset + padding_size_;
+        memset(WriteAt(padding_offset), 0, padding_size_);
+        WriteAt(padding_end - 1, padding_size_);
+        // Reset padding bit
+        set_has_padding(true);
+    }else {
+        // Clear padding bit
+        set_has_padding(false);
+    }
+    return true;
+}
+
+void RtpPacket::set_payload(const BinaryBuffer& payload) {
+    // Erase the old payload data
+    erase(begin() + payload_offset_, begin() + payload_offset_ + payload_size_);
+    // Using 'insert' instead of 'copy' to keep padding data
+    insert(begin() + payload_offset_, payload.begin(), payload.end());
+    payload_size_ = payload.size();
+}
+
+void RtpPacket::set_payload(const uint8_t* buffer, size_t size) {
+    auto raw_payload = BinaryBuffer(buffer, buffer + size);
+    set_payload(std::move(raw_payload));
 }
 
 // Write csrc list, Assumes:
@@ -171,6 +218,7 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
     if (size < payload_offset) {
         return false;
     }
+    has_padding_ = has_padding;
     marker_ = (buffer[1] & 0x80) != 0;
     payload_type_ = buffer[1] & 0x7F;
 

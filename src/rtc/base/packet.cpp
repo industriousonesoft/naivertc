@@ -10,12 +10,12 @@ Packet::Packet(const uint8_t* bytes, size_t size)
     : BinaryBuffer(bytes, bytes + size),
     dscp_(0) {}
 
-Packet::Packet(const Packet& other) 
-    : BinaryBuffer(other),
-    dscp_(other.dscp()) {}
+Packet::Packet(const BinaryBuffer& raw_packet) 
+    : BinaryBuffer(raw_packet),
+    dscp_(0) {}
 
-Packet::Packet(const BinaryBuffer& buffer) 
-    : BinaryBuffer(buffer),
+Packet::Packet(BinaryBuffer&& raw_packet) 
+    : BinaryBuffer(std::move(raw_packet)),
     dscp_(0) {}
 
 Packet::~Packet() {}
