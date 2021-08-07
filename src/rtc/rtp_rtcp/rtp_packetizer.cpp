@@ -3,9 +3,11 @@
 
 namespace naivertc {
 
-RtpPacketizer::RtpPacketizer(std::shared_ptr<RtpPacketizationConfig> rtp_config) : rtp_config_(rtp_config) {}
+RtpPacketizer::RtpPacketizer(std::shared_ptr<RtpPacketizationConfig> rtp_config, PaylaodSizeLimits limits) 
+    : rtp_config_(rtp_config), 
+    limits_(limits) {}
 
-std::shared_ptr<BinaryBuffer> RtpPacketizer::Build(bool marker, std::shared_ptr<BinaryBuffer> payload) {
+std::shared_ptr<BinaryBuffer> RtpPacketizer::Packetize(std::shared_ptr<BinaryBuffer> payload, bool marker) {
     auto rtp_packet = RtpPacket::Create(kRtpHeaderSize + payload->size());
     rtp_packet->set_marker(marker);
     rtp_packet->set_payload_type(rtp_config_->payload_type());

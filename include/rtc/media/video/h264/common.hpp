@@ -30,6 +30,18 @@ struct RTC_CPP_EXPORT NaluIndex {
 
 // Returns a vector of the NALU indices in the given buffer.
 std::vector<NaluIndex> FindNaluIndices(const uint8_t* buffer, size_t size);
+
+// Packetization modes are defined in RFC 6184 section 6
+// Due to the structure containing this being initialized 
+// with zeroes in some places, and mode 1 (non-interleaved) 
+// being default, mode 1 needs to have the value zero.
+// https://crbug.com/webrtc/6803
+enum class PacketizationMode {
+    // Mode 1: SRAP-A, FU-A is allowed
+    NON_INTERLEAVED = 0,
+    // Mode 0: Only single NALU allowed
+    SINGLE_NAL_UNIT
+};
     
 } // namespace h264
 } // namespace naivertc
