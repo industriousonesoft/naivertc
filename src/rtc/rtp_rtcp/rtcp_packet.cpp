@@ -51,6 +51,14 @@ size_t RtcpPacket::PacketSizeWithoutCommonHeader() const {
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //  |V=2|P| RC/FMT  |      PT       |             length            |
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// PT: payload type, RFC3550 Section-12.1
+// abbrev.  name                 value
+// SR       sender report          200
+// RR       receiver report        201
+// SDES     source description     202
+// BYE      goodbye                203
+// APP      application-defined    204
+// ...
 
 void RtcpPacket::PackCommonHeader(
         size_t count_or_format,

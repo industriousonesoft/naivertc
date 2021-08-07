@@ -67,6 +67,18 @@ bool DtlsSrtpTransport::EncryptPacket(std::shared_ptr<Packet> packet) {
     // into the location in memory immediately following the RTP packet.
     packet->resize(packet_size + SRTP_MAX_TRAILER_LEN);
 
+    // RFC 5761 Multiplexing RTP and RTCP 4. Distinguishable RTP and RTCP Packets
+    // https://tools.ietf.org/html/rfc5761#section-4
+    // When RTP and RTCP packets are multiplexed onto a single port, the RTCP packet type 
+    // field (PT: 8 bits) occupies the same posiztion in the packet as the combination of the 
+    // RTP marker (M: 1 bit) and the RTP payload type (PT: 7 bits). This field can be used to
+    // distinguish RTP and RTCP packets when two restrictions are observed: 
+    // 1) the RTP payload type values used are distinct from the RTCP packet type used;
+    // 2) for each RTP payload type, PT+128 is distinct from the RTCP packet types used (
+    // which means the RTCP packet type is always greater than 128);
+    // THe first constraint percludes a direct confict between RTP paylaod type and RTCP packet 
+    // type; the second constraint precludes a conflict between an RTP packet with the market bit
+    // set and an RTCP packet.
     uint8_t payload_type = (packet->data()[1]) & 0x7f;
     PLOG_VERBOSE << "Demultiplexing SRTP and SRTCP with RTP payload type: " << payload_type;
 
