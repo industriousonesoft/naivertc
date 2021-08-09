@@ -31,21 +31,24 @@ else()
 endif()
 
 set(LIB_SOURCES
+    # base
     src/base/certificate.cpp
     src/base/tls.cpp
     src/base/init.cpp
-
+    # common
     src/common/task_queue.cpp
     src/common/utils.cpp
     src/common/logger.cpp
     src/common/weak_ptr_manager.cpp
-
+    # signaling
     src/signaling/base/base_channel.cpp
     src/signaling/base/websocket.cpp
     src/signaling/ayame/ayame_channel.cpp
-
+    # rtc
+    # rtc -> base
     src/rtc/base/packet.cpp
     src/rtc/base/ntp_time.cpp
+    # rtc -> sdp
     src/rtc/sdp/sdp_utils.cpp
     src/rtc/sdp/candidate.cpp
     src/rtc/sdp/sdp_description.cpp
@@ -58,6 +61,7 @@ set(LIB_SOURCES
     src/rtc/sdp/sdp_media_entry_media.cpp
     src/rtc/sdp/sdp_media_entry_audio.cpp
     src/rtc/sdp/sdp_media_entry_video.cpp
+    # rtc -> transports
     src/rtc/transports/transport.cpp
     src/rtc/transports/ice_transport.cpp
     src/rtc/transports/ice_transport_description.cpp
@@ -68,6 +72,7 @@ set(LIB_SOURCES
     src/rtc/transports/dtls_transport_openssl_delegate.cpp
     src/rtc/transports/dtls_srtp_transport.cpp
     src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
+    # rtc -> pc
     src/rtc/pc/peer_connection.cpp
     src/rtc/pc/peer_connection_configuration.cpp
     src/rtc/pc/peer_connection_ice_transport_delegate.cpp
@@ -75,9 +80,11 @@ set(LIB_SOURCES
     src/rtc/pc/peer_connection_sctp_transport_delegate.cpp
     src/rtc/pc/peer_connection_sdp_offer_answer.cpp
     src/rtc/pc/peer_connection_media_handler.cpp
+    # rtc -> channels
     src/rtc/channels/data_channel.cpp
     src/rtc/channels/data_channel_message.cpp
     src/rtc/channels/media_channel.cpp
+    # rtc -> rtp_rtcp
     src/rtc/rtp_rtcp/rtp_packet.cpp
     src/rtc/rtp_rtcp/rtcp_packet.cpp
     src/rtc/rtp_rtcp/rtp_packetization_config.cpp
@@ -94,6 +101,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp_packets/pli.cpp
     src/rtc/rtp_rtcp/rtcp_packets/fir.cpp
     src/rtc/rtp_rtcp/rtcp_packets/nack.cpp
+    # rtc -> media
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
     src/rtc/media/video/h264/nalunit.cpp
@@ -111,28 +119,33 @@ else()
 endif()
 
 set(LIB_HEADERS
+    # base
     include/base/defines.hpp
     include/base/certificate.hpp
     include/base/tls.hpp
     include/base/init.hpp
-
+    # common
     include/common/task_queue.hpp
     include/common/proxy.hpp
     include/common/utils.hpp
     include/common/logger.hpp
     include/common/weak_ptr_manager.hpp
-
+    # signaling
     include/signaling/base/base_channel.hpp
     include/signaling/common/url_parts.hpp
     include/signaling/base/websocket.hpp
     include/signaling/ayame/ayame_channel.hpp
-
+    # rtc
+    # rtc -> base
     include/rtc/base/internals.hpp
     include/rtc/base/packet.hpp
     include/rtc/base/byte_io.hpp
     include/rtc/base/byte_io_reader.hpp
     include/rtc/base/byte_io_writer.hpp
     include/rtc/base/ntp_time.hpp
+    include/rtc/base/unit_base.hpp
+    include/rtc/base/unit_relative.hpp
+    # rtc -> sdp
     include/rtc/sdp/sdp_defines.hpp
     include/rtc/sdp/sdp_utils.hpp
     include/rtc/sdp/candidate.hpp
@@ -144,6 +157,7 @@ set(LIB_HEADERS
     include/rtc/sdp/sdp_media_entry_media.hpp
     include/rtc/sdp/sdp_media_entry_audio.hpp
     include/rtc/sdp/sdp_media_entry_video.hpp
+    # rtc -> transports
     include/rtc/transports/transport.hpp
     include/rtc/transports/ice_transport.hpp
     include/rtc/transports/sctp_transport.hpp
@@ -151,10 +165,13 @@ set(LIB_HEADERS
     include/rtc/transports/sctp_message.hpp
     include/rtc/transports/dtls_transport.hpp
     include/rtc/transports/dtls_srtp_transport.hpp
+    # rtc -> pc
     include/rtc/pc/peer_connection_configuration.hpp
     include/rtc/pc/peer_connection.hpp
+    # rtc -> channels
     include/rtc/channels/data_channel.hpp
     include/rtc/channels/media_channel.hpp
+    # rtc -> rtp_rtcp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
     include/rtc/rtp_rtcp/rtp_packet.hpp
     include/rtc/rtp_rtcp/rtcp_packet.hpp
@@ -172,6 +189,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp_packets/pli.hpp
     include/rtc/rtp_rtcp/rtcp_packets/fir.hpp
     include/rtc/rtp_rtcp/rtcp_packets/nack.hpp
+    # rtc -> media
     include/rtc/media/media_track.hpp
     include/rtc/media/video/h264/nalunit.hpp
     include/rtc/media/video/h264/nalunit_fragment.hpp
@@ -263,6 +281,7 @@ set(TEST_SOURCES
 
     src/rtc/base/packet_unittest.cpp
     src/rtc/base/byte_io_unittest.cpp
+    src/rtc/base/unit_base_unittest.cpp
 
     src/rtc/sdp/sdp_media_entry_unittest.cpp
     src/rtc/sdp/candidate_unittest.cpp

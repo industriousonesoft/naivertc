@@ -1,7 +1,6 @@
 #include "rtc/base/ntp_time.hpp"
 
 namespace naivertc {
-namespace rtcp {
 
 NtpTime::NtpTime() : value_(0) {}
 
@@ -30,6 +29,5 @@ uint32_t NtpTime::seconds() const {
 uint32_t NtpTime::fractions() const {
     return utils::numeric::checked_static_cast<uint32_t>(value_ % kFractionsPerSecond);
 }
-    
-} // namespace rtcp    
+     
 } // namespace naivertc

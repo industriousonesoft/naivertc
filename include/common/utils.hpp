@@ -76,7 +76,7 @@ RTC_CPP_EXPORT bool is_value_in_range(Src value) {
 };
 
 template <typename Dst, typename Src>
-RTC_CPP_EXPORT Dst checked_static_cast(Src value) {
+RTC_CPP_EXPORT inline constexpr Dst checked_static_cast(Src value) {
     assert(value > std::numeric_limits<Dst>::lowest() && value < std::numeric_limits<Dst>::max() && "Out of range.");
     return static_cast<Dst>(value);
 }

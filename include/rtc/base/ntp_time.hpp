@@ -9,7 +9,6 @@
 #include <limits>
 
 namespace naivertc {
-namespace rtcp {
 
 // NTP协议使用的基准点是：1900-1-1-0:0:0（UTC）
 class RTC_CPP_EXPORT NtpTime {
@@ -93,7 +92,6 @@ inline int64_t Q32x32ToInt64Ms(uint64_t q32x32) {
     return utils::numeric::checked_static_cast<int64_t>(std::round(q32x32 * (1000.0 / NtpTime::kFractionsPerSecond)));
 }
     
-} // namespace rtcp
 } // namespace naivertc
 
 #endif
