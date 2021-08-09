@@ -12,6 +12,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Modules path
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 
+message(STATUS "SYSTEM_NAME : ${CMAKE_SYSTEM_NAME}" )
+
 # options
 # Using libnice instead of libjuice for more completed implementation of 
 # the IETF's Interactive Connectivity Establishment(ICE) standard to compatible with WebRTC
@@ -35,6 +37,7 @@ set(LIB_SOURCES
     src/base/certificate.cpp
     src/base/tls.cpp
     src/base/init.cpp
+    src/base/system_time.cpp
     # common
     src/common/task_queue.cpp
     src/common/utils.cpp
@@ -48,7 +51,7 @@ set(LIB_SOURCES
     # rtc -> base
     src/rtc/base/packet.cpp
     src/rtc/base/ntp_time.cpp
-    src/rtc/base/clock.cpp
+    src/rtc/base/clock_real_time.cpp
     # rtc -> sdp
     src/rtc/sdp/sdp_utils.cpp
     src/rtc/sdp/candidate.cpp
@@ -125,6 +128,7 @@ set(LIB_HEADERS
     include/base/certificate.hpp
     include/base/tls.hpp
     include/base/init.hpp
+    include/base/system_time.hpp
     # common
     include/common/task_queue.hpp
     include/common/proxy.hpp
@@ -147,6 +151,7 @@ set(LIB_HEADERS
     include/rtc/base/unit_base.hpp
     include/rtc/base/unit_relative.hpp
     include/rtc/base/clock.hpp
+    include/rtc/base/clock_real_time.hpp
     include/rtc/base/timestamp.hpp
     include/rtc/base/time_delta.hpp
     # rtc -> sdp
@@ -322,5 +327,15 @@ target_link_libraries(naivertc_unittest PRIVATE ${PROJECT_NAME})
 
 # add_test(NAME unittest COMMAND naivertc_unittest)
 
+endif()
+
+# compile definitions
+if(${CMAKE_SYSTEM_NAME} MATCHES "macOS" OR ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC 
+        NAIVERTC_POSIX
+        NAIVERTC_MAC
+    )
+else()
+    message(FATAL_ERROR "unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif()
 
