@@ -88,7 +88,7 @@ inline int64_t Q32x32ToInt64Ms(int64_t q32x32) {
     return utils::numeric::checked_static_cast<int64_t>(std::round(q32x32 * (1000.0 / NtpTime::kFractionsPerSecond)));
 }
 
-inline int64_t Q32x32ToInt64Ms(uint64_t q32x32) {
+inline int64_t UQ32x32ToInt64Ms(uint64_t q32x32) {
     return utils::numeric::checked_static_cast<int64_t>(std::round(q32x32 * (1000.0 / NtpTime::kFractionsPerSecond)));
 }
     
