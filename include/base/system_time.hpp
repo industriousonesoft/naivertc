@@ -6,7 +6,7 @@
 namespace naivertc {
 
 // Returns the actual system time in nanoseconds
-int64_t SystemTimeInNanoseconds();
+int64_t SystemTimeInNanos();
     
 } // namespace naivertc
 

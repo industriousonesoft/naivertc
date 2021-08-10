@@ -13,8 +13,8 @@
 
 namespace naivertc {
 
-int64_t SystemTimeInNanoseconds() {
-    int64_t ticks;
+int64_t SystemTimeInNanos() {
+    int64_t ticks = -1;
 #if defined(NAIVERTC_MAC)
     static mach_timebase_info_data_t timebase;
     if (timebase.denom == 0) {
@@ -31,8 +31,7 @@ int64_t SystemTimeInNanoseconds() {
     ticks = mul(mach_absolute_time(), timebase.numer) / timebase.denom;
 #elif defined(NAIVERTC_POSIX)
     struct timespec ts;
-    // TODO(deadbeef): Do we need to handle the case when CLOCK_MONOTONIC is not
-    // supported?
+    // TODO: Do we need to handle the case when CLOCK_MONOTONIC is not supported?
     clock_gettime(CLOCK_MONOTONIC, &ts);
     ticks = kNumNanosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
           static_cast<int64_t>(ts.tv_nsec);
