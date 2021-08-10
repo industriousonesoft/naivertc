@@ -1,5 +1,5 @@
 #include "rtc/sdp/sdp_utils.hpp"
-#include "common/utils.hpp"
+#include "common/utils_string.hpp"
 
 namespace naivertc {
 namespace sdp {

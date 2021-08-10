@@ -1,5 +1,6 @@
 #include "rtc/sdp/sdp_session_entry.hpp"
-#include "common/utils.hpp"
+#include "common/utils_random.hpp"
+#include "common/utils_string.hpp"
 
 #include <sstream>
 

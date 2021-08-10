@@ -2,7 +2,7 @@
 #define _RTC_BASE_NTP_TIME_H_
 
 #include "base/defines.hpp"
-#include "common/utils.hpp"
+#include "common/utils_numeric.hpp"
 
 #include <cmath>
 #include <cstdint>

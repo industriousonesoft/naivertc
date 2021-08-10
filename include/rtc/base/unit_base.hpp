@@ -2,7 +2,7 @@
 #define _RTC_BASE_UNIT_BASE_H_
 
 #include "base/defines.hpp"
-#include "common/utils.hpp"
+#include "common/utils_numeric.hpp"
 
 #include <stdint.h>
 #include <algorithm>

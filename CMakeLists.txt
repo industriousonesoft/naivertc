@@ -40,7 +40,9 @@ set(LIB_SOURCES
     src/base/system_time.cpp
     # common
     src/common/task_queue.cpp
-    src/common/utils.cpp
+    src/common/utils_string.cpp
+    src/common/utils_time.cpp
+    src/common/utils_network.cpp
     src/common/logger.cpp
     src/common/weak_ptr_manager.cpp
     # signaling
@@ -51,6 +53,7 @@ set(LIB_SOURCES
     # rtc -> base
     src/rtc/base/packet.cpp
     src/rtc/base/ntp_time.cpp
+    src/rtc/base/clock.cpp
     src/rtc/base/clock_real_time.cpp
     # rtc -> sdp
     src/rtc/sdp/sdp_utils.cpp
@@ -132,9 +135,14 @@ set(LIB_HEADERS
     # common
     include/common/task_queue.hpp
     include/common/proxy.hpp
-    include/common/utils.hpp
+    include/common/utils_network.hpp
+    include/common/utils_numeric.hpp
+    include/common/utils_random.hpp
+    include/common/utils_string.hpp
+    include/common/utils_time.hpp
     include/common/logger.hpp
     include/common/weak_ptr_manager.hpp
+    include/common/numeric_range_checker.hpp
     # signaling
     include/signaling/base/base_channel.hpp
     include/signaling/common/url_parts.hpp
@@ -282,6 +290,8 @@ if(ENABLE_TESTS)
 add_subdirectory(deps/googletest)
 
 set(TEST_SOURCES
+    src/base/system_time_unittest.cpp
+
     src/common/weak_ptr_manager_unittest.cpp
     # src/common/task_queue_unittest.cpp
     src/rtc/media/media_track_unittest.cpp
@@ -291,6 +301,7 @@ set(TEST_SOURCES
     src/rtc/base/packet_unittest.cpp
     src/rtc/base/byte_io_unittest.cpp
     src/rtc/base/unit_base_unittest.cpp
+    src/rtc/base/clock_unittest.cpp
     src/rtc/base/ntp_time_unittest.cpp
     src/rtc/base/timestamp_unittest.cpp
     src/rtc/base/time_delta_unittest.cpp

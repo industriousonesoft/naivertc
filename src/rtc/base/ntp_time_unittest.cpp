@@ -1,5 +1,7 @@
 #include "rtc/base/ntp_time.hpp"
 
+#include <random>
+
 #include <gtest/gtest.h>
 
 namespace naivertc {

@@ -1,6 +1,6 @@
 #include "rtc/sdp/sdp_media_entry.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
-#include "common/utils.hpp"
+#include "common/utils_string.hpp"
 
 #include <plog/Log.h>
 

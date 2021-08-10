@@ -1,5 +1,4 @@
 #include "rtc/pc/peer_connection.hpp"
-#include "common/utils.hpp"
 #include "rtc/base/internals.hpp"
 #include "rtc/sdp/sdp_entry.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
@@ -262,7 +261,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
     if (auto remote = this->remote_sdp_) {
         // https://wanghenshui.github.io/2018/08/15/variant-visit
         for (unsigned int i = 0; i < remote->media_count(); ++i) {
-            std::visit(utils::overloaded {
+            std::visit(overloaded {
                 [&](std::shared_ptr<sdp::Application> remote_app) {
                     // Prefer local description
                    if (!data_channels_.empty()) {
@@ -441,7 +440,7 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
 
     int active_media_count = 0;
     for(unsigned int i = 0; i < remote_sdp.media_count(); ++i ) {
-        std::visit(utils::overloaded{
+        std::visit(overloaded{
             [&](std::shared_ptr<sdp::Application> app) {
                 ++active_media_count;
             },

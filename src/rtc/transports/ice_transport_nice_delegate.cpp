@@ -1,6 +1,7 @@
 #if USE_NICE
 #include "rtc/transports/ice_transport.hpp"
-#include "common/utils.hpp"
+#include "common/utils_random.hpp"
+#include "common/utils_network.hpp"
 
 #include <plog/Log.h>
 

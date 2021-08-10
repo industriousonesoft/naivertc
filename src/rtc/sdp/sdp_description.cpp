@@ -1,5 +1,4 @@
 #include "rtc/sdp/sdp_description.hpp"
-#include "common/utils.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
 #include "rtc/sdp/sdp_media_entry_audio.hpp"
 #include "rtc/sdp/sdp_media_entry_video.hpp"

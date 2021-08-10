@@ -1,4 +1,5 @@
 #include "rtc/base/ntp_time.hpp"
+#include "common/utils_numeric.hpp"
 
 namespace naivertc {
 

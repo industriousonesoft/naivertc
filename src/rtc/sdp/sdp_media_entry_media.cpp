@@ -1,6 +1,5 @@
 #include "rtc/sdp/sdp_media_entry_media.hpp"
-
-#include "common/utils.hpp"
+#include "common/utils_string.hpp"
 
 #include <sstream>
 

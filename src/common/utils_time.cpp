@@ -40,6 +40,6 @@ int64_t TimeUTCInMicros() {
 #endif
 }
     
-} // namespace time
+} // time
 } // namespace utils
 } // namespace naivertc

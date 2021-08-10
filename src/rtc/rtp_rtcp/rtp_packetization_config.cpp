@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp_packetization_config.hpp"
-#include "common/utils.hpp"
+#include "common/utils_random.hpp"
 
 namespace naivertc {
 

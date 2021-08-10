@@ -1,5 +1,4 @@
 #include "rtc/pc/peer_connection.hpp"
-#include "common/utils.hpp"
 #include "rtc/transports/dtls_srtp_transport.hpp"
 
 #include <plog/Log.h>

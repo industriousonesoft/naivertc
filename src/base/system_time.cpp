@@ -1,5 +1,5 @@
 #include "base/system_time.hpp"
-#include "common/utils.hpp"
+#include "common/utils_numeric.hpp"
 
 #include <stdint.h>
 #include <limits>

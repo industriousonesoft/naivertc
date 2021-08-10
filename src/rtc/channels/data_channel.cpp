@@ -1,5 +1,4 @@
 #include "rtc/channels/data_channel.hpp"
-#include "common/utils.hpp"
 
 #include <plog/Log.h>
 

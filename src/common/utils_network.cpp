@@ -1,58 +1,15 @@
-#include "common/utils.hpp"
+#include "common/utils_network.hpp"
 
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-const size_t MAX_NUMERICNODE_LEN = 48; // Max IPv6 string representation length
-const size_t MAX_NUMERICSERV_LEN = 6;  // Max port string representation length
-
 namespace naivertc {
 namespace utils {
-
-// numberic
-namespace numeric {
-}
-
-// string
-namespace string {
-
-bool match_prefix(std::string_view str, std::string_view prefix) {
-    return str.size() >= prefix.size() && std::mismatch(prefix.begin(), prefix.end(), str.begin()).first == prefix.end();
-}
-
-void trim_begin(std::string &str) {
-    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](char c){
-        return !std::isspace(c);
-    }));
-}
-
-void trim_end(std::string &str) {
-    // reverse_iterator.base() -> iterator
-    str.erase(std::find_if(str.rbegin(), str.rend(), [](char c){
-        return !std::isspace(c);
-    }).base(), str.end());
-}
-
-std::pair<std::string_view, std::string_view> parse_pair(std::string_view attr) {
-    std::string_view key, value;
-    if (size_t separator = attr.find(':'); separator != std::string::npos) {
-        key = attr.substr(0, separator);
-        value = attr.substr(separator+1);
-    }else {
-        key = "";
-        value = attr;
-    }
-    return std::make_pair(std::move(key), std::move(value));
-}
-
-} // enamespace string
-
-// Random
-namespace random {} // namespace random
-
-// Network
 namespace network {
+
+constexpr size_t MAX_NUMERICNODE_LEN = 48; // Max IPv6 string representation length
+constexpr size_t MAX_NUMERICSERV_LEN = 6;  // Max port string representation length
 
 std::optional<ResolveResult> UnspecfiedResolve(std::string_view hostname, std::string_view server_port, ProtocolType protocol_type, bool is_simple) {
     return Resolve(std::move(hostname), std::move(server_port), FamilyType::UNSPEC, protocol_type, is_simple);
@@ -125,6 +82,5 @@ std::optional<ResolveResult> Resolve(std::string_view hostname, std::string_view
 }
 
 } // namespace network
-
-}
-}
+} // namespace utils
+} // namespace naivertc

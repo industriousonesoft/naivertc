@@ -1,5 +1,4 @@
 #include "rtc/transports/dtls_srtp_transport.hpp"
-#include "common/utils.hpp"
 
 #include <plog/Log.h>
 
