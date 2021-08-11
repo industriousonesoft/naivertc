@@ -14,7 +14,7 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT TaskQueue : std::enable_shared_from_this<TaskQueue> {
 public:
-    TaskQueue(const std::string name);
+    TaskQueue(const std::string name = "");
     ~TaskQueue();
 
     void Sync(const std::function<void(void)> handler) const;

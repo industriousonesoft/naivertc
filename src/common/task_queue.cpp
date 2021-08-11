@@ -14,8 +14,10 @@ TaskQueue::TaskQueue(const std::string name)
       timer_(ioc_) {
     // The thread will start immediately after created
     ioc_thread_.reset(new boost::thread(boost::bind(&boost::asio::io_context::run, &ioc_)));
-    // TODO: Set a name for thread
-    PLOG_VERBOSE << "Task queue name: " << name << " in thread: " << ioc_thread_->get_id();
+    if (!name.empty()) {
+        // TODO: Set a name for thread
+        PLOG_VERBOSE << "Task queue name: " << name << " in thread: " << ioc_thread_->get_id();
+    }
 }
 
 TaskQueue::~TaskQueue() {
