@@ -20,16 +20,17 @@ public:
     static std::shared_ptr<Packet> Create(const uint8_t* bytes, size_t size) {
         return std::shared_ptr<Packet>(new Packet(bytes, size));
     }
-    virtual ~Packet();
-
-    size_t dscp() const;
-    void set_dscp(size_t dscp);
-
-protected:
+public:
     Packet(size_t capacity);
     Packet(const uint8_t* bytes, size_t size);
     Packet(const BinaryBuffer& raw_packet);
     Packet(BinaryBuffer&& raw_packet);
+
+    virtual ~Packet();
+
+    size_t dscp() const;
+    void set_dscp(size_t dscp);
+ 
 private:
     // Differentiated Services Code Point
     size_t dscp_;

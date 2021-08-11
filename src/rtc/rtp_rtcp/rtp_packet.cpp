@@ -49,6 +49,8 @@ RtpPacket::RtpPacket(size_t capacity)
     Reset();
 }
 
+RtpPacket::RtpPacket(const RtpPacket&) = default;
+
 RtpPacket::~RtpPacket() {}
 
 // Getter

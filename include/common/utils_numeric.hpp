@@ -8,8 +8,6 @@
 
 namespace naivertc {
 namespace utils {
-
-// numeric
 namespace numeric {
 
 template <typename Dst, typename Src>

@@ -96,6 +96,9 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp_packet.cpp
     src/rtc/rtp_rtcp/rtp_packetization_config.cpp
     src/rtc/rtp_rtcp/rtp_packetizer.cpp
+    src/rtc/rtp_rtcp/rtp_packet_to_send.cpp
+    src/rtc/rtp_rtcp/rtp_packet_history.cpp
+    # rtc -> rtp_rtcp -> rtcp_packets
     src/rtc/rtp_rtcp/rtcp_packets/compound_packet.cpp
     src/rtc/rtp_rtcp/rtcp_packets/common_header.cpp
     src/rtc/rtp_rtcp/rtcp_packets/report_block.cpp
@@ -162,6 +165,7 @@ set(LIB_HEADERS
     include/rtc/base/clock_real_time.hpp
     include/rtc/base/timestamp.hpp
     include/rtc/base/time_delta.hpp
+    include/rtc/base/sequence_number_utils.hpp
     # rtc -> sdp
     include/rtc/sdp/sdp_defines.hpp
     include/rtc/sdp/sdp_utils.hpp
@@ -194,6 +198,9 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp_packet.hpp
     include/rtc/rtp_rtcp/rtp_packetization_config.hpp
     include/rtc/rtp_rtcp/rtp_packetizer.hpp
+    include/rtc/rtp_rtcp/rtp_packet_to_send.hpp
+    include/rtc/rtp_rtcp/rtp_packet_history.hpp
+    # rtc -> rtp_rtcp -> rtcp_packets
     include/rtc/rtp_rtcp/rtcp_packets/compound_packet.hpp
     include/rtc/rtp_rtcp/rtcp_packets/common_header.hpp
     include/rtc/rtp_rtcp/rtcp_packets/report_block.hpp

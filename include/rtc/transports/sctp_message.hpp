@@ -49,7 +49,10 @@ public:
     static std::shared_ptr<SctpMessage> Create(const BinaryBuffer& buffer, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr) {
         return std::shared_ptr<SctpMessage>(new SctpMessage(buffer, type, stream_id, reliability));
     }
-
+public:
+    SctpMessage(size_t capacity, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
+    SctpMessage(const uint8_t* data, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
+    SctpMessage(const BinaryBuffer& buffer, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
     ~SctpMessage();
 
     Type type() const { return type_; }
@@ -59,11 +62,6 @@ public:
     size_t payload_size() {
         return (type_ == Type::BINARY || type_ == Type::STRING) ? size() : 0;
     }
-
-protected:
-    SctpMessage(size_t capacity, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
-    SctpMessage(const uint8_t* data, size_t size, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
-    SctpMessage(const BinaryBuffer& buffer, Type type, StreamId stream_id, std::shared_ptr<Reliability> reliability = nullptr);
 private:
     Type type_;
     StreamId stream_id_;

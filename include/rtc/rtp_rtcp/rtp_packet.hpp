@@ -17,6 +17,12 @@ public:
     static std::shared_ptr<RtpPacket> Create(size_t capacity) {
         return std::shared_ptr<RtpPacket>(new RtpPacket(capacity));
     }
+
+public:
+    RtpPacket();
+    RtpPacket(size_t capacity);
+    RtpPacket(const RtpPacket&);
+
     ~RtpPacket();
 
     // Header
@@ -63,9 +69,6 @@ public:
     // Helper function for Parse. Fill header fields using data in given buffer,
     // but does not touch packet own buffer, leaving packet in invalid state.
     bool Parse(const uint8_t* buffer, size_t size);
-protected:
-    RtpPacket();
-    RtpPacket(size_t capacity);
 
 private:
     inline void WriteAt(size_t offset, uint8_t byte);
