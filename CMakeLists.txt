@@ -111,6 +111,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp_packets/pli.cpp
     src/rtc/rtp_rtcp/rtcp_packets/fir.cpp
     src/rtc/rtp_rtcp/rtcp_packets/nack.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/loss_notification.cpp
     # rtc -> media
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
@@ -213,6 +214,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp_packets/pli.hpp
     include/rtc/rtp_rtcp/rtcp_packets/fir.hpp
     include/rtc/rtp_rtcp/rtcp_packets/nack.hpp
+    include/rtc/rtp_rtcp/rtcp_packets/loss_notification.hpp
     # rtc -> media
     include/rtc/media/media_track.hpp
     include/rtc/media/video/h264/nalunit.hpp
@@ -329,6 +331,7 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/rtcp_packets/pli_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/fir_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/nack_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/loss_notification_unittest.cpp
 
     src/rtc/transports/ice_transport_description_unittest.cpp
 
