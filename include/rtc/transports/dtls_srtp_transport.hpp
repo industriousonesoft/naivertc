@@ -16,7 +16,7 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsSrtpTransport(const DtlsTransport::Config config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
+    DtlsSrtpTransport(const DtlsTransport::Configuration config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
     ~DtlsSrtpTransport();
 
     void SendRtpPacket(std::shared_ptr<RtpPacket> packet, PacketSentCallback callback);

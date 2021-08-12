@@ -23,7 +23,7 @@ public:
         OPUS
     };
 
-    struct RTC_CPP_EXPORT Config {
+    struct Configuration {
         std::string mid;
         
         Kind kind;
@@ -35,7 +35,7 @@ public:
         std::optional<std::string> msid; // media stream id
         std::optional<std::string> track_id;
 
-        Config(const std::string mid, 
+        Configuration(const std::string mid, 
                 Kind kind, 
                 Codec codec, 
                 std::vector<int> payload_types, 
@@ -59,7 +59,7 @@ public:
     static std::string kind_to_string(Kind kind);
     static std::string codec_to_string(Codec codec);
     static std::optional<std::string> FormatProfileForPayloadType(int payload_type);
-    static sdp::Media BuildDescription(const MediaTrack::Config& config);
+    static sdp::Media BuildDescription(const MediaTrack::Configuration& config);
 
 private:
     sdp::Media description_;

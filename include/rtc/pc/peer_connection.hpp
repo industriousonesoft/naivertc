@@ -70,7 +70,7 @@ public:
     }
     ~PeerConnection();
 
-    std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Config config);
+    std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Configuration config);
     std::shared_ptr<DataChannel> CreateDataChannel(const DataChannel::Init config);
 
     void CreateOffer(SDPCreateSuccessCallback on_success = nullptr, 

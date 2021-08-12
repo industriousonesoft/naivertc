@@ -16,7 +16,7 @@ void PeerConnection::InitDtlsTransport() {
 
         auto certificate = certificate_.get();
 
-        auto dtls_init_config = DtlsTransport::Config();
+        auto dtls_init_config = DtlsTransport::Configuration();
         dtls_init_config.certificate = std::move(certificate);
         dtls_init_config.mtu = rtc_config_.mtu;
 

@@ -30,7 +30,7 @@
 namespace naivertc {
 
 // SctpTransport
-SctpTransport::SctpTransport(const Config config, std::shared_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue) 
+SctpTransport::SctpTransport(const Configuration config, std::shared_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue) 
     : Transport(std::move(lower), std::move(task_queue)),
     config_(std::move(config)) {
     InitUsrSCTP(config_);

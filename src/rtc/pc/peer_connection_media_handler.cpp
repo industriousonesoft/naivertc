@@ -4,7 +4,7 @@
 
 namespace naivertc {
     
-std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Config config) {
+std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Configuration config) {
     return signal_task_queue_->Sync<std::shared_ptr<MediaTrack>>([this, config = std::move(config)]() -> std::shared_ptr<MediaTrack> {
         try {
             auto description = MediaTrack::BuildDescription(std::move(config));

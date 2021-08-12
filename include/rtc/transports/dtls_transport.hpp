@@ -19,7 +19,7 @@ static const openssl_bool openssl_false = 0;
 
 class RTC_CPP_EXPORT DtlsTransport : public Transport {
 public:
-    struct Config {
+    struct Configuration {
         std::shared_ptr<Certificate> certificate;
         std::optional<size_t> mtu;
     };
@@ -27,7 +27,7 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsTransport(const Config config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
+    DtlsTransport(const Configuration config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
     ~DtlsTransport();
 
     bool is_client() const;
@@ -42,7 +42,7 @@ public:
     virtual void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override;
 
 protected:
-    void InitOpenSSL(const Config& config);
+    void InitOpenSSL(const Configuration& config);
     void DeinitOpenSSL();
 
     void InitHandshake();
@@ -74,7 +74,7 @@ protected:
     int HandleDtlsWrite(const char* in_data, int in_size);
 
 private:
-    Config config_;
+    Configuration config_;
     const bool is_client_;
     VerifyCallback verify_callback_ = nullptr;
 

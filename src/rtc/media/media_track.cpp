@@ -2,15 +2,15 @@
 
 namespace naivertc {
 
-// Config
-MediaTrack::Config::Config::Config(const std::string _mid, 
-                                    Kind _kind, 
-                                    Codec _codec, 
-                                    const std::vector<int> _payload_types, 
-                                    uint32_t _ssrc, 
-                                    std::optional<std::string> _cname, 
-                                    std::optional<std::string> _msid,
-                                    std::optional<std::string> _track_id) 
+// Configuration
+MediaTrack::Configuration::Configuration::Configuration(const std::string _mid, 
+                                                        Kind _kind, 
+                                                        Codec _codec, 
+                                                        const std::vector<int> _payload_types, 
+                                                        uint32_t _ssrc, 
+                                                        std::optional<std::string> _cname, 
+                                                        std::optional<std::string> _msid,
+                                                        std::optional<std::string> _track_id) 
     : mid(std::move(_mid)),
     kind(_kind),
     codec(_codec),

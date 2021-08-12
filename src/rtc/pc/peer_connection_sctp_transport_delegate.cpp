@@ -24,7 +24,7 @@ void PeerConnection::InitSctpTransport() {
         uint16_t sctp_port = remote_sdp_->application()->sctp_port().value_or(kDefaultSctpPort);
 
         // Create SCTP tansport
-        SctpTransport::Config sctp_config;
+        SctpTransport::Configuration sctp_config;
         sctp_config.port = sctp_port;
         sctp_config.mtu = rtc_config_.mtu.value_or(kDefaultMtuSize);
         sctp_config.max_message_size = rtc_config_.max_message_size.value_or(kDefaultLocalMaxMessageSize);

@@ -6,7 +6,7 @@ namespace naivertc {
 namespace test {
 
 TEST(MediaTrackConfigTest, CreateConfig) {
-    MediaTrack::Config config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264, {102}, 1, "video-stream", "stream1", "video-track1");
+    MediaTrack::Configuration config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264, {102}, 1, "video-stream", "stream1", "video-track1");
 
     EXPECT_EQ(config.mid, "1");
     EXPECT_EQ(config.kind, MediaTrack::Kind::VIDEO);

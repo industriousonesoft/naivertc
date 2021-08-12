@@ -19,7 +19,7 @@ public:
     ~AyameChannel() override;
     
 public:
-    void Connect(Config config) override;
+    void Connect(Configuration config) override;
     void Close() override;
     void SendLocalSDP(const std::string sdp, bool is_offer) override;
     void SendLocalCandidate(const std::string sdp_mid, const int sdp_mlineindex, const std::string sdp) override;
@@ -44,7 +44,7 @@ private:
 
 private:
     boost::asio::io_context& ioc_;
-    Config config_;
+    Configuration config_;
     std::unique_ptr<Websocket> ws_;
     
     std::atomic<bool> is_connected_;

@@ -20,7 +20,7 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT SctpTransport final : public Transport {
 public:
-    struct Config {
+    struct Configuration {
         // SCTP port
         uint16_t port;
         // MTU: Maximum Transmission Unit
@@ -33,7 +33,7 @@ public:
     static void CustomizeSctp(const SctpCustomizedSettings& settings);
     static void Cleanup();
 public:
-    SctpTransport(const Config config, std::shared_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
+    SctpTransport(const Configuration config, std::shared_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
     ~SctpTransport();
 
     bool Start() override;
@@ -81,7 +81,7 @@ private:
     void ProcessNotification(const union sctp_notification* notification, size_t len);
     void ProcessMessage(BinaryBuffer& message_data, StreamId stream_id, PayloadId payload_id);
 
-    void InitUsrSCTP(const Config& config);
+    void InitUsrSCTP(const Configuration& config);
     // usrsctp callbacks
     static void on_sctp_upcall(struct socket* socket, void* arg, int flags);
     static int on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8_t tos, uint8_t set_df);
@@ -96,7 +96,7 @@ private:
     int SendInternal(std::shared_ptr<SctpMessage> message);
 
 private:
-    Config config_;
+    Configuration config_;
     struct socket* socket_ = NULL;
   
     static const size_t buffer_size_ = 65536;

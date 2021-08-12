@@ -75,7 +75,7 @@ void SctpTransport::Cleanup() {
 	}
 }
 
-void SctpTransport::InitUsrSCTP(const Config& config) {
+void SctpTransport::InitUsrSCTP(const Configuration& config) {
     PLOG_VERBOSE << "Initializing SCTP transport.";
 
     // Register this class as an address for usrsctp, This is used by SCTP to 

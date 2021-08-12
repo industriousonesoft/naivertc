@@ -42,7 +42,7 @@ void DtlsTransport::Cleanup() {
 }
 
 // Init methods
-void DtlsTransport::InitOpenSSL(const Config& config) {
+void DtlsTransport::InitOpenSSL(const Configuration& config) {
     PLOG_DEBUG << "Initializing DTLS transport (OpenSSL)";
 
     if (!config.certificate) {

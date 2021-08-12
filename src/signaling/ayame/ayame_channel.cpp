@@ -47,7 +47,7 @@ AyameChannel::~AyameChannel() {
     ice_servers_.clear();
 }
 
-void AyameChannel::Connect(Config config) {
+void AyameChannel::Connect(Configuration config) {
     if (is_connected_ || is_connecting_) {
         return;
     }

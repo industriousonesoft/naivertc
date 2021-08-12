@@ -8,7 +8,7 @@
 
 namespace naivertc {
 
-DtlsTransport::DtlsTransport(const Config config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue) 
+DtlsTransport::DtlsTransport(const Configuration config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue) 
     : Transport(lower, std::move(task_queue)),
     config_(std::move(config)),
     is_client_(lower->role() == sdp::Role::ACTIVE),
