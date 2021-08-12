@@ -1,8 +1,7 @@
-#ifndef _RTC_RTCP_PACKET_H_
-#define _RTC_RTCP_PACKET_H_
+#ifndef _RTC_RTP_RTCP_RTCP_PACKET_H_
+#define _RTC_RTP_RTCP_RTCP_PACKET_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 
 #include <functional>
 

@@ -1,4 +1,5 @@
 #include "rtc/rtp_rtcp/rtcp_packet.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 
 #include <plog/Log.h>
 

@@ -80,7 +80,7 @@ bool SenderReport::Parse(const CommonHeader& packet) {
     rtp_timestamp_ = ByteReader<uint32_t>::ReadBigEndian(&payload[12]);
     sender_packet_count_ = ByteReader<uint32_t>::ReadBigEndian(&payload[16]);
     sender_octet_count_ = ByteReader<uint32_t>::ReadBigEndian(&payload[20]);
-    
+    report_blocks_.resize(report_block_count);
     const uint8_t* next_block = payload + kSenderReportFixedSize;
     for (ReportBlock& block : report_blocks_) {
         bool block_parsed = block.Parse(next_block, ReportBlock::kFixedReportBlockSize);

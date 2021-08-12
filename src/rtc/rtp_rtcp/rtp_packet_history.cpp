@@ -69,7 +69,7 @@ RtpPacketHistory::RtpPacketHistory(Clock* clock, bool enable_padding_prio, std::
       rtt_ms_(-1),
       packets_inserted_(0) {
     if (task_queue_ == nullptr) {
-        task_queue_ = std::make_shared<TaskQueue>("RtpPacketHistory.TaskQueue");
+        task_queue_ = std::make_shared<TaskQueue>("RtpPacketHistory.task.queue");
     }
 }
 
