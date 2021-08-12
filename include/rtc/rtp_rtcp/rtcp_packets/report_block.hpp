@@ -20,6 +20,7 @@ public:
     int32_t cumulative_packet_lost() const { return cumulative_packet_lost_; }
     uint16_t sequence_num_cycles() const { return seq_num_cycles_; }
     uint16_t highest_seq_num() const { return highest_seq_num_; }
+    uint32_t extended_high_seq_num() const { return extended_high_seq_num_; }
     uint32_t jitter() const { return jitter_; }
     uint32_t last_sr_ntp_timestamp() const { return last_sr_ntp_timestamp_; }
     uint32_t delay_since_last_sr() const { return delay_since_last_sr_; }
@@ -49,6 +50,7 @@ private:
     // The low 16 bits contain the highest sequence number received in an
     // RTP data packet from source SSRC_n
     uint16_t highest_seq_num_;
+    uint32_t extended_high_seq_num_;
     uint32_t jitter_;
     // Last send report timestamp, 
     // the middle 32 bits out of 64 in the NTP timestamp

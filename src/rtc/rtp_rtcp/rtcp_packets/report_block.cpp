@@ -85,6 +85,7 @@ bool ReportBlock::set_cumulative_packet_lost(int32_t cumulative_lost) {
 void ReportBlock::set_extended_highest_sequence_num(uint32_t extended_seq_num) {
     seq_num_cycles_ = extended_seq_num >> 16;
     highest_seq_num_ = extended_seq_num;
+    extended_high_seq_num_ = extended_seq_num;
 }
     
 } // namespace rtcp
