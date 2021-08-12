@@ -22,8 +22,6 @@ TEST(RtcpReportBlockTest, ParseMatchPack) {
     rb.set_media_ssrc(kRemoteSsrc);
     rb.set_fraction_lost(kFractionLost);
     rb.set_cumulative_packet_lost(kCumulativePacketLost);
-    // rb.set_seq_num_cycles(kSeqNumCycles);
-    // rb.set_highest_sequence_num(kHighestSeqNum);
     rb.set_extended_highest_sequence_num(kExtendedHighestSeqNum);
     rb.set_jitter(kJitter);
     rb.set_last_sr_ntp_timestamp(kLastSrNtpTimestamp);

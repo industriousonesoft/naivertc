@@ -29,8 +29,7 @@ ReportBlock::ReportBlock()
     : source_ssrc_(0),
     fraction_lost_(0),
     cumulative_packet_lost_(0),
-    seq_num_cycles_(0),
-    highest_seq_num_(0),
+    extended_high_seq_num_(0),
     jitter_(0),
     last_sr_ntp_timestamp_(0),
     delay_since_last_sr_(0) {}
@@ -45,8 +44,7 @@ bool ReportBlock::PackInto(uint8_t* buffer, size_t size) const {
     ByteWriter<uint32_t>::WriteBigEndian(&buffer[0], source_ssrc_);
     ByteWriter<uint8_t>::WriteBigEndian(&buffer[4], fraction_lost_);
     ByteWriter<int32_t, 3>::WriteBigEndian(&buffer[5], cumulative_packet_lost_);
-    ByteWriter<uint16_t>::WriteBigEndian(&buffer[8], seq_num_cycles_);
-    ByteWriter<uint16_t>::WriteBigEndian(&buffer[10], highest_seq_num_);
+    ByteWriter<uint32_t>::WriteBigEndian(&buffer[8], extended_high_seq_num_);
     ByteWriter<uint32_t>::WriteBigEndian(&buffer[12], jitter_);
     ByteWriter<uint32_t>::WriteBigEndian(&buffer[16], last_sr_ntp_timestamp_);
     ByteWriter<uint32_t>::WriteBigEndian(&buffer[20], delay_since_last_sr_);
@@ -63,8 +61,7 @@ bool ReportBlock::Parse(const uint8_t* buffer, size_t size) {
     source_ssrc_ = ByteReader<uint32_t>::ReadBigEndian(&buffer[0]);
     fraction_lost_ = buffer[4];
     cumulative_packet_lost_ = ByteReader<int32_t, 3>::ReadBigEndian(&buffer[5]);
-    seq_num_cycles_ = ByteReader<uint16_t>::ReadBigEndian(&buffer[8]);
-    highest_seq_num_ = ByteReader<uint16_t>::ReadBigEndian(&buffer[10]);
+    extended_high_seq_num_ = ByteReader<uint32_t>::ReadBigEndian(&buffer[8]);
     jitter_ = ByteReader<uint32_t>::ReadBigEndian(&buffer[12]);
     last_sr_ntp_timestamp_ = ByteReader<uint32_t>::ReadBigEndian(&buffer[16]);
     delay_since_last_sr_ = ByteReader<uint32_t>::ReadBigEndian(&buffer[20]);
@@ -82,9 +79,19 @@ bool ReportBlock::set_cumulative_packet_lost(int32_t cumulative_lost) {
     return true;
 }
 
+uint16_t ReportBlock::sequence_num_cycles() const {
+    // the most significant 16 bits extend that sequence number 
+    // with the corresponding count of sequence number cycles
+    return static_cast<uint16_t>(extended_high_seq_num_ >> 16);
+}
+
+uint16_t ReportBlock::highest_seq_num() const {
+    // The low 16 bits contain the highest sequence number received in an
+    // RTP data packet from source SSRC_n
+    return static_cast<uint16_t>(extended_high_seq_num_);
+}
+
 void ReportBlock::set_extended_highest_sequence_num(uint32_t extended_seq_num) {
-    seq_num_cycles_ = extended_seq_num >> 16;
-    highest_seq_num_ = extended_seq_num;
     extended_high_seq_num_ = extended_seq_num;
 }
     
