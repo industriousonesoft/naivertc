@@ -33,7 +33,7 @@ bool RtpFeedback::ParseCommonFeedback(const uint8_t* buffer, size_t size) {
     return true;
 }
 
-bool RtpFeedback::PackCommonFeedbackInto(uint8_t* buffer, size_t size) {
+bool RtpFeedback::PackCommonFeedbackInto(uint8_t* buffer, size_t size) const {
     if (size < kCommonFeedbackSize) {
         PLOG_WARNING << "Too small space left in buffer to pack Common Feedback (8 bytes)";
         return false;

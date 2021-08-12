@@ -20,11 +20,10 @@ public:
 protected:
     static constexpr size_t kCommonFeedbackSize = 8;
     bool ParseCommonFeedback(const uint8_t* buffer, size_t size);
-    bool PackCommonFeedbackInto(uint8_t* buffer, size_t size);
+    bool PackCommonFeedbackInto(uint8_t* buffer, size_t size) const;
 
 private:
     uint32_t media_ssrc_ = 0;
-
 };
     
 } // namespace rtcp
