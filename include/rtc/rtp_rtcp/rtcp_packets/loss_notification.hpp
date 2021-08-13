@@ -8,7 +8,7 @@
 namespace naivertc {
 namespace rtcp {
 
-class LossNotification : public Psfb {
+class RTC_CPP_EXPORT LossNotification : public Psfb {
 public:
   LossNotification();
   LossNotification(uint16_t last_decoded,

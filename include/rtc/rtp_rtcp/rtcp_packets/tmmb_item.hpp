@@ -9,7 +9,7 @@ namespace rtcp {
 // RFC5104, Section 3.5.4
 // Temporary Maximum Media Stream Bitrate Request/Notification.
 // Used both by TMMBR and TMMBN rtcp packets.
-class TmmbItem {
+class RTC_CPP_EXPORT TmmbItem {
 public:
     static const size_t kFixedTmmbItemSize = 8;
 

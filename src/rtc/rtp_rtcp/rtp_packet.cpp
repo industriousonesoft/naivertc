@@ -42,7 +42,7 @@ constexpr size_t kTwoByteExtensionHeaderLength = 2;
 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 RtpPacket::RtpPacket() 
-    : RtpPacket(kDefaultPacketSize) {}
+    : RtpPacket(kIpPacketSize) {}
 
 RtpPacket::RtpPacket(size_t capacity) 
     : Packet(capacity) {

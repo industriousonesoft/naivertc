@@ -16,8 +16,8 @@ BinaryBuffer RtcpPacket::Build() const {
 }
 
 bool RtcpPacket::Build(size_t max_size, PacketReadyCallback callback) const {
-    assert(max_size <= kDefaultPacketSize);
-    uint8_t buffer[kDefaultPacketSize];
+    assert(max_size <= kIpPacketSize);
+    uint8_t buffer[kIpPacketSize];
     size_t index = 0;
     if (!PackInto(buffer, &index, max_size, callback)) {
         return false;

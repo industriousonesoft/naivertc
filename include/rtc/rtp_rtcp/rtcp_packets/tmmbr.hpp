@@ -11,7 +11,7 @@ class CommonHeader;
 
 // Temporary Maximum Media Stream Bit Rate Request (TMMBR).
 // RFC 5104, Section 4.2.1.
-class Tmmbr : public RtpFeedback {
+class RTC_CPP_EXPORT Tmmbr : public RtpFeedback {
  public:
     static constexpr uint8_t kFeedbackMessageType = 3;
 
