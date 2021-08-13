@@ -10,7 +10,7 @@
 namespace naivertc {
 
 // We assume ethernet
-constexpr size_t kDefaultPacketSize = 1500;
+constexpr size_t kIpPacketSize = 1500;
 
 // RtpPacket media types.
 enum class RtpPacketMediaType : size_t {
@@ -19,6 +19,27 @@ enum class RtpPacketMediaType : size_t {
     kRetransmission = 2,            // Retransmission, sent as response to NACK.
     kForwardErrorCorrection = 3,    // FEC packet.
     kPadding = 4                    // RTX or plain padding sent to maintain BEW.
+};
+
+enum RTCPPacketType : uint32_t {
+    kRtcpReport = 0x0001,
+    kRtcpSr = 0x0002,
+    kRtcpRr = 0x0004,
+    kRtcpSdes = 0x0008,
+    kRtcpBye = 0x0010,
+    kRtcpPli = 0x0020,
+    kRtcpNack = 0x0040,
+    kRtcpFir = 0x0080,
+    kRtcpTmmbr = 0x0100,
+    kRtcpTmmbn = 0x0200,
+    kRtcpSrReq = 0x0400,
+    kRtcpLossNotification = 0x2000,
+    kRtcpRemb = 0x10000,
+    kRtcpTransmissionTimeOffset = 0x20000,
+    kRtcpXrReceiverReferenceTime = 0x40000,
+    kRtcpXrDlrrReportBlock = 0x80000,
+    kRtcpTransportFeedback = 0x100000,
+    kRtcpXrTargetBitrate = 0x200000
 };
 
 // Observer
