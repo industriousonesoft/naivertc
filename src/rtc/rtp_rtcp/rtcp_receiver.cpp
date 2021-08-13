@@ -25,7 +25,8 @@ void RtcpReceiver::RttStats::AddRtt(TimeDelta rtt) {
 RtcpReceiver::RtcpReceiver(const RtpRtcpInterface::Configuration& config, Observer* observer, std::shared_ptr<TaskQueue> task_queue) 
     : clock_(config.clock),
     observer_(observer),
-    task_queue_(task_queue) {
+    task_queue_(task_queue),
+    receiver_only_(false) {
     if (!task_queue_) {
         task_queue_ = std::make_shared<TaskQueue>("RtcpReceiver.task.queue");
     }

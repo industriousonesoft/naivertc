@@ -9,6 +9,7 @@
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
 #include "rtc/rtp_rtcp/report_block_data.hpp"
+#include "rtc/rtp_rtcp/rtcp_nack_stats.hpp"
 
 #include <vector>
 #include <map>
@@ -72,8 +73,11 @@ public:
 
 private:
     bool ParseCompoundPacket(BinaryBuffer packet);
-
     bool ParseSenderReport(const rtcp::CommonHeader& rtcp_block);
+    bool ParseReceiverReport(const rtcp::CommonHeader& rtcp_block);
+    bool ParseSdes(const rtcp::CommonHeader& rtcp_block);
+    bool ParseNack(const rtcp::CommonHeader& rtcp_block);
+    bool ParseBye(const rtcp::CommonHeader& rtcp_block);
     
     void HandleReportBlock(const rtcp::ReportBlock& report_block, uint32_t remote_ssrc);
 
@@ -83,6 +87,7 @@ private:
     std::shared_ptr<TaskQueue> task_queue_;
     Clock* const clock_;
     Observer* const observer_;
+    bool receiver_only_;
 
     std::map<int, uint32_t> registered_ssrcs_;
     std::map<uint32_t, ReportBlockData> received_report_blocks_;
@@ -106,6 +111,8 @@ private:
     // The time we last received an RTCP RR telling we have successfully
     // delivered RTP packet to the remote side.
     Timestamp last_time_increased_sequence_number_ = Timestamp::MaxValue();
+
+    RtcpNackStats nack_stats_;
 
     size_t num_skipped_packets_ = 0;
     int64_t last_skipped_packets_warning_ms_ = 0;

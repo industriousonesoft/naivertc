@@ -8,6 +8,10 @@
 #include "rtc/rtp_rtcp/rtcp_packets/psfb.hpp"
 #include "rtc/rtp_rtcp/rtcp_packets/pli.hpp"
 #include "rtc/rtp_rtcp/rtcp_packets/fir.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/tmmbr.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/tmmbn.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/bye.hpp"
+
 #include "common/utils_time.hpp"
 #include "rtc/rtp_rtcp/time_util.hpp"
 #include <plog/Log.h>
@@ -15,7 +19,7 @@
 namespace naivertc {
 
 constexpr int64_t kMaxWarningLogIntervalMs = 10000;
-
+// Compound packet
 bool RtcpReceiver::ParseCompoundPacket(BinaryBuffer packet) {
 
     rtcp::CommonHeader rtcp_block;
@@ -36,25 +40,43 @@ bool RtcpReceiver::ParseCompoundPacket(BinaryBuffer packet) {
 
         switch (rtcp_block.type())
         {
+        // Sender report
         case rtcp::SenderReport::kPacketType:
             if (!ParseSenderReport(rtcp_block)) {
                 ++num_skipped_packets_;
             }
             break;
+        // Receiver report
         case rtcp::ReceiverReport::kPacketType:
+            if (!ParseReceiverReport(rtcp_block)) {
+                ++num_skipped_packets_;
+            }
             break;
+        // Sdes 
         case rtcp::Sdes::kPacketType:
+            if (!ParseSdes(rtcp_block)) {
+                ++num_skipped_packets_;
+            }
             break;
+        // Rtp feedback
         case rtcp::RtpFeedback::kPacketType:
             switch (rtcp_block.feedback_message_type())
             {
             case rtcp::Nack::kFeedbackMessageType:
+                if (!ParseNack(rtcp_block)) {
+                    ++num_skipped_packets_;
+                }
+                break;
+            case rtcp::Tmmbr::kFeedbackMessageType:
+                break;
+            case rtcp::Tmmbn::kFeedbackMessageType:
                 break;
             default:
                 ++num_skipped_packets_;
                 break;
             }
             break;
+        // Payload-specific feedback
         case rtcp::Psfb::kPacketType:
             switch (rtcp_block.feedback_message_type()) {
             case rtcp::Pli::kFeedbackMessageType:
@@ -87,6 +109,7 @@ bool RtcpReceiver::ParseCompoundPacket(BinaryBuffer packet) {
     return true;
 }
 
+// Sender report packet
 bool RtcpReceiver::ParseSenderReport(const rtcp::CommonHeader& rtcp_block) {
     rtcp::SenderReport sender_report;
     if (!sender_report.Parse(rtcp_block)) {
@@ -119,6 +142,24 @@ bool RtcpReceiver::ParseSenderReport(const rtcp::CommonHeader& rtcp_block) {
     return true;
 }
 
+bool RtcpReceiver::ParseReceiverReport(const rtcp::CommonHeader& rtcp_block) {
+    rtcp::ReceiverReport receiver_report;
+    if (!receiver_report.Parse(rtcp_block)) {
+        return false;
+    }
+
+    const uint32_t remote_ssrc = receiver_report.sender_ssrc();
+
+    // TODO: update tmmbr of remote ssrc is alive
+
+    for (const auto& report_block : receiver_report.report_blocks()) {
+        HandleReportBlock(report_block, remote_ssrc);
+    }
+
+    return true;
+}
+
+// Report block
 void RtcpReceiver::HandleReportBlock(const rtcp::ReportBlock& report_block, uint32_t remote_ssrc) {
     // This will be called once per report block in the RTCP packet.
     // We will filter out all report blocks that are not for us.
@@ -182,6 +223,59 @@ void RtcpReceiver::HandleReportBlock(const rtcp::ReportBlock& report_block, uint
             rtts_[remote_ssrc].AddRtt(TimeDelta::Millis(rtt_ms));
         }
     }
+}
+
+// Sdes
+bool RtcpReceiver::ParseSdes(const rtcp::CommonHeader& rtcp_block) {
+    rtcp::Sdes sdes;
+    if (!sdes.Parse(rtcp_block)) {
+        return false;
+    }
+    for (const auto& chunk : sdes.chunks()) {
+        // TODO: cname callback
+    }
+    return true;
+}
+
+// Nack 
+bool RtcpReceiver::ParseNack(const rtcp::CommonHeader& rtcp_block) {
+    rtcp::Nack nack;
+    if (!nack.Parse(rtcp_block)) {
+        return false;
+    }
+
+    // Not to us but return true
+    if (receiver_only_ || local_media_ssrc() != nack.media_ssrc()) {
+        return true;
+    }
+
+    for (uint16_t packet_id : nack.packet_ids()) {
+        nack_stats_.ReportRequest(packet_id);
+    }
+
+    if (!nack.packet_ids().empty()) {
+        // TODO: packet type counter
+    }
+
+    return true;
+}
+
+// Bye 
+bool RtcpReceiver::ParseBye(const rtcp::CommonHeader& rtcp_block) {
+    rtcp::Bye bye;
+    if (bye.Parse(rtcp_block)) {
+        return false;
+    }
+
+    // Clear our lists
+    rtts_.erase(bye.sender_ssrc());
+    for (auto it = received_report_blocks_.begin(); it != received_report_blocks_.end(); ++it) {
+        if (it->second.report_block().sender_ssrc == bye.sender_ssrc()) {
+            received_report_blocks_.erase(it);
+            break;
+        }
+    }
+    return true;
 }
     
 } // namespace naivertc

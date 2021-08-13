@@ -102,6 +102,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp_receiver_parser.cpp
     src/rtc/rtp_rtcp/report_block_data.cpp
     src/rtc/rtp_rtcp/time_util.cpp
+    src/rtc/rtp_rtcp/rtcp_nack_stats.cpp
     # rtc -> rtp_rtcp -> rtcp_packets
     src/rtc/rtp_rtcp/rtcp_packets/compound_packet.cpp
     src/rtc/rtp_rtcp/rtcp_packets/common_header.cpp
@@ -119,6 +120,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp_packets/tmmb_item.cpp
     src/rtc/rtp_rtcp/rtcp_packets/tmmbr.cpp
     src/rtc/rtp_rtcp/rtcp_packets/tmmbn.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/bye.cpp
     # rtc -> media
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
@@ -213,6 +215,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp_receiver.hpp
     include/rtc/rtp_rtcp/report_block_data.hpp
     include/rtc/rtp_rtcp/time_util.hpp
+    include/rtc/rtp_rtcp/rtcp_nack_stats.hpp
     # rtc -> rtp_rtcp -> rtcp_packets
     include/rtc/rtp_rtcp/rtcp_packets/compound_packet.hpp
     include/rtc/rtp_rtcp/rtcp_packets/common_header.hpp
@@ -230,6 +233,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp_packets/tmmb_item.hpp
     include/rtc/rtp_rtcp/rtcp_packets/tmmbr.hpp
     include/rtc/rtp_rtcp/rtcp_packets/tmmbn.hpp
+    include/rtc/rtp_rtcp/rtcp_packets/bye.hpp
     # rtc -> media
     include/rtc/media/media_track.hpp
     include/rtc/media/video/h264/nalunit.hpp
@@ -338,6 +342,8 @@ set(TEST_SOURCES
     src/rtc/pc/peer_connection_configuration_unittest.cpp
     
     src/rtc/rtp_rtcp/rtp_packet_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp_nack_stats_unittest.cpp
+
     src/rtc/rtp_rtcp/rtcp_packets/common_header_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/report_block_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/sender_report_unittest.cpp
@@ -350,6 +356,7 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/rtcp_packets/loss_notification_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/tmmbr_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/tmmbn_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/bye_unittest.cpp
 
     src/rtc/transports/ice_transport_description_unittest.cpp
 
