@@ -14,7 +14,7 @@ class CommonHeader;
 // RFC 5104, Section 4.2.1.
 class Tmmbn : public RtpFeedback {
  public:
-    static constexpr uint8_t kFeedbackMessageType = 3;
+    static constexpr uint8_t kFeedbackMessageType = 4;
 
     Tmmbn();
     ~Tmmbn() override;
@@ -24,7 +24,7 @@ class Tmmbn : public RtpFeedback {
 
     void AddTmmbn(const TmmbItem& item);
 
-    const std::vector<TmmbItem>& requests() const { return items_; }
+    const std::vector<TmmbItem>& items() const { return items_; }
 
     size_t PacketSize() const override;
 

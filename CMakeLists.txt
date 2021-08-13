@@ -348,6 +348,8 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/rtcp_packets/fir_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/nack_unittest.cpp
     src/rtc/rtp_rtcp/rtcp_packets/loss_notification_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/tmmbr_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp_packets/tmmbn_unittest.cpp
 
     src/rtc/transports/ice_transport_description_unittest.cpp
 
