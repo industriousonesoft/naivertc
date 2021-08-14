@@ -99,6 +99,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp_packet_to_send.cpp
     src/rtc/rtp_rtcp/rtp_packet_history.cpp
     src/rtc/rtp_rtcp/rtcp_sender.cpp
+    src/rtc/rtp_rtcp/rtcp_sender_builder.cpp
+    src/rtc/rtp_rtcp/rtcp_sender_auxiliaries.cpp
     src/rtc/rtp_rtcp/rtcp_receiver.cpp
     src/rtc/rtp_rtcp/rtcp_receiver_parser.cpp
     src/rtc/rtp_rtcp/report_block_data.cpp

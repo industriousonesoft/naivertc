@@ -21,7 +21,7 @@ enum class RtpPacketMediaType : size_t {
     kPadding = 4                    // RTX or plain padding sent to maintain BEW.
 };
 
-enum RTCPPacketType : uint32_t {
+enum RtcpPacketType : uint32_t {
     kRtcpReport = 0x0001,
     kRtcpSr = 0x0002,
     kRtcpRr = 0x0004,
