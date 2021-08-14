@@ -9,8 +9,15 @@
 
 namespace naivertc {
 
+// RFC 3550 page 44, including null termination
+constexpr size_t kRtcpCNameSize = 256;
 // We assume ethernet
 constexpr size_t kIpPacketSize = 1500;
+
+const int kVideoPayloadTypeFrequency = 90000;
+// TODO(bugs.webrtc.org/6458): Remove this when all the depending projects are
+// updated to correctly set rtp rate for RtcpSender.
+const int kBogusRtpRateForAudioRtcp = 8000;
 
 // RtpPacket media types.
 enum class RtpPacketMediaType : size_t {

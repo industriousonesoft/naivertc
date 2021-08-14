@@ -29,7 +29,7 @@ public:
     bool Parse(const CommonHeader& packet);
 
     bool AddReportBlock(const ReportBlock& block);
-    bool SetReportBlock(std::vector<ReportBlock> blocks);
+    bool SetReportBlocks(std::vector<ReportBlock> blocks);
 
     size_t PacketSize() const override;
     bool PackInto(uint8_t* buffer,

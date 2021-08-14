@@ -4,12 +4,10 @@ namespace naivertc {
 
 // RtcpContext
 RtcpSender::RtcpContext::RtcpContext(const RtcpSender::FeedbackState& feedback_state,
-                                    int32_t nack_size,
-                                    const uint16_t* nack_list,
+                                     const std::vector<uint16_t> nack_list,
                                     Timestamp now)
     : feedback_state_(feedback_state),
-        nack_size_(nack_size),
-        nack_list_(nack_list),
+        nack_list_(std::move(nack_list)),
         now_(now) {}
 
 // PacketSender

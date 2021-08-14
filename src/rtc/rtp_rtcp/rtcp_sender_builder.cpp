@@ -2,18 +2,40 @@
 #include "common/utils_random.hpp"
 #include "common/utils_numeric.hpp"
 #include "rtc/rtp_rtcp/time_util.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/sender_report.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/receiver_report.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/sdes.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/pli.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/fir.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/remb.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/tmmbn.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/tmmbr.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/nack.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/bye.hpp"
 
 #include <plog/Log.h>
 
 namespace naivertc {
 
 // Private methods
-std::optional<int32_t> RtcpSender::ComputeCompoundRtcpPacket(
-        const FeedbackState& feedback_state,
-        RtcpPacketType rtcp_packt_type,
-        int32_t nack_size,
-        const uint16_t* nack_list,
-        PacketSender& sender) {
+void RtcpSender::InitBuilders() {
+    builders_[kRtcpSr] = &RtcpSender::BuildSR;
+    builders_[kRtcpRr] = &RtcpSender::BuildRR;
+    builders_[kRtcpSdes] = &RtcpSender::BuildSDES;
+    builders_[kRtcpPli] = &RtcpSender::BuildPLI;
+    builders_[kRtcpFir] = &RtcpSender::BuildFIR;
+    builders_[kRtcpRemb] = &RtcpSender::BuildREMB;
+    builders_[kRtcpBye] = &RtcpSender::BuildBYE;
+    builders_[kRtcpLossNotification] = &RtcpSender::BuildLossNotification;
+    builders_[kRtcpTmmbr] = &RtcpSender::BuildTMMBR;
+    builders_[kRtcpTmmbn] = &RtcpSender::BuildTMMBN;
+    builders_[kRtcpNack] = &RtcpSender::BuildNACK;
+}
+
+bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
+                                            RtcpPacketType rtcp_packt_type,
+                                            const std::vector<uint16_t> nack_list,
+                                            PacketSender& sender) {
     // Add the flag as volatile. Non volatile entries will not be overwritten.
     // The new volatile flag will be consumed by the end of this call.
     SetFlag(rtcp_packt_type, true);
@@ -26,16 +48,16 @@ std::optional<int32_t> RtcpSender::ComputeCompoundRtcpPacket(
         bool sender_report = consumed_report_flag || consumed_sr_flag;
         // This call was for Sender Report and nothing else.
         if (sender_report && AllVolatileFlagsConsumed()) {
-            return 0;
+            return true;
         }
         if (sending_) {
             // Not allowed to send any RTCP packet without sender report.
-            return -1;
+            return false;
         }
     }
 
     // We need to send out NTP even if we haven't received any reports
-    RtcpContext context(feedback_state, nack_size, nack_list, clock_->CurrentTime());
+    RtcpContext context(feedback_state, nack_list, clock_->CurrentTime());
 
     PrepareReport(feedback_state);
 
@@ -58,25 +80,23 @@ std::optional<int32_t> RtcpSender::ComputeCompoundRtcpPacket(
             continue;
         }
 
-        // TODO: Build RTCP packet for type
-        // auto builder_it = builders_.find(rtcp_packet_type);
-        // if (builder_it == builders_.end()) {
-        //     PLOG_WARNING << "Could not find builder for packet type "
-        //                  << rtcp_packet_type;
-        //     continue;
-        // } else {
-        //     BuilderFunc func = builder_it->second;
-        //     (this->*func)(context, sender);
-        // }
+        auto builder_it = builders_.find(rtcp_packet_type);
+        if (builder_it == builders_.end()) {
+            PLOG_WARNING << "Could not find builder for packet type "
+                         << rtcp_packet_type;
+            continue;
+        } else {
+            BuilderFunc func = builder_it->second;
+            (this->*func)(context, sender);
+        }
     }
 
     // Append the BYE now at the end
     if (create_bye) {
-        // TODO: Built Bye packet
-        // BuildBYE(context, sender);
+        BuildBYE(context, sender);
     }
 
-    return std::nullopt;
+    return true;
 }
 
 void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
@@ -153,5 +173,101 @@ std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const FeedbackStat
 
     return report_blocks;
 }
-    
+
+void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
+    if (!last_frame_capture_time_.has_value()) {
+        PLOG_WARNING << "RTCP SR shouldn't be built before first media frame.";
+        return;
+    }
+    // The timestamp of this RTCP packet should be estimated as the timestamp of
+    // the frame being captured at this moment. We are calculating that
+    // timestamp as the last frame's timestamp + the time since the last frame
+    // was captured.
+    int rtp_rate = rtp_clock_rates_khz_[last_rtp_payload_type_];
+    if (rtp_rate <= 0) {
+        rtp_rate = (audio_ ? kBogusRtpRateForAudioRtcp : kVideoPayloadTypeFrequency) / 1000;
+    }
+
+    // Round now_us_ to the closest millisecond, because Ntp time is rounded
+    // when converted to milliseconds,
+    uint32_t rtp_timestamp = timestamp_offset_ + last_rtp_timestamp_ +
+                ((ctx.now_.us() + 500) / 1000 - last_frame_capture_time_->ms()) * rtp_rate;
+
+    PLOG_INFO << "timestamp_offset: " << timestamp_offset_ 
+              << " last_rtp_timestamp: " << last_rtp_timestamp_ 
+              << "rtp_timestamp: " << rtp_timestamp;
+
+    rtcp::SenderReport sr;
+    sr.set_sender_ssrc(ssrc_);
+    sr.set_ntp(clock_->ConvertTimestampToNtpTime(ctx.now_));
+    sr.set_rtp_timestamp(rtp_timestamp);
+    sr.set_sender_packet_count(ctx.feedback_state_.packets_sent);
+    sr.set_sender_octet_count(ctx.feedback_state_.media_bytes_sent);
+    sr.SetReportBlocks(CreateReportBlocks(ctx.feedback_state_));
+    sender.AppendPacket(sr);
+}
+
+void RtcpSender::BuildRR(const RtcpContext& ctx, PacketSender& sender) {
+    rtcp::ReceiverReport rr;
+    rr.set_sender_ssrc(ssrc_);
+    rr.SetReportBlocks(CreateReportBlocks(ctx.feedback_state_));
+    sender.AppendPacket(rr);
+}
+
+void RtcpSender::BuildSDES(const RtcpContext& ctx, PacketSender& sender) {
+    rtcp::Sdes sdes;
+    sdes.AddCName(ssrc_, cname_);
+    sender.AppendPacket(sdes);
+}
+
+void RtcpSender::BuildFIR(const RtcpContext& ctx, PacketSender& sender) {
+
+}
+
+void RtcpSender::BuildPLI(const RtcpContext& ctx, PacketSender& sender) {
+
+}
+
+void RtcpSender::BuildREMB(const RtcpContext& ctx, PacketSender& sender) {
+    rtcp::Remb remb;
+    remb.set_sender_ssrc(ssrc_);
+    remb.set_bitrate_bps(remb_bitrate_);
+    remb.set_ssrcs(remb_ssrcs_);
+    sender.AppendPacket(remb);
+}
+
+void RtcpSender::BuildTMMBR(const RtcpContext& ctx, PacketSender& sender) {
+
+}
+
+void RtcpSender::BuildTMMBN(const RtcpContext& ctx, PacketSender& sender) {
+
+}
+
+void RtcpSender::BuildLossNotification(const RtcpContext& ctx, PacketSender& sender) {
+    loss_notification_.set_sender_ssrc(ssrc_);
+    loss_notification_.set_media_ssrc(remote_ssrc_);
+    sender.AppendPacket(loss_notification_);
+}
+
+void RtcpSender::BuildNACK(const RtcpContext& ctx, PacketSender& sender) {
+    rtcp::Nack nack;
+    nack.set_sender_ssrc(ssrc_);
+    nack.set_media_ssrc(remote_ssrc_);
+    nack.set_packet_ids(ctx.nack_list_);
+
+    for (uint16_t id : ctx.nack_list_) {
+        nack_stats_.ReportRequest(id);
+    }
+
+    sender.AppendPacket(nack);
+}
+
+void RtcpSender::BuildBYE(const RtcpContext& ctx, PacketSender& sender) {
+    rtcp::Bye bye;
+    bye.set_sender_ssrc(ssrc_);
+    bye.set_csrcs(csrcs_);
+    sender.AppendPacket(bye);
+}
+
 } // namespace naivertc

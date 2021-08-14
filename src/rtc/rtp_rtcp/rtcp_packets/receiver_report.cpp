@@ -89,7 +89,7 @@ bool ReceiverReport::AddReportBlock(const ReportBlock& block) {
     return true;
 }
 
-bool ReceiverReport::SetReportBlock(std::vector<ReportBlock> blocks) {
+bool ReceiverReport::SetReportBlocks(std::vector<ReportBlock> blocks) {
     if (blocks.size() > kMaxNumberOfReportBlocks) {
         PLOG_WARNING << "Too many report blocks ("
                      << blocks.size()

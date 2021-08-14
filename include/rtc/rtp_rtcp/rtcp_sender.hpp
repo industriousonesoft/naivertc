@@ -8,14 +8,17 @@
 #include "rtc/base/timestamp.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtcp_packet.hpp"
+#include "rtc/rtp_rtcp/rtcp_nack_stats.hpp"
 #include "rtc/rtp_rtcp/rtcp_packets/dlrr.hpp"
 #include "rtc/rtp_rtcp/rtcp_packets/report_block.hpp"
+#include "rtc/rtp_rtcp/rtcp_packets/loss_notification.hpp"
 
 #include <optional>
 #include <memory>
 #include <set>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace naivertc {
 
@@ -69,25 +72,42 @@ public:
 
     ~RtcpSender();
 
+    uint32_t ssrc() const;
+    void set_ssrc(uint32_t ssrc);
+
+    void set_remote_ssrc(uint32_t ssrc);
+    void set_cname(std::string cname);
+    void set_max_rtp_packet_size(size_t max_packet_size);
+    void set_csrcs(const std::vector<uint32_t>& csrcs);
+
     bool Sending() const;
     void SetSendingStatus(const FeedbackState& feedback_state, bool enable);
 
+    void SetRtpClockRate(int8_t rtp_payload_type, int rtp_clock_rate_hz);
+
+    void SetRemb(uint64_t bitrate_bps, std::vector<uint32_t> ssrcs);
+
+    void SetTimestampOffset(uint32_t timestamp_offset);
     void SetLastRtpTime(uint32_t rtp_timestamp,
                         std::optional<Timestamp> capture_time,
                         std::optional<int8_t> rtp_payload_type);
+
+    bool SendLossNotification(const FeedbackState& feedback_state,
+                              uint16_t last_decoded_seq_num,
+                              uint16_t last_received_seq_num,
+                              bool decodability_flag,
+                              bool buffering_allowed);
 
 private:
     // RtcpContext
     class RtcpContext {
     public:
         RtcpContext(const FeedbackState& feedback_state,
-                    int32_t nack_size,
-                    const uint16_t* nack_list,
+                    const std::vector<uint16_t> nack_list,
                     Timestamp now);
 
         const FeedbackState& feedback_state_;
-        const int32_t nack_size_;
-        const uint16_t* nack_list_;
+        const std::vector<uint16_t> nack_list_;
         const Timestamp now_;
     };
 
@@ -124,15 +144,27 @@ private:
     };
 
 private:
-    std::optional<int32_t> ComputeCompoundRtcpPacket(
-            const FeedbackState& feedback_state,
-            RtcpPacketType rtcp_packt_type,
-            int32_t nack_size,
-            const uint16_t* nack_list,
-            PacketSender& sender);
+    bool ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
+                                    RtcpPacketType rtcp_packt_type,
+                                    const std::vector<uint16_t> nack_list,
+                                    PacketSender& sender);
 
     void PrepareReport(const FeedbackState& feedback_state);
     std::vector<rtcp::ReportBlock> CreateReportBlocks(const FeedbackState& feedback_state);
+
+    void BuildSR(const RtcpContext& context, PacketSender& sender);
+    void BuildRR(const RtcpContext& context, PacketSender& sender);
+    void BuildSDES(const RtcpContext& context, PacketSender& sender);
+    void BuildFIR(const RtcpContext& context, PacketSender& sender);
+    void BuildPLI(const RtcpContext& context, PacketSender& sender);
+    void BuildREMB(const RtcpContext& context, PacketSender& sender);
+    void BuildTMMBR(const RtcpContext& context, PacketSender& sender);
+    void BuildTMMBN(const RtcpContext& context, PacketSender& sender);
+    void BuildLossNotification(const RtcpContext& context, PacketSender& sender);
+    void BuildNACK(const RtcpContext& context, PacketSender& sender);
+    void BuildBYE(const RtcpContext& context, PacketSender& sender);
+
+    void InitBuilders();
 
     // |duration| being TimeDelta::Zero() means schedule immediately.
     void SetNextRtcpSendEvaluationDuration(TimeDelta duration);
@@ -152,14 +184,34 @@ private:
     bool sending_;
 
     std::set<ReportFlag> report_flags_;
-
+    std::map<int8_t, int> rtp_clock_rates_khz_;
+    
     int8_t last_rtp_payload_type_ = -1;
     uint32_t last_rtp_timestamp_ = 0;
+    uint32_t timestamp_offset_ = 0;
+
     std::optional<Timestamp> last_frame_capture_time_;
     std::optional<Timestamp> next_time_to_send_rtcp_;
-
+    
+    // SSRC that we receive on our RTP channel
+    uint32_t remote_ssrc_ = 0;
     std::string cname_;
 
+    // REMB
+    int64_t remb_bitrate_ = 0;
+    std::vector<uint32_t> remb_ssrcs_;
+
+    size_t max_packet_size_;
+
+    RtcpNackStats nack_stats_;
+    // send CSRCs
+    std::vector<uint32_t> csrcs_;
+
+    rtcp::LossNotification loss_notification_;
+
+    typedef void (RtcpSender::*BuilderFunc)(const RtcpContext&, PacketSender&);
+    // Map from RTCPPacketType to builder.
+    std::map<uint32_t, BuilderFunc> builders_;
 };
     
 } // namespace naivert 
