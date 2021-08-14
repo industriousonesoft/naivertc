@@ -127,6 +127,23 @@ void RtcpSender::SetRemb(uint64_t bitrate_bps, std::vector<uint32_t> ssrcs) {
     });
 }
 
+bool RtcpSender::SendRTCP(const FeedbackState& feedback_state,
+                          RtcpPacketType packet_type,
+                          const std::vector<uint16_t> nackList) {
+    return task_queue_->Sync<bool>([=, nackList=std::move(nackList),&feedback_state](){
+        bool bRet = false;
+        auto callback = [&](BinaryBuffer packet) {
+            // TODO: Send RTCP packet by transport
+        };
+        PacketSender sender(callback, max_packet_size_);
+        bRet = ComputeCompoundRtcpPacket(feedback_state, packet_type, std::move(nackList), sender);
+        if (bRet) {
+            sender.Send();
+        }
+        return bRet;
+    });
+}
+
 bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
                                       uint16_t last_decoded_seq_num,
                                       uint16_t last_received_seq_num,

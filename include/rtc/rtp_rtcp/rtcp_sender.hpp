@@ -92,6 +92,10 @@ public:
                         std::optional<Timestamp> capture_time,
                         std::optional<int8_t> rtp_payload_type);
 
+    bool SendRTCP(const FeedbackState& feedback_state,
+                  RtcpPacketType packet_type,
+                  const std::vector<uint16_t> nackList);
+
     bool SendLossNotification(const FeedbackState& feedback_state,
                               uint16_t last_decoded_seq_num,
                               uint16_t last_received_seq_num,
