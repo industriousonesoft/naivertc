@@ -172,62 +172,58 @@ void RtpPacketHistory::PutRtpPacket(std::shared_ptr<RtpPacketToSend> packet, std
     });
 }
 
-void RtpPacketHistory::GetPacketAndSetSendTime(uint16_t sequence_number, std::function<void(std::shared_ptr<RtpPacketToSend>)> callback) {
-    task_queue_->Async([this, sequence_number, callback](){
+std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndSetSendTime(uint16_t sequence_number) {
+    return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, sequence_number](){
         if (mode_ == StorageMode::DISABLE) {
-            callback(nullptr);
+            return std::shared_ptr<RtpPacketToSend>(nullptr);;
         }
-
         StoredPacket* stored_packet = GetStoredPacket(sequence_number);
         if (stored_packet == nullptr) {
-            callback(nullptr);
+            return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
         int64_t now_ms = clock_->TimeInMs();
         if (!VerifyRtt(*stored_packet, now_ms)) {
-            callback(nullptr);
-        }
+            return std::shared_ptr<RtpPacketToSend>(nullptr);
+        } 
 
         if (stored_packet->send_time_ms_) {
             stored_packet->IncrementTimesRetransmitted(enable_padding_prio_ ? &padding_priority_ : nullptr);
         }
-
         // Update send-time and mark as no long in pacer queue.
         stored_packet->send_time_ms_ = now_ms;
         stored_packet->pending_transmission_ = false;
 
-        // Return copy of packet instance since it may need to be retransmitted.
-        callback(stored_packet->packet_);
+        return stored_packet->packet_;
     });
 }
 
-void RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, std::function<void(std::shared_ptr<RtpPacketToSend>)> callback) {
+std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number) {
     return GetPacketAndMarkAsPending(sequence_number, [](const RtpPacketToSend& packet){
         return std::make_unique<RtpPacketToSend>(packet);
-    }, callback);
+    });
 }
 
-void RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
-            std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate, 
-            std::function<void(std::shared_ptr<RtpPacketToSend>)> callback) {
-    task_queue_->Async([this, sequence_number, encapsulate, callback](){
+std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
+            std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate) {
+    return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, sequence_number, encapsulate](){
         if (mode_ == StorageMode::DISABLE) {
-            callback(nullptr);
+            return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
         StoredPacket* stored_packet = GetStoredPacket(sequence_number);
         if (stored_packet == nullptr) {
-            callback(nullptr);
+            return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
         if (stored_packet->pending_transmission_) {
             // Packet already in pacer queue, ignore this request.
-            callback(nullptr);
+            return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
         if (!VerifyRtt(*stored_packet, clock_->TimeInMs())) {
             // Packet already resent within too short a time window, ignore.
-            callback(nullptr);
+            return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
         // Copy and/or encapsulate packet.
@@ -236,7 +232,7 @@ void RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number,
             stored_packet->pending_transmission_ = true;
         }
 
-        callback(encapsulated_packet);
+        return encapsulated_packet;
     });
 }
 
@@ -264,42 +260,41 @@ void RtpPacketHistory::MarkPacketAsSent(uint16_t sequence_number) {
     });
 }
 
-void RtpPacketHistory::GetPacketState(uint16_t sequence_number, std::function<void(std::optional<PacketState>)> callback) const {
-    task_queue_->Async([this, sequence_number, callback](){
+std::optional<RtpPacketHistory::PacketState> RtpPacketHistory::GetPacketState(uint16_t sequence_number) const {
+    return task_queue_->Sync<std::optional<RtpPacketHistory::PacketState>>([this, sequence_number](){
           if (mode_ == StorageMode::DISABLE) {
-            callback(std::nullopt);
+            return std::optional<PacketState>(std::nullopt);
         }
 
         int packet_index = GetPacketIndex(sequence_number);
         if (packet_index < 0 ||
             static_cast<size_t>(packet_index) >= packet_history_.size()) {
-            callback(std::nullopt);
+            return std::optional<PacketState>(std::nullopt);
         }
         const StoredPacket& stored_packet = packet_history_[packet_index];
         if (stored_packet.packet_ == nullptr) {
-            callback(std::nullopt);
+            return std::optional<PacketState>(std::nullopt);
         }
 
         if (!VerifyRtt(stored_packet, clock_->TimeInMs())) {
-            callback(std::nullopt);
+            return std::optional<PacketState>(std::nullopt);
         }
 
-        callback(StoredPacketToPacketState(stored_packet));
+        return std::make_optional<PacketState>(StoredPacketToPacketState(stored_packet));
     });
 }
 
-void RtpPacketHistory::GetPayloadPaddingPacket(std::function<void(std::shared_ptr<RtpPacketToSend>)> callback) {
+std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket() {
     GetPayloadPaddingPacket([](const RtpPacketToSend& packet){
         return std::make_unique<RtpPacketToSend>(packet);
-    }, callback);
+    });
 }
 
-void RtpPacketHistory::GetPayloadPaddingPacket(
-        std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate, 
-        std::function<void(std::shared_ptr<RtpPacketToSend>)> callback) {
-    task_queue_->Async([this, encapsulate, callback](){
+std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket(
+        std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate) {
+    task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, encapsulate](){
         if (mode_ == StorageMode::DISABLE) {
-            callback(nullptr);
+            return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
         StoredPacket* best_packet = nullptr;
@@ -316,7 +311,7 @@ void RtpPacketHistory::GetPayloadPaddingPacket(
             }
         }
         if (best_packet == nullptr) {
-            callback(nullptr);
+            return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
         if (best_packet->pending_transmission_) {
@@ -325,18 +320,18 @@ void RtpPacketHistory::GetPayloadPaddingPacket(
             // packet ends up here instead of the regular transmit path. In such a
             // case, just return empty and it will be picked up on the next
             // Process() call.
-            callback(nullptr);
+            return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
         auto padding_packet = encapsulate(*best_packet->packet_);
         if (!padding_packet) {
-            callback(nullptr);
+            return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
         best_packet->send_time_ms_ = clock_->TimeInMs();
         best_packet->IncrementTimesRetransmitted(enable_padding_prio_ ? &padding_priority_ : nullptr);
 
-        callback(padding_packet);
+        return padding_packet;
     });
 }
 

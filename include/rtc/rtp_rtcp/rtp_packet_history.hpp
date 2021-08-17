@@ -73,22 +73,21 @@ public:
 
     // Gets stored RTP packet corresponding to the input |sequence number|.
     // Returns nullptr if packet is not found or was (re)sent too recently.
-    void GetPacketAndSetSendTime(uint16_t sequence_number, std::function<void(std::shared_ptr<RtpPacketToSend>)> callback);
+    std::shared_ptr<RtpPacketToSend> GetPacketAndSetSendTime(uint16_t sequence_number);
 
     // Gets stored RTP packet corresponding to the input |sequence number|.
     // Returns nullptr if packet is not found or was (re)sent too recently.
     // If a packet copy is returned, it will be marked as pending transmission but
     // does not update send time, that must be done by MarkPacketAsSent().
-    void GetPacketAndMarkAsPending(uint16_t sequence_number, std::function<void(std::shared_ptr<RtpPacketToSend>)> callback);
+    std::shared_ptr<RtpPacketToSend> GetPacketAndMarkAsPending(uint16_t sequence_number);
 
     // In addition to getting packet and marking as sent, this method takes an
     // encapsulator function that takes a reference to the packet and outputs a
     // copy that may be wrapped in a container, eg RTX.
     // If the the encapsulator returns nullptr, the retransmit is aborted and the
     // packet will not be marked as pending.
-    void GetPacketAndMarkAsPending(uint16_t sequence_number, 
-            std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate,
-            std::function<void(std::shared_ptr<RtpPacketToSend>)> callback);
+    std::shared_ptr<RtpPacketToSend> GetPacketAndMarkAsPending(uint16_t sequence_number, 
+            std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate);
 
     // Updates the send time for the given packet and increments the transmission
     // counter. Marks the packet as no longer being in the pacer queue.
@@ -96,20 +95,19 @@ public:
 
     // Similar to GetPacketAndSetSendTime(), but only returns a snapshot of the
     // current state for packet, and never updates internal state.
-    void GetPacketState(uint16_t sequence_number, std::function<void(std::optional<PacketState>)> callback) const;
+    std::optional<PacketState> GetPacketState(uint16_t sequence_number) const;
 
     // Get the packet (if any) from the history, that is deemed most likely to
     // the remote side. This is calculated from heuristics such as packet age
     // and times retransmitted. Updated the send time of the packet, so is not
     // a const method.
-    void GetPayloadPaddingPacket(std::function<void(std::shared_ptr<RtpPacketToSend>)> callback);
+    std::shared_ptr<RtpPacketToSend> GetPayloadPaddingPacket();
 
     // Same as GetPayloadPaddingPacket(void), but adds an encapsulation
     // that can be used for instance to encapsulate the packet in an RTX
     // container, or to abort getting the packet if the function returns
     // nullptr.
-    void GetPayloadPaddingPacket(std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate, 
-                                 std::function<void(std::shared_ptr<RtpPacketToSend>)> callback);
+    std::shared_ptr<RtpPacketToSend> GetPayloadPaddingPacket(std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate);
 
     // Cull packets that have been acknowledged as received by the remote end.
     void CullAcknowledgedPackets(std::vector<const uint16_t> sequence_numbers);
