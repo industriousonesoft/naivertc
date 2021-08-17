@@ -29,12 +29,10 @@ public:
         COMPLETED
     };
 
-    using AddressCallback = std::function<void(std::optional<std::string>)>;
-    using SelectedCandidatePairCallback = std::function<void(std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>>)>;
+    using CandidatePair = std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>>;
 
     using GatheringStateChangedCallback = std::function<void(GatheringState)>;
     using CandidateGatheredCallback = std::function<void(sdp::Candidate)>;
-
     using RoleChangedCallback = std::function<void(sdp::Role)>;
 
 public:
@@ -80,9 +78,9 @@ public:
     Description GetLocalDescription(sdp::Type type) const;
     void SetRemoteDescription(const Description remote_sdp);
 
-    void GetLocalAddress(AddressCallback callback) const;
-    void GetRemoteAddress(AddressCallback callback) const;
-    void GetSelectedCandidatePair(SelectedCandidatePairCallback callback) const;
+    std::optional<std::string> GetLocalAddress() const;
+    std::optional<std::string> GetRemoteAddress() const;
+    CandidatePair GetSelectedCandidatePair() const;
 
     void OnGatheringStateChanged(GatheringStateChangedCallback callback);
     void OnCandidateGathered(CandidateGatheredCallback callback);

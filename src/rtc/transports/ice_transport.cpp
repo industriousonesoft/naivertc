@@ -145,43 +145,39 @@ void IceTransport::AddRemoteCandidate(const sdp::Candidate candidate) {
     });
 }
 
-void IceTransport::GetLocalAddress(AddressCallback callback) const {
-    task_queue_->Async([this, callback](){
+std::optional<std::string> IceTransport::GetLocalAddress() const {
+    return task_queue_->Sync<std::optional<std::string>>([this](){
     #if !USE_NICE
         char buffer[JUICE_MAX_ADDRESS_STRING_LEN];
         if (juice_get_selected_addresses(juice_agent_.get(), buffer, JUICE_MAX_ADDRESS_STRING_LEN, NULL, 0) == 0) {
-            callback(std::make_optional(std::string(buffer)));
-            return;
+            return std::make_optional(std::string(buffer));
         }
     #else
         NiceCandidate* local = nullptr;
         NiceCandidate* remote = nullptr;
         if (nice_agent_get_selected_pair(nice_agent_.get(), stream_id_, component_id_, &local, &remote)) {
-            callback(std::make_optional(NiceAddressToString(local->addr)));
-            return;
+            return std::make_optional(NiceAddressToString(local->addr));
         }
     #endif
-        callback(std::nullopt);
+        return std::optional<std::string>(std::nullopt);
     });
 }
 
-void IceTransport::GetRemoteAddress(AddressCallback callback) const {
-    task_queue_->Async([this, callback](){
+std::optional<std::string> IceTransport::GetRemoteAddress() const {
+    return task_queue_->Sync<std::optional<std::string>>([this](){
     #if !USE_NICE
         char buffer[JUICE_MAX_ADDRESS_STRING_LEN];
         if (juice_get_selected_addresses(juice_agent_.get(), NULL, 0, buffer, JUICE_MAX_ADDRESS_STRING_LEN) == 0) {
-            callback(std::make_optional(std::string(buffer)));
-            return;
+            return std::make_optional(std::string(buffer));
         }
     #else 
         NiceCandidate* local = nullptr;
         NiceCandidate* remote = nullptr;
         if (nice_agent_get_selected_pair(nice_agent_.get(), stream_id_, component_id_, &local, &remote)) {
-            callback(std::make_optional(NiceAddressToString(remote->addr)));
-            return;
+            return std::make_optional(NiceAddressToString(remote->addr));
         }
     #endif
-        callback(std::nullopt);
+        return std::optional<std::string>(std::nullopt);
     });
 }
 
@@ -236,8 +232,8 @@ void IceTransport::SetRemoteDescription(const Description remote_sdp) {
     });
 }
 
-void IceTransport::GetSelectedCandidatePair(SelectedCandidatePairCallback callback) const {
-    task_queue_->Async([this, callback](){
+IceTransport::CandidatePair IceTransport::GetSelectedCandidatePair() const {
+    return task_queue_->Sync<CandidatePair>([this](){
         std::optional<sdp::Candidate> selected_local_candidate = std::nullopt;
         std::optional<sdp::Candidate> selected_remote_candidate = std::nullopt;
     #if !USE_NICE
@@ -256,8 +252,7 @@ void IceTransport::GetSelectedCandidatePair(SelectedCandidatePairCallback callba
     #else
         NiceCandidate *nice_local_candidate, *nice_remote_candidate;
         if (!nice_agent_get_selected_pair(nice_agent_.get(), stream_id_, component_id_, &nice_local_candidate, &nice_remote_candidate)) {
-            callback(std::make_pair(std::nullopt, std::nullopt));
-            return;
+            return std::make_pair(selected_local_candidate, selected_remote_candidate);
         }
         gchar* local_candidate_sdp = nice_agent_generate_local_candidate_sdp(nice_agent_.get(), nice_local_candidate);
         if (local_candidate_sdp) {
@@ -277,7 +272,7 @@ void IceTransport::GetSelectedCandidatePair(SelectedCandidatePairCallback callba
         g_free(remote_candidate_sdp);
 
     #endif
-        callback(std::make_pair(selected_local_candidate, selected_remote_candidate));
+        return std::make_pair(selected_local_candidate, selected_remote_candidate);
     });
 }
 
