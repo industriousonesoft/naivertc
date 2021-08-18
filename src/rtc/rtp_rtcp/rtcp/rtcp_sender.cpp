@@ -4,9 +4,6 @@
 
 namespace naivertc {
 namespace {
-const uint32_t kRtcpAnyExtendedReports = RtcpPacketType::XR_RECEIVER_REFERENCE_TIME |
-                                         RtcpPacketType::XR_DLRR_REPORT_BLOCK |
-                                         RtcpPacketType::XR_TARGET_BITRATE;
 
 constexpr int32_t kDefaultVideoReportInterval = 1000; // 1s
 constexpr int32_t kDefaultAudioReportInterval = 5000; // 5s
@@ -194,19 +191,15 @@ void RtcpSender::SetNextRtcpSendEvaluationDuration(TimeDelta duration) {
     next_time_to_send_rtcp_ = clock_->CurrentTime() + duration;
 }
 
-void RtcpSender::SetFlag(uint32_t type, bool is_volatile) {
-    if (type & kRtcpAnyExtendedReports) {
-        report_flags_.insert(ReportFlag(kRtcpAnyExtendedReports, is_volatile));
-    } else {
-        report_flags_.insert(ReportFlag(type, is_volatile));
-    }
+void RtcpSender::SetFlag(RtcpPacketType type, bool is_volatile) {
+    report_flags_.insert(ReportFlag(type, is_volatile));
 }
 
-bool RtcpSender::IsFlagPresent(uint32_t type) const {
+bool RtcpSender::IsFlagPresent(RtcpPacketType type) const {
     return report_flags_.find(ReportFlag(type, false)) != report_flags_.end();
 }
 
-bool RtcpSender::ConsumeFlag(uint32_t type, bool forced) {
+bool RtcpSender::ConsumeFlag(RtcpPacketType type, bool forced) {
     auto it = report_flags_.find(ReportFlag(type, false));
     if (it == report_flags_.end())
         return false;

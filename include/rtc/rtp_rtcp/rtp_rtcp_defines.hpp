@@ -19,6 +19,8 @@ const int kVideoPayloadTypeFrequency = 90000;
 // updated to correctly set rtp rate for RtcpSender.
 const int kBogusRtpRateForAudioRtcp = 8000;
 
+const size_t kRtxHeaderSize = 2;
+
 // RtpPacket media types.
 enum class RtpPacketMediaType : size_t {
     AUDIO = 0,                     // Audio media packets.
@@ -29,7 +31,7 @@ enum class RtpPacketMediaType : size_t {
 };
 
 // Rtcp packet type
-enum RtcpPacketType : uint32_t {
+enum class RtcpPacketType : uint32_t {
     REPORT = 0x0001,
     SR = 0x0002,
     RR = 0x0004,
@@ -51,7 +53,7 @@ enum RtcpPacketType : uint32_t {
 };
 
 // Rtx mode
-enum RtxMode : size_t {
+enum class RtxMode : size_t {
     OFF = 0x0,
     RETRANSMITTED = 0x1,     // Only send retransmissions over RTX.
     REDUNDANT_PAYLOADS = 0x2  // Preventively send redundant payloads instead of padding.

@@ -143,6 +143,25 @@ void RtpPacket::set_payload(const uint8_t* buffer, size_t size) {
     set_payload(std::move(raw_payload));
 }
 
+uint8_t* RtpPacket::SetPayloadSize(size_t size) {
+    if (padding_size_ > 0) {
+        PLOG_WARNING << "Failed to reset payload size when padding size is set.";
+        return nullptr;
+    }
+    if (payload_offset_ + size > capacity()) {
+        PLOG_WARNING << "Failed to reset payload size, not enough space in buffer.";
+        return nullptr;
+    }
+    payload_size_ = size;
+    BinaryBuffer::resize(payload_offset_ + payload_size_);
+    return WriteAt(payload_offset_);
+}
+
+uint8_t* RtpPacket::AllocatePayload(size_t size) {
+    SetPayloadSize(0);
+    return SetPayloadSize(size);
+}
+
 // Write csrc list, Assumes:
 // a) There is enough room left in buffer.
 // b) Extension headers, payload or padding data has not already been added.

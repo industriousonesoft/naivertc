@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtp/rtp_sender.hpp"
 #include "common/utils_random.hpp"
+#include "rtc/base/byte_io_writer.hpp"
 
 #include <plog/Log.h>
 
@@ -201,7 +202,20 @@ std::shared_ptr<RtpPacketToSend> RtpSender::BuildRtxPacket(const RtpPacketToSend
     // Replace sequence number.
     sequencer_.Sequence(*rtx_packet);
 
-    // TODO: Copy header and extensions to RTX packet
+    CopyHeaderAndExtensionsToRtxPacket(packet, rtx_packet.get());
+
+    uint8_t* rtx_payload = rtx_packet->AllocatePayload(packet.payload_size() + kRtxHeaderSize);
+
+    // Add original sequence number
+    ByteWriter<uint16_t>::WriteBigEndian(rtx_payload, packet.sequence_number());
+
+    // Copy original payload data
+    memcpy(rtx_payload + kRtxHeaderSize, packet.payload_data(), packet.payload_size());
+
+    // TODO: To set addtional data if necessary
+
+    // FIXME: Copy capture time so e.g. TransmissionOffset is correctly set. Why?
+    rtx_packet->set_capture_time_ms(packet.capture_time_ms());
     
     return rtx_packet;
 }
@@ -209,6 +223,24 @@ std::shared_ptr<RtpPacketToSend> RtpSender::BuildRtxPacket(const RtpPacketToSend
 void RtpSender::UpdateHeaderSizes() {
     const size_t rtp_header_size = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
     // TODO: To update size of RTP header with extensions
+}
+
+void RtpSender::CopyHeaderAndExtensionsToRtxPacket(const RtpPacketToSend& packet, RtpPacketToSend* rtx_packet) {
+    // Set the relevant fixed fields in the packet headers.
+    // The following are not set:
+    // - Payload type: it is replaced in RTX packet.
+    // - Sequence number: RTX has a seperate sequence numbering.
+    // - SSRC: RTX stream has its own SSRC
+    rtx_packet->set_marker(packet.marker());
+    rtx_packet->set_timestamp(packet.timestamp());
+
+    // Set the variable fields in the packet header
+    // - CSRCs: must be set before header extensions
+    // - Header extensions: repalce Rid header with RepairedRid header
+    const std::vector<uint32_t> csrcs = packet.csrcs();
+    rtx_packet->SetCsrcs(csrcs);
+
+    // TODO: Copy header extensions
 }
  
 } // namespace naivertc

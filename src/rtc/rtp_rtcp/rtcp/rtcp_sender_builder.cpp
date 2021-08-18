@@ -65,7 +65,7 @@ bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
     auto it = report_flags_.begin();
     while (it != report_flags_.end()) {
 
-        uint32_t rtcp_packet_type = it->type;
+        RtcpPacketType rtcp_packet_type = it->type;
 
         if (it->is_volatile) {
             report_flags_.erase(it++);
@@ -83,7 +83,7 @@ bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
         auto builder_it = builders_.find(rtcp_packet_type);
         if (builder_it == builders_.end()) {
             PLOG_WARNING << "Could not find builder for packet type "
-                         << rtcp_packet_type;
+                         << uint32_t(rtcp_packet_type);
             continue;
         } else {
             BuilderFunc func = builder_it->second;

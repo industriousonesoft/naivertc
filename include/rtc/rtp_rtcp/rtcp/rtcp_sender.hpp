@@ -145,12 +145,12 @@ private:
 
     // Report flag
     struct ReportFlag {
-        ReportFlag(uint32_t type, bool is_volatile) 
+        ReportFlag(RtcpPacketType type, bool is_volatile) 
             : type(type), is_volatile(is_volatile) {}
 
         bool operator<(const ReportFlag& flag) const { return type < flag.type; };
         bool operator=(const ReportFlag& flag) const { return type == flag.type; }
-        const uint32_t type;
+        const RtcpPacketType type;
         const bool is_volatile;
     };
 
@@ -180,9 +180,9 @@ private:
     // |duration| being TimeDelta::Zero() means schedule immediately.
     void SetNextRtcpSendEvaluationDuration(TimeDelta duration);
 
-    void SetFlag(uint32_t type, bool is_volatile);
-    bool IsFlagPresent(uint32_t type) const;
-    bool ConsumeFlag(uint32_t type, bool forced = false);
+    void SetFlag(RtcpPacketType type, bool is_volatile);
+    bool IsFlagPresent(RtcpPacketType type) const;
+    bool ConsumeFlag(RtcpPacketType type, bool forced = false);
     bool AllVolatileFlagsConsumed() const;
 
 private:
@@ -222,7 +222,7 @@ private:
 
     typedef void (RtcpSender::*BuilderFunc)(const RtcpContext&, PacketSender&);
     // Map from RTCPPacketType to builder.
-    std::map<uint32_t, BuilderFunc> builders_;
+    std::map<RtcpPacketType, BuilderFunc> builders_;
 };
     
 } // namespace naivert 

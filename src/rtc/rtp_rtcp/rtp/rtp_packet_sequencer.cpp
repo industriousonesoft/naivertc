@@ -81,7 +81,7 @@ void RtpPacketSequencer::UpdateLastPacketState(const RtpPacketToSend& packet) {
     // is disabled.
     if (packet.is_red()) {
         assert(packet.payload_size() >= kRedForFecHeaderLength);
-        last_payload_type_ = packet.Payload()[0];
+        last_payload_type_ = packet.payload_data()[0];
     }else {
         last_payload_type_ = packet.payload_type();
     }

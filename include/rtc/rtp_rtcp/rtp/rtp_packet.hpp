@@ -37,8 +37,11 @@ public:
 
     size_t header_size() const { return payload_offset_; }
     // Payload
+    const uint8_t* payload_data() const {
+        return &(BinaryBuffer::at(payload_offset_));
+    }
     size_t payload_size() const { return payload_size_; }
-    BinaryBuffer Payload() const {
+    BinaryBuffer PayloadBuffer() const {
         auto paylaod_begin = begin() + payload_offset_;
         return BinaryBuffer(paylaod_begin, paylaod_begin + payload_size_);
     }
@@ -65,6 +68,11 @@ public:
     void SetCsrcs(std::vector<uint32_t> csrcs);
     void CopyHeaderFrom(const RtpPacket& other);
     bool SetPadding(uint8_t padding_size);
+
+    // Reserve size_bytes for payload. Returns nullptr on failure.
+    uint8_t* SetPayloadSize(size_t size);
+    // Same as SetPayloadSize but doesn't guarantee to keep current payload.
+    uint8_t* AllocatePayload(size_t size);
     
     // Helper function for Parse. Fill header fields using data in given buffer,
     // but does not touch packet own buffer, leaving packet in invalid state.

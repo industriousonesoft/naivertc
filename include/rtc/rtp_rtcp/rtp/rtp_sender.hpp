@@ -48,6 +48,8 @@ private:
 
     void UpdateHeaderSizes();
 
+    static void CopyHeaderAndExtensionsToRtxPacket(const RtpPacketToSend& packet, RtpPacketToSend* rtx_packet);
+
 private:
     std::shared_ptr<TaskQueue> task_queue_;
     Clock* const clock_;
