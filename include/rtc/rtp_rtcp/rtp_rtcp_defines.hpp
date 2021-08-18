@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_DEFINES_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/rtcp_packet.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packet.hpp"
 
 #include <list>
 #include <vector>

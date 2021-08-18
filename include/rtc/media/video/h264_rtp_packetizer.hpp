@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/media/video/h264/common.hpp"
-#include "rtc/rtp_rtcp/rtp_packetizer.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packetizer.hpp"
 
 #include <vector>
 

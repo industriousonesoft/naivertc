@@ -93,43 +93,43 @@ set(LIB_SOURCES
     src/rtc/channels/data_channel_message.cpp
     src/rtc/channels/media_channel.cpp
     # rtc -> rtp_rtcp
-    src/rtc/rtp_rtcp/rtp_packet.cpp
-    src/rtc/rtp_rtcp/rtcp_packet.cpp
-    src/rtc/rtp_rtcp/rtp_packetization_config.cpp
-    src/rtc/rtp_rtcp/rtp_packetizer.cpp
-    src/rtc/rtp_rtcp/rtp_packet_to_send.cpp
-    src/rtc/rtp_rtcp/rtp_packet_history.cpp
-    src/rtc/rtp_rtcp/rtcp_sender.cpp
-    src/rtc/rtp_rtcp/rtcp_sender_builder.cpp
-    src/rtc/rtp_rtcp/rtcp_sender_auxiliaries.cpp
-    src/rtc/rtp_rtcp/rtcp_receiver.cpp
-    src/rtc/rtp_rtcp/rtcp_receiver_parser.cpp
-    src/rtc/rtp_rtcp/report_block_data.cpp
-    src/rtc/rtp_rtcp/rtcp_nack_stats.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packet.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_sender.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_sender_builder.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_sender_auxiliaries.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_receiver.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
+    src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_packet.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_packetization_config.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_packetizer.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_packet_to_send.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_packet_history.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_sender.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtcp.cpp
-    src/rtc/rtp_rtcp/rtp_sender.cpp
-    src/rtc/rtp_rtcp/rtp_packet_sequencer.cpp
     # rtc -> rtp_rtcp -> rtcp_packets
-    src/rtc/rtp_rtcp/rtcp_packets/compound_packet.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/common_header.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/report_block.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/sender_report.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/rtp_feedback.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/sdes.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/receiver_report.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/remb.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/psfb.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/pli.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/fir.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/nack.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/loss_notification.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/tmmb_item.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/tmmbr.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/tmmbn.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/bye.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/dlrr.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/compound_packet.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/report_block.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/sender_report.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/rtp_feedback.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/sdes.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/receiver_report.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/remb.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/psfb.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/pli.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/fir.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/nack.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/loss_notification.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmb_item.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbr.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/bye.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.cpp
     # rtc -> media
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
@@ -214,41 +214,41 @@ set(LIB_HEADERS
     include/rtc/channels/data_channel.hpp
     include/rtc/channels/media_channel.hpp
     # rtc -> rtp_rtcp
-    include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
-    include/rtc/rtp_rtcp/rtp_packet.hpp
-    include/rtc/rtp_rtcp/rtcp_packet.hpp
-    include/rtc/rtp_rtcp/rtp_packetization_config.hpp
-    include/rtc/rtp_rtcp/rtp_packetizer.hpp
-    include/rtc/rtp_rtcp/rtp_packet_to_send.hpp
-    include/rtc/rtp_rtcp/rtp_packet_history.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packet.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_sender.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp
+    include/rtc/rtp_rtcp/rtcp/report_block_data.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packet.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packetization_config.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packetizer.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packet_to_send.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packet_history.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_sender.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
-    include/rtc/rtp_rtcp/rtcp_sender.hpp
-    include/rtc/rtp_rtcp/rtcp_receiver.hpp
-    include/rtc/rtp_rtcp/report_block_data.hpp
-    include/rtc/rtp_rtcp/rtcp_nack_stats.hpp
+    include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_impl.hpp
-    include/rtc/rtp_rtcp/rtp_packet_sender.hpp
-    include/rtc/rtp_rtcp/rtp_sender.hpp
-    include/rtc/rtp_rtcp/rtp_packet_sequencer.hpp
     # rtc -> rtp_rtcp -> rtcp_packets
-    include/rtc/rtp_rtcp/rtcp_packets/compound_packet.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/common_header.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/report_block.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/sender_report.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/rtp_feedback.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/sdes.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/receiver_report.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/remb.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/psfb.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/pli.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/fir.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/nack.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/loss_notification.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/tmmb_item.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/tmmbr.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/tmmbn.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/bye.hpp
-    include/rtc/rtp_rtcp/rtcp_packets/dlrr.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/compound_packet.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/report_block.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/sender_report.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/rtp_feedback.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/sdes.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/receiver_report.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/remb.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/psfb.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/pli.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/fir.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/nack.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/loss_notification.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmb_item.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbr.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/bye.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.hpp
     # rtc -> media
     include/rtc/media/media_track.hpp
     include/rtc/media/video/h264/nalunit.hpp
@@ -356,23 +356,23 @@ set(TEST_SOURCES
 
     src/rtc/pc/peer_connection_configuration_unittest.cpp
     
-    src/rtc/rtp_rtcp/rtp_packet_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_nack_stats_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_packet_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp
 
-    src/rtc/rtp_rtcp/rtcp_packets/common_header_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/report_block_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/sender_report_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/sdes_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/receiver_report_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/remb_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/pli_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/fir_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/nack_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/loss_notification_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/tmmbr_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/tmmbn_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/bye_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp_packets/dlrr_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/report_block_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/sender_report_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/sdes_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/receiver_report_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/remb_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/pli_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/fir_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/nack_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/loss_notification_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbr_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/bye_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr_unittest.cpp
 
     src/rtc/transports/ice_transport_description_unittest.cpp
 

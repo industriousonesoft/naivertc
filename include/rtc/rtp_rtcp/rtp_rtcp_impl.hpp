@@ -4,8 +4,8 @@
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
-#include "rtc/rtp_rtcp/rtcp_sender.hpp"
-#include "rtc/rtp_rtcp/rtcp_receiver.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_sender.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
 
 namespace naivertc {
 

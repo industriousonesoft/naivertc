@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/transports/dtls_transport.hpp"
-#include "rtc/rtp_rtcp/rtp_packet.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet.hpp"
 
 #include <srtp.h>
 
