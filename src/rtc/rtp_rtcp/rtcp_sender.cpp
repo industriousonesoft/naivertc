@@ -4,9 +4,9 @@
 
 namespace naivertc {
 namespace {
-const uint32_t kRtcpAnyExtendedReports = kRtcpXrReceiverReferenceTime |
-                                         kRtcpXrDlrrReportBlock |
-                                         kRtcpXrTargetBitrate;
+const uint32_t kRtcpAnyExtendedReports = RtcpPacketType::XR_RECEIVER_REFERENCE_TIME |
+                                         RtcpPacketType::XR_DLRR_REPORT_BLOCK |
+                                         RtcpPacketType::XR_TARGET_BITRATE;
 
 constexpr int32_t kDefaultVideoReportInterval = 1000; // 1s
 constexpr int32_t kDefaultAudioReportInterval = 5000; // 5s
@@ -120,14 +120,28 @@ void RtcpSender::SetRemb(uint64_t bitrate_bps, std::vector<uint32_t> ssrcs) {
         this->remb_bitrate_ = bitrate_bps;
         this->remb_ssrcs_ = std::move(ssrcs);
 
-        this->SetFlag(kRtcpRemb, false);
+        this->SetFlag(RtcpPacketType::REMB, false);
         // Send a REMB immediately if we have a new REMB. The frequency of REMBs is
         // throttled by the caller.
         this->SetNextRtcpSendEvaluationDuration(TimeDelta::Zero());
     });
 }
 
-bool RtcpSender::SendRTCP(const FeedbackState& feedback_state,
+bool RtcpSender::TimeToSendRtcpReport(bool send_rtcp_before_key_frame) {
+    // RTCP Transmission Interval: https://datatracker.ietf.org/doc/html/rfc3550#section-6.2
+    return task_queue_->Sync<bool>([this, send_rtcp_before_key_frame](){
+        Timestamp now = clock_->CurrentTime();
+        if (!audio_ && send_rtcp_before_key_frame) {
+            // for video key-frames we want to send the RTCP before the large key-frame
+            // if we have a 100 ms margin
+            now += TimeDelta::Millis(100);
+        }
+        return now >= next_time_to_send_rtcp_.value();
+    });
+
+}
+
+bool RtcpSender::SendRtcp(const FeedbackState& feedback_state,
                           RtcpPacketType packet_type,
                           const std::vector<uint16_t> nackList) {
     return task_queue_->Sync<bool>([=, nackList=std::move(nackList),&feedback_state](){
@@ -159,7 +173,7 @@ bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
             return false;
         }
 
-        this->SetFlag(kRtcpLossNotification, true);
+        this->SetFlag(RtcpPacketType::LOSS_NOTIFICATION, true);
 
         // The loss notification will be batched with additional feedback messages.
         if (buffering_allowed) {
@@ -167,7 +181,7 @@ bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
         }
 
         PacketSender sender(callback, max_packet_size_);
-        bRet = ComputeCompoundRtcpPacket(feedback_state, RtcpPacketType::kRtcpLossNotification, {}, sender);
+        bRet = ComputeCompoundRtcpPacket(feedback_state, RtcpPacketType::LOSS_NOTIFICATION, {}, sender);
         if (bRet) {
             sender.Send();
         }

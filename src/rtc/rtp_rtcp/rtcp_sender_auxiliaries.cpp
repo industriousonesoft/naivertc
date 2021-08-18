@@ -2,6 +2,18 @@
 
 namespace naivertc {
 
+RtcpSender::Configuration RtcpSender::Configuration::FromRtpRtcpConfiguration(const RtpRtcpInterface::Configuration& config) {
+    RtcpSender::Configuration sender_config;
+
+    sender_config.audio = config.audio;
+    sender_config.local_media_ssrc = config.local_media_ssrc;
+    sender_config.clock = config.clock;
+    if (config.rtcp_report_interval_ms > 0) {
+        sender_config.rtcp_report_interval = TimeDelta::Millis(config.rtcp_report_interval_ms);
+    }
+    return sender_config;
+}
+
 // RtcpContext
 RtcpSender::RtcpContext::RtcpContext(const RtcpSender::FeedbackState& feedback_state,
                                      const std::vector<uint16_t> nack_list,
@@ -38,8 +50,7 @@ RtcpSender::FeedbackState::FeedbackState()
       send_bitrate(0),
       last_rr_ntp_secs(0),
       last_rr_ntp_frac(0),
-      remote_sr(0),
-      receiver(nullptr) {}
+      remote_sr(0){}
 
 RtcpSender::FeedbackState::FeedbackState(const FeedbackState&) = default;
 

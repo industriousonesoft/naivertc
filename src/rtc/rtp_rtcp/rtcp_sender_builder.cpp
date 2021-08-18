@@ -1,7 +1,7 @@
 #include "rtc/rtp_rtcp/rtcp_sender.hpp"
 #include "common/utils_random.hpp"
 #include "common/utils_numeric.hpp"
-#include "rtc/rtp_rtcp/time_util.hpp"
+#include "rtc/base/ntp_time_util.hpp"
 #include "rtc/rtp_rtcp/rtcp_packets/sender_report.hpp"
 #include "rtc/rtp_rtcp/rtcp_packets/receiver_report.hpp"
 #include "rtc/rtp_rtcp/rtcp_packets/sdes.hpp"
@@ -19,17 +19,17 @@ namespace naivertc {
 
 // Private methods
 void RtcpSender::InitBuilders() {
-    builders_[kRtcpSr] = &RtcpSender::BuildSR;
-    builders_[kRtcpRr] = &RtcpSender::BuildRR;
-    builders_[kRtcpSdes] = &RtcpSender::BuildSDES;
-    builders_[kRtcpPli] = &RtcpSender::BuildPLI;
-    builders_[kRtcpFir] = &RtcpSender::BuildFIR;
-    builders_[kRtcpRemb] = &RtcpSender::BuildREMB;
-    builders_[kRtcpBye] = &RtcpSender::BuildBYE;
-    builders_[kRtcpLossNotification] = &RtcpSender::BuildLossNotification;
-    builders_[kRtcpTmmbr] = &RtcpSender::BuildTMMBR;
-    builders_[kRtcpTmmbn] = &RtcpSender::BuildTMMBN;
-    builders_[kRtcpNack] = &RtcpSender::BuildNACK;
+    builders_[RtcpPacketType::SR] = &RtcpSender::BuildSR;
+    builders_[RtcpPacketType::RR] = &RtcpSender::BuildRR;
+    builders_[RtcpPacketType::SDES] = &RtcpSender::BuildSDES;
+    builders_[RtcpPacketType::PLI] = &RtcpSender::BuildPLI;
+    builders_[RtcpPacketType::FIR] = &RtcpSender::BuildFIR;
+    builders_[RtcpPacketType::REMB] = &RtcpSender::BuildREMB;
+    builders_[RtcpPacketType::BYE] = &RtcpSender::BuildBYE;
+    builders_[RtcpPacketType::LOSS_NOTIFICATION] = &RtcpSender::BuildLossNotification;
+    builders_[RtcpPacketType::TMMBR] = &RtcpSender::BuildTMMBR;
+    builders_[RtcpPacketType::TMMBN] = &RtcpSender::BuildTMMBN;
+    builders_[RtcpPacketType::NACK] = &RtcpSender::BuildNACK;
 }
 
 bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
@@ -43,8 +43,8 @@ bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
     // Prevent sending streams to send SR before any media has been sent.
     const bool can_calculate_rtp_timestamp = last_frame_capture_time_.has_value();
     if (!can_calculate_rtp_timestamp) {
-        bool consumed_sr_flag = ConsumeFlag(kRtcpSr);
-        bool consumed_report_flag = sending_ && ConsumeFlag(kRtcpReport);
+        bool consumed_sr_flag = ConsumeFlag(RtcpPacketType::SR);
+        bool consumed_report_flag = sending_ && ConsumeFlag(RtcpPacketType::REPORT);
         bool sender_report = consumed_report_flag || consumed_sr_flag;
         // This call was for Sender Report and nothing else.
         if (sender_report && AllVolatileFlagsConsumed()) {
@@ -75,7 +75,7 @@ bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
 
         // If there is a BYE, don't append now - save it and append it
         // at the end later.
-        if (rtcp_packet_type == kRtcpBye) {
+        if (rtcp_packet_type == RtcpPacketType::BYE) {
             create_bye = true;
             continue;
         }
@@ -101,12 +101,12 @@ bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
 
 void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
     // Rtcp Mode: Compund
-    if (!IsFlagPresent(kRtcpSr) && !IsFlagPresent(kRtcpRr)) {
-        SetFlag(sending_ ? kRtcpSr : kRtcpRr, true);
+    if (!IsFlagPresent(RtcpPacketType::SR) && !IsFlagPresent(RtcpPacketType::RR)) {
+        SetFlag(sending_ ? RtcpPacketType::SR : RtcpPacketType::RR, true);
     }
 
-    if (IsFlagPresent(kRtcpSr) || (IsFlagPresent(kRtcpRr) && !cname_.empty())) {
-        SetFlag(kRtcpSdes, true);
+    if (IsFlagPresent(RtcpPacketType::SR) || (IsFlagPresent(RtcpPacketType::RR) && !cname_.empty())) {
+        SetFlag(RtcpPacketType::SDES, true);
     }
 
     TimeDelta min_interval = report_interval_;
@@ -135,7 +135,7 @@ void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
 
     // RtcpSender expected to be used for sending either just sender reports
     // or just receiver reports.
-    assert(!(IsFlagPresent(kRtcpSr) && IsFlagPresent(kRtcpRr)));
+    assert(!(IsFlagPresent(RtcpPacketType::SR) && IsFlagPresent(RtcpPacketType::RR)));
 }
 
 std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const FeedbackState& feedback_state) {

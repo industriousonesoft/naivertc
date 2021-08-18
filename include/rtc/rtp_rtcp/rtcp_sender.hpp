@@ -7,6 +7,7 @@
 #include "rtc/base/time_delta.hpp"
 #include "rtc/base/timestamp.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
 #include "rtc/rtp_rtcp/rtcp_packet.hpp"
 #include "rtc/rtp_rtcp/rtcp_nack_stats.hpp"
 #include "rtc/rtp_rtcp/rtcp_packets/dlrr.hpp"
@@ -22,12 +23,13 @@
 
 namespace naivertc {
 
-class RtcpReceiver;
-
 class RTC_CPP_EXPORT RtcpSender final {
 public:
     // Configuration
     struct Configuration {
+        // Static helper
+        static Configuration FromRtpRtcpConfiguration(const RtpRtcpInterface::Configuration& config);
+
         // True for a audio version of the RTP/RTCP module object false will create
         // a video version.
         bool audio = false;
@@ -38,6 +40,13 @@ public:
 
         // The clock to use to read time. If nullptr then system clock will be used.
         Clock* clock = nullptr;
+
+        // Optional callback which, if specified, is used by RTCPSender to schedule
+        // the next time to evaluate if RTCP should be sent by means of
+        // TimeToSendRTCPReport/SendRTCP.
+        // The RTCPSender client still needs to call TimeToSendRTCPReport/SendRTCP
+        // to actually get RTCP sent.
+        std::function<void(TimeDelta)> schedule_next_rtcp_send_evaluation_function;
 
         std::optional<TimeDelta> rtcp_report_interval;
     };
@@ -59,9 +68,6 @@ public:
         uint32_t remote_sr;
 
         std::vector<rtcp::ReceiveTimeInfo> last_xr_rtis;
-
-        // Used when generating TMMBR.
-        RtcpReceiver* receiver;
    };
 public:
     RtcpSender(Configuration config, std::shared_ptr<TaskQueue> task_queue);
@@ -92,9 +98,10 @@ public:
                         std::optional<Timestamp> capture_time,
                         std::optional<int8_t> rtp_payload_type);
 
-    bool SendRTCP(const FeedbackState& feedback_state,
+    bool TimeToSendRtcpReport(bool send_rtcp_before_key_frame = false);
+    bool SendRtcp(const FeedbackState& feedback_state,
                   RtcpPacketType packet_type,
-                  const std::vector<uint16_t> nackList);
+                  const std::vector<uint16_t> nackList = {});
 
     bool SendLossNotification(const FeedbackState& feedback_state,
                               uint16_t last_decoded_seq_num,

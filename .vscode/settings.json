@@ -1,4 +1,15 @@
 {
+    // clang-format
+    "clang-format.executable": "/usr/bin/clang-format",
+    "clang-format.style": "Google",
+    "clang-format.fallbackStyle": "Google",
+    "[cpp]": {
+    "editor.defaultFormatter": "xaver.clang-format"
+    },
+    "[c]": {
+    "editor.defaultFormatter": "xaver.clang-format"
+    },
+    // files.associations
     "files.associations": {
         "iosfwd": "cpp",
         "__bit_reference": "cpp",

@@ -47,8 +47,21 @@ void RtcpReceiver::set_local_media_ssrc(uint32_t ssrc) {
 }
 
 uint32_t RtcpReceiver::local_media_ssrc() const {
-    task_queue_->Sync<uint32_t>([this](){
+    return task_queue_->Sync<uint32_t>([this](){
         return registered_ssrcs_.at(kLocalMediaSsrcIndex);
+    });
+}
+
+void RtcpReceiver::set_remote_ssrc(uint32_t ssrc) {
+    task_queue_->Async([this, ssrc](){
+        last_received_sr_ntp_.Reset();
+        remote_ssrc_ = ssrc;
+    });
+}
+
+uint32_t RtcpReceiver::remote_ssrc() const {
+    return task_queue_->Sync<uint32_t>([this](){
+        return remote_ssrc_;
     });
 }
 

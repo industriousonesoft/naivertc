@@ -285,14 +285,14 @@ std::optional<RtpPacketHistory::PacketState> RtpPacketHistory::GetPacketState(ui
 }
 
 std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket() {
-    GetPayloadPaddingPacket([](const RtpPacketToSend& packet){
+    return GetPayloadPaddingPacket([](const RtpPacketToSend& packet){
         return std::make_unique<RtpPacketToSend>(packet);
     });
 }
 
 std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket(
         std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate) {
-    task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, encapsulate](){
+    return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, encapsulate](){
         if (mode_ == StorageMode::DISABLE) {
             return std::shared_ptr<RtpPacketToSend>(nullptr);
         }

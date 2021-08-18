@@ -29,12 +29,12 @@ public:
     // Observer
     class Observer {
     public:
+        virtual ~Observer() = default;
+        
         virtual void SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) = 0;
         virtual void OnRequestSendReport() = 0;
         virtual void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) = 0;
-        virtual void OnReceivedRtcpReportBlocks(const ReportBlockList& report_blocks) = 0;
-    protected:
-        virtual ~Observer() = default;
+        virtual void OnReceivedRtcpReportBlocks(const ReportBlockList& report_blocks) = 0;  
     };
 public:
     // RttStats
@@ -64,6 +64,9 @@ public:
 
     void set_local_media_ssrc(uint32_t ssrc);
     uint32_t local_media_ssrc() const;
+
+    void set_remote_ssrc(uint32_t ssrc);
+    uint32_t remote_ssrc() const;
 
     void IncomingPacket(const uint8_t* packet, size_t packet_size) {
         IncomingPacket(BinaryBuffer(packet, packet + packet_size));

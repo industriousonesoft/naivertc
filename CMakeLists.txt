@@ -53,6 +53,7 @@ set(LIB_SOURCES
     # rtc -> base
     src/rtc/base/packet.cpp
     src/rtc/base/ntp_time.cpp
+    src/rtc/base/ntp_time_util.cpp
     src/rtc/base/clock.cpp
     src/rtc/base/clock_real_time.cpp
     # rtc -> sdp
@@ -104,8 +105,12 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp_receiver.cpp
     src/rtc/rtp_rtcp/rtcp_receiver_parser.cpp
     src/rtc/rtp_rtcp/report_block_data.cpp
-    src/rtc/rtp_rtcp/time_util.cpp
     src/rtc/rtp_rtcp/rtcp_nack_stats.cpp
+    src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
+    src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
+    src/rtc/rtp_rtcp/rtp_rtcp_impl_rtcp.cpp
+    src/rtc/rtp_rtcp/rtp_sender.cpp
+    src/rtc/rtp_rtcp/rtp_packet_sequencer.cpp
     # rtc -> rtp_rtcp -> rtcp_packets
     src/rtc/rtp_rtcp/rtcp_packets/compound_packet.cpp
     src/rtc/rtp_rtcp/rtcp_packets/common_header.cpp
@@ -173,6 +178,7 @@ set(LIB_HEADERS
     include/rtc/base/byte_io_reader.hpp
     include/rtc/base/byte_io_writer.hpp
     include/rtc/base/ntp_time.hpp
+    include/rtc/base/ntp_time_util.hpp
     include/rtc/base/unit_base.hpp
     include/rtc/base/unit_relative.hpp
     include/rtc/base/clock.hpp
@@ -219,8 +225,11 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp_sender.hpp
     include/rtc/rtp_rtcp/rtcp_receiver.hpp
     include/rtc/rtp_rtcp/report_block_data.hpp
-    include/rtc/rtp_rtcp/time_util.hpp
     include/rtc/rtp_rtcp/rtcp_nack_stats.hpp
+    include/rtc/rtp_rtcp/rtp_rtcp_impl.hpp
+    include/rtc/rtp_rtcp/rtp_packet_sender.hpp
+    include/rtc/rtp_rtcp/rtp_sender.hpp
+    include/rtc/rtp_rtcp/rtp_packet_sequencer.hpp
     # rtc -> rtp_rtcp -> rtcp_packets
     include/rtc/rtp_rtcp/rtcp_packets/compound_packet.hpp
     include/rtc/rtp_rtcp/rtcp_packets/common_header.hpp
