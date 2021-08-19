@@ -101,6 +101,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
     src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
+
     src/rtc/rtp_rtcp/rtp/rtp_packet.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packetization_config.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packetizer.cpp
@@ -108,6 +109,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/rtp_packet_history.cpp
     src/rtc/rtp_rtcp/rtp/rtp_sender.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_header_extensions.cpp
+
     src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtcp.cpp
@@ -219,6 +222,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp
     include/rtc/rtp_rtcp/rtcp/report_block_data.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
+
     include/rtc/rtp_rtcp/rtp/rtp_packet.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packetization_config.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packetizer.hpp
@@ -227,6 +231,8 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp
     include/rtc/rtp_rtcp/rtp/rtp_sender.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_header_extensions.hpp
+
     include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_impl.hpp

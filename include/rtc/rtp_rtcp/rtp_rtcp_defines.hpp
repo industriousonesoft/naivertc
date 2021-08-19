@@ -6,6 +6,7 @@
 
 #include <list>
 #include <vector>
+#include <optional>
 
 namespace naivertc {
 
@@ -20,6 +21,18 @@ const int kVideoPayloadTypeFrequency = 90000;
 const int kBogusRtpRateForAudioRtcp = 8000;
 
 const size_t kRtxHeaderSize = 2;
+
+// Rtp header extensions type
+enum class RtpExtensionType : int {
+    NONE = 0,
+    TRANSMISSTION_TIME_OFFSET,
+    ABSOLUTE_SEND_TIME,
+    ABSOLUTE_CAPTURE_TIME,
+    TRANSPORT_SEQUENCE_NUMBER,
+    PLAYOUT_DELAY,
+    MID,
+    NUMBER_OF_EXTENSIONS
+};
 
 // RtpPacket media types.
 enum class RtpPacketMediaType : size_t {
@@ -59,27 +72,7 @@ enum class RtxMode : size_t {
     REDUNDANT_PAYLOADS = 0x2  // Preventively send redundant payloads instead of padding.
 };
 
-// Observer
-// RtcpIntraFrameObserver
-class RTC_CPP_EXPORT RtcpIntraFrameObserver {
-public:
-    virtual ~RtcpIntraFrameObserver() {}
-
-    virtual void OnReceivedIntraFrameRequest(uint32_t ssrc) = 0;
-};
-
-// RtcpLossNotificationObserver
-class RTC_CPP_EXPORT RtcpLossNotificationObserver {
-public:
-    virtual ~RtcpLossNotificationObserver() = default;
-
-    virtual void OnReceivedLossNotification(uint32_t ssrc,
-                                            uint16_t seq_num_of_last_decodable,
-                                            uint16_t seq_num_of_last_received,
-                                            bool decodability_flag) = 0;
-};
-
-// RtcpBandwidthObserver
+// RTCPReportBlock
 struct RTCPReportBlock {
   RTCPReportBlock()
       : sender_ssrc(0),
@@ -137,6 +130,87 @@ struct RTC_CPP_EXPORT RtpState {
     int64_t capture_time_ms;
     int64_t last_timestamp_time_ms;
     bool ssrc_has_acked;
+};
+
+// The Absolute Capture Time extension is used to stamp RTP packets with a NTP
+// timestamp showing when the first audio or video frame in a packet was
+// originally captured. The intent of this extension is to provide a way to
+// accomplish audio-to-video synchronization when RTCP-terminating intermediate
+// systems (e.g. mixers) are involved. See:
+// http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time
+struct AbsoluteCaptureTime {
+    // Absolute capture timestamp is the NTP timestamp of when the first frame in
+    // a packet was originally captured. This timestamp MUST be based on the same
+    // clock as the clock used to generate NTP timestamps for RTCP sender reports
+    // on the capture system.
+    //
+    // It’s not always possible to do an NTP clock readout at the exact moment of
+    // when a media frame is captured. A capture system MAY postpone the readout
+    // until a more convenient time. A capture system SHOULD have known delays
+    // (e.g. from hardware buffers) subtracted from the readout to make the final
+    // timestamp as close to the actual capture time as possible.
+    //
+    // This field is encoded as a 64-bit unsigned fixed-point number with the high
+    // 32 bits for the timestamp in seconds and low 32 bits for the fractional
+    // part. This is also known as the UQ32.32 format and is what the RTP
+    // specification defines as the canonical format to represent NTP timestamps.
+    uint64_t absolute_capture_timestamp;
+
+    // Estimated capture clock offset is the sender’s estimate of the offset
+    // between its own NTP clock and the capture system’s NTP clock. The sender is
+    // here defined as the system that owns the NTP clock used to generate the NTP
+    // timestamps for the RTCP sender reports on this stream. The sender system is
+    // typically either the capture system or a mixer.
+    //
+    // This field is encoded as a 64-bit two’s complement signed fixed-point
+    // number with the high 32 bits for the seconds and low 32 bits for the
+    // fractional part. It’s intended to make it easy for a receiver, that knows
+    // how to estimate the sender system’s NTP clock, to also estimate the capture
+    // system’s NTP clock:
+    //
+    //   Capture NTP Clock = Sender NTP Clock + Capture Clock Offset
+    std::optional<int64_t> estimated_capture_clock_offset;
+};
+
+// Minimum and maximum playout delay values from capture to render.
+// These are best effort values.
+//
+// A value < 0 indicates no change from previous valid value.
+//
+// min = max = 0 indicates that the receiver should try and render
+// frame as soon as possible.
+//
+// min = x, max = y indicates that the receiver is free to adapt
+// in the range (x, y) based on network jitter.
+struct VideoPlayoutDelay {
+    VideoPlayoutDelay() = default;
+    VideoPlayoutDelay(int min_ms, int max_ms) : min_ms(min_ms), max_ms(max_ms) {}
+    int min_ms = -1;
+    int max_ms = -1;
+
+    bool operator==(const VideoPlayoutDelay& rhs) const {
+        return min_ms == rhs.min_ms && max_ms == rhs.max_ms;
+    }
+};
+
+// Observer
+// RtcpIntraFrameObserver
+class RTC_CPP_EXPORT RtcpIntraFrameObserver {
+public:
+    virtual ~RtcpIntraFrameObserver() {}
+
+    virtual void OnReceivedIntraFrameRequest(uint32_t ssrc) = 0;
+};
+
+// RtcpLossNotificationObserver
+class RTC_CPP_EXPORT RtcpLossNotificationObserver {
+public:
+    virtual ~RtcpLossNotificationObserver() = default;
+
+    virtual void OnReceivedLossNotification(uint32_t ssrc,
+                                            uint16_t seq_num_of_last_decodable,
+                                            uint16_t seq_num_of_last_received,
+                                            bool decodability_flag) = 0;
 };
 
 // RtcpBandwidthObserver
