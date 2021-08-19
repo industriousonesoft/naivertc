@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/rtp_header_extension_map.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_header_extension_manager.hpp"
 #include "rtc/rtp_rtcp/rtp/rtp_header_extensions.hpp"
 
 #include <plog/Log.h>
@@ -27,18 +27,18 @@ constexpr ExtensionInfo kExtensions[] = {
 
 }  // namespace
 
-RtpHeaderExtensionMap::RtpHeaderExtensionMap() : RtpHeaderExtensionMap(false) {}
+RtpHeaderExtensionManager::RtpHeaderExtensionManager() : RtpHeaderExtensionManager(false) {}
 
-RtpHeaderExtensionMap::RtpHeaderExtensionMap(bool extmap_allow_mixed) 
+RtpHeaderExtensionManager::RtpHeaderExtensionManager(bool extmap_allow_mixed) 
     : extmap_allow_mixed_(extmap_allow_mixed) {
     for (auto& id : extension_ids_) {
         id = kInvalidId;
     }
 }   
 
-RtpHeaderExtensionMap::~RtpHeaderExtensionMap() = default;
+RtpHeaderExtensionManager::~RtpHeaderExtensionManager() = default;
 
-RtpExtensionType RtpHeaderExtensionMap::GetType(int id) const {
+RtpExtensionType RtpHeaderExtensionManager::GetType(int id) const {
     if (id < kMinId || id > kMaxId) {
         return RtpExtensionType::NONE;
     }
@@ -51,14 +51,14 @@ RtpExtensionType RtpHeaderExtensionMap::GetType(int id) const {
     return kInvalidType;
 }
 
-bool RtpHeaderExtensionMap::RegisterByType(int id, RtpExtensionType type) {
+bool RtpHeaderExtensionManager::RegisterByType(int id, RtpExtensionType type) {
     for (const ExtensionInfo& extension : kExtensions)
         if (type == extension.type)
             return Register(id, extension.type, extension.uri);
     return false;
 }
 
-bool RtpHeaderExtensionMap::RegisterByUri(int id, std::string_view uri) {
+bool RtpHeaderExtensionManager::RegisterByUri(int id, std::string_view uri) {
     for (const ExtensionInfo& extension : kExtensions)
         if (uri == extension.uri)
             return Register(id, extension.type, extension.uri);
@@ -67,13 +67,13 @@ bool RtpHeaderExtensionMap::RegisterByUri(int id, std::string_view uri) {
     return false;
 }
 
-void RtpHeaderExtensionMap::Deregister(RtpExtensionType type) {
+void RtpHeaderExtensionManager::Deregister(RtpExtensionType type) {
     if (IsRegistered(type)) {
         extension_ids_[int(type)] = kInvalidId;
     }
 }
 
-void RtpHeaderExtensionMap::Deregister(std::string_view uri) {
+void RtpHeaderExtensionManager::Deregister(std::string_view uri) {
     for (const ExtensionInfo& extension : kExtensions) {
         if (extension.uri == uri) {
             extension_ids_[int(extension.type)] = kInvalidId;
@@ -83,7 +83,7 @@ void RtpHeaderExtensionMap::Deregister(std::string_view uri) {
 }
 
 // Private methods
-bool RtpHeaderExtensionMap::Register(int id, RtpExtensionType type, const char* uri) {
+bool RtpHeaderExtensionManager::Register(int id, RtpExtensionType type, const char* uri) {
     if (type <= RtpExtensionType::NONE || type >= RtpExtensionType::NUMBER_OF_EXTENSIONS) {
         PLOG_WARNING << "Invalid RTP extension type: " << int(type);
         return false;

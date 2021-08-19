@@ -9,7 +9,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpHeaderExtensionMap {
+class RTC_CPP_EXPORT RtpHeaderExtensionManager {
 public:
     static constexpr RtpExtensionType kInvalidType = RtpExtensionType::NONE;
     static constexpr int kInvalidId = 0;
@@ -17,9 +17,9 @@ public:
     static constexpr int kMaxId = 255;
 
 public:
-    RtpHeaderExtensionMap();
-    explicit RtpHeaderExtensionMap(bool extmap_allow_mixed);
-    ~RtpHeaderExtensionMap();
+    RtpHeaderExtensionManager();
+    explicit RtpHeaderExtensionManager(bool extmap_allow_mixed);
+    ~RtpHeaderExtensionManager();
 
     bool extmap_allow_mixed() const { return extmap_allow_mixed_; }
     void set_extmap_allow_mixed(bool allow_mixed) { extmap_allow_mixed_ = allow_mixed; };
