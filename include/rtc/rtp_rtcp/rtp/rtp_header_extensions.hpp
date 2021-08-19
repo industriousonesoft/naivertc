@@ -13,7 +13,7 @@ namespace naivertc {
 class RTC_CPP_EXPORT AbsoluteSendTimeExtension {
 public:
     using value_type = uint32_t;
-    static constexpr RtpExtensionType kId = RtpExtensionType::ABSOLUTE_SEND_TIME;
+    static constexpr RtpExtensionType kType = RtpExtensionType::ABSOLUTE_SEND_TIME;
     static constexpr uint8_t kValueSizeBytes = 3;
     static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
 
@@ -30,7 +30,7 @@ public:
 class AbsoluteCaptureTimeExtension {
 public:
     using value_type = AbsoluteCaptureTime;
-    static constexpr RtpExtensionType kId = RtpExtensionType::ABSOLUTE_CAPTURE_TIME;
+    static constexpr RtpExtensionType kType = RtpExtensionType::ABSOLUTE_CAPTURE_TIME;
     static constexpr uint8_t kValueSizeBytes = 16;
     static constexpr uint8_t kValueSizeBytesWithoutEstimatedCaptureClockOffset = 8;
     static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time";
@@ -44,7 +44,7 @@ public:
 class TransmissionOffsetExtension {
 public:
     using value_type = int32_t;
-    static constexpr RtpExtensionType kId = RtpExtensionType::TRANSMISSTION_TIME_OFFSET;
+    static constexpr RtpExtensionType kType = RtpExtensionType::TRANSMISSTION_TIME_OFFSET;
     static constexpr uint8_t kValueSizeBytes = 3;
     static constexpr const char kUri[] = "urn:ietf:params:rtp-hdrext:toffset";
 
@@ -57,7 +57,7 @@ public:
 class TransportSequenceNumberExtension {
 public:
     using value_type = uint16_t;
-    static constexpr RtpExtensionType kId = RtpExtensionType::TRANSPORT_SEQUENCE_NUMBER;
+    static constexpr RtpExtensionType kType = RtpExtensionType::TRANSPORT_SEQUENCE_NUMBER;
     static constexpr uint8_t kValueSizeBytes = 2;
     static constexpr const char kUri[] = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
 
@@ -70,7 +70,7 @@ public:
 class PlayoutDelayLimitsExtension {
 public:
     using value_type = VideoPlayoutDelay;
-    static constexpr RtpExtensionType kId = RtpExtensionType::PLAYOUT_DELAY;
+    static constexpr RtpExtensionType kType = RtpExtensionType::PLAYOUT_DELAY;
     static constexpr uint8_t kValueSizeBytes = 3;
     static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay";
 
@@ -102,7 +102,7 @@ public:
 
 class RtpMidExtension : public BaseRtpStringExtension {
 public:
-    static constexpr RtpExtensionType kId = RtpExtensionType::MID;
+    static constexpr RtpExtensionType kType = RtpExtensionType::MID;
     static constexpr const char kUri[] = "urn:ietf:params:rtp-hdrext:sdes:mid";
 };
     

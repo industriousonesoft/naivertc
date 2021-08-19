@@ -110,6 +110,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/rtp_sender.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.cpp
     src/rtc/rtp_rtcp/rtp/rtp_header_extensions.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_header_extension_map.cpp
 
     src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
@@ -232,6 +233,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/rtp_sender.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp
     include/rtc/rtp_rtcp/rtp/rtp_header_extensions.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_header_extension_map.hpp
 
     include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
@@ -363,6 +365,7 @@ set(TEST_SOURCES
     src/rtc/pc/peer_connection_configuration_unittest.cpp
     
     src/rtc/rtp_rtcp/rtp/rtp_packet_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_header_extension_map_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp
 
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header_unittest.cpp
