@@ -88,7 +88,7 @@ private:
 
 private:
     std::shared_ptr<TaskQueue> task_queue_;
-    Clock* const clock_;
+    std::shared_ptr<Clock> clock_;
     Observer* const observer_;
     bool receiver_only_;
 

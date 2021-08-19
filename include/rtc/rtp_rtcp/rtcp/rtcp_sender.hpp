@@ -39,7 +39,7 @@ public:
         uint32_t local_media_ssrc = 0;
 
         // The clock to use to read time. If nullptr then system clock will be used.
-        Clock* clock = nullptr;
+        std::shared_ptr<Clock> clock = nullptr;
 
         // Optional callback which, if specified, is used by RTCPSender to schedule
         // the next time to evaluate if RTCP should be sent by means of
@@ -188,7 +188,7 @@ private:
 private:
     const bool audio_;
     uint32_t ssrc_;
-    Clock* clock_;
+    std::shared_ptr<Clock> clock_;
     std::shared_ptr<TaskQueue> task_queue_;  
 
     const TimeDelta report_interval_;

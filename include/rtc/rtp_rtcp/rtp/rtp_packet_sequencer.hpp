@@ -13,7 +13,7 @@ public:
     // If |require_marker_before_media_padding| is true, padding packets on the media ssrc
     // is not allowed unless the last sequenced media packet had the marker bit set (i.e. don't
     // insert padding packets between the first and last packts of a video frame)
-    RtpPacketSequencer(uint32_t media_ssrc, uint32_t rtx_ssrc, bool require_marker_before_media_padding, Clock* clock);
+    RtpPacketSequencer(uint32_t media_ssrc, uint32_t rtx_ssrc, bool require_marker_before_media_padding, std::shared_ptr<Clock> clock);
     ~RtpPacketSequencer();
 
     uint16_t media_sequence_num() const { return media_sequence_num_; }
@@ -38,7 +38,7 @@ private:
     const uint32_t media_ssrc_;
     const uint32_t rtx_ssrc_;
     const bool require_marker_before_media_padding_;
-    Clock* const clock_;
+    std::shared_ptr<Clock> clock_;
 
     uint16_t media_sequence_num_;
     uint16_t rtx_sequence_num_;

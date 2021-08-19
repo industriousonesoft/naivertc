@@ -22,8 +22,8 @@ public:
     uint16_t capture_time_ms() const { return capture_time_ms_; }
     void set_capture_time_ms(int64_t time_ms) { capture_time_ms_ = time_ms; }
 
-    std::optional<RtpPacketMediaType> packet_type() const { return packet_type_; }
-    void set_packet_type(RtpPacketMediaType type) { packet_type_ = type; }
+    std::optional<RtpPacketType> packet_type() const { return packet_type_; }
+    void set_packet_type(RtpPacketType type) { packet_type_ = type; }
 
     bool allow_retransmission() const { return allow_retransmission_; }
     void set_allow_retransmission(bool allowed) { allow_retransmission_ = allowed; }
@@ -45,7 +45,7 @@ public:
 
 private:
     int64_t capture_time_ms_ = 0;   
-    std::optional<RtpPacketMediaType> packet_type_;
+    std::optional<RtpPacketType> packet_type_;
     bool allow_retransmission_ = false;
     std::optional<uint16_t> retransmitted_sequence_number_;
     bool is_first_packet_of_frame_ = false;

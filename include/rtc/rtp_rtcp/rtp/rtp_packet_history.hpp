@@ -50,7 +50,7 @@ public:
     };
 
 public:
-    RtpPacketHistory(Clock* clock, bool enable_padding_prio, std::shared_ptr<TaskQueue> task_queue);
+    RtpPacketHistory(std::shared_ptr<Clock> clock, bool enable_padding_prio, std::shared_ptr<TaskQueue> task_queue);
 
     RtpPacketHistory() = delete;
     RtpPacketHistory(const RtpPacketHistory&) = delete;
@@ -176,7 +176,7 @@ private:
 private:
     std::shared_ptr<TaskQueue> task_queue_;
 
-    Clock* const clock_;
+    std::shared_ptr<Clock> clock_;
     const bool enable_padding_prio_;
     size_t number_to_store_;
     StorageMode mode_;

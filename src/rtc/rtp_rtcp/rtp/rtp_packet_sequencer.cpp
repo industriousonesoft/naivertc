@@ -17,7 +17,7 @@ constexpr int8_t kInvalidPayloadType = -1;
 RtpPacketSequencer::RtpPacketSequencer(uint32_t media_ssrc, 
                                        uint32_t rtx_ssrc, 
                                        bool require_marker_before_media_padding, 
-                                       Clock* clock) 
+                                       std::shared_ptr<Clock> clock) 
     : media_ssrc_(media_ssrc),
       rtx_ssrc_(rtx_ssrc),
       require_marker_before_media_padding_(require_marker_before_media_padding),
@@ -35,7 +35,7 @@ RtpPacketSequencer::RtpPacketSequencer(uint32_t media_ssrc,
 RtpPacketSequencer::~RtpPacketSequencer() {}
 
 bool RtpPacketSequencer::Sequence(RtpPacketToSend& packet) {
-    if (packet.packet_type() == RtpPacketMediaType::PADDING && !PopulatePaddingFields(packet)) {
+    if (packet.packet_type() == RtpPacketType::PADDING && !PopulatePaddingFields(packet)) {
         // This padding packet can't be sent with current state, return without
         // updating the sequence number.
         return false;
@@ -43,7 +43,7 @@ bool RtpPacketSequencer::Sequence(RtpPacketToSend& packet) {
 
     if (packet.ssrc() == media_ssrc_) {
         packet.set_sequence_number(media_sequence_num_++);
-        if (packet.packet_type() != RtpPacketMediaType::PADDING) {
+        if (packet.packet_type() != RtpPacketType::PADDING) {
             UpdateLastPacketState(packet);
         }
         return true;

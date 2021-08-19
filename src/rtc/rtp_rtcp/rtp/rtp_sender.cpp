@@ -175,7 +175,7 @@ int32_t RtpSender::ResendPacket(uint16_t packet_id) {
             return -1;
         }
 
-        packet->set_packet_type((RtpPacketMediaType::RETRANSMISSION));
+        packet->set_packet_type((RtpPacketType::RETRANSMISSION));
         // A packet can not be FEC and RTX at the same time.
         packet->set_is_fec_packet(false);
         this->paced_sender_->EnqueuePacket(std::move(packet));

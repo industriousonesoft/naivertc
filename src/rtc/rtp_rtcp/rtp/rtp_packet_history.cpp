@@ -60,7 +60,7 @@ bool RtpPacketHistory::StoredPacketCompare::operator()(StoredPacket* lhs,
 
 // RtpPacketHistory
 // Public methods
-RtpPacketHistory::RtpPacketHistory(Clock* clock, bool enable_padding_prio, std::shared_ptr<TaskQueue> task_queue) 
+RtpPacketHistory::RtpPacketHistory(std::shared_ptr<Clock> clock, bool enable_padding_prio, std::shared_ptr<TaskQueue> task_queue) 
     : task_queue_(task_queue),
       clock_(clock),
       enable_padding_prio_(enable_padding_prio),

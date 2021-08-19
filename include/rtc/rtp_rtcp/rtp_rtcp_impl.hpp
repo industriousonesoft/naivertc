@@ -107,7 +107,7 @@ private:
 
 private: 
     std::shared_ptr<TaskQueue> task_queue_;
-    Clock* const clock_;
+    std::shared_ptr<Clock> clock_;
     RtcpSender rtcp_sender_;
     RtcpReceiver rtcp_receiver_;
 

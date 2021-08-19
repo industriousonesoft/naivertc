@@ -35,7 +35,7 @@ enum class RtpExtensionType : int {
 };
 
 // RtpPacket media types.
-enum class RtpPacketMediaType : size_t {
+enum class RtpPacketType : size_t {
     AUDIO = 0,                     // Audio media packets.
     VIDEO = 1,                     // Video media packets.
     RETRANSMISSION = 2,            // Retransmission, sent as response to NACK.

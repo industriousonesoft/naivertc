@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/packet.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_header_extension_manager.hpp"
 
 #include <memory>
 
@@ -78,6 +79,9 @@ public:
     // but does not touch packet own buffer, leaving packet in invalid state.
     bool Parse(const uint8_t* buffer, size_t size);
 
+    // Header extensions
+
+
 private:
     inline void WriteAt(size_t offset, uint8_t byte);
     uint8_t* WriteAt(size_t offset);
@@ -107,6 +111,7 @@ private:
     size_t payload_size_;
 
     size_t extensions_size_ = 0;
+    RtpHeaderExtensionManager extension_mgr_;
     std::vector<ExtensionInfo> extension_entries_;
 };
 

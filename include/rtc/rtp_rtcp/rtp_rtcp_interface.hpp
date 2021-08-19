@@ -8,6 +8,7 @@
 
 #include <optional>
 #include <vector>
+#include <memory>
 
 namespace naivertc {
 
@@ -18,14 +19,14 @@ public:
         // a video version.
         bool audio = false;
         // The clock to use to read time. If nullptr then system clock will be used.
-        Clock* clock = nullptr;
+        std::shared_ptr<Clock> clock = nullptr;
 
         int rtcp_report_interval_ms = 0;
 
         // SSRCs for media and retransmission(RTX), respectively.
         // FlexFec SSRC is fetched from |flexfec_sender|.
         uint32_t local_media_ssrc = 0;
-        std::optional<uint32_t> rtx_send_ssrc;
+        std::optional<uint32_t> rtx_send_ssrc = std::nullopt;
 
     };
 

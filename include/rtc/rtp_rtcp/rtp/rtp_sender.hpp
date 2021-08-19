@@ -52,7 +52,7 @@ private:
 
 private:
     std::shared_ptr<TaskQueue> task_queue_;
-    Clock* const clock_;
+    std::shared_ptr<Clock> clock_;
     const uint32_t ssrc_;
     std::optional<uint32_t> rtx_ssrc_;
     RtxMode rtx_mode_;

@@ -25,11 +25,11 @@ class UnixRealTimeClock : public RealTimeClock {
   }
 };
 
-Clock* Clock::GetRealTimeClock() {
+std::shared_ptr<Clock> Clock::GetRealTimeClock() {
 #if defined(NAIVERTC_POSIX)
-    static Clock* const clock = new UnixRealTimeClock();
+    static std::shared_ptr<Clock> clock = std::make_shared<UnixRealTimeClock>();
 #else
-    static Clock* const clock = nullptr;
+    static std::shared_ptr<Clock> clock = nullptr;
 #endif
     return clock;
 }
