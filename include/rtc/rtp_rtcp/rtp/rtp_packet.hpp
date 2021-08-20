@@ -19,12 +19,15 @@ public:
         return std::shared_ptr<RtpPacket>(new RtpPacket(capacity));
     }
 
+    using ExtensionType = RtpExtensionType;
+    using ExtensionManager = rtp::ExtensionManager;
 public:
     RtpPacket();
     RtpPacket(size_t capacity);
     RtpPacket(const RtpPacket&);
-
-    ~RtpPacket();
+    explicit RtpPacket(std::shared_ptr<ExtensionManager> extension_manager);
+    RtpPacket(std::shared_ptr<ExtensionManager>, size_t capacity);
+    virtual ~RtpPacket();
 
     // Header
     bool marker() const { return marker_; }
@@ -80,7 +83,29 @@ public:
     bool Parse(const uint8_t* buffer, size_t size);
 
     // Header extensions
+    template <typename Extension>
+    bool HasExtension() const;
+    bool HasExtension(ExtensionType type) const;
 
+    // Removes extension of given |type|, returns false is extension was not
+    // registered in packet's extension map or not present in the packet. Only
+    // extension that should be removed must be registered, other extensions may
+    // not be registered and will be preserved as is.
+    bool RemoveExtension(ExtensionType type);
+
+    // Returns whether there is an associated id for the extension and thus it is
+    // possible to set the extension.
+    template <typename Extension>
+    bool IsRegistered() const;
+
+    template <typename Extension, typename FirstValue, typename... Values>
+    bool GetExtension(FirstValue, Values...) const;
+
+    template <typename Extension>
+    std::optional<typename Extension::value_type> GetExtension() const;
+
+    template <typename Extension, typename... Values>
+    bool SetExtension(const Values&...);
 
 private:
     inline void WriteAt(size_t offset, uint8_t byte);
@@ -96,6 +121,7 @@ private:
         uint16_t offset;
     };
 
+    const ExtensionInfo* FindExtensionInfo(int id) const;
     ExtensionInfo& FindOrCreateExtensionInfo(int id);
 
 private:
@@ -111,9 +137,46 @@ private:
     size_t payload_size_;
 
     size_t extensions_size_ = 0;
-    RtpHeaderExtensionManager extension_mgr_;
+    std::shared_ptr<ExtensionManager> extension_manager_;
     std::vector<ExtensionInfo> extension_entries_;
+    std::vector<rtp::HeaderExtension> extensions_;
 };
+
+template <typename Extension>
+bool RtpPacket::HasExtension() const {
+    return HasExtension(Extension::kId);
+}
+
+template <typename Extension>
+bool RtpPacket::IsRegistered() const {
+   return extension_manager_->IsRegistered(Extension::kId);
+}
+
+template <typename Extension, typename FirstValue, typename... Values>
+bool RtpPacket::GetExtension(FirstValue first, Values... values) const {
+    auto raw = FindExtension(Extension::kId);
+    if (raw.empty())
+        return false;
+    return Extension::Parse(raw, first, values...);
+}
+
+template <typename Extension>
+std::optional<typename Extension::value_type> RtpPacket::GetExtension() const {
+    std::optional<typename Extension::value_type> result;
+    auto raw = FindExtension(Extension::kId);
+    if (raw.empty() || !Extension::Parse(raw, &result.emplace()))
+        result = std::nullopt;
+    return result;
+}
+
+template <typename Extension, typename... Values>
+bool RtpPacket::SetExtension(const Values&... values) {
+    const size_t value_size = Extension::ValueSize(values...);
+    auto buffer = AllocateExtension(Extension::kId, value_size);
+    if (buffer.empty())
+        return false;
+    return Extension::Write(buffer, values...);
+}
 
 } // namespace naivertc
 

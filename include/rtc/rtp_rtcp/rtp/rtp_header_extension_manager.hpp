@@ -3,15 +3,15 @@
 
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_header_extensions.hpp"
 
 #include <vector>
 #include <string>
 
 namespace naivertc {
 namespace rtp {
-namespace extension {
 
-class RTC_CPP_EXPORT Manager {
+class RTC_CPP_EXPORT ExtensionManager {
 public:
     static constexpr RtpExtensionType kInvalidType = RtpExtensionType::NONE;
     static constexpr int kInvalidId = 0;
@@ -19,9 +19,9 @@ public:
     static constexpr int kMaxId = 255;
 
 public:
-    Manager();
-    explicit Manager(bool extmap_allow_mixed);
-    ~Manager();
+    ExtensionManager();
+    explicit ExtensionManager(bool extmap_allow_mixed);
+    ~ExtensionManager();
 
     bool extmap_allow_mixed() const { return extmap_allow_mixed_; }
     void set_extmap_allow_mixed(bool allow_mixed) { extmap_allow_mixed_ = allow_mixed; };
@@ -52,6 +52,8 @@ public:
     // Return kInvalid if not registered, otherwise the registered id
     int Deregister(std::string_view uri);
 
+    std::optional<HeaderExtension> ParseExtension(int id, const uint8_t* data, size_t size);
+
 private:
     bool Register(int id, RtpExtensionType type, const char* uri);
 
@@ -60,7 +62,6 @@ private:
     bool extmap_allow_mixed_;
 };
     
-} // namespace extension
 } // namespace rtc
 } // namespace naivertc
 

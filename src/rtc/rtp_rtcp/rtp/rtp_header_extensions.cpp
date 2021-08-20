@@ -4,7 +4,6 @@
 
 namespace naivertc {
 namespace rtp {
-namespace extension {
 
 // Absolute send time in RTP streams.
 //
@@ -22,17 +21,24 @@ namespace extension {
 //   |  ID   | len=2 |              absolute send time               |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-bool AbsoluteSendTime::Parse(std::vector<const uint8_t> data) {
-    if (data.size() != kValueSizeBytes)
+AbsoluteSendTime::AbsoluteSendTime() : AbsoluteSendTime(0) {}
+
+AbsoluteSendTime::AbsoluteSendTime(uint32_t time_24bits) 
+    : time_24bits_(time_24bits) {}
+
+AbsoluteSendTime::~AbsoluteSendTime() {}
+
+bool AbsoluteSendTime::Parse(const uint8_t* data, size_t size) {
+    if (size != kValueSizeBytes)
         return false;
-    time_24bits_ = ByteReader<uint32_t, 3>::ReadBigEndian(data.data());
+    time_24bits_ = ByteReader<uint32_t, 3>::ReadBigEndian(data);
     return true;
 }
 
-bool AbsoluteSendTime::PackInto(std::vector<uint8_t> data) const {
-    if(data.size() != kValueSizeBytes) return false;
+bool AbsoluteSendTime::PackInto(uint8_t* data, size_t size) const {
+    if(size != kValueSizeBytes) return false;
     if(time_24bits_ > 0x00FFFFFF) return false;
-    ByteWriter<uint32_t, 3>::WriteBigEndian(data.data(), time_24bits_);
+    ByteWriter<uint32_t, 3>::WriteBigEndian(data, time_24bits_);
     return true;
 }
 
@@ -71,6 +77,8 @@ bool AbsoluteSendTime::PackInto(std::vector<uint8_t> data) const {
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //   |  ... (56-63)  |
 //   +-+-+-+-+-+-+-+-+
+AbsoluteCaptureTime::AbsoluteCaptureTime() 
+    : AbsoluteCaptureTime(0, std::nullopt) {}
 
 AbsoluteCaptureTime::AbsoluteCaptureTime(uint64_t absolute_capture_timestamp, 
                                          std::optional<int64_t> estimated_capture_clock_offset) 
@@ -81,16 +89,16 @@ AbsoluteCaptureTime::AbsoluteCaptureTime(uint64_t absolute_capture_timestamp,
     
 AbsoluteCaptureTime::~AbsoluteCaptureTime() {}
 
-bool AbsoluteCaptureTime::Parse(std::vector<const uint8_t> data) {
-    if (data.size() != kValueSizeBytes || /*FIXME: WebRTC use && here? */
-        data.size() != kValueSizeBytesWithoutEstimatedCaptureClockOffset) {
+bool AbsoluteCaptureTime::Parse(const uint8_t* data, size_t size) {
+    if (size != kValueSizeBytes || /*FIXME: WebRTC use && here? */
+        size != kValueSizeBytesWithoutEstimatedCaptureClockOffset) {
         return false;
     }
 
-    absolute_capture_timestamp_ = ByteReader<uint64_t>::ReadBigEndian(data.data());
+    absolute_capture_timestamp_ = ByteReader<uint64_t>::ReadBigEndian(data);
 
-    if (data.size() != kValueSizeBytesWithoutEstimatedCaptureClockOffset) {
-        estimated_capture_clock_offset_ = ByteReader<int64_t>::ReadBigEndian(data.data() + 8);
+    if (size != kValueSizeBytesWithoutEstimatedCaptureClockOffset) {
+        estimated_capture_clock_offset_ = ByteReader<int64_t>::ReadBigEndian(data + 8);
     }
 
     return true;
@@ -104,13 +112,13 @@ size_t AbsoluteCaptureTime::data_size() const {
     }
 }
 
-bool AbsoluteCaptureTime::PackInto(std::vector<uint8_t> data) const {
-    if(data.size() != data_size()) return false;
+bool AbsoluteCaptureTime::PackInto(uint8_t* data, size_t size) const {
+    if(size != data_size()) return false;
 
-    ByteWriter<uint64_t>::WriteBigEndian(data.data(), absolute_capture_timestamp_);
+    ByteWriter<uint64_t>::WriteBigEndian(data, absolute_capture_timestamp_);
 
-    if (data.size() != kValueSizeBytesWithoutEstimatedCaptureClockOffset) {
-        ByteWriter<int64_t>::WriteBigEndian(data.data() + 8, estimated_capture_clock_offset_.value());
+    if (size != kValueSizeBytesWithoutEstimatedCaptureClockOffset) {
+        ByteWriter<int64_t>::WriteBigEndian(data + 8, estimated_capture_clock_offset_.value());
     }
 
     return true;
@@ -132,21 +140,25 @@ bool AbsoluteCaptureTime::PackInto(std::vector<uint8_t> data) const {
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //   |  ID   | len=2 |              transmission offset              |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-TransmissionOffset::TransmissionOffset(int32_t rtp_time_24bits) 
+
+TransmissionTimeOffset::TransmissionTimeOffset() 
+    : TransmissionTimeOffset(0) {}
+
+TransmissionTimeOffset::TransmissionTimeOffset(int32_t rtp_time_24bits) 
     : rtp_time_24bits_(rtp_time_24bits) {}
     
-TransmissionOffset::~TransmissionOffset() {}
+TransmissionTimeOffset::~TransmissionTimeOffset() {}
 
-bool TransmissionOffset::Parse(std::vector<const uint8_t> data) {
-    if (data.size() != kValueSizeBytes) return false;
-    rtp_time_24bits_ = ByteReader<int32_t, 3>::ReadBigEndian(data.data());
+bool TransmissionTimeOffset::Parse(const uint8_t* data, size_t size) {
+    if (size != kValueSizeBytes) return false;
+    rtp_time_24bits_ = ByteReader<int32_t, 3>::ReadBigEndian(data);
     return true;
 }
 
-bool TransmissionOffset::PackInto(std::vector<uint8_t> data) const {
-    if(data.size() != kValueSizeBytes) return false;
+bool TransmissionTimeOffset::PackInto(uint8_t* data, size_t size) const {
+    if(size != kValueSizeBytes) return false;
     if(rtp_time_24bits_ > 0x00ffffff) return false;
-    ByteWriter<int32_t, 3>::WriteBigEndian(data.data(), rtp_time_24bits_);
+    ByteWriter<int32_t, 3>::WriteBigEndian(data, rtp_time_24bits_);
     return true;
 }
 
@@ -157,21 +169,24 @@ bool TransmissionOffset::PackInto(std::vector<uint8_t> data) const {
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //  |  ID   | L=1   |transport-wide sequence number |
 //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+TransportSequenceNumber::TransportSequenceNumber() 
+    : TransportSequenceNumber(0) {}
+
 TransportSequenceNumber::TransportSequenceNumber(uint16_t transport_sequence_number) 
     : transport_sequence_number_(transport_sequence_number){}
 
 TransportSequenceNumber::~TransportSequenceNumber() {}
 
-bool TransportSequenceNumber::Parse(std::vector<const uint8_t> data) {
-    if (data.size() != kValueSizeBytes)
+bool TransportSequenceNumber::Parse(const uint8_t* data, size_t size) {
+    if (size != kValueSizeBytes)
         return false;
-    transport_sequence_number_ = ByteReader<uint16_t>::ReadBigEndian(data.data());
+    transport_sequence_number_ = ByteReader<uint16_t>::ReadBigEndian(data);
     return true;
 }
 
-bool TransportSequenceNumber::PackInto(std::vector<uint8_t> data) const {
-    if(data.size() != kValueSizeBytes) return false;
-    ByteWriter<uint16_t>::WriteBigEndian(data.data(), transport_sequence_number_);
+bool TransportSequenceNumber::PackInto(uint8_t* data, size_t size) const {
+    if(size != kValueSizeBytes) return false;
+    ByteWriter<uint16_t>::WriteBigEndian(data, transport_sequence_number_);
     return true;
 }
 
@@ -189,9 +204,9 @@ PlayoutDelayLimits::PlayoutDelayLimits(int min_ms, int max_ms)
 
 PlayoutDelayLimits::~PlayoutDelayLimits() {}
 
-bool PlayoutDelayLimits::Parse(std::vector<const uint8_t> data) {
-    if (data.size() != kValueSizeBytes) return false;
-    uint32_t raw = ByteReader<uint32_t, 3>::ReadBigEndian(data.data());
+bool PlayoutDelayLimits::Parse(const uint8_t* data, size_t size) {
+    if (size != kValueSizeBytes) return false;
+    uint32_t raw = ByteReader<uint32_t, 3>::ReadBigEndian(data);
     uint16_t min_raw = (raw >> 12);
     uint16_t max_raw = (raw & 0xfff);
     if (min_raw > max_raw)
@@ -201,53 +216,57 @@ bool PlayoutDelayLimits::Parse(std::vector<const uint8_t> data) {
     return true;
 }
 
-bool PlayoutDelayLimits::PackInto(std::vector<uint8_t> data) const {
-    if(data.size() != kValueSizeBytes) return false;
+bool PlayoutDelayLimits::PackInto(uint8_t* data, size_t size) const {
+    if(size != kValueSizeBytes) return false;
     if(0 > min_ms_) return false;
     if(min_ms_ > max_ms_) return false;
     if(max_ms_ > kMaxMs) return false;
     // Convert MS to value to be sent on extension header.
     uint32_t min_delay = min_ms_ / kGranularityMs;
     uint32_t max_delay = max_ms_ / kGranularityMs;
-    ByteWriter<uint32_t, 3>::WriteBigEndian(data.data(), (min_delay << 12) | max_delay);
+    ByteWriter<uint32_t, 3>::WriteBigEndian(data, (min_delay << 12) | max_delay);
     return true;
 }
 
 // BaseRtpString
+BaseRtpString::BaseRtpString() {}
+
 BaseRtpString::BaseRtpString(const std::string value) 
     : value_(std::move(value)){}
 
 BaseRtpString::~BaseRtpString() {}
 
-bool BaseRtpString::Parse(std::vector<const uint8_t> data) {
-    if (data.empty() || data[0] == 0)  // Valid string extension can't be empty.
+bool BaseRtpString::Parse(const uint8_t* data, size_t size) {
+    if (size == 0 || data[0] == 0)  // Valid string extension can't be empty.
         return false;
-    const char* cstr = reinterpret_cast<const char*>(data.data());
+    const char* cstr = reinterpret_cast<const char*>(data);
     // If there is a \0 character in the middle of the |data|, treat it as end
     // of the string. Well-formed string extensions shouldn't contain it.
-    value_.assign(cstr, strnlen(cstr, data.size()));
+    value_.assign(cstr, strnlen(cstr, size));
     if(value_.empty()) {
         return false;
     }
     return true;
 }
 
-bool BaseRtpString::PackInto(std::vector<uint8_t> data) const {
+bool BaseRtpString::PackInto(uint8_t* data, size_t size) const {
     if (value_.size() > kMaxValueSizeBytes) {
         return false;
     }
-    if(value_.empty() || data.size() != value_.size())
+    if(value_.empty() || size != value_.size())
         return false;
-    memcpy(data.data(), value_.data(), value_.size());
+    memcpy(data, value_.data(), value_.size());
     return true;
 }
 
 // RtpMid
+RtpMid::RtpMid() 
+    : BaseRtpString() {}
+
 RtpMid::RtpMid(const std::string value) 
     : BaseRtpString(std::move(value)) {}
 
 RtpMid::~RtpMid() {}
 
-} // namespace extension
 } // namespace rtp
 } // namespace naivertc

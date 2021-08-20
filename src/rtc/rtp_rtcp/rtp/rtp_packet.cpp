@@ -10,9 +10,9 @@ namespace naivertc {
 namespace {
 constexpr size_t kFixedHeaderSize = 12;
 constexpr uint8_t kRtpVersion = 2;
-constexpr uint16_t kOneByteExtensionProfiledId = 0xBEDE;
-constexpr uint16_t kTwoByteExtensionProfiledId = 0x1000;
-constexpr uint16_t kTwoByteExtensionProfiledIdAppBitsFilter = 0xFFF0;
+constexpr uint16_t kOneByteExtensionProfilId = 0xBEDE;
+constexpr uint16_t kTwoByteExtensionProfilId = 0x1000;
+constexpr uint16_t kTwoByteExtensionProfilIdAppBitsFilter = 0xFFF0;
 constexpr size_t kOneByteExtensionHeaderLength = 1;
 constexpr size_t kTwoByteExtensionHeaderLength = 2;
 } // namespace
@@ -45,11 +45,19 @@ RtpPacket::RtpPacket()
     : RtpPacket(kIpPacketSize) {}
 
 RtpPacket::RtpPacket(size_t capacity) 
-    : Packet(capacity) {
-    Reset();
-}
+    : RtpPacket(std::make_shared<ExtensionManager>(), capacity) {}
 
 RtpPacket::RtpPacket(const RtpPacket&) = default;
+
+RtpPacket::RtpPacket(std::shared_ptr<ExtensionManager> extension_manager) 
+    : RtpPacket(std::move(extension_manager), kIpPacketSize) {}
+
+RtpPacket::RtpPacket(std::shared_ptr<ExtensionManager> extension_manager, size_t capacity) 
+    : Packet(capacity),
+      extension_manager_(std::move(extension_manager)) {
+    assert(capacity <= kIpPacketSize);
+    Reset();
+}
 
 RtpPacket::~RtpPacket() {}
 
@@ -269,11 +277,11 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
        if (extension_offset + extension_capacity > size) {
            return false;
        }
-       if (profile_id != kOneByteExtensionProfiledId &&
-        (profile_id & kTwoByteExtensionProfiledIdAppBitsFilter) != kTwoByteExtensionProfiledId) {
+       if (profile_id != kOneByteExtensionProfilId &&
+            (profile_id & kTwoByteExtensionProfilIdAppBitsFilter) != kTwoByteExtensionProfilId) {
             PLOG_WARNING << "Unsupported RTP extension: " << profile_id;
         }else {
-            size_t extension_header_length = profile_id == kOneByteExtensionProfiledId ? kOneByteExtensionHeaderLength : kTwoByteExtensionHeaderLength;
+            size_t extension_header_length = profile_id == kOneByteExtensionProfilId ? kOneByteExtensionHeaderLength : kTwoByteExtensionHeaderLength;
             constexpr uint8_t kPaddingByte = 0;
             constexpr uint8_t kPaddingId = 0;
             constexpr uint8_t kOneByteHeaderExtensionReservedId = 15;
@@ -284,13 +292,38 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
                 }
                 int id;
                 uint8_t length;
-                if (profile_id == kOneByteExtensionProfiledId) {
+                // One-Byte Header
+                //    0                   1                   2                   3
+                //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                //   |       0xBE    |    0xDE       |           length=3            |
+                //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                //   |  ID   | L=0   |     data      |  ID   |  L=1  |   data...
+                //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                //         ...data   |    0 (pad)    |    0 (pad)    |  ID   | L=3   |
+                //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                //   |                          data                                 |
+                //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                if (profile_id == kOneByteExtensionProfilId) {
                     id = buffer[extension_offset + extensions_size_] >> 4;
                     length = 1 + (buffer[extension_offset + extensions_size_] & 0xF);
                     if (id == kOneByteHeaderExtensionReservedId || (id == kPaddingId && length != 1)) {
                         break;
                     }
-                }else {
+                }
+                // Two-Byte Header
+                // 0                   1                   2                   3
+                // 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |       0x10    |    0x00       |           length=3            |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |      ID       |     L=0       |     ID        |     L=1       |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |       data    |    0 (pad)    |       ID      |      L=4      |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |                          data                                 |
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                else {
                     id = buffer[extension_offset + extensions_size_];
                     length = buffer[extension_offset + extensions_size_ + 1];
                 }
@@ -300,18 +333,20 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
                     break;
                 }
 
-                ExtensionInfo& extension_info = FindOrCreateExtensionInfo(id);
-                if (extension_info.length != 0) {
-                    PLOG_VERBOSE << "Duplicate RTP header extension id: " << id << ", Overwriting.";
-                }
-
                 size_t offset = extension_offset + extensions_size_ + extension_header_length;
                 if (!utils::numeric::is_value_in_range<uint16_t>(offset)) {
                     PLOG_WARNING << "Oversized RTP header extension.";
                     break;
                 }
-                extension_info.offset = static_cast<uint16_t>(offset);
-                extension_info.length = length;
+
+                auto extension = extension_manager_->ParseExtension(id, &buffer[offset], length);
+
+                if (!extension.has_value()) {
+                    PLOG_WARNING << "Unsupported extension with id: " << id;
+                }else {
+                    extensions_.push_back(extension.value());
+                }
+
                 extensions_size_ += extension_header_length + length;
             }
         }
@@ -334,6 +369,30 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
 
     payload_size_ = size - payload_offset_ - padding_size_;
     return true;
+}
+
+bool RtpPacket::HasExtension(ExtensionType type) const {
+    uint8_t id = extension_manager_->GetId(type);
+    if (id == ExtensionManager::kInvalidId) {
+        // Extension not registered
+        return false;
+    }
+    return FindExtensionInfo(id) != nullptr;
+}
+
+bool RtpPacket::RemoveExtension(ExtensionType type) {
+    // TODO: To remove extension by type
+    return false;
+}
+
+// Private methods
+const RtpPacket::ExtensionInfo* RtpPacket::FindExtensionInfo(int id) const {
+    for (const ExtensionInfo& extension : extension_entries_) {
+        if (extension.id == id) {
+            return &extension;
+        }
+    }
+    return nullptr;
 }
 
 RtpPacket::ExtensionInfo& RtpPacket::FindOrCreateExtensionInfo(int id) {

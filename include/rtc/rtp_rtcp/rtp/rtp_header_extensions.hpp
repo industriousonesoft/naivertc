@@ -9,10 +9,21 @@
 
 namespace naivertc {
 namespace rtp {
-namespace extension {
+
+// HeaderExtension
+class RTC_CPP_EXPORT HeaderExtension {
+public:
+    HeaderExtension() {}
+    virtual ~HeaderExtension() = default;
+
+    virtual RtpExtensionType type() const { return RtpExtensionType::NONE; };
+
+    virtual bool Parse(const uint8_t* data, size_t size) { return false; };
+    virtual bool PackInto(uint8_t* data, size_t size) const { return false; };
+};
 
 // AbsoluteSendTime
-class RTC_CPP_EXPORT AbsoluteSendTime {
+class RTC_CPP_EXPORT AbsoluteSendTime final : public HeaderExtension {
 public:
     static constexpr RtpExtensionType kType = RtpExtensionType::ABSOLUTE_SEND_TIME;
     static constexpr uint8_t kValueSizeBytes = 3;
@@ -22,14 +33,17 @@ public:
         return static_cast<uint32_t>(((time_ms << 18) + 500) / 1000) & 0x00FFFFFF;
     }
 public:
-    AbsoluteSendTime(uint32_t* time_24bits);
+    AbsoluteSendTime();
+    AbsoluteSendTime(uint32_t time_24bits);
     ~AbsoluteSendTime();
     
     size_t data_size() const { return kValueSizeBytes; }
     uint32_t time_24bits() const { return time_24bits_; }
 
-    bool Parse(std::vector<const uint8_t> data);
-    bool PackInto(std::vector<uint8_t> data) const;
+    RtpExtensionType type() const override { return kType; };
+
+    bool Parse(const uint8_t* data, size_t size) override;
+    bool PackInto(uint8_t* data, size_t size) const override;
 private:
     uint32_t time_24bits_;
 };
@@ -41,7 +55,7 @@ private:
 // accomplish audio-to-video synchronization when RTCP-terminating intermediate
 // systems (e.g. mixers) are involved. See:
 // http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time
-class AbsoluteCaptureTime {
+class AbsoluteCaptureTime final : public HeaderExtension {
 public:
     static constexpr RtpExtensionType kType = RtpExtensionType::ABSOLUTE_CAPTURE_TIME;
     static constexpr uint8_t kValueSizeBytes = 16;
@@ -49,6 +63,7 @@ public:
     static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time";
 
 public:
+    AbsoluteCaptureTime();
     AbsoluteCaptureTime(uint64_t absolute_capture_timestamp, std::optional<int64_t> estimated_capture_clock_offset);
     ~AbsoluteCaptureTime();
 
@@ -56,8 +71,10 @@ public:
     uint64_t absolute_capture_timestamp() const { return absolute_capture_timestamp_; }
     std::optional<int64_t> estimated_capture_clock_offset() const { return estimated_capture_clock_offset_; }
 
-    bool Parse(std::vector<const uint8_t> data);
-    bool PackInto(std::vector<uint8_t> data) const;
+    RtpExtensionType type() const override { return kType; };
+
+    bool Parse(const uint8_t* data, size_t size) override;
+    bool PackInto(uint8_t* data, size_t size) const override;
 private:
     // Absolute capture timestamp is the NTP timestamp of when the first frame in
     // a packet was originally captured. This timestamp MUST be based on the same
@@ -92,42 +109,48 @@ private:
     std::optional<int64_t> estimated_capture_clock_offset_;
 };
 
-// TransmissionOffset
-class TransmissionOffset {
+// TransmissionTimeOffset
+class TransmissionTimeOffset final : public HeaderExtension {
 public:
     static constexpr RtpExtensionType kType = RtpExtensionType::TRANSMISSTION_TIME_OFFSET;
     static constexpr uint8_t kValueSizeBytes = 3;
     static constexpr const char kUri[] = "urn:ietf:params:rtp-hdrext:toffset";
 
 public:
-    TransmissionOffset(int32_t rtp_time_24bits);
-    ~TransmissionOffset();
+    TransmissionTimeOffset();
+    TransmissionTimeOffset(int32_t rtp_time_24bits);
+    ~TransmissionTimeOffset();
 
     size_t data_size() const { return kValueSizeBytes; }
     int32_t rtp_time_24bits() const { return rtp_time_24bits_; }
 
-    bool Parse(std::vector<const uint8_t> data);
-    bool PackInto(std::vector<uint8_t> data) const;
+    RtpExtensionType type() const override { return kType; };
+
+    bool Parse(const uint8_t* data, size_t size) override;
+    bool PackInto(uint8_t* data, size_t size) const override;
 private:
     int32_t rtp_time_24bits_;
 };
 
 // TransportSequenceNumber
-class TransportSequenceNumber {
+class TransportSequenceNumber final : public HeaderExtension {
 public:
     static constexpr RtpExtensionType kType = RtpExtensionType::TRANSPORT_SEQUENCE_NUMBER;
     static constexpr uint8_t kValueSizeBytes = 2;
     static constexpr const char kUri[] = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
 
 public:
+    TransportSequenceNumber();
     TransportSequenceNumber(uint16_t transport_sequence_number);
     ~TransportSequenceNumber();
 
     size_t data_size() const { return kValueSizeBytes; }  
     uint16_t transport_sequence_number() const { return transport_sequence_number_; }
 
-    bool Parse(std::vector<const uint8_t> data);
-    bool PackInto(std::vector<uint8_t> data) const;
+    RtpExtensionType type() const override { return kType; };
+
+    bool Parse(const uint8_t* data, size_t size) override;
+    bool PackInto(uint8_t* data, size_t size) const override;
 private:
     uint16_t transport_sequence_number_;
 };
@@ -143,9 +166,9 @@ private:
 //
 // min = x, max = y indicates that the receiver is free to adapt
 // in the range (x, y) based on network jitter.
-class PlayoutDelayLimits {
+class PlayoutDelayLimits final : public HeaderExtension {
 public:
-    static constexpr RtpExtensionType kType = RtpExtensionType::PLAYOUT_DELAY;
+    static constexpr RtpExtensionType kType = RtpExtensionType::PLAYOUT_DELAY_LIMITS;
     static constexpr uint8_t kValueSizeBytes = 3;
     static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay";
 
@@ -165,8 +188,10 @@ public:
     int min_ms() const { return min_ms_; }
     int max_ms() const { return max_ms_; }
 
-    bool Parse(std::vector<const uint8_t> data);
-    bool PackInto(std::vector<uint8_t> data) const;
+    RtpExtensionType type() const override { return kType; };
+
+    bool Parse(const uint8_t* data, size_t size) override;
+    bool PackInto(uint8_t* data, size_t size) const override;
 
     bool operator==(const PlayoutDelayLimits& rhs) const {
         return min_ms_ == rhs.min_ms_ && max_ms_ == rhs.max_ms_;
@@ -179,34 +204,39 @@ private:
 
 // Base extension class for RTP header extensions which are strings.
 // Subclasses must defined kId and kUri static constexpr members.
-class BaseRtpString {
+class BaseRtpString : public HeaderExtension {
 public:
     // String RTP header extensions are limited to 16 bytes because it is the
     // maximum length that can be encoded with one-byte header extensions.
     static constexpr uint8_t kMaxValueSizeBytes = 16;
 public:
+    BaseRtpString();
     BaseRtpString(const std::string str);
-    ~BaseRtpString();
+    virtual ~BaseRtpString();
 
     size_t data_size() const { return value_.size(); }
     std::string_view value() const { return value_; }
 
-    bool Parse(std::vector<const uint8_t> data);
-    bool PackInto(std::vector<uint8_t> data) const;
+    virtual RtpExtensionType type() const override = 0;
+
+    bool Parse(const uint8_t* data, size_t size) override;
+    bool PackInto(uint8_t* data, size_t size) const override;
 private:
     std::string value_;
 };
 
-class RtpMid : public BaseRtpString {
+class RtpMid final : public BaseRtpString {
 public:
     static constexpr RtpExtensionType kType = RtpExtensionType::MID;
     static constexpr const char kUri[] = "urn:ietf:params:rtp-hdrext:sdes:mid";
 public:
+    RtpMid();
     RtpMid(const std::string value);
     ~RtpMid();
+
+    RtpExtensionType type() const override { return kType; };
 };
     
-} // namespace extension
 } // namespace rtp
 } // namespace naivertc
 

@@ -5,8 +5,6 @@
 
 namespace naivertc {
 namespace rtp {
-namespace extension {
-
 namespace {
 
 struct ExtensionInfo {
@@ -22,7 +20,7 @@ constexpr ExtensionInfo CreateExtensionInfo() {
 constexpr ExtensionInfo kExtensions[] = {
     CreateExtensionInfo<AbsoluteSendTime>(),
     CreateExtensionInfo<AbsoluteCaptureTime>(),
-    CreateExtensionInfo<TransmissionOffset>(),
+    CreateExtensionInfo<TransmissionTimeOffset>(),
     CreateExtensionInfo<TransportSequenceNumber>(),
     CreateExtensionInfo<PlayoutDelayLimits>(),
     CreateExtensionInfo<RtpMid>()
@@ -30,38 +28,38 @@ constexpr ExtensionInfo kExtensions[] = {
 
 }  // namespace
 
-Manager::Manager() : Manager(false) {}
+ExtensionManager::ExtensionManager() : ExtensionManager(false) {}
 
-Manager::Manager(bool extmap_allow_mixed) 
+ExtensionManager::ExtensionManager(bool extmap_allow_mixed) 
     : extmap_allow_mixed_(extmap_allow_mixed) {
     for (auto& id : extension_ids_) {
         id = kInvalidId;
     }
 }   
 
-Manager::~Manager() = default;
+ExtensionManager::~ExtensionManager() = default;
 
-RtpExtensionType Manager::GetType(int id) const {
+RtpExtensionType ExtensionManager::GetType(int id) const {
     if (id < kMinId || id > kMaxId) {
         return RtpExtensionType::NONE;
     }
     for (int type = int(RtpExtensionType::NONE) + 1; type < int(RtpExtensionType::NUMBER_OF_EXTENSIONS);
         ++type) {
         if (extension_ids_[type] == id) {
-        return static_cast<RtpExtensionType>(type);
+            return static_cast<RtpExtensionType>(type);
         }
     }
     return kInvalidType;
 }
 
-bool Manager::RegisterByType(int id, RtpExtensionType type) {
+bool ExtensionManager::RegisterByType(int id, RtpExtensionType type) {
     for (const ExtensionInfo& extension : kExtensions)
         if (type == extension.type)
             return Register(id, extension.type, extension.uri);
     return false;
 }
 
-bool Manager::RegisterByUri(int id, std::string_view uri) {
+bool ExtensionManager::RegisterByUri(int id, std::string_view uri) {
     for (const ExtensionInfo& extension : kExtensions)
         if (uri == extension.uri)
             return Register(id, extension.type, extension.uri);
@@ -70,7 +68,7 @@ bool Manager::RegisterByUri(int id, std::string_view uri) {
     return false;
 }
 
-int Manager::Deregister(RtpExtensionType type) {
+int ExtensionManager::Deregister(RtpExtensionType type) {
     int registered_id = kInvalidId;
     if (IsRegistered(type)) {
         registered_id = extension_ids_[int(type)];
@@ -79,7 +77,7 @@ int Manager::Deregister(RtpExtensionType type) {
     return registered_id;
 }
 
-int Manager::Deregister(std::string_view uri) {
+int ExtensionManager::Deregister(std::string_view uri) {
     int registered_id = kInvalidId;
     for (const ExtensionInfo& extension : kExtensions) {
         if (extension.uri == uri) {
@@ -91,8 +89,41 @@ int Manager::Deregister(std::string_view uri) {
     return registered_id;
 }
 
+std::optional<HeaderExtension> ExtensionManager::ParseExtension(int id, const uint8_t* data, size_t size) {
+    // Check the current extension is registered or not
+    RtpExtensionType extension_type = GetType(id);
+    // Only parse the supported extensions
+    if (extension_type == kInvalidType) {
+         PLOG_WARNING << "Unsupported extension with id: " << id;
+         return std::nullopt;
+    }
+    std::optional<HeaderExtension> extension = std::nullopt;
+    switch (extension_type) {
+    case RtpExtensionType::ABSOLUTE_SEND_TIME: 
+        extension = std::optional<AbsoluteSendTime>();
+        break;
+    case RtpExtensionType::ABSOLUTE_CAPTURE_TIME: 
+        extension = std::optional<AbsoluteCaptureTime>();
+        break;
+    case RtpExtensionType::TRANSPORT_SEQUENCE_NUMBER:
+        extension = std::optional<TransportSequenceNumber>();
+        break;
+    case RtpExtensionType::TRANSMISSTION_TIME_OFFSET:
+        extension = std::optional<TransmissionTimeOffset>();
+        break;
+    case RtpExtensionType::PLAYOUT_DELAY_LIMITS:
+        extension = std::optional<PlayoutDelayLimits>();
+    case RtpExtensionType::MID:
+        extension = std::optional<RtpMid>();
+    default:
+        break;
+    }
+
+    return extension->Parse(data, size) ? extension : std::nullopt;
+}
+
 // Private methods
-bool Manager::Register(int id, RtpExtensionType type, const char* uri) {
+bool ExtensionManager::Register(int id, RtpExtensionType type, const char* uri) {
     if (type <= RtpExtensionType::NONE || type >= RtpExtensionType::NUMBER_OF_EXTENSIONS) {
         PLOG_WARNING << "Invalid RTP extension type: " << int(type);
         return false;
@@ -122,6 +153,5 @@ bool Manager::Register(int id, RtpExtensionType type, const char* uri) {
     return true;
 }
     
-} // namespace extension
 } // namespace rtc
 } // namespace naivertc
