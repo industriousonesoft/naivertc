@@ -28,19 +28,24 @@ AbsoluteSendTime::AbsoluteSendTime(uint32_t time_24bits)
 
 AbsoluteSendTime::~AbsoluteSendTime() {}
 
-bool AbsoluteSendTime::Parse(const uint8_t* data, size_t size) {
-    if (size != kValueSizeBytes)
+bool AbsoluteSendTime::Parse(const uint8_t* buffer, size_t buffer_size) {
+    if (buffer_size != kValueSizeBytes)
         return false;
-    time_24bits_ = ByteReader<uint32_t, 3>::ReadBigEndian(data);
+    time_24bits_ = ByteReader<uint32_t, 3>::ReadBigEndian(buffer);
     return true;
 }
 
-bool AbsoluteSendTime::PackInto(uint8_t* data, size_t size) const {
-    if(size != kValueSizeBytes) return false;
-    if(time_24bits_ > 0x00FFFFFF) return false;
-    ByteWriter<uint32_t, 3>::WriteBigEndian(data, time_24bits_);
+bool AbsoluteSendTime::PackInto(uint8_t* buffer, size_t buffer_size) const {
+    return PackInto(buffer, buffer_size, time_24bits_);
+}
+
+bool AbsoluteSendTime::PackInto(uint8_t* buffer, size_t buffer_size, uint32_t time_24bits) {
+    if(buffer_size != kValueSizeBytes) return false;
+    if(time_24bits > 0x00FFFFFF) return false;
+    ByteWriter<uint32_t, 3>::WriteBigEndian(buffer, time_24bits);
     return true;
 }
+
 
 // Absolute Capture Time
 //
@@ -125,6 +130,31 @@ bool AbsoluteCaptureTime::PackInto(uint8_t* data, size_t size) const {
     return true;
 }
 
+bool AbsoluteCaptureTime::PackInto(uint8_t* buffer, size_t buffer_size, 
+                                   uint64_t absolute_capture_timestamp,
+                                   std::optional<int64_t> estimated_capture_clock_offset) {
+    if (ValueSize(absolute_capture_timestamp, estimated_capture_clock_offset) != buffer_size) {
+        return false;
+    }
+
+    ByteWriter<uint64_t>::WriteBigEndian(buffer, absolute_capture_timestamp);
+
+    if (buffer_size != kValueSizeBytesWithoutEstimatedCaptureClockOffset) {
+        ByteWriter<int64_t>::WriteBigEndian(buffer + 8, estimated_capture_clock_offset.value());
+    }
+
+    return true;
+}
+
+size_t AbsoluteCaptureTime::ValueSize(uint64_t absolute_capture_timestamp,
+                                      std::optional<int64_t> estimated_capture_clock_offset) {
+    if (estimated_capture_clock_offset != std::nullopt) {
+        return kValueSizeBytes;
+    } else {
+        return kValueSizeBytesWithoutEstimatedCaptureClockOffset;
+    }                          
+}
+
 // From RFC 5450: Transmission Time Offsets in RTP Streams.
 //
 // The transmission time is signaled to the receiver in-band using the
@@ -150,16 +180,20 @@ TransmissionTimeOffset::TransmissionTimeOffset(int32_t rtp_time_24bits)
     
 TransmissionTimeOffset::~TransmissionTimeOffset() {}
 
-bool TransmissionTimeOffset::Parse(const uint8_t* data, size_t size) {
-    if (size != kValueSizeBytes) return false;
-    rtp_time_24bits_ = ByteReader<int32_t, 3>::ReadBigEndian(data);
+bool TransmissionTimeOffset::Parse(const uint8_t* buffer, size_t buffer_size) {
+    if (buffer_size != kValueSizeBytes) return false;
+    rtp_time_24bits_ = ByteReader<int32_t, 3>::ReadBigEndian(buffer);
     return true;
 }
 
-bool TransmissionTimeOffset::PackInto(uint8_t* data, size_t size) const {
-    if(size != kValueSizeBytes) return false;
-    if(rtp_time_24bits_ > 0x00ffffff) return false;
-    ByteWriter<int32_t, 3>::WriteBigEndian(data, rtp_time_24bits_);
+bool TransmissionTimeOffset::PackInto(uint8_t* buffer, size_t buffer_size) const {
+    return TransmissionTimeOffset::PackInto(buffer, buffer_size, rtp_time_24bits_);
+}
+
+bool TransmissionTimeOffset::PackInto(uint8_t* buffer, size_t buffer_size, int32_t rtp_time_24bits) {
+    if(buffer_size != kValueSizeBytes) return false;
+    if(rtp_time_24bits > 0x00ffffff) return false;
+    ByteWriter<int32_t, 3>::WriteBigEndian(buffer, rtp_time_24bits);
     return true;
 }
 
@@ -178,16 +212,20 @@ TransportSequenceNumber::TransportSequenceNumber(uint16_t transport_sequence_num
 
 TransportSequenceNumber::~TransportSequenceNumber() {}
 
-bool TransportSequenceNumber::Parse(const uint8_t* data, size_t size) {
-    if (size != kValueSizeBytes)
+bool TransportSequenceNumber::Parse(const uint8_t* buffer, size_t buffer_size) {
+    if (buffer_size != kValueSizeBytes)
         return false;
-    transport_sequence_number_ = ByteReader<uint16_t>::ReadBigEndian(data);
+    transport_sequence_number_ = ByteReader<uint16_t>::ReadBigEndian(buffer);
     return true;
 }
 
-bool TransportSequenceNumber::PackInto(uint8_t* data, size_t size) const {
-    if(size != kValueSizeBytes) return false;
-    ByteWriter<uint16_t>::WriteBigEndian(data, transport_sequence_number_);
+bool TransportSequenceNumber::PackInto(uint8_t* buffer, size_t buffer_size) const {
+    return TransportSequenceNumber::PackInto(buffer, buffer_size, transport_sequence_number_);
+}
+
+bool TransportSequenceNumber::PackInto(uint8_t* buffer, size_t buffer_size, uint16_t transport_sequence_number) {
+    if(buffer_size != kValueSizeBytes) return false;
+    ByteWriter<uint16_t>::WriteBigEndian(buffer, transport_sequence_number);
     return true;
 }
 
@@ -205,9 +243,9 @@ PlayoutDelayLimits::PlayoutDelayLimits(int min_ms, int max_ms)
 
 PlayoutDelayLimits::~PlayoutDelayLimits() {}
 
-bool PlayoutDelayLimits::Parse(const uint8_t* data, size_t size) {
-    if (size != kValueSizeBytes) return false;
-    uint32_t raw = ByteReader<uint32_t, 3>::ReadBigEndian(data);
+bool PlayoutDelayLimits::Parse(const uint8_t* buffer, size_t buffer_size) {
+    if (buffer_size != kValueSizeBytes) return false;
+    uint32_t raw = ByteReader<uint32_t, 3>::ReadBigEndian(buffer);
     uint16_t min_raw = (raw >> 12);
     uint16_t max_raw = (raw & 0xfff);
     if (min_raw > max_raw)
@@ -217,15 +255,19 @@ bool PlayoutDelayLimits::Parse(const uint8_t* data, size_t size) {
     return true;
 }
 
-bool PlayoutDelayLimits::PackInto(uint8_t* data, size_t size) const {
-    if(size != kValueSizeBytes) return false;
-    if(0 > min_ms_) return false;
-    if(min_ms_ > max_ms_) return false;
-    if(max_ms_ > kMaxMs) return false;
+bool PlayoutDelayLimits::PackInto(uint8_t* buffer, size_t buffer_size) const {
+    return PlayoutDelayLimits::PackInto(buffer, buffer_size, min_ms_, max_ms_);
+} 
+
+bool PlayoutDelayLimits::PackInto(uint8_t* buffer, size_t buffer_size, int min_ms, int max_ms) {
+    if(buffer_size != kValueSizeBytes) return false;
+    if(0 > min_ms) return false;
+    if(min_ms > max_ms) return false;
+    if(max_ms > kMaxMs) return false;
     // Convert MS to value to be sent on extension header.
-    uint32_t min_delay = min_ms_ / kGranularityMs;
-    uint32_t max_delay = max_ms_ / kGranularityMs;
-    ByteWriter<uint32_t, 3>::WriteBigEndian(data, (min_delay << 12) | max_delay);
+    uint32_t min_delay = min_ms / kGranularityMs;
+    uint32_t max_delay = max_ms / kGranularityMs;
+    ByteWriter<uint32_t, 3>::WriteBigEndian(buffer, (min_delay << 12) | max_delay);
     return true;
 }
 
@@ -237,26 +279,30 @@ BaseRtpString::BaseRtpString(const std::string value)
 
 BaseRtpString::~BaseRtpString() {}
 
-bool BaseRtpString::Parse(const uint8_t* data, size_t size) {
-    if (size == 0 || data[0] == 0)  // Valid string extension can't be empty.
+bool BaseRtpString::Parse(const uint8_t* buffer, size_t buffer_size) {
+    if (buffer_size == 0 || buffer[0] == 0)  // Valid string extension can't be empty.
         return false;
-    const char* cstr = reinterpret_cast<const char*>(data);
+    const char* cstr = reinterpret_cast<const char*>(buffer);
     // If there is a \0 character in the middle of the |data|, treat it as end
     // of the string. Well-formed string extensions shouldn't contain it.
-    value_.assign(cstr, strnlen(cstr, size));
+    value_.assign(cstr, strnlen(cstr, buffer_size));
     if(value_.empty()) {
         return false;
     }
     return true;
 }
 
-bool BaseRtpString::PackInto(uint8_t* data, size_t size) const {
-    if (value_.size() > kMaxValueSizeBytes) {
+bool BaseRtpString::PackInto(uint8_t* buffer, size_t buffer_size) const {
+    return BaseRtpString::PackInto(buffer, buffer_size, value_);
+}
+
+bool BaseRtpString::PackInto(uint8_t* buffer, size_t buffer_size, const std::string value) {
+    if (value.size() > kMaxValueSizeBytes) {
         return false;
     }
-    if(value_.empty() || size != value_.size())
+    if(value.empty() || buffer_size != value.size())
         return false;
-    memcpy(data, value_.data(), value_.size());
+    memcpy(buffer, value.data(), value.size());
     return true;
 }
 

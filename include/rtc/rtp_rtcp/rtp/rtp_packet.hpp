@@ -94,8 +94,8 @@ public:
     template <typename Extension>
     std::shared_ptr<Extension> GetExtension() const;
 
-    template <typename Extension>
-    bool SetExtension(const Extension& extension);
+    template <typename Extension, typename... Values>
+    bool SetExtension(const Values&... values);
 
 private:
     inline void WriteAt(size_t offset, uint8_t byte);
@@ -142,7 +142,7 @@ private:
 
 template <typename Extension>
 bool RtpPacket::HasExtension() const {
-    return HasExtension(Extension::kId);
+    return HasExtension(Extension::kType);
 }
 
 template <typename Extension>
@@ -160,12 +160,13 @@ std::shared_ptr<Extension> RtpPacket::GetExtension() const {
     return std::move(result);
 }
 
-template <typename Extension>
-bool RtpPacket::SetExtension(const Extension& extension) {
-    auto buffer = AllocateExtension(Extension::kId, extension.size());
-    if (buffer.empty())
+template <typename Extension, typename... Values>
+bool RtpPacket::SetExtension(const Values&... values) {
+    const size_t value_size = Extension::ValueSize(values...);
+    auto buffer = AllocateExtension(Extension::kType, value_size);
+    if (buffer->empty())
         return false;
-    return extension.PackInto(buffer->data(), buffer->size);
+    return Extension::PackInto(buffer->data(), buffer->size(), values...);
 }
 
 } // namespace naivertc
