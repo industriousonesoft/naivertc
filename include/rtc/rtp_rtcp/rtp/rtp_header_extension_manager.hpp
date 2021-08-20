@@ -8,8 +8,10 @@
 #include <string>
 
 namespace naivertc {
+namespace rtp {
+namespace extension {
 
-class RTC_CPP_EXPORT RtpHeaderExtensionManager {
+class RTC_CPP_EXPORT Manager {
 public:
     static constexpr RtpExtensionType kInvalidType = RtpExtensionType::NONE;
     static constexpr int kInvalidId = 0;
@@ -17,9 +19,9 @@ public:
     static constexpr int kMaxId = 255;
 
 public:
-    RtpHeaderExtensionManager();
-    explicit RtpHeaderExtensionManager(bool extmap_allow_mixed);
-    ~RtpHeaderExtensionManager();
+    Manager();
+    explicit Manager(bool extmap_allow_mixed);
+    ~Manager();
 
     bool extmap_allow_mixed() const { return extmap_allow_mixed_; }
     void set_extmap_allow_mixed(bool allow_mixed) { extmap_allow_mixed_ = allow_mixed; };
@@ -45,8 +47,10 @@ public:
         return GetId(type) != kInvalidId;
     }
 
-    void Deregister(RtpExtensionType type);
-    void Deregister(std::string_view uri);
+    // Return kInvalid if not registered, otherwise the registered id
+    int Deregister(RtpExtensionType type);
+    // Return kInvalid if not registered, otherwise the registered id
+    int Deregister(std::string_view uri);
 
 private:
     bool Register(int id, RtpExtensionType type, const char* uri);
@@ -56,6 +60,8 @@ private:
     bool extmap_allow_mixed_;
 };
     
+} // namespace extension
+} // namespace rtc
 } // namespace naivertc
 
 

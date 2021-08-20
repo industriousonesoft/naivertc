@@ -3,87 +3,89 @@
 
 #include <gtest/gtest.h>
 
+using namespace naivertc::rtp::extension;
+
 namespace naivertc {
 
 TEST(RtpHeaderExtensionTest, RegisterByType) {
-    RtpHeaderExtensionManager mgr;
-    EXPECT_FALSE(mgr.IsRegistered(TransmissionOffsetExtension::kType));
+    Manager mgr;
+    EXPECT_FALSE(mgr.IsRegistered(TransmissionOffset::kType));
 
-    EXPECT_TRUE(mgr.RegisterByType(3, TransmissionOffsetExtension::kType));
+    EXPECT_TRUE(mgr.RegisterByType(3, TransmissionOffset::kType));
 
-    EXPECT_TRUE(mgr.IsRegistered(TransmissionOffsetExtension::kType));
-    EXPECT_EQ(3, mgr.GetId(TransmissionOffsetExtension::kType));
-    EXPECT_EQ(TransmissionOffsetExtension::kType, mgr.GetType(3));
+    EXPECT_TRUE(mgr.IsRegistered(TransmissionOffset::kType));
+    EXPECT_EQ(3, mgr.GetId(TransmissionOffset::kType));
+    EXPECT_EQ(TransmissionOffset::kType, mgr.GetType(3));
 }
 
 
 TEST(RtpHeaderExtensionTest, RegisterByUri) {
-    RtpHeaderExtensionManager mgr;
+    Manager mgr;
 
-    EXPECT_TRUE(mgr.RegisterByUri(3, TransmissionOffsetExtension::kUri));
+    EXPECT_TRUE(mgr.RegisterByUri(3, TransmissionOffset::kUri));
 
-    EXPECT_TRUE(mgr.IsRegistered(TransmissionOffsetExtension::kType));
-    EXPECT_EQ(3, mgr.GetId(TransmissionOffsetExtension::kType));
-    EXPECT_EQ(TransmissionOffsetExtension::kType, mgr.GetType(3));
+    EXPECT_TRUE(mgr.IsRegistered(TransmissionOffset::kType));
+    EXPECT_EQ(3, mgr.GetId(TransmissionOffset::kType));
+    EXPECT_EQ(TransmissionOffset::kType, mgr.GetType(3));
 }
 
 TEST(RtpHeaderExtensionTest, RegisterWithTrait) {
-    RtpHeaderExtensionManager mgr;
+    Manager mgr;
 
-    EXPECT_TRUE(mgr.Register<TransmissionOffsetExtension>(3));
+    EXPECT_TRUE(mgr.Register<TransmissionOffset>(3));
 
-    EXPECT_TRUE(mgr.IsRegistered(TransmissionOffsetExtension::kType));
-    EXPECT_EQ(3, mgr.GetId(TransmissionOffsetExtension::kType));
-    EXPECT_EQ(TransmissionOffsetExtension::kType, mgr.GetType(3));
+    EXPECT_TRUE(mgr.IsRegistered(TransmissionOffset::kType));
+    EXPECT_EQ(3, mgr.GetId(TransmissionOffset::kType));
+    EXPECT_EQ(TransmissionOffset::kType, mgr.GetType(3));
 }
 
 TEST(RtpHeaderExtensionTest, RegisterTwoByteHeaderExtensions) {
-    RtpHeaderExtensionManager mgr;
+    Manager mgr;
     // Two-byte header extension needed for id: [15-255].
-    EXPECT_TRUE(mgr.Register<TransmissionOffsetExtension>(18));
-    EXPECT_TRUE(mgr.Register<AbsoluteSendTimeExtension>(255));
+    EXPECT_TRUE(mgr.Register<TransmissionOffset>(18));
+    EXPECT_TRUE(mgr.Register<AbsoluteSendTime>(255));
 }
 
 TEST(RtpHeaderExtensionTest, RegisterIllegalArg) {
-    RtpHeaderExtensionManager mgr;
+    Manager mgr;
     // Valid range for id: [1-255].
-    EXPECT_FALSE(mgr.Register<TransmissionOffsetExtension>(0));
-    EXPECT_FALSE(mgr.Register<AbsoluteSendTimeExtension>(256));
+    EXPECT_FALSE(mgr.Register<TransmissionOffset>(0));
+    EXPECT_FALSE(mgr.Register<AbsoluteSendTime>(256));
 }
 
 TEST(RtpHeaderExtensionTest, Idempotent) {
-    RtpHeaderExtensionManager mgr;
+    Manager mgr;
 
-    EXPECT_TRUE(mgr.Register<AbsoluteSendTimeExtension>(3));
-    EXPECT_TRUE(mgr.Register<AbsoluteSendTimeExtension>(3));
+    EXPECT_TRUE(mgr.Register<AbsoluteSendTime>(3));
+    EXPECT_TRUE(mgr.Register<AbsoluteSendTime>(3));
 
-    mgr.Deregister(AbsoluteSendTimeExtension::kType);
-    mgr.Deregister(AbsoluteSendTimeExtension::kType);
+    mgr.Deregister(AbsoluteSendTime::kType);
+    mgr.Deregister(AbsoluteSendTime::kType);
 }
 
 TEST(RtpHeaderExtensionTest, NonUniqueId) {
-    RtpHeaderExtensionManager mgr;
-    EXPECT_TRUE(mgr.Register<TransmissionOffsetExtension>(3));
+    Manager mgr;
+    EXPECT_TRUE(mgr.Register<TransmissionOffset>(3));
 
-    EXPECT_FALSE(mgr.Register<AbsoluteSendTimeExtension>(3));
-    EXPECT_TRUE(mgr.Register<AbsoluteSendTimeExtension>(4));
+    EXPECT_FALSE(mgr.Register<AbsoluteSendTime>(3));
+    EXPECT_TRUE(mgr.Register<AbsoluteSendTime>(4));
 }
 
 TEST(RtpHeaderExtensionTest, GetType) {
-    RtpHeaderExtensionManager mgr;
-    EXPECT_EQ(RtpHeaderExtensionManager::kInvalidType, mgr.GetType(3));
-    EXPECT_TRUE(mgr.Register<TransmissionOffsetExtension>(3));
+    Manager mgr;
+    EXPECT_EQ(Manager::kInvalidType, mgr.GetType(3));
+    EXPECT_TRUE(mgr.Register<TransmissionOffset>(3));
 
-    EXPECT_EQ(TransmissionOffsetExtension::kType, mgr.GetType(3));
+    EXPECT_EQ(TransmissionOffset::kType, mgr.GetType(3));
 }
 
 TEST(RtpHeaderExtensionTest, GetId) {
-    RtpHeaderExtensionManager mgr;
-    EXPECT_EQ(RtpHeaderExtensionManager::kInvalidId,
-                mgr.GetId(TransmissionOffsetExtension::kType));
-    EXPECT_TRUE(mgr.Register<TransmissionOffsetExtension>(3));
+    Manager mgr;
+    EXPECT_EQ(Manager::kInvalidId,
+                mgr.GetId(TransmissionOffset::kType));
+    EXPECT_TRUE(mgr.Register<TransmissionOffset>(3));
 
-    EXPECT_EQ(3, mgr.GetId(TransmissionOffsetExtension::kType));
+    EXPECT_EQ(3, mgr.GetId(TransmissionOffset::kType));
 }
 
 } // namespace naivertc
