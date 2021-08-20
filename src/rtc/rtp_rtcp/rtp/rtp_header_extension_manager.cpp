@@ -89,39 +89,6 @@ int ExtensionManager::Deregister(std::string_view uri) {
     return registered_id;
 }
 
-std::optional<HeaderExtension> ExtensionManager::ParseExtension(int id, const uint8_t* data, size_t size) {
-    // Check the current extension is registered or not
-    RtpExtensionType extension_type = GetType(id);
-    // Only parse the supported extensions
-    if (extension_type == kInvalidType) {
-         PLOG_WARNING << "Unsupported extension with id: " << id;
-         return std::nullopt;
-    }
-    std::optional<HeaderExtension> extension = std::nullopt;
-    switch (extension_type) {
-    case RtpExtensionType::ABSOLUTE_SEND_TIME: 
-        extension = std::optional<AbsoluteSendTime>();
-        break;
-    case RtpExtensionType::ABSOLUTE_CAPTURE_TIME: 
-        extension = std::optional<AbsoluteCaptureTime>();
-        break;
-    case RtpExtensionType::TRANSPORT_SEQUENCE_NUMBER:
-        extension = std::optional<TransportSequenceNumber>();
-        break;
-    case RtpExtensionType::TRANSMISSTION_TIME_OFFSET:
-        extension = std::optional<TransmissionTimeOffset>();
-        break;
-    case RtpExtensionType::PLAYOUT_DELAY_LIMITS:
-        extension = std::optional<PlayoutDelayLimits>();
-    case RtpExtensionType::MID:
-        extension = std::optional<RtpMid>();
-    default:
-        break;
-    }
-
-    return extension->Parse(data, size) ? extension : std::nullopt;
-}
-
 // Private methods
 bool ExtensionManager::Register(int id, RtpExtensionType type, const char* uri) {
     if (type <= RtpExtensionType::NONE || type >= RtpExtensionType::NUMBER_OF_EXTENSIONS) {

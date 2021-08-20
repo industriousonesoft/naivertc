@@ -104,7 +104,7 @@ bool AbsoluteCaptureTime::Parse(const uint8_t* data, size_t size) {
     return true;
 }
 
-size_t AbsoluteCaptureTime::data_size() const {
+size_t AbsoluteCaptureTime::size() const {
     if (estimated_capture_clock_offset_ != std::nullopt) {
         return kValueSizeBytes;
     } else {
@@ -113,7 +113,8 @@ size_t AbsoluteCaptureTime::data_size() const {
 }
 
 bool AbsoluteCaptureTime::PackInto(uint8_t* data, size_t size) const {
-    if(size != data_size()) return false;
+    if(size != this->size()) 
+        return false;
 
     ByteWriter<uint64_t>::WriteBigEndian(data, absolute_capture_timestamp_);
 

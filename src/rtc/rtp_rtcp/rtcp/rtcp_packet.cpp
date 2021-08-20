@@ -10,9 +10,12 @@ BinaryBuffer RtcpPacket::Build() const {
 
     size_t size = 0;
     bool created = PackInto(packet.data(), &size, packet.capacity(), nullptr);
-    assert(created == true && "Invalid packet is not supported.");
+    if (!created) {
+        PLOG_WARNING << "Failed to packet RTCP packet.";
+        packet.resize(0);
+    }
     assert(size == packet.size() && "PacketSize mispredicted size used.");
-    return packet;
+    return std::move(packet);
 }
 
 bool RtcpPacket::Build(size_t max_size, PacketReadyCallback callback) const {

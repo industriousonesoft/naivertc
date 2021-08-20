@@ -17,6 +17,9 @@ public:
     static constexpr int kInvalidId = 0;
     static constexpr int kMinId = 1;
     static constexpr int kMaxId = 255;
+    static constexpr int kMaxValueSize = 255;
+    static constexpr int kOneByteHeaderExtensionMaxId = 14;
+    static constexpr int kOneByteHeaderExtensionMaxValueSize = 16;
 
 public:
     ExtensionManager();
@@ -51,9 +54,7 @@ public:
     int Deregister(RtpExtensionType type);
     // Return kInvalid if not registered, otherwise the registered id
     int Deregister(std::string_view uri);
-
-    std::optional<HeaderExtension> ParseExtension(int id, const uint8_t* data, size_t size);
-
+    
 private:
     bool Register(int id, RtpExtensionType type, const char* uri);
 

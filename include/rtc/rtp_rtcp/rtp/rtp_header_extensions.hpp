@@ -16,6 +16,7 @@ public:
     HeaderExtension() {}
     virtual ~HeaderExtension() = default;
 
+    virtual size_t size() const { return 0; }
     virtual RtpExtensionType type() const { return RtpExtensionType::NONE; };
 
     virtual bool Parse(const uint8_t* data, size_t size) { return false; };
@@ -37,9 +38,9 @@ public:
     AbsoluteSendTime(uint32_t time_24bits);
     ~AbsoluteSendTime();
     
-    size_t data_size() const { return kValueSizeBytes; }
     uint32_t time_24bits() const { return time_24bits_; }
 
+    size_t size() const override { return kValueSizeBytes; }
     RtpExtensionType type() const override { return kType; };
 
     bool Parse(const uint8_t* data, size_t size) override;
@@ -66,11 +67,11 @@ public:
     AbsoluteCaptureTime();
     AbsoluteCaptureTime(uint64_t absolute_capture_timestamp, std::optional<int64_t> estimated_capture_clock_offset);
     ~AbsoluteCaptureTime();
-
-    size_t data_size() const;
+    
     uint64_t absolute_capture_timestamp() const { return absolute_capture_timestamp_; }
     std::optional<int64_t> estimated_capture_clock_offset() const { return estimated_capture_clock_offset_; }
 
+    size_t size() const override;
     RtpExtensionType type() const override { return kType; };
 
     bool Parse(const uint8_t* data, size_t size) override;
@@ -121,9 +122,9 @@ public:
     TransmissionTimeOffset(int32_t rtp_time_24bits);
     ~TransmissionTimeOffset();
 
-    size_t data_size() const { return kValueSizeBytes; }
     int32_t rtp_time_24bits() const { return rtp_time_24bits_; }
 
+    size_t size() const override { return kValueSizeBytes; }
     RtpExtensionType type() const override { return kType; };
 
     bool Parse(const uint8_t* data, size_t size) override;
@@ -144,9 +145,9 @@ public:
     TransportSequenceNumber(uint16_t transport_sequence_number);
     ~TransportSequenceNumber();
 
-    size_t data_size() const { return kValueSizeBytes; }  
     uint16_t transport_sequence_number() const { return transport_sequence_number_; }
 
+    size_t size() const override { return kValueSizeBytes; }  
     RtpExtensionType type() const override { return kType; };
 
     bool Parse(const uint8_t* data, size_t size) override;
@@ -184,10 +185,10 @@ public:
     PlayoutDelayLimits(int min_ms, int max_ms);
     ~PlayoutDelayLimits();
     
-    size_t data_size() const { return kValueSizeBytes; }
     int min_ms() const { return min_ms_; }
     int max_ms() const { return max_ms_; }
 
+    size_t size() const override { return kValueSizeBytes; }
     RtpExtensionType type() const override { return kType; };
 
     bool Parse(const uint8_t* data, size_t size) override;
@@ -214,9 +215,9 @@ public:
     BaseRtpString(const std::string str);
     virtual ~BaseRtpString();
 
-    size_t data_size() const { return value_.size(); }
     std::string_view value() const { return value_; }
 
+    size_t size() const override { return value_.size(); }
     virtual RtpExtensionType type() const override = 0;
 
     bool Parse(const uint8_t* data, size_t size) override;
