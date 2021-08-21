@@ -114,6 +114,9 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/rtp_sender_egress.cpp
     src/rtc/rtp_rtcp/rtp/rtp_non_paced_packet_sender.cpp
 
+    # pacing
+    src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
+
     src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtcp.cpp
@@ -238,6 +241,9 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/rtp_header_extension_manager.hpp
     include/rtc/rtp_rtcp/rtp/rtp_sender_egress.hpp
     include/rtc/rtp_rtcp/rtp/rtp_non_paced_packet_sender.hpp
+
+    # pacing
+    include/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp
 
     include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp

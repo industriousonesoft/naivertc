@@ -96,8 +96,7 @@ void RtpSenderEgress::SendPacket(std::shared_ptr<RtpPacketToSend> packet, FecPac
 
         // TODO(sprang): Add support for FEC protecting all header extensions, add
         // media packet to generator here instead.
-        assert(packet->packet_type().has_value());
-        RtpPacketType packet_type = packet->packet_type().value();
+        RtpPacketType packet_type = packet->packet_type();
         size_t size = packet->size();
         UpdateRtpStats(now_ms, packet_ssrc, packet_type, size);
 
@@ -115,11 +114,7 @@ bool RtpSenderEgress::SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packe
 }
 
 bool RtpSenderEgress::HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet) {
-    if (!packet->packet_type().has_value()) {
-        PLOG_WARNING << "Packet type is not set yet.";
-        return false;
-    }
-    switch (packet->packet_type().value())
+    switch (packet->packet_type())
     {
     case RtpPacketType::AUDIO:
     case RtpPacketType::VIDEO:

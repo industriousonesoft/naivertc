@@ -91,12 +91,6 @@ void RtpSender::SetRtxPayloadType(int payload_type, int associated_payload_type)
 
 bool RtpSender::SendToNetwork(std::shared_ptr<RtpPacketToSend> packet) {
     return task_queue_->Sync<bool>([this, packet=std::move(packet)](){
-
-        if (!packet->packet_type().has_value()) {
-            PLOG_WARNING << "Packet type must be set before sending.";
-            return false;
-        }
-
         int64_t now_ms = clock_->TimeInMs();
 
         if (packet->capture_time_ms() <= 0) {
@@ -113,10 +107,6 @@ void RtpSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> pac
     task_queue_->Async([this, packets=std::move(packets)](){
         int64_t now_ms = clock_->TimeInMs();
         for (auto& packet : packets) {
-            if (!packet->packet_type().has_value()) {
-                PLOG_WARNING << "Packet type must be set before sending.";
-                return;
-            }
             if (packet->capture_time_ms() <= 0) {
                 packet->set_capture_time_ms(now_ms);
             }
