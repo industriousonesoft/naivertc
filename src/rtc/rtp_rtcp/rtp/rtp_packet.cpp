@@ -416,7 +416,7 @@ std::optional<BinaryBuffer> RtpPacket::AllocateRawExtension(int id, size_t size)
     return std::make_optional<BinaryBuffer>(buffer_begin, buffer_begin + extension_info_length);
 }
 
-std::optional<BinaryBuffer> RtpPacket::FindExtension(ExtensionType type) {
+std::optional<BinaryBuffer> RtpPacket::FindExtension(ExtensionType type) const {
     uint8_t id = extension_manager_->GetId(type);
     if (id == ExtensionManager::kInvalidId) {
         // Extension not registered.
@@ -426,8 +426,9 @@ std::optional<BinaryBuffer> RtpPacket::FindExtension(ExtensionType type) {
     if (extension_info == nullptr) {
         return std::nullopt;
     }
-    uint8_t* start = data() + extension_info->offset;
-    return std::make_optional<BinaryBuffer>(start, start + extension_info->size);
+    size_t begin_offset = size_t(extension_info->offset);
+    size_t end_offset = begin_offset + extension_info->size;
+    return std::make_optional<BinaryBuffer>(data() + begin_offset, data() + end_offset);
 }
 
 uint16_t RtpPacket::UpdateaExtensionSizeByAddZeroPadding(size_t extensions_offset) {

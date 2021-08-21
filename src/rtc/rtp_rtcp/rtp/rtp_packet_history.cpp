@@ -199,13 +199,13 @@ std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndSetSendTime(uint1
 }
 
 std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number) {
-    return GetPacketAndMarkAsPending(sequence_number, [](const RtpPacketToSend& packet){
-        return std::make_unique<RtpPacketToSend>(packet);
+    return GetPacketAndMarkAsPending(sequence_number, [](std::shared_ptr<RtpPacketToSend> packet){
+        return packet;
     });
 }
 
 std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
-            std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate) {
+            std::function<std::shared_ptr<RtpPacketToSend>(std::shared_ptr<RtpPacketToSend>)> encapsulate) {
     return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, sequence_number, encapsulate](){
         if (mode_ == StorageMode::DISABLE) {
             return std::shared_ptr<RtpPacketToSend>(nullptr);
@@ -227,7 +227,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uin
         }
 
         // Copy and/or encapsulate packet.
-        std::shared_ptr<RtpPacketToSend> encapsulated_packet = encapsulate(*stored_packet->packet_);
+        std::shared_ptr<RtpPacketToSend> encapsulated_packet = encapsulate(stored_packet->packet_);
         if (encapsulated_packet) {
             stored_packet->pending_transmission_ = true;
         }
@@ -262,7 +262,8 @@ void RtpPacketHistory::MarkPacketAsSent(uint16_t sequence_number) {
 
 std::optional<RtpPacketHistory::PacketState> RtpPacketHistory::GetPacketState(uint16_t sequence_number) const {
     return task_queue_->Sync<std::optional<RtpPacketHistory::PacketState>>([this, sequence_number](){
-          if (mode_ == StorageMode::DISABLE) {
+
+        if (mode_ == StorageMode::DISABLE) {
             return std::optional<PacketState>(std::nullopt);
         }
 
@@ -285,14 +286,15 @@ std::optional<RtpPacketHistory::PacketState> RtpPacketHistory::GetPacketState(ui
 }
 
 std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket() {
-    return GetPayloadPaddingPacket([](const RtpPacketToSend& packet){
-        return std::make_unique<RtpPacketToSend>(packet);
+    return GetPayloadPaddingPacket([](std::shared_ptr<RtpPacketToSend> packet){
+        return packet;
     });
 }
 
 std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket(
-        std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate) {
+        std::function<std::shared_ptr<RtpPacketToSend>(std::shared_ptr<RtpPacketToSend>)> encapsulate) {
     return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, encapsulate](){
+
         if (mode_ == StorageMode::DISABLE) {
             return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
@@ -323,7 +325,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket(
             return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
-        auto padding_packet = encapsulate(*best_packet->packet_);
+        auto padding_packet = encapsulate(best_packet->packet_);
         if (!padding_packet) {
             return std::shared_ptr<RtpPacketToSend>(nullptr);
         }

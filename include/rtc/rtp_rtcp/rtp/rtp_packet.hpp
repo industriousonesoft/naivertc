@@ -97,6 +97,9 @@ public:
     template <typename Extension, typename... Values>
     bool SetExtension(const Values&... values);
 
+    template <typename Extension>
+    bool ReserveExtension();
+
 private:
     inline void WriteAt(size_t offset, uint8_t byte);
     uint8_t* WriteAt(size_t offset);
@@ -106,7 +109,7 @@ private:
     // Extension methods
     std::optional<BinaryBuffer> AllocateExtension(ExtensionType type, size_t size);
     std::optional<BinaryBuffer> AllocateRawExtension(int id, size_t size);
-    std::optional<BinaryBuffer> FindExtension(ExtensionType type);
+    std::optional<BinaryBuffer> FindExtension(ExtensionType type) const;
     uint16_t UpdateaExtensionSizeByAddZeroPadding(size_t extensions_offset);
     void PromoteToTwoByteHeaderExtension();
 
@@ -167,6 +170,15 @@ bool RtpPacket::SetExtension(const Values&... values) {
     if (buffer->empty())
         return false;
     return Extension::PackInto(buffer->data(), buffer->size(), values...);
+}
+
+template <typename Extension>
+bool RtpPacket::ReserveExtension() {
+    auto buffer = AllocateExtension(Extension::kType, Extension::kValueSizeBytes);
+    if (buffer->empty())
+        return false;
+    memset(buffer->data(), 0, Extension::kValueSizeBytes);
+    return true;
 }
 
 } // namespace naivertc

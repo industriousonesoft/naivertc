@@ -2,6 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_PACKET_SENDER_H_
 
 #include "base/defines.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet_to_send.hpp"
 
 #include <memory>
 
@@ -15,8 +16,6 @@ public:
     // type of packets, they will be prioritized and scheduled relative to other
     // packets and the current target send rate.
     virtual void EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) = 0;
-
-    virtual void EnqueuePacket(std::shared_ptr<RtpPacketToSend> packet) = 0;
 };
 
 } // namespace naivertc

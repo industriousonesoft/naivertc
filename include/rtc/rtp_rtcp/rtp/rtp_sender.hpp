@@ -44,11 +44,11 @@ public:
     void SetRtxPayloadType(int payload_type, int associated_payload_type);
 
 private:
-    std::shared_ptr<RtpPacketToSend> BuildRtxPacket(const RtpPacketToSend& packet);
+    std::shared_ptr<RtpPacketToSend> BuildRtxPacket(std::shared_ptr<const RtpPacketToSend>);
 
     void UpdateHeaderSizes();
 
-    static void CopyHeaderAndExtensionsToRtxPacket(const RtpPacketToSend& packet, RtpPacketToSend* rtx_packet);
+    static void CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend>, RtpPacketToSend* rtx_packet);
 
 private:
     std::shared_ptr<TaskQueue> task_queue_;

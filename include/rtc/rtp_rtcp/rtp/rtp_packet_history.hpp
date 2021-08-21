@@ -87,7 +87,7 @@ public:
     // If the the encapsulator returns nullptr, the retransmit is aborted and the
     // packet will not be marked as pending.
     std::shared_ptr<RtpPacketToSend> GetPacketAndMarkAsPending(uint16_t sequence_number, 
-            std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate);
+            std::function<std::shared_ptr<RtpPacketToSend>(std::shared_ptr<RtpPacketToSend>)> encapsulate);
 
     // Updates the send time for the given packet and increments the transmission
     // counter. Marks the packet as no longer being in the pacer queue.
@@ -107,7 +107,7 @@ public:
     // that can be used for instance to encapsulate the packet in an RTX
     // container, or to abort getting the packet if the function returns
     // nullptr.
-    std::shared_ptr<RtpPacketToSend> GetPayloadPaddingPacket(std::function<std::shared_ptr<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate);
+    std::shared_ptr<RtpPacketToSend> GetPayloadPaddingPacket(std::function<std::shared_ptr<RtpPacketToSend>(std::shared_ptr<RtpPacketToSend>)> encapsulate);
 
     // Cull packets that have been acknowledged as received by the remote end.
     void CullAcknowledgedPackets(std::vector<const uint16_t> sequence_numbers);
@@ -126,6 +126,7 @@ private:
     class StoredPacket;
     using PacketPrioritySet = std::set<StoredPacket*, StoredPacketCompare>;
 
+    // StoredPacket
     class StoredPacket {
     public:
         StoredPacket(std::shared_ptr<RtpPacketToSend> packet,

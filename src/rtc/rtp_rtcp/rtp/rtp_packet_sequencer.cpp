@@ -34,23 +34,23 @@ RtpPacketSequencer::RtpPacketSequencer(uint32_t media_ssrc,
 
 RtpPacketSequencer::~RtpPacketSequencer() {}
 
-bool RtpPacketSequencer::Sequence(RtpPacketToSend& packet) {
-    if (packet.packet_type() == RtpPacketType::PADDING && !PopulatePaddingFields(packet)) {
+bool RtpPacketSequencer::Sequence(std::shared_ptr<RtpPacketToSend> packet) {
+    if (packet->packet_type() == RtpPacketType::PADDING && !PopulatePaddingFields(packet)) {
         // This padding packet can't be sent with current state, return without
         // updating the sequence number.
         return false;
     }
 
-    if (packet.ssrc() == media_ssrc_) {
-        packet.set_sequence_number(media_sequence_num_++);
-        if (packet.packet_type() != RtpPacketType::PADDING) {
+    if (packet->ssrc() == media_ssrc_) {
+        packet->set_sequence_number(media_sequence_num_++);
+        if (packet->packet_type() != RtpPacketType::PADDING) {
             UpdateLastPacketState(packet);
         }
         return true;
     }
 
-    if(packet.ssrc() == rtx_ssrc_) {
-        packet.set_sequence_number(rtx_sequence_num_++);
+    if(packet->ssrc() == rtx_ssrc_) {
+        packet->set_sequence_number(rtx_sequence_num_++);
         return true;
     }
     
@@ -72,28 +72,28 @@ void RtpPacketSequencer::PupulateRtpState(RtpState& state) {
 }
 
 // Private methods
-void RtpPacketSequencer::UpdateLastPacketState(const RtpPacketToSend& packet) {
+void RtpPacketSequencer::UpdateLastPacketState(std::shared_ptr<const RtpPacketToSend> packet) {
     // Remember marker bit to determine if padding can be inserted with
     // sequence number fallow |packet|
-    last_packet_marker_bit_ = packet.marker();
+    last_packet_marker_bit_ = packet->marker();
 
     // Remember media payload type to use in the padding packet if rtx 
     // is disabled.
-    if (packet.is_red()) {
-        assert(packet.payload_size() >= kRedForFecHeaderLength);
-        last_payload_type_ = packet.payload_data()[0];
+    if (packet->is_red()) {
+        assert(packet->payload_size() >= kRedForFecHeaderLength);
+        last_payload_type_ = packet->payload_data()[0];
     }else {
-        last_payload_type_ = packet.payload_type();
+        last_payload_type_ = packet->payload_type();
     }
     // Save timestamps to generate timestamp field and extensions for the padding
-    last_rtp_timestamp_ = packet.timestamp();
+    last_rtp_timestamp_ = packet->timestamp();
     last_timestamp_time_ms_ = clock_->TimeInMs();
-    last_capture_time_ms_ = packet.capture_time_ms();
+    last_capture_time_ms_ = packet->capture_time_ms();
 
 }
 
-bool RtpPacketSequencer::PopulatePaddingFields(RtpPacketToSend& packet) {
-    if (packet.ssrc() == media_ssrc_) {
+bool RtpPacketSequencer::PopulatePaddingFields(std::shared_ptr<RtpPacketToSend> packet) {
+    if (packet->ssrc() == media_ssrc_) {
         if (last_payload_type_ == kInvalidPayloadType) {
             return false;
         }
@@ -106,27 +106,27 @@ bool RtpPacketSequencer::PopulatePaddingFields(RtpPacketToSend& packet) {
             return false;
         }
 
-        packet.set_timestamp(last_rtp_timestamp_);
-        packet.set_capture_time_ms(last_capture_time_ms_);
-        packet.set_payload_type(last_payload_type_);
+        packet->set_timestamp(last_rtp_timestamp_);
+        packet->set_capture_time_ms(last_capture_time_ms_);
+        packet->set_payload_type(last_payload_type_);
         return true;
-    }else if (packet.ssrc() == rtx_ssrc_) {
-        if (packet.payload_size() > 0) {
+    }else if (packet->ssrc() == rtx_ssrc_) {
+        if (packet->payload_size() > 0) {
             // This is payload padding packet, don't update timestamp fields/
             return true;
         }
 
-        packet.set_timestamp(last_rtp_timestamp_);
-        packet.set_capture_time_ms(last_capture_time_ms_);
+        packet->set_timestamp(last_rtp_timestamp_);
+        packet->set_capture_time_ms(last_capture_time_ms_);
 
         // Only change the timestamp of padding packets sent over RTX.
         // Padding only packets over RTP has to be sent as part of a 
         // media frame (and therefore the same timestamp).
         int64_t now_ms = clock_->TimeInMs();
         if (last_timestamp_time_ms_ > 0) {
-            packet.set_timestamp(packet.timestamp() + (now_ms - last_timestamp_time_ms_) * kTimestampTicksPerMs);
-            if (packet.capture_time_ms() > 0) {
-                packet.set_capture_time_ms(packet.capture_time_ms() + now_ms - last_timestamp_time_ms_);
+            packet->set_timestamp(packet->timestamp() + (now_ms - last_timestamp_time_ms_) * kTimestampTicksPerMs);
+            if (packet->capture_time_ms() > 0) {
+                packet->set_capture_time_ms(packet->capture_time_ms() + now_ms - last_timestamp_time_ms_);
             }
         }
         return true;

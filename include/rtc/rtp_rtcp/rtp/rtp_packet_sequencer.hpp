@@ -25,14 +25,14 @@ public:
     // Assigns sequence number, and in the case of non-RTX padding also timestamps and payload type.
     // Returns false if sequencing failed, which it can do for instance if the packet to sequence
     // is padding on the media ssrc, but the media is mid frame (the last marker bit is false).
-    bool Sequence(RtpPacketToSend& packet);
+    bool Sequence(std::shared_ptr<RtpPacketToSend> packet);
 
     void SetRtpState(const RtpState& state);
     void PupulateRtpState(RtpState& state);
 
 private:
-    void UpdateLastPacketState(const RtpPacketToSend& packet);
-    bool PopulatePaddingFields(RtpPacketToSend& packet);
+    void UpdateLastPacketState(std::shared_ptr<const RtpPacketToSend> packet);
+    bool PopulatePaddingFields(std::shared_ptr<RtpPacketToSend> packet);
 
 private:
     const uint32_t media_ssrc_;

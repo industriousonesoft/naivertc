@@ -1,0 +1,61 @@
+#ifndef _RTC_RTP_RTCP_RTP_SENDER_RGRESS_H_
+#define _RTC_RTP_RTCP_RTP_SENDER_RGRESS_H_
+
+#include "base/defines.hpp"
+#include "common/task_queue.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet_history.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet_to_send.hpp"
+
+#include <optional>
+#include <functional>
+#include <vector>
+
+namespace naivertc {
+
+// NOTE: PacedSender 和 NonPacedsender最终都是通过RtpSenderEgress发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
+class RTC_CPP_EXPORT RtpSenderEgress {
+public:
+    RtpSenderEgress(const RtpRtcpInterface::Configuration& config, 
+                    std::shared_ptr<RtpPacketHistory> packet_history, 
+                    std::shared_ptr<TaskQueue> task_queue);
+    ~RtpSenderEgress();
+
+    uint32_t ssrc() const { return ssrc_; }
+    std::optional<uint32_t> rtx_ssrc() const { return rtx_ssrc_; }
+    std::optional<uint32_t> flexfec_ssrc() const { return flexfec_ssrc_; }
+
+    using FecPacketsCallback = std::function<void(std::vector<std::shared_ptr<RtpPacketToSend>>)>;
+    void SendPacket(std::shared_ptr<RtpPacketToSend> packet, FecPacketsCallback callback = nullptr);
+
+private:
+    bool SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet);
+
+    bool HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet);
+
+    void SendPacketToNetworkFeedback(uint16_t packet_id, std::shared_ptr<RtpPacketToSend> packet);
+    void UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc);
+    void OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc);
+
+    void UpdateRtpStats(int64_t now_ms,
+                        uint32_t packet_ssrc,
+                        RtpPacketType packet_type,
+                        size_t packet_size);
+
+private:
+    std::shared_ptr<Clock> clock_; 
+    const uint32_t ssrc_;
+    const std::optional<uint32_t> rtx_ssrc_;
+    const std::optional<uint32_t> flexfec_ssrc_;
+    std::shared_ptr<RtpPacketHistory> packet_history_;
+
+    std::shared_ptr<TaskQueue> task_queue_;
+
+    bool media_has_been_sent_ = false;
+    
+};
+    
+} // namespace naivertc
+
+
+#endif

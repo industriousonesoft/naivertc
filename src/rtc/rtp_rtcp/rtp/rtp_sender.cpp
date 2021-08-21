@@ -103,7 +103,7 @@ bool RtpSender::SendToNetwork(std::shared_ptr<RtpPacketToSend> packet) {
             packet->set_capture_time_ms(now_ms);
         }
 
-        this->paced_sender_->EnqueuePacket(std::move(packet));
+        this->paced_sender_->EnqueuePackets({std::move(packet)});
 
         return true;
     });
@@ -154,7 +154,7 @@ int32_t RtpSender::ResendPacket(uint16_t packet_id) {
         const int32_t packet_size = static_cast<int32_t>(stored_packet->packet_size);
         const bool rtx_enabled = (this->rtx_mode_ == RtxMode::RETRANSMITTED);
 
-        auto packet = this->packet_history_->GetPacketAndMarkAsPending(packet_id, [&](const RtpPacketToSend& stored_packet){
+        auto packet = this->packet_history_->GetPacketAndMarkAsPending(packet_id, [&](std::shared_ptr<RtpPacketToSend> stored_packet){
             // TODO: Check if we're overusing retransmission bitrate.
             std::shared_ptr<RtpPacketToSend> retransmit_packet;
             // Retransmisson in RTX mode
@@ -163,10 +163,10 @@ int32_t RtpSender::ResendPacket(uint16_t packet_id) {
             }
             // Retransmission in normal mode
             else {
-                retransmit_packet = std::make_shared<RtpPacketToSend>(stored_packet);
+                retransmit_packet = stored_packet;
             }
             if (retransmit_packet) {
-                retransmit_packet->set_retransmitted_sequence_number(stored_packet.sequence_number());
+                retransmit_packet->set_retransmitted_sequence_number(stored_packet->sequence_number());
             }
             return retransmit_packet;
         });
@@ -178,19 +178,19 @@ int32_t RtpSender::ResendPacket(uint16_t packet_id) {
         packet->set_packet_type((RtpPacketType::RETRANSMISSION));
         // A packet can not be FEC and RTX at the same time.
         packet->set_is_fec_packet(false);
-        this->paced_sender_->EnqueuePacket(std::move(packet));
+        this->paced_sender_->EnqueuePackets({std::move(packet)});
 
         return packet_size;
     });
 }
 
 // Private methods
-std::shared_ptr<RtpPacketToSend> RtpSender::BuildRtxPacket(const RtpPacketToSend& packet) {
+std::shared_ptr<RtpPacketToSend> RtpSender::BuildRtxPacket(std::shared_ptr<const RtpPacketToSend> packet) {
     if (!rtx_ssrc_.has_value()) {
         PLOG_WARNING << "Failed to build RTX packet withou RTX ssrc.";
         return nullptr;
     }
-    auto kv = rtx_payload_type_map_.find(packet.payload_type());
+    auto kv = rtx_payload_type_map_.find(packet->payload_type());
     if (kv == rtx_payload_type_map_.end()) {
         return nullptr;
     }
@@ -200,22 +200,22 @@ std::shared_ptr<RtpPacketToSend> RtpSender::BuildRtxPacket(const RtpPacketToSend
     rtx_packet->set_ssrc(rtx_ssrc_.value());
 
     // Replace sequence number.
-    sequencer_.Sequence(*rtx_packet);
+    sequencer_.Sequence(rtx_packet);
 
     CopyHeaderAndExtensionsToRtxPacket(packet, rtx_packet.get());
 
-    uint8_t* rtx_payload = rtx_packet->AllocatePayload(packet.payload_size() + kRtxHeaderSize);
+    uint8_t* rtx_payload = rtx_packet->AllocatePayload(packet->payload_size() + kRtxHeaderSize);
 
     // Add original sequence number
-    ByteWriter<uint16_t>::WriteBigEndian(rtx_payload, packet.sequence_number());
+    ByteWriter<uint16_t>::WriteBigEndian(rtx_payload, packet->sequence_number());
 
     // Copy original payload data
-    memcpy(rtx_payload + kRtxHeaderSize, packet.payload_data(), packet.payload_size());
+    memcpy(rtx_payload + kRtxHeaderSize, packet->payload_data(), packet->payload_size());
 
     // TODO: To set addtional data if necessary
 
     // FIXME: Copy capture time so e.g. TransmissionOffset is correctly set. Why?
-    rtx_packet->set_capture_time_ms(packet.capture_time_ms());
+    rtx_packet->set_capture_time_ms(packet->capture_time_ms());
     
     return rtx_packet;
 }
@@ -225,19 +225,19 @@ void RtpSender::UpdateHeaderSizes() {
     // TODO: To update size of RTP header with extensions
 }
 
-void RtpSender::CopyHeaderAndExtensionsToRtxPacket(const RtpPacketToSend& packet, RtpPacketToSend* rtx_packet) {
+void RtpSender::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend> packet, RtpPacketToSend* rtx_packet) {
     // Set the relevant fixed fields in the packet headers.
     // The following are not set:
     // - Payload type: it is replaced in RTX packet.
     // - Sequence number: RTX has a seperate sequence numbering.
     // - SSRC: RTX stream has its own SSRC
-    rtx_packet->set_marker(packet.marker());
-    rtx_packet->set_timestamp(packet.timestamp());
+    rtx_packet->set_marker(packet->marker());
+    rtx_packet->set_timestamp(packet->timestamp());
 
     // Set the variable fields in the packet header
     // - CSRCs: must be set before header extensions
     // - Header extensions: repalce Rid header with RepairedRid header
-    const std::vector<uint32_t> csrcs = packet.csrcs();
+    const std::vector<uint32_t> csrcs = packet->csrcs();
     rtx_packet->SetCsrcs(csrcs);
 
     // TODO: Copy header extensions
