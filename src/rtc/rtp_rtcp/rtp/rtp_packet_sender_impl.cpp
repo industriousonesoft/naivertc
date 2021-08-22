@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/rtp_sender_egress.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet_sender_impl.hpp"
 #include "rtc/rtp_rtcp/rtp/rtp_header_extensions.hpp"
 
 #include <plog/Log.h>
@@ -8,7 +8,7 @@ namespace {
 constexpr uint32_t kTimestampTicksPerMs = 90;
 } // namespace
 
-RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config, 
+RtpPacketSenderImpl::RtpPacketSenderImpl(const RtpRtcpInterface::Configuration& config, 
                                  std::shared_ptr<RtpPacketHistory> packet_history, 
                                  std::shared_ptr<TaskQueue> task_queue) 
         : clock_(config.clock),
@@ -19,11 +19,11 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
           task_queue_(task_queue) {
 }
  
-RtpSenderEgress::~RtpSenderEgress() {
+RtpPacketSenderImpl::~RtpPacketSenderImpl() {
 
 }
 
-void RtpSenderEgress::SendPacket(std::shared_ptr<RtpPacketToSend> packet, FecPacketsCallback fec_packets_callback) {
+void RtpPacketSenderImpl::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
     if (!packet) {
         return;
     }
@@ -99,21 +99,23 @@ void RtpSenderEgress::SendPacket(std::shared_ptr<RtpPacketToSend> packet, FecPac
         RtpPacketType packet_type = packet->packet_type();
         size_t size = packet->size();
         UpdateRtpStats(now_ms, packet_ssrc, packet_type, size);
-
-        // TODO: Fec packet callback
-        if (fec_packets_callback) {
-            fec_packets_callback({});
-        }
+    }else {
+        // TODO: We should clear the FEC packets if send failed?
     }
 }
 
+std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketSenderImpl::FetchFecPackets() const {
+    // TODO: Fetch FEC packets from FEC generator
+    return {};
+}
+
 // Private methods
-bool RtpSenderEgress::SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet) {
+bool RtpPacketSenderImpl::SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet) {
     // TODO: Send packet to network by transport
     return false;
 }
 
-bool RtpSenderEgress::HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet) {
+bool RtpPacketSenderImpl::HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet) {
     switch (packet->packet_type())
     {
     case RtpPacketType::AUDIO:
@@ -131,15 +133,15 @@ bool RtpSenderEgress::HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet) {
     return false;
 }
 
-void RtpSenderEgress::SendPacketToNetworkFeedback(uint16_t packet_id, std::shared_ptr<RtpPacketToSend> packet) {
+void RtpPacketSenderImpl::SendPacketToNetworkFeedback(uint16_t packet_id, std::shared_ptr<RtpPacketToSend> packet) {
 
 }
 
-void RtpSenderEgress::UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc) {
+void RtpPacketSenderImpl::UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc) {
 
 }
 
-void RtpSenderEgress::OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc) {
+void RtpPacketSenderImpl::OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc) {
     if (capture_time_ms <= 0) {
         return;
     }

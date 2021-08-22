@@ -1,11 +1,11 @@
-#ifndef _RTC_RTP_RTCP_RTP_SENDER_RGRESS_H_
-#define _RTC_RTP_RTCP_RTP_SENDER_RGRESS_H_
+#ifndef _RTC_RTP_RTCP_RTP_PACKET_SENDER_IMPL_H_
+#define _RTC_RTP_RTCP_RTP_PACKET_SENDER_IMPL_H_
 
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
 #include "rtc/rtp_rtcp/rtp/rtp_packet_history.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_to_send.hpp"
 
 #include <optional>
 #include <functional>
@@ -13,20 +13,21 @@
 
 namespace naivertc {
 
-// NOTE: PacedSender 和 NonPacedsender最终都是通过RtpSenderEgress发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
-class RTC_CPP_EXPORT RtpSenderEgress {
+// NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketSender发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
+class RTC_CPP_EXPORT RtpPacketSenderImpl : public RtpPacketSender {
 public:
-    RtpSenderEgress(const RtpRtcpInterface::Configuration& config, 
+    RtpPacketSenderImpl(const RtpRtcpInterface::Configuration& config, 
                     std::shared_ptr<RtpPacketHistory> packet_history, 
                     std::shared_ptr<TaskQueue> task_queue);
-    ~RtpSenderEgress();
+    ~RtpPacketSenderImpl();
 
     uint32_t ssrc() const { return ssrc_; }
     std::optional<uint32_t> rtx_ssrc() const { return rtx_ssrc_; }
     std::optional<uint32_t> flexfec_ssrc() const { return flexfec_ssrc_; }
 
-    using FecPacketsCallback = std::function<void(std::vector<std::shared_ptr<RtpPacketToSend>>)>;
-    void SendPacket(std::shared_ptr<RtpPacketToSend> packet, FecPacketsCallback callback = nullptr);
+    void SendPacket(std::shared_ptr<RtpPacketToSend> packet);
+
+    std::vector<std::shared_ptr<RtpPacketToSend>> FetchFecPackets() const;
 
 private:
     bool SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet);

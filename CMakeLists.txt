@@ -111,8 +111,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.cpp
     src/rtc/rtp_rtcp/rtp/rtp_header_extensions.cpp
     src/rtc/rtp_rtcp/rtp/rtp_header_extension_manager.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_sender_egress.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_non_paced_packet_sender.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_packet_sender_impl.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_packet_pacer_non_paced.cpp
 
     # pacing
     src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
@@ -234,13 +234,14 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/rtp_packetizer.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_to_send.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_history.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packet_pacer.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_processor.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp
     include/rtc/rtp_rtcp/rtp/rtp_header_extensions.hpp
     include/rtc/rtp_rtcp/rtp/rtp_header_extension_manager.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_sender_egress.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_non_paced_packet_sender.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packet_sender_impl.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packet_pacer_non_paced.hpp
 
     # pacing
     include/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp
