@@ -41,7 +41,7 @@ RoundRobinPacketQueue::PriorityPacketQueue::end() const {
 }
 
 // Stream
-RoundRobinPacketQueue::Stream::Stream() : size(0), ssrc(0) {}
+RoundRobinPacketQueue::Stream::Stream() : ssrc(0), size(0) {}
 RoundRobinPacketQueue::Stream::Stream(const Stream& stream) = default;
 RoundRobinPacketQueue::Stream::~Stream() = default;
 
@@ -68,7 +68,7 @@ void RoundRobinPacketQueue::Push(int priority,
 }
 
 std::shared_ptr<RtpPacketToSend> RoundRobinPacketQueue::Pop() {
-
+    return nullptr;
 }
 
 // Private methods
