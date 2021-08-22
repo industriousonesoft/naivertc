@@ -11,32 +11,34 @@
 #include <memory>
 #include <vector>
 #include <optional>
+#include <functional>
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpSender {
+class RTC_CPP_EXPORT RtpPacketProcessor {
 public:
-    RtpSender(const RtpRtcpInterface::Configuration& config, 
-              RtpPacketHistory* packet_history, 
-              RtpPacketSender* packet_sender,
+    RtpPacketProcessor(const RtpRtcpInterface::Configuration& config, 
+              RtpPacketHistory* packet_history,
               std::shared_ptr<TaskQueue> task_queue);
-    RtpSender() = delete;
-    RtpSender(const RtpSender&) = delete;
-    RtpSender& operator=(const RtpSender&) = delete;
-    ~RtpSender();
+    RtpPacketProcessor() = delete;
+    RtpPacketProcessor(const RtpPacketProcessor&) = delete;
+    RtpPacketProcessor& operator=(const RtpPacketProcessor&) = delete;
+    ~RtpPacketProcessor();
 
     uint32_t ssrc() const;
 
     size_t max_packet_size() const;
     void set_max_packet_size(size_t max_size);
 
-    bool SendToNetwork(std::shared_ptr<RtpPacketToSend> packet);
     void EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets);
+
+    // Packet processed callback
+    using PacketsProcessedCallback = std::function<void(std::vector<std::shared_ptr<RtpPacketToSend>> packets)>;
+    void OnPacketsProcessed(PacketsProcessedCallback callback);
 
     // NACK
     void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt);
-    int32_t ResendPacket(uint16_t packet_id);
-
+    
     // RTX
     RtxMode rtx_mode() const;
     void set_rtx_mode(RtxMode mode);
@@ -45,6 +47,7 @@ public:
 
 private:
     std::shared_ptr<RtpPacketToSend> BuildRtxPacket(std::shared_ptr<const RtpPacketToSend>);
+    int32_t ResendPacket(uint16_t packet_id);
 
     void UpdateHeaderSizes();
 
@@ -60,12 +63,13 @@ private:
     size_t max_packet_size_;
 
     RtpPacketHistory* const packet_history_;
-    RtpPacketSender* const paced_sender_;
 
     RtpPacketSequencer sequencer_;
 
     std::map<int8_t, int8_t> rtx_payload_type_map_;
     std::vector<uint32_t> csrcs_;
+
+    PacketsProcessedCallback packets_processed_callback_;
 };
     
 } // namespace naivertc

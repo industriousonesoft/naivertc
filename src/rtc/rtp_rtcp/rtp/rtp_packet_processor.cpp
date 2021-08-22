@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/rtp_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet_processor.hpp"
 #include "common/utils_random.hpp"
 #include "rtc/base/byte_io_writer.hpp"
 
@@ -12,18 +12,16 @@ constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
 
 } // namespace 
 
-RtpSender::RtpSender(const RtpRtcpInterface::Configuration& config, 
-                     RtpPacketHistory* packet_history, 
-                     RtpPacketSender* packet_sender,
+RtpPacketProcessor::RtpPacketProcessor(const RtpRtcpInterface::Configuration& config, 
+                     RtpPacketHistory* packet_history,
                      std::shared_ptr<TaskQueue> task_queue) 
-    : task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpSender.task.queue")),
+    : task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpPacketProcessor.task.queue")),
     clock_(config.clock),
     ssrc_(config.local_media_ssrc),
     rtx_ssrc_(config.rtx_send_ssrc),
     rtx_mode_(RtxMode::OFF),
     max_packet_size_(kIpPacketSize - 28),
     packet_history_(packet_history),
-    paced_sender_(packet_sender),
     sequencer_(config.local_media_ssrc, 
                config.rtx_send_ssrc.value_or(config.local_media_ssrc),
                !config.audio,
@@ -33,21 +31,21 @@ RtpSender::RtpSender(const RtpRtcpInterface::Configuration& config,
     sequencer_.set_media_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
 }
 
-RtpSender::~RtpSender() {}
+RtpPacketProcessor::~RtpPacketProcessor() {}
 
-uint32_t RtpSender::ssrc() const {
+uint32_t RtpPacketProcessor::ssrc() const {
     return task_queue_->Sync<uint32_t>([this](){
         return this->ssrc_;
     });
 }
 
-size_t RtpSender::max_packet_size() const {
+size_t RtpPacketProcessor::max_packet_size() const {
     return task_queue_->Sync<size_t>([this](){
         return this->max_packet_size_;
     });
 }
 
-void RtpSender::set_max_packet_size(size_t max_size) {
+void RtpPacketProcessor::set_max_packet_size(size_t max_size) {
     assert(max_size >= 100);
     assert(max_size <= kIpPacketSize);
     task_queue_->Async([this, max_size](){
@@ -55,25 +53,25 @@ void RtpSender::set_max_packet_size(size_t max_size) {
     });
 }
 
-std::optional<uint32_t> RtpSender::rtx_ssrc() const {
+std::optional<uint32_t> RtpPacketProcessor::rtx_ssrc() const {
     return task_queue_->Sync<std::optional<uint32_t>>([this](){
         return this->rtx_ssrc_;
     });
 }
 
-RtxMode RtpSender::rtx_mode() const {
+RtxMode RtpPacketProcessor::rtx_mode() const {
     return task_queue_->Sync<RtxMode>([this](){
         return this->rtx_mode_;
     });
 }
     
-void RtpSender::set_rtx_mode(RtxMode mode) {
+void RtpPacketProcessor::set_rtx_mode(RtxMode mode) {
     task_queue_->Async([this, mode](){
         this->rtx_mode_ = mode;
     });
 }
 
-void RtpSender::SetRtxPayloadType(int payload_type, int associated_payload_type) {
+void RtpPacketProcessor::SetRtxPayloadType(int payload_type, int associated_payload_type) {
     task_queue_->Async([this, payload_type, associated_payload_type](){
         // All RTP packet type MUST be less than 127 to distingush with RTCP packet, which MUST be greater than 128.
         // RFC 5761 Multiplexing RTP and RTCP 4. Distinguishable RTP and RTCP Packets
@@ -89,21 +87,7 @@ void RtpSender::SetRtxPayloadType(int payload_type, int associated_payload_type)
     });
 }
 
-bool RtpSender::SendToNetwork(std::shared_ptr<RtpPacketToSend> packet) {
-    return task_queue_->Sync<bool>([this, packet=std::move(packet)](){
-        int64_t now_ms = clock_->TimeInMs();
-
-        if (packet->capture_time_ms() <= 0) {
-            packet->set_capture_time_ms(now_ms);
-        }
-
-        this->paced_sender_->EnqueuePackets({std::move(packet)});
-
-        return true;
-    });
-}
-
-void RtpSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
+void RtpPacketProcessor::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
     task_queue_->Async([this, packets=std::move(packets)](){
         int64_t now_ms = clock_->TimeInMs();
         for (auto& packet : packets) {
@@ -111,12 +95,20 @@ void RtpSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> pac
                 packet->set_capture_time_ms(now_ms);
             }
         }
-        this->paced_sender_->EnqueuePackets(std::move(packets));
+        if (this->packets_processed_callback_) {
+            this->packets_processed_callback_(std::move(packets));
+        }
+    });
+}
+
+void RtpPacketProcessor::OnPacketsProcessed(PacketsProcessedCallback callback) {
+    task_queue_->Async([this, callback](){
+        packets_processed_callback_ = callback;
     });
 }
 
 // Nack
-void RtpSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt) {
+void RtpPacketProcessor::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt) {
     task_queue_->Async([this, nack_list=std::move(nack_list), avg_rrt](){
         // FIXME: Why set RTT avg_rrt + 5 ms?
         this->packet_history_->SetRtt(5 + avg_rrt);
@@ -131,51 +123,55 @@ void RtpSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t a
     });
 }
 
-int32_t RtpSender::ResendPacket(uint16_t packet_id) {
-    return task_queue_->Sync<int32_t>([this, packet_id](){
-        // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
-        // so that we don't retransmit too often.
-        std::optional<RtpPacketHistory::PacketState> stored_packet = this->packet_history_->GetPacketState(packet_id);
-        if (!stored_packet.has_value() || stored_packet->pending_transmission) {
-            // Packet not found or already queued for retransmission, ignore.
-            return 0;
+// Private methods
+
+int32_t RtpPacketProcessor::ResendPacket(uint16_t packet_id) {
+    // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
+    // so that we don't retransmit too often.
+    std::optional<RtpPacketHistory::PacketState> stored_packet = this->packet_history_->GetPacketState(packet_id);
+    if (!stored_packet.has_value() || stored_packet->pending_transmission) {
+        // Packet not found or already queued for retransmission, ignore.
+        return 0;
+    }
+
+    const int32_t packet_size = static_cast<int32_t>(stored_packet->packet_size);
+    const bool rtx_enabled = (this->rtx_mode_ == RtxMode::RETRANSMITTED);
+
+    auto packet = this->packet_history_->GetPacketAndMarkAsPending(packet_id, [&](std::shared_ptr<RtpPacketToSend> stored_packet){
+        // TODO: Check if we're overusing retransmission bitrate.
+        std::shared_ptr<RtpPacketToSend> retransmit_packet;
+        // Retransmisson in RTX mode
+        if (rtx_enabled) {
+            retransmit_packet = BuildRtxPacket(stored_packet);
         }
-
-        const int32_t packet_size = static_cast<int32_t>(stored_packet->packet_size);
-        const bool rtx_enabled = (this->rtx_mode_ == RtxMode::RETRANSMITTED);
-
-        auto packet = this->packet_history_->GetPacketAndMarkAsPending(packet_id, [&](std::shared_ptr<RtpPacketToSend> stored_packet){
-            // TODO: Check if we're overusing retransmission bitrate.
-            std::shared_ptr<RtpPacketToSend> retransmit_packet;
-            // Retransmisson in RTX mode
-            if (rtx_enabled) {
-                retransmit_packet = BuildRtxPacket(stored_packet);
-            }
-            // Retransmission in normal mode
-            else {
-                retransmit_packet = stored_packet;
-            }
-            if (retransmit_packet) {
-                retransmit_packet->set_retransmitted_sequence_number(stored_packet->sequence_number());
-            }
-            return retransmit_packet;
-        });
-
-        if (!packet) {
-            return -1;
+        // Retransmission in normal mode
+        else {
+            retransmit_packet = stored_packet;
         }
-
-        packet->set_packet_type((RtpPacketType::RETRANSMISSION));
-        // A packet can not be FEC and RTX at the same time.
-        packet->set_is_fec_packet(false);
-        this->paced_sender_->EnqueuePackets({std::move(packet)});
-
-        return packet_size;
+        if (retransmit_packet) {
+            retransmit_packet->set_retransmitted_sequence_number(stored_packet->sequence_number());
+        }
+        return retransmit_packet;
     });
+
+    if (!packet) {
+        return -1;
+    }
+
+    packet->set_packet_type((RtpPacketType::RETRANSMISSION));
+    // A packet can not be FEC and RTX at the same time.
+    packet->set_is_fec_packet(false);
+   
+    if (this->packets_processed_callback_) {
+        std::vector<std::shared_ptr<RtpPacketToSend>> packets;
+        packets.emplace_back(std::move(packet));
+        this->packets_processed_callback_(std::move(packets));
+    }
+
+    return packet_size;
 }
 
-// Private methods
-std::shared_ptr<RtpPacketToSend> RtpSender::BuildRtxPacket(std::shared_ptr<const RtpPacketToSend> packet) {
+std::shared_ptr<RtpPacketToSend> RtpPacketProcessor::BuildRtxPacket(std::shared_ptr<const RtpPacketToSend> packet) {
     if (!rtx_ssrc_.has_value()) {
         PLOG_WARNING << "Failed to build RTX packet withou RTX ssrc.";
         return nullptr;
@@ -210,12 +206,12 @@ std::shared_ptr<RtpPacketToSend> RtpSender::BuildRtxPacket(std::shared_ptr<const
     return rtx_packet;
 }
 
-void RtpSender::UpdateHeaderSizes() {
+void RtpPacketProcessor::UpdateHeaderSizes() {
     const size_t rtp_header_size = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
     // TODO: To update size of RTP header with extensions
 }
 
-void RtpSender::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend> packet, RtpPacketToSend* rtx_packet) {
+void RtpPacketProcessor::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend> packet, RtpPacketToSend* rtx_packet) {
     // Set the relevant fixed fields in the packet headers.
     // The following are not set:
     // - Payload type: it is replaced in RTX packet.
