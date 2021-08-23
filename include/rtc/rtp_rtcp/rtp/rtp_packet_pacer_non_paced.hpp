@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_NON_PACED_PACKET_SENDER_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_pacer.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet_handler.hpp"
 #include "rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp"
 #include "rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp"
 
@@ -10,7 +10,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpNonPacedPacketPacer : public RtpPacketPacer {
+class RTC_CPP_EXPORT RtpNonPacedPacketPacer : public RtpPacketHandler {
 public:
     RtpNonPacedPacketPacer(std::shared_ptr<RtpPacketSender> sender, std::shared_ptr<RtpPacketSequencer> packet_sequencer);
     ~RtpNonPacedPacketPacer();

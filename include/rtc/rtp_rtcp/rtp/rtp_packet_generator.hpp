@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet_handler.hpp"
 #include "rtc/rtp_rtcp/rtp/rtp_packet_history.hpp"
 #include "rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp"
 
@@ -14,11 +15,12 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacketGenerator {
+class RTC_CPP_EXPORT RtpPacketGenerator : public RtpPacketHandler {
 public:
-    RtpPacketGenerator(const RtpRtcpInterface::Configuration& config, 
-              RtpPacketHistory* packet_history,
-              std::shared_ptr<TaskQueue> task_queue);
+    RtpPacketGenerator(const RtpRtcpInterface::Configuration& config,
+                       std::shared_ptr<RtpPacketHandler> lower,
+                       std::shared_ptr<RtpPacketHistory> packet_history,
+                       std::shared_ptr<TaskQueue> task_queue);
     RtpPacketGenerator() = delete;
     RtpPacketGenerator(const RtpPacketGenerator&) = delete;
     RtpPacketGenerator& operator=(const RtpPacketGenerator&) = delete;
@@ -29,11 +31,7 @@ public:
     size_t max_packet_size() const;
     void set_max_packet_size(size_t max_size);
 
-    void EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets);
-
-    // Packet processed callback
-    using PacketsProcessedCallback = std::function<void(std::vector<std::shared_ptr<RtpPacketToSend>> packets)>;
-    void OnPacketsProcessed(PacketsProcessedCallback callback);
+    void EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) override;
 
     // NACK
     void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt);
@@ -53,22 +51,20 @@ private:
     static void CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend>, RtpPacketToSend* rtx_packet);
 
 private:
-    std::shared_ptr<TaskQueue> task_queue_;
     std::shared_ptr<Clock> clock_;
     const uint32_t ssrc_;
     std::optional<uint32_t> rtx_ssrc_;
     RtxMode rtx_mode_;
-
     size_t max_packet_size_;
 
-    RtpPacketHistory* const packet_history_;
+    std::shared_ptr<RtpPacketHandler> lower_;
+    std::shared_ptr<RtpPacketHistory> packet_history_;
+    std::shared_ptr<TaskQueue> task_queue_;
 
     RtpPacketSequencer sequencer_;
 
     std::map<int8_t, int8_t> rtx_payload_type_map_;
     std::vector<uint32_t> csrcs_;
-
-    PacketsProcessedCallback packets_processed_callback_;
 };
     
 } // namespace naivertc

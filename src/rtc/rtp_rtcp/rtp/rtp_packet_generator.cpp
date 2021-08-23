@@ -13,15 +13,17 @@ constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
 } // namespace 
 
 RtpPacketGenerator::RtpPacketGenerator(const RtpRtcpInterface::Configuration& config, 
-                     RtpPacketHistory* packet_history,
-                     std::shared_ptr<TaskQueue> task_queue) 
-    : task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpPacketGenerator.task.queue")),
-    clock_(config.clock),
+                                       std::shared_ptr<RtpPacketHandler> lower,
+                                       std::shared_ptr<RtpPacketHistory> packet_history,
+                                       std::shared_ptr<TaskQueue> task_queue) 
+    : clock_(config.clock),
     ssrc_(config.local_media_ssrc),
     rtx_ssrc_(config.rtx_send_ssrc),
     rtx_mode_(RtxMode::OFF),
     max_packet_size_(kIpPacketSize - 28),
+    lower_(lower),
     packet_history_(packet_history),
+    task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpPacketGenerator.task.queue")),
     sequencer_(config.local_media_ssrc, 
                config.rtx_send_ssrc.value_or(config.local_media_ssrc),
                !config.audio,
@@ -96,15 +98,9 @@ void RtpPacketGenerator::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToS
                 packet->set_capture_time_ms(now_ms);
             }
         }
-        if (this->packets_processed_callback_) {
-            this->packets_processed_callback_(std::move(packets));
+        if (this->lower_) {
+            this->lower_->EnqueuePackets(std::move(packets));
         }
-    });
-}
-
-void RtpPacketGenerator::OnPacketsProcessed(PacketsProcessedCallback callback) {
-    task_queue_->Async([this, callback](){
-        packets_processed_callback_ = callback;
     });
 }
 
@@ -163,10 +159,10 @@ int32_t RtpPacketGenerator::ResendPacket(uint16_t packet_id) {
     // A packet can not be FEC and RTX at the same time.
     packet->set_is_fec_packet(false);
    
-    if (this->packets_processed_callback_) {
+    if (this->lower_) {
         std::vector<std::shared_ptr<RtpPacketToSend>> packets;
         packets.emplace_back(std::move(packet));
-        this->packets_processed_callback_(std::move(packets));
+        this->lower_->EnqueuePackets(std::move(packets));
     }
 
     return packet_size;

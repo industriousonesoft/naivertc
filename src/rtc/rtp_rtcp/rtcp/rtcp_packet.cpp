@@ -15,7 +15,7 @@ BinaryBuffer RtcpPacket::Build() const {
         packet.resize(0);
     }
     assert(size == packet.size() && "PacketSize mispredicted size used.");
-    return std::move(packet);
+    return packet;
 }
 
 bool RtcpPacket::Build(size_t max_size, PacketReadyCallback callback) const {

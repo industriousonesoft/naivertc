@@ -8,13 +8,10 @@
 
 namespace naivertc {
 
-class RtpPacketPacer {
+class RtpPacketHandler {
 public:
-    virtual ~RtpPacketPacer() = default;
-
-    // Insert a set of packets into queue, for eventual transmission. Based on the
-    // type of packets, they will be prioritized and scheduled relative to other
-    // packets and the current target send rate.
+    virtual ~RtpPacketHandler() = default;
+    
     virtual void EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) = 0;
 };
 
