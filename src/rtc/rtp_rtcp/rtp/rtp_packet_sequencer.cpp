@@ -34,7 +34,7 @@ RtpPacketSequencer::RtpPacketSequencer(uint32_t media_ssrc,
 
 RtpPacketSequencer::~RtpPacketSequencer() {}
 
-bool RtpPacketSequencer::Sequence(std::shared_ptr<RtpPacketToSend> packet) {
+bool RtpPacketSequencer::AssignSequenceNumber(std::shared_ptr<RtpPacketToSend> packet) {
     if (packet->packet_type() == RtpPacketType::PADDING && !PopulatePaddingFields(packet)) {
         // This padding packet can't be sent with current state, return without
         // updating the sequence number.

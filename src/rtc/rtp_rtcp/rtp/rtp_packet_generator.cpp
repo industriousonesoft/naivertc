@@ -24,14 +24,14 @@ RtpPacketGenerator::RtpPacketGenerator(const RtpRtcpInterface::Configuration& co
     lower_(lower),
     packet_history_(packet_history),
     task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpPacketGenerator.task.queue")),
-    sequencer_(config.local_media_ssrc, 
+    sequencer_(std::make_shared<RtpPacketSequencer>(config.local_media_ssrc, 
                config.rtx_send_ssrc.value_or(config.local_media_ssrc),
                !config.audio,
-               config.clock) {
+               config.clock)) {
     UpdateHeaderSizes();
     // Random start, 16bits, can not be 0.
-    sequencer_.set_rtx_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
-    sequencer_.set_media_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
+    sequencer_->set_rtx_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
+    sequencer_->set_media_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
 }
 
 RtpPacketGenerator::~RtpPacketGenerator() {}
@@ -120,8 +120,13 @@ void RtpPacketGenerator::OnReceivedNack(const std::vector<uint16_t>& nack_list, 
     });
 }
 
-// Private methods
+std::shared_ptr<SequenceNumberAssigner> RtpPacketGenerator::sequence_num_assigner() const {
+    return task_queue_->Sync<std::shared_ptr<SequenceNumberAssigner>>([this](){
+        return this->sequencer_;
+    });
+}
 
+// Private methods
 int32_t RtpPacketGenerator::ResendPacket(uint16_t packet_id) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
     // so that we don't retransmit too often.
@@ -183,7 +188,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(std::shared_
     rtx_packet->set_ssrc(rtx_ssrc_.value());
 
     // Replace sequence number.
-    sequencer_.Sequence(rtx_packet);
+    sequencer_->AssignSequenceNumber(rtx_packet);
 
     CopyHeaderAndExtensionsToRtxPacket(packet, rtx_packet.get());
 

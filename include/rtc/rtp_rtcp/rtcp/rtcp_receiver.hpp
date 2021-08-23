@@ -87,10 +87,10 @@ private:
     bool IsRegisteredSsrc(uint32_t ssrc) const;
 
 private:
-    std::shared_ptr<TaskQueue> task_queue_;
     std::shared_ptr<Clock> clock_;
     Observer* const observer_;
     bool receiver_only_;
+    std::shared_ptr<TaskQueue> task_queue_;
 
     std::map<int, uint32_t> registered_ssrcs_;
     std::map<uint32_t, ReportBlockData> received_report_blocks_;

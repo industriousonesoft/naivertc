@@ -6,6 +6,7 @@
 #include "rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
 #include "rtc/rtp_rtcp/rtp/rtp_packet_history.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp"
 
 #include <optional>
 #include <functional>
@@ -17,8 +18,8 @@ namespace naivertc {
 class RTC_CPP_EXPORT RtpPacketSenderImpl : public RtpPacketSender {
 public:
     RtpPacketSenderImpl(const RtpRtcpInterface::Configuration& config, 
-                    std::shared_ptr<RtpPacketHistory> packet_history, 
-                    std::shared_ptr<TaskQueue> task_queue);
+                        std::shared_ptr<RtpPacketHistory> packet_history,
+                        std::shared_ptr<TaskQueue> task_queue);
     ~RtpPacketSenderImpl();
 
     uint32_t ssrc() const { return ssrc_; }
@@ -53,7 +54,6 @@ private:
     std::shared_ptr<TaskQueue> task_queue_;
 
     bool media_has_been_sent_ = false;
-    
 };
     
 } // namespace naivertc

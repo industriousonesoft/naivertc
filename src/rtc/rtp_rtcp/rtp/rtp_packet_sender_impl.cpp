@@ -9,8 +9,8 @@ constexpr uint32_t kTimestampTicksPerMs = 90;
 } // namespace
 
 RtpPacketSenderImpl::RtpPacketSenderImpl(const RtpRtcpInterface::Configuration& config, 
-                                 std::shared_ptr<RtpPacketHistory> packet_history, 
-                                 std::shared_ptr<TaskQueue> task_queue) 
+                                         std::shared_ptr<RtpPacketHistory> packet_history,
+                                         std::shared_ptr<TaskQueue> task_queue) 
         : clock_(config.clock),
           ssrc_(config.local_media_ssrc),
           rtx_ssrc_(config.rtx_send_ssrc),
@@ -24,89 +24,94 @@ RtpPacketSenderImpl::~RtpPacketSenderImpl() {
 }
 
 void RtpPacketSenderImpl::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
-    if (!packet) {
-        return;
-    }
-    if (!HasCorrectSsrc(packet)) {
-        return;
-    }
-
-    if (packet->packet_type() == RtpPacketType::RETRANSMISSION && !packet->retransmitted_sequence_number().has_value()) {
-        PLOG_WARNING << "Retransmission RTP packet can not send without retransmitted sequence number.";
-        return;
-    }
-
-    // TODO: Update sequence number info map
-
-    // TODO: Add packet to FEC generator if necessary
-
-    const uint32_t packet_ssrc = packet->ssrc();
-    const int64_t now_ms = clock_->TimeInMs();
-
-    // Bug webrtc:7859. While FEC is invoked from rtp_sender_video, and not after
-    // the pacer, these modifications of the header below are happening after the
-    // FEC protection packets are calculated. This will corrupt recovered packets
-    // at the same place. It's not an issue for extensions, which are present in
-    // all the packets (their content just may be incorrect on recovered packets).
-    // In case of VideoTimingExtension, since it's present not in every packet,
-    // data after rtp header may be corrupted if these packets are protected by
-    // the FEC.
-    int64_t diff_ms = now_ms - packet->capture_time_ms();
-    if (packet->HasExtension<rtp::TransmissionTimeOffset>()) {
-        packet->SetExtension<rtp::TransmissionTimeOffset>(kTimestampTicksPerMs * diff_ms);
-    }
-
-    if (packet->HasExtension<rtp::AbsoluteSendTime>()) {
-        packet->SetExtension<rtp::AbsoluteSendTime>(rtp::AbsoluteSendTime::MsTo24Bits(now_ms));
-    }
-
-    // TODO: Update VideoTimingExtension?
-
-    const bool is_media = packet->packet_type() == RtpPacketType::AUDIO ||
-                          packet->packet_type() == RtpPacketType::VIDEO;
-    
-    auto transport_seq_num_ext = packet->GetExtension<rtp::TransportSequenceNumber>();
-    if (transport_seq_num_ext) {
-        SendPacketToNetworkFeedback(transport_seq_num_ext->transport_sequence_number(), packet);
-    }
-
-    if (packet->packet_type() != RtpPacketType::PADDING &&
-        packet->packet_type() != RtpPacketType::RETRANSMISSION) {
-        UpdateDelayStatistics(packet->capture_time_ms(), now_ms, packet_ssrc);
-        if (transport_seq_num_ext) {
-            OnSendPacket(transport_seq_num_ext->transport_sequence_number(), packet->capture_time_ms(), packet_ssrc);
+    task_queue_->Async([this, packet=std::move(packet)](){
+        if (!packet) {
+            return;
         }
-    }
+        if (!HasCorrectSsrc(packet)) {
+            return;
+        }
 
-    const bool send_success = SendPacketToNetwork(packet);
+        if (packet->packet_type() == RtpPacketType::RETRANSMISSION && !packet->retransmitted_sequence_number().has_value()) {
+            PLOG_WARNING << "Retransmission RTP packet can not send without retransmitted sequence number.";
+            return;
+        }
 
-    // Put packet in retransmission history or update pending status even if
-    // actual sending fails.
-    if (is_media && packet->allow_retransmission()) {
-        packet_history_->PutRtpPacket(packet, now_ms);
-    } else if (packet->retransmitted_sequence_number()) {
-        packet_history_->MarkPacketAsSent(*packet->retransmitted_sequence_number());
-    }
+        // TODO: Update sequence number info map
 
-    if (send_success) {
-        // |media_has_been_sent_| is used by RTPSender to figure out if it can send
-        // padding in the absence of transport-cc or abs-send-time.
-        // In those cases media must be sent first to set a reference timestamp.
-        media_has_been_sent_ = true;
+        // TODO: Add packet to FEC generator if necessary
 
-        // TODO(sprang): Add support for FEC protecting all header extensions, add
-        // media packet to generator here instead.
-        RtpPacketType packet_type = packet->packet_type();
-        size_t size = packet->size();
-        UpdateRtpStats(now_ms, packet_ssrc, packet_type, size);
-    }else {
-        // TODO: We should clear the FEC packets if send failed?
-    }
+        const uint32_t packet_ssrc = packet->ssrc();
+        const int64_t now_ms = clock_->TimeInMs();
+
+        // Bug webrtc:7859. While FEC is invoked from rtp_sender_video, and not after
+        // the pacer, these modifications of the header below are happening after the
+        // FEC protection packets are calculated. This will corrupt recovered packets
+        // at the same place. It's not an issue for extensions, which are present in
+        // all the packets (their content just may be incorrect on recovered packets).
+        // In case of VideoTimingExtension, since it's present not in every packet,
+        // data after rtp header may be corrupted if these packets are protected by
+        // the FEC.
+        int64_t diff_ms = now_ms - packet->capture_time_ms();
+        if (packet->HasExtension<rtp::TransmissionTimeOffset>()) {
+            packet->SetExtension<rtp::TransmissionTimeOffset>(kTimestampTicksPerMs * diff_ms);
+        }
+
+        if (packet->HasExtension<rtp::AbsoluteSendTime>()) {
+            packet->SetExtension<rtp::AbsoluteSendTime>(rtp::AbsoluteSendTime::MsTo24Bits(now_ms));
+        }
+
+        // TODO: Update VideoTimingExtension?
+
+        const bool is_media = packet->packet_type() == RtpPacketType::AUDIO ||
+                            packet->packet_type() == RtpPacketType::VIDEO;
+        
+        auto transport_seq_num_ext = packet->GetExtension<rtp::TransportSequenceNumber>();
+        if (transport_seq_num_ext) {
+            SendPacketToNetworkFeedback(transport_seq_num_ext->transport_sequence_number(), packet);
+        }
+
+        if (packet->packet_type() != RtpPacketType::PADDING &&
+            packet->packet_type() != RtpPacketType::RETRANSMISSION) {
+            UpdateDelayStatistics(packet->capture_time_ms(), now_ms, packet_ssrc);
+            if (transport_seq_num_ext) {
+                OnSendPacket(transport_seq_num_ext->transport_sequence_number(), packet->capture_time_ms(), packet_ssrc);
+            }
+        }
+
+        const bool send_success = SendPacketToNetwork(packet);
+
+        // Put packet in retransmission history or update pending status even if
+        // actual sending fails.
+        if (is_media && packet->allow_retransmission()) {
+            packet_history_->PutRtpPacket(packet, now_ms);
+        } else if (packet->retransmitted_sequence_number()) {
+            packet_history_->MarkPacketAsSent(*packet->retransmitted_sequence_number());
+        }
+
+        if (send_success) {
+            // |media_has_been_sent_| is used by RTPSender to figure out if it can send
+            // padding in the absence of transport-cc or abs-send-time.
+            // In those cases media must be sent first to set a reference timestamp.
+            media_has_been_sent_ = true;
+
+            // TODO(sprang): Add support for FEC protecting all header extensions, add
+            // media packet to generator here instead.
+            RtpPacketType packet_type = packet->packet_type();
+            size_t size = packet->size();
+            UpdateRtpStats(now_ms, packet_ssrc, packet_type, size);
+        }else {
+            // TODO: We should clear the FEC packets if send failed?
+        }
+    });
 }
 
 std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketSenderImpl::FetchFecPackets() const {
-    // TODO: Fetch FEC packets from FEC generator
-    return {};
+    return task_queue_->Sync<std::vector<std::shared_ptr<RtpPacketToSend>>>([](){
+        std::vector<std::shared_ptr<RtpPacketToSend>> packets;
+        // TODO: Fetch FEC packets from FEC generator
+        return packets;
+    });
 }
 
 // Private methods

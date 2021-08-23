@@ -7,8 +7,18 @@
 
 namespace naivertc {
 
+// Interface for a class that can assign RTP sequence numbers for a packet
+// to be sent.
+class SequenceNumberAssigner {
+public:
+    SequenceNumberAssigner() = default;
+    virtual ~SequenceNumberAssigner() = default;
+
+    virtual bool AssignSequenceNumber(std::shared_ptr<RtpPacketToSend> packet) = 0;
+};
+
 // This class is not thread safe, the caller must provide that.
-class RTC_CPP_EXPORT RtpPacketSequencer {
+class RTC_CPP_EXPORT RtpPacketSequencer : public SequenceNumberAssigner {
 public:
     // If |require_marker_before_media_padding| is true, padding packets on the media ssrc
     // is not allowed unless the last sequenced media packet had the marker bit set (i.e. don't
@@ -25,7 +35,7 @@ public:
     // Assigns sequence number, and in the case of non-RTX padding also timestamps and payload type.
     // Returns false if sequencing failed, which it can do for instance if the packet to sequence
     // is padding on the media ssrc, but the media is mid frame (the last marker bit is false).
-    bool Sequence(std::shared_ptr<RtpPacketToSend> packet);
+    bool AssignSequenceNumber(std::shared_ptr<RtpPacketToSend> packet) override;
 
     void SetRtpState(const RtpState& state);
     void PupulateRtpState(RtpState& state);

@@ -42,6 +42,8 @@ public:
     std::optional<uint32_t> rtx_ssrc() const;
     void SetRtxPayloadType(int payload_type, int associated_payload_type);
 
+    std::shared_ptr<SequenceNumberAssigner> sequence_num_assigner() const;
+
 private:
     std::shared_ptr<RtpPacketToSend> BuildRtxPacket(std::shared_ptr<const RtpPacketToSend>);
     int32_t ResendPacket(uint16_t packet_id);
@@ -61,7 +63,7 @@ private:
     std::shared_ptr<RtpPacketHistory> packet_history_;
     std::shared_ptr<TaskQueue> task_queue_;
 
-    RtpPacketSequencer sequencer_;
+    std::shared_ptr<RtpPacketSequencer> sequencer_;
 
     std::map<int8_t, int8_t> rtx_payload_type_map_;
     std::vector<uint32_t> csrcs_;
