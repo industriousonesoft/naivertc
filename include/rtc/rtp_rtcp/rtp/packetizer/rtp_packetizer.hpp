@@ -3,7 +3,6 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/internals.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packetization_config.hpp"
 
 namespace naivertc {
 
@@ -11,7 +10,7 @@ class RTC_CPP_EXPORT RtpPacketizer {
 public:
     static constexpr size_t kDefaultMaximumPayloadSize = kDefaultMtuSize - 12 - 8 - 40; // 1220: SRTP/UDP/IPv6
 
-    struct RTC_CPP_EXPORT PaylaodSizeLimits {
+    struct RTC_CPP_EXPORT PayloadSizeLimits {
         // Why WebRTC chose RTP max payload size to 1200 bytes?
         // a1: See https://stackoverflow.com/questions/47635545/why-webrtc-chose-rtp-max-packet-size-to-1200-bytes
         // This is an arbitraily selected value to avoid packet fragmentation.
@@ -31,18 +30,14 @@ public:
     };
     
 public:
-    RtpPacketizer(std::shared_ptr<RtpPacketizationConfig> rtp_config, PaylaodSizeLimits limits);
+    RtpPacketizer(PayloadSizeLimits limits);
     virtual ~RtpPacketizer();
 
-    std::shared_ptr<RtpPacketizationConfig> rtp_config() const { return rtp_config_; }
-
-    std::shared_ptr<BinaryBuffer> Packetize(std::shared_ptr<BinaryBuffer> payload, bool marker);
 
 protected:
     static constexpr size_t kRtpHeaderSize = 12;
 
-    std::shared_ptr<RtpPacketizationConfig> rtp_config_;
-    PaylaodSizeLimits limits_;
+    PayloadSizeLimits limits_;
 };
     
 } // namespace naivertc

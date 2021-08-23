@@ -103,8 +103,6 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
 
     src/rtc/rtp_rtcp/rtp/rtp_packet.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_packetization_config.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_packetizer.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_to_send.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_history.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_generator.cpp
@@ -114,6 +112,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/rtp_packet_sender_impl.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_pacer_non_paced.cpp
     src/rtc/rtp_rtcp/rtp/rtp_video_sender.cpp
+    src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
 
     # pacing
     src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
@@ -231,8 +230,6 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
 
     include/rtc/rtp_rtcp/rtp/rtp_packet.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packetization_config.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packetizer.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_to_send.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_history.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_handler.hpp
@@ -244,6 +241,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/rtp_packet_sender_impl.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_pacer_non_paced.hpp
     include/rtc/rtp_rtcp/rtp/rtp_video_sender.hpp
+    include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp
 
     # pacing
     include/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp

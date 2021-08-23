@@ -22,6 +22,17 @@ const int kBogusRtpRateForAudioRtcp = 8000;
 
 const size_t kRtxHeaderSize = 2;
 
+// 对于一个系统而言，需要定义一个epoch，所有的时间表示是基于这个基准点的，
+// 对于linux而言，采用了和unix epoch一样的时间点：1970年1月1日0点0分0秒（UTC）。
+// NTP协议使用的基准点是：1900年1月1日0点0分0秒（UTC）。
+// GPS系统使用的基准点是：1980年1月6日0点0分0秒（UTC）。
+// 每个系统都可以根据自己的逻辑定义自己epoch，例如unix epoch的基准点是因为unix操作系统是在1970年左右成型的。
+// 详见 https://www.cnblogs.com/arnoldlu/p/7078179.html
+enum class EpochType : unsigned long long {
+    T1970 = 2208988800UL, // Number of seconds between 1970 and 1900
+    T1900 = 0
+};
+
 // Rtp header extensions type
 enum class RtpExtensionType : int {
     NONE = 0,
