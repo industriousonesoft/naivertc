@@ -20,12 +20,13 @@ void RtpNonPacedPacketPacer::EnqueuePackets(std::vector<std::shared_ptr<RtpPacke
         // Don't generate sequence numbers for flexfec, they are already running on
         // an internally maintained sequence.
         // TODO: 在哪设置flexfec_ssrc？ 为什么有flexfec_ssrc就代表有内部的序号？
-        // !!! packet_sequencer_能不能已到sender里面去？？为什么Pacing模块中并没有类似逻辑
-        const bool need_generate_sequence_numbers = sender_->flexfec_ssrc().has_value() == false;
+        // TODO: packet_sequencer_能不能已到sender里面去？？为什么Pacing模块中并没有类似逻辑
+        // const bool need_generate_sequence_numbers = sender_->flexfec_ssrc().has_value() == false;
         for (auto& packet : fec_packets) {
-            if (need_generate_sequence_numbers) {
-                packet_sequencer_->Sequence(packet);
-            }
+            // TODO: To set sequence number for FEC packet
+            // if (need_generate_sequence_numbers) {
+            //     packet_sequencer_->Sequence(packet);
+            // }
             PrepareForSend(packet);
         }
         EnqueuePackets(std::move(fec_packets));

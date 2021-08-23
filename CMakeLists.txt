@@ -107,7 +107,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/rtp_packetizer.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_to_send.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_history.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_packet_processor.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_packet_generator.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.cpp
     src/rtc/rtp_rtcp/rtp/rtp_header_extensions.cpp
     src/rtc/rtp_rtcp/rtp/rtp_header_extension_manager.cpp
@@ -235,7 +235,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/rtp_packet_to_send.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_history.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_pacer.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packet_processor.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_packet_generator.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp
     include/rtc/rtp_rtcp/rtp/rtp_header_extensions.hpp
     include/rtc/rtp_rtcp/rtp/rtp_header_extension_manager.hpp

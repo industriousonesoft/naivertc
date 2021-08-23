@@ -14,15 +14,15 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacketProcessor {
+class RTC_CPP_EXPORT RtpPacketGenerator {
 public:
-    RtpPacketProcessor(const RtpRtcpInterface::Configuration& config, 
+    RtpPacketGenerator(const RtpRtcpInterface::Configuration& config, 
               RtpPacketHistory* packet_history,
               std::shared_ptr<TaskQueue> task_queue);
-    RtpPacketProcessor() = delete;
-    RtpPacketProcessor(const RtpPacketProcessor&) = delete;
-    RtpPacketProcessor& operator=(const RtpPacketProcessor&) = delete;
-    ~RtpPacketProcessor();
+    RtpPacketGenerator() = delete;
+    RtpPacketGenerator(const RtpPacketGenerator&) = delete;
+    RtpPacketGenerator& operator=(const RtpPacketGenerator&) = delete;
+    ~RtpPacketGenerator();
 
     uint32_t ssrc() const;
 

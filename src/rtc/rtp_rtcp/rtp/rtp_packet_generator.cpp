@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/rtp_packet_processor.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_packet_generator.hpp"
 #include "common/utils_random.hpp"
 #include "rtc/base/byte_io_writer.hpp"
 
@@ -12,10 +12,10 @@ constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
 
 } // namespace 
 
-RtpPacketProcessor::RtpPacketProcessor(const RtpRtcpInterface::Configuration& config, 
+RtpPacketGenerator::RtpPacketGenerator(const RtpRtcpInterface::Configuration& config, 
                      RtpPacketHistory* packet_history,
                      std::shared_ptr<TaskQueue> task_queue) 
-    : task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpPacketProcessor.task.queue")),
+    : task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpPacketGenerator.task.queue")),
     clock_(config.clock),
     ssrc_(config.local_media_ssrc),
     rtx_ssrc_(config.rtx_send_ssrc),
@@ -27,25 +27,26 @@ RtpPacketProcessor::RtpPacketProcessor(const RtpRtcpInterface::Configuration& co
                !config.audio,
                config.clock) {
     UpdateHeaderSizes();
+    // Random start, 16bits, can not be 0.
     sequencer_.set_rtx_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
     sequencer_.set_media_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
 }
 
-RtpPacketProcessor::~RtpPacketProcessor() {}
+RtpPacketGenerator::~RtpPacketGenerator() {}
 
-uint32_t RtpPacketProcessor::ssrc() const {
+uint32_t RtpPacketGenerator::ssrc() const {
     return task_queue_->Sync<uint32_t>([this](){
         return this->ssrc_;
     });
 }
 
-size_t RtpPacketProcessor::max_packet_size() const {
+size_t RtpPacketGenerator::max_packet_size() const {
     return task_queue_->Sync<size_t>([this](){
         return this->max_packet_size_;
     });
 }
 
-void RtpPacketProcessor::set_max_packet_size(size_t max_size) {
+void RtpPacketGenerator::set_max_packet_size(size_t max_size) {
     assert(max_size >= 100);
     assert(max_size <= kIpPacketSize);
     task_queue_->Async([this, max_size](){
@@ -53,25 +54,25 @@ void RtpPacketProcessor::set_max_packet_size(size_t max_size) {
     });
 }
 
-std::optional<uint32_t> RtpPacketProcessor::rtx_ssrc() const {
+std::optional<uint32_t> RtpPacketGenerator::rtx_ssrc() const {
     return task_queue_->Sync<std::optional<uint32_t>>([this](){
         return this->rtx_ssrc_;
     });
 }
 
-RtxMode RtpPacketProcessor::rtx_mode() const {
+RtxMode RtpPacketGenerator::rtx_mode() const {
     return task_queue_->Sync<RtxMode>([this](){
         return this->rtx_mode_;
     });
 }
     
-void RtpPacketProcessor::set_rtx_mode(RtxMode mode) {
+void RtpPacketGenerator::set_rtx_mode(RtxMode mode) {
     task_queue_->Async([this, mode](){
         this->rtx_mode_ = mode;
     });
 }
 
-void RtpPacketProcessor::SetRtxPayloadType(int payload_type, int associated_payload_type) {
+void RtpPacketGenerator::SetRtxPayloadType(int payload_type, int associated_payload_type) {
     task_queue_->Async([this, payload_type, associated_payload_type](){
         // All RTP packet type MUST be less than 127 to distingush with RTCP packet, which MUST be greater than 128.
         // RFC 5761 Multiplexing RTP and RTCP 4. Distinguishable RTP and RTCP Packets
@@ -87,7 +88,7 @@ void RtpPacketProcessor::SetRtxPayloadType(int payload_type, int associated_payl
     });
 }
 
-void RtpPacketProcessor::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
+void RtpPacketGenerator::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
     task_queue_->Async([this, packets=std::move(packets)](){
         int64_t now_ms = clock_->TimeInMs();
         for (auto& packet : packets) {
@@ -101,14 +102,14 @@ void RtpPacketProcessor::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToS
     });
 }
 
-void RtpPacketProcessor::OnPacketsProcessed(PacketsProcessedCallback callback) {
+void RtpPacketGenerator::OnPacketsProcessed(PacketsProcessedCallback callback) {
     task_queue_->Async([this, callback](){
         packets_processed_callback_ = callback;
     });
 }
 
 // Nack
-void RtpPacketProcessor::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt) {
+void RtpPacketGenerator::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt) {
     task_queue_->Async([this, nack_list=std::move(nack_list), avg_rrt](){
         // FIXME: Why set RTT avg_rrt + 5 ms?
         this->packet_history_->SetRtt(5 + avg_rrt);
@@ -125,7 +126,7 @@ void RtpPacketProcessor::OnReceivedNack(const std::vector<uint16_t>& nack_list, 
 
 // Private methods
 
-int32_t RtpPacketProcessor::ResendPacket(uint16_t packet_id) {
+int32_t RtpPacketGenerator::ResendPacket(uint16_t packet_id) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
     // so that we don't retransmit too often.
     std::optional<RtpPacketHistory::PacketState> stored_packet = this->packet_history_->GetPacketState(packet_id);
@@ -171,7 +172,7 @@ int32_t RtpPacketProcessor::ResendPacket(uint16_t packet_id) {
     return packet_size;
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketProcessor::BuildRtxPacket(std::shared_ptr<const RtpPacketToSend> packet) {
+std::shared_ptr<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(std::shared_ptr<const RtpPacketToSend> packet) {
     if (!rtx_ssrc_.has_value()) {
         PLOG_WARNING << "Failed to build RTX packet withou RTX ssrc.";
         return nullptr;
@@ -206,12 +207,12 @@ std::shared_ptr<RtpPacketToSend> RtpPacketProcessor::BuildRtxPacket(std::shared_
     return rtx_packet;
 }
 
-void RtpPacketProcessor::UpdateHeaderSizes() {
+void RtpPacketGenerator::UpdateHeaderSizes() {
     const size_t rtp_header_size = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
     // TODO: To update size of RTP header with extensions
 }
 
-void RtpPacketProcessor::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend> packet, RtpPacketToSend* rtx_packet) {
+void RtpPacketGenerator::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend> packet, RtpPacketToSend* rtx_packet) {
     // Set the relevant fixed fields in the packet headers.
     // The following are not set:
     // - Payload type: it is replaced in RTX packet.
