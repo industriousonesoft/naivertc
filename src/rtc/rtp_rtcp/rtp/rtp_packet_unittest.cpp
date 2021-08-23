@@ -65,7 +65,8 @@ TEST(RtpPacketTest, BuildPacket) {
     rtp_packet->set_sequence_number(kSequence_num);
     rtp_packet->set_timestamp(kTimestamp);
     rtp_packet->set_ssrc(kSsrc);
-    rtp_packet->set_payload(kPayload, kPayloadSize);
+    
+    rtp_packet->SetPayload(kPayload, kPayloadSize);
     EXPECT_TRUE(rtp_packet->SetPadding(4));
 
     EXPECT_EQ(rtp_packet->marker(), true);

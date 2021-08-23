@@ -138,17 +138,17 @@ bool RtpPacket::SetPadding(uint8_t padding_size) {
     return true;
 }
 
-void RtpPacket::set_payload(const BinaryBuffer& payload) {
-    // Erase the old payload data
-    erase(begin() + payload_offset_, begin() + payload_offset_ + payload_size_);
-    // Using 'insert' instead of 'copy' to keep padding data
-    insert(begin() + payload_offset_, payload.begin(), payload.end());
+void RtpPacket::SetPayload(const BinaryBuffer& payload) {
     payload_size_ = payload.size();
+    // Resize with new payload size
+    BinaryBuffer::resize(payload_offset_ + payload_size_);
+    // Insert payload at the front of the padding
+    BinaryBuffer::insert(begin() + payload_offset_, payload.begin(), payload.end());
 }
 
-void RtpPacket::set_payload(const uint8_t* buffer, size_t size) {
+void RtpPacket::SetPayload(const uint8_t* buffer, size_t size) {
     auto raw_payload = BinaryBuffer(buffer, buffer + size);
-    set_payload(std::move(raw_payload));
+    SetPayload(std::move(raw_payload));
 }
 
 uint8_t* RtpPacket::SetPayloadSize(size_t size) {

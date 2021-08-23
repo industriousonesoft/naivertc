@@ -67,13 +67,13 @@ public:
     void set_sequence_number(uint16_t sequence_num);
     void set_timestamp(uint32_t timestamp);
     void set_ssrc(uint32_t ssrc);
-    void set_payload(const BinaryBuffer& payload);
-    void set_payload(const uint8_t* buffer, size_t size);
     
     void SetCsrcs(std::vector<uint32_t> csrcs);
     void CopyHeaderFrom(const RtpPacket& other);
     bool SetPadding(uint8_t padding_size);
 
+    void SetPayload(const BinaryBuffer& payload);
+    void SetPayload(const uint8_t* buffer, size_t size);
     // Reserve size_bytes for payload. Returns nullptr on failure.
     uint8_t* SetPayloadSize(size_t size);
     // Same as SetPayloadSize but doesn't guarantee to keep current payload.
