@@ -44,6 +44,16 @@ TEST(H264NalUnitTest, Parse) {
     EXPECT_THAT(std::make_tuple(nalu.payload().data(), nalu.payload().size()), testing::ElementsAreArray(&kPacket[1], kPacketSize - 1));
 
 }
+
+TEST(H264NalUnitTest, FindNaluIndices) {
+    const uint8_t h264_encoded_buffer[] = {0, 0, 1, uint8_t(h264::NaluType::IDR), 0xFF};
+
+    std::vector<NaluIndex> nalu_indices = NalUnit::FindNaluIndices(h264_encoded_buffer, sizeof(h264_encoded_buffer));
+    EXPECT_EQ(nalu_indices.size(), 1u);
+    EXPECT_EQ(nalu_indices[0].start_offset, 0);
+    EXPECT_EQ(nalu_indices[0].payload_start_offset, 3);
+    EXPECT_EQ(nalu_indices[0].payload_size, 2);
+}
     
 } // namespace test
 } // namespace naivertc

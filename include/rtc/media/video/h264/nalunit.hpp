@@ -2,6 +2,7 @@
 #define _RTC_MEDIA_VIDEO_H264_NALUNIT_H_
 
 #include "base/defines.hpp"
+#include "rtc/media/video/h264/common.hpp"
 
 #include <vector>
 
@@ -38,6 +39,9 @@ namespace h264 {
 // 30-31    reserved  
 
 class RTC_CPP_EXPORT NalUnit : public BinaryBuffer {
+public:
+    // Returns a vector of the NALU indices in the given buffer.
+    static std::vector<NaluIndex> FindNaluIndices(const uint8_t* buffer, size_t size);
 public:
     NalUnit();
     NalUnit(const NalUnit&);
