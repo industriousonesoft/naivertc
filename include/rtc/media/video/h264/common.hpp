@@ -1,5 +1,5 @@
-#ifndef _RTC_VIDEO_H264_COMMON_H_
-#define _RTC_VIDEO_H264_COMMON_H_
+#ifndef _RTC_MEDIA_VIDEO_H264_COMMON_H_
+#define _RTC_MEDIA_VIDEO_H264_COMMON_H_
 
 #include "base/defines.hpp"
 
@@ -9,7 +9,7 @@
 #include <vector>
 
 namespace naivertc {
-namespace H264 {
+namespace h264 {
 
 // The size of a full NALU start sequence {0 0 0 1},
 // used for the first NALU of an access unit, and for SPS and PPS block.
@@ -28,19 +28,32 @@ struct RTC_CPP_EXPORT NaluIndex {
     size_t payload_size;
 };
 
-// Returns a vector of the NALU indices in the given buffer.
-std::vector<NaluIndex> FindNaluIndices(const uint8_t* buffer, size_t size);
-
 // Packetization modes are defined in RFC 6184 section 6
 // Due to the structure containing this being initialized 
 // with zeroes in some places, and mode 1 (non-interleaved) 
 // being default, mode 1 needs to have the value zero.
 // https://crbug.com/webrtc/6803
+// https://datatracker.ietf.org/doc/html/rfc6184#section-6.0
 enum class PacketizationMode {
-    // Mode 1: SRAP-A, FU-A is allowed
+    // Mode 1: STAP-A, FU-A is allowed
     NON_INTERLEAVED = 0,
     // Mode 0: Only single NALU allowed
     SINGLE_NAL_UNIT
+};
+
+enum class NaluType : uint8_t {
+    SLICE = 1,
+    IDR = 5,
+    SEI = 6,
+    SPS = 7,
+    PPS = 8,
+    AUD = 9,
+    END_OF_SEQUENCE = 10,
+    END_OF_STREAM = 11,
+    FILLER = 12,
+    PREFIX = 14,
+    STAP_A = 24,
+    FU_A = 28
 };
     
 } // namespace h264

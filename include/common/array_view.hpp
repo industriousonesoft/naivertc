@@ -22,7 +22,7 @@ public:
 
     ArrayView<T> subview(size_t offset, size_t size) const noexcept { 
         return offset < this->size() ? ArrayView<T>(this->data() + offset, std::min(size, this->size() - offset))
-                                     : ArrayView<T>(nullptr, 0)
+                                     : ArrayView<T>(nullptr, 0);
     }
 
 private:
