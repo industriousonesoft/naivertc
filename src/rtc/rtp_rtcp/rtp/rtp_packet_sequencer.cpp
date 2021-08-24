@@ -81,7 +81,7 @@ void RtpPacketSequencer::UpdateLastPacketState(std::shared_ptr<const RtpPacketTo
     // is disabled.
     if (packet->is_red()) {
         assert(packet->payload_size() >= kRedForFecHeaderLength);
-        last_payload_type_ = packet->payload_data()[0];
+        last_payload_type_ = packet->payload().data()[0];
     }else {
         last_payload_type_ = packet->payload_type();
     }

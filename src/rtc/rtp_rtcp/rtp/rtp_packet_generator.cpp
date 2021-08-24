@@ -198,7 +198,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(std::shared_
     ByteWriter<uint16_t>::WriteBigEndian(rtx_payload, packet->sequence_number());
 
     // Copy original payload data
-    memcpy(rtx_payload + kRtxHeaderSize, packet->payload_data(), packet->payload_size());
+    memcpy(rtx_payload + kRtxHeaderSize, packet->payload().data(), packet->payload_size());
 
     // TODO: To set addtional data if necessary
 

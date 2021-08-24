@@ -14,6 +14,8 @@ public:
     RtpPacketToSend(size_t capacity);
     RtpPacketToSend(const RtpPacketToSend& packet);
     RtpPacketToSend(RtpPacketToSend&& packet);
+    explicit RtpPacketToSend(std::shared_ptr<ExtensionManager> extension_manager);
+    RtpPacketToSend(std::shared_ptr<ExtensionManager> extension_manager, size_t capacity);
 
     RtpPacketToSend& operator=(const RtpPacketToSend& packet);
     RtpPacketToSend& operator=(RtpPacketToSend&& packet);

@@ -2,6 +2,7 @@
 #define _RTC_RTP_PACKET_H_
 
 #include "base/defines.hpp"
+#include "common/array_view.hpp"
 #include "rtc/base/packet.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp/rtp_header_extension_manager.hpp"
@@ -27,7 +28,7 @@ public:
     RtpPacket(size_t capacity);
     RtpPacket(const RtpPacket&);
     explicit RtpPacket(std::shared_ptr<ExtensionManager> extension_manager);
-    RtpPacket(std::shared_ptr<ExtensionManager>, size_t capacity);
+    RtpPacket(std::shared_ptr<ExtensionManager> extension_manager, size_t capacity);
     virtual ~RtpPacket();
 
     // Header
@@ -42,10 +43,10 @@ public:
 
     size_t header_size() const { return payload_offset_; }
     // Payload
-    const uint8_t* payload_data() const {
-        return &(BinaryBuffer::at(payload_offset_));
-    }
     size_t payload_size() const { return payload_size_; }
+    ArrayView<const uint8_t> payload() const {
+        return ArrayView(data() + payload_offset_, payload_size_);
+    }
     BinaryBuffer PayloadBuffer() const {
         auto paylaod_begin = begin() + payload_offset_;
         return BinaryBuffer(paylaod_begin, paylaod_begin + payload_size_);
