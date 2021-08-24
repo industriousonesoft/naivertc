@@ -111,8 +111,14 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/rtp_header_extension_manager.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_sender_impl.cpp
     src/rtc/rtp_rtcp/rtp/rtp_packet_pacer_non_paced.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_video_sender.cpp
+
+    # rtc -> video
+    src/rtc/rtp_rtcp/rtp/video/rtp_video_sender.cpp
+    src/rtc/rtp_rtcp/rtp/video/rtp_video_header.cpp
+
+    # packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
+    src/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.cpp
 
     # pacing
     src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
@@ -144,6 +150,7 @@ set(LIB_SOURCES
     src/rtc/media/media_track_sdp_builder.cpp
     src/rtc/media/video/h264/nalunit.cpp
     src/rtc/media/video/h264/nalunit_fragment.cpp
+    src/rtc/media/video/h264/nalunit_auxiliaries.cpp
 )
 
 if(USE_NICE)
@@ -174,6 +181,7 @@ set(LIB_HEADERS
     include/common/logger.hpp
     include/common/weak_ptr_manager.hpp
     include/common/numeric_range_checker.hpp
+    include/common/array_view.hpp
     # signaling
     include/signaling/base/base_channel.hpp
     include/signaling/common/url_parts.hpp
@@ -240,8 +248,14 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_sender_impl.hpp
     include/rtc/rtp_rtcp/rtp/rtp_packet_pacer_non_paced.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_video_sender.hpp
+
+    # rtc -> video
+    include/rtc/rtp_rtcp/rtp/video/rtp_video_sender.hpp
+    include/rtc/rtp_rtcp/rtp/video/rtp_video_header.hpp
+
+    # packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp
+    include/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.hpp
 
     # pacing
     include/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp
@@ -270,8 +284,11 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.hpp
     # rtc -> media
     include/rtc/media/media_track.hpp
+    include/rtc/media/video/common.hpp
+    include/rtc/media/video/h264/common.hpp
     include/rtc/media/video/h264/nalunit.hpp
     include/rtc/media/video/h264/nalunit_fragment.hpp
+    
 )
 
 # gcc -Wall: enables all compiler's warning messages
@@ -377,8 +394,9 @@ set(TEST_SOURCES
     
     src/rtc/rtp_rtcp/rtp/rtp_packet_unittest.cpp
     src/rtc/rtp_rtcp/rtp/rtp_header_extension_manager_unittest.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer_unittest.cpp
 
+    src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/report_block_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/sender_report_unittest.cpp
