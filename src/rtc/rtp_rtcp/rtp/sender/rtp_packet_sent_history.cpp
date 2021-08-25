@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/rtp_packet_history.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
 #include "rtc/base/sequence_number_utils.hpp"
 
 #include <plog/Log.h>
@@ -6,12 +6,12 @@
 namespace naivertc {
 
 // PacketState
-RtpPacketHistory::PacketState::PacketState() = default;
-RtpPacketHistory::PacketState::PacketState(const PacketState&) = default;
-RtpPacketHistory::PacketState::~PacketState() = default;
+RtpPacketSentHistory::PacketState::PacketState() = default;
+RtpPacketSentHistory::PacketState::PacketState(const PacketState&) = default;
+RtpPacketSentHistory::PacketState::~PacketState() = default;
 
 // StoredPacket
-RtpPacketHistory::StoredPacket::StoredPacket(
+RtpPacketSentHistory::StoredPacket::StoredPacket(
     std::shared_ptr<RtpPacketToSend> packet,
     std::optional<int64_t> send_time_ms,
     uint64_t insert_order)
@@ -24,12 +24,12 @@ RtpPacketHistory::StoredPacket::StoredPacket(
       insert_order_(insert_order),
       times_retransmitted_(0) {}
 
-RtpPacketHistory::StoredPacket::StoredPacket(StoredPacket&&) = default;
-RtpPacketHistory::StoredPacket& RtpPacketHistory::StoredPacket::operator=(
-    RtpPacketHistory::StoredPacket&&) = default;
-RtpPacketHistory::StoredPacket::~StoredPacket() = default;
+RtpPacketSentHistory::StoredPacket::StoredPacket(StoredPacket&&) = default;
+RtpPacketSentHistory::StoredPacket& RtpPacketSentHistory::StoredPacket::operator=(
+    RtpPacketSentHistory::StoredPacket&&) = default;
+RtpPacketSentHistory::StoredPacket::~StoredPacket() = default;
 
-void RtpPacketHistory::StoredPacket::IncrementTimesRetransmitted(PacketPrioritySet* priority_set) {
+void RtpPacketSentHistory::StoredPacket::IncrementTimesRetransmitted(PacketPrioritySet* priority_set) {
     // Check if this StoredPacket is in the priority set. If so, we need to remove
     // it before updating |times_retransmitted_| since that is used in sorting,
     // and then add it back.
@@ -48,7 +48,7 @@ void RtpPacketHistory::StoredPacket::IncrementTimesRetransmitted(PacketPriorityS
     }
 }
 
-bool RtpPacketHistory::StoredPacketCompare::operator()(StoredPacket* lhs,
+bool RtpPacketSentHistory::StoredPacketCompare::operator()(StoredPacket* lhs,
                                                        StoredPacket* rhs) const {
     // Prefer to send packets we haven't already sent as padding.
     if (lhs->times_retransmitted() != rhs->times_retransmitted()) {
@@ -58,9 +58,9 @@ bool RtpPacketHistory::StoredPacketCompare::operator()(StoredPacket* lhs,
     return lhs->insert_order() > rhs->insert_order();
 }
 
-// RtpPacketHistory
+// RtpPacketSentHistory
 // Public methods
-RtpPacketHistory::RtpPacketHistory(std::shared_ptr<Clock> clock, bool enable_padding_prio, std::shared_ptr<TaskQueue> task_queue) 
+RtpPacketSentHistory::RtpPacketSentHistory(std::shared_ptr<Clock> clock, bool enable_padding_prio, std::shared_ptr<TaskQueue> task_queue) 
     : task_queue_(task_queue),
       clock_(clock),
       enable_padding_prio_(enable_padding_prio),
@@ -69,13 +69,13 @@ RtpPacketHistory::RtpPacketHistory(std::shared_ptr<Clock> clock, bool enable_pad
       rtt_ms_(-1),
       packets_inserted_(0) {
     if (task_queue_ == nullptr) {
-        task_queue_ = std::make_shared<TaskQueue>("RtpPacketHistory.task.queue");
+        task_queue_ = std::make_shared<TaskQueue>("RtpPacketSentHistory.task.queue");
     }
 }
 
-RtpPacketHistory::~RtpPacketHistory() {}
+RtpPacketSentHistory::~RtpPacketSentHistory() {}
 
-void RtpPacketHistory::SetStorePacketsStatus(StorageMode mode, size_t number_to_store) {
+void RtpPacketSentHistory::SetStorePacketsStatus(StorageMode mode, size_t number_to_store) {
     task_queue_->Async([this, mode, number_to_store]() {
         if (number_to_store > kMaxCapacity) {
             PLOG_WARNING << "Number to store is supposed to less than " << kMaxCapacity;
@@ -90,13 +90,13 @@ void RtpPacketHistory::SetStorePacketsStatus(StorageMode mode, size_t number_to_
     });
 }
 
-RtpPacketHistory::StorageMode RtpPacketHistory::GetStorageMode() const {
+RtpPacketSentHistory::StorageMode RtpPacketSentHistory::GetStorageMode() const {
     return task_queue_->Sync<StorageMode>([this](){
         return this->mode_;
     });
 }
 
-void RtpPacketHistory::SetRtt(int64_t rtt_ms) {
+void RtpPacketSentHistory::SetRtt(int64_t rtt_ms) {
     task_queue_->Async([this, rtt_ms](){
         if (rtt_ms < 0) {
             PLOG_WARNING << "Invalid RTT: " << rtt_ms;
@@ -112,7 +112,7 @@ void RtpPacketHistory::SetRtt(int64_t rtt_ms) {
     });
 }
 
-void RtpPacketHistory::PutRtpPacket(std::shared_ptr<RtpPacketToSend> packet, std::optional<int64_t> send_time_ms) {
+void RtpPacketSentHistory::PutRtpPacket(std::shared_ptr<RtpPacketToSend> packet, std::optional<int64_t> send_time_ms) {
     task_queue_->Async([this, packet=std::move(packet), send_time_ms](){
         if (packet == nullptr) {
             PLOG_WARNING << "Invalid packet to send.";
@@ -172,7 +172,7 @@ void RtpPacketHistory::PutRtpPacket(std::shared_ptr<RtpPacketToSend> packet, std
     });
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndSetSendTime(uint16_t sequence_number) {
+std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndSetSendTime(uint16_t sequence_number) {
     return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, sequence_number](){
         if (mode_ == StorageMode::DISABLE) {
             return std::shared_ptr<RtpPacketToSend>(nullptr);;
@@ -198,13 +198,13 @@ std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndSetSendTime(uint1
     });
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number) {
+std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(uint16_t sequence_number) {
     return GetPacketAndMarkAsPending(sequence_number, [](std::shared_ptr<RtpPacketToSend> packet){
         return packet;
     });
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
+std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
             std::function<std::shared_ptr<RtpPacketToSend>(std::shared_ptr<RtpPacketToSend>)> encapsulate) {
     return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, sequence_number, encapsulate](){
         if (mode_ == StorageMode::DISABLE) {
@@ -236,7 +236,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uin
     });
 }
 
-void RtpPacketHistory::MarkPacketAsSent(uint16_t sequence_number) {
+void RtpPacketSentHistory::MarkPacketAsSent(uint16_t sequence_number) {
     task_queue_->Async([this, sequence_number](){
         if (mode_ == StorageMode::DISABLE) {
             return;
@@ -260,8 +260,8 @@ void RtpPacketHistory::MarkPacketAsSent(uint16_t sequence_number) {
     });
 }
 
-std::optional<RtpPacketHistory::PacketState> RtpPacketHistory::GetPacketState(uint16_t sequence_number) const {
-    return task_queue_->Sync<std::optional<RtpPacketHistory::PacketState>>([this, sequence_number](){
+std::optional<RtpPacketSentHistory::PacketState> RtpPacketSentHistory::GetPacketState(uint16_t sequence_number) const {
+    return task_queue_->Sync<std::optional<RtpPacketSentHistory::PacketState>>([this, sequence_number](){
 
         if (mode_ == StorageMode::DISABLE) {
             return std::optional<PacketState>(std::nullopt);
@@ -285,13 +285,13 @@ std::optional<RtpPacketHistory::PacketState> RtpPacketHistory::GetPacketState(ui
     });
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket() {
+std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket() {
     return GetPayloadPaddingPacket([](std::shared_ptr<RtpPacketToSend> packet){
         return packet;
     });
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket(
+std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket(
         std::function<std::shared_ptr<RtpPacketToSend>(std::shared_ptr<RtpPacketToSend>)> encapsulate) {
     return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, encapsulate](){
 
@@ -337,7 +337,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket(
     });
 }
 
-void RtpPacketHistory::CullAcknowledgedPackets(std::vector<const uint16_t> sequence_numbers) {
+void RtpPacketSentHistory::CullAcknowledgedPackets(std::vector<const uint16_t> sequence_numbers) {
     task_queue_->Async([this, sequence_numbers](){
         for (uint16_t sequence_number : sequence_numbers) {
             int packet_index = GetPacketIndex(sequence_number);
@@ -350,7 +350,7 @@ void RtpPacketHistory::CullAcknowledgedPackets(std::vector<const uint16_t> seque
     });
 }
 
-bool RtpPacketHistory::SetPendingTransmission(uint16_t sequence_number) {
+bool RtpPacketSentHistory::SetPendingTransmission(uint16_t sequence_number) {
     return task_queue_->Sync<bool>([this, sequence_number](){
         if (mode_ == StorageMode::DISABLE) {
             return false;
@@ -366,14 +366,14 @@ bool RtpPacketHistory::SetPendingTransmission(uint16_t sequence_number) {
     });
 }
 
-void RtpPacketHistory::Clear() {
+void RtpPacketSentHistory::Clear() {
     task_queue_->Async([this](){
         Reset();
     });
 }
 
 // Private methods
-bool RtpPacketHistory::VerifyRtt(const StoredPacket& packet, int64_t now_ms) const {
+bool RtpPacketSentHistory::VerifyRtt(const StoredPacket& packet, int64_t now_ms) const {
     if (packet.send_time_ms_.has_value()) {
         // Send-time already set, this check must be for a retransmission
         if (packet.times_retransmitted() > 0 && now_ms < packet.send_time_ms_.value() + rtt_ms_) {
@@ -386,14 +386,14 @@ bool RtpPacketHistory::VerifyRtt(const StoredPacket& packet, int64_t now_ms) con
     return true;
 }
 
-void RtpPacketHistory::Reset() {
+void RtpPacketSentHistory::Reset() {
     task_queue_->Async([this](){
         this->packet_history_.clear();
         this->padding_priority_.clear();
     });
 }
 
-void RtpPacketHistory::CullOldPackets(int64_t now_ms) {
+void RtpPacketSentHistory::CullOldPackets(int64_t now_ms) {
     int64_t packet_duration_ms = std::max(kMinPacketDurationRtt * rtt_ms_, kMinPacketDurationMs);
     while (!packet_history_.empty()) {
         if (packet_history_.size() >= kMaxCapacity) {
@@ -426,7 +426,7 @@ void RtpPacketHistory::CullOldPackets(int64_t now_ms) {
     
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketHistory::RemovePacket(int packet_index) {
+std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::RemovePacket(int packet_index) {
     // Move the packet out from the StoredPacket container.
     std::shared_ptr<RtpPacketToSend> rtp_packet = std::move(packet_history_[packet_index].packet_);
 
@@ -445,7 +445,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketHistory::RemovePacket(int packet_index
     return rtp_packet;
 }
 
-int RtpPacketHistory::GetPacketIndex(uint16_t sequence_number) const {
+int RtpPacketSentHistory::GetPacketIndex(uint16_t sequence_number) const {
     if (packet_history_.empty()) {
         return 0;
     }
@@ -472,7 +472,7 @@ int RtpPacketHistory::GetPacketIndex(uint16_t sequence_number) const {
     return packet_index;
 }
 
-RtpPacketHistory::StoredPacket* RtpPacketHistory::GetStoredPacket(uint16_t sequence_number) {
+RtpPacketSentHistory::StoredPacket* RtpPacketSentHistory::GetStoredPacket(uint16_t sequence_number) {
     int index = GetPacketIndex(sequence_number);
     if (index < 0 || static_cast<size_t>(index) >= packet_history_.size() ||
         packet_history_[index].packet_ == nullptr) {
@@ -481,8 +481,8 @@ RtpPacketHistory::StoredPacket* RtpPacketHistory::GetStoredPacket(uint16_t seque
     return &packet_history_[index];
 }
 
-RtpPacketHistory::PacketState RtpPacketHistory::StoredPacketToPacketState(const StoredPacket& stored_packet) {
-    RtpPacketHistory::PacketState state;
+RtpPacketSentHistory::PacketState RtpPacketSentHistory::StoredPacketToPacketState(const StoredPacket& stored_packet) {
+    RtpPacketSentHistory::PacketState state;
     state.rtp_sequence_number = stored_packet.packet_->sequence_number();
     state.send_time_ms = stored_packet.send_time_ms_;
     state.capture_time_ms = stored_packet.packet_->capture_time_ms();

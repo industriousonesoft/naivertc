@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/rtp_packet.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>

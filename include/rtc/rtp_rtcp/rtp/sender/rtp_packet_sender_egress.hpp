@@ -3,10 +3,9 @@
 
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_history.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 
 #include <optional>
 #include <functional>
@@ -15,12 +14,12 @@
 namespace naivertc {
 
 // NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketSender发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
-class RTC_CPP_EXPORT RtpPacketSenderImpl : public RtpPacketSender {
+class RTC_CPP_EXPORT RtpPacketSenderEgress {
 public:
-    RtpPacketSenderImpl(const RtpRtcpInterface::Configuration& config, 
-                        std::shared_ptr<RtpPacketHistory> packet_history,
+    RtpPacketSenderEgress(const RtpRtcpInterface::Configuration& config, 
+                        std::shared_ptr<RtpPacketSentHistory> packet_history,
                         std::shared_ptr<TaskQueue> task_queue);
-    ~RtpPacketSenderImpl();
+    ~RtpPacketSenderEgress();
 
     uint32_t ssrc() const { return ssrc_; }
     std::optional<uint32_t> rtx_ssrc() const { return rtx_ssrc_; }
@@ -49,7 +48,7 @@ private:
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
     const std::optional<uint32_t> flexfec_ssrc_;
-    std::shared_ptr<RtpPacketHistory> packet_history_;
+    std::shared_ptr<RtpPacketSentHistory> packet_history_;
 
     std::shared_ptr<TaskQueue> task_queue_;
 

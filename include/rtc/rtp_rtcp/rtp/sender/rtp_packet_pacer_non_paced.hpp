@@ -3,17 +3,17 @@
 
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_handler.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 
 #include <memory>
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpNonPacedPacketPacer : public RtpPacketHandler {
+class RTC_CPP_EXPORT RtpNonPacedPacketPacer : public RtpPacketSender {
 public:
-    RtpNonPacedPacketPacer(std::shared_ptr<RtpPacketSender> sender, 
+    RtpNonPacedPacketPacer(std::shared_ptr<RtpPacketSenderEgress> sender, 
                            std::shared_ptr<SequenceNumberAssigner> packet_sequencer,
                            std::shared_ptr<TaskQueue> task_queue);
     ~RtpNonPacedPacketPacer();
@@ -24,7 +24,7 @@ private:
     void PrepareForSend(std::shared_ptr<RtpPacketToSend> packet);
 private:
     uint16_t transport_sequence_number_;
-    std::shared_ptr<RtpPacketSender> sender_;
+    std::shared_ptr<RtpPacketSenderEgress> sender_;
     std::shared_ptr<SequenceNumberAssigner> packet_sequencer_;
     std::shared_ptr<TaskQueue> task_queue_;
 };

@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_header_extensions.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
 
 #include <vector>
 #include <string>

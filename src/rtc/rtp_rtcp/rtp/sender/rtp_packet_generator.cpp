@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/rtp_packet_generator.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "common/utils_random.hpp"
 #include "rtc/base/byte_io_writer.hpp"
 
@@ -13,8 +13,8 @@ constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
 } // namespace 
 
 RtpPacketGenerator::RtpPacketGenerator(const RtpRtcpInterface::Configuration& config, 
-                                       std::shared_ptr<RtpPacketHandler> lower,
-                                       std::shared_ptr<RtpPacketHistory> packet_history,
+                                       std::shared_ptr<RtpPacketSender> lower,
+                                       std::shared_ptr<RtpPacketSentHistory> packet_history,
                                        std::shared_ptr<TaskQueue> task_queue) 
     : clock_(config.clock),
     ssrc_(config.local_media_ssrc),
@@ -130,7 +130,7 @@ std::shared_ptr<SequenceNumberAssigner> RtpPacketGenerator::sequence_num_assigne
 int32_t RtpPacketGenerator::ResendPacket(uint16_t packet_id) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
     // so that we don't retransmit too often.
-    std::optional<RtpPacketHistory::PacketState> stored_packet = this->packet_history_->GetPacketState(packet_id);
+    std::optional<RtpPacketSentHistory::PacketState> stored_packet = this->packet_history_->GetPacketState(packet_id);
     if (!stored_packet.has_value() || stored_packet->pending_transmission) {
         // Packet not found or already queued for retransmission, ignore.
         return 0;

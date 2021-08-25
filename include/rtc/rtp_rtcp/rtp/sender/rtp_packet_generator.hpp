@@ -4,9 +4,9 @@
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_handler.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_history.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 
 #include <memory>
 #include <vector>
@@ -15,11 +15,11 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacketGenerator : public RtpPacketHandler {
+class RTC_CPP_EXPORT RtpPacketGenerator : public RtpPacketSender {
 public:
     RtpPacketGenerator(const RtpRtcpInterface::Configuration& config,
-                       std::shared_ptr<RtpPacketHandler> lower,
-                       std::shared_ptr<RtpPacketHistory> packet_history,
+                       std::shared_ptr<RtpPacketSender> lower,
+                       std::shared_ptr<RtpPacketSentHistory> packet_history,
                        std::shared_ptr<TaskQueue> task_queue);
     RtpPacketGenerator() = delete;
     RtpPacketGenerator(const RtpPacketGenerator&) = delete;
@@ -59,8 +59,8 @@ private:
     RtxMode rtx_mode_;
     size_t max_packet_size_;
 
-    std::shared_ptr<RtpPacketHandler> lower_;
-    std::shared_ptr<RtpPacketHistory> packet_history_;
+    std::shared_ptr<RtpPacketSender> lower_;
+    std::shared_ptr<RtpPacketSentHistory> packet_history_;
     std::shared_ptr<TaskQueue> task_queue_;
 
     std::shared_ptr<RtpPacketSequencer> sequencer_;

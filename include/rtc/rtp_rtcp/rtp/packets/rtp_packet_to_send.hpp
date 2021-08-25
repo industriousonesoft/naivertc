@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_PACKERT_TO_SEND_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 
 #include <optional>

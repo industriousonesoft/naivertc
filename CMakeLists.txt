@@ -102,15 +102,16 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
 
-    src/rtc/rtp_rtcp/rtp/rtp_packet.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_packet_to_send.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_packet_history.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_packet_generator.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_header_extensions.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_header_extension_manager.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_packet_sender_impl.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_packet_pacer_non_paced.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.cpp
+
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer_non_paced.cpp
 
     # rtc -> video
     src/rtc/rtp_rtcp/rtp/video/rtp_video_sender.cpp
@@ -237,17 +238,17 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp/report_block_data.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
 
-    include/rtc/rtp_rtcp/rtp/rtp_packet.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packet_to_send.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packet_history.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packet_handler.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packet_generator.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packet_sequencer.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_header_extensions.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_header_extension_manager.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packet_sender.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packet_sender_impl.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_packet_pacer_non_paced.hpp
+    include/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp
+    include/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp
+    include/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp
+    include/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp
+
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer_non_paced.hpp
 
     # rtc -> video
     include/rtc/rtp_rtcp/rtp/video/rtp_video_sender.hpp
@@ -392,8 +393,9 @@ set(TEST_SOURCES
 
     src/rtc/pc/peer_connection_configuration_unittest.cpp
     
-    src/rtc/rtp_rtcp/rtp/rtp_packet_unittest.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_header_extension_manager_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_packet_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager_unittest.cpp
+    
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer_unittest.cpp
 
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp

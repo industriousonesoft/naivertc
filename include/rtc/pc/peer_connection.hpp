@@ -13,7 +13,7 @@
 #include "rtc/transports/sctp_transport.hpp"
 #include "rtc/media/media_track.hpp"
 #include "rtc/channels/data_channel.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp"
 
 
 #include <exception>

@@ -1,8 +1,8 @@
-#include "rtc/rtp_rtcp/rtp/rtp_packet_pacer_non_paced.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer_non_paced.hpp"
 
 namespace naivertc {
 
-RtpNonPacedPacketPacer::RtpNonPacedPacketPacer(std::shared_ptr<RtpPacketSender> sender, 
+RtpNonPacedPacketPacer::RtpNonPacedPacketPacer(std::shared_ptr<RtpPacketSenderEgress> sender, 
                                                std::shared_ptr<SequenceNumberAssigner> packet_sequencer,
                                                std::shared_ptr<TaskQueue> task_queue) 
         : transport_sequence_number_(0),

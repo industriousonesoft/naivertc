@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
 #include "rtc/base/clock.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_packet_to_send.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 
 #include <optional>
 #include <deque>
@@ -16,7 +16,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacketHistory {
+class RTC_CPP_EXPORT RtpPacketSentHistory {
 public:
     // Maximum number of packets we ever allow in the history.
     static constexpr size_t kMaxCapacity = 9600;
@@ -50,13 +50,13 @@ public:
     };
 
 public:
-    RtpPacketHistory(std::shared_ptr<Clock> clock, bool enable_padding_prio, std::shared_ptr<TaskQueue> task_queue);
+    RtpPacketSentHistory(std::shared_ptr<Clock> clock, bool enable_padding_prio, std::shared_ptr<TaskQueue> task_queue);
 
-    RtpPacketHistory() = delete;
-    RtpPacketHistory(const RtpPacketHistory&) = delete;
-    RtpPacketHistory& operator=(const RtpPacketHistory&) = delete;
+    RtpPacketSentHistory() = delete;
+    RtpPacketSentHistory(const RtpPacketSentHistory&) = delete;
+    RtpPacketSentHistory& operator=(const RtpPacketSentHistory&) = delete;
 
-    ~RtpPacketHistory();
+    ~RtpPacketSentHistory();
 
     // Set/get storage mode. Note that setting the state will clear the history,
     // even if setting the same state as is currently used.
