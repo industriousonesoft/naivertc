@@ -39,7 +39,6 @@ enum class FuAHeaderBitsMask : uint8_t {
     
 } // namespace
 
-
 // 参考webrtc: modules/rtp_rtcp/rtp_format_h264.h
 RtpH264Packetizer::RtpH264Packetizer(ArrayView<const uint8_t> payload, 
                                      PayloadSizeLimits limits,
@@ -193,6 +192,7 @@ size_t RtpH264Packetizer::PacketizeStapA(size_t fragment_index) {
 
     ArrayView<const uint8_t> fragment = input_fragments_[fragment_index];
     auto payload_size_need = [&] {
+
         size_t fragment_size = fragment.size() + fragment_headers_size;
         // Single fragment, single packet, payload_size_left already
         // adjusted with limits_.single_packet_reduction_size.
@@ -212,13 +212,16 @@ size_t RtpH264Packetizer::PacketizeStapA(size_t fragment_index) {
         payload_size_left -= fragment.size();
         payload_size_left -= fragment_headers_size;
 
+        fragment_headers_size = kLengthFieldSize;
         // If we are gonna try to aggregate more fragment into this packet,
         // we need to add the STAP-A NALU header and a length field for the
         // first NALU of this packet
+        // 考虑到STAP-A格式下也存在single packet的情况，即某个NALU的大小刚好等于payload_size。
+        // 因此此处计算payload_size_need时先不考虑kNaluHeaderSize和kLengthFieldSize，因为
+        // 如果是single packet情况是不需要加kNaluHeaderSize和kLengthFieldSize的，所以在计算完
+        // 之后在将kNaluHeaderSize和kLengthFieldSize计算payload size的消耗中，用于下一次计算。
         if (aggregated_fragments_count == 0) {
-            fragment_headers_size = kNaluHeaderSize + kLengthFieldSize;
-        }else {
-            fragment_headers_size = kLengthFieldSize;
+            fragment_headers_size += kNaluHeaderSize + kLengthFieldSize;
         }
         ++aggregated_fragments_count;
 
@@ -315,7 +318,7 @@ void RtpH264Packetizer::NextStapAPacket(RtpPacketToSend* rtp_packet) {
                         ~uint8_t(NaluHeaderBitsMask::TYPE) &
                         (uint8_t(NaluHeaderBitsMask::FORBIDDEN ) | 
                         uint8_t(NaluHeaderBitsMask::NRI))) | 
-                        uint8_t(h264::NaluType::FU_A);
+                        uint8_t(h264::NaluType::STAP_A);
     size_t index = kNaluHeaderSize;
     bool is_last_fragment = packet->last_fragment;
     while (packet->aggregated) {
