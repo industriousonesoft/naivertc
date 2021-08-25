@@ -26,7 +26,7 @@ TEST(RtcpPacketTmmbnTest, Create) {
 
     BinaryBuffer packet = tmmbn.Build();
     EXPECT_EQ(packet.size(), kPacketSize);
-    EXPECT_THAT(std::make_tuple(packet.data(), packet.size()), testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(packet, testing::ElementsAreArray(kPacket));
 }
 
 TEST(RtcpPacketTmmbnTest, Parse) {

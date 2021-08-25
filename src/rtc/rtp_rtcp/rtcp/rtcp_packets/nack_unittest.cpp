@@ -49,7 +49,7 @@ TEST(RtcpNackTest, Create) {
     EXPECT_EQ(16u, nack.PacketSize());
 
     BinaryBuffer raw = nack.Build();
-    EXPECT_THAT(std::make_tuple(raw.data(), raw.size()), testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
 }
 
 TEST(RtcpNackTest, CreateFragment) {

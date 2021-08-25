@@ -31,7 +31,7 @@ TEST(H264NalUnitTest, Create) {
     EXPECT_EQ(0x03, nalu.nri());
     EXPECT_EQ(0x0F, nalu.unit_type());
 
-    EXPECT_THAT(std::make_tuple(nalu.data(), nalu.size()), testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(nalu, testing::ElementsAreArray(kPacket));
 }
 
 TEST(H264NalUnitTest, Parse) {
@@ -41,7 +41,7 @@ TEST(H264NalUnitTest, Parse) {
     EXPECT_EQ(0x03, nalu.nri());
     EXPECT_EQ(0x0F, nalu.unit_type());
 
-    EXPECT_THAT(std::make_tuple(nalu.payload().data(), nalu.payload().size()), testing::ElementsAreArray(&kPacket[1], kPacketSize - 1));
+    EXPECT_THAT(nalu.payload(), testing::ElementsAreArray(&kPacket[1], kPacketSize - 1));
 
 }
 

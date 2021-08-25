@@ -25,8 +25,7 @@ TEST(RtcpPacketTmmbrTest, Create) {
     tmmbr.AddTmmbr(TmmbItem(kRemoteSsrc, kBitrateBps, kOverhead));
 
     BinaryBuffer packet = tmmbr.Build();
-
-    EXPECT_THAT(std::make_tuple(packet.data(), packet.size()), testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(packet, testing::ElementsAreArray(kPacket));
 }
 
 TEST(RtcpPacketTmmbrTest, Parse) {

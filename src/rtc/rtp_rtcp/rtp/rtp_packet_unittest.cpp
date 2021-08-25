@@ -79,7 +79,7 @@ TEST(RtpPacketTest, BuildPacket) {
     EXPECT_EQ(rtp_packet->header_size(), 12);
     EXPECT_EQ(rtp_packet->payload_size(), kPayloadSize);
 
-    EXPECT_THAT(std::make_tuple(rtp_packet->payload().data(), rtp_packet->payload_size()), testing::ElementsAreArray(kPayload, kPayloadSize));
+    EXPECT_THAT(rtp_packet->payload(), testing::ElementsAreArray(kPayload, kPayloadSize));
 }
 
 TEST(RtpPacketTest, Parse) {

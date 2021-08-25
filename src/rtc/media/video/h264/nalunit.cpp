@@ -29,9 +29,9 @@ uint8_t NalUnit::unit_type() const {
     return at(0) & 0x1F; 
 }
 
-BinaryBuffer NalUnit::payload() const {
+ArrayView<const uint8_t> NalUnit::payload() const {
     assert(size() >= 1);
-    return {begin() + 1, end()};
+    return ArrayView(data() + 1, size() - 1);
 }
 
 // Setter

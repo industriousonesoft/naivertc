@@ -39,7 +39,7 @@ TEST(H264NaluFragmentTest, Create) {
     EXPECT_EQ(kFragmentPacketSize, nalu_fragment_a.size());
     EXPECT_EQ(kFragmentPacketSize-2, nalu_fragment_a.payload().size());
 
-    EXPECT_THAT(std::make_tuple(nalu_fragment_a.data(), nalu_fragment_a.size()), testing::ElementsAreArray(kFragmentPacket));
+    EXPECT_THAT(nalu_fragment_a, testing::ElementsAreArray(kFragmentPacket));
 
 }
 

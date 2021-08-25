@@ -39,7 +39,7 @@ TEST(RtcpPliTest, Create) {
 
     BinaryBuffer raw = pli.Build();
 
-    EXPECT_THAT(std::make_tuple(raw.data(), raw.size()), testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
 }
 
 } // namespace test

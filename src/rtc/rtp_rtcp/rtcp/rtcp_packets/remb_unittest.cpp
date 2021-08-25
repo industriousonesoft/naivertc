@@ -33,8 +33,7 @@ TEST(RtcpRembTest, Create) {
     EXPECT_EQ(3u, remb.ssrcs().size());
 
     BinaryBuffer raw = remb.Build();
-
-    EXPECT_THAT(std::make_tuple(raw.data(), raw.size()), testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
 }
 
 TEST(RtcpRembTest, Parse) {

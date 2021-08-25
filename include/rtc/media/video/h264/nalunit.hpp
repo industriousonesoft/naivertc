@@ -2,6 +2,7 @@
 #define _RTC_MEDIA_VIDEO_H264_NALUNIT_H_
 
 #include "base/defines.hpp"
+#include "common/array_view.hpp"
 #include "rtc/media/video/h264/common.hpp"
 
 #include <vector>
@@ -52,7 +53,7 @@ public:
     bool forbidden_bit() const;
     uint8_t nri() const;
     uint8_t unit_type() const;
-    BinaryBuffer payload() const;
+    ArrayView<const uint8_t> payload() const;
 
     void set_forbidden_bit(bool is_set);
     void set_nri(uint8_t nri);

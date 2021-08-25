@@ -46,7 +46,7 @@ TEST(RtcpPacketLossNotificationTest, CreateProducesExpectedWireFormat) {
 
     BinaryBuffer packet = loss_notification.Build();
 
-    EXPECT_THAT(std::make_tuple(packet.data(), packet.size()), testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(packet, testing::ElementsAreArray(kPacket));
 }
 
 TEST(RtcpPacketLossNotificationTest, ParseLegalLossNotificationMessagesCorrectly) {

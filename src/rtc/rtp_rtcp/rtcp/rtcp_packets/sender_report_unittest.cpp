@@ -31,7 +31,7 @@ TEST(RtcpSenderReportTest, CreateWithoutReportBlocks) {
     sr.set_sender_octet_count(kOctetCount);
 
     BinaryBuffer raw = sr.Build();
-    EXPECT_THAT(std::make_tuple(raw.data(), raw.size()), testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
 }
 
 TEST(RtcpSenderReportTest, ParseWithoutReportBlocks) {

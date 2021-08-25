@@ -63,7 +63,7 @@ TEST(RtcpReceiverReportTest, CreateWithOneReportBlock) {
     rr.AddReportBlock(rb);
 
     BinaryBuffer raw = rr.Build();
-    EXPECT_THAT(std::make_tuple(raw.data(), raw.size()), testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
 }
     
 } // namespace test
