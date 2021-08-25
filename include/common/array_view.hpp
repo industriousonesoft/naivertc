@@ -35,15 +35,34 @@ public:
 
     T& operator[](int i) noexcept { return ptr_[i]; }
     T const& operator[](int i) const noexcept { return  ptr_[i]; }
-    auto data() const noexcept { return ptr_; }
-    auto size() const noexcept { return size_; };
+    T* data() const noexcept { return ptr_; }
+    size_t size() const noexcept { return size_; };
 
-    auto begin() noexcept { return ptr_; }
-    auto end() noexcept { return ptr_ + size_; }
+    T* begin() const noexcept { return this->data(); }
+    T* end() const noexcept { return this->data() + this->size(); }
+    const T* cbegin() const { return this->data(); }
+    const T* cend() const { return this->data() + this->size(); }
+
+    std::reverse_iterator<T*> rbegin() const {
+        return std::make_reverse_iterator(end());
+    }
+    std::reverse_iterator<T*> rend() const {
+        return std::make_reverse_iterator(begin());
+    }
+    std::reverse_iterator<const T*> crbegin() const {
+        return std::make_reverse_iterator(cend());
+    }
+    std::reverse_iterator<const T*> crend() const {
+        return std::make_reverse_iterator(cbegin());
+    }
 
     ArrayView<T> subview(size_t offset, size_t size) const noexcept { 
         return offset < this->size() ? ArrayView<T>(this->data() + offset, std::min(size, this->size() - offset))
                                      : ArrayView<T>(nullptr, 0);
+    }
+
+    ArrayView<T> subview(size_t offset) const noexcept { 
+        return subview(offset, this->size());
     }
 
 private:
