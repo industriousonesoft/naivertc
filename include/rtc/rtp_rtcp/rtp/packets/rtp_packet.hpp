@@ -101,6 +101,9 @@ public:
     template <typename Extension>
     bool ReserveExtension();
 
+    ArrayView<uint8_t> AllocateExtension(ExtensionType type, size_t size);
+    ArrayView<const uint8_t> FindExtension(ExtensionType type) const;
+
 private:
     inline void WriteAt(size_t offset, uint8_t byte);
     inline uint8_t* WriteAt(size_t offset);
@@ -109,9 +112,7 @@ private:
     bool ParseInternal(const uint8_t* buffer, size_t size);
 
     // Extension methods
-    ArrayView<uint8_t> AllocateExtension(ExtensionType type, size_t size);
     ArrayView<uint8_t> AllocateRawExtension(int id, size_t size);
-    ArrayView<const uint8_t> FindExtension(ExtensionType type) const;
     uint16_t UpdateaExtensionSizeByAddZeroPadding(size_t extensions_offset);
     void PromoteToTwoByteHeaderExtension();
 
