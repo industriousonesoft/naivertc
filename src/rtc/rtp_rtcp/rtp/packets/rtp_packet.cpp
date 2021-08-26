@@ -257,11 +257,19 @@ inline void RtpPacket::WriteAt(size_t offset, uint8_t byte) {
 }
 
 inline uint8_t* RtpPacket::WriteAt(size_t offset) {
-    return &BinaryBuffer::at(offset);
+    if (offset > capacity()) {
+        PLOG_WARNING << "Write offset out of range.";
+        return nullptr;
+    }
+    return &data()[offset];
 }
 
 inline const uint8_t* RtpPacket::WriteAt(size_t offset) const {
-    return &BinaryBuffer::at(offset);
+    if (offset > capacity()) {
+        PLOG_WARNING << "Write offset out of range.";
+        return nullptr;
+    }
+    return &data()[offset];
 }
 
 const RtpPacket::ExtensionInfo* RtpPacket::FindExtensionInfo(int id) const {
