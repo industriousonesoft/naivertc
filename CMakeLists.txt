@@ -108,7 +108,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.cpp
 
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.cpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer_non_paced.cpp
@@ -244,10 +244,10 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp
 
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp
-    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp
-    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer_non_paced.hpp
 
     # rtc -> video

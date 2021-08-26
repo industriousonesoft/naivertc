@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
 #include "common/utils_random.hpp"
 #include "rtc/base/byte_io_writer.hpp"
 
@@ -12,18 +12,18 @@ constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
 
 } // namespace 
 
-RtpPacketGenerator::RtpPacketGenerator(const RtpRtcpInterface::Configuration& config, 
-                                       std::shared_ptr<RtpPacketSender> lower,
+RtpPacketSender::RtpPacketSender(const RtpRtcpInterface::Configuration& config, 
+                                       std::shared_ptr<RtpPacketPacer> pacer,
                                        std::shared_ptr<RtpPacketSentHistory> packet_history,
                                        std::shared_ptr<TaskQueue> task_queue) 
     : clock_(config.clock),
     ssrc_(config.local_media_ssrc),
     rtx_ssrc_(config.rtx_send_ssrc),
     rtx_mode_(RtxMode::OFF),
-    max_packet_size_(kIpPacketSize - 28),
-    lower_(lower),
+    max_packet_size_(kIpPacketSize - 8 - 40), // Default is UDP/IPv6.
+    pacer_(pacer),
     packet_history_(packet_history),
-    task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpPacketGenerator.task.queue")),
+    task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpPacketSender.task.queue")),
     sequencer_(std::make_shared<RtpPacketSequencer>(config.local_media_ssrc, 
                config.rtx_send_ssrc.value_or(config.local_media_ssrc),
                !config.audio,
@@ -34,21 +34,21 @@ RtpPacketGenerator::RtpPacketGenerator(const RtpRtcpInterface::Configuration& co
     sequencer_->set_media_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
 }
 
-RtpPacketGenerator::~RtpPacketGenerator() {}
+RtpPacketSender::~RtpPacketSender() {}
 
-uint32_t RtpPacketGenerator::ssrc() const {
+uint32_t RtpPacketSender::ssrc() const {
     return task_queue_->Sync<uint32_t>([this](){
         return this->ssrc_;
     });
 }
 
-size_t RtpPacketGenerator::max_packet_size() const {
+size_t RtpPacketSender::max_rtp_packet_size() const {
     return task_queue_->Sync<size_t>([this](){
         return this->max_packet_size_;
     });
 }
 
-void RtpPacketGenerator::set_max_packet_size(size_t max_size) {
+void RtpPacketSender::set_max_rtp_packet_size(size_t max_size) {
     assert(max_size >= 100);
     assert(max_size <= kIpPacketSize);
     task_queue_->Async([this, max_size](){
@@ -56,25 +56,25 @@ void RtpPacketGenerator::set_max_packet_size(size_t max_size) {
     });
 }
 
-std::optional<uint32_t> RtpPacketGenerator::rtx_ssrc() const {
+std::optional<uint32_t> RtpPacketSender::rtx_ssrc() const {
     return task_queue_->Sync<std::optional<uint32_t>>([this](){
         return this->rtx_ssrc_;
     });
 }
 
-RtxMode RtpPacketGenerator::rtx_mode() const {
+RtxMode RtpPacketSender::rtx_mode() const {
     return task_queue_->Sync<RtxMode>([this](){
         return this->rtx_mode_;
     });
 }
     
-void RtpPacketGenerator::set_rtx_mode(RtxMode mode) {
+void RtpPacketSender::set_rtx_mode(RtxMode mode) {
     task_queue_->Async([this, mode](){
         this->rtx_mode_ = mode;
     });
 }
 
-void RtpPacketGenerator::SetRtxPayloadType(int payload_type, int associated_payload_type) {
+void RtpPacketSender::SetRtxPayloadType(int payload_type, int associated_payload_type) {
     task_queue_->Async([this, payload_type, associated_payload_type](){
         // All RTP packet type MUST be less than 127 to distingush with RTCP packet, which MUST be greater than 128.
         // RFC 5761 Multiplexing RTP and RTCP 4. Distinguishable RTP and RTCP Packets
@@ -90,7 +90,19 @@ void RtpPacketGenerator::SetRtxPayloadType(int payload_type, int associated_payl
     });
 }
 
-void RtpPacketGenerator::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
+std::shared_ptr<RtpPacketToSend> RtpPacketSender::AllocatePacket() const {
+    return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this](){
+        // While sending slightly oversized packet increase chance of dropped packet,
+        // it is better than crash on drop packet without trying to send it.
+        // TODO: Find better motivator and value for extra capacity.
+        static constexpr int kExtraCapacity = 16;
+        auto packet = std::make_shared<RtpPacketToSend>(this->extension_manager_, max_packet_size_ + kExtraCapacity);
+
+        return packet;
+    });
+}
+
+void RtpPacketSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
     task_queue_->Async([this, packets=std::move(packets)](){
         int64_t now_ms = clock_->TimeInMs();
         for (auto& packet : packets) {
@@ -98,14 +110,14 @@ void RtpPacketGenerator::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToS
                 packet->set_capture_time_ms(now_ms);
             }
         }
-        if (this->lower_) {
-            this->lower_->EnqueuePackets(std::move(packets));
+        if (this->pacer_) {
+            this->pacer_->PacingPackets(std::move(packets));
         }
     });
 }
 
 // Nack
-void RtpPacketGenerator::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt) {
+void RtpPacketSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt) {
     task_queue_->Async([this, nack_list=std::move(nack_list), avg_rrt](){
         // FIXME: Why set RTT avg_rrt + 5 ms?
         this->packet_history_->SetRtt(5 + avg_rrt);
@@ -120,14 +132,14 @@ void RtpPacketGenerator::OnReceivedNack(const std::vector<uint16_t>& nack_list, 
     });
 }
 
-std::shared_ptr<SequenceNumberAssigner> RtpPacketGenerator::sequence_num_assigner() const {
+std::shared_ptr<SequenceNumberAssigner> RtpPacketSender::sequence_num_assigner() const {
     return task_queue_->Sync<std::shared_ptr<SequenceNumberAssigner>>([this](){
         return this->sequencer_;
     });
 }
 
 // Private methods
-int32_t RtpPacketGenerator::ResendPacket(uint16_t packet_id) {
+int32_t RtpPacketSender::ResendPacket(uint16_t packet_id) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
     // so that we don't retransmit too often.
     std::optional<RtpPacketSentHistory::PacketState> stored_packet = this->packet_history_->GetPacketState(packet_id);
@@ -164,16 +176,16 @@ int32_t RtpPacketGenerator::ResendPacket(uint16_t packet_id) {
     // A packet can not be FEC and RTX at the same time.
     packet->set_is_fec_packet(false);
    
-    if (this->lower_) {
+    if (this->pacer_) {
         std::vector<std::shared_ptr<RtpPacketToSend>> packets;
         packets.emplace_back(std::move(packet));
-        this->lower_->EnqueuePackets(std::move(packets));
+        this->pacer_->PacingPackets(std::move(packets));
     }
 
     return packet_size;
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(std::shared_ptr<const RtpPacketToSend> packet) {
+std::shared_ptr<RtpPacketToSend> RtpPacketSender::BuildRtxPacket(std::shared_ptr<const RtpPacketToSend> packet) {
     if (!rtx_ssrc_.has_value()) {
         PLOG_WARNING << "Failed to build RTX packet withou RTX ssrc.";
         return nullptr;
@@ -208,12 +220,12 @@ std::shared_ptr<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(std::shared_
     return rtx_packet;
 }
 
-void RtpPacketGenerator::UpdateHeaderSizes() {
+void RtpPacketSender::UpdateHeaderSizes() {
     const size_t rtp_header_size = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
     // TODO: To update size of RTP header with extensions
 }
 
-void RtpPacketGenerator::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend> packet, RtpPacketToSend* rtx_packet) {
+void RtpPacketSender::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend> packet, RtpPacketToSend* rtx_packet) {
     // Set the relevant fixed fields in the packet headers.
     // The following are not set:
     // - Payload type: it is replaced in RTX packet.

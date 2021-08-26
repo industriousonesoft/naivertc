@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 
@@ -11,14 +11,14 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpNonPacedPacketPacer : public RtpPacketSender {
+class RTC_CPP_EXPORT RtpNonPacedPacketPacer : public RtpPacketPacer {
 public:
     RtpNonPacedPacketPacer(std::shared_ptr<RtpPacketSenderEgress> sender, 
                            std::shared_ptr<SequenceNumberAssigner> packet_sequencer,
                            std::shared_ptr<TaskQueue> task_queue);
     ~RtpNonPacedPacketPacer();
 
-    void EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) override;
+    void PacingPackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) override;
 
 private:
     void PrepareForSend(std::shared_ptr<RtpPacketToSend> packet);

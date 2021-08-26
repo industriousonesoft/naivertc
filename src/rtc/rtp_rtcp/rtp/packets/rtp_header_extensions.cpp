@@ -315,5 +315,23 @@ RtpMid::RtpMid(const std::string value)
 
 RtpMid::~RtpMid() {}
 
+// RtpStreamId
+RtpStreamId::RtpStreamId() 
+    : BaseRtpString() {}
+
+RtpStreamId::RtpStreamId(const std::string value) 
+    : BaseRtpString(std::move(value)) {}
+
+RtpStreamId::~RtpStreamId() {}
+
+// RepairedRtpStreamId
+RepairedRtpStreamId::RepairedRtpStreamId() 
+    : BaseRtpString() {}
+
+RepairedRtpStreamId::RepairedRtpStreamId(const std::string value) 
+    : BaseRtpString(std::move(value)) {}
+
+RepairedRtpStreamId::~RepairedRtpStreamId() {}
+
 } // namespace rtp
 } // namespace naivertc

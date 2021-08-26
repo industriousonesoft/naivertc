@@ -247,6 +247,7 @@ private:
     std::string value_;
 };
 
+// RtpMid
 class RtpMid final : public BaseRtpString {
 public:
     static constexpr RtpExtensionType kType = RtpExtensionType::MID;
@@ -255,6 +256,35 @@ public:
     RtpMid();
     RtpMid(const std::string value);
     ~RtpMid();
+
+    RtpExtensionType type() const override { return kType; };
+};
+
+// RtpStreamId
+class RtpStreamId : public BaseRtpString {
+public:
+  static constexpr RtpExtensionType kType = RtpExtensionType::RTP_STREAM_ID;
+  static constexpr const char kUri[] =
+      "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id";
+public:
+    RtpStreamId();
+    RtpStreamId(const std::string value);
+    ~RtpStreamId();
+
+    RtpExtensionType type() const override { return kType; };
+};
+
+// RepairedRtpStreamId
+class RepairedRtpStreamId : public BaseRtpString {
+ public:
+  static constexpr RtpExtensionType kType = RtpExtensionType::REPAIRED_RTP_STREAM_ID;
+  static constexpr const char kUri[] =
+      "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id";
+
+public:
+    RepairedRtpStreamId();
+    RepairedRtpStreamId(const std::string value);
+    ~RepairedRtpStreamId();
 
     RtpExtensionType type() const override { return kType; };
 };

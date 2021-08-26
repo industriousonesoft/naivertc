@@ -2,6 +2,7 @@
 #define _RTC_RTP_RTCP_DEFINES_H_
 
 #include "base/defines.hpp"
+#include "rtc/base/internals.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packet.hpp"
 
 #include <list>
@@ -41,6 +42,8 @@ enum class RtpExtensionType : int {
     ABSOLUTE_CAPTURE_TIME,
     TRANSPORT_SEQUENCE_NUMBER,
     PLAYOUT_DELAY_LIMITS,
+    RTP_STREAM_ID,
+    REPAIRED_RTP_STREAM_ID,
     MID,
     NUMBER_OF_EXTENSIONS
 };

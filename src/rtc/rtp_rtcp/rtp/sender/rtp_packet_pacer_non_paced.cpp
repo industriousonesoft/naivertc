@@ -12,7 +12,7 @@ RtpNonPacedPacketPacer::RtpNonPacedPacketPacer(std::shared_ptr<RtpPacketSenderEg
 
 RtpNonPacedPacketPacer::~RtpNonPacedPacketPacer() = default;
 
-void RtpNonPacedPacketPacer::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
+void RtpNonPacedPacketPacer::PacingPackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
     task_queue_->Async([this, packets=std::move(packets)](){
         for (auto& packet : packets) {
             PrepareForSend(packet);
@@ -35,7 +35,7 @@ void RtpNonPacedPacketPacer::EnqueuePackets(std::vector<std::shared_ptr<RtpPacke
                 // }
                 PrepareForSend(packet);
             }
-            EnqueuePackets(std::move(fec_packets));
+            PacingPackets(std::move(fec_packets));
         }
     });
 }
