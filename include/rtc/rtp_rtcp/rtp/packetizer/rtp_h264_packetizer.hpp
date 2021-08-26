@@ -14,10 +14,12 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT RtpH264Packetizer final: public RtpPacketizer {
 public:
-    RtpH264Packetizer(ArrayView<const uint8_t> payload, 
-                      PayloadSizeLimits limits, 
-                      h264::PacketizationMode packetization_mode = h264::PacketizationMode::NON_INTERLEAVED);
+    RtpH264Packetizer();
     ~RtpH264Packetizer();
+
+    void Packetize(ArrayView<const uint8_t> payload, 
+                   const PayloadSizeLimits& limits, 
+                   h264::PacketizationMode packetization_mode = h264::PacketizationMode::NON_INTERLEAVED);
 
     size_t NumberOfPackets() const override;
 
@@ -50,12 +52,11 @@ private:
     };
 
 private:
-    void Packetize(ArrayView<const uint8_t> payload, h264::PacketizationMode packetization_mode);
-    bool GeneratePackets(h264::PacketizationMode packetization_mode);
+    bool GeneratePackets(const PayloadSizeLimits& limits, h264::PacketizationMode packetization_mode);
 
-    bool PacketizeSingleNalu(size_t fragment_index);
-    bool PacketizeFuA(size_t fragment_index);
-    size_t PacketizeStapA(size_t fragment_index);
+    bool PacketizeSingleNalu(size_t fragment_index, const PayloadSizeLimits& limits);
+    bool PacketizeFuA(size_t fragment_index, const PayloadSizeLimits& limits);
+    size_t PacketizeStapA(size_t fragment_index, const PayloadSizeLimits& limits);
 
     void NextSinglePacket(RtpPacketToSend* rtp_packet);
     void NextFuAPacket(RtpPacketToSend* rtp_packet);
@@ -68,7 +69,7 @@ private:
   
     size_t num_packets_left_;
     std::deque<ArrayView<const uint8_t>> input_fragments_;
-    std::queue<PacketUnit> packets_;
+    std::queue<PacketUnit> packet_units_;
 
     DISALLOW_COPY_AND_ASSIGN(RtpH264Packetizer);
 };
