@@ -68,12 +68,12 @@ public:
     void set_sequence_number(uint16_t sequence_num);
     void set_timestamp(uint32_t timestamp);
     void set_ssrc(uint32_t ssrc);
-    
-    void SetCsrcs(std::vector<uint32_t> csrcs);
+    void set_csrcs(ArrayView<const uint32_t> csrcs);
+
     void CopyHeaderFrom(const RtpPacket& other);
     bool SetPadding(uint8_t padding_size);
 
-    void SetPayload(const BinaryBuffer& payload);
+    void SetPayload(ArrayView<const uint8_t> payload);
     void SetPayload(const uint8_t* buffer, size_t size);
     // Reserve size_bytes for payload. Returns nullptr on failure.
     uint8_t* SetPayloadSize(size_t size);
@@ -103,14 +103,15 @@ public:
 
 private:
     inline void WriteAt(size_t offset, uint8_t byte);
-    uint8_t* WriteAt(size_t offset);
+    inline uint8_t* WriteAt(size_t offset);
+    inline const uint8_t* WriteAt(size_t offset) const;
 
     bool ParseInternal(const uint8_t* buffer, size_t size);
 
     // Extension methods
-    std::optional<BinaryBuffer> AllocateExtension(ExtensionType type, size_t size);
-    std::optional<BinaryBuffer> AllocateRawExtension(int id, size_t size);
-    std::optional<BinaryBuffer> FindExtension(ExtensionType type) const;
+    ArrayView<uint8_t> AllocateExtension(ExtensionType type, size_t size);
+    ArrayView<uint8_t> AllocateRawExtension(int id, size_t size);
+    ArrayView<const uint8_t> FindExtension(ExtensionType type) const;
     uint16_t UpdateaExtensionSizeByAddZeroPadding(size_t extensions_offset);
     void PromoteToTwoByteHeaderExtension();
 
@@ -158,7 +159,7 @@ template <typename Extension>
 std::shared_ptr<Extension> RtpPacket::GetExtension() const {
     std::shared_ptr<Extension> result = std::make_shared<Extension>();
     auto raw = FindExtension(Extension::kType);
-    if (!raw || raw->empty() || result->Parse(raw->data(), raw->size())) {
+    if (raw.empty() || result->Parse(raw.data(), raw.size())) {
         return nullptr;
     }
     return std::move(result);
@@ -168,17 +169,17 @@ template <typename Extension, typename... Values>
 bool RtpPacket::SetExtension(const Values&... values) {
     const size_t value_size = Extension::ValueSize(values...);
     auto buffer = AllocateExtension(Extension::kType, value_size);
-    if (buffer->empty())
+    if (buffer.empty())
         return false;
-    return Extension::PackInto(buffer->data(), buffer->size(), values...);
+    return Extension::PackInto(buffer.data(), buffer.size(), values...);
 }
 
 template <typename Extension>
 bool RtpPacket::ReserveExtension() {
     auto buffer = AllocateExtension(Extension::kType, Extension::kValueSizeBytes);
-    if (buffer->empty())
+    if (buffer.empty())
         return false;
-    memset(buffer->data(), 0, Extension::kValueSizeBytes);
+    memset(buffer.data(), 0, Extension::kValueSizeBytes);
     return true;
 }
 

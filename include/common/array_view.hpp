@@ -16,6 +16,9 @@ public:
     using const_iterator = const T*;
 
     ArrayView(T* ptr, size_t size) noexcept : ptr_(ptr), size_(size) {}
+
+    ArrayView() noexcept : ArrayView(nullptr, 0) {}
+    ArrayView(std::nullptr_t) noexcept : ArrayView() {}
   
     template <typename U, size_t N>
     ArrayView(U (&buffer)[N]) noexcept : ArrayView(buffer, N) {}
@@ -37,6 +40,7 @@ public:
     T const& operator[](int i) const noexcept { return  ptr_[i]; }
     T* data() const noexcept { return ptr_; }
     size_t size() const noexcept { return size_; };
+    bool empty() const noexcept { return this->size() == 0; }
 
     T* begin() const noexcept { return this->data(); }
     T* end() const noexcept { return this->data() + this->size(); }

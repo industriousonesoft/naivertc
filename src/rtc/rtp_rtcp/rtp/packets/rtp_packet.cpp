@@ -138,7 +138,7 @@ bool RtpPacket::SetPadding(uint8_t padding_size) {
     return true;
 }
 
-void RtpPacket::SetPayload(const BinaryBuffer& payload) {
+void RtpPacket::SetPayload(ArrayView<const uint8_t> payload) {
     payload_size_ = payload.size();
     // Resize with new payload size
     BinaryBuffer::resize(payload_offset_ + payload_size_);
@@ -147,7 +147,7 @@ void RtpPacket::SetPayload(const BinaryBuffer& payload) {
 }
 
 void RtpPacket::SetPayload(const uint8_t* buffer, size_t size) {
-    auto raw_payload = BinaryBuffer(buffer, buffer + size);
+    auto raw_payload = ArrayView<const uint8_t>(buffer, size);
     SetPayload(std::move(raw_payload));
 }
 
@@ -173,7 +173,7 @@ uint8_t* RtpPacket::AllocatePayload(size_t size) {
 // Write csrc list, Assumes:
 // a) There is enough room left in buffer.
 // b) Extension headers, payload or padding data has not already been added.
-void RtpPacket::SetCsrcs(std::vector<uint32_t> csrcs) {
+void RtpPacket::set_csrcs(ArrayView<const uint32_t> csrcs) {
     assert(extensions_size_ == 0);
     assert(payload_size_ == 0);
     assert(padding_size_ == 0);
@@ -257,8 +257,11 @@ inline void RtpPacket::WriteAt(size_t offset, uint8_t byte) {
 }
 
 inline uint8_t* RtpPacket::WriteAt(size_t offset) {
-    assert(offset <= capacity() && "Out of bounds");
-    return BinaryBuffer::data() + offset;
+    return &BinaryBuffer::at(offset);
+}
+
+inline const uint8_t* RtpPacket::WriteAt(size_t offset) const {
+    return &BinaryBuffer::at(offset);
 }
 
 const RtpPacket::ExtensionInfo* RtpPacket::FindExtensionInfo(int id) const {
@@ -281,57 +284,56 @@ RtpPacket::ExtensionInfo& RtpPacket::FindOrCreateExtensionInfo(int id) {
 }
 
 // Build
-std::optional<BinaryBuffer> RtpPacket::AllocateExtension(ExtensionType type, size_t size) {
+ArrayView<uint8_t> RtpPacket::AllocateExtension(ExtensionType type, size_t size) {
     if (size == 0 || size > ExtensionManager::kMaxValueSize ||
         (!extension_manager_->extmap_allow_mixed() &&
         size > ExtensionManager::kOneByteHeaderExtensionMaxValueSize)) {
-        return std::nullopt;
+        return nullptr;
     }
 
     uint8_t id = extension_manager_->GetId(type);
     if (id == ExtensionManager::kInvalidId) {
         // Extension not registered.
-        return std::nullopt;
+        return nullptr;
     }
     if (!extension_manager_->extmap_allow_mixed() &&
         id > ExtensionManager::kOneByteHeaderExtensionMaxId) {
-        return std::nullopt;
+        return nullptr;
     }
     return AllocateRawExtension(id, size);
 }
 
-std::optional<BinaryBuffer> RtpPacket::AllocateRawExtension(int id, size_t size) {
+ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
     if (id < ExtensionManager::kMinId || id > ExtensionManager::kMaxId) {
-        return std::nullopt;
+        return nullptr;
     }
     if (size < 1 || size > ExtensionManager::kMaxValueSize) {
-        return std::nullopt;
+        return nullptr;
     }
     const ExtensionInfo* extension_entry = FindExtensionInfo(id);
     // Extension already reserved. 
     if (extension_entry != nullptr) {
         // Check if same size is used.
         if (extension_entry->size == size) {
-            uint8_t* buffer_begin = WriteAt(extension_entry->offset);
-            return std::make_optional<BinaryBuffer>(buffer_begin, buffer_begin + extension_entry->size);
+            return ArrayView<uint8_t>(WriteAt(extension_entry->offset), extension_entry->size);
         }else {
             PLOG_WARNING << "Length mismatch for extension id " << id
                          << ": expected "
                          << static_cast<int>(extension_entry->size)
                          << ". received " << size;
-            return std::nullopt;
+            return nullptr;
         }
     }
 
     if (payload_size_ > 0) {
         PLOG_WARNING << "Can't add new extension id " << id
                      << " after payload was set.";
-        return std::nullopt;
+        return nullptr;
     }
     if (padding_size_ > 0) {
         PLOG_WARNING << "Can't add new extension id " << id
                      << " after padding was set.";
-        return std::nullopt;
+        return nullptr;
     }
 
     const size_t num_csrc = data()[0] & 0x0F;
@@ -345,7 +347,7 @@ std::optional<BinaryBuffer> RtpPacket::AllocateRawExtension(int id, size_t size)
                                           size == 0;
     if (two_byte_header_required && !extension_manager_->extmap_allow_mixed()) {
         PLOG_WARNING << "Two bytes header required, but mixed extension is not allowed.";
-        return std::nullopt;
+        return nullptr;
     }
 
     uint16_t profile_id;
@@ -361,7 +363,7 @@ std::optional<BinaryBuffer> RtpPacket::AllocateRawExtension(int id, size_t size)
                     << "Extension cannot be registered: Not enough space left in "
                     "buffer to change to two-byte header extension and add new "
                     "extension.";
-                return std::nullopt;
+                return nullptr;
             }
             // Promote already written data to two-byte header format.
             PromoteToTwoByteHeaderExtension();
@@ -381,7 +383,7 @@ std::optional<BinaryBuffer> RtpPacket::AllocateRawExtension(int id, size_t size)
     size_t new_extensions_size = extensions_size_ + extension_header_size + size;
     if (extensions_offset + new_extensions_size > capacity()) {
         PLOG_WARNING << "Extension cannot be registered: Not enough space left in buffer.";
-        return std::nullopt;
+        return nullptr;
     }
 
     // All checks passed, write down the extension headers.
@@ -412,23 +414,20 @@ std::optional<BinaryBuffer> RtpPacket::AllocateRawExtension(int id, size_t size)
     uint16_t extensions_size_padded = UpdateaExtensionSizeByAddZeroPadding(extensions_offset);
     payload_offset_ = extensions_offset + extensions_size_padded;
     BinaryBuffer::resize(payload_offset_);
-    uint8_t* buffer_begin = WriteAt(extension_info_offset);
-    return std::make_optional<BinaryBuffer>(buffer_begin, buffer_begin + extension_info_length);
+    return ArrayView<uint8_t>(WriteAt(extension_info_offset), extension_info_length);
 }
 
-std::optional<BinaryBuffer> RtpPacket::FindExtension(ExtensionType type) const {
+ArrayView<const uint8_t> RtpPacket::FindExtension(ExtensionType type) const {
     uint8_t id = extension_manager_->GetId(type);
     if (id == ExtensionManager::kInvalidId) {
         // Extension not registered.
-        return std::nullopt;
+        return nullptr;
     }
     ExtensionInfo const* extension_info = FindExtensionInfo(id);
     if (extension_info == nullptr) {
-        return std::nullopt;
+        return nullptr;
     }
-    size_t begin_offset = size_t(extension_info->offset);
-    size_t end_offset = begin_offset + extension_info->size;
-    return std::make_optional<BinaryBuffer>(data() + begin_offset, data() + end_offset);
+    return ArrayView<const uint8_t>(WriteAt(extension_info->offset), extension_info->size);
 }
 
 uint16_t RtpPacket::UpdateaExtensionSizeByAddZeroPadding(size_t extensions_offset) {
