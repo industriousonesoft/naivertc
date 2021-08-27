@@ -232,8 +232,50 @@ bool RtpPacket::HasExtension(ExtensionType type) const {
 }
 
 bool RtpPacket::RemoveExtension(ExtensionType type) {
-    // TODO: To remove extension by type
-    return false;
+    uint8_t id_to_remove = extension_manager_->GetId(type);
+    if (id_to_remove == ExtensionManager::kInvalidId) {
+        // Extension not registered.
+        PLOG_WARNING << "Extension not registered, type: " << int(type);
+        return false;
+    }
+    RtpPacket* new_packet = new RtpPacket(extension_manager_);
+    new_packet->set_marker(marker());
+    new_packet->set_payload_type(payload_type());
+    new_packet->set_sequence_number(sequence_number());
+    new_packet->set_timestamp(timestamp());
+    new_packet->set_ssrc(ssrc());
+    
+    bool found_extension = false;
+    for (const auto& ext : extension_entries_) {
+        if (ext.id == id_to_remove) {
+            found_extension = true;
+        }else {
+            auto extension_data = new_packet->AllocateRawExtension(ext.id, ext.size);
+            if (extension_data.size() != ext.size) {
+                PLOG_WARNING << "Failed to allocate extension id=" << ext.id
+                             << ", length=" << ext.size;
+                return false;
+            }
+
+            memcpy(extension_data.data(), ReadAt(ext.offset), ext.size);
+        }
+    }
+
+    if (!found_extension) {
+        PLOG_WARNING << "Extension not present in RTP packet, type: " << int(type);
+        return false;
+    }
+
+    // Copy payload data to new packet.
+    memcpy(new_packet->AllocatePayload(payload_size()), payload().data(), payload_size());
+
+    // Allocate padding -- must be last!
+    new_packet->SetPadding(padding_size());
+
+    // Success, replace current packet with newly built packet.
+    *this = std::move(*new_packet);
+
+    return true;
 }
 
 // Parse
@@ -264,7 +306,7 @@ inline uint8_t* RtpPacket::WriteAt(size_t offset) {
     return &data()[offset];
 }
 
-inline const uint8_t* RtpPacket::WriteAt(size_t offset) const {
+inline const uint8_t* RtpPacket::ReadAt(size_t offset) const {
     if (offset > capacity()) {
         PLOG_WARNING << "Write offset out of range.";
         return nullptr;
@@ -435,7 +477,7 @@ ArrayView<const uint8_t> RtpPacket::FindExtension(ExtensionType type) const {
     if (extension_info == nullptr) {
         return nullptr;
     }
-    return ArrayView<const uint8_t>(WriteAt(extension_info->offset), extension_info->size);
+    return ArrayView<const uint8_t>(ReadAt(extension_info->offset), extension_info->size);
 }
 
 uint16_t RtpPacket::UpdateaExtensionSizeByAddZeroPadding(size_t extensions_offset) {
@@ -533,6 +575,7 @@ bool RtpPacket::ParseInternal(const uint8_t* buffer, size_t size) {
        }
        uint16_t profile_id = ByteReader<uint16_t>::ReadBigEndian(&buffer[payload_offset_]);
        size_t extension_capacity = ByteReader<uint16_t>::ReadBigEndian(&buffer[payload_offset_ + 2]);
+       // Extension size specified in 32bit words
        extension_capacity *= 4;
        if (extension_offset + extension_capacity > size) {
            return false;

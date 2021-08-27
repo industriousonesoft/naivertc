@@ -107,7 +107,7 @@ public:
 private:
     inline void WriteAt(size_t offset, uint8_t byte);
     inline uint8_t* WriteAt(size_t offset);
-    inline const uint8_t* WriteAt(size_t offset) const;
+    inline const uint8_t* ReadAt(size_t offset) const;
 
     bool ParseInternal(const uint8_t* buffer, size_t size);
 
