@@ -10,17 +10,26 @@ constexpr uint32_t kTimestampTicksPerMs = 90;
 
 RtpPacketSenderEgress::RtpPacketSenderEgress(const RtpRtcpInterface::Configuration& config, 
                                          std::shared_ptr<RtpPacketSentHistory> packet_history,
+                                         std::shared_ptr<FecGenerator> fec_generator,
                                          std::shared_ptr<TaskQueue> task_queue) 
         : clock_(config.clock),
           ssrc_(config.local_media_ssrc),
           rtx_ssrc_(config.rtx_send_ssrc),
           flexfec_ssrc_(std::nullopt),
           packet_history_(packet_history),
+          fec_generator_(fec_generator),
           task_queue_(task_queue) {
 }
  
 RtpPacketSenderEgress::~RtpPacketSenderEgress() {
 
+}
+
+ void RtpPacketSenderEgress::SetFecProtectionParameters(const FecProtectionParams& delta_params,
+                                                        const FecProtectionParams& key_params) {
+    task_queue_->Sync([&](){
+        this->pending_fec_params_.emplace(delta_params, key_params);
+    });
 }
 
 void RtpPacketSenderEgress::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
@@ -39,7 +48,21 @@ void RtpPacketSenderEgress::SendPacket(std::shared_ptr<RtpPacketToSend> packet) 
 
         // TODO: Update sequence number info map
 
-        // TODO: Add packet to FEC generator if necessary
+        if (fec_generator_ && packet->fec_protected_packet()) {
+            
+            std::optional<std::pair<FecProtectionParams, FecProtectionParams>> new_fec_params;
+            new_fec_params.swap(pending_fec_params_);
+            if (new_fec_params) {
+                fec_generator_->SetProtectionParameters(new_fec_params->first /* delta */, new_fec_params->second /* key */);
+            }
+
+            if (packet->is_red()) {
+                // FIXME: 在WebRTC中，UPLFEC默认使用的RED封装，而FLEXFEX则是通过新的一路ssrc流传输，因此此处似乎没有必要做RED判断？
+                this->fec_generator_->PushPacketToGenerateFec(packet);
+            }else {
+                this->fec_generator_->PushPacketToGenerateFec(packet);
+            }
+        }  
 
         const uint32_t packet_ssrc = packet->ssrc();
         const int64_t now_ms = clock_->TimeInMs();
@@ -95,8 +118,7 @@ void RtpPacketSenderEgress::SendPacket(std::shared_ptr<RtpPacketToSend> packet) 
             // In those cases media must be sent first to set a reference timestamp.
             media_has_been_sent_ = true;
 
-            // TODO(sprang): Add support for FEC protecting all header extensions, add
-            // media packet to generator here instead.
+            // TODO(sprang): Add support for FEC protecting all header extensions, add media packet to generator here instead.
             RtpPacketType packet_type = packet->packet_type();
             size_t size = packet->size();
             UpdateRtpStats(now_ms, packet_ssrc, packet_type, size);

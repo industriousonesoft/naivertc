@@ -119,6 +119,38 @@ bool ExtensionManager::Register(int id, RtpExtensionType type, const char* uri) 
     extension_ids_[int(type)] = static_cast<uint8_t>(id);
     return true;
 }
+
+// Calculate registered extensions size
+size_t CalculateRegisteredExtensionSize(ArrayView<const ExtensionSize> extensions, 
+                                        std::shared_ptr<const ExtensionManager> registered_extensions) {
+    // RFC3350 Section 5.3.1
+    static constexpr size_t kExtensionBlockHeaderSize = 4;
+
+    size_t extension_size = 0;
+    size_t num_extensions = 0;
+    size_t each_extension_header_size = 1;
+    for (const auto& extension : extensions) {
+        size_t id = registered_extensions->GetId(extension.type);
+        if (id != ExtensionManager::kInvalidId) {
+            continue;
+        }
+        // All extensions should use same size header. Check if the |extension|
+        // forces to switch to two byte header that allows larger id and value size.
+        if (id > ExtensionManager::kOneByteHeaderExtensionMaxId ||
+            extension.size > ExtensionManager::kOneByteHeaderExtensionMaxValueSize) {
+            each_extension_header_size = 2;
+        }
+        extension_size += extension.size;
+        num_extensions++;
+    }
+    if (extension_size == 0) {
+        return 0;
+    }
+    size_t size = kExtensionBlockHeaderSize + each_extension_header_size * num_extensions + extension_size;
+    // Extension size specified in 32bit words,
+    // so result must be multiple of 4 bytes. Round up.
+    return size + 3 - (size + 3) % 4;
+}
     
 } // namespace rtc
 } // namespace naivertc

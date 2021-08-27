@@ -261,6 +261,10 @@ set(LIB_HEADERS
     # pacing
     include/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp
 
+    # fec
+    include/rtc/rtp_rtcp/rtp/fec/fec_defines.hpp
+    include/rtc/rtp_rtcp/rtp/fec/fec_generator.hpp
+
     include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_impl.hpp

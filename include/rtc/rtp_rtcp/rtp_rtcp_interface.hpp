@@ -22,6 +22,9 @@ public:
         std::shared_ptr<Clock> clock = nullptr;
 
         int rtcp_report_interval_ms = 0;
+        
+        // Corresponds to extmap-allow-mixed in SDP negotiation.
+        bool extmap_allow_mixed = false;
 
         // SSRCs for media and retransmission(RTX), respectively.
         // FlexFec SSRC is fetched from |flexfec_sender|.

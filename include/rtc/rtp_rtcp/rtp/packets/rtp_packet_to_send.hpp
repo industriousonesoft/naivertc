@@ -39,8 +39,8 @@ public:
     bool is_key_frame() const { return is_key_frame_; }
     void set_is_key_frame(bool is_key_frame) { is_key_frame_ = is_key_frame; }
 
-    bool is_fec_packet() const { return is_fec_packet_; }
-    void set_is_fec_packet(bool is_fec) { is_fec_packet_ = is_fec; }
+    bool fec_protected_packet() const { return fec_protected_packet_; }
+    void set_fec_protected_packet(bool protect) { fec_protected_packet_ = protect; }
 
     bool is_red() const { return is_red_; }
     void set_is_red(bool is_red) { is_red_ = is_red; }
@@ -52,7 +52,7 @@ private:
     std::optional<uint16_t> retransmitted_sequence_number_;
     bool is_first_packet_of_frame_ = false;
     bool is_key_frame_ = false;
-    bool is_fec_packet_ = false;
+    bool fec_protected_packet_ = false;
     bool is_red_ = false;
 };
     

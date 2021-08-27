@@ -18,6 +18,8 @@ public:
     video::FrameType frame_type = video::FrameType::EMPTTY;
     video::CodecType codec_type = video::CodecType::NONE;
 
+    video::PlayoutDelay playout_delay;
+
 };
     
 } // namespace naivertc

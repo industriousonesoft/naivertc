@@ -2,6 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_HEADER_EXTENSION_MAP_H_
 
 #include "base/defines.hpp"
+#include "common/array_view.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
 
@@ -11,6 +12,7 @@
 namespace naivertc {
 namespace rtp {
 
+// Extension manager
 class RTC_CPP_EXPORT ExtensionManager {
 public:
     static constexpr RtpExtensionType kInvalidType = RtpExtensionType::NONE;
@@ -62,6 +64,15 @@ private:
     uint8_t extension_ids_[int(RtpExtensionType::NUMBER_OF_EXTENSIONS)];
     bool extmap_allow_mixed_;
 };
+
+// Extension size
+struct RTC_CPP_EXPORT ExtensionSize {
+    RtpExtensionType type;
+    size_t size;
+};
+
+size_t CalculateRegisteredExtensionSize(ArrayView<const ExtensionSize> extensions, 
+                                        std::shared_ptr<const ExtensionManager> registered_extensions);
     
 } // namespace rtc
 } // namespace naivertc

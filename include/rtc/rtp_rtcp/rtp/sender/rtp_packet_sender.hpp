@@ -7,6 +7,7 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp"
 
 #include <memory>
 #include <vector>
@@ -33,7 +34,7 @@ public:
     
     std::shared_ptr<RtpPacketToSend> AllocatePacket() const;
 
-    void EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets);
+    bool EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets);
 
     // NACK
     void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt);
@@ -44,14 +45,14 @@ public:
     std::optional<uint32_t> rtx_ssrc() const;
     void SetRtxPayloadType(int payload_type, int associated_payload_type);
 
-    std::shared_ptr<SequenceNumberAssigner> sequence_num_assigner() const;
+    // Maximum header overhead per fec/padding packet.
+    size_t FecOrPaddingPacketMaxRtpHeaderLength() const;
 
 private:
-    std::shared_ptr<RtpPacketToSend> BuildRtxPacket(std::shared_ptr<const RtpPacketToSend>);
-    int32_t ResendPacket(uint16_t packet_id);
-
     void UpdateHeaderSizes();
 
+    std::shared_ptr<RtpPacketToSend> BuildRtxPacket(std::shared_ptr<const RtpPacketToSend>);
+    int32_t ResendPacket(uint16_t packet_id);
     static void CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend>, RtpPacketToSend* rtx_packet);
 
 private:
@@ -60,17 +61,18 @@ private:
     std::optional<uint32_t> rtx_ssrc_;
     RtxMode rtx_mode_;
     size_t max_packet_size_;
+    size_t max_padding_fec_packet_header_;
 
     std::shared_ptr<RtpPacketPacer> pacer_;
     std::shared_ptr<RtpPacketSentHistory> packet_history_;
     std::shared_ptr<TaskQueue> task_queue_;
 
-    std::shared_ptr<RtpPacketSequencer> sequencer_;
+    RtpPacketSequencer sequencer_;
+    std::shared_ptr<rtp::ExtensionManager> extension_manager_;
 
     std::map<int8_t, int8_t> rtx_payload_type_map_;
     std::vector<uint32_t> csrcs_;
 
-    std::shared_ptr<rtp::ExtensionManager> extension_manager_;
 };
     
 } // namespace naivertc

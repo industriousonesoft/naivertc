@@ -6,9 +6,29 @@
 
 namespace naivertc {
 namespace {
-    
-constexpr size_t kRtpHeaderSize = 12;
+
 constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
+
+template <typename Extension>
+constexpr rtp::ExtensionSize CreateExtensionSize() {
+  return {Extension::kType, Extension::kValueSizeBytes};
+}
+
+template <typename Extension>
+constexpr rtp::ExtensionSize CreateMaxExtensionSize() {
+  return {Extension::kType, Extension::kMaxValueSizeBytes};
+}
+
+// Size info for header extensions that might be used in padding or FEC packets.
+constexpr rtp::ExtensionSize kFecOrPaddingExtensionSizes[] = {
+    CreateExtensionSize<rtp::AbsoluteSendTime>(),
+    CreateExtensionSize<rtp::TransmissionTimeOffset>(),
+    CreateExtensionSize<rtp::TransportSequenceNumber>(),
+    CreateExtensionSize<rtp::PlayoutDelayLimits>(),
+    CreateMaxExtensionSize<rtp::RtpMid>(),
+    // CreateExtensionSize<VideoTimingExtension>(),
+};
+
 
 } // namespace 
 
@@ -24,14 +44,15 @@ RtpPacketSender::RtpPacketSender(const RtpRtcpInterface::Configuration& config,
     pacer_(pacer),
     packet_history_(packet_history),
     task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpPacketSender.task.queue")),
-    sequencer_(std::make_shared<RtpPacketSequencer>(config.local_media_ssrc, 
+    sequencer_(config.local_media_ssrc, 
                config.rtx_send_ssrc.value_or(config.local_media_ssrc),
                !config.audio,
-               config.clock)) {
+               config.clock),
+    extension_manager_(std::make_shared<rtp::ExtensionManager>(config.extmap_allow_mixed)) {
     UpdateHeaderSizes();
     // Random start, 16bits, can not be 0.
-    sequencer_->set_rtx_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
-    sequencer_->set_media_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
+    sequencer_.set_rtx_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
+    sequencer_.set_media_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
 }
 
 RtpPacketSender::~RtpPacketSender() {}
@@ -97,15 +118,22 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSender::AllocatePacket() const {
         // TODO: Find better motivator and value for extra capacity.
         static constexpr int kExtraCapacity = 16;
         auto packet = std::make_shared<RtpPacketToSend>(this->extension_manager_, max_packet_size_ + kExtraCapacity);
-
+        packet->set_ssrc(this->ssrc_);
+        packet->set_csrcs(this->csrcs_);
+        // TODO: Reserve extensions if registered
         return packet;
     });
 }
 
-void RtpPacketSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
-    task_queue_->Async([this, packets=std::move(packets)](){
+bool RtpPacketSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
+    return task_queue_->Sync<bool>([this, packets=std::move(packets)](){
         int64_t now_ms = clock_->TimeInMs();
         for (auto& packet : packets) {
+            // Assign sequence for per packet
+            if (!this->sequencer_.AssignSequenceNumber(packet)) {
+                PLOG_WARNING << "Failed to assign sequence number for packet with type : " << int(packet->packet_type());
+                return false;
+            }
             if (packet->capture_time_ms() <= 0) {
                 packet->set_capture_time_ms(now_ms);
             }
@@ -113,6 +141,7 @@ void RtpPacketSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend
         if (this->pacer_) {
             this->pacer_->PacingPackets(std::move(packets));
         }
+        return true;
     });
 }
 
@@ -132,13 +161,21 @@ void RtpPacketSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int
     });
 }
 
-std::shared_ptr<SequenceNumberAssigner> RtpPacketSender::sequence_num_assigner() const {
-    return task_queue_->Sync<std::shared_ptr<SequenceNumberAssigner>>([this](){
-        return this->sequencer_;
+size_t RtpPacketSender::FecOrPaddingPacketMaxRtpHeaderLength() const {
+    return task_queue_->Sync<size_t>([this](){
+        return this->max_padding_fec_packet_header_;
     });
 }
 
 // Private methods
+void RtpPacketSender::UpdateHeaderSizes() {
+    const size_t rtp_header_size_without_extenions = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
+    max_padding_fec_packet_header_ = rtp_header_size_without_extenions + 
+                                     rtp::CalculateRegisteredExtensionSize(kFecOrPaddingExtensionSizes, extension_manager_);
+    
+    // TODO: To calculate the maximum size of media packet header
+}
+
 int32_t RtpPacketSender::ResendPacket(uint16_t packet_id) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
     // so that we don't retransmit too often.
@@ -174,7 +211,7 @@ int32_t RtpPacketSender::ResendPacket(uint16_t packet_id) {
 
     packet->set_packet_type((RtpPacketType::RETRANSMISSION));
     // A packet can not be FEC and RTX at the same time.
-    packet->set_is_fec_packet(false);
+    packet->set_fec_protected_packet(false);
    
     if (this->pacer_) {
         std::vector<std::shared_ptr<RtpPacketToSend>> packets;
@@ -200,7 +237,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSender::BuildRtxPacket(std::shared_ptr
     rtx_packet->set_ssrc(rtx_ssrc_.value());
 
     // Replace sequence number.
-    sequencer_->AssignSequenceNumber(rtx_packet);
+    sequencer_.AssignSequenceNumber(rtx_packet);
 
     CopyHeaderAndExtensionsToRtxPacket(packet, rtx_packet.get());
 
@@ -220,11 +257,6 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSender::BuildRtxPacket(std::shared_ptr
     return rtx_packet;
 }
 
-void RtpPacketSender::UpdateHeaderSizes() {
-    const size_t rtp_header_size = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
-    // TODO: To update size of RTP header with extensions
-}
-
 void RtpPacketSender::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend> packet, RtpPacketToSend* rtx_packet) {
     // Set the relevant fixed fields in the packet headers.
     // The following are not set:
@@ -238,9 +270,36 @@ void RtpPacketSender::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const R
     // - CSRCs: must be set before header extensions
     // - Header extensions: repalce Rid header with RepairedRid header
     const std::vector<uint32_t> csrcs = packet->csrcs();
-    rtx_packet->SetCsrcs(csrcs);
+    rtx_packet->set_csrcs(csrcs);
 
-    // TODO: Copy header extensions
+    for (int index = int(RtpExtensionType::NONE) + 1; index < int(RtpExtensionType::NUMBER_OF_EXTENSIONS); ++index) {
+        auto extension_type = static_cast<RtpExtensionType>(index);
+
+        // Stream ID header extension (MID, RID) are sent per-SSRC. Since RTX
+        // operates on a different SSRC, the presence and values of these header
+        // extensions should be determined separately and not blindly copied.
+        if (extension_type == RtpExtensionType::MID || 
+            extension_type == RtpExtensionType::RTP_STREAM_ID) {
+            continue;
+        }
+
+        if (!packet->HasExtension(extension_type)) {
+            continue;
+        }
+
+        ArrayView<const uint8_t> source = packet->FindExtension(extension_type);
+        ArrayView<uint8_t> destination = rtx_packet->AllocateExtension(extension_type, source.size());
+        
+        // Could happen if any:
+        // 1. Extension has 0 length.
+        // 2. Extension is not registered in destination.
+        // 3. Allocating extension in destination failed.
+        if (destination.empty() || source.size() != destination.size()) {
+            continue;
+        }
+
+        std::memcpy(destination.begin(), source.begin(), destination.size());
+    }
 }
  
 } // namespace naivertc

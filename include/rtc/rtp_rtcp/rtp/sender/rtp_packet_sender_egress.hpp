@@ -6,6 +6,7 @@
 #include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 
 #include <optional>
 #include <functional>
@@ -18,12 +19,16 @@ class RTC_CPP_EXPORT RtpPacketSenderEgress {
 public:
     RtpPacketSenderEgress(const RtpRtcpInterface::Configuration& config, 
                         std::shared_ptr<RtpPacketSentHistory> packet_history,
+                        std::shared_ptr<FecGenerator> fec_generator,
                         std::shared_ptr<TaskQueue> task_queue);
     ~RtpPacketSenderEgress();
 
     uint32_t ssrc() const { return ssrc_; }
     std::optional<uint32_t> rtx_ssrc() const { return rtx_ssrc_; }
     std::optional<uint32_t> flexfec_ssrc() const { return flexfec_ssrc_; }
+
+    void SetFecProtectionParameters(const FecProtectionParams& delta_params,
+                                    const FecProtectionParams& key_params);
 
     void SendPacket(std::shared_ptr<RtpPacketToSend> packet);
 
@@ -49,6 +54,8 @@ private:
     const std::optional<uint32_t> rtx_ssrc_;
     const std::optional<uint32_t> flexfec_ssrc_;
     std::shared_ptr<RtpPacketSentHistory> packet_history_;
+    std::shared_ptr<FecGenerator> fec_generator_;
+    std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;
 
     std::shared_ptr<TaskQueue> task_queue_;
 
