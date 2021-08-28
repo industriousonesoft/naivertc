@@ -4,17 +4,6 @@
 namespace naivertc {
 namespace {
 
-// Maximum number of media packets that can be protected in one batch.
-constexpr size_t kMaxMediaPackets = kUlpfecMaxMediaPackets;
-
-// Maximum number of media packets tracked by FEC decoder.
-// Maintain a sufficiently larger tracking window than |kMaxMediaPackets|
-// to account for packet reordering in pacer/ network.
-constexpr size_t kMaxTrackedMediaPackets = 4 * kMaxMediaPackets;
-
-// Maximum number of FEC packets stored inside ForwardErrorCorrection.
-constexpr size_t kMaxFecPackets = kMaxMediaPackets;
-
 // FEC Level 0 header size in bytes.
 constexpr size_t kFecLevel0HeaderSize = 10;
 
@@ -23,8 +12,6 @@ constexpr size_t kFecLevel1HeaderSizeLBitSet = 2 + kUlpfecPacketMaskSizeLBitSet;
 
 // FEC Level 1 (ULP) header size in bytes (L bit is cleared).
 constexpr size_t kFecLevel1HeaderSizeLBitClear = 2 + kUlpfecPacketMaskSizeLBitClear;
-
-constexpr size_t kPacketMaskOffset = kFecLevel0HeaderSize + 2;
 
 size_t UlpfecHeaderSize(PacketMaskBitIndicator packet_mask_bit_idc) {
     if (packet_mask_bit_idc == PacketMaskBitIndicator::CLEAR) {
@@ -36,7 +23,7 @@ size_t UlpfecHeaderSize(PacketMaskBitIndicator packet_mask_bit_idc) {
 }  // namespace
 
 UlpfecHeaderWriter::UlpfecHeaderWriter() 
-    : FecHeaderWriter(kMaxMediaPackets, kMaxFecPackets, kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet) {}
+    : FecHeaderWriter(kUlpfecMaxMediaPackets, kMaxFecPackets, kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet) {}
 
 UlpfecHeaderWriter::~UlpfecHeaderWriter() = default;
 
@@ -70,7 +57,7 @@ size_t UlpfecHeaderWriter::FecHeaderSize(PacketMaskBitIndicator packet_mask_bit_
 void UlpfecHeaderWriter::FinalizeFecHeader(uint16_t seq_num_base,
                                            const uint8_t* packet_mask_data,
                                            PacketMaskBitIndicator packet_mask_bit_idc,
-                                           std::shared_ptr<BinaryBuffer> fec_packet,
+                                           std::shared_ptr<FecPacket> fec_packet,
                                            std::optional<uint32_t> /* Unused by ULPFEC */) const {
     // FEC Level 0 header
     uint8_t* data = fec_packet->data();

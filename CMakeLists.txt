@@ -126,6 +126,9 @@ set(LIB_SOURCES
 
     # fec
     src/rtc/rtp_rtcp/rtp/fec/fec_encoder.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_encoder_internal.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_encoder_mask_table_bursty.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_encoder_mask_table_random.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_header_writer.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_generator_ulp.cpp

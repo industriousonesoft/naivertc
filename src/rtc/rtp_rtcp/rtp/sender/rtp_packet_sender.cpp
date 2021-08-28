@@ -40,7 +40,7 @@ RtpPacketSender::RtpPacketSender(const RtpRtcpInterface::Configuration& config,
     ssrc_(config.local_media_ssrc),
     rtx_ssrc_(config.rtx_send_ssrc),
     rtx_mode_(RtxMode::OFF),
-    max_packet_size_(kIpPacketSize - 8 - 40), // Default is UDP/IPv6.
+    max_packet_size_(kIpPacketSize - kTransportOverhead), // Default is UDP/IPv6.
     pacer_(pacer),
     packet_history_(packet_history),
     task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtpPacketSender.task.queue")),

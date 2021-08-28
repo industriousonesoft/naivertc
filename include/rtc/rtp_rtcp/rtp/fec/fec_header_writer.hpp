@@ -35,7 +35,7 @@ public:
     virtual void FinalizeFecHeader(uint16_t seq_num_base,
                                    const uint8_t* packet_mask_data,
                                    PacketMaskBitIndicator packet_mask_bit_idc,
-                                   std::shared_ptr<BinaryBuffer> fec_packet,
+                                   std::shared_ptr<FecPacket> fec_packet,
                                    std::optional<uint32_t> media_ssrc) const = 0;
 
 protected:

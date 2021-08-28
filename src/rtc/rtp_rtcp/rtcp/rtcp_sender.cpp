@@ -17,7 +17,7 @@ RtcpSender::RtcpSender(Configuration config, std::shared_ptr<TaskQueue> task_que
     report_interval_(config.rtcp_report_interval.value_or(
                      TimeDelta::Millis(config.audio ? kDefaultAudioReportInterval
                                                     : kDefaultVideoReportInterval))),
-    max_packet_size_(kIpPacketSize - 8 - 40 /* Default is UDP/IPv6 */) {
+    max_packet_size_(kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */) {
     
     if (!task_queue_) {
         task_queue_ = std::make_shared<TaskQueue>("RtcpSender.task.queue");
