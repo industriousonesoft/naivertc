@@ -56,12 +56,13 @@ void RtpPacketSenderEgress::SendPacket(std::shared_ptr<RtpPacketToSend> packet) 
                 fec_generator_->SetProtectionParameters(new_fec_params->first /* delta */, new_fec_params->second /* key */);
             }
 
-            if (packet->is_red()) {
-                // FIXME: 在WebRTC中，UPLFEC默认使用的RED封装，而FLEXFEX则是通过新的一路ssrc流传输，因此此处似乎没有必要做RED判断？
+            // TODO: To generate FEC(ULP or FLEX) packet packetized in RED or sent by new ssrc stream
+            if (packet->red_protected_packet()) {
                 this->fec_generator_->PushPacketToGenerateFec(packet);
             }else {
                 this->fec_generator_->PushPacketToGenerateFec(packet);
             }
+            
         }  
 
         const uint32_t packet_ssrc = packet->ssrc();

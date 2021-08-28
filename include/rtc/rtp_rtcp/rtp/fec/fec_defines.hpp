@@ -5,10 +5,31 @@
 
 namespace naivertc {
 
+// Maximum number of media packets that can be protected by these packet masks.
+constexpr size_t kUlpfecMaxMediaPackets = 48;
+
+enum class PacketMaskBitIndicator {
+    CLEAR,
+    SET
+};
+
+// Packet mask size in bytes (given L bit).
+constexpr size_t kUlpfecPacketMaskSizeLBitClear = 2;
+constexpr size_t kUlpfecPacketMaskSizeLBitSet = 6;
+
+// Convenience constants.
+constexpr size_t kUlpfecMinPacketMaskSize = kUlpfecPacketMaskSizeLBitClear;
+constexpr size_t kUlpfecMaxPacketMaskSize = kUlpfecPacketMaskSizeLBitSet;
+
+// Packet code mask maximum length. kFECPacketMaskMaxSize = MaxNumFECPackets *
+// (kUlpfecMaxMediaPackets / 8), and MaxNumFECPackets is equal to maximum number
+// of media packets (kUlpfecMaxMediaPackets)
+constexpr size_t kFECPacketMaskMaxSize = 288;
+
 // Types for the FEC packet masks. The type |kFecMaskRandom| is based on a
 // random loss model. The type bursty is based on a bursty/consecutive
 // loss model.
-enum FecMaskType {
+enum class FecMaskType {
     RANDOM,
     BURSTY,
 };

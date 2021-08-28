@@ -42,6 +42,9 @@ public:
     bool fec_protected_packet() const { return fec_protected_packet_; }
     void set_fec_protected_packet(bool protect) { fec_protected_packet_ = protect; }
 
+    bool red_protected_packet() const { return red_protected_packet_; }
+    void set_red_protected_packet(bool protect) { red_protected_packet_ = protect; }
+
     bool is_red() const { return is_red_; }
     void set_is_red(bool is_red) { is_red_ = is_red; }
 
@@ -53,6 +56,9 @@ private:
     bool is_first_packet_of_frame_ = false;
     bool is_key_frame_ = false;
     bool fec_protected_packet_ = false;
+    // the red protected packet may not be red packet yet, 
+    // but the red packet must be red protected packet.
+    bool red_protected_packet_ = false;
     bool is_red_ = false;
 };
     

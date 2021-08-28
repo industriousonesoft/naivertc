@@ -124,6 +124,12 @@ set(LIB_SOURCES
     # pacing
     src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
 
+    # fec
+    src/rtc/rtp_rtcp/rtp/fec/fec_encoder.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_header_writer.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_generator_ulp.cpp
+
     src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtcp.cpp
@@ -263,7 +269,11 @@ set(LIB_HEADERS
 
     # fec
     include/rtc/rtp_rtcp/rtp/fec/fec_defines.hpp
+    include/rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp
+    include/rtc/rtp_rtcp/rtp/fec/fec_header_writer.hpp
+    include/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_generator.hpp
+    include/rtc/rtp_rtcp/rtp/fec/fec_generator_ulp.hpp
 
     include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp

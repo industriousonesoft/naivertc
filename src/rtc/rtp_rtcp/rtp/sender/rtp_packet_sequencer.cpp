@@ -3,6 +3,8 @@
 namespace naivertc {
 
 namespace {
+// RED header is first byte of payload, if present.
+constexpr size_t kRedForFecHeaderLength = 1;
 
 // Timestamps use a 90kHz clock.
 constexpr uint32_t kTimestampTicksPerMs = 90;
@@ -77,12 +79,9 @@ void RtpPacketSequencer::UpdateLastPacketState(std::shared_ptr<const RtpPacketTo
 
     // Remember media payload type to use in the padding packet if rtx 
     // is disabled.
-    // FIXME: 是否将is_red判断删除？原因如下：
-    // 由于在RtpVideoSender中并没有新建RED包，而是通过is_red标识，
-    // 因此payload_type就是meida的payload_type而非RED的payload_type
     if (packet->is_red()) {
-        // last_payload_type_ = packet->payload().data()[0];
-        last_payload_type_ = packet->payload_type();
+        assert(packet->payload_size() >= kRedForFecHeaderLength);
+        last_payload_type_ = packet->payload().data()[0];
     }else {
         last_payload_type_ = packet->payload_type();
     }

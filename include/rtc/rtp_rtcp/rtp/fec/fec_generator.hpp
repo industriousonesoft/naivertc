@@ -9,6 +9,7 @@
 
 namespace naivertc {
 
+// TODO: ULP和FLEX 在FEC编码上基本上是共用一套逻辑，可以抽象出来在FecGenerator中实现
 class RTC_CPP_EXPORT FecGenerator {
 public:
     enum class FecType {
