@@ -40,7 +40,7 @@ ArrayView<const uint8_t> FecEncoder::PacketMaskTable::LookUp(size_t num_media_pa
         // media packet X will be protected by FEC packet (X % N)
         // TODO: Other implementations?
         for (size_t col = 0; col < mask_size; col++) {
-            fec_packet_mask_[row * mask_size + col] = 
+            fec_packet_masks_[row * mask_size + col] = 
             ((col * 8) % num_fec_packets == row && (col * 8) < num_media_packets
                ? 0x80
                : 0x00) |
@@ -75,7 +75,7 @@ ArrayView<const uint8_t> FecEncoder::PacketMaskTable::LookUp(size_t num_media_pa
         }
     }
 
-    return ArrayView<const uint8_t>(&fec_packet_mask_[0], num_fec_packets * mask_size);
+    return ArrayView<const uint8_t>(&fec_packet_masks_[0], num_fec_packets * mask_size);
 }
 
 const uint8_t* FecEncoder::PacketMaskTable::PickTable(FecMaskType fec_mask_type, size_t num_media_packets) {
@@ -93,28 +93,161 @@ const uint8_t* FecEncoder::PacketMaskTable::PickTable(FecMaskType fec_mask_type,
 
 bool FecEncoder::PacketMaskTable::GeneratePacketMasks(size_t num_media_packets,
                                                       size_t num_fec_packets,
-                                                      size_t num_important_packets,
+                                                      size_t num_imp_packets,
                                                       bool use_unequal_protection,
-                                                      uint8_t* packet_mask) {
+                                                      uint8_t* packet_masks) {
     if (num_fec_packets > num_media_packets) {
         return false;
     }
-    if (num_important_packets > num_media_packets) {
+    if (num_imp_packets > num_media_packets) {
         return false;
     }
 
     const size_t num_mask_bytes = PacketMaskSize(num_media_packets);
 
     // Packet masks in equal protection
-    if (!use_unequal_protection || num_important_packets == 0) {
+    if (!use_unequal_protection || num_imp_packets == 0) {
         // Mask = (k,n-k), with protection factor = (n-k)/k,
         // where k = num_media_packets, n=total#packets, (n-k)=num_fec_packets.
         ArrayView<const uint8_t> masks = LookUp(num_media_packets, num_fec_packets);
-        memcpy(packet_mask, masks.data(), masks.size());
+        memcpy(packet_masks, masks.data(), masks.size());
     }else {
-        // TODO: generate packet mask in unequal protection
+        GenerateUnequalProtectionMasks(num_media_packets, 
+                                       num_fec_packets, 
+                                       num_imp_packets,
+                                       num_mask_bytes,
+                                       packet_masks);
     }
     return true;
+}
+
+void FecEncoder::PacketMaskTable::GenerateUnequalProtectionMasks(size_t num_media_packets,
+                                                                 size_t num_fec_packets,
+                                                                 size_t num_imp_packets,
+                                                                 size_t num_mask_bytes,
+                                                                 uint8_t* packet_masks) {
+    ProtectionMode mode = ProtectionMode::DEAULE; // Overlap
+    size_t num_fec_for_imp_packets = 0;
+    if (mode != ProtectionMode::BIAS_FIRST_PACKET) {
+        num_fec_for_imp_packets = NumberOfFecPacketForImportantPackets(num_media_packets, 
+                                                                       num_fec_packets, 
+                                                                       num_imp_packets);
+    }
+
+    size_t num_fec_remaining = num_fec_packets - num_fec_for_imp_packets;
+
+    if (num_fec_for_imp_packets > 0) {
+        GenerateImportantProtectionMasks(num_fec_for_imp_packets, 
+                                         num_imp_packets, 
+                                         num_mask_bytes, 
+                                         packet_masks);
+    }
+
+    if (num_fec_remaining > 0) {
+        GenerateRemainingProtectionMasks(num_media_packets, 
+                                         num_fec_remaining, 
+                                         num_fec_for_imp_packets, 
+                                         num_mask_bytes, 
+                                         mode, 
+                                         packet_masks);
+    }
+}
+
+size_t FecEncoder::PacketMaskTable::NumberOfFecPacketForImportantPackets(size_t num_media_packets,
+                                                                         size_t num_fec_packets,
+                                                                         size_t num_imp_packets) {
+    // FIXME: 此处为什么是0.5？
+    size_t max_num_fec_for_imp = num_fec_packets * 0.5;
+
+    size_t num_fec_for_imp = num_imp_packets < max_num_fec_for_imp ? num_imp_packets : max_num_fec_for_imp;
+
+    // Fall back to equal protection
+    // FIXME：怎么理解这个回滚条件？
+    if (num_fec_packets == 1 && (num_media_packets > 2 * num_imp_packets)) {
+        num_fec_for_imp = 0;
+    }
+
+    return num_fec_for_imp;
+}
+
+void FecEncoder::PacketMaskTable::GenerateImportantProtectionMasks(size_t num_fec_for_imp_packets,
+                                                                   size_t num_imp_packets,
+                                                                   size_t num_mask_bytes,
+                                                                   uint8_t* packet_masks) {
+    const size_t num_imp_mask_bytes = PacketMaskSize(num_imp_packets);
+
+    // Packet masks for important media packets
+    ArrayView<const uint8_t> packet_sub_masks = LookUp(num_imp_packets, num_fec_for_imp_packets);
+
+    FitSubMasks(num_mask_bytes, num_imp_mask_bytes, num_fec_for_imp_packets, packet_sub_masks.data(), packet_masks);
+}
+
+void FecEncoder::PacketMaskTable::GenerateRemainingProtectionMasks(size_t num_media_packets,
+                                                                   size_t num_fec_remaining,
+                                                                   size_t num_fec_for_imp_packets,
+                                                                   size_t num_mask_bytes,
+                                                                   ProtectionMode mode,
+                                                                   uint8_t* packet_masks) {
+    if (mode == ProtectionMode::OVERLAP || mode == ProtectionMode::BIAS_FIRST_PACKET) {
+        // Overlap and bias-first-packet protection mode will protect the imaport packets with remaining FEC packets.
+        ArrayView<const uint8_t> packet_sub_masks = LookUp(num_media_packets, num_fec_remaining);
+        FitSubMasks(num_mask_bytes, 
+                    num_mask_bytes, 
+                    num_fec_remaining, 
+                    packet_sub_masks.data(), 
+                    &packet_masks[num_fec_for_imp_packets * num_mask_bytes]);
+        // bias-first-packet protection:
+        // All the remaining FEC packts will protect the first packet, 
+        // which means the first byte in every packet mask must be greater than 0x80 
+        if (mode == ProtectionMode::BIAS_FIRST_PACKET) {
+            for (size_t i = 0; i < num_fec_remaining; ++i) {
+                packet_masks[i * num_mask_bytes] |= 0x80; // 1 << 7
+            }
+        }
+    }else if (mode == ProtectionMode::NO_OVERLAP) {
+        // FIXME: 此处为什么是减去num_fec_for_imp_packets而非num_for_imp_packets？？
+        const size_t num_media_packets_remaining = num_media_packets - num_fec_for_imp_packets;
+
+        const size_t num_sub_mask_bytes = PacketMaskSize(num_media_packets_remaining);
+
+        size_t end_row = num_fec_for_imp_packets + num_fec_remaining;
+
+        ArrayView<const uint8_t> packet_sub_masks = LookUp(num_media_packets_remaining, num_fec_remaining);
+
+        // TODO: Shift and fit packet sub masks.
+        RTC_NOTREACHED();
+    }
+
+}
+
+size_t FecEncoder::PacketMaskTable::PacketMaskSize(size_t num_packets) {
+    // The number of packets MUST be lower than 48.
+    assert(num_packets <= kUlpfecMaxMediaPackets);
+    if (num_packets > kUlpfecMaxMediaPacketsLBitClear) {
+        return kUlpfecPacketMaskSizeLBitSet;
+    }
+    return kUlpfecPacketMaskSizeLBitClear;
+}
+
+void FecEncoder::PacketMaskTable::FitSubMasks(size_t num_mask_stride, 
+                                              size_t num_sub_mask_stride, 
+                                              size_t num_row, 
+                                              const uint8_t* sub_packet_masks, 
+                                              uint8_t* packet_masks) {
+    assert(num_sub_mask_stride <= num_mask_stride);
+    // In the same stride
+    if (num_mask_stride == num_sub_mask_stride) {
+        memcpy(packet_masks, sub_packet_masks, num_row * num_sub_mask_stride);
+    }else {
+        // Transform 1-D array to 2-D array in a stride
+        for (size_t row = 0; row < num_row; ++row) {
+            size_t dst_col_begin = num_mask_stride * row;
+            size_t src_col_begin = num_sub_mask_stride * row;
+            for (size_t col = 0; col < num_sub_mask_stride; ++col) {
+                packet_masks[dst_col_begin + col] = sub_packet_masks[src_col_begin + col];
+            }
+        }
+    }
 }
 
 // Static methods
@@ -161,15 +294,6 @@ ArrayView<const uint8_t> FecEncoder::LookUpInFecTable(const uint8_t* table, size
 
     size_t size = entry_size_increment * (fec_packet_index + 1);
     return ArrayView<const uint8_t>(&entry[0], size);
-}
-
-size_t FecEncoder::PacketMaskSize(size_t num_packets) {
-    // The number of packets MUST be lower than 48.
-    assert(num_packets <= kUlpfecMaxMediaPackets);
-    if (num_packets > kUlpfecMaxMediaPacketsLBitClear) {
-        return kUlpfecPacketMaskSizeLBitSet;
-    }
-    return kUlpfecPacketMaskSizeLBitClear;
 }
     
 } // namespace naivertc

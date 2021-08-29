@@ -8,9 +8,14 @@
 #define RTC_CPP_EXPORT
 #endif
 
+// DISALLOW_COPY_AND_ASSIGN
 #define DISALLOW_COPY_AND_ASSIGN(TypeName)  \
     TypeName(const TypeName&) = delete;     \
-    TypeName& operator=(const TypeName&) = delete
+    TypeName& operator=(const TypeName&) = delete;
+
+// RTC_NOTREACHED
+#define RTC_NOTREACHED() \
+    assert(false && "NOT REACHED")
 
 using TimeInterval = long;
 using BinaryBuffer = std::vector<uint8_t>;

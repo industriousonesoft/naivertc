@@ -50,6 +50,12 @@ protected:
     FecEncoder(std::unique_ptr<FecHeaderWriter> fec_header_writer);
 
 private:
+    enum class ProtectionMode {
+        NO_OVERLAP, 
+        OVERLAP,
+        BIAS_FIRST_PACKET,
+        DEAULE = OVERLAP
+    };
     // PacketMaskTable
     class PacketMaskTable {
     public:
@@ -62,14 +68,47 @@ private:
         // The mask indicates which media packts should be protected by the FEC packet.
         bool GeneratePacketMasks(size_t num_media_packets,
                                  size_t num_fec_packets,
-                                 size_t num_important_packets,
+                                 size_t num_imp_packets,
                                  bool use_unequal_protection,
-                                 uint8_t* packet_mask);
+                                 uint8_t* packet_masks);
     private:
-        static const uint8_t* PickTable(FecMaskType fec_mask_type, size_t num_media_packets);
+        void GenerateUnequalProtectionMasks(size_t num_media_packets,
+                                            size_t num_fec_packets,
+                                            size_t num_imp_packets,
+                                            size_t num_mask_bytes,
+                                            uint8_t* packet_masks);
+
+        void GenerateImportantProtectionMasks(size_t num_fec_for_imp_packets,
+                                              size_t num_imp_packets,
+                                              size_t num_mask_bytes,
+                                              uint8_t* packet_masks);
+
+        void GenerateRemainingProtectionMasks(size_t num_media_packets,
+                                              size_t num_fec_remaining,
+                                              size_t num_fec_for_imp_packets,
+                                              size_t num_mask_bytes,
+                                              ProtectionMode mode,
+                                              uint8_t* packet_masks);     
+
+        size_t NumberOfFecPacketForImportantPackets(size_t num_media_packets,
+                                                    size_t num_fec_packets,
+                                                    size_t num_important_packets);
+
+    private:
+        // Returns the required packet mask size
+        static size_t PacketMaskSize(size_t num_packets);
+
+        static const uint8_t* PickTable(FecMaskType fec_mask_type, 
+                                        size_t num_media_packets);
+
+        static void FitSubMasks(size_t num_mask_bytes, 
+                                size_t num_sub_mask_bytes, 
+                                size_t num_row, 
+                                const uint8_t* sub_packet_masks, 
+                                uint8_t* packet_masks);
     private:
         const uint8_t* table_;
-        uint8_t fec_packet_mask_[kFECPacketMaskMaxSize];
+        uint8_t fec_packet_masks_[kFECPacketMaskMaxSize];
     };
 
     static const uint8_t kPacketMaskBurstyTable[];
@@ -79,8 +118,7 @@ private:
     // These tables only cover fec code for up to 12 media packets.
     static ArrayView<const uint8_t> LookUpInFecTable(const uint8_t* table, size_t media_packet_index, size_t fec_packet_index);
 
-    // Returns the required packet mask size
-    static size_t PacketMaskSize(size_t num_packets);
+    
 
 private:
     std::unique_ptr<FecHeaderWriter> fec_header_writer_;
