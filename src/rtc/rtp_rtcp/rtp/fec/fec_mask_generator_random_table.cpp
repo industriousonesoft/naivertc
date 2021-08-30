@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/fec_mask_generator.hpp"
 
 namespace naivertc {
 
@@ -629,7 +629,7 @@ namespace {
 // clang-format on
 }  // namespace
 
-const uint8_t FecEncoder::kPacketMaskRandomTable[] = {
+const uint8_t FecPacketMaskGenerator::kPacketMaskRandomTable[] = {
     12,
     kPacketMaskRandom1,  // 2 byte entries.
     kPacketMaskRandom2,
