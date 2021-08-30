@@ -3,20 +3,21 @@
 
 #include "base/defines.hpp"
 #include "common/array_view.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/fec_codec.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_header_writer.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/fec_mask_generator.hpp"
 
 #include <list>
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT FecEncoder {
+class RTC_CPP_EXPORT FecEncoder : public FecCodec {
 public:
     // Using static Create method to make sure the FEC coder is unique, 
     // and not allowed to share with others
     static std::unique_ptr<FecEncoder> CreateUlpfecEncoder();
 
-    using PacketList = std::list<std::shared_ptr<FecPacket>>;
-    using PacketViewList = std::list<std::shared_ptr<FecPacketView>>;
+    using PacketList = std::list<std::shared_ptr<RtpPacket>>;
 public:
     ~FecEncoder();
 
@@ -38,20 +39,32 @@ public:
      *      The bursty type is only defined up to 12 media packets. If the number of media packets is
      *      above 12, the packet masks from the random table will be selected.
     */
-    bool Encode(const PacketViewList& media_packets, 
+    bool Encode(const PacketList& media_packets, 
                 uint8_t protection_factor, 
                 size_t num_important_packets, 
                 bool use_unequal_protection, 
                 FecMaskType fec_mask_type);
 
     static size_t NumFecPackets(size_t num_media_packets, uint8_t protection_factor);
-
 protected:
     FecEncoder(std::unique_ptr<FecHeaderWriter> fec_header_writer);
 
 private:
+    ssize_t InsertZeroInPacketMasks(const PacketList& media_packets, size_t num_fec_packets);
+
+    void GenerateFecPayload(const PacketList& media_packets, size_t num_fec_packets);
+
+    void FinalizeFecHeaders(size_t packet_mask_size, size_t num_fec_packets, uint32_t media_ssrc, uint16_t seq_num_base);
+
+private:
     std::unique_ptr<FecHeaderWriter> fec_header_writer_;
+    std::unique_ptr<FecPacketMaskGenerator> packet_mask_generator_;
     std::vector<FecPacket> generated_fec_packets_;
+    size_t packet_mask_size_;
+
+    static const size_t max_packet_mask_count = kUlpfecMaxMediaPackets * kUlpfecMaxPacketMaskSize;
+    uint8_t packet_masks_[max_packet_mask_count];
+    uint8_t tmp_packet_masks_[max_packet_mask_count];
 };
     
 } // namespace naivertc

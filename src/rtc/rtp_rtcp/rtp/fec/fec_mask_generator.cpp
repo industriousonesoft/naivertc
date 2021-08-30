@@ -4,91 +4,15 @@
 
 namespace naivertc {
 
-FecPacketMaskGenerator::FecPacketMaskGenerator(FecMaskType fec_mask_type, size_t num_media_packets) 
+FecPacketMaskGenerator::FecPacketMaskGenerator() 
     : fixed_mask_table_(nullptr) {
-    assert(num_media_packets <= kUlpfecMaxMediaPackets);
-    // The bursty table is explicitly asked and the number of media packets is not larger than 
-    // the size of packet mask bursty table.
-    if (fec_mask_type != FecMaskType::RANDOM && num_media_packets <= kPacketMaskBurstyTable[0] /* table size*/) {
-        fixed_mask_table_ = kPacketMaskBurstyTable;
-    }else {
-        // Otherwise the random table is returned.
-        fixed_mask_table_ = kPacketMaskRandomTable;
-    }
+    
 }
 
 FecPacketMaskGenerator::~FecPacketMaskGenerator() = default;
 
-ArrayView<const uint8_t> FecPacketMaskGenerator::LookUpPacketMasks(size_t num_media_packets, size_t num_fec_packets) {
-
-    if (num_media_packets > kUlpfecMaxMediaPackets || num_media_packets < num_fec_packets) {
-        PLOG_WARNING << "Invalid parameters, num_media_packets: " 
-                     << num_media_packets << ", num_fec_packets: " 
-                     << num_fec_packets << ".";
-        return nullptr;
-    }
-
-    if (num_media_packets <= fixed_mask_table_[0]) {
-        return LookUpInFixedMaskTable(fixed_mask_table_ ,num_media_packets - 1, num_fec_packets - 1);
-    }
-
-    // Starting from 13 media packets, the fec code will be generated at runtime.
-
-    size_t mask_size = PacketMaskSize(num_media_packets);
-
-    // Generate FEC code mask for {num_media_packets(M), num_fec_packets(N)} (use
-    // N FEC packets to protect M media packets) In the mask, each FEC packet
-    // occupies one row, each bit / coloumn represent one media packet. E.g. Row
-    // A, Col/Bit B is set to 1, means FEC packet A will have protection for media
-    // packet B.
-
-    for (size_t row = 0; row < num_fec_packets; row++) {
-        // Loop through each fec code in a row, one code has 8 bits.
-        // Bit X will be set to 1 if media packet X shall be protected by current
-        // FEC packet. 
-        // In this implementation, the protection is interleaved, thus
-        // media packet X will be protected by FEC packet (X % N)
-        // TODO: Other implementations?
-        for (size_t col = 0; col < mask_size; col++) {
-            fec_packet_masks_[row * mask_size + col] = 
-            ((col * 8) % num_fec_packets == row && (col * 8) < num_media_packets
-               ? 0x80
-               : 0x00) |
-            ((col * 8 + 1) % num_fec_packets == row &&
-                    (col * 8 + 1) < num_media_packets
-                ? 0x40
-                : 0x00) |
-            ((col * 8 + 2) % num_fec_packets == row &&
-                    (col * 8 + 2) < num_media_packets
-                ? 0x20
-                : 0x00) |
-            ((col * 8 + 3) % num_fec_packets == row &&
-                    (col * 8 + 3) < num_media_packets
-                ? 0x10
-                : 0x00) |
-            ((col * 8 + 4) % num_fec_packets == row &&
-                    (col * 8 + 4) < num_media_packets
-                ? 0x08
-                : 0x00) |
-            ((col * 8 + 5) % num_fec_packets == row &&
-                    (col * 8 + 5) < num_media_packets
-                ? 0x04
-                : 0x00) |
-            ((col * 8 + 6) % num_fec_packets == row &&
-                    (col * 8 + 6) < num_media_packets
-                ? 0x02
-                : 0x00) |
-            ((col * 8 + 7) % num_fec_packets == row &&
-                    (col * 8 + 7) < num_media_packets
-                ? 0x01
-                : 0x00);
-        }
-    }
-
-    return ArrayView<const uint8_t>(&fec_packet_masks_[0], num_fec_packets * mask_size);
-}
-
-bool FecPacketMaskGenerator::GeneratePacketMasks(size_t num_media_packets,
+bool FecPacketMaskGenerator::GeneratePacketMasks(FecMaskType fec_mask_type,
+                                                 size_t num_media_packets,
                                                  size_t num_fec_packets,
                                                  size_t num_imp_packets,
                                                  bool use_unequal_protection,
@@ -100,8 +24,7 @@ bool FecPacketMaskGenerator::GeneratePacketMasks(size_t num_media_packets,
         return false;
     }
 
-    const size_t num_mask_bytes = PacketMaskSize(num_media_packets);
-
+    PickFixedMaskTable(fec_mask_type, num_media_packets);
     // Packet masks in equal protection
     if (!use_unequal_protection || num_imp_packets == 0) {
         // Mask = (k,n-k), with protection factor = (n-k)/k,
@@ -109,6 +32,7 @@ bool FecPacketMaskGenerator::GeneratePacketMasks(size_t num_media_packets,
         ArrayView<const uint8_t> masks = LookUpPacketMasks(num_media_packets, num_fec_packets);
         memcpy(packet_masks, masks.data(), masks.size());
     }else {
+        const size_t num_mask_bytes = PacketMaskSize(num_media_packets);
         GenerateUnequalProtectionMasks(num_media_packets, 
                                        num_fec_packets, 
                                        num_imp_packets,
@@ -116,6 +40,19 @@ bool FecPacketMaskGenerator::GeneratePacketMasks(size_t num_media_packets,
                                        packet_masks);
     }
     return true;
+}
+
+// Private methods
+void FecPacketMaskGenerator::PickFixedMaskTable(FecMaskType fec_mask_type, size_t num_media_packets) {
+    assert(num_media_packets <= kUlpfecMaxMediaPackets);
+    // The bursty table is explicitly asked and the number of media packets is not larger than 
+    // the size of packet mask bursty table.
+    if (fec_mask_type != FecMaskType::RANDOM && num_media_packets <= kPacketMaskBurstyTable[0] /* table size*/) {
+        fixed_mask_table_ = kPacketMaskBurstyTable;
+    }else {
+        // Otherwise the random table is returned.
+        fixed_mask_table_ = kPacketMaskRandomTable;
+    }
 }
 
 void FecPacketMaskGenerator::GenerateUnequalProtectionMasks(size_t num_media_packets,
@@ -304,6 +241,76 @@ ArrayView<const uint8_t> FecPacketMaskGenerator::LookUpInFixedMaskTable(const ui
 
     size_t size = entry_size_increment * (fec_packet_index + 1);
     return ArrayView<const uint8_t>(&entry[0], size);
+}
+
+ArrayView<const uint8_t> FecPacketMaskGenerator::LookUpPacketMasks(size_t num_media_packets, size_t num_fec_packets) {
+
+    if (num_media_packets > kUlpfecMaxMediaPackets || num_media_packets < num_fec_packets) {
+        PLOG_WARNING << "Invalid parameters, num_media_packets: " 
+                     << num_media_packets << ", num_fec_packets: " 
+                     << num_fec_packets << ".";
+        return nullptr;
+    }
+
+    if (num_media_packets <= fixed_mask_table_[0]) {
+        return LookUpInFixedMaskTable(fixed_mask_table_ ,num_media_packets - 1, num_fec_packets - 1);
+    }
+
+    // Starting from 13 media packets, the fec code will be generated at runtime.
+
+    size_t mask_size = PacketMaskSize(num_media_packets);
+
+    // Generate FEC code mask for {num_media_packets(M), num_fec_packets(N)} (use
+    // N FEC packets to protect M media packets) In the mask, each FEC packet
+    // occupies one row, each bit / coloumn represent one media packet. E.g. Row
+    // A, Col/Bit B is set to 1, means FEC packet A will have protection for media
+    // packet B.
+
+    memset(fec_packet_masks_, 0, kFECPacketMaskMaxSize);
+    for (size_t row = 0; row < num_fec_packets; row++) {
+        // Loop through each fec code in a row, one code has 8 bits.
+        // Bit X will be set to 1 if media packet X shall be protected by current
+        // FEC packet. 
+        // In this implementation, the protection is interleaved, thus
+        // media packet X will be protected by FEC packet (X % N)
+        // TODO: Other implementations?
+        for (size_t col = 0; col < mask_size; col++) {
+            fec_packet_masks_[row * mask_size + col] = 
+            ((col * 8) % num_fec_packets == row && (col * 8) < num_media_packets
+               ? 0x80
+               : 0x00) |
+            ((col * 8 + 1) % num_fec_packets == row &&
+                    (col * 8 + 1) < num_media_packets
+                ? 0x40
+                : 0x00) |
+            ((col * 8 + 2) % num_fec_packets == row &&
+                    (col * 8 + 2) < num_media_packets
+                ? 0x20
+                : 0x00) |
+            ((col * 8 + 3) % num_fec_packets == row &&
+                    (col * 8 + 3) < num_media_packets
+                ? 0x10
+                : 0x00) |
+            ((col * 8 + 4) % num_fec_packets == row &&
+                    (col * 8 + 4) < num_media_packets
+                ? 0x08
+                : 0x00) |
+            ((col * 8 + 5) % num_fec_packets == row &&
+                    (col * 8 + 5) < num_media_packets
+                ? 0x04
+                : 0x00) |
+            ((col * 8 + 6) % num_fec_packets == row &&
+                    (col * 8 + 6) < num_media_packets
+                ? 0x02
+                : 0x00) |
+            ((col * 8 + 7) % num_fec_packets == row &&
+                    (col * 8 + 7) < num_media_packets
+                ? 0x01
+                : 0x00);
+        }
+    }
+
+    return ArrayView<const uint8_t>(&fec_packet_masks_[0], num_fec_packets * mask_size);
 }
     
 } // namespace naivertc

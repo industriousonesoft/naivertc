@@ -26,17 +26,17 @@ public:
     // Calculates the minimum packet mask size needed (in bytes),
     // given the discrete options of the ULPFEC masks and the bits
     // set in the current packet mask.
-    virtual size_t MinPacketMaskSize(const uint8_t* packet_mask, PacketMaskBitIndicator packet_mask_bit_idc) const = 0;
+    virtual size_t MinPacketMaskSize(const uint8_t* packet_mask, size_t packet_mask_size) const = 0;
 
     // The header size (in bytes), given the packet mask size.
-    virtual size_t FecHeaderSize(PacketMaskBitIndicator packet_mask_bit_idc) const = 0;
+    virtual size_t FecHeaderSize(size_t packet_mask_size) const = 0;
 
     // Writes FEC header.
-    virtual void FinalizeFecHeader(uint16_t seq_num_base,
+    virtual void FinalizeFecHeader(uint32_t media_ssrc,
+                                   uint16_t seq_num_base,
                                    const uint8_t* packet_mask_data,
-                                   PacketMaskBitIndicator packet_mask_bit_idc,
-                                   std::shared_ptr<FecPacket> fec_packet,
-                                   std::optional<uint32_t> media_ssrc) const = 0;
+                                   size_t packet_mask_size,
+                                   FecPacket* fec_packet) const = 0;
 
 protected:
     FecHeaderWriter(size_t max_media_packets,

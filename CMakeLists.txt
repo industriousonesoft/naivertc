@@ -125,6 +125,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
 
     # fec
+    src/rtc/rtp_rtcp/rtp/fec/fec_codec.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_encoder.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator_bursty_table.cpp
@@ -272,6 +273,7 @@ set(LIB_HEADERS
 
     # fec
     include/rtc/rtp_rtcp/rtp/fec/fec_defines.hpp
+    include/rtc/rtp_rtcp/rtp/fec/fec_codec.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_mask_generator.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_header_writer.hpp
