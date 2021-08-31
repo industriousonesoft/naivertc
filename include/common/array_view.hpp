@@ -69,6 +69,11 @@ public:
         return subview(offset, this->size());
     }
 
+    void Reset() {
+        ptr_ = nullptr;
+        size_ = 0;
+    }
+
 private:
     T* ptr_;
     size_t size_;

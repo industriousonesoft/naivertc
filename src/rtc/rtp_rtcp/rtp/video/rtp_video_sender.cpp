@@ -149,13 +149,13 @@ bool RtpVideoSender::SendVideo(int payload_type,
 
             // TODO: Put packetization finish timestap into extension
 
-            packet->set_fec_protected_packet(use_fec);
+            packet->set_fec_protection_need(use_fec);
 
             // FIXME: Do we really need to build a red packet here, like what the WebRTC does? 
             // and I think we just need to set the red flag.
             // NOTE: WebRTC中在此处新建伪RED包的作用似乎并不大，此处将为进行RED_FEC封装的包一律视为非RED包
             packet->set_is_red(false);
-            packet->set_red_protected_packet(this->red_payload_type_.has_value());
+            packet->set_red_protection_need(this->red_payload_type_.has_value());
             packet->set_packet_type(RtpPacketType::VIDEO);
             packetized_payload_size += packet->payload_size();
             rtp_packets.emplace_back(std::move(packet));

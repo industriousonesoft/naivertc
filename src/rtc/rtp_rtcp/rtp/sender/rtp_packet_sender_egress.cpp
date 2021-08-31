@@ -48,7 +48,7 @@ void RtpPacketSenderEgress::SendPacket(std::shared_ptr<RtpPacketToSend> packet) 
 
         // TODO: Update sequence number info map
 
-        if (fec_generator_ && packet->fec_protected_packet()) {
+        if (fec_generator_ && packet->fec_protection_need()) {
             
             std::optional<std::pair<FecProtectionParams, FecProtectionParams>> new_fec_params;
             new_fec_params.swap(pending_fec_params_);
@@ -57,10 +57,10 @@ void RtpPacketSenderEgress::SendPacket(std::shared_ptr<RtpPacketToSend> packet) 
             }
 
             // TODO: To generate FEC(ULP or FLEX) packet packetized in RED or sent by new ssrc stream
-            if (packet->red_protected_packet()) {
-                this->fec_generator_->PushPacketToGenerateFec(packet);
+            if (packet->red_protection_need()) {
+                this->fec_generator_->PushMediaPacket(packet);
             }else {
-                this->fec_generator_->PushPacketToGenerateFec(packet);
+                this->fec_generator_->PushMediaPacket(packet);
             }
             
         }  

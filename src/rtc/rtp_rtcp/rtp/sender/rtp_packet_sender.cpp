@@ -211,7 +211,8 @@ int32_t RtpPacketSender::ResendPacket(uint16_t packet_id) {
 
     packet->set_packet_type((RtpPacketType::RETRANSMISSION));
     // A packet can not be FEC and RTX at the same time.
-    packet->set_fec_protected_packet(false);
+    packet->set_fec_protection_need(false);
+    packet->set_red_protection_need(false);
    
     if (this->pacer_) {
         std::vector<std::shared_ptr<RtpPacketToSend>> packets;

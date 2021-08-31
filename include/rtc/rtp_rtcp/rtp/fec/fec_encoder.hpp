@@ -11,6 +11,7 @@
 
 namespace naivertc {
 
+// NOTE: This class is not thread safe, the caller must provide that.
 class RTC_CPP_EXPORT FecEncoder : public FecCodec {
 public:
     // Using static Create method to make sure the FEC coder is unique, 
@@ -39,13 +40,20 @@ public:
      *      The bursty type is only defined up to 12 media packets. If the number of media packets is
      *      above 12, the packet masks from the random table will be selected.
     */
-    bool Encode(const PacketList& media_packets, 
-                uint8_t protection_factor, 
-                size_t num_important_packets, 
-                bool use_unequal_protection, 
-                FecMaskType fec_mask_type);
+    ArrayView<const FecPacket> Encode(const PacketList& media_packets, 
+                                      uint8_t protection_factor, 
+                                      size_t num_important_packets, 
+                                      bool use_unequal_protection, 
+                                      FecMaskType fec_mask_type);
 
+    // Gets the maximum size of the FEC headers in bytes, which must be
+    // accounted for as packet overhead.
+    size_t MaxPacketOverhead() const;
+
+    // Get the number of generated FEC packets, given the number of media packets
+    // and the protection factor.
     static size_t NumFecPackets(size_t num_media_packets, uint8_t protection_factor);
+
 protected:
     FecEncoder(std::unique_ptr<FecHeaderWriter> fec_header_writer);
 
@@ -61,7 +69,7 @@ private:
     std::unique_ptr<FecPacketMaskGenerator> packet_mask_generator_;
     std::vector<FecPacket> generated_fec_packets_;
     size_t packet_mask_size_;
-
+    
     static const size_t max_packet_mask_count = kUlpfecMaxMediaPackets * kUlpfecMaxPacketMaskSize;
     uint8_t packet_masks_[max_packet_mask_count];
     uint8_t tmp_packet_masks_[max_packet_mask_count];

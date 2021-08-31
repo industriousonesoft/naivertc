@@ -197,8 +197,7 @@ void RtpPacket::CopyHeaderFrom(const RtpPacket& other) {
     timestamp_ = other.timestamp_;
     ssrc_ = other.ssrc_;
     payload_offset_ = other.payload_offset_;
-
-    BinaryBuffer::clear();
+    // Assign header memory
     BinaryBuffer::assign(other.begin(), other.begin() + other.header_size());
 
     // Reset payload and padding

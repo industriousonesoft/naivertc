@@ -17,7 +17,7 @@ public:
     virtual bool AssignSequenceNumber(std::shared_ptr<RtpPacketToSend> packet) = 0;
 };
 
-// This class is not thread safe, the caller must provide that.
+// NOTE: This class is not thread safe, the caller must provide that.
 class RTC_CPP_EXPORT RtpPacketSequencer : public SequenceNumberAssigner {
 public:
     // If |require_marker_before_media_padding| is true, padding packets on the media ssrc
