@@ -413,11 +413,17 @@ set(TEST_SOURCES
 
     src/rtc/pc/peer_connection_configuration_unittest.cpp
     
+    # rtp packets
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_unittest.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager_unittest.cpp
     
+    # packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer_unittest.cpp
 
+    # fec
+    src/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp_unittest.cpp
+
+    # rtcp 
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/report_block_unittest.cpp
