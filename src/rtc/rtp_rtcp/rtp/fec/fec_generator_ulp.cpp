@@ -133,11 +133,12 @@ std::vector<std::shared_ptr<RtpPacketToSend>> UlpfecGenerator::PopFecPackets() {
     size_t total_fec_size_bytes = 0;
     for (auto it = this->generated_fec_packets_.cbegin(); it != this->generated_fec_packets_.end(); ++it) {
         const FecPacket* fec_packet = it;
-        assert(fec_packet != nullptr);
+     
         std::shared_ptr<RtpPacketToSend> red_packet = std::make_shared<RtpPacketToSend>(last_media_packet->capacity());
         red_packet->CopyHeaderFrom(*last_media_packet.get());
         red_packet->set_payload_type(this->red_payload_type_);
         red_packet->set_marker(false);
+        
         assert(red_packet->header_size() + kRedForFecHeaderLength + fec_packet->size() < red_packet->capacity());
         uint8_t* payload_buffer = red_packet->SetPayloadSize(kRedForFecHeaderLength + fec_packet->size());
         assert(payload_buffer != nullptr);

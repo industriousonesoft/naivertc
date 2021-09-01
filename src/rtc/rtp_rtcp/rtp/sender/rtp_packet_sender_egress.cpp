@@ -10,14 +10,14 @@ constexpr uint32_t kTimestampTicksPerMs = 90;
 
 RtpPacketSenderEgress::RtpPacketSenderEgress(const RtpRtcpInterface::Configuration& config, 
                                          std::shared_ptr<RtpPacketSentHistory> packet_history,
-                                         std::shared_ptr<FecGenerator> fec_generator,
+                                         std::unique_ptr<FecGenerator> fec_generator,
                                          std::shared_ptr<TaskQueue> task_queue) 
         : clock_(config.clock),
           ssrc_(config.local_media_ssrc),
           rtx_ssrc_(config.rtx_send_ssrc),
           flexfec_ssrc_(std::nullopt),
           packet_history_(packet_history),
-          fec_generator_(fec_generator),
+          fec_generator_(std::move(fec_generator)),
           task_queue_(task_queue) {
 }
  

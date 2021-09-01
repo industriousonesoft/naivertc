@@ -49,6 +49,7 @@ set(LIB_SOURCES
     src/signaling/base/base_channel.cpp
     src/signaling/base/websocket.cpp
     src/signaling/ayame/ayame_channel.cpp
+
     # rtc
     # rtc -> base
     src/rtc/base/packet.cpp
@@ -56,6 +57,7 @@ set(LIB_SOURCES
     src/rtc/base/ntp_time_util.cpp
     src/rtc/base/clock.cpp
     src/rtc/base/clock_real_time.cpp
+    
     # rtc -> sdp
     src/rtc/sdp/sdp_utils.cpp
     src/rtc/sdp/candidate.cpp
@@ -69,6 +71,7 @@ set(LIB_SOURCES
     src/rtc/sdp/sdp_media_entry_media.cpp
     src/rtc/sdp/sdp_media_entry_audio.cpp
     src/rtc/sdp/sdp_media_entry_video.cpp
+
     # rtc -> transports
     src/rtc/transports/transport.cpp
     src/rtc/transports/ice_transport.cpp
@@ -80,6 +83,7 @@ set(LIB_SOURCES
     src/rtc/transports/dtls_transport_openssl_delegate.cpp
     src/rtc/transports/dtls_srtp_transport.cpp
     src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
+
     # rtc -> pc
     src/rtc/pc/peer_connection.cpp
     src/rtc/pc/peer_connection_configuration.cpp
@@ -88,10 +92,15 @@ set(LIB_SOURCES
     src/rtc/pc/peer_connection_sctp_transport_delegate.cpp
     src/rtc/pc/peer_connection_sdp_offer_answer.cpp
     src/rtc/pc/peer_connection_media_handler.cpp
+
     # rtc -> channels
     src/rtc/channels/data_channel.cpp
     src/rtc/channels/data_channel_message.cpp
     src/rtc/channels/media_channel.cpp
+
+    # rtc -> call
+    src/rtc/call/video_sender.cpp
+
     # rtc -> rtp_rtcp
     src/rtc/rtp_rtcp/rtcp/rtcp_packet.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_sender.cpp
@@ -137,6 +146,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtcp.cpp
+
     # rtc -> rtp_rtcp -> rtcp_packets
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/compound_packet.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.cpp
@@ -156,6 +166,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/bye.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.cpp
+
     # rtc -> media
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
@@ -198,6 +209,7 @@ set(LIB_HEADERS
     include/signaling/common/url_parts.hpp
     include/signaling/base/websocket.hpp
     include/signaling/ayame/ayame_channel.hpp
+
     # rtc
     # rtc -> base
     include/rtc/base/internals.hpp
@@ -215,6 +227,7 @@ set(LIB_HEADERS
     include/rtc/base/time_delta.hpp
     include/rtc/base/sequence_number_utils.hpp
     include/rtc/base/divide_round.hpp
+
     # rtc -> sdp
     include/rtc/sdp/sdp_defines.hpp
     include/rtc/sdp/sdp_utils.hpp
@@ -227,6 +240,7 @@ set(LIB_HEADERS
     include/rtc/sdp/sdp_media_entry_media.hpp
     include/rtc/sdp/sdp_media_entry_audio.hpp
     include/rtc/sdp/sdp_media_entry_video.hpp
+
     # rtc -> transports
     include/rtc/transports/transport.hpp
     include/rtc/transports/ice_transport.hpp
@@ -235,12 +249,17 @@ set(LIB_HEADERS
     include/rtc/transports/sctp_message.hpp
     include/rtc/transports/dtls_transport.hpp
     include/rtc/transports/dtls_srtp_transport.hpp
+
     # rtc -> pc
     include/rtc/pc/peer_connection_configuration.hpp
     include/rtc/pc/peer_connection.hpp
+
     # rtc -> channels
     include/rtc/channels/data_channel.hpp
     include/rtc/channels/media_channel.hpp
+    # call
+    include/rtc/call/video_sender.hpp
+
     # rtc -> rtp_rtcp
     include/rtc/rtp_rtcp/rtcp/rtcp_packet.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_sender.hpp
@@ -284,6 +303,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_impl.hpp
+
     # rtc -> rtp_rtcp -> rtcp_packets
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/compound_packet.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.hpp
@@ -303,6 +323,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/bye.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.hpp
+
     # rtc -> media
     include/rtc/media/media_track.hpp
     include/rtc/media/video/common.hpp
