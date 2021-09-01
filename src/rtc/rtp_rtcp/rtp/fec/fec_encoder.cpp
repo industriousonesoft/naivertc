@@ -53,7 +53,7 @@ std::unique_ptr<FecEncoder> FecEncoder::CreateUlpfecEncoder() {
 FecEncoder::FecEncoder(std::unique_ptr<FecHeaderWriter> fec_header_writer) 
     : fec_header_writer_(std::move(fec_header_writer)),
       packet_mask_generator_(std::make_unique<FecPacketMaskGenerator>()),
-      generated_fec_packets_(fec_header_writer_->max_fec_packets(), FecPacket(kIpPacketSize)),
+      generated_fec_packets_(fec_header_writer_->max_fec_packets()),
       packet_mask_size_(0) {}
 
 FecEncoder::~FecEncoder() = default;

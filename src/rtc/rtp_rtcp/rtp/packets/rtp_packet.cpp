@@ -298,18 +298,12 @@ inline void RtpPacket::WriteAt(size_t offset, uint8_t byte) {
 }
 
 inline uint8_t* RtpPacket::WriteAt(size_t offset) {
-    if (offset > capacity()) {
-        PLOG_WARNING << "Write offset out of range.";
-        return nullptr;
-    }
+    assert(offset < capacity());
     return &data()[offset];
 }
 
 inline const uint8_t* RtpPacket::ReadAt(size_t offset) const {
-    if (offset > capacity()) {
-        PLOG_WARNING << "Write offset out of range.";
-        return nullptr;
-    }
+    assert(offset < capacity());
     return &data()[offset];
 }
 

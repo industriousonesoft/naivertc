@@ -29,7 +29,6 @@ TaskQueue::~TaskQueue() {
     if (ioc_.stopped()) {
         PLOG_VERBOSE << "io_context of task queue exited";
     }
-    
     // It is considered an error to desctory a C++ thread object while it is
     // still joinable. That is, in order to desctory a C++ threa object either join() needs to be
     // called (and completed) or detach() must be called. If a C++ thread object is still joinable when
@@ -46,7 +45,7 @@ TaskQueue::~TaskQueue() {
     ioc_thread_.reset();
 }
 
-void TaskQueue::Sync(const std::function<void(void)> handler) const {
+void TaskQueue::Sync(const std::function<void()> handler) const {
     if (is_in_current_queue()) {
         handler();
     }else {
@@ -63,7 +62,7 @@ void TaskQueue::Async(const std::function<void()> handler) const {
     if (is_in_current_queue()) {
         handler();
     }else {
-        boost::asio::post(strand_, handler);
+        boost::asio::post(strand_, std::move(handler));
     }
 }
 
@@ -71,7 +70,7 @@ void TaskQueue::Dispatch(const std::function<void()> handler) const {
     if (is_in_current_queue()) {
         handler();
     }else {
-        boost::asio::dispatch(strand_, handler);
+        boost::asio::dispatch(strand_, std::move(handler));
     }
 }
 
@@ -79,7 +78,7 @@ void TaskQueue::AsyncAfter(TimeInterval delay_in_sec, const std::function<void()
     // Construct a timer without setting an expiry time.
     timer_.expires_from_now(boost::posix_time::seconds(delay_in_sec));
     // Start an asynchronous wait
-    timer_.async_wait([handler](const boost::system::error_code& error){
+    timer_.async_wait([handler = std::move(handler)](const boost::system::error_code& error){
          handler();
     });
 }

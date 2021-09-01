@@ -17,7 +17,7 @@ public:
     TaskQueue(const std::string name = "");
     ~TaskQueue();
 
-    void Sync(const std::function<void(void)> handler) const;
+    void Sync(const std::function<void()> handler) const;
     void Async(const std::function<void()> handler) const;
     void AsyncAfter(TimeInterval delay_in_sec, const std::function<void()> handler);
 

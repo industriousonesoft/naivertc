@@ -386,6 +386,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/examples/common_examples ${CMAKE_CURRENT_
 # test
 if(ENABLE_TESTS)
 
+target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_TESTS=1)
 # google test
 add_subdirectory(deps/googletest)
 
@@ -422,6 +423,7 @@ set(TEST_SOURCES
 
     # fec
     src/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_generator_ulp_unittest.cpp
 
     # rtcp 
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp
@@ -454,6 +456,10 @@ target_link_libraries(naivertc_unittest PRIVATE gtest gtest_main gmock gmock_mai
 target_link_libraries(naivertc_unittest PRIVATE ${PROJECT_NAME})
 
 # add_test(NAME unittest COMMAND naivertc_unittest)
+
+else()
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_TESTS=0)
 
 endif()
 

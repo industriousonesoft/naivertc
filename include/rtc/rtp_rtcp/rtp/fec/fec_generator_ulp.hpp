@@ -12,13 +12,13 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT UlpFecGenerator final : public FecGenerator {
+class RTC_CPP_EXPORT UlpfecGenerator : public FecGenerator {
 public:
-    UlpFecGenerator(size_t red_payload_type, 
+    UlpfecGenerator(size_t red_payload_type, 
                     size_t fec_payload_type, 
                     std::shared_ptr<Clock> clock, 
                     std::shared_ptr<TaskQueue> task_queue);
-    ~UlpFecGenerator();
+    virtual ~UlpfecGenerator();
 
     FecType fec_type() const override { return FecGenerator::FecType::ULP_FEC; }
 
@@ -33,7 +33,7 @@ public:
 
     std::vector<std::shared_ptr<RtpPacketToSend>> PopFecPackets() override;
 
-private:
+protected:
     const FecProtectionParams& CurrentParams() const;
 
     bool MaxExcessOverheadNotReached(size_t target_fec_rate) const;
@@ -59,6 +59,7 @@ private:
     std::optional<std::shared_ptr<RtpPacketToSend>> last_protected_media_packet_;
     FecEncoder::PacketList media_packets_;
     ArrayView<const FecPacket> generated_fec_packets_;
+
 };
     
 } // namespace naivert 
