@@ -186,7 +186,9 @@ void FecEncoder::GenerateFecPayload(const PacketList& media_packets, size_t num_
                     // The prior XORs are still correct after we expand the packet size.
                     fec_packet->resize(fec_packet_size);
                 }
-                // 
+                
+                // Initialized the fec packet for the current row
+                // with the first protected media packet.
                 if (is_first_protected_packet) {
                     const uint8_t* media_packet_data = media_packet->data();
                     uint8_t* fec_packet_data = fec_packet->data();
