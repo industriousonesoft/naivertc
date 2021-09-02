@@ -33,14 +33,12 @@ constexpr float kMinMediaPacketsAdaptationThreshold = 2.0f;
 
 
 UlpfecGenerator::UlpfecGenerator(size_t red_payload_type, 
-                                 size_t fec_payload_type, 
-                                 std::shared_ptr<Clock> clock) 
+                                 size_t fec_payload_type) 
     : red_payload_type_(red_payload_type),
       fec_payload_type_(fec_payload_type),
       num_protected_frames_(0),
       min_num_media_packets_(1),
       contains_key_frame_(false),
-      clock_(clock),
       fec_encoder_(FecEncoder::CreateUlpfecEncoder()),
       last_protected_media_packet_(std::nullopt),
       generated_fec_packets_(nullptr) {

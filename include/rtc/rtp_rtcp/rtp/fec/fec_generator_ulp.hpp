@@ -2,7 +2,6 @@
 #define _RTC_RTP_RTCP_FEC_UPL_FEC_GENERATOR_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_defines.hpp"
@@ -15,8 +14,7 @@ namespace naivertc {
 class RTC_CPP_EXPORT UlpfecGenerator : public FecGenerator {
 public:
     UlpfecGenerator(size_t red_payload_type, 
-                    size_t fec_payload_type, 
-                    std::shared_ptr<Clock> clock);
+                    size_t fec_payload_type);
     virtual ~UlpfecGenerator();
 
     FecType fec_type() const override { return FecGenerator::FecType::ULP_FEC; }
@@ -47,7 +45,6 @@ private:
     size_t num_protected_frames_;
     size_t min_num_media_packets_;
     bool contains_key_frame_;
-    std::shared_ptr<Clock> clock_;
     const std::unique_ptr<FecEncoder> fec_encoder_;
 
     using ParamsTuple = std::pair<FecProtectionParams, FecProtectionParams>;

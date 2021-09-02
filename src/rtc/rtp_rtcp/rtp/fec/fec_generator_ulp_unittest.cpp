@@ -34,7 +34,7 @@ void VerifyRtpHeader(uint16_t seq_num,
 class UlpfecGeneratorTest : public ::testing::Test, public naivertc::UlpfecGenerator {
 public:
     UlpfecGeneratorTest() 
-        : UlpfecGenerator(kRedPayloadType, kFecPayloadType, nullptr) {}
+        : UlpfecGenerator(kRedPayloadType, kFecPayloadType) {}
 };
 
 TEST_F(UlpfecGeneratorTest, NoEmptyFecWithSeqNumGaps) {
