@@ -25,15 +25,11 @@ public:
         std::shared_ptr<Clock> clock = nullptr;
         // Codec
         video::CodecType codec_type = video::CodecType::NONE;
-        // RED
-        std::optional<int> red_payload_type = std::nullopt;
-        // FEC
-        size_t fec_overhead_bytes = 0;  // Per packet max FEC overhead.
-        std::optional<FecGenerator::FecType> fec_type = std::nullopt;
+      
+        std::shared_ptr<RtpPacketSender> packet_sender;
     };
 public:
     RtpVideoSender(const Configuration& config, 
-                   std::shared_ptr<RtpPacketSender> packet_sender, 
                    std::shared_ptr<TaskQueue> task_queue);
     virtual ~RtpVideoSender();
 
@@ -48,17 +44,10 @@ public:
 private:
     void MaybeUpdateCurrentPlayoutDelay(const RtpVideoHeader& header);
 
-    size_t FecPacketOverhead() const;
-
     void AddRtpHeaderExtensions(std::shared_ptr<RtpPacketToSend> packet);
- 
 private:
     std::shared_ptr<Clock> clock_;
     const video::CodecType codec_type_;
-    std::optional<int> red_payload_type_;
-    const size_t fec_overhead_bytes_;
-    std::optional<FecGenerator::FecType> fec_type_;
-
     std::shared_ptr<RtpPacketSender> packet_sender_;
     std::shared_ptr<TaskQueue> task_queue_;
 

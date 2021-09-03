@@ -22,6 +22,8 @@ public:
 
     virtual FecType fec_type() const = 0;
 
+    virtual std::optional<int> red_payload_type() = 0;
+    
     virtual std::optional<uint32_t> fec_ssrc() = 0;
 
     virtual size_t MaxPacketOverhead() const  = 0;

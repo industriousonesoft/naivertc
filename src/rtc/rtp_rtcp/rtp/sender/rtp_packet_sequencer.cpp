@@ -14,14 +14,11 @@ constexpr int8_t kInvalidPayloadType = -1;
 }  // namespace
 
 
-RtpPacketSequencer::RtpPacketSequencer(uint32_t media_ssrc, 
-                                       uint32_t rtx_ssrc, 
-                                       bool require_marker_before_media_padding, 
-                                       std::shared_ptr<Clock> clock) 
-    : media_ssrc_(media_ssrc),
-      rtx_ssrc_(rtx_ssrc),
-      require_marker_before_media_padding_(require_marker_before_media_padding),
-      clock_(clock),
+RtpPacketSequencer::RtpPacketSequencer(const RtpRtcpInterface::Configuration& config) 
+    : media_ssrc_(config.local_media_ssrc),
+      rtx_ssrc_(config.rtx_send_ssrc),
+      require_marker_before_media_padding_(!config.audio),
+      clock_(config.clock),
       media_sequence_num_(0),
       rtx_sequence_num_(0),
       last_payload_type_(kInvalidPayloadType),

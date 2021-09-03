@@ -7,6 +7,7 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_sender.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
 
+
 namespace naivertc {
 
 class RTC_CPP_EXPORT RtpRtcpImpl : public RtpRtcpInterface,
@@ -14,6 +15,12 @@ class RTC_CPP_EXPORT RtpRtcpImpl : public RtpRtcpInterface,
 public:
     RtpRtcpImpl(const RtpRtcpInterface::Configuration& config, std::shared_ptr<TaskQueue> task_queue);
     ~RtpRtcpImpl();
+
+    // Get start timestamp.
+    uint32_t StartTimestamp() const;
+
+    // Configure start timestamp, default is a random number.
+    void SetStartTimestamp(uint32_t timestamp);
 
     // ======== Receiver methods ========
     void IncomingRtcpPacket(const uint8_t* incoming_packet, size_t incoming_packet_size) override;

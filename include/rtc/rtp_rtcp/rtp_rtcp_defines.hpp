@@ -16,8 +16,10 @@ constexpr size_t kRtcpCNameSize = 256;
 // We assume ethernet
 constexpr size_t kIpPacketSize = 1500;
 
-// Transport header size in bytes. Assume UDP/IPv6 as a reasonable minimum.
-constexpr size_t kTransportOverhead = 48;
+// Transport header size in bytes 
+// TODO: Update Transport overhead when transport router changed.
+// constexpr size_t kTransportOverhead = 48;  UDP/IPv6
+constexpr size_t kTransportOverhead = 28; // Assume UPD/IPv4 as a reasonable minimum.
 
 constexpr int kVideoPayloadTypeFrequency = 90000;
 // TODO(bugs.webrtc.org/6458): Remove this when all the depending projects are
@@ -27,6 +29,10 @@ constexpr int kBogusRtpRateForAudioRtcp = 8000;
 constexpr size_t kRtpHeaderSize = 12;
 
 constexpr size_t kRtxHeaderSize = 2;
+
+constexpr size_t kRedForFecHeaderSize = 1;
+
+static const int kMinSendSidePacketHistorySize = 600;
 
 // 对于一个系统而言，需要定义一个epoch，所有的时间表示是基于这个基准点的，
 // 对于linux而言，采用了和unix epoch一样的时间点：1970年1月1日0点0分0秒（UTC）。

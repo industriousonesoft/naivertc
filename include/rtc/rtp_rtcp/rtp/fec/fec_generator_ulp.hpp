@@ -13,14 +13,16 @@ namespace naivertc {
 // NOTE: This class is not thread safe, the caller MUST provide that.
 class RTC_CPP_EXPORT UlpfecGenerator : public FecGenerator {
 public:
-    UlpfecGenerator(size_t red_payload_type, 
-                    size_t fec_payload_type);
+    UlpfecGenerator(int red_payload_type, 
+                    int fec_payload_type);
     virtual ~UlpfecGenerator();
 
     FecType fec_type() const override { return FecGenerator::FecType::ULP_FEC; }
 
     // TODO: Support both of RED and new stream
     std::optional<uint32_t> fec_ssrc() override { return std::nullopt; };
+
+    std::optional<int> red_payload_type() override { return red_payload_type_; };
 
     size_t MaxPacketOverhead() const override;
 
@@ -39,8 +41,8 @@ protected:
     void Reset();
     
 private:
-    size_t red_payload_type_;
-    size_t fec_payload_type_;
+    int red_payload_type_;
+    int fec_payload_type_;
     
     size_t num_protected_frames_;
     size_t min_num_media_packets_;

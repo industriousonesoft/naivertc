@@ -4,21 +4,13 @@
 #include <plog/Log.h>
 
 namespace naivertc {
-namespace {
 
-constexpr size_t kRedForFecHeaderLength = 1;
-    
-} // namespac 
 
-RtpVideoSender::RtpVideoSender(const Configuration& config, 
-                               std::shared_ptr<RtpPacketSender> packet_sender, 
+RtpVideoSender::RtpVideoSender(const Configuration& config,
                                std::shared_ptr<TaskQueue> task_queue) 
     : clock_(config.clock),
       codec_type_(config.codec_type),
-      red_payload_type_(config.red_payload_type),
-      fec_overhead_bytes_(config.fec_overhead_bytes),
-      fec_type_(config.fec_type),
-      packet_sender_(packet_sender),
+      packet_sender_(config.packet_sender),
       task_queue_(task_queue),
       current_playout_delay_{-1, -1},
       playout_delay_pending_(false) {
@@ -28,9 +20,7 @@ RtpVideoSender::RtpVideoSender(const Configuration& config,
     }
 }
     
-RtpVideoSender::~RtpVideoSender() {
-
-}
+RtpVideoSender::~RtpVideoSender() {}
 
 bool RtpVideoSender::SendVideo(int payload_type,
                                uint32_t rtp_timestamp, 
@@ -54,14 +44,14 @@ bool RtpVideoSender::SendVideo(int payload_type,
         }
 
         // TODO: No FEC protection for upper temporal layers, if used
-        const bool use_fec = fec_type_.has_value();
+        const bool fec_enabled = this->packet_sender_->fec_enabled();
 
         // Calculate maximum size of packet including RTP packets.
         size_t packet_capacity = this->packet_sender_->max_rtp_packet_size();
         // Extra space left in case packet will be reset using FEC or RTX.
         // Reserve overhead size of FEC packet
-        if (use_fec) {
-            packet_capacity -= this->FecPacketOverhead();
+        if (fec_enabled) {
+            packet_capacity -= this->packet_sender_->FecPacketOverhead();
         }
         // Reserve overhead size of RTX packet
         if (this->packet_sender_->rtx_mode() != RtxMode::OFF) {
@@ -149,13 +139,13 @@ bool RtpVideoSender::SendVideo(int payload_type,
 
             // TODO: Put packetization finish timestap into extension
 
-            packet->set_fec_protection_need(use_fec);
+            packet->set_fec_protection_need(fec_enabled);
 
             // FIXME: Do we really need to build a red packet here, like what the WebRTC does? 
             // and I think we just need to set the red flag.
             // NOTE: WebRTC中在此处新建伪RED包的作用似乎并不大，此处将为进行RED_FEC封装的包一律视为非RED包
             packet->set_is_red(false);
-            packet->set_red_protection_need(this->red_payload_type_.has_value());
+            packet->set_red_protection_need(this->packet_sender_->red_enabled());
             packet->set_packet_type(RtpPacketType::VIDEO);
             packetized_payload_size += packet->payload_size();
             rtp_packets.emplace_back(std::move(packet));
@@ -229,25 +219,6 @@ void RtpVideoSender::MaybeUpdateCurrentPlayoutDelay(const RtpVideoHeader& header
 
     current_playout_delay_ = requested_delay;
     playout_delay_pending_ = true;
-}
-
-size_t RtpVideoSender::FecPacketOverhead() const {
-    size_t overhead = fec_overhead_bytes_;
-    if (red_payload_type_.has_value()) {
-        // RED packet overhead 
-        overhead += kRedForFecHeaderLength;
-        // ULP FEC
-        if (fec_type_ == FecGenerator::FecType::ULP_FEC) {
-            // For ULPFEC, the overhead is the FEC headers plus RED for FEC header 
-            // plus anthing int RTP packet beyond the 12 bytes base header, e.g.:
-            // CSRC list, extensions...
-            // This reason for the header extensions to be included here is that
-            // from an FEC viewpoint, they are part of the payload to be protected.
-            // and the base RTP header is already protected by the FEC header.
-            overhead += packet_sender_->FecOrPaddingPacketMaxRtpHeaderLength() - kRtpHeaderSize;
-        }
-    }
-    return overhead;
 }
     
 } // namespace naivertc

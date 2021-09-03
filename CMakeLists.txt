@@ -99,7 +99,16 @@ set(LIB_SOURCES
     src/rtc/channels/media_channel.cpp
 
     # rtc -> call
-    src/rtc/call/video_sender.cpp
+    src/rtc/call/video_send_stream.cpp
+    src/rtc/call/rtp_config.cpp
+
+    # rtc -> media
+    src/rtc/media/media_track.cpp
+    src/rtc/media/media_track_sdp_builder.cpp
+    src/rtc/media/video/encoded_frame.cpp
+    src/rtc/media/video/h264/nalunit.cpp
+    src/rtc/media/video/h264/nalunit_fragment.cpp
+    src/rtc/media/video/h264/nalunit_auxiliaries.cpp
 
     # rtc -> rtp_rtcp
     src/rtc/rtp_rtcp/rtcp/rtcp_packet.cpp
@@ -117,23 +126,24 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.cpp
 
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.cpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.cpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer_non_paced.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_non_paced.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.cpp
 
-    # rtc -> video
+    # rtc -> rtp_rtcp -> video
     src/rtc/rtp_rtcp/rtp/video/rtp_video_sender.cpp
     src/rtc/rtp_rtcp/rtp/video/rtp_video_header.cpp
 
-    # packetizer
+    # rtc -> rtp_rtcp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.cpp
 
-    # pacing
+    # rtc -> rtp_rtcp -> pacing
     src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
 
-    # fec
+    # rtc -> rtp_rtcp -> fec
     src/rtc/rtp_rtcp/rtp/fec/fec_codec.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_encoder.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator.cpp
@@ -142,6 +152,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/fec/fec_header_writer.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_generator_ulp.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_generator_flex.cpp
 
     src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
     src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
@@ -167,12 +178,6 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/bye.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.cpp
 
-    # rtc -> media
-    src/rtc/media/media_track.cpp
-    src/rtc/media/media_track_sdp_builder.cpp
-    src/rtc/media/video/h264/nalunit.cpp
-    src/rtc/media/video/h264/nalunit_fragment.cpp
-    src/rtc/media/video/h264/nalunit_auxiliaries.cpp
 )
 
 if(USE_NICE)
@@ -257,8 +262,18 @@ set(LIB_HEADERS
     # rtc -> channels
     include/rtc/channels/data_channel.hpp
     include/rtc/channels/media_channel.hpp
-    # call
-    include/rtc/call/video_sender.hpp
+
+    # rtc -> call
+    include/rtc/call/video_send_stream.hpp
+    include/rtc/call/rtp_config.hpp
+
+    # rtc -> media
+    include/rtc/media/media_track.hpp
+    include/rtc/media/video/common.hpp
+    include/rtc/media/video/encoded_frame.hpp
+    include/rtc/media/video/h264/common.hpp
+    include/rtc/media/video/h264/nalunit.hpp
+    include/rtc/media/video/h264/nalunit_fragment.hpp
 
     # rtc -> rtp_rtcp
     include/rtc/rtp_rtcp/rtcp/rtcp_packet.hpp
@@ -273,24 +288,24 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp
 
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp
-    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp
-    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer_non_paced.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp
 
-    # rtc -> video
+    # rtc -> rtp_rtcp -> video
     include/rtc/rtp_rtcp/rtp/video/rtp_video_sender.hpp
     include/rtc/rtp_rtcp/rtp/video/rtp_video_header.hpp
 
-    # packetizer
+    # rtc -> rtp_rtcp -> packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.hpp
 
-    # pacing
+    # rtc -> rtp_rtcp -> pacing
     include/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp
 
-    # fec
+    # rtc -> rtp_rtcp -> fec
     include/rtc/rtp_rtcp/rtp/fec/fec_defines.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_codec.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp
@@ -299,6 +314,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_generator.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_generator_ulp.hpp
+    include/rtc/rtp_rtcp/rtp/fec/fec_generator_flex.hpp
 
     include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
@@ -324,13 +340,6 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/bye.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.hpp
 
-    # rtc -> media
-    include/rtc/media/media_track.hpp
-    include/rtc/media/video/common.hpp
-    include/rtc/media/video/h264/common.hpp
-    include/rtc/media/video/h264/nalunit.hpp
-    include/rtc/media/video/h264/nalunit_fragment.hpp
-    
 )
 
 # gcc -Wall: enables all compiler's warning messages

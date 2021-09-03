@@ -17,17 +17,14 @@ namespace naivertc {
 // NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketSender发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
 class RTC_CPP_EXPORT RtpPacketSenderEgress {
 public:
-    RtpPacketSenderEgress(const RtpRtcpInterface::Configuration& config, 
-                        std::shared_ptr<RtpPacketSentHistory> packet_history,
-                        // TODO: Create FEC generator inside
-                        std::unique_ptr<FecGenerator> fec_generator,
-                        std::shared_ptr<TaskQueue> task_queue);
+    RtpPacketSenderEgress(const RtpRtcpInterface::Configuration& config,
+                          RtpPacketSentHistory* const packet_history,
+                          std::shared_ptr<TaskQueue> task_queue);
     ~RtpPacketSenderEgress();
 
     uint32_t ssrc() const { return ssrc_; }
     std::optional<uint32_t> rtx_ssrc() const { return rtx_ssrc_; }
-    std::optional<uint32_t> flexfec_ssrc() const { return flexfec_ssrc_; }
-
+   
     void SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                     const FecProtectionParams& key_params);
 
@@ -53,9 +50,8 @@ private:
     std::shared_ptr<Clock> clock_; 
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
-    const std::optional<uint32_t> flexfec_ssrc_;
-    std::shared_ptr<RtpPacketSentHistory> packet_history_;
-    std::unique_ptr<FecGenerator> fec_generator_;
+    RtpPacketSentHistory* const packet_history_;
+    std::shared_ptr<FecGenerator> fec_generator_;
     std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;
 
     std::shared_ptr<TaskQueue> task_queue_;

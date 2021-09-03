@@ -3,8 +3,8 @@
 
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
-#include "rtc/base/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
 
 #include <optional>
 #include <deque>
@@ -50,7 +50,7 @@ public:
     };
 
 public:
-    RtpPacketSentHistory(std::shared_ptr<Clock> clock, bool enable_padding_prio, std::shared_ptr<TaskQueue> task_queue);
+    RtpPacketSentHistory(const RtpRtcpInterface::Configuration& config, std::shared_ptr<TaskQueue> task_queue);
 
     RtpPacketSentHistory() = delete;
     RtpPacketSentHistory(const RtpPacketSentHistory&) = delete;

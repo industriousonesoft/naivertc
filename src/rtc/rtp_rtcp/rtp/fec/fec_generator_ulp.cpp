@@ -32,8 +32,8 @@ constexpr float kMinMediaPacketsAdaptationThreshold = 2.0f;
 } // namespace
 
 
-UlpfecGenerator::UlpfecGenerator(size_t red_payload_type, 
-                                 size_t fec_payload_type) 
+UlpfecGenerator::UlpfecGenerator(int red_payload_type, 
+                                 int fec_payload_type) 
     : red_payload_type_(red_payload_type),
       fec_payload_type_(fec_payload_type),
       num_protected_frames_(0),

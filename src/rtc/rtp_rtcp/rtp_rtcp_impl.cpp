@@ -28,6 +28,16 @@ RtpRtcpImpl::~RtpRtcpImpl() {
     
 }
 
+
+uint32_t RtpRtcpImpl::StartTimestamp() const {
+    // TODO: Implement
+    return 0;
+}
+
+void RtpRtcpImpl::SetStartTimestamp(uint32_t timestamp) {
+    // TODO: Implement
+}
+
 RtcpSender::FeedbackState RtpRtcpImpl::GetFeedbackState() {
     RtcpSender::FeedbackState state;
     // TODO: Init feedback state

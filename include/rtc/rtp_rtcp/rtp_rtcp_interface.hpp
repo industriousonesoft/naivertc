@@ -5,6 +5,8 @@
 #include "rtc/base/clock.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
+#include "rtc/transports/transport.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 
 #include <optional>
 #include <vector>
@@ -21,7 +23,7 @@ public:
         // The clock to use to read time. If nullptr then system clock will be used.
         std::shared_ptr<Clock> clock = nullptr;
 
-        int rtcp_report_interval_ms = 0;
+        size_t rtcp_report_interval_ms = 0;
         
         // Corresponds to extmap-allow-mixed in SDP negotiation.
         bool extmap_allow_mixed = false;
@@ -30,6 +32,17 @@ public:
         // FlexFec SSRC is fetched from |flexfec_sender|.
         uint32_t local_media_ssrc = 0;
         std::optional<uint32_t> rtx_send_ssrc = std::nullopt;
+
+        // If true, the RTP packet history will select RTX packets based on
+        // heuristics such as send time, retransmission count etc, in order to
+        // make padding potentially more useful.
+        // If false, the last packet will always be picked. This may reduce CPU
+        // overhead.
+        bool enable_rtx_padding_prioritization = true;
+
+        std::shared_ptr<Transport> send_transport;
+
+        std::shared_ptr<FecGenerator> fec_generator;
 
     };
 
