@@ -28,35 +28,46 @@ RtpPacketSender::RtpPacketSender(const RtpRtcpInterface::Configuration& config,
 RtpPacketSender::~RtpPacketSender() = default;
 
 size_t RtpPacketSender::max_rtp_packet_size() const {
-    return packet_generator_.max_rtp_packet_size();
+    return task_queue_->Sync<size_t>([&](){
+        return this->packet_generator_.max_rtp_packet_size();
+    });
 }
 
 void RtpPacketSender::set_max_rtp_packet_size(size_t max_size) {
-    return packet_generator_.set_max_rtp_packet_size(max_size);
+    task_queue_->Async([&, max_size](){
+        this->packet_generator_.set_max_rtp_packet_size(max_size);
+    });
 }
 
 RtxMode RtpPacketSender::rtx_mode() const {
-    return task_queue_->Sync<RtxMode>([this](){
+    return task_queue_->Sync<RtxMode>([&](){
         return this->rtx_mode_;
     });
 }
     
 void RtpPacketSender::set_rtx_mode(RtxMode mode) {
-    task_queue_->Async([this, mode](){
+    task_queue_->Async([&, mode](){
         this->rtx_mode_ = mode;
     });
 }
 
 std::optional<uint32_t> RtpPacketSender::rtx_ssrc() const {
-    return packet_generator_.rtx_ssrc();
+    return task_queue_->Sync<std::optional<uint32_t>>([&](){
+        return this->packet_generator_.rtx_ssrc();
+    });
 }
 
 void RtpPacketSender::SetRtxPayloadType(int payload_type, int associated_payload_type) {
-    packet_generator_.SetRtxPayloadType(payload_type, associated_payload_type);
+    task_queue_->Async([&, payload_type, associated_payload_type](){
+        this->packet_generator_.SetRtxPayloadType(payload_type, associated_payload_type);
+    });
 }
 
 std::shared_ptr<RtpPacketToSend> RtpPacketSender::AllocatePacket() const {
-    return packet_generator_.AllocatePacket();
+    return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([&](){
+        return this->packet_generator_.AllocatePacket();
+    });
+    
 }
 
 bool RtpPacketSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
@@ -72,7 +83,7 @@ bool RtpPacketSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend
                 packet->set_capture_time_ms(now_ms);
             }
         }
-        non_paced_sender_.EnqueuePackets(std::move(packets));
+        this->non_paced_sender_.EnqueuePackets(std::move(packets));
         return true;
     });
 }
@@ -95,36 +106,43 @@ void RtpPacketSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int
 
 // FEC
 bool RtpPacketSender::fec_enabled() const {
-    return fec_generator_ != nullptr;
+    return task_queue_->Sync<bool>([&](){
+        return fec_generator_ != nullptr;
+    });
 }
 
 bool RtpPacketSender::red_enabled() const {
-    if (!fec_enabled()) {
-        return false;
-    }
-    return fec_generator_->red_payload_type().has_value();
+    return task_queue_->Sync<bool>([&](){
+        if (!fec_enabled()) {
+            return false;
+        }
+        return fec_generator_->red_payload_type().has_value();
+    });
 }
 
 size_t RtpPacketSender::FecPacketOverhead() const {
-    if (!fec_enabled()) {
-        return 0;
-    }
-    size_t overhead = fec_generator_->MaxPacketOverhead();
-    if (fec_generator_->red_payload_type().has_value()) {
-        // RED packet overhead 
-        overhead += kRedForFecHeaderSize;
-        // ULP FEC
-        if (fec_generator_->fec_type() == FecGenerator::FecType::ULP_FEC) {
-            // For ULPFEC, the overhead is the FEC headers plus RED for FEC header 
-            // plus anthing int RTP packet beyond the 12 bytes base header, e.g.:
-            // CSRC list, extensions...
-            // This reason for the header extensions to be included here is that
-            // from an FEC viewpoint, they are part of the payload to be protected.
-            // and the base RTP header is already protected by the FEC header.
-            overhead += packet_generator_.FecOrPaddingPacketMaxRtpHeaderSize() - kRtpHeaderSize;
+    return task_queue_->Sync<size_t>([&](){
+        size_t overhead = 0;
+        if (!this->fec_enabled()) {
+            return overhead;
         }
-    }
-    return overhead;
+        overhead = this->fec_generator_->MaxPacketOverhead();
+        if (this->fec_generator_->red_payload_type().has_value()) {
+            // RED packet overhead 
+            overhead += kRedForFecHeaderSize;
+            // ULP FEC
+            if (this->fec_generator_->fec_type() == FecGenerator::FecType::ULP_FEC) {
+                // For ULPFEC, the overhead is the FEC headers plus RED for FEC header 
+                // plus anthing int RTP packet beyond the 12 bytes base header, e.g.:
+                // CSRC list, extensions...
+                // This reason for the header extensions to be included here is that
+                // from an FEC viewpoint, they are part of the payload to be protected.
+                // and the base RTP header is already protected by the FEC header.
+                overhead += this->packet_generator_.FecOrPaddingPacketMaxRtpHeaderSize() - kRtpHeaderSize;
+            }
+        }
+        return overhead;
+    });
 }
 
 // Private methods
