@@ -6,7 +6,7 @@
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp"
 
@@ -44,7 +44,7 @@ private:
     int32_t ResendPacket(uint16_t packet_id);
 
 private:
-
+    // NonPacedPacketSender
     class NonPacedPacketSender {
     public:
         NonPacedPacketSender(RtpPacketSender* const rtp_sender_);
@@ -59,7 +59,6 @@ private:
         RtpPacketSender* const rtp_sender_;
     };
     friend class NonPacedPacketSender;
-
 private:
     RtxMode rtx_mode_;
 
@@ -69,7 +68,7 @@ private:
 
     RtpPacketSequencer packet_sequencer_;
     RtpPacketSentHistory packet_history_;
-    RtpPacketSenderEgress packet_sender_;
+    RtpPacketEgresser packet_egresser_;
     RtpPacketGenerator packet_generator_;
 
     NonPacedPacketSender non_paced_sender_;

@@ -16,7 +16,7 @@ RtpPacketSender::RtpPacketSender(const RtpRtcpInterface::Configuration& config,
       task_queue_(task_queue),
       packet_sequencer_(config),
       packet_history_(config, task_queue),
-      packet_sender_(config, &packet_history_, task_queue), 
+      packet_egresser_(config, &packet_history_, task_queue), 
       packet_generator_(config, task_queue),
       non_paced_sender_(this) {
       

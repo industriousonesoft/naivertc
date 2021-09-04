@@ -128,7 +128,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_non_paced.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.cpp
 
@@ -290,7 +290,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
-    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_egress.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp
 

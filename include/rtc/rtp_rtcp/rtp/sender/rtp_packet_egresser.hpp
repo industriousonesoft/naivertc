@@ -14,13 +14,13 @@
 // 
 namespace naivertc {
 
-// NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketSender发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
-class RTC_CPP_EXPORT RtpPacketSenderEgress {
+// NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketEgresser发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
+class RTC_CPP_EXPORT RtpPacketEgresser {
 public:
-    RtpPacketSenderEgress(const RtpRtcpInterface::Configuration& config,
+    RtpPacketEgresser(const RtpRtcpInterface::Configuration& config,
                           RtpPacketSentHistory* const packet_history,
                           std::shared_ptr<TaskQueue> task_queue);
-    ~RtpPacketSenderEgress();
+    ~RtpPacketEgresser();
 
     uint32_t ssrc() const { return ssrc_; }
     std::optional<uint32_t> rtx_ssrc() const { return rtx_ssrc_; }
