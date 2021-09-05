@@ -28,7 +28,7 @@ constexpr rtp::ExtensionSize kFecOrPaddingExtensionSizes[] = {
 
 } // namespace 
 
-RtpPacketGenerator::RtpPacketGenerator(const RtpRtcpInterface::Configuration& config,
+RtpPacketGenerator::RtpPacketGenerator(const RtpSender::Configuration& config,
                                        std::shared_ptr<TaskQueue> task_queue) 
     : ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),

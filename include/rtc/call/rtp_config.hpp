@@ -17,16 +17,12 @@ struct RTC_CPP_EXPORT RtpConfig {
     RtpConfig(const RtpConfig&);
     ~RtpConfig();
 
-    // SSRCs to use for the local media streams.
-    std::vector<uint32_t> media_ssrcs;
+    // SSRC to use for the local media stream.
+    uint32_t local_media_ssrc = 0;
     // Payload type to use for the local media stream.
     int media_payload_type = -1;
 
-    // If rtx_ssrcs are specified, they should correspond to the media_ssrcs:
-    // 1) rtx_ssrcs.size() == 0 || rtx_ssrcs.size() == media_ssrcs.size()
-    // 2) if rtx_ssrcs.size() > 0, then rtx_ssrcs[i] should correspond to media_ssrcs[i]
-    // SSRCs to use for the RTX streams.
-    std::vector<uint32_t> rtx_ssrcs;
+    std::optional<uint32_t> rtx_send_ssrc = std::nullopt;
     // Payload type to use for the RTX stream.
     int rtx_payload_type = -1;
 
@@ -75,12 +71,6 @@ struct RTC_CPP_EXPORT RtpConfig {
         // The media stream being protected by this FlexFEC stream.
         uint32_t protected_media_ssrc = 0;
     } flexfec;
-
-    bool IsMediaSsrc(uint32_t ssrc) const;
-    bool IsRtxSsrc(uint32_t ssrc) const;
-    bool IsFlexfecSsrc(uint32_t ssrc) const;
-    std::optional<uint32_t> RtxSsrcCorrespondToMediaSsrc(uint32_t media_ssrc) const;
-    std::optional<uint32_t> MediaSsrcCorrespondToRtxSsrc(uint32_t media_ssrc) const;
 };
     
 } // namespace naivertc

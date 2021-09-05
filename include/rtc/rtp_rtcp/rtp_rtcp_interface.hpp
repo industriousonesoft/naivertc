@@ -20,9 +20,7 @@ public:
         // True for a audio version of the RTP/RTCP module object false will create
         // a video version.
         bool audio = false;
-        // The clock to use to read time. If nullptr then system clock will be used.
-        std::shared_ptr<Clock> clock = nullptr;
-
+    
         size_t rtcp_report_interval_ms = 0;
         
         // Corresponds to extmap-allow-mixed in SDP negotiation.
@@ -39,6 +37,9 @@ public:
         // If false, the last packet will always be picked. This may reduce CPU
         // overhead.
         bool enable_rtx_padding_prioritization = true;
+
+        // The clock to use to read time. If nullptr then system clock will be used.
+        std::shared_ptr<Clock> clock = nullptr;
 
         std::shared_ptr<Transport> send_transport;
 

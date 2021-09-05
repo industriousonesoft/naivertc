@@ -5,19 +5,21 @@
 namespace naivertc {
 namespace {
 
-constexpr int32_t kDefaultVideoReportInterval = 1000; // 1s
-constexpr int32_t kDefaultAudioReportInterval = 5000; // 5s
+constexpr int32_t kDefaultVideoReportIntervalMs = 1000; // 1s
+constexpr int32_t kDefaultAudioReportIntervalMs = 5000; // 5s
 }  // namespace
 
-RtcpSender::RtcpSender(Configuration config, std::shared_ptr<TaskQueue> task_queue) 
+RtcpSender::RtcpSender(Configuration config, 
+                       std::shared_ptr<Clock> clock, 
+                       std::shared_ptr<TaskQueue> task_queue) 
     : audio_(config.audio),
-    ssrc_(config.local_media_ssrc),
-    clock_(config.clock),
-    task_queue_(task_queue),
-    report_interval_(config.rtcp_report_interval.value_or(
-                     TimeDelta::Millis(config.audio ? kDefaultAudioReportInterval
-                                                    : kDefaultVideoReportInterval))),
-    max_packet_size_(kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */) {
+      ssrc_(config.local_media_ssrc),
+      clock_(clock),
+      task_queue_(task_queue),
+      report_interval_(config.rtcp_report_interval.value_or(
+                       TimeDelta::Millis(config.audio ? kDefaultAudioReportIntervalMs
+                                                      : kDefaultVideoReportIntervalMs))),
+    max_packet_size_(kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */){
     
     if (!task_queue_) {
         task_queue_ = std::make_shared<TaskQueue>("RtcpSender.task.queue");
@@ -186,9 +188,18 @@ bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
     });
 }
 
+void RtcpSender::OnNextSendEvaluationTimeScheduled(NextSendEvaluationTimeScheduledCallback callback) {
+    task_queue_->Async([this, callback](){
+        this->next_send_evaluation_time_scheduled_callback_ = callback;
+    });
+}
+
 // Private methods
 void RtcpSender::SetNextRtcpSendEvaluationDuration(TimeDelta duration) {
     next_time_to_send_rtcp_ = clock_->CurrentTime() + duration;
+    if (this->next_send_evaluation_time_scheduled_callback_) {
+        this->next_send_evaluation_time_scheduled_callback_(duration);
+    }
 }
 
 void RtcpSender::SetFlag(RtcpPacketType type, bool is_volatile) {
@@ -215,5 +226,5 @@ bool RtcpSender::AllVolatileFlagsConsumed() const {
     }
     return true;
 }
-    
+ 
 } // namespace naivertc

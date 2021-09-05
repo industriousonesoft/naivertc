@@ -1,196 +1,185 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
-#include "common/utils_random.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
 
 #include <plog/Log.h>
 
 namespace naivertc {
 namespace {
-    constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
+constexpr uint32_t kTimestampTicksPerMs = 90;
 } // namespace
 
-RtpPacketSender::RtpPacketSender(const RtpRtcpInterface::Configuration& config, 
+RtpPacketSender::RtpPacketSender(const RtpSender::Configuration& config,
+                                 RtpPacketSentHistory* const packet_history,
+                                 std::shared_ptr<Clock> clock,
+                                 std::shared_ptr<FecGenerator> fec_generator,
                                  std::shared_ptr<TaskQueue> task_queue) 
-    : rtx_mode_(RtxMode::OFF),
-      clock_(config.clock),
-      fec_generator_(config.fec_generator),
-      task_queue_(task_queue),
-      packet_sequencer_(config),
-      packet_history_(config, task_queue),
-      packet_egresser_(config, &packet_history_, task_queue), 
-      packet_generator_(config, task_queue),
-      non_paced_sender_(this) {
-      
-    // Random start, 16bits, can not be 0.
-    packet_sequencer_.set_rtx_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
-    packet_sequencer_.set_media_sequence_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
+        : clock_(clock),
+          ssrc_(config.local_media_ssrc),
+          rtx_ssrc_(config.rtx_send_ssrc),
+          packet_history_(packet_history),
+          fec_generator_(fec_generator),
+          task_queue_(task_queue) {
+}
+ 
+RtpPacketSender::~RtpPacketSender() {
+
 }
 
-RtpPacketSender::~RtpPacketSender() = default;
-
-size_t RtpPacketSender::max_rtp_packet_size() const {
-    return task_queue_->Sync<size_t>([&](){
-        return this->packet_generator_.max_rtp_packet_size();
+ void RtpPacketSender::SetFecProtectionParameters(const FecProtectionParams& delta_params,
+                                                        const FecProtectionParams& key_params) {
+    task_queue_->Sync([&](){
+        this->pending_fec_params_.emplace(delta_params, key_params);
     });
 }
 
-void RtpPacketSender::set_max_rtp_packet_size(size_t max_size) {
-    task_queue_->Async([&, max_size](){
-        this->packet_generator_.set_max_rtp_packet_size(max_size);
-    });
-}
-
-RtxMode RtpPacketSender::rtx_mode() const {
-    return task_queue_->Sync<RtxMode>([&](){
-        return this->rtx_mode_;
-    });
-}
-    
-void RtpPacketSender::set_rtx_mode(RtxMode mode) {
-    task_queue_->Async([&, mode](){
-        this->rtx_mode_ = mode;
-    });
-}
-
-std::optional<uint32_t> RtpPacketSender::rtx_ssrc() const {
-    return task_queue_->Sync<std::optional<uint32_t>>([&](){
-        return this->packet_generator_.rtx_ssrc();
-    });
-}
-
-void RtpPacketSender::SetRtxPayloadType(int payload_type, int associated_payload_type) {
-    task_queue_->Async([&, payload_type, associated_payload_type](){
-        this->packet_generator_.SetRtxPayloadType(payload_type, associated_payload_type);
-    });
-}
-
-std::shared_ptr<RtpPacketToSend> RtpPacketSender::AllocatePacket() const {
-    return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([&](){
-        return this->packet_generator_.AllocatePacket();
-    });
-    
-}
-
-bool RtpPacketSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
-    return task_queue_->Sync<bool>([this, packets=std::move(packets)](){
-        int64_t now_ms = this->clock_->TimeInMs();
-        for (auto& packet : packets) {
-            // Assign sequence for per packet
-            if (!this->packet_sequencer_.AssignSequenceNumber(packet)) {
-                PLOG_WARNING << "Failed to assign sequence number for packet with type : " << int(packet->packet_type());
-                return false;
-            }
-            if (packet->capture_time_ms() <= 0) {
-                packet->set_capture_time_ms(now_ms);
-            }
+void RtpPacketSender::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
+    task_queue_->Async([this, packet=std::move(packet)](){
+        if (!packet) {
+            return;
         }
-        this->non_paced_sender_.EnqueuePackets(std::move(packets));
-        return true;
-    });
-}
+        if (!HasCorrectSsrc(packet)) {
+            return;
+        }
 
-// Nack
-void RtpPacketSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt) {
-    task_queue_->Async([this, nack_list=std::move(nack_list), avg_rrt](){
-        // FIXME: Why set RTT avg_rrt + 5 ms?
-        this->packet_history_.SetRtt(5 + avg_rrt);
-        for (uint16_t seq_num : nack_list) {
-            const int32_t bytes_sent = this->ResendPacket(seq_num);
-            if (bytes_sent < 0) {
-                PLOG_WARNING << "Failed resending RTP packet " << seq_num
-                             << ", Discard rest of packets.";
-                break;
+        if (packet->packet_type() == RtpPacketType::RETRANSMISSION && !packet->retransmitted_sequence_number().has_value()) {
+            PLOG_WARNING << "Retransmission RTP packet can not send without retransmitted sequence number.";
+            return;
+        }
+
+        // TODO: Update sequence number info map
+
+        if (fec_generator_ && packet->fec_protection_need()) {
+            
+            std::optional<std::pair<FecProtectionParams, FecProtectionParams>> new_fec_params;
+            new_fec_params.swap(pending_fec_params_);
+            if (new_fec_params) {
+                fec_generator_->SetProtectionParameters(new_fec_params->first /* delta */, new_fec_params->second /* key */);
+            }
+
+            // TODO: To generate FEC(ULP or FLEX) packet packetized in RED or sent by new ssrc stream
+            if (packet->red_protection_need()) {
+                this->fec_generator_->PushMediaPacket(packet);
+            }else {
+                this->fec_generator_->PushMediaPacket(packet);
+            }
+            
+        }  
+
+        const uint32_t packet_ssrc = packet->ssrc();
+        const int64_t now_ms = clock_->TimeInMs();
+
+        // Bug webrtc:7859. While FEC is invoked from rtp_sender_video, and not after
+        // the pacer, these modifications of the header below are happening after the
+        // FEC protection packets are calculated. This will corrupt recovered packets
+        // at the same place. It's not an issue for extensions, which are present in
+        // all the packets (their content just may be incorrect on recovered packets).
+        // In case of VideoTimingExtension, since it's present not in every packet,
+        // data after rtp header may be corrupted if these packets are protected by
+        // the FEC.
+        int64_t diff_ms = now_ms - packet->capture_time_ms();
+        if (packet->HasExtension<rtp::TransmissionTimeOffset>()) {
+            packet->SetExtension<rtp::TransmissionTimeOffset>(kTimestampTicksPerMs * diff_ms);
+        }
+
+        if (packet->HasExtension<rtp::AbsoluteSendTime>()) {
+            packet->SetExtension<rtp::AbsoluteSendTime>(rtp::AbsoluteSendTime::MsTo24Bits(now_ms));
+        }
+
+        // TODO: Update VideoTimingExtension?
+
+        const bool is_media = packet->packet_type() == RtpPacketType::AUDIO ||
+                            packet->packet_type() == RtpPacketType::VIDEO;
+        
+        auto transport_seq_num_ext = packet->GetExtension<rtp::TransportSequenceNumber>();
+        if (transport_seq_num_ext) {
+            SendPacketToNetworkFeedback(transport_seq_num_ext->transport_sequence_number(), packet);
+        }
+
+        if (packet->packet_type() != RtpPacketType::PADDING &&
+            packet->packet_type() != RtpPacketType::RETRANSMISSION) {
+            UpdateDelayStatistics(packet->capture_time_ms(), now_ms, packet_ssrc);
+            if (transport_seq_num_ext) {
+                OnSendPacket(transport_seq_num_ext->transport_sequence_number(), packet->capture_time_ms(), packet_ssrc);
             }
         }
+
+        const bool send_success = SendPacketToNetwork(packet);
+
+        // Put packet in retransmission history or update pending status even if
+        // actual sending fails.
+        if (is_media && packet->allow_retransmission()) {
+            packet_history_->PutRtpPacket(packet, now_ms);
+        } else if (packet->retransmitted_sequence_number()) {
+            packet_history_->MarkPacketAsSent(*packet->retransmitted_sequence_number());
+        }
+
+        if (send_success) {
+            // |media_has_been_sent_| is used by RTPSender to figure out if it can send
+            // padding in the absence of transport-cc or abs-send-time.
+            // In those cases media must be sent first to set a reference timestamp.
+            media_has_been_sent_ = true;
+
+            // TODO(sprang): Add support for FEC protecting all header extensions, add media packet to generator here instead.
+            RtpPacketType packet_type = packet->packet_type();
+            size_t size = packet->size();
+            UpdateRtpStats(now_ms, packet_ssrc, packet_type, size);
+        }else {
+            // TODO: We should clear the FEC packets if send failed?
+        }
     });
 }
 
-// FEC
-bool RtpPacketSender::fec_enabled() const {
-    return task_queue_->Sync<bool>([&](){
-        return fec_generator_ != nullptr;
-    });
-}
-
-bool RtpPacketSender::red_enabled() const {
-    return task_queue_->Sync<bool>([&](){
-        if (!fec_enabled()) {
-            return false;
-        }
-        return fec_generator_->red_payload_type().has_value();
-    });
-}
-
-size_t RtpPacketSender::FecPacketOverhead() const {
-    return task_queue_->Sync<size_t>([&](){
-        size_t overhead = 0;
-        if (!this->fec_enabled()) {
-            return overhead;
-        }
-        overhead = this->fec_generator_->MaxPacketOverhead();
-        if (this->fec_generator_->red_payload_type().has_value()) {
-            // RED packet overhead 
-            overhead += kRedForFecHeaderSize;
-            // ULP FEC
-            if (this->fec_generator_->fec_type() == FecGenerator::FecType::ULP_FEC) {
-                // For ULPFEC, the overhead is the FEC headers plus RED for FEC header 
-                // plus anthing int RTP packet beyond the 12 bytes base header, e.g.:
-                // CSRC list, extensions...
-                // This reason for the header extensions to be included here is that
-                // from an FEC viewpoint, they are part of the payload to be protected.
-                // and the base RTP header is already protected by the FEC header.
-                overhead += this->packet_generator_.FecOrPaddingPacketMaxRtpHeaderSize() - kRtpHeaderSize;
-            }
-        }
-        return overhead;
+std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketSender::FetchFecPackets() const {
+    return task_queue_->Sync<std::vector<std::shared_ptr<RtpPacketToSend>>>([](){
+        std::vector<std::shared_ptr<RtpPacketToSend>> packets;
+        // TODO: Fetch FEC packets from FEC generator
+        return packets;
     });
 }
 
 // Private methods
-int32_t RtpPacketSender::ResendPacket(uint16_t packet_id) {
-    // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
-    // so that we don't retransmit too often.
-    std::optional<RtpPacketSentHistory::PacketState> stored_packet = this->packet_history_.GetPacketState(packet_id);
-    if (!stored_packet.has_value() || stored_packet->pending_transmission) {
-        // Packet not found or already queued for retransmission, ignore.
-        return 0;
+bool RtpPacketSender::SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet) {
+    // TODO: Send packet to network by transport
+    return false;
+}
+
+bool RtpPacketSender::HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet) {
+    switch (packet->packet_type())
+    {
+    case RtpPacketType::AUDIO:
+    case RtpPacketType::VIDEO:
+        return packet->ssrc() == ssrc_;
+    case RtpPacketType::RETRANSMISSION:
+    case RtpPacketType::PADDING:
+        // Both padding and retransmission must be on either the media
+        // or the RTX stream.
+        return packet->ssrc() == ssrc_ || packet->ssrc() == rtx_ssrc_;
+    case RtpPacketType::FEC:
+        // FlexFEC is on separate SSRC, ULPFEC uses media SSRC.
+        return packet->ssrc() == ssrc_ || packet->ssrc() == fec_generator_->fec_ssrc();
     }
+    return false;
+}
 
-    const int32_t packet_size = static_cast<int32_t>(stored_packet->packet_size);
-    const bool rtx_enabled = (this->rtx_mode_ == RtxMode::RETRANSMITTED);
+void RtpPacketSender::SendPacketToNetworkFeedback(uint16_t packet_id, std::shared_ptr<RtpPacketToSend> packet) {
 
-    auto packet = this->packet_history_.GetPacketAndMarkAsPending(packet_id, [&](std::shared_ptr<RtpPacketToSend> stored_packet){
-        // TODO: Check if we're overusing retransmission bitrate.
-        std::shared_ptr<RtpPacketToSend> retransmit_packet;
-        // Retransmisson in RTX mode
-        if (rtx_enabled) {
-            retransmit_packet = this->packet_generator_.BuildRtxPacket(stored_packet);
-            // Replace sequence number.
-            packet_sequencer_.AssignSequenceNumber(retransmit_packet);
-        }
-        // Retransmission in normal mode
-        else {
-            retransmit_packet = stored_packet;
-        }
-        if (retransmit_packet) {
-            retransmit_packet->set_retransmitted_sequence_number(stored_packet->sequence_number());
-        }
-        return retransmit_packet;
-    });
+}
 
-    if (!packet) {
-        return -1;
+void RtpPacketSender::UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc) {
+
+}
+
+void RtpPacketSender::OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc) {
+    if (capture_time_ms <= 0) {
+        return;
     }
+}
 
-    packet->set_packet_type((RtpPacketType::RETRANSMISSION));
-    // A packet can not be FEC and RTX at the same time.
-    packet->set_fec_protection_need(false);
-    packet->set_red_protection_need(false);
-   
-    std::vector<std::shared_ptr<RtpPacketToSend>> packets;
-    packets.emplace_back(std::move(packet));
-    this->non_paced_sender_.EnqueuePackets(std::move(packets));
+void UpdateRtpStats(int64_t now_ms,
+                    uint32_t packet_ssrc,
+                    RtpPacketType packet_type,
+                    size_t packet_size) {
 
-    return packet_size;
 }
     
 } // namespace naivertc

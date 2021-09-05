@@ -7,7 +7,6 @@ RtcpSender::Configuration RtcpSender::Configuration::FromRtpRtcpConfiguration(co
 
     sender_config.audio = config.audio;
     sender_config.local_media_ssrc = config.local_media_ssrc;
-    sender_config.clock = config.clock;
     if (config.rtcp_report_interval_ms > 0) {
         sender_config.rtcp_report_interval = TimeDelta::Millis(config.rtcp_report_interval_ms);
     }
@@ -19,15 +18,15 @@ RtcpSender::RtcpContext::RtcpContext(const RtcpSender::FeedbackState& feedback_s
                                      const std::vector<uint16_t> nack_list,
                                     Timestamp now)
     : feedback_state_(feedback_state),
-        nack_list_(std::move(nack_list)),
-        now_(now) {}
+      nack_list_(std::move(nack_list)),
+      now_(now) {}
 
 // PacketSender
 RtcpSender::PacketSender::PacketSender(RtcpPacket::PacketReadyCallback callback,
                                        size_t max_packet_size)
     : callback_(callback), 
-    max_packet_size_(max_packet_size) {
-    assert(max_packet_size <= kIpPacketSize);
+      max_packet_size_(max_packet_size) {
+      assert(max_packet_size <= kIpPacketSize);
 }
 
 RtcpSender::PacketSender::~PacketSender() {}

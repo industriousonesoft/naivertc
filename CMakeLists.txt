@@ -57,6 +57,7 @@ set(LIB_SOURCES
     src/rtc/base/ntp_time_util.cpp
     src/rtc/base/clock.cpp
     src/rtc/base/clock_real_time.cpp
+    src/rtc/base/repeating_task.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_utils.cpp
@@ -99,9 +100,11 @@ set(LIB_SOURCES
     src/rtc/channels/media_channel.cpp
 
     # rtc -> call
-    src/rtc/call/video_send_stream.cpp
     src/rtc/call/rtp_config.cpp
-
+    src/rtc/call/media_send_stream.cpp
+    src/rtc/call/media_send_stream_rtcp.cpp
+    src/rtc/call/video_send_stream.cpp
+    
     # rtc -> media
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_sdp_builder.cpp
@@ -111,39 +114,37 @@ set(LIB_SOURCES
     src/rtc/media/video/h264/nalunit_auxiliaries.cpp
 
     # rtc -> rtp_rtcp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packet.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_sender.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_sender_builder.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_sender_auxiliaries.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_receiver.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
-    src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
+    # src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
+    # src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
+    # src/rtc/rtp_rtcp/rtp_rtcp_impl_rtcp.cpp
 
+    # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.cpp
 
+    # rtc -> rtp_rtcp -> rtp -> sender
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.cpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender_non_paced.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.cpp
 
-    # rtc -> rtp_rtcp -> video
+    src/rtc/rtp_rtcp/rtp/rtp_sender.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_sender_non_paced.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> video
     src/rtc/rtp_rtcp/rtp/video/rtp_video_sender.cpp
     src/rtc/rtp_rtcp/rtp/video/rtp_video_header.cpp
 
-    # rtc -> rtp_rtcp -> packetizer
+    # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.cpp
 
-    # rtc -> rtp_rtcp -> pacing
+    # rtc -> rtp_rtcp -> rtp -> pacing
     src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
 
-    # rtc -> rtp_rtcp -> fec
+    # rtc -> rtp_rtcp -> rtp -> fec
     src/rtc/rtp_rtcp/rtp/fec/fec_codec.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_encoder.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator.cpp
@@ -153,10 +154,6 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_generator_ulp.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_generator_flex.cpp
-
-    src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
-    src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
-    src/rtc/rtp_rtcp/rtp_rtcp_impl_rtcp.cpp
 
     # rtc -> rtp_rtcp -> rtcp_packets
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/compound_packet.cpp
@@ -177,6 +174,16 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/bye.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.cpp
+
+    # rtc -> rtp_rtcp -> rtcp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packet.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_sender.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_sender_builder.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_sender_auxiliaries.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_receiver.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
+    src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
 
 )
 
@@ -232,6 +239,7 @@ set(LIB_HEADERS
     include/rtc/base/time_delta.hpp
     include/rtc/base/sequence_number_utils.hpp
     include/rtc/base/divide_round.hpp
+    include/rtc/base/repeating_task.hpp
 
     # rtc -> sdp
     include/rtc/sdp/sdp_defines.hpp
@@ -264,8 +272,9 @@ set(LIB_HEADERS
     include/rtc/channels/media_channel.hpp
 
     # rtc -> call
-    include/rtc/call/video_send_stream.hpp
     include/rtc/call/rtp_config.hpp
+    include/rtc/call/media_send_stream.hpp
+    include/rtc/call/video_send_stream.hpp
 
     # rtc -> media
     include/rtc/media/media_track.hpp
@@ -276,36 +285,36 @@ set(LIB_HEADERS
     include/rtc/media/video/h264/nalunit_fragment.hpp
 
     # rtc -> rtp_rtcp
-    include/rtc/rtp_rtcp/rtcp/rtcp_packet.hpp
-    include/rtc/rtp_rtcp/rtcp/rtcp_sender.hpp
-    include/rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp
-    include/rtc/rtp_rtcp/rtcp/report_block_data.hpp
-    include/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
+    include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
+    include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
+    # include/rtc/rtp_rtcp/rtp_rtcp_impl.hpp
 
+     # rtc -> rtp_rtcp -> rtp -> packet
     include/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp
     include/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp
     include/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp
     include/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp
 
+     # rtc -> rtp_rtcp -> rtp -> sender
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
-    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp
-    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp
+    include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_sender.hpp
 
-    # rtc -> rtp_rtcp -> video
+    # rtc -> rtp_rtcp -> rtp -> video
     include/rtc/rtp_rtcp/rtp/video/rtp_video_sender.hpp
     include/rtc/rtp_rtcp/rtp/video/rtp_video_header.hpp
 
-    # rtc -> rtp_rtcp -> packetizer
+    # rtc -> rtp_rtcp -> rtp -> packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.hpp
 
-    # rtc -> rtp_rtcp -> pacing
+    # rtc -> rtp_rtcp -> rtp -> pacing
     include/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp
 
-    # rtc -> rtp_rtcp -> fec
+    # rtc -> rtp_rtcp -> rtp -> fec
     include/rtc/rtp_rtcp/rtp/fec/fec_defines.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_codec.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp
@@ -315,10 +324,6 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/fec/fec_generator.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_generator_ulp.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_generator_flex.hpp
-
-    include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
-    include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
-    include/rtc/rtp_rtcp/rtp_rtcp_impl.hpp
 
     # rtc -> rtp_rtcp -> rtcp_packets
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/compound_packet.hpp
@@ -339,6 +344,13 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/bye.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.hpp
+
+    # rtc -> rtp_rtcp -> rtcp
+    include/rtc/rtp_rtcp/rtcp/rtcp_packet.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_sender.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp
+    include/rtc/rtp_rtcp/rtcp/report_block_data.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
 
 )
 

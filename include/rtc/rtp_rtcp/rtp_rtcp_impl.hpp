@@ -7,7 +7,6 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_sender.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
 
-
 namespace naivertc {
 
 class RTC_CPP_EXPORT RtpRtcpImpl : public RtpRtcpInterface,
@@ -117,7 +116,6 @@ private:
     std::shared_ptr<Clock> clock_;
     RtcpSender rtcp_sender_;
     RtcpReceiver rtcp_receiver_;
-
 };
 
 } // namespace naivertc

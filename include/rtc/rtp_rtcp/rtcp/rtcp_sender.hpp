@@ -38,16 +38,7 @@ public:
         // FlexFec SSRC is fetched from |flexfec_sender|.
         uint32_t local_media_ssrc = 0;
 
-        // The clock to use to read time. If nullptr then system clock will be used.
-        std::shared_ptr<Clock> clock = nullptr;
-
-        // Optional callback which, if specified, is used by RTCPSender to schedule
-        // the next time to evaluate if RTCP should be sent by means of
-        // TimeToSendRTCPReport/SendRTCP.
-        // The RTCPSender client still needs to call TimeToSendRTCPReport/SendRTCP
-        // to actually get RTCP sent.
-        std::function<void(TimeDelta)> schedule_next_rtcp_send_evaluation_function;
-
+        // TimeDelta::Millis(config.rtcp_report_interval_ms);
         std::optional<TimeDelta> rtcp_report_interval;
     };
 
@@ -70,7 +61,9 @@ public:
         std::vector<rtcp::ReceiveTimeInfo> last_xr_rtis;
    };
 public:
-    RtcpSender(Configuration config, std::shared_ptr<TaskQueue> task_queue);
+    RtcpSender(Configuration config, 
+               std::shared_ptr<Clock> clock, 
+               std::shared_ptr<TaskQueue> task_queue);
 
     RtcpSender() = delete;
     RtcpSender(const RtcpSender&) = delete;
@@ -109,6 +102,13 @@ public:
                               bool decodability_flag,
                               bool buffering_allowed);
 
+    // Optional callback which, if specified, is used by RTCPSender to schedule
+    // the next time to evaluate if RTCP should be sent by means of
+    // TimeToSendRTCPReport/SendRTCP.
+    // The RTCPSender client still needs to call TimeToSendRTCPReport/SendRTCP
+    // to actually get RTCP sent.
+    using NextSendEvaluationTimeScheduledCallback = std::function<void(TimeDelta)>;
+    void OnNextSendEvaluationTimeScheduled(NextSendEvaluationTimeScheduledCallback callback);
 private:
     // RtcpContext
     class RtcpContext {
@@ -223,6 +223,10 @@ private:
     typedef void (RtcpSender::*BuilderFunc)(const RtcpContext&, PacketSender&);
     // Map from RTCPPacketType to builder.
     std::map<RtcpPacketType, BuilderFunc> builders_;
+
+    TaskQueue schedule_queue_;
+
+    NextSendEvaluationTimeScheduledCallback next_send_evaluation_time_scheduled_callback_;
 };
     
 } // namespace naivert 

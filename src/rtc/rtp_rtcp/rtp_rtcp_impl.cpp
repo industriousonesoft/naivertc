@@ -19,8 +19,8 @@ RtpRtcpImpl::RtpRtcpImpl(const RtpRtcpInterface::Configuration& config, std::sha
           RtcpSender::Configuration::FromRtpRtcpConfiguration(config),
           [this](TimeDelta duration) {
               ScheduleRtcpSendEvaluation(duration);
-          }), task_queue_),
-    rtcp_receiver_(config, this, task_queue_) {
+          }), config.clock, task_queue_),
+    rtcp_receiver_(RtcpReceiver::Configuration::FromRtpRtcpConfiguration(config), this, config.clock, task_queue_) {
 
 }
 

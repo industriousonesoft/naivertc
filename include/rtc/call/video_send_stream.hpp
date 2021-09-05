@@ -14,22 +14,8 @@ namespace naivertc {
 // VideoSendStream
 class RTC_CPP_EXPORT VideoSendStream {
 public:
-    // RtpStream: Sender for a single simulcast stream
-    struct RtpStream {
-        RtpStream(std::unique_ptr<RtpRtcpImpl> rtp_rtcp, 
-                     std::unique_ptr<RtpVideoSender> rtp_video_sender);
-        RtpStream(RtpStream&&) = default;
-        RtpStream& operator=(RtpStream&&) = default;
-        ~RtpStream();
-    private:
-        friend class VideoSendStream;
-        std::unique_ptr<RtpRtcpImpl> rtp_rtcp;
-        std::unique_ptr<RtpVideoSender> rtp_video_sender;
-        std::shared_ptr<FecGenerator> fec_generator;
-    };
-public:
-    VideoSendStream(std::shared_ptr<Clock> clock, 
-                    const RtpConfig& rtp_config,
+    VideoSendStream(const RtpConfig& rtp_config,
+                    std::shared_ptr<Clock> clock,
                     std::shared_ptr<Transport> send_transport, 
                     std::shared_ptr<TaskQueue> task_queue);
     ~VideoSendStream();
@@ -37,16 +23,7 @@ public:
     bool SendEncodedFrame(std::shared_ptr<VideoEncodedFrame> encoded_frame);
 
 private:
-    void InitRtpStreams(std::shared_ptr<Clock> clock, 
-                        const RtpConfig& rtp_config,
-                        std::shared_ptr<Transport> send_transport,
-                        std::shared_ptr<TaskQueue> task_queue);
-    std::shared_ptr<FecGenerator> CreateFecGeneratorIfNecessary(const RtpConfig& rtp_config, uint32_t media_ssrc);
-
-private:
-    const RtpConfig rtp_config_;
-    std::shared_ptr<TaskQueue> task_queue_;
-    std::vector<RtpStream> rtp_streams_;
+    std::unique_ptr<RtpVideoSender> rtp_video_sender;
 };
 
 } // namespace naivertc

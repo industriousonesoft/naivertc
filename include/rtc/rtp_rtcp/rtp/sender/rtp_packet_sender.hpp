@@ -1,78 +1,66 @@
-#ifndef _RTC_RTP_RTCP_RTP_SENDER_RTP_PACKET_SENDER_H_
-#define _RTC_RTP_RTCP_RTP_SENDER_RTP_PACKET_SENDER_H_
+#ifndef _RTC_RTP_RTCP_RTP_PACKET_SENDER_IMPL_H_
+#define _RTC_RTP_RTCP_RTP_PACKET_SENDER_IMPL_H_
 
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_sender.hpp"
 
+#include <optional>
+#include <functional>
+#include <vector>
+// 
 namespace naivertc {
 
+// NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketSender发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
 class RTC_CPP_EXPORT RtpPacketSender {
 public:
-    RtpPacketSender(const RtpRtcpInterface::Configuration& config, std::shared_ptr<TaskQueue> task_queue);
+    RtpPacketSender(const RtpSender::Configuration& config,
+                    RtpPacketSentHistory* const packet_history,
+                    std::shared_ptr<Clock> clock,
+                    std::shared_ptr<FecGenerator> fec_generator,
+                    std::shared_ptr<TaskQueue> task_queue);
     ~RtpPacketSender();
 
-    // Generator
-    size_t max_rtp_packet_size() const;
-    void set_max_rtp_packet_size(size_t max_size);
+    uint32_t ssrc() const { return ssrc_; }
+    std::optional<uint32_t> rtx_ssrc() const { return rtx_ssrc_; }
+   
+    void SetFecProtectionParameters(const FecProtectionParams& delta_params,
+                                    const FecProtectionParams& key_params);
 
-    std::shared_ptr<RtpPacketToSend> AllocatePacket() const;
+    void SendPacket(std::shared_ptr<RtpPacketToSend> packet);
 
-    // Send
-    bool EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets);
-
-    // NACK
-    void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt);
-
-    // RTX
-    RtxMode rtx_mode() const;
-    void set_rtx_mode(RtxMode mode);
-    std::optional<uint32_t> rtx_ssrc() const;
-    void SetRtxPayloadType(int payload_type, int associated_payload_type);
-
-    // FEC
-    bool fec_enabled() const;
-    bool red_enabled() const;
-    size_t FecPacketOverhead() const;
+    std::vector<std::shared_ptr<RtpPacketToSend>> FetchFecPackets() const;
 
 private:
-    int32_t ResendPacket(uint16_t packet_id);
+    bool SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet);
+
+    bool HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet);
+
+    void SendPacketToNetworkFeedback(uint16_t packet_id, std::shared_ptr<RtpPacketToSend> packet);
+    void UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc);
+    void OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc);
+
+    void UpdateRtpStats(int64_t now_ms,
+                        uint32_t packet_ssrc,
+                        RtpPacketType packet_type,
+                        size_t packet_size);
 
 private:
-    // NonPacedPacketSender
-    class NonPacedPacketSender {
-    public:
-        NonPacedPacketSender(RtpPacketSender* const rtp_sender_);
-        ~NonPacedPacketSender();
-
-        void EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets);
-
-    private:
-        void PrepareForSend(std::shared_ptr<RtpPacketToSend> packet);
-    private:
-        uint16_t transport_sequence_number_;
-        RtpPacketSender* const rtp_sender_;
-    };
     friend class NonPacedPacketSender;
-private:
-    RtxMode rtx_mode_;
 
-    std::shared_ptr<Clock> clock_;
+    std::shared_ptr<Clock> clock_; 
+    const uint32_t ssrc_;
+    const std::optional<uint32_t> rtx_ssrc_;
+    RtpPacketSentHistory* const packet_history_;
     std::shared_ptr<FecGenerator> fec_generator_;
+    std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;
+
     std::shared_ptr<TaskQueue> task_queue_;
 
-    RtpPacketSequencer packet_sequencer_;
-    RtpPacketSentHistory packet_history_;
-    RtpPacketEgresser packet_egresser_;
-    RtpPacketGenerator packet_generator_;
-
-    NonPacedPacketSender non_paced_sender_;
-
+    bool media_has_been_sent_ = false;
 };
     
 } // namespace naivertc

@@ -8,6 +8,14 @@ constexpr int kLocalMediaSsrcIndex = 1;
 constexpr int kRtxSendSsrcIndex = 2;
 constexpr int kFlexFecSsrcIndex = 3;
 
+RtcpReceiver::Configuration RtcpReceiver::Configuration::FromRtpRtcpConfiguration(const RtpRtcpInterface::Configuration& config) {
+    Configuration receiver_config;
+    receiver_config.local_media_ssrc = config.local_media_ssrc;
+    receiver_config.rtx_send_ssrc = config.rtx_send_ssrc;
+    receiver_config.fec_ssrc = config.fec_generator->fec_ssrc();
+    return receiver_config;
+}
+
 // RttStats
 void RtcpReceiver::RttStats::AddRtt(TimeDelta rtt) {
   last_rtt_ = rtt;
@@ -22,17 +30,22 @@ void RtcpReceiver::RttStats::AddRtt(TimeDelta rtt) {
 }
 
 // RTCPReceiver
-RtcpReceiver::RtcpReceiver(const RtpRtcpInterface::Configuration& config, Observer* observer, std::shared_ptr<TaskQueue> task_queue) 
-    : clock_(config.clock),
-    observer_(observer),
-    receiver_only_(false),
-    task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtcpReceiver.task.queue")) {
+RtcpReceiver::RtcpReceiver(const Configuration& config, 
+                           Observer* const observer, 
+                           std::shared_ptr<Clock> clock, 
+                           std::shared_ptr<TaskQueue> task_queue) 
+    : clock_(clock),
+      observer_(observer),
+      receiver_only_(false),
+      task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtcpReceiver.task.queue")) {
     // Registered ssrcs
     registered_ssrcs_[kLocalMediaSsrcIndex] = config.local_media_ssrc;
     if (config.rtx_send_ssrc.has_value()) {
         registered_ssrcs_[kRtxSendSsrcIndex] = config.rtx_send_ssrc.value();
     }
-    // TODO: insert flexfec ssrc if flexfec enabled
+    if (config.fec_ssrc.has_value()) {
+        registered_ssrcs_[kFlexFecSsrcIndex] = config.fec_ssrc.value();
+    }
 }
 
 RtcpReceiver::~RtcpReceiver() {}

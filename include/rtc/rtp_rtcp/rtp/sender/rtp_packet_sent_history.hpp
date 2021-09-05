@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_sender.hpp"
 
 #include <optional>
 #include <deque>
@@ -50,7 +50,9 @@ public:
     };
 
 public:
-    RtpPacketSentHistory(const RtpRtcpInterface::Configuration& config, std::shared_ptr<TaskQueue> task_queue);
+    RtpPacketSentHistory(const RtpSender::Configuration& config, 
+                         std::shared_ptr<Clock> clock, 
+                         std::shared_ptr<TaskQueue> task_queue);
 
     RtpPacketSentHistory() = delete;
     RtpPacketSentHistory(const RtpPacketSentHistory&) = delete;

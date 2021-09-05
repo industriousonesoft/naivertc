@@ -6,7 +6,7 @@
 #include "rtc/base/clock.hpp"
 #include "rtc/media/video/common.hpp"
 #include "rtc/rtp_rtcp/rtp/video/rtp_video_header.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_sender.hpp"
 #include "rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 
@@ -26,7 +26,7 @@ public:
         // Codec
         video::CodecType codec_type = video::CodecType::NONE;
       
-        std::shared_ptr<RtpPacketSender> packet_sender;
+        std::shared_ptr<RtpSender> packet_sender;
     };
 public:
     RtpVideoSender(const Configuration& config, 
@@ -48,7 +48,7 @@ private:
 private:
     std::shared_ptr<Clock> clock_;
     const video::CodecType codec_type_;
-    std::shared_ptr<RtpPacketSender> packet_sender_;
+    std::shared_ptr<RtpSender> packet_sender_;
     std::shared_ptr<TaskQueue> task_queue_;
 
     video::PlayoutDelay current_playout_delay_;
