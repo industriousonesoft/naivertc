@@ -11,19 +11,21 @@
 
 namespace naivertc {
 namespace signaling {
+
+// Configuration
+struct Configuration {
+    bool insecure = false;
+    
+    std::string signaling_url;
+    std::string room_id;
+    std::string client_id;
+    std::string signaling_key;
+    
+    std::vector<std::string> ice_server_urls;
+};
+
 class BaseChannel {
 public:
-    struct Configuration {
-        bool insecure = false;
-        
-        std::string signaling_url;
-        std::string room_id;
-        std::string client_id;
-        std::string signaling_key;
-        
-        std::vector<std::string> ice_server_urls;
-    };
-
     class Observer {
     public:
         virtual void OnConnected(bool is_initiator) = 0;

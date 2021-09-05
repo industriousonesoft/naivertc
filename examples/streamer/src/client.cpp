@@ -18,7 +18,7 @@ void Client::Start() {
     if (ayame_channel_ == nullptr) {
         ayame_channel_.reset(new signaling::AyameChannel(ioc_, weak_from_this()));
     }
-    signaling::Config signaling_config;
+    signaling::Configuration signaling_config;
     signaling_config.insecure = true;
     signaling_config.signaling_url = "wss://ayame-labo.shiguredo.jp/signaling";
     signaling_config.room_id = "industriousonesoft@ayame-labo-sample";
