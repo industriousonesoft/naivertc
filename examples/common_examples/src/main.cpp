@@ -29,9 +29,10 @@ int main(int argc, const char* argv[]) {
 
     // TaskQueue
     std::unique_ptr<taskqueue::Example> task_queue_example = std::make_unique<taskqueue::Example>();
-    task_queue_example->DelayPost();
-    task_queue_example->Post();
-    task_queue_example.reset();
+    // task_queue_example->DelayPost();
+    // task_queue_example->Post();
+    task_queue_example->RepeatingTask(3);
+    // task_queue_example.reset();
 
     // // Volatile
     // // volatile_tests::WithoutVolatile();

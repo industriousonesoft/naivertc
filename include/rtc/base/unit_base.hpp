@@ -79,7 +79,7 @@ protected:
       typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
     static constexpr Unit_T FromValue(T value) {
         if (Unit_T::one_sided)
-        assert(value >= 0);
+            assert(value >= 0);
         assert(value > min_value());
         assert(value < max_value());
         return Unit_T(utils::numeric::checked_static_cast<int64_t>(value));
@@ -103,7 +103,8 @@ protected:
         typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
     static constexpr Unit_T FromFraction(int64_t denominator, T value) {
         if (Unit_T::one_sided)
-        assert(value >= 0);
+            assert(value >= 0);
+        // FIXME: 当T为无符号类型时，min_value也会被隐式转换成无符号，导致assert结果为false
         assert(value > min_value() / denominator);
         assert(value < max_value() / denominator);
         return Unit_T(utils::numeric::checked_static_cast<int64_t>(value * denominator));

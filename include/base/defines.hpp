@@ -17,7 +17,8 @@
 #define RTC_NOTREACHED() \
     assert(false && "NOT REACHED")
 
-using TimeInterval = long;
+// FIXME: 暂不能使用uin64_t，因为unit_base中使用的是int64_t类型，如果使用uin64_t会导致越界问题
+using TimeInterval = int64_t;
 using BinaryBuffer = std::vector<uint8_t>;
 
 // TODO: Overload Pattern in C++17，overload原理就是模板推导和转发，变参模板怎么理解？

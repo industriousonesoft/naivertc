@@ -22,7 +22,7 @@ TaskQueue::TaskQueue(const std::string name)
 
 TaskQueue::~TaskQueue() {
 
-    PLOG_VERBOSE << __FUNCTION__;
+    PLOG_VERBOSE << __FUNCTION__ << " will destroy.";
 
     // Indicate that the work is no longer working, ioc will exit later.
     work_guard_.reset();
@@ -39,10 +39,11 @@ TaskQueue::~TaskQueue() {
         // the thread of execution has completed. Basically, this is one mechainism 
         // that can be used to know when a thread has finished. When thread::join() 
         // returns, the thread object can be destroyed.
-        PLOG_VERBOSE << "Join task queue";
+        PLOG_VERBOSE << "Blocking thread and waiting all task done.";
         ioc_thread_->join();
     }
     ioc_thread_.reset();
+    PLOG_VERBOSE << __FUNCTION__ << " did destroy.";
 }
 
 void TaskQueue::Sync(const std::function<void()> handler) const {
