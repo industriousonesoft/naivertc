@@ -9,17 +9,16 @@ constexpr int32_t kDefaultVideoReportIntervalMs = 1000; // 1s
 constexpr int32_t kDefaultAudioReportIntervalMs = 5000; // 5s
 }  // namespace
 
-RtcpSender::RtcpSender(Configuration config, 
-                       std::shared_ptr<Clock> clock, 
+RtcpSender::RtcpSender(const RtcpConfiguration& config,
                        std::shared_ptr<TaskQueue> task_queue) 
     : audio_(config.audio),
       ssrc_(config.local_media_ssrc),
-      clock_(clock),
+      clock_(config.clock),
       task_queue_(task_queue),
-      report_interval_(config.rtcp_report_interval.value_or(
-                       TimeDelta::Millis(config.audio ? kDefaultAudioReportIntervalMs
-                                                      : kDefaultVideoReportIntervalMs))),
-    max_packet_size_(kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */){
+      report_interval_(config.rtcp_report_interval_ms > 0 ? TimeDelta::Millis(config.rtcp_report_interval_ms) 
+                                                          : (TimeDelta::Millis(config.audio ? kDefaultAudioReportIntervalMs
+                                                                                            : kDefaultVideoReportIntervalMs))),
+      max_packet_size_(kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */) {
     
     if (!task_queue_) {
         task_queue_ = std::make_shared<TaskQueue>("RtcpSender.task.queue");

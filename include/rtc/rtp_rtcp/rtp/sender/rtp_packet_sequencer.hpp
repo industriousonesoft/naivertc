@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_sender.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 
 namespace naivertc {
 
@@ -24,7 +24,7 @@ public:
     // If |require_marker_before_media_padding| is true, padding packets on the media ssrc
     // is not allowed unless the last sequenced media packet had the marker bit set (i.e. don't
     // insert padding packets between the first and last packts of a video frame)
-    RtpPacketSequencer(const RtpSender::Configuration& config, std::shared_ptr<Clock> clock);
+    RtpPacketSequencer(const RtpConfiguration& config);
     ~RtpPacketSequencer();
 
     uint16_t media_sequence_num() const { return media_sequence_num_; }

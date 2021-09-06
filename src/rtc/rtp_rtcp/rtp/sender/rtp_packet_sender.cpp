@@ -8,16 +8,14 @@ namespace {
 constexpr uint32_t kTimestampTicksPerMs = 90;
 } // namespace
 
-RtpPacketSender::RtpPacketSender(const RtpSender::Configuration& config,
+RtpPacketSender::RtpPacketSender(const RtpConfiguration& config,
                                  RtpPacketSentHistory* const packet_history,
-                                 std::shared_ptr<Clock> clock,
-                                 std::shared_ptr<FecGenerator> fec_generator,
                                  std::shared_ptr<TaskQueue> task_queue) 
-        : clock_(clock),
+        : clock_(config.clock),
           ssrc_(config.local_media_ssrc),
           rtx_ssrc_(config.rtx_send_ssrc),
           packet_history_(packet_history),
-          fec_generator_(fec_generator),
+          fec_generator_(config.fec_generator),
           task_queue_(task_queue) {
 }
  

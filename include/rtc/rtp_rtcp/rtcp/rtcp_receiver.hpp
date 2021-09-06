@@ -7,7 +7,7 @@
 #include "rtc/base/timestamp.hpp"
 #include "rtc/base/time_delta.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtcp/report_block_data.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp"
 
@@ -25,15 +25,6 @@ class ReportBlock;
 
 // RtcpReceiver
 class RTC_CPP_EXPORT RtcpReceiver {
-public:
-    struct Configuration {
-        // Static helper
-        static Configuration FromRtpRtcpConfiguration(const RtpRtcpInterface::Configuration& config);
-        
-        uint32_t local_media_ssrc = 0;
-        std::optional<uint32_t> rtx_send_ssrc = std::nullopt;
-        std::optional<uint32_t> fec_ssrc = std::nullopt;
-    };
 public:
     // Observer
     class Observer {
@@ -68,9 +59,8 @@ public:
         size_t num_rtts_ = 0;
     };
 public:
-    RtcpReceiver(const Configuration& config, 
-                 Observer* const observer, 
-                 std::shared_ptr<Clock> clock, 
+    RtcpReceiver(const RtcpConfiguration& config, 
+                 Observer* const observer,
                  std::shared_ptr<TaskQueue> task_queue);
     ~RtcpReceiver();
 

@@ -7,7 +7,7 @@
 #include "rtc/base/time_delta.hpp"
 #include "rtc/base/timestamp.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_interface.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packet.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.hpp"
@@ -25,23 +25,6 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT RtcpSender final {
 public:
-    // Configuration
-    struct Configuration {
-        // Static helper
-        static Configuration FromRtpRtcpConfiguration(const RtpRtcpInterface::Configuration& config);
-
-        // True for a audio version of the RTP/RTCP module object false will create
-        // a video version.
-        bool audio = false;
-
-        // SSRCs for media and retransmission, respectively.
-        // FlexFec SSRC is fetched from |flexfec_sender|.
-        uint32_t local_media_ssrc = 0;
-
-        // TimeDelta::Millis(config.rtcp_report_interval_ms);
-        std::optional<TimeDelta> rtcp_report_interval;
-    };
-
     // FeedbackState
     struct FeedbackState {
         FeedbackState();
@@ -61,8 +44,7 @@ public:
         std::vector<rtcp::ReceiveTimeInfo> last_xr_rtis;
    };
 public:
-    RtcpSender(Configuration config, 
-               std::shared_ptr<Clock> clock, 
+    RtcpSender(const RtcpConfiguration& config,
                std::shared_ptr<TaskQueue> task_queue);
 
     RtcpSender() = delete;

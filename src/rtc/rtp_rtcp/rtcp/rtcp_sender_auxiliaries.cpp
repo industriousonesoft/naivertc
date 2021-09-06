@@ -1,18 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_sender.hpp"
 
 namespace naivertc {
-
-RtcpSender::Configuration RtcpSender::Configuration::FromRtpRtcpConfiguration(const RtpRtcpInterface::Configuration& config) {
-    RtcpSender::Configuration sender_config;
-
-    sender_config.audio = config.audio;
-    sender_config.local_media_ssrc = config.local_media_ssrc;
-    if (config.rtcp_report_interval_ms > 0) {
-        sender_config.rtcp_report_interval = TimeDelta::Millis(config.rtcp_report_interval_ms);
-    }
-    return sender_config;
-}
-
 // RtcpContext
 RtcpSender::RtcpContext::RtcpContext(const RtcpSender::FeedbackState& feedback_state,
                                      const std::vector<uint16_t> nack_list,

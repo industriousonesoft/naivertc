@@ -60,11 +60,10 @@ bool RtpPacketSentHistory::StoredPacketCompare::operator()(StoredPacket* lhs,
 
 // RtpPacketSentHistory
 // Public methods
-RtpPacketSentHistory::RtpPacketSentHistory(const RtpSender::Configuration& config, 
-                                           std::shared_ptr<Clock> clock,
+RtpPacketSentHistory::RtpPacketSentHistory(const RtpConfiguration& config,
                                            std::shared_ptr<TaskQueue> task_queue) 
     : task_queue_(task_queue),
-      clock_(clock),
+      clock_(config.clock),
       enable_padding_prio_(config.enable_rtx_padding_prioritization),
       number_to_store_(0),
       mode_(StorageMode::DISABLE),

@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/video/rtp_video_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_sender_video.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
 #include "rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.hpp"
 #include <plog/Log.h>
@@ -6,7 +6,7 @@
 namespace naivertc {
 
 
-RtpVideoSender::RtpVideoSender(const Configuration& config,
+RtpSenderVideo::RtpSenderVideo(const Configuration& config,
                                std::shared_ptr<TaskQueue> task_queue) 
     : clock_(config.clock),
       codec_type_(config.codec_type),
@@ -20,9 +20,9 @@ RtpVideoSender::RtpVideoSender(const Configuration& config,
     }
 }
     
-RtpVideoSender::~RtpVideoSender() {}
+RtpSenderVideo::~RtpSenderVideo() {}
 
-bool RtpVideoSender::SendVideo(int payload_type,
+bool RtpSenderVideo::SendVideo(int payload_type,
                                uint32_t rtp_timestamp, 
                                int64_t capture_time_ms, 
                                ArrayView<const uint8_t> payload,
@@ -171,14 +171,14 @@ bool RtpVideoSender::SendVideo(int payload_type,
 }
 
 // Private methods
-void RtpVideoSender::AddRtpHeaderExtensions(std::shared_ptr<RtpPacketToSend> packet) {
+void RtpSenderVideo::AddRtpHeaderExtensions(std::shared_ptr<RtpPacketToSend> packet) {
     if (playout_delay_pending_) {
         packet->SetExtension<rtp::PlayoutDelayLimits>(current_playout_delay_.min_ms, current_playout_delay_.max_ms);
     }
     // TODO: Support more extensions
 }
 
-void RtpVideoSender::MaybeUpdateCurrentPlayoutDelay(const RtpVideoHeader& header) {
+void RtpSenderVideo::MaybeUpdateCurrentPlayoutDelay(const RtpVideoHeader& header) {
     auto requested_delay = header.playout_delay;
     if (!requested_delay.IsAvailable()) {
         return;

@@ -1,0 +1,43 @@
+#ifndef _RTC_RTP_RTCP_RTCP_SENCEIVER_H_
+#define _RTC_RTP_RTCP_RTCP_SENCEIVER_H_
+
+#include "base/defines.hpp"
+#include "rtc/base/clock.hpp"
+#include "common/task_queue.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_sender.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
+
+namespace naivertc {
+
+class RTC_CPP_EXPORT RtcpSenceriver : public RtcpReceiver::Observer {
+public:
+    RtcpSenceriver(const RtcpConfiguration& config, 
+                   std::shared_ptr<TaskQueue> task_queue);
+    ~RtcpSenceriver();
+
+private:
+    // RtcpSender
+    RtcpSender::FeedbackState GetFeedbackState();
+    void MaybeSendRtcp();
+    void ScheduleRtcpSendEvaluation(TimeDelta duration);
+    void MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time);
+private:
+    // RtcpReceiver
+    void SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) override;
+    void OnRequestSendReport() override;
+    void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) override;
+    void OnReceivedRtcpReportBlocks(const ReportBlockList& report_blocks) override;  
+private:
+    std::shared_ptr<Clock> clock_;
+    std::shared_ptr<TaskQueue> task_queue_;
+    
+    RtcpSender rtcp_sender_;
+    RtcpReceiver rtcp_receiver_;
+    TaskQueue work_queue_;
+};
+    
+} // namespace naivertc
+
+
+#endif

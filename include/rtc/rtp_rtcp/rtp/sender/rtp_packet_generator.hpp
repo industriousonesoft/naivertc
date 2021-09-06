@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_sender.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 
 #include <memory>
 #include <vector>
@@ -15,7 +15,7 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT RtpPacketGenerator {
 public:
-    RtpPacketGenerator(const RtpSender::Configuration& config,
+    RtpPacketGenerator(const RtpConfiguration& config,
                        std::shared_ptr<TaskQueue> task_queue);
     RtpPacketGenerator() = delete;
     RtpPacketGenerator(const RtpPacketGenerator&) = delete;

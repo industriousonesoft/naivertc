@@ -100,9 +100,9 @@ set(LIB_SOURCES
     src/rtc/channels/media_channel.cpp
 
     # rtc -> call
-    src/rtc/call/rtp_config.cpp
-    src/rtc/call/media_send_stream.cpp
-    src/rtc/call/media_send_stream_rtcp.cpp
+    src/rtc/call/rtp_rtcp_config.cpp
+    # src/rtc/call/media_send_stream.cpp
+    # src/rtc/call/media_send_stream_rtcp.cpp
     src/rtc/call/video_send_stream.cpp
     
     # rtc -> media
@@ -117,6 +117,9 @@ set(LIB_SOURCES
     # src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
     # src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
     # src/rtc/rtp_rtcp/rtp_rtcp_impl_rtcp.cpp
+    src/rtc/rtp_rtcp/rtcp_senceiver.cpp
+    src/rtc/rtp_rtcp/rtcp_senceiver_sender.cpp
+    src/rtc/rtp_rtcp/rtcp_senceiver_receiver.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
@@ -132,10 +135,8 @@ set(LIB_SOURCES
 
     src/rtc/rtp_rtcp/rtp/rtp_sender.cpp
     src/rtc/rtp_rtcp/rtp/rtp_sender_non_paced.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> video
-    src/rtc/rtp_rtcp/rtp/video/rtp_video_sender.cpp
-    src/rtc/rtp_rtcp/rtp/video/rtp_video_header.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_sender_video.cpp
+    src/rtc/rtp_rtcp/rtp/rtp_video_header.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
@@ -272,8 +273,8 @@ set(LIB_HEADERS
     include/rtc/channels/media_channel.hpp
 
     # rtc -> call
-    include/rtc/call/rtp_config.hpp
-    include/rtc/call/media_send_stream.hpp
+    include/rtc/call/rtp_rtcp_config.hpp
+    # include/rtc/call/media_send_stream.hpp
     include/rtc/call/video_send_stream.hpp
 
     # rtc -> media
@@ -285,8 +286,9 @@ set(LIB_HEADERS
     include/rtc/media/video/h264/nalunit_fragment.hpp
 
     # rtc -> rtp_rtcp
-    include/rtc/rtp_rtcp/rtp_rtcp_interface.hpp
+    include/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
+    include/rtc/rtp_rtcp/rtcp_senceiver.hpp
     # include/rtc/rtp_rtcp/rtp_rtcp_impl.hpp
 
      # rtc -> rtp_rtcp -> rtp -> packet
@@ -301,11 +303,10 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_sender.hpp
 
-    # rtc -> rtp_rtcp -> rtp -> video
-    include/rtc/rtp_rtcp/rtp/video/rtp_video_sender.hpp
-    include/rtc/rtp_rtcp/rtp/video/rtp_video_header.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_sender.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_sender_video.hpp
+    include/rtc/rtp_rtcp/rtp/rtp_video_header.hpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp

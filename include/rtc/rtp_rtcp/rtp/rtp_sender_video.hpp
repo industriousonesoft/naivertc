@@ -5,7 +5,7 @@
 #include "common/task_queue.hpp"
 #include "rtc/base/clock.hpp"
 #include "rtc/media/video/common.hpp"
-#include "rtc/rtp_rtcp/rtp/video/rtp_video_header.hpp"
+#include "rtc/rtp_rtcp/rtp/rtp_video_header.hpp"
 #include "rtc/rtp_rtcp/rtp/rtp_sender.hpp"
 #include "rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
@@ -15,7 +15,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpVideoSender {
+class RTC_CPP_EXPORT RtpSenderVideo {
 public:
     struct Configuration {
         Configuration() = default;
@@ -29,9 +29,9 @@ public:
         std::shared_ptr<RtpSender> packet_sender;
     };
 public:
-    RtpVideoSender(const Configuration& config, 
+    RtpSenderVideo(const Configuration& config, 
                    std::shared_ptr<TaskQueue> task_queue);
-    virtual ~RtpVideoSender();
+    virtual ~RtpSenderVideo();
 
     bool SendVideo(int payload_type,
                    uint32_t rtp_timestamp, 

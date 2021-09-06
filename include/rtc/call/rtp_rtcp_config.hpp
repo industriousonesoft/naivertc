@@ -12,10 +12,10 @@ namespace naivertc {
 
 constexpr size_t kDefaultMaxPacketSize = kIpPacketSize - kTransportOverhead;
 
-struct RTC_CPP_EXPORT RtpConfig {
-    RtpConfig();
-    RtpConfig(const RtpConfig&);
-    ~RtpConfig();
+struct RTC_CPP_EXPORT RtpRtcpConfig {
+    RtpRtcpConfig();
+    RtpRtcpConfig(const RtpRtcpConfig&);
+    ~RtpRtcpConfig();
 
     // SSRC to use for the local media stream.
     uint32_t local_media_ssrc = 0;
