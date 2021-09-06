@@ -35,9 +35,6 @@ struct RtpConfiguration {
     std::shared_ptr<Clock> clock;
     
     std::shared_ptr<Transport> send_transport;
-
-    std::shared_ptr<FecGenerator> fec_generator;
-
 };
 
 struct RtcpConfiguration {

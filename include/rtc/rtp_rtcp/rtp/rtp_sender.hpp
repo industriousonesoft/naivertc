@@ -17,7 +17,9 @@
 namespace naivertc {
 class RTC_CPP_EXPORT RtpSender {
 public:
-    RtpSender(const RtpConfiguration& config, std::shared_ptr<TaskQueue> task_queue);
+    RtpSender(const RtpConfiguration& config, 
+              std::unique_ptr<FecGenerator> fec_generator, 
+              std::shared_ptr<TaskQueue> task_queue);
     virtual ~RtpSender();
 
     // Generator
@@ -68,8 +70,8 @@ private:
     RtxMode rtx_mode_;
 
     std::shared_ptr<Clock> clock_;
-    std::shared_ptr<FecGenerator> fec_generator_;
     std::shared_ptr<TaskQueue> task_queue_;
+    std::unique_ptr<FecGenerator> fec_generator_;
 
     RtpPacketSequencer packet_sequencer_;
     RtpPacketSentHistory packet_history_;

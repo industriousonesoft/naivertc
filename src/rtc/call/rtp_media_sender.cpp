@@ -27,19 +27,6 @@ void RtpMediaSender::InitRtpRtcpModules(const RtpRtcpConfig& rtp_rtcp_config,
     std::optional<uint32_t> rtx_send_ssrc = rtp_rtcp_config.rtx_send_ssrc;
     auto fec_generator = MaybeCreateFecGenerator(rtp_rtcp_config, local_media_ssrc);
 
-    // RtpSender
-    RtpConfiguration rtp_config;
-    rtp_config.audio = media_type() == MediaType::AUDIO;
-    rtp_config.extmap_allow_mixed = rtp_rtcp_config.extmap_allow_mixed;
-    rtp_config.local_media_ssrc = local_media_ssrc;
-    rtp_config.rtx_send_ssrc = rtx_send_ssrc;
-    rtp_config.clock = clock;
-    rtp_config.send_transport = send_transport;
-    rtp_config.fec_generator = fec_generator;
-    auto rtp_sender = std::make_shared<RtpSender>(rtp_config, task_queue);
-    // FIXME: Why do we need to enable NACK here?? What the rtp_config.nack_enabled works for?
-    rtp_sender->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
-
     // RtcpSenceiver
     RtcpConfiguration rtcp_config;
     rtcp_config.audio = media_type() == MediaType::AUDIO;
@@ -49,13 +36,24 @@ void RtpMediaSender::InitRtpRtcpModules(const RtpRtcpConfig& rtp_rtcp_config,
     rtcp_config.fec_ssrc = fec_generator->fec_ssrc();
     rtcp_config.clock = clock;
     auto rtcp_senceiver = std::make_unique<RtcpSenceiver>(rtcp_config, task_queue);
+
+    // RtpSender
+    RtpConfiguration rtp_config;
+    rtp_config.audio = media_type() == MediaType::AUDIO;
+    rtp_config.extmap_allow_mixed = rtp_rtcp_config.extmap_allow_mixed;
+    rtp_config.local_media_ssrc = local_media_ssrc;
+    rtp_config.rtx_send_ssrc = rtx_send_ssrc;
+    rtp_config.clock = clock;
+    rtp_config.send_transport = send_transport;
+    auto rtp_sender = std::make_shared<RtpSender>(rtp_config, std::move(fec_generator), task_queue);
+    // FIXME: Why do we need to enable NACK here?? What the rtp_config.nack_enabled works for?
+    rtp_sender->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
    
     rtcp_senceiver_ = std::move(rtcp_senceiver);
     rtp_sender_ = std::move(rtp_sender);
-    fec_generator_ = std::move(fec_generator);
 }
 
-std::shared_ptr<FecGenerator> RtpMediaSender::MaybeCreateFecGenerator(const RtpRtcpConfig& rtp_config, uint32_t media_ssrc) {
+std::unique_ptr<FecGenerator> RtpMediaSender::MaybeCreateFecGenerator(const RtpRtcpConfig& rtp_config, uint32_t media_ssrc) {
     // Flexfec takes priority
     if (rtp_config.flexfec.payload_type >= 0) {
         assert(rtp_config.flexfec.payload_type <= 127);
@@ -77,6 +75,7 @@ std::shared_ptr<FecGenerator> RtpMediaSender::MaybeCreateFecGenerator(const RtpR
         }
 
         return std::make_unique<FlexfecGenerator>();
+
     }else if (rtp_config.ulpfec.red_payload_type >= 0 && 
               rtp_config.ulpfec.ulpfec_payload_type >= 0) {
         // Payload tyeps without picture ID (contained in VP8/VP9, not in H264) cannnot determine

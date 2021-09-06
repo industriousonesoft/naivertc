@@ -32,7 +32,7 @@ private:
                             std::shared_ptr<Transport> send_transport,
                             std::shared_ptr<TaskQueue> task_queue);
 
-    std::shared_ptr<FecGenerator> MaybeCreateFecGenerator(const RtpRtcpConfig& rtp_config, uint32_t media_ssrc);
+    std::unique_ptr<FecGenerator> MaybeCreateFecGenerator(const RtpRtcpConfig& rtp_config, uint32_t media_ssrc);
 
 protected:
     std::shared_ptr<RtpSender> rtp_sender_ = nullptr;
@@ -42,7 +42,6 @@ private:
     TaskQueue rtcp_task_queue_;
     
     std::unique_ptr<RtcpSenceiver> rtcp_senceiver_ = nullptr;
-    std::shared_ptr<FecGenerator> fec_generator_ = nullptr;
 };
     
 } // namespace naivertc

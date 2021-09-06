@@ -9,14 +9,15 @@ namespace {
 } // namespace
 
 RtpSender::RtpSender(const RtpConfiguration& config,
+                     std::unique_ptr<FecGenerator> fec_generator,
                      std::shared_ptr<TaskQueue> task_queue)
     : rtx_mode_(RtxMode::OFF),
       clock_(config.clock),
-      fec_generator_(config.fec_generator),
       task_queue_(task_queue),
+      fec_generator_(std::move(fec_generator)),
       packet_sequencer_(config),
       packet_history_(config, task_queue),
-      packet_sender_(config, &packet_history_, task_queue), 
+      packet_sender_(config, &packet_history_, fec_generator_.get(),task_queue), 
       packet_generator_(config, task_queue),
       non_paced_sender_(this) {
       

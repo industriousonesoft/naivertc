@@ -11,7 +11,7 @@
 #include <optional>
 #include <functional>
 #include <vector>
-// 
+
 namespace naivertc {
 
 // NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketSender发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
@@ -19,6 +19,7 @@ class RTC_CPP_EXPORT RtpPacketSender {
 public:
     RtpPacketSender(const RtpConfiguration& config,
                     RtpPacketSentHistory* const packet_history,
+                    FecGenerator* const fec_generator,
                     std::shared_ptr<TaskQueue> task_queue);
     ~RtpPacketSender();
 
@@ -53,7 +54,7 @@ private:
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
     RtpPacketSentHistory* const packet_history_;
-    std::shared_ptr<FecGenerator> fec_generator_;
+    FecGenerator* const fec_generator_;
     std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;
 
     std::shared_ptr<TaskQueue> task_queue_;
