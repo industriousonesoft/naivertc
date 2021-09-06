@@ -101,9 +101,8 @@ set(LIB_SOURCES
 
     # rtc -> call
     src/rtc/call/rtp_rtcp_config.cpp
-    # src/rtc/call/media_send_stream.cpp
-    # src/rtc/call/media_send_stream_rtcp.cpp
-    src/rtc/call/video_send_stream.cpp
+    src/rtc/call/rtp_media_sender.cpp
+    src/rtc/call/rtp_video_sender.cpp
     
     # rtc -> media
     src/rtc/media/media_track.cpp
@@ -112,14 +111,6 @@ set(LIB_SOURCES
     src/rtc/media/video/h264/nalunit.cpp
     src/rtc/media/video/h264/nalunit_fragment.cpp
     src/rtc/media/video/h264/nalunit_auxiliaries.cpp
-
-    # rtc -> rtp_rtcp
-    # src/rtc/rtp_rtcp/rtp_rtcp_impl.cpp
-    # src/rtc/rtp_rtcp/rtp_rtcp_impl_rtp.cpp
-    # src/rtc/rtp_rtcp/rtp_rtcp_impl_rtcp.cpp
-    src/rtc/rtp_rtcp/rtcp_senceiver.cpp
-    src/rtc/rtp_rtcp/rtcp_senceiver_sender.cpp
-    src/rtc/rtp_rtcp/rtcp_senceiver_receiver.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
@@ -185,6 +176,9 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
     src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_senceiver.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_senceiver_sender.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_senceiver_receiver.cpp
 
 )
 
@@ -274,8 +268,8 @@ set(LIB_HEADERS
 
     # rtc -> call
     include/rtc/call/rtp_rtcp_config.hpp
-    # include/rtc/call/media_send_stream.hpp
-    include/rtc/call/video_send_stream.hpp
+    include/rtc/call/rtp_media_sender.hpp
+    include/rtc/call/rtp_video_sender.hpp
 
     # rtc -> media
     include/rtc/media/media_track.hpp
@@ -288,8 +282,6 @@ set(LIB_HEADERS
     # rtc -> rtp_rtcp
     include/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
-    include/rtc/rtp_rtcp/rtcp_senceiver.hpp
-    # include/rtc/rtp_rtcp/rtp_rtcp_impl.hpp
 
      # rtc -> rtp_rtcp -> rtp -> packet
     include/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp
@@ -352,6 +344,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp
     include/rtc/rtp_rtcp/rtcp/report_block_data.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
+    include/rtc/rtp_rtcp/rtcp/rtcp_senceiver.hpp
 
 )
 

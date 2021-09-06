@@ -17,19 +17,9 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT RtpSenderVideo {
 public:
-    struct Configuration {
-        Configuration() = default;
-        Configuration(const Configuration&) = delete;
-        Configuration(Configuration&&) = default;
-
-        std::shared_ptr<Clock> clock = nullptr;
-        // Codec
-        video::CodecType codec_type = video::CodecType::NONE;
-      
-        std::shared_ptr<RtpSender> packet_sender;
-    };
-public:
-    RtpSenderVideo(const Configuration& config, 
+    RtpSenderVideo(video::CodecType codec_type,
+                   std::shared_ptr<Clock> clock,
+                   std::shared_ptr<RtpSender> packet_sender,
                    std::shared_ptr<TaskQueue> task_queue);
     virtual ~RtpSenderVideo();
 
@@ -46,8 +36,8 @@ private:
 
     void AddRtpHeaderExtensions(std::shared_ptr<RtpPacketToSend> packet);
 private:
-    std::shared_ptr<Clock> clock_;
     const video::CodecType codec_type_;
+    std::shared_ptr<Clock> clock_;
     std::shared_ptr<RtpSender> packet_sender_;
     std::shared_ptr<TaskQueue> task_queue_;
 

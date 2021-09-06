@@ -6,15 +6,17 @@
 namespace naivertc {
 
 
-RtpSenderVideo::RtpSenderVideo(const Configuration& config,
+RtpSenderVideo::RtpSenderVideo(video::CodecType codec_type,
+                               std::shared_ptr<Clock> clock,
+                               std::shared_ptr<RtpSender> packet_sender,
                                std::shared_ptr<TaskQueue> task_queue) 
-    : clock_(config.clock),
-      codec_type_(config.codec_type),
-      packet_sender_(config.packet_sender),
+    : codec_type_(codec_type),
+      clock_(clock),
+      packet_sender_(packet_sender),
       task_queue_(task_queue),
       current_playout_delay_{-1, -1},
       playout_delay_pending_(false) {
-
+          
     if (codec_type_ == video::CodecType::H264) {
         rtp_packetizer_ = std::make_shared<RtpH264Packetizer>();
     }

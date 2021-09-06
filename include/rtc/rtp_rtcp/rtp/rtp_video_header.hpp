@@ -6,6 +6,7 @@
 
 namespace naivertc {
 
+// TODO: Put into encoded frame
 struct RTC_CPP_EXPORT RtpVideoHeader { 
 public:
     RtpVideoHeader();

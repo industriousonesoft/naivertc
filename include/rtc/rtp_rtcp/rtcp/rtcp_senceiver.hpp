@@ -10,11 +10,11 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtcpSenceriver : public RtcpReceiver::Observer {
+class RTC_CPP_EXPORT RtcpSenceiver : public RtcpReceiver::Observer {
 public:
-    RtcpSenceriver(const RtcpConfiguration& config, 
+    RtcpSenceiver(const RtcpConfiguration& config, 
                    std::shared_ptr<TaskQueue> task_queue);
-    ~RtcpSenceriver();
+    ~RtcpSenceiver();
 
 private:
     // RtcpSender

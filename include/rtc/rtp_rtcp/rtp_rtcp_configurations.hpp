@@ -44,8 +44,7 @@ struct RtcpConfiguration {
     // True for a audio version of the RTP/RTCP module object false will create
     // a video version.
     bool audio = false;
-    bool receiver_only = false;
-
+  
     size_t rtcp_report_interval_ms = 0;
     
     // Corresponds to extmap-allow-mixed in SDP negotiation.
