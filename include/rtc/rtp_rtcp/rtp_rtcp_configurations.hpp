@@ -33,7 +33,7 @@ struct RtpConfiguration {
     // overhead.
     bool enable_rtx_padding_prioritization = true;
 
-    RtpSentCountersObserver* const rtp_sent_counters_observer = nullptr;
+    RtpSentCountersObserver* rtp_sent_counters_observer = nullptr;
 
     std::shared_ptr<Clock> clock;
     

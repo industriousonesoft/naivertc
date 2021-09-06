@@ -44,7 +44,7 @@ private:
     int32_t cumulative_packet_lost_;
     uint32_t extended_high_seq_num_;
     uint32_t jitter_;
-    // Last send report timestamp, 
+    // Last send report NTP timestamp, 
     // the middle 32 bits out of 64 in the NTP timestamp
     uint32_t last_sr_ntp_timestamp_;
     // The delay, expressed in units of 1/65536 seconds, between

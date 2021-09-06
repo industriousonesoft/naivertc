@@ -76,6 +76,16 @@ public:
 
     void IncomingPacket(BinaryBuffer packet);
 
+    // Get received NTP.
+    bool NTP(uint32_t* received_ntp_secs,
+             uint32_t* received_ntp_frac,
+             uint32_t* rtcp_arrival_time_secs,
+             uint32_t* rtcp_arrival_time_frac,
+             uint32_t* rtcp_timestamp,
+             uint32_t* remote_sender_packet_count,
+             uint64_t* remote_sender_octet_count,
+             uint64_t* remote_sender_reports_count) const;
+
 private:
     bool ParseCompoundPacket(BinaryBuffer packet);
     bool ParseSenderReport(const rtcp::CommonHeader& rtcp_block);

@@ -196,7 +196,7 @@ void RtpPacketSender::UpdateSentStats(int64_t now_ms, const RtpPacketToSend& pac
     sent_counters->transmitted += packet_counter;
 
     if (sent_counters_observer_) {
-        sent_counters_observer_->SentCountersUpdated(*sent_counters, packet_ssrc);
+        sent_counters_observer_->RtpSentCountersUpdated(rtp_sent_counters_, rtx_sent_counters_);
     }
 }
     

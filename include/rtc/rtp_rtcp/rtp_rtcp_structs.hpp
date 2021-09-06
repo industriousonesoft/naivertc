@@ -97,7 +97,7 @@ struct RtpSentCounters {
 class RtpSentCountersObserver {
 public:
     virtual ~RtpSentCountersObserver() = default;
-    virtual void SentCountersUpdated(const RtpSentCounters& counters, size_t ssrc);
+    virtual void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, const RtpSentCounters& rtx_sent_counters);
 };
 
 } // namespace naivertc

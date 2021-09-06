@@ -76,6 +76,46 @@ void RtcpReceiver::IncomingPacket(BinaryBuffer packet) {
     
 }
 
+bool RtcpReceiver::NTP(uint32_t* received_ntp_secs,
+                       uint32_t* received_ntp_frac,
+                       uint32_t* rtcp_arrival_time_secs,
+                       uint32_t* rtcp_arrival_time_frac,
+                       uint32_t* rtcp_timestamp,
+                       uint32_t* remote_sender_packet_count,
+                       uint64_t* remote_sender_octet_count,
+                       uint64_t* remote_sender_reports_count) const {
+    return task_queue_->Sync<bool>([&](){
+        
+        if (!last_received_sr_ntp_.Valid())
+            return false;
+
+        // NTP from incoming SenderReport.
+        if (received_ntp_secs)
+            *received_ntp_secs = remote_sender_ntp_time_.seconds();
+        if (received_ntp_frac)
+            *received_ntp_frac = remote_sender_ntp_time_.fractions();
+        // Rtp time from incoming SenderReport.
+        if (rtcp_timestamp)
+            *rtcp_timestamp = remote_sender_rtp_time_;
+
+        // Local NTP time when we received a RTCP packet with a send block.
+        if (rtcp_arrival_time_secs)
+            *rtcp_arrival_time_secs = last_received_sr_ntp_.seconds();
+        if (rtcp_arrival_time_frac)
+            *rtcp_arrival_time_frac = last_received_sr_ntp_.fractions();
+
+        // Counters.
+        if (remote_sender_packet_count)
+            *remote_sender_packet_count = remote_sender_packet_count_;
+        if (remote_sender_octet_count)
+            *remote_sender_octet_count = remote_sender_octet_count_;
+        if (remote_sender_reports_count)
+            *remote_sender_reports_count = remote_sender_reports_count_;
+
+        return true;
+    });
+}
+
 // Private methods
 bool RtcpReceiver::IsRegisteredSsrc(uint32_t ssrc) const {
     for (const auto& kv : registered_ssrcs_) {

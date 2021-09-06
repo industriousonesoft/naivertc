@@ -39,9 +39,8 @@ public:
 
         uint32_t last_rr_ntp_secs;
         uint32_t last_rr_ntp_frac;
+        // Remote send report NTP timestamp
         uint32_t remote_sr;
-
-        std::vector<rtcp::ReceiveTimeInfo> last_xr_rtis;
    };
 public:
     RtcpSender(const RtcpConfiguration& config,

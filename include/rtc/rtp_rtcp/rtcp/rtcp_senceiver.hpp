@@ -10,15 +10,20 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtcpSenceiver : public RtcpReceiver::Observer {
+class RTC_CPP_EXPORT RtcpSenceiver : public RtcpReceiver::Observer,
+                                     public RtpSentCountersObserver {
 public:
     RtcpSenceiver(const RtcpConfiguration& config, 
                    std::shared_ptr<TaskQueue> task_queue);
     ~RtcpSenceiver();
 
 private:
+    // RtpSener observers
+    void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, const RtpSentCounters& rtx_sent_counters) override;
+
+private:
     // RtcpSender
-    RtcpSender::FeedbackState GetFeedbackState();
+    const RtcpSender::FeedbackState& GetFeedbackState();
     void MaybeSendRtcp();
     void ScheduleRtcpSendEvaluation(TimeDelta duration);
     void MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time);
@@ -35,6 +40,8 @@ private:
     RtcpSender rtcp_sender_;
     RtcpReceiver rtcp_receiver_;
     TaskQueue work_queue_;
+
+    RtcpSender::FeedbackState feedback_state_;
 };
     
 } // namespace naivertc
