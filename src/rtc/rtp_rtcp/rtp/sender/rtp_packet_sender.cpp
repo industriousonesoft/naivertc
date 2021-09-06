@@ -15,9 +15,11 @@ RtpPacketSender::RtpPacketSender(const RtpConfiguration& config,
         : clock_(config.clock),
           ssrc_(config.local_media_ssrc),
           rtx_ssrc_(config.rtx_send_ssrc),
+          sent_counters_observer_(config.rtp_sent_counters_observer),
           packet_history_(packet_history),
           fec_generator_(fec_generator),
-          task_queue_(task_queue) {
+          task_queue_(task_queue),
+          worker_queue_("RtpPacketSender.worker.queue") {
 }
  
 RtpPacketSender::~RtpPacketSender() {
@@ -119,9 +121,10 @@ void RtpPacketSender::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
             media_has_been_sent_ = true;
 
             // TODO(sprang): Add support for FEC protecting all header extensions, add media packet to generator here instead.
-            RtpPacketType packet_type = packet->packet_type();
-            size_t size = packet->size();
-            UpdateRtpStats(now_ms, packet_ssrc, packet_type, size);
+           
+            worker_queue_.Async([&](){
+                UpdateSentStats(now_ms, *packet.get());
+            });
         }else {
             // TODO: We should clear the FEC packets if send failed?
         }
@@ -174,11 +177,27 @@ void RtpPacketSender::OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, 
     }
 }
 
-void UpdateRtpStats(int64_t now_ms,
-                    uint32_t packet_ssrc,
-                    RtpPacketType packet_type,
-                    size_t packet_size) {
+void RtpPacketSender::UpdateSentStats(int64_t now_ms, const RtpPacketToSend& packet) {
+    // NOTE: We will send the retransmitted packets and padding packets by RTX stream, but:
+    // 1) the RTX stream can send either the retransmitted packets or the padding packets
+    // 2) the retransmitted packets can be sent by either the meida stream or the RTX stream
+    // see https://blog.csdn.net/sonysuqin/article/details/82021185
+    auto packet_ssrc = packet.ssrc();
+    RtpSentCounters* const sent_counters = packet_ssrc == rtx_ssrc_ ? &rtx_sent_counters_ : &rtp_sent_counters_;
+    RtpPacketCounter packet_counter(packet);
+    auto packet_type = packet.packet_type();
+    // FEC packet
+    if (packet_type == RtpPacketType::FEC) {
+        sent_counters->fec += packet_counter;
+    // Retransmittion packet
+    }else if (packet_type == RtpPacketType::RETRANSMISSION) {
+        sent_counters->retransmitted += packet_counter;
+    }
+    sent_counters->transmitted += packet_counter;
 
+    if (sent_counters_observer_) {
+        sent_counters_observer_->SentCountersUpdated(*sent_counters, packet_ssrc);
+    }
 }
     
 } // namespace naivertc

@@ -7,6 +7,7 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
 
 #include <optional>
 #include <functional>
@@ -42,10 +43,7 @@ private:
     void UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc);
     void OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc);
 
-    void UpdateRtpStats(int64_t now_ms,
-                        uint32_t packet_ssrc,
-                        RtpPacketType packet_type,
-                        size_t packet_size);
+    void UpdateSentStats(int64_t now_ms, const RtpPacketToSend& packet);
 
 private:
     friend class NonPacedPacketSender;
@@ -53,13 +51,19 @@ private:
     std::shared_ptr<Clock> clock_; 
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
+    RtpSentCountersObserver* const sent_counters_observer_;
+    
     RtpPacketSentHistory* const packet_history_;
     FecGenerator* const fec_generator_;
-    std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;
-
     std::shared_ptr<TaskQueue> task_queue_;
 
+    std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;
+
     bool media_has_been_sent_ = false;
+
+    TaskQueue worker_queue_;
+    RtpSentCounters rtp_sent_counters_;
+    RtpSentCounters rtx_sent_counters_;
 };
     
 } // namespace naivertc

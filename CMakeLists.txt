@@ -112,6 +112,9 @@ set(LIB_SOURCES
     src/rtc/media/video/h264/nalunit_fragment.cpp
     src/rtc/media/video/h264/nalunit_auxiliaries.cpp
 
+    # rtc -> rtp_rtcp
+    src/rtc/rtp_rtcp/rtp_rtcp_structs.cpp
+
     # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.cpp
@@ -282,6 +285,7 @@ set(LIB_HEADERS
     # rtc -> rtp_rtcp
     include/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
+    include/rtc/rtp_rtcp/rtp_rtcp_structs.hpp
 
      # rtc -> rtp_rtcp -> rtp -> packet
     include/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp

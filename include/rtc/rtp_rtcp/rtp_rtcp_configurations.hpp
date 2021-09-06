@@ -5,6 +5,7 @@
 #include "rtc/base/clock.hpp"
 #include "rtc/transports/transport.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
 
 #include <optional>
 #include <vector>
@@ -31,6 +32,8 @@ struct RtpConfiguration {
     // If false, the last packet will always be picked. This may reduce CPU
     // overhead.
     bool enable_rtx_padding_prioritization = true;
+
+    RtpSentCountersObserver* const rtp_sent_counters_observer = nullptr;
 
     std::shared_ptr<Clock> clock;
     

@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_REPORT_BLOCK_DATA_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
 
 namespace naivertc {
 

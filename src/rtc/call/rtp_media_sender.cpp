@@ -6,11 +6,12 @@
 
 namespace naivertc {
 
-RtpMediaSender::RtpMediaSender(const RtpRtcpConfig& rtp_rtcp_config,
+RtpMediaSender::RtpMediaSender(const RtpRtcpConfig rtp_rtcp_config,
                                std::shared_ptr<Clock> clock,
                                std::shared_ptr<Transport> send_transport, 
                                std::shared_ptr<TaskQueue> task_queue) 
-    : clock_(clock),
+    : rtp_rtcp_config_(rtp_rtcp_config),
+      clock_(clock),
       task_queue_(task_queue) {
     InitRtpRtcpModules(rtp_rtcp_config, clock, send_transport, task_queue);
 }

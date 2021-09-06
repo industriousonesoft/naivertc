@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <string>
+#include <optional>
 
 namespace naivertc {
 namespace rtp {

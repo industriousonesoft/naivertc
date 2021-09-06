@@ -19,7 +19,7 @@ public:
         AUDIO
     };  
 public:
-    RtpMediaSender(const RtpRtcpConfig& rtp_rtcp_config,
+    RtpMediaSender(const RtpRtcpConfig rtp_rtcp_config,
                    std::shared_ptr<Clock> clock,
                    std::shared_ptr<Transport> send_transport, 
                    std::shared_ptr<TaskQueue> task_queue);
@@ -37,6 +37,7 @@ private:
 protected:
     std::shared_ptr<RtpSender> rtp_sender_ = nullptr;
 private:
+    const RtpRtcpConfig rtp_rtcp_config_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<TaskQueue> task_queue_;
     TaskQueue rtcp_task_queue_;
