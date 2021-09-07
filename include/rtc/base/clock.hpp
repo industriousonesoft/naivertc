@@ -2,7 +2,7 @@
 #define _RTC_BASE_CLOCK_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/timestamp.hpp"
+#include "rtc/base/units/timestamp.hpp"
 #include "rtc/base/ntp_time.hpp"
 
 namespace naivertc {

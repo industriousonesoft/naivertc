@@ -58,6 +58,7 @@ set(LIB_SOURCES
     src/rtc/base/clock.cpp
     src/rtc/base/clock_real_time.cpp
     src/rtc/base/repeating_task.cpp
+    src/rtc/base/rate_statistics.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_utils.cpp
@@ -229,15 +230,16 @@ set(LIB_HEADERS
     include/rtc/base/byte_io_writer.hpp
     include/rtc/base/ntp_time.hpp
     include/rtc/base/ntp_time_util.hpp
-    include/rtc/base/unit_base.hpp
-    include/rtc/base/unit_relative.hpp
     include/rtc/base/clock.hpp
     include/rtc/base/clock_real_time.hpp
-    include/rtc/base/timestamp.hpp
-    include/rtc/base/time_delta.hpp
     include/rtc/base/sequence_number_utils.hpp
     include/rtc/base/divide_round.hpp
     include/rtc/base/repeating_task.hpp
+    include/rtc/base/rate_statistics.hpp
+    include/rtc/base/units/unit_base.hpp
+    include/rtc/base/units/unit_relative.hpp
+    include/rtc/base/units/timestamp.hpp
+    include/rtc/base/units/time_delta.hpp
 
     # rtc -> sdp
     include/rtc/sdp/sdp_defines.hpp
@@ -441,12 +443,13 @@ set(TEST_SOURCES
 
     src/rtc/base/packet_unittest.cpp
     src/rtc/base/byte_io_unittest.cpp
-    src/rtc/base/unit_base_unittest.cpp
     src/rtc/base/clock_unittest.cpp
     src/rtc/base/ntp_time_unittest.cpp
-    src/rtc/base/timestamp_unittest.cpp
-    src/rtc/base/time_delta_unittest.cpp
     src/rtc/base/divide_round_unittest.cpp
+    src/rtc/base/units/unit_base_unittest.cpp
+    src/rtc/base/units/timestamp_unittest.cpp
+    src/rtc/base/units/time_delta_unittest.cpp
+    
 
     src/rtc/sdp/sdp_media_entry_unittest.cpp
     src/rtc/sdp/candidate_unittest.cpp
