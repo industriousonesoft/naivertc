@@ -9,9 +9,9 @@ namespace naivertc {
 // TODO: Put into encoded frame
 struct RTC_CPP_EXPORT RtpVideoHeader { 
 public:
-    RtpVideoHeader();
-    RtpVideoHeader(const RtpVideoHeader& other);
-    ~RtpVideoHeader();
+    RtpVideoHeader() = default;
+    RtpVideoHeader(const RtpVideoHeader& other) = default;
+    ~RtpVideoHeader() = default;
 
     uint16_t frame_width = 0;
     uint16_t frame_height = 0;

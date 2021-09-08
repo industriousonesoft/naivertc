@@ -1,10 +1,10 @@
-#include "rtc/rtp_rtcp/rtcp/rtcp_senceiver.hpp"
+#include "rtc/rtp_rtcp/rtcp_module.hpp"
 
 #include <plog/Log.h>
 
 namespace naivertc {
 
-const RtcpSender::FeedbackState& RtcpSenceiver::GetFeedbackState() {
+const RtcpSender::FeedbackState& RtcpModule::GetFeedbackState() {
     assert(work_queue_.is_in_current_queue());
     uint32_t received_ntp_secs = 0;
     uint32_t received_ntp_frac = 0;
@@ -22,14 +22,14 @@ const RtcpSender::FeedbackState& RtcpSenceiver::GetFeedbackState() {
     return feedback_state_;
 }
 
-void RtcpSenceiver::MaybeSendRtcp() {
+void RtcpModule::MaybeSendRtcp() {
     assert(work_queue_.is_in_current_queue());
     if (rtcp_sender_.TimeToSendRtcpReport()) {
         rtcp_sender_.SendRtcp(GetFeedbackState(), RtcpPacketType::REPORT);
     }
 }
 
-void RtcpSenceiver::ScheduleRtcpSendEvaluation(TimeDelta delay) {
+void RtcpModule::ScheduleRtcpSendEvaluation(TimeDelta delay) {
     if (delay.IsZero()) {
         work_queue_.Async([this](){
             this->MaybeSendRtcp();
@@ -42,7 +42,7 @@ void RtcpSenceiver::ScheduleRtcpSendEvaluation(TimeDelta delay) {
     }
 }
 
-void RtcpSenceiver::MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time) {
+void RtcpModule::MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time) {
     Timestamp now = clock_->CurrentTime();
     if (now >= execution_time) {
         MaybeSendRtcp();

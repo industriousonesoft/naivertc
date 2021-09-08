@@ -2,7 +2,7 @@
 #define _RTC_CALL_VIDEO_SENDER_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_sender_video.hpp"
+#include "rtc/rtp_rtcp/rtp_sender_video.hpp"
 #include "rtc/media/video/encoded_frame.hpp"
 #include "rtc/call/rtp_media_sender.hpp"
 #include "rtc/media/video/common.hpp"

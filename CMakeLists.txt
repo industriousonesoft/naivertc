@@ -115,6 +115,12 @@ set(LIB_SOURCES
 
     # rtc -> rtp_rtcp
     src/rtc/rtp_rtcp/rtp_rtcp_structs.cpp
+    src/rtc/rtp_rtcp/rtcp_module.cpp
+    src/rtc/rtp_rtcp/rtcp_module_sender.cpp
+    src/rtc/rtp_rtcp/rtcp_module_receiver.cpp
+    src/rtc/rtp_rtcp/rtp_sender.cpp
+    src/rtc/rtp_rtcp/rtp_sender_non_paced.cpp
+    src/rtc/rtp_rtcp/rtp_sender_video.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
@@ -127,11 +133,6 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.cpp
-
-    src/rtc/rtp_rtcp/rtp/rtp_sender.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_sender_non_paced.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_sender_video.cpp
-    src/rtc/rtp_rtcp/rtp/rtp_video_header.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
@@ -180,9 +181,6 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
     src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_senceiver.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_senceiver_sender.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_senceiver_receiver.cpp
 
 )
 
@@ -289,6 +287,10 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
     include/rtc/rtp_rtcp/rtp_rtcp_structs.hpp
+    include/rtc/rtp_rtcp/rtcp_module.hpp
+    include/rtc/rtp_rtcp/rtp_sender.hpp
+    include/rtc/rtp_rtcp/rtp_sender_video.hpp
+    include/rtc/rtp_rtcp/rtp_video_header.hpp
 
      # rtc -> rtp_rtcp -> rtp -> packet
     include/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp
@@ -302,10 +304,6 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp
-
-    include/rtc/rtp_rtcp/rtp/rtp_sender.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_sender_video.hpp
-    include/rtc/rtp_rtcp/rtp/rtp_video_header.hpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp
@@ -351,7 +349,6 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp
     include/rtc/rtp_rtcp/rtcp/report_block_data.hpp
     include/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
-    include/rtc/rtp_rtcp/rtcp/rtcp_senceiver.hpp
 
 )
 

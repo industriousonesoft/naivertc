@@ -6,8 +6,8 @@
 #include "rtc/base/clock.hpp"
 #include "rtc/call/rtp_rtcp_config.hpp"
 #include "rtc/transports/transport.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_senceiver.hpp"
-#include "rtc/rtp_rtcp/rtp/rtp_sender.hpp"
+#include "rtc/rtp_rtcp/rtcp_module.hpp"
+#include "rtc/rtp_rtcp/rtp_sender.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 
 namespace naivertc {
@@ -42,7 +42,7 @@ private:
     std::shared_ptr<TaskQueue> task_queue_;
     TaskQueue rtcp_task_queue_;
     
-    std::unique_ptr<RtcpSenceiver> rtcp_senceiver_;
+    std::unique_ptr<RtcpModule> rtcp_module_;
 };
     
 } // namespace naivertc

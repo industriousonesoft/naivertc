@@ -28,7 +28,7 @@ void RtpMediaSender::InitRtpRtcpModules(const RtpRtcpConfig& rtp_rtcp_config,
     std::optional<uint32_t> rtx_send_ssrc = rtp_rtcp_config.rtx_send_ssrc;
     auto fec_generator = MaybeCreateFecGenerator(rtp_rtcp_config, local_media_ssrc);
 
-    // RtcpSenceiver
+    // RtcpModule
     RtcpConfiguration rtcp_config;
     rtcp_config.audio = media_type() == MediaType::AUDIO;
     rtcp_config.rtcp_report_interval_ms = rtp_rtcp_config.rtcp_report_interval_ms;
@@ -36,7 +36,7 @@ void RtpMediaSender::InitRtpRtcpModules(const RtpRtcpConfig& rtp_rtcp_config,
     rtcp_config.rtx_send_ssrc = rtx_send_ssrc;
     rtcp_config.fec_ssrc = fec_generator->fec_ssrc();
     rtcp_config.clock = clock;
-    auto rtcp_senceiver = std::make_unique<RtcpSenceiver>(rtcp_config, task_queue);
+    auto rtcp_module = std::make_unique<RtcpModule>(rtcp_config, task_queue);
 
     // RtpSender
     RtpConfiguration rtp_config;
@@ -46,12 +46,12 @@ void RtpMediaSender::InitRtpRtcpModules(const RtpRtcpConfig& rtp_rtcp_config,
     rtp_config.rtx_send_ssrc = rtx_send_ssrc;
     rtp_config.clock = clock;
     rtp_config.send_transport = send_transport;
-    rtp_config.rtp_sent_statistics_observer = rtcp_senceiver.get();
+    rtp_config.rtp_sent_statistics_observer = rtcp_module.get();
     auto rtp_sender = std::make_shared<RtpSender>(rtp_config, std::move(fec_generator), task_queue);
     // FIXME: Why do we need to enable NACK here?? What the rtp_config.nack_enabled works for?
     rtp_sender->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
    
-    rtcp_senceiver_ = std::move(rtcp_senceiver);
+    rtcp_module_ = std::move(rtcp_module);
     rtp_sender_ = std::move(rtp_sender);
 }
 
