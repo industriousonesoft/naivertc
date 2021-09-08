@@ -7,9 +7,10 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
 #include "rtc/base/bit_rate_statistics.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/base/repeating_task.hpp"
 
 #include <optional>
 #include <functional>
@@ -50,6 +51,8 @@ private:
 
     // Return total bitrates for all kind sent packets for now.
     const BitRate CalcTotalSentBitRate(const int64_t now_ms);
+
+    void PeriodicUpdate();
   
 private:
     friend class NonPacedPacketSender;
@@ -67,11 +70,12 @@ private:
 
     bool media_has_been_sent_ = false;
 
-    TaskQueue worker_queue_;
-
     RtpSentCounters rtp_sent_counters_;
     RtpSentCounters rtx_sent_counters_;
     std::map<RtpPacketType, BitRateStatistics> send_bitrate_map_;
+
+    std::shared_ptr<TaskQueue> worker_queue_;
+    std::unique_ptr<RepeatingTask> update_task_;
 };
     
 } // namespace naivertc

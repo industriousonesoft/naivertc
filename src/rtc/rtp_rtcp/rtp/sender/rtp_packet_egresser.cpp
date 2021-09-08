@@ -6,7 +6,7 @@
 namespace naivertc {
 namespace {
 constexpr uint32_t kTimestampTicksPerMs = 90;
-constexpr int kBitrateStatisticsWindowMs = 1000;
+constexpr int kBitrateStatisticsWindowMs = 1000; // 1s
 constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(kBitrateStatisticsWindowMs);
 } // namespace
 
@@ -21,7 +21,7 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           packet_history_(packet_history),
           fec_generator_(fec_generator),
           task_queue_(task_queue),
-          worker_queue_("RtpPacketEgresser.worker.queue") {
+          worker_queue_(std::make_shared<TaskQueue>("RtpPacketEgresser.default.worker.queue")) {
     // Init bitrate statistics
     // Audio or video media packet
     send_bitrate_map_.emplace(config.audio ? RtpPacketType::AUDIO : RtpPacketType::VIDEO, kBitrateStatisticsWindowMs);
@@ -32,6 +32,13 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
     // FEC packet
     if (fec_generator_) {
         send_bitrate_map_.emplace(RtpPacketType::FEC, kBitrateStatisticsWindowMs);
+    }
+
+    if (rtp_sent_statistics_observer_) {
+        update_task_ = RepeatingTask::DelayedStart(clock_, worker_queue_, kUpdateInterval, [this](){
+            this->PeriodicUpdate();
+            return kUpdateInterval;
+        });
     }
 }
  
@@ -135,7 +142,7 @@ void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
 
             // TODO(sprang): Add support for FEC protecting all header extensions, add media packet to generator here instead.
            
-            worker_queue_.Async([this, now_ms, packet](){
+            worker_queue_->Async([this, now_ms, packet](){
                 this->UpdateSentStatistics(now_ms, *packet.get());
             });
         }else {
@@ -227,7 +234,13 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, const RtpPack
     if (rtp_sent_statistics_observer_) {
         rtp_sent_statistics_observer_->RtpSentBitRateUpdated(CalcTotalSentBitRate(now_ms));
     }
-    
+}
+
+void RtpPacketEgresser::PeriodicUpdate() {
+    if (rtp_sent_statistics_observer_) {
+        const int64_t now_ms = clock_->TimeInMs();
+        rtp_sent_statistics_observer_->RtpSentBitRateUpdated(CalcTotalSentBitRate(now_ms));
+    }
 }
     
 } // namespace naivertc
