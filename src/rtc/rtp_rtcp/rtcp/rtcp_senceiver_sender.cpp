@@ -4,22 +4,23 @@
 
 namespace naivertc {
 
-const RtcpSender::FeedbackState& RtcpSenceiver::GetFeedbackState() {
+const RtcpSender::FeedbackState RtcpSenceiver::GetFeedbackState() {
+    RtcpSender::FeedbackState feedback_state;
     uint32_t received_ntp_secs = 0;
     uint32_t received_ntp_frac = 0;
-    feedback_state_.remote_sr = 0;
+    feedback_state.remote_sr = 0;
     if (rtcp_receiver_.NTP(&received_ntp_secs, &received_ntp_frac,
-                            /*rtcp_arrival_time_secs=*/&feedback_state_.last_rr_ntp_secs,
-                            /*rtcp_arrival_time_frac=*/&feedback_state_.last_rr_ntp_frac,
+                            /*rtcp_arrival_time_secs=*/&feedback_state.last_rr_ntp_secs,
+                            /*rtcp_arrival_time_frac=*/&feedback_state.last_rr_ntp_frac,
                             /*rtcp_timestamp=*/nullptr,
                             /*remote_sender_packet_count=*/nullptr,
                             /*remote_sender_octet_count=*/nullptr,
                             /*remote_sender_reports_count=*/nullptr)) {
-        feedback_state_.remote_sr = ((received_ntp_secs & 0x0000ffff) << 16) +
+        feedback_state.remote_sr = ((received_ntp_secs & 0x0000ffff) << 16) +
                                     ((received_ntp_frac & 0xffff0000) >> 16);
     }
 
-    return feedback_state_;
+    return feedback_state;
 }
 
 void RtcpSenceiver::MaybeSendRtcp() {

@@ -25,7 +25,9 @@ public:
     }
     static constexpr BitRate Infinity() { return MaxValue(); }
 
-    BitRate() = delete;
+    // FIXME: BitRate as a return value used in TaskQueue, then the default constructor is required.
+    // BitRate() = delete;
+    BitRate() = default;
 
     template <typename T = int64_t>
     constexpr T bps() const {

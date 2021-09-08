@@ -18,16 +18,5 @@ RtcpSenceiver::RtcpSenceiver(const RtcpConfiguration& config,
 RtcpSenceiver::~RtcpSenceiver() {
 
 }
-
-// Private methods
-// RtpSender oberver
-void RtcpSenceiver::RtpSentCountersUpdated(const RtpSentCounters& rtp_stats, const RtpSentCounters& rtx_stats) {
-    work_queue_.Async([&](){
-        feedback_state_.packets_sent = rtp_stats.transmitted.packets + rtx_stats.transmitted.packets;
-        feedback_state_.media_bytes_sent = rtp_stats.transmitted.payload_bytes + rtx_stats.transmitted.payload_bytes;
-        // TODO: Calculate send bitrate
-        // feedback_state_.send_bitrate
-    });
-}
     
 } // namespace naivertc

@@ -154,6 +154,18 @@ size_t RtpSender::FecPacketOverhead() const {
     });
 }
 
+const BitRate RtpSender::SentBitRate() {
+    return task_queue_->Sync<BitRate>([this](){
+        return packet_sender_.SentBitRate();
+    });
+}
+
+const RtpSentCounters RtpSender::SentCounters() const {
+    return task_queue_->Sync<RtpSentCounters>([this](){
+        return packet_sender_.SentCounters();
+    });
+}
+
 // Private methods
 int32_t RtpSender::ResendPacket(uint16_t packet_id) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 

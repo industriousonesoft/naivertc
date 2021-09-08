@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 
 #include <list>
+#include <map>
 
 namespace naivertc {
 
@@ -11,7 +12,7 @@ class RtpPacket;
 
 // ========= RTCP Structs =========
 // RTCPReportBlock
-struct RTCPReportBlock {
+struct RTC_CPP_EXPORT RTCPReportBlock final {
   RTCPReportBlock()
       : sender_ssrc(0),
         source_ssrc(0),
@@ -53,7 +54,7 @@ typedef std::list<RTCPReportBlock> ReportBlockList;
 
 // ========= RTP Structs =========
 // RtpState
-struct RTC_CPP_EXPORT RtpState {
+struct RTC_CPP_EXPORT RtpState final {
     RtpState();
     ~RtpState();
 
@@ -66,7 +67,7 @@ struct RTC_CPP_EXPORT RtpState {
 };
 
 // RtpPacketCounter
-struct RtpPacketCounter {
+struct RTC_CPP_EXPORT RtpPacketCounter final {
     RtpPacketCounter();
     explicit RtpPacketCounter(const RtpPacket& packet);
     ~RtpPacketCounter();
@@ -83,7 +84,7 @@ struct RtpPacketCounter {
 };
 
 // RtpSentCounters
-struct RtpSentCounters {
+struct RTC_CPP_EXPORT RtpSentCounters final {
     RtpSentCounters();
     ~RtpSentCounters();
 
@@ -92,12 +93,6 @@ struct RtpSentCounters {
     RtpPacketCounter transmitted;
     RtpPacketCounter retransmitted;
     RtpPacketCounter fec;
-};
-
-class RtpSentCountersObserver {
-public:
-    virtual ~RtpSentCountersObserver() = default;
-    virtual void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, const RtpSentCounters& rtx_sent_counters);
 };
 
 } // namespace naivertc

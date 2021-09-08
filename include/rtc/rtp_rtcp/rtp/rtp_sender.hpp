@@ -47,6 +47,13 @@ public:
     bool red_enabled() const;
     size_t FecPacketOverhead() const;
 
+    // Send statistics
+
+    // Return total bitrates for all kind sent packets for now.
+    const BitRate SentBitRate();
+    // Return counter for all kind sent packets for now.
+    const RtpSentCounters SentCounters() const;
+
 private:
     int32_t ResendPacket(uint16_t packet_id);
 

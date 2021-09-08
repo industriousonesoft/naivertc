@@ -13,7 +13,7 @@
 
 namespace naivertc {
 
-struct RtpConfiguration {
+struct RTC_CPP_EXPORT RtpConfiguration {
     // True for a audio version of the RTP/RTCP module object false will create
     // a video version.
     bool audio = false;
@@ -33,14 +33,12 @@ struct RtpConfiguration {
     // overhead.
     bool enable_rtx_padding_prioritization = true;
 
-    RtpSentCountersObserver* rtp_sent_counters_observer = nullptr;
-
     std::shared_ptr<Clock> clock;
     
     std::shared_ptr<Transport> send_transport;
 };
 
-struct RtcpConfiguration {
+struct RTC_CPP_EXPORT RtcpConfiguration {
     // True for a audio version of the RTP/RTCP module object false will create
     // a video version.
     bool audio = false;

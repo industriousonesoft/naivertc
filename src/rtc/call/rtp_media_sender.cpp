@@ -46,7 +46,6 @@ void RtpMediaSender::InitRtpRtcpModules(const RtpRtcpConfig& rtp_rtcp_config,
     rtp_config.rtx_send_ssrc = rtx_send_ssrc;
     rtp_config.clock = clock;
     rtp_config.send_transport = send_transport;
-    rtp_config.rtp_sent_counters_observer = rtcp_senceiver.get();
     auto rtp_sender = std::make_shared<RtpSender>(rtp_config, std::move(fec_generator), task_queue);
     // FIXME: Why do we need to enable NACK here?? What the rtp_config.nack_enabled works for?
     rtp_sender->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
