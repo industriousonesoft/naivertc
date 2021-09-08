@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_UNIT_BASE_H_
-#define _RTC_BASE_UNIT_BASE_H_
+#ifndef _RTC_BASE_UNITS_UNIT_BASE_H_
+#define _RTC_BASE_UNITS_UNIT_BASE_H_
 
 #include "base/defines.hpp"
 #include "common/utils_numeric.hpp"

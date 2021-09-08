@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_TIME_DELTA_H_
-#define _RTC_BASE_TIME_DELTA_H_
+#ifndef _RTC_BASE_UNITS_TIME_DELTA_H_
+#define _RTC_BASE_UNITS_TIME_DELTA_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/units/unit_relative.hpp"

@@ -58,7 +58,7 @@ set(LIB_SOURCES
     src/rtc/base/clock.cpp
     src/rtc/base/clock_real_time.cpp
     src/rtc/base/repeating_task.cpp
-    src/rtc/base/rate_statistics.cpp
+    src/rtc/base/bit_rate_statistics.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_utils.cpp
@@ -235,11 +235,12 @@ set(LIB_HEADERS
     include/rtc/base/sequence_number_utils.hpp
     include/rtc/base/divide_round.hpp
     include/rtc/base/repeating_task.hpp
-    include/rtc/base/rate_statistics.hpp
+    include/rtc/base/bit_rate_statistics.hpp
     include/rtc/base/units/unit_base.hpp
     include/rtc/base/units/unit_relative.hpp
     include/rtc/base/units/timestamp.hpp
     include/rtc/base/units/time_delta.hpp
+    include/rtc/base/units/bit_rate.hpp
 
     # rtc -> sdp
     include/rtc/sdp/sdp_defines.hpp
@@ -449,8 +450,9 @@ set(TEST_SOURCES
     src/rtc/base/units/unit_base_unittest.cpp
     src/rtc/base/units/timestamp_unittest.cpp
     src/rtc/base/units/time_delta_unittest.cpp
+    src/rtc/base/units/bit_rate_unittest.cpp
+    src/rtc/base/bit_rate_statistics_unittest.cpp
     
-
     src/rtc/sdp/sdp_media_entry_unittest.cpp
     src/rtc/sdp/candidate_unittest.cpp
     src/rtc/sdp/sdp_description_unittest.cpp

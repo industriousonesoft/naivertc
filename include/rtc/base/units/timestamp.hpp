@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_TIMESTAMP_H_
-#define _RTC_BASE_TIMESTAMP_H_
+#ifndef _RTC_BASE_UNITS_TIMESTAMP_H_
+#define _RTC_BASE_UNITS_TIMESTAMP_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/units/unit_base.hpp"
