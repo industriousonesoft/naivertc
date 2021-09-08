@@ -10,7 +10,7 @@
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp"
 
@@ -47,13 +47,6 @@ public:
     bool red_enabled() const;
     size_t FecPacketOverhead() const;
 
-    // Send statistics
-
-    // Return total bitrates for all kind sent packets for now.
-    const BitRate SentBitRate();
-    // Return counter for all kind sent packets for now.
-    const RtpSentCounters SentCounters() const;
-
 private:
     int32_t ResendPacket(uint16_t packet_id);
 
@@ -82,7 +75,7 @@ private:
 
     RtpPacketSequencer packet_sequencer_;
     RtpPacketSentHistory packet_history_;
-    RtpPacketSender packet_sender_;
+    RtpPacketEgresser packet_egresser_;
     RtpPacketGenerator packet_generator_;
     NonPacedPacketSender non_paced_sender_;
 

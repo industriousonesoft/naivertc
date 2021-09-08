@@ -35,14 +35,14 @@ private:
     std::unique_ptr<FecGenerator> MaybeCreateFecGenerator(const RtpRtcpConfig& rtp_config, uint32_t media_ssrc);
 
 protected:
-    std::shared_ptr<RtpSender> rtp_sender_ = nullptr;
+    std::shared_ptr<RtpSender> rtp_sender_;
 private:
     const RtpRtcpConfig rtp_rtcp_config_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<TaskQueue> task_queue_;
     TaskQueue rtcp_task_queue_;
     
-    std::unique_ptr<RtcpSenceiver> rtcp_senceiver_ = nullptr;
+    std::unique_ptr<RtcpSenceiver> rtcp_senceiver_;
 };
     
 } // namespace naivertc

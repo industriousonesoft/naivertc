@@ -33,6 +33,8 @@ struct RTC_CPP_EXPORT RtpConfiguration {
     // overhead.
     bool enable_rtx_padding_prioritization = true;
 
+    RtpSentStatisticsObserver* rtp_sent_statistics_observer = nullptr;
+
     std::shared_ptr<Clock> clock;
     
     std::shared_ptr<Transport> send_transport;

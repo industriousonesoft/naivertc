@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
 
 #include <plog/Log.h>
@@ -10,17 +10,18 @@ constexpr int kBitrateStatisticsWindowMs = 1000;
 constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(kBitrateStatisticsWindowMs);
 } // namespace
 
-RtpPacketSender::RtpPacketSender(const RtpConfiguration& config,
+RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
                                  RtpPacketSentHistory* const packet_history,
                                  FecGenerator* const fec_generator,
                                  std::shared_ptr<TaskQueue> task_queue) 
         : clock_(config.clock),
           ssrc_(config.local_media_ssrc),
           rtx_ssrc_(config.rtx_send_ssrc),
+          rtp_sent_statistics_observer_(config.rtp_sent_statistics_observer), 
           packet_history_(packet_history),
           fec_generator_(fec_generator),
           task_queue_(task_queue),
-          worker_queue_("RtpPacketSender.worker.queue") {
+          worker_queue_("RtpPacketEgresser.worker.queue") {
     // Init bitrate statistics
     // Audio or video media packet
     send_bitrate_map_.emplace(config.audio ? RtpPacketType::AUDIO : RtpPacketType::VIDEO, kBitrateStatisticsWindowMs);
@@ -34,18 +35,18 @@ RtpPacketSender::RtpPacketSender(const RtpConfiguration& config,
     }
 }
  
-RtpPacketSender::~RtpPacketSender() {
+RtpPacketEgresser::~RtpPacketEgresser() {
 
 }
 
- void RtpPacketSender::SetFecProtectionParameters(const FecProtectionParams& delta_params,
+ void RtpPacketEgresser::SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                                         const FecProtectionParams& key_params) {
     task_queue_->Sync([this, &delta_params, &key_params](){
         this->pending_fec_params_.emplace(delta_params, key_params);
     });
 }
 
-void RtpPacketSender::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
+void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
     task_queue_->Async([this, packet=std::move(packet)](){
         if (!packet) {
             return;
@@ -135,7 +136,7 @@ void RtpPacketSender::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
             // TODO(sprang): Add support for FEC protecting all header extensions, add media packet to generator here instead.
            
             worker_queue_.Async([this, now_ms, packet](){
-                UpdateSentStats(now_ms, *packet.get());
+                this->UpdateSentStatistics(now_ms, *packet.get());
             });
         }else {
             // TODO: We should clear the FEC packets if send failed?
@@ -143,7 +144,7 @@ void RtpPacketSender::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
     });
 }
 
-std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketSender::FetchFecPackets() const {
+std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketEgresser::FetchFecPackets() const {
     return task_queue_->Sync<std::vector<std::shared_ptr<RtpPacketToSend>>>([](){
         std::vector<std::shared_ptr<RtpPacketToSend>> packets;
         // TODO: Fetch FEC packets from FEC generator
@@ -151,34 +152,21 @@ std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketSender::FetchFecPackets()
     });
 }
 
-const BitRate RtpPacketSender::SentBitRate() {
-    return task_queue_->Sync<BitRate>([this](){
-        int64_t bits_per_sec = 0;
-        const int64_t now_ms = clock_->TimeInMs();
-        for (auto& kv : send_bitrate_map_) {
-            bits_per_sec += kv.second.Rate(now_ms).value_or(BitRate::Zero()).bps();
-        }
-        return BitRate::BitsPerSec(bits_per_sec);
-    });
-}
-
-const RtpSentCounters RtpPacketSender::SentCounters() const {
-    return task_queue_->Sync<RtpSentCounters>([this](){
-        RtpSentCounters sent_counters; 
-        for (const auto& kv : sent_counters_map_) {
-            sent_counters += kv.second;
-        }
-        return sent_counters;
-    });
+const BitRate RtpPacketEgresser::CalcTotalSentBitRate(const int64_t now_ms) {
+    int64_t bits_per_sec = 0;
+    for (auto& kv : send_bitrate_map_) {
+        bits_per_sec += kv.second.Rate(now_ms).value_or(BitRate::Zero()).bps();
+    }
+    return BitRate::BitsPerSec(bits_per_sec);
 }
 
 // Private methods
-bool RtpPacketSender::SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet) {
+bool RtpPacketEgresser::SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet) {
     // TODO: Send packet to network by transport
     return false;
 }
 
-bool RtpPacketSender::HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet) {
+bool RtpPacketEgresser::HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet) {
     switch (packet->packet_type())
     {
     case RtpPacketType::AUDIO:
@@ -196,28 +184,27 @@ bool RtpPacketSender::HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet) {
     return false;
 }
 
-void RtpPacketSender::SendPacketToNetworkFeedback(uint16_t packet_id, std::shared_ptr<RtpPacketToSend> packet) {
+void RtpPacketEgresser::SendPacketToNetworkFeedback(uint16_t packet_id, std::shared_ptr<RtpPacketToSend> packet) {
 
 }
 
-void RtpPacketSender::UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc) {
+void RtpPacketEgresser::UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc) {
 
 }
 
-void RtpPacketSender::OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc) {
+void RtpPacketEgresser::OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc) {
     if (capture_time_ms <= 0) {
         return;
     }
 }
 
-void RtpPacketSender::UpdateSentStats(int64_t now_ms, const RtpPacketToSend& packet) {
+void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, const RtpPacketToSend& packet) {
     // NOTE: We will send the retransmitted packets and padding packets by RTX stream, but:
     // 1) the RTX stream can send either the retransmitted packets or the padding packets
     // 2) the retransmitted packets can be sent by either the meida stream or the RTX stream
     // see https://blog.csdn.net/sonysuqin/article/details/82021185
     auto packet_ssrc = packet.ssrc();
-    // NOTE: operator[] will create a new one if no element found for key
-    RtpSentCounters& sent_counters = sent_counters_map_[packet_ssrc];
+    RtpSentCounters& sent_counters = packet_ssrc == rtx_ssrc_ ? rtx_sent_counters_ : rtp_sent_counters_;
     const RtpPacketCounter packet_counter(packet);
     auto packet_type = packet.packet_type();
     // FEC packet
@@ -228,12 +215,18 @@ void RtpPacketSender::UpdateSentStats(int64_t now_ms, const RtpPacketToSend& pac
         sent_counters.retransmitted += packet_counter;
     }
     sent_counters.transmitted += packet_counter;
+    if (rtp_sent_statistics_observer_) {
+        rtp_sent_statistics_observer_->RtpSentCountersUpdated(rtp_sent_counters_, rtx_sent_counters_);
+    }
 
     // Update send bitrate
     // NOTE: "operator[]" is not working here, since "BitRateStatistics" has no parameterless constructor,
     // which is required to create a new one if no element found for the key.
     // So we using "at" instead, since it access specified element with bounds checking.
     send_bitrate_map_.at(packet_type).Update(packet.size(), now_ms);
+    if (rtp_sent_statistics_observer_) {
+        rtp_sent_statistics_observer_->RtpSentBitRateUpdated(CalcTotalSentBitRate(now_ms));
+    }
     
 }
     

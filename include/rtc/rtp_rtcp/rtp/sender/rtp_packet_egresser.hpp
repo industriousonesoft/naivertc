@@ -18,14 +18,14 @@
 
 namespace naivertc {
 
-// NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketSender发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
-class RTC_CPP_EXPORT RtpPacketSender {
+// NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketEgresser发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
+class RTC_CPP_EXPORT RtpPacketEgresser {
 public:
-    RtpPacketSender(const RtpConfiguration& config,
+    RtpPacketEgresser(const RtpConfiguration& config,
                     RtpPacketSentHistory* const packet_history,
                     FecGenerator* const fec_generator,
                     std::shared_ptr<TaskQueue> task_queue);
-    ~RtpPacketSender();
+    ~RtpPacketEgresser();
 
     uint32_t ssrc() const { return ssrc_; }
     std::optional<uint32_t> rtx_ssrc() const { return rtx_ssrc_; }
@@ -37,13 +37,6 @@ public:
 
     std::vector<std::shared_ptr<RtpPacketToSend>> FetchFecPackets() const;
 
-    // Send statistics
-    
-    // Return total bitrates for all kind sent packets for now.
-    const BitRate SentBitRate();
-    // Return counter for all kind sent packets for now.
-    const RtpSentCounters SentCounters() const;
-
 private:
     bool SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet);
 
@@ -53,14 +46,18 @@ private:
     void UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc);
     void OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc);
 
-    void UpdateSentStats(int64_t now_ms, const RtpPacketToSend& packet);
+    void UpdateSentStatistics(const int64_t now_ms, const RtpPacketToSend& packet);
 
+    // Return total bitrates for all kind sent packets for now.
+    const BitRate CalcTotalSentBitRate(const int64_t now_ms);
+  
 private:
     friend class NonPacedPacketSender;
 
     std::shared_ptr<Clock> clock_; 
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
+    RtpSentStatisticsObserver* rtp_sent_statistics_observer_;
     
     RtpPacketSentHistory* const packet_history_;
     FecGenerator* const fec_generator_;
@@ -71,7 +68,9 @@ private:
     bool media_has_been_sent_ = false;
 
     TaskQueue worker_queue_;
-    std::map<uint32_t, RtpSentCounters> sent_counters_map_;
+
+    RtpSentCounters rtp_sent_counters_;
+    RtpSentCounters rtx_sent_counters_;
     std::map<RtpPacketType, BitRateStatistics> send_bitrate_map_;
 };
     

@@ -17,7 +17,7 @@ RtpSender::RtpSender(const RtpConfiguration& config,
       fec_generator_(std::move(fec_generator)),
       packet_sequencer_(config),
       packet_history_(config, task_queue),
-      packet_sender_(config, &packet_history_, fec_generator_.get(),task_queue), 
+      packet_egresser_(config, &packet_history_, fec_generator_.get(),task_queue), 
       packet_generator_(config, task_queue),
       non_paced_sender_(this) {
       
@@ -151,18 +151,6 @@ size_t RtpSender::FecPacketOverhead() const {
             }
         }
         return overhead;
-    });
-}
-
-const BitRate RtpSender::SentBitRate() {
-    return task_queue_->Sync<BitRate>([this](){
-        return packet_sender_.SentBitRate();
-    });
-}
-
-const RtpSentCounters RtpSender::SentCounters() const {
-    return task_queue_->Sync<RtpSentCounters>([this](){
-        return packet_sender_.SentCounters();
     });
 }
 

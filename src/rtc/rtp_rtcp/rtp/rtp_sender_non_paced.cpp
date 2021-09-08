@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/rtp_sender.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 
 namespace naivertc {
 
@@ -12,9 +12,9 @@ RtpSender::NonPacedPacketSender::~NonPacedPacketSender() = default;
 void RtpSender::NonPacedPacketSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
     for (auto& packet : packets) {
         PrepareForSend(packet);
-        sender_->packet_sender_.SendPacket(packet);
+        sender_->packet_egresser_.SendPacket(packet);
     }
-    auto fec_packets = sender_->packet_sender_.FetchFecPackets();
+    auto fec_packets = sender_->packet_egresser_.FetchFecPackets();
     if (!fec_packets.empty()) {
         // Don't generate sequence numbers for flexfec, they are already running on
         // an internally maintained sequence.
