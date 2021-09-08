@@ -8,17 +8,7 @@ namespace taskqueue {
 Example::Example() 
     : clock_(std::make_shared<naivertc::RealTimeClock>()),
       task_queue_(std::make_shared<naivertc::TaskQueue>()),
-      last_execution_time_(naivertc::Timestamp::Seconds(0)) {
-    repeating_task_ = std::make_shared<naivertc::RepeatingTask>(clock_, task_queue_, [&](){
-        naivertc::Timestamp current_time = clock_->CurrentTime();
-        if (!last_execution_time_.IsZero()) {
-            std::cout << "Repeating task: " << ( current_time - last_execution_time_).seconds() << " s "<< std::endl;
-        }
-        last_execution_time_ = current_time;
-        std::cout << "Executed task." << std::endl;
-        return 3;
-    });
-}
+      last_execution_time_(naivertc::Timestamp::Seconds(0)) {}
 
 Example::~Example() {
     std::cout  << __FUNCTION__ << std::endl;
@@ -47,8 +37,20 @@ void Example::Post() {
     });
 }
 
-void Example::RepeatingTask(TimeInterval delay) {
-    repeating_task_->Start(delay);
+void Example::TestRepeatingTask() {
+    if (repeating_task_) {
+        repeating_task_->Stop();
+    }
+    TimeDelta interval = TimeDelta::Seconds(3);
+    repeating_task_ = RepeatingTask::DelayedStart(clock_, task_queue_, interval, [=](){
+        naivertc::Timestamp current_time = clock_->CurrentTime();
+        if (!last_execution_time_.IsZero()) {
+            std::cout << "Repeating task: " << (current_time - last_execution_time_).seconds() << " s "<< std::endl;
+        }
+        last_execution_time_ = current_time;
+        std::cout << "Executed task." << std::endl;
+        return interval;
+    });
 }
 
 } // namespace taskqueue

@@ -7,6 +7,8 @@
 
 namespace taskqueue {
 
+using namespace naivertc;
+
 class Example {
 public:
     Example();
@@ -14,14 +16,13 @@ public:
 
     void DelayPost();
     void Post();
-    void RepeatingTask(TimeInterval delay);
+    void TestRepeatingTask();
 
 private:
-    std::shared_ptr<naivertc::RealTimeClock> clock_;
-    std::shared_ptr<naivertc::TaskQueue> task_queue_;
-    std::shared_ptr<naivertc::RepeatingTask> repeating_task_;
-    naivertc::Timestamp last_execution_time_;
-
+    std::shared_ptr<RealTimeClock> clock_;
+    std::shared_ptr<TaskQueue> task_queue_;
+    std::shared_ptr<RepeatingTask> repeating_task_;
+    Timestamp last_execution_time_;
 };
 
 } // namespace taskqueue
