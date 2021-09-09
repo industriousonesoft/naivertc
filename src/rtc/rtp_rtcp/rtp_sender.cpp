@@ -73,7 +73,7 @@ std::shared_ptr<RtpPacketToSend> RtpSender::AllocatePacket() const {
 
 bool RtpSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
     return task_queue_->Sync<bool>([this, packets=std::move(packets)](){
-        int64_t now_ms = this->clock_->TimeInMs();
+        int64_t now_ms = this->clock_->now_ms();
         for (auto& packet : packets) {
             // Assign sequence for per packet
             if (!this->packet_sequencer_.AssignSequenceNumber(packet)) {

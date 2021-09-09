@@ -108,6 +108,7 @@ public:
 private:
     friend class UnitBase<Timestamp>;
     using UnitBase::UnitBase;
+    // TODO: Using uint64_t instread of int64_t to represent the unit is one-sided property
     static constexpr bool one_sided = true;
 };
     

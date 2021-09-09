@@ -4,19 +4,23 @@
 namespace naivertc {
 namespace {
 
-int64_t NtpOffsetInMicros() {
+// The offset between NTP time and system clock
+// 1) Calculate the offset between UTC and system clock
+// 2) Convert UTC offset to NTP offset
+int64_t NtpOffsetInUs() {
+    // Time interval in seconds between 1970 and 1900
     constexpr int64_t kNtpJan1970Sec = 2208988800;
     int64_t clock_time = utils::time::TimeInMicros();
     int64_t utc_time =  utils::time::TimeUTCInMicros();
-    return utc_time - clock_time + kNtpJan1970Sec *  utils::time::kNumMicrosecsPerSec;
+    return (utc_time - clock_time /* Offset between UTC and system clock */) + kNtpJan1970Sec *  utils::time::kNumMicrosecsPerSec;
 }
 
 NtpTime TimeMicrosToNtp(int64_t time_us) {
-    static int64_t ntp_offset_us = NtpOffsetInMicros();
+    static int64_t ntp_offset_us = NtpOffsetInUs();
 
     int64_t time_ntp_us = time_us + ntp_offset_us;
     // Time before year 1900 is unsupported.
-    assert(time_ntp_us != 0);
+    assert(time_ntp_us >= 0);
 
     // Convert seconds to uint32 through uint64 for a well-defined cast.
     // A wrap around, which will happen in 2036, is expected for NTP time.

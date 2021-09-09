@@ -31,8 +31,14 @@ int64_t TimeInNanos() {
 
 int64_t TimeUTCInMicros() {
 #if defined(NAIVERTC_POSIX)
+    // Using gettimeofday instead of clock_gettime
+    // See https://www.cnblogs.com/raymondshiquan/articles/gettimeofday_vs_clock_gettime.html
     struct timeval time;
     gettimeofday(&time, nullptr);
+    // struct timespec ts;
+    // clock_gettime(CLOCK_REALTIME, &ts);
+    // int64_t ticks_ns = kNumNanosecsPerSec * static_cast<int64_t>(ts.tv_sec) + static_cast<int64_t>(ts.tv_nsec);
+
     // Convert from second (1.0) and microsecond (1e-6).
     return static_cast<int64_t>(time.tv_sec) * kNumMicrosecsPerSec + time.tv_usec; 
 #else

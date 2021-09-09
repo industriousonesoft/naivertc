@@ -16,9 +16,9 @@ TEST(ClockTest, NtpTime) {
     // values returned right before and right after the call.
     // The comparison includes 1 ms of margin to account for the rounding error
     // in the conversion.
-    int64_t milliseconds_lower_bound = clock->CurrentNtpTimeInMs();
+    int64_t milliseconds_lower_bound = clock->now_ntp_time_ms();
     NtpTime ntp_time = clock->CurrentNtpTime();
-    int64_t milliseconds_upper_bound = clock->CurrentNtpTimeInMs();
+    int64_t milliseconds_upper_bound = clock->now_ntp_time_ms();
     EXPECT_GT(milliseconds_lower_bound / 1000, kNtpJan1970);
     EXPECT_LE(milliseconds_lower_bound - 1, ntp_time.ToMs());
     EXPECT_GE(milliseconds_upper_bound + 1, ntp_time.ToMs());

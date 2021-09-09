@@ -108,7 +108,7 @@ void RtpPacketSentHistory::SetRtt(int64_t rtt_ms) {
         // that depends on the RTT. Changing the RTT may thus cause some packets
         // become "old" and subject to removal.
         if (this->mode_ != StorageMode::DISABLE) {
-            this->CullOldPackets(clock_->TimeInMs());
+            this->CullOldPackets(clock_->now_ms());
         }
     });
 }
@@ -119,7 +119,7 @@ void RtpPacketSentHistory::PutRtpPacket(std::shared_ptr<RtpPacketToSend> packet,
             PLOG_WARNING << "Invalid packet to send.";
             return;
         }
-        int64_t now_ms = clock_->TimeInMs();
+        int64_t now_ms = clock_->now_ms();
         if (mode_ == StorageMode::DISABLE) {
             return;
         }
@@ -183,7 +183,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndSetSendTime(u
             return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
-        int64_t now_ms = clock_->TimeInMs();
+        int64_t now_ms = clock_->now_ms();
         if (!VerifyRtt(*stored_packet, now_ms)) {
             return std::shared_ptr<RtpPacketToSend>(nullptr);
         } 
@@ -222,7 +222,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending
             return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
-        if (!VerifyRtt(*stored_packet, clock_->TimeInMs())) {
+        if (!VerifyRtt(*stored_packet, clock_->now_ms())) {
             // Packet already resent within too short a time window, ignore.
             return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
@@ -255,7 +255,7 @@ void RtpPacketSentHistory::MarkPacketAsSent(uint16_t sequence_number) {
 
         // Update send-time, mark as no longer in pacer queue, and increment
         // transmission count.
-        stored_packet->send_time_ms_ = clock_->TimeInMs();
+        stored_packet->send_time_ms_ = clock_->now_ms();
         stored_packet->pending_transmission_ = false;
         stored_packet->IncrementTimesRetransmitted(enable_padding_prio_ ? &padding_priority_ : nullptr);
     });
@@ -278,7 +278,7 @@ std::optional<RtpPacketSentHistory::PacketState> RtpPacketSentHistory::GetPacket
             return std::optional<PacketState>(std::nullopt);
         }
 
-        if (!VerifyRtt(stored_packet, clock_->TimeInMs())) {
+        if (!VerifyRtt(stored_packet, clock_->now_ms())) {
             return std::optional<PacketState>(std::nullopt);
         }
 
@@ -331,7 +331,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket(
             return std::shared_ptr<RtpPacketToSend>(nullptr);
         }
 
-        best_packet->send_time_ms_ = clock_->TimeInMs();
+        best_packet->send_time_ms_ = clock_->now_ms();
         best_packet->IncrementTimesRetransmitted(enable_padding_prio_ ? &padding_priority_ : nullptr);
 
         return padding_packet;

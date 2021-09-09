@@ -28,10 +28,14 @@ int64_t SystemTimeInNanos() {
         assert(a <= std::numeric_limits<int64_t>::max() / b);
         return utils::numeric::checked_static_cast<int64_t>(a * b);
     };
+    // mach_absolute_time is a CPU/Bus dependent function that 
+    // returns a value based on the number of 'ticks' since the system started up.
     ticks = mul(mach_absolute_time(), timebase.numer) / timebase.denom;
 #elif defined(NAIVERTC_POSIX)
     struct timespec ts;
     // TODO: Do we need to handle the case when CLOCK_MONOTONIC is not supported?
+    // CLOCK_REALTIME: UTC time and will change when the system time zone changed.
+    // CLOCK_MONOTONIC: returns a value based on the number of 'ticks' since the system started up, independently.
     clock_gettime(CLOCK_MONOTONIC, &ts);
     ticks = kNumNanosecsPerSec * static_cast<int64_t>(ts.tv_sec) +
           static_cast<int64_t>(ts.tv_nsec);

@@ -84,7 +84,7 @@ void RtpPacketSequencer::UpdateLastPacketState(std::shared_ptr<const RtpPacketTo
     }
     // Save timestamps to generate timestamp field and extensions for the padding
     last_rtp_timestamp_ = packet->timestamp();
-    last_timestamp_time_ms_ = clock_->TimeInMs();
+    last_timestamp_time_ms_ = clock_->now_ms();
     last_capture_time_ms_ = packet->capture_time_ms();
 
 }
@@ -119,7 +119,7 @@ bool RtpPacketSequencer::PopulatePaddingFields(std::shared_ptr<RtpPacketToSend> 
         // Only change the timestamp of padding packets sent over RTX.
         // Padding only packets over RTP has to be sent as part of a 
         // media frame (and therefore the same timestamp).
-        int64_t now_ms = clock_->TimeInMs();
+        int64_t now_ms = clock_->now_ms();
         if (last_timestamp_time_ms_ > 0) {
             packet->set_timestamp(packet->timestamp() + (now_ms - last_timestamp_time_ms_) * kTimestampTicksPerMs);
             if (packet->capture_time_ms() > 0) {

@@ -87,7 +87,7 @@ void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
         }  
 
         const uint32_t packet_ssrc = packet->ssrc();
-        const int64_t now_ms = clock_->TimeInMs();
+        const int64_t now_ms = clock_->now_ms();
 
         // Bug webrtc:7859. While FEC is invoked from rtp_sender_video, and not after
         // the pacer, these modifications of the header below are happening after the
@@ -238,7 +238,7 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, const RtpPack
 
 void RtpPacketEgresser::PeriodicUpdate() {
     if (rtp_sent_statistics_observer_) {
-        const int64_t now_ms = clock_->TimeInMs();
+        const int64_t now_ms = clock_->now_ms();
         rtp_sent_statistics_observer_->RtpSentBitRateUpdated(CalcTotalSentBitRate(now_ms));
     }
 }

@@ -97,7 +97,7 @@ bool RtcpReceiver::ParseCompoundPacket(BinaryBuffer packet) {
     }
 
     if (num_skipped_packets_ > 0) {
-    const int64_t now_ms = clock_->TimeInMs();
+    const int64_t now_ms = clock_->now_ms();
     if (now_ms - last_skipped_packets_warning_ms_ >= kMaxWarningLogIntervalMs) {
         last_skipped_packets_warning_ms_ = now_ms;
         PLOG_WARNING << num_skipped_packets_
