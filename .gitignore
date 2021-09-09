@@ -38,3 +38,5 @@ build/
 *_cache/
 *_install/
 *_source/
+
+*.VSCodeCounter/

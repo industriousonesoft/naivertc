@@ -19,7 +19,7 @@ RtpVideoSender::~RtpVideoSender() {
 }
 
 bool RtpVideoSender::SendEncodedFrame(std::shared_ptr<VideoEncodedFrame> encoded_frame) {
-    
+    // TODO: Implements this.
     return true;
 }
 

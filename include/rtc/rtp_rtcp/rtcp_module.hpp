@@ -11,14 +11,14 @@
 namespace naivertc {
 
 class RTC_CPP_EXPORT RtcpModule : public RtcpReceiver::Observer,
-                                     public RtpSentStatisticsObserver {
+                                  public RtpSentStatisticsObserver {
 public:
     RtcpModule(const RtcpConfiguration& config, 
                    std::shared_ptr<TaskQueue> task_queue);
     ~RtcpModule();
 
 private:
-    // RtpSentStatisticsObserver
+    // RtpSentStatistics Observer
     void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, 
                                 const RtpSentCounters& rtx_sent_counters) override;
     void RtpSentBitRateUpdated(const BitRate bit_rate) override;
@@ -30,7 +30,7 @@ private:
     void ScheduleRtcpSendEvaluation(TimeDelta duration);
     void MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time);
 private:
-    // RtcpReceiver
+    // RtcpReceiver observer methods
     void SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) override;
     void OnRequestSendReport() override;
     void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) override;
