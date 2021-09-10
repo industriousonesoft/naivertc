@@ -74,12 +74,15 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
             }
 
             // We assume the DataChannel is not negotiacted
-            auto data_channel = std::make_shared<DataChannel>(init_config.label, init_config.protocol, stream_id, init_config.unordered);
-    
+            auto data_channel = std::make_shared<DataChannel>(init_config.label, 
+                                                              init_config.protocol, 
+                                                              stream_id, 
+                                                              init_config.unordered,
+                                                              init_config.negotiated) ;
+
             // If sctp transport is connected yet, we open the data channel immidiately
             if (sctp_transport_ && sctp_transport_->state() == SctpTransport::State::CONNECTED) {
-                data_channel->AttachTo(sctp_transport_);
-                data_channel->Open();
+                data_channel->Open(sctp_transport_);
             }
 
             // Renegotiation is needed if the curren local description does not have application

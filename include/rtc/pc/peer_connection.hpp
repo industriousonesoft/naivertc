@@ -134,7 +134,7 @@ private:
     void OpenDataChannels();
     void CloseDataChannels();
     void RemoteCloseDataChannels();
-    void OnRemoteDataChannelOpened(StreamId stream_id);
+    void OnRemoteDataChannelOpened(std::weak_ptr<DataChannel> data_channel);
     std::shared_ptr<DataChannel> FindDataChannel(StreamId stream_id);
   
 private:
@@ -186,7 +186,8 @@ private:
     std::unordered_map<std::string /* mid */, std::shared_ptr<MediaTrack>> media_tracks_;
 
     std::vector<const sdp::Candidate> remote_candidates_;
-    std::vector<std::shared_ptr<DataChannel>> pending_data_channels_;
+    // TODO:  Using std::shared_ptr instead of std::weak_ptr
+    std::vector<std::weak_ptr<DataChannel>> pending_data_channels_;
 
 };
 

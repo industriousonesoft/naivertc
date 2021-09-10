@@ -5,25 +5,47 @@
 namespace naivertc {
 
 // Implement of DataChannel::Init
-DataChannel::Init::Init(const std::string label_, const std::string protocol_, std::optional<StreamId> stream_id_, bool unordered_) 
+DataChannel::Init::Init(const std::string label_, 
+                        const std::string protocol_, 
+                        std::optional<StreamId> stream_id_, 
+                        bool unordered_,
+                        bool negotiated_) 
     : label(std::move(label_)),
-    protocol(std::move(protocol_)),
-    stream_id(stream_id_),
-    unordered(unordered_) {}
+      protocol(std::move(protocol_)),
+      stream_id(stream_id_),
+      unordered(unordered_),
+      negotiated(negotiated_) {}
     
 // Implement of DataChannel
-DataChannel::DataChannel(const std::string label, const std::string protocol, const StreamId stream_id, bool unordered) 
+std::shared_ptr<DataChannel> DataChannel::RemoteDataChannel(StreamId stream_id,
+                                                            bool negotiated,
+                                                            std::weak_ptr<SctpTransport> sctp_transport) {
+    return std::shared_ptr<DataChannel>(new DataChannel(stream_id, negotiated, sctp_transport));
+}
+
+DataChannel::DataChannel(const std::string label, 
+                         const std::string protocol, 
+                         const StreamId stream_id, 
+                         bool unordered,
+                         bool negotiated) 
     : label_(std::move(label)),
-    protocol_(std::move(protocol)),
-    stream_id_(stream_id) {
-    reliability_ = std::make_shared<SctpMessage::Reliability>();
+      protocol_(std::move(protocol)),
+      stream_id_(stream_id),
+      negotiated_(negotiated),
+      reliability_(std::make_shared<SctpMessage::Reliability>()) {
     reliability_->unordered = unordered;
 }
 
-DataChannel::DataChannel(StreamId stream_id) 
-    : DataChannel("","", stream_id, false) {}
+DataChannel::DataChannel(StreamId stream_id,
+                         bool negotiated,
+                         std::weak_ptr<SctpTransport> sctp_transport) 
+    : DataChannel("","", stream_id, false, negotiated) {
+    sctp_transport_ = std::move(sctp_transport);
+}
 
-DataChannel::~DataChannel() {}
+DataChannel::~DataChannel() { 
+    Close(); 
+}
 
 StreamId DataChannel::stream_id() const {
     return stream_id_;
@@ -55,22 +77,26 @@ void DataChannel::HintStreamId(sdp::Role role) {
     }
 }
 
-void DataChannel::Open() {
-    PLOG_VERBOSE << __FUNCTION__;
+void DataChannel::Open(std::weak_ptr<SctpTransport> sctp_transport) {
     if (is_opened_) {
+        PLOG_VERBOSE << "DataChannel did open already.";
         return;
     }
-    SendOpenMessage();
+    PLOG_VERBOSE << __FUNCTION__;
+    sctp_transport_ = std::move(sctp_transport);
+    negotiated_ ? TriggerOpen() : SendOpenMessage();
 }
 
 void DataChannel::Close() {
-    PLOG_VERBOSE << __FUNCTION__;
     if (!is_opened_) {
+        PLOG_VERBOSE << "DataChannel did close already.";
         return;
     }
+    PLOG_VERBOSE << __FUNCTION__;
     auto transport = sctp_transport_.lock();
     if (!transport) {
-        throw std::runtime_error("DataChannel has no transport");
+        PLOG_WARNING << "DataChannel has no transport";
+        return;
     }
     is_opened_ = false;
     transport->ShutdownStream(stream_id_);
@@ -78,15 +104,7 @@ void DataChannel::Close() {
 
 void DataChannel::RemoteClose() {
     PLOG_VERBOSE << __FUNCTION__;
-    if (!is_opened_) {
-        return;
-    }
     TriggerClose();
-    is_opened_ = false;
-}
-
-void DataChannel::AttachTo(std::weak_ptr<SctpTransport> sctp_transport) {
-    sctp_transport_ = sctp_transport;
 }
 
 // Callback
@@ -116,13 +134,17 @@ void DataChannel::TriggerOpen() {
     }
     is_opened_ = true;
     if (opened_callback_) {
-        opened_callback_(stream_id_);
+        opened_callback_();
     }
 }
 
 void DataChannel::TriggerClose() {
+    if (!is_opened_) {
+        return;
+    }
+    is_opened_ = false;
     if (closed_callback_) {
-        closed_callback_(stream_id_);
+        closed_callback_();
     }
 }
 

@@ -76,7 +76,18 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
 }
 
 bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
-    return true;
+    return signal_task_queue_->Sync<bool>([this, remote_fingerprint=std::move(fingerprint)](){
+        // We expect the remote fingerprint received by singaling channel is equal to 
+        // the remote fingerprint received by DTLS channel.
+        auto expected_remote_fingerprint = this->remote_sdp_.has_value() ? this->remote_sdp_->fingerprint() : std::nullopt;
+        if (expected_remote_fingerprint.has_value() && expected_remote_fingerprint.value() == remote_fingerprint) {
+            PLOG_VERBOSE << "Valid fingerprint : " << remote_fingerprint << " from remote peer.";
+            return true;
+        }
+        PLOG_ERROR << "Invalid fingerprint : " << remote_fingerprint << ", expected : "
+	               << expected_remote_fingerprint.value_or("[none]") << ".";
+        return false;
+    }); 
 }
 
 void PeerConnection::OnRtpPacketReceived(std::shared_ptr<RtpPacket> in_packet) {

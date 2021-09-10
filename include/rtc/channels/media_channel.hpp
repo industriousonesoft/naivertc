@@ -1,5 +1,5 @@
-#ifndef _RTC_MEDIA_CHANNEL_H_
-#define _RTC_MEDIA_CHANNEL_H_
+#ifndef _RTC_CHANNELS_MEDIA_CHANNEL_H_
+#define _RTC_CHANNELS_MEDIA_CHANNEL_H_
 
 #include "base/defines.hpp"
 

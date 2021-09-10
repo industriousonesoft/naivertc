@@ -160,12 +160,14 @@ void PeerConnection::OnSignalingStateChanged(SignalingStateCallback callback) {
 }
 
 void PeerConnection::OnDataChannel(DataChannelCallback callback) {
-    signal_task_queue_->Async([this, callback](){
-        this->data_channel_callback_ = callback;
+    signal_task_queue_->Async([this, callback=std::move(callback)](){
+        this->data_channel_callback_ = std::move(callback);
         // Flush pending data channels
         if (this->data_channel_callback_) {
-            for (auto data_channel : pending_data_channels_) {
-                this->data_channel_callback_(data_channel);
+            for (auto& data_channel : pending_data_channels_) {
+                if (auto dc = data_channel.lock()) {
+                    this->data_channel_callback_(std::move(dc));
+                }
             }
             pending_data_channels_.clear();
         }

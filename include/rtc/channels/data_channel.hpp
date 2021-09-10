@@ -1,5 +1,5 @@
-#ifndef _RTC_DATA_CHANNEL_H_
-#define _RTC_DATA_CHANNEL_H_
+#ifndef _RTC_CHANNELS_DATA_CHANNEL_H_
+#define _RTC_CHANNELS_DATA_CHANNEL_H_
 
 #include "base/defines.hpp"
 #include "rtc/transports/sctp_transport.hpp"
@@ -19,18 +19,30 @@ public:
         std::string protocol = "";
         std::optional<StreamId> stream_id = std::nullopt;
         bool unordered = false;
+        bool negotiated = false;
 
-        Init(const std::string label, const std::string protocol = "", std::optional<StreamId> stream_id = std::nullopt, bool unordered = false);
+        Init(const std::string label, 
+             const std::string protocol = "", 
+             std::optional<StreamId> stream_id = std::nullopt, 
+             bool unordered = false,
+             bool negotiated = false);
     };
 
-    using OpenedCallback = std::function<void(StreamId)>;
-    using ClosedCallback = std::function<void(StreamId)>;
+    using OpenedCallback = std::function<void()>;
+    using ClosedCallback = std::function<void()>;
     using BinaryMessageReceivedCallback = std::function<void(const uint8_t* in_data, size_t in_size)>;
     using TextMessageReceivedCallback = std::function<void(const std::string text)>;
     using BufferedAmountChangedCallback = std::function<void(uint64_t previous_amount)>;
 public:
-    DataChannel(const std::string label, const std::string protocol, const StreamId stream_id, bool unordered);
-    DataChannel(StreamId stream_id);
+    static std::shared_ptr<DataChannel> RemoteDataChannel(StreamId stream_id,
+                                                          bool negotiated,
+                                                          std::weak_ptr<SctpTransport> sctp_transport);
+public:
+    DataChannel(const std::string label, 
+                const std::string protocol, 
+                const StreamId stream_id, 
+                bool unordered,
+                bool negotiated);
     virtual ~DataChannel();
 
     StreamId stream_id() const;
@@ -40,8 +52,7 @@ public:
 
     void HintStreamId(sdp::Role role);
 
-    void AttachTo(std::weak_ptr<SctpTransport> sctp_transport);
-    void Open();
+    void Open(std::weak_ptr<SctpTransport> sctp_transport);
     void Close();
     void RemoteClose();
 
@@ -56,13 +67,20 @@ public:
     void OnBinaryMessageReceivedCallback(BinaryMessageReceivedCallback callback);
     void OnTextMessageReceivedCallback(TextMessageReceivedCallback callback);
     void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
+
 private:
+    DataChannel(StreamId stream_id,
+                bool negotiated,
+                std::weak_ptr<SctpTransport> sctp_transport);
+
+private:
+    void OnOpenMessageReceived(const SctpMessage& open_message);
+    void ProcessOpenMessage(const SctpMessage& open_message);
+    void ProcessPendingMessages();
+
     void SendOpenMessage() const;
     void SendAckMessage() const;
     void SendCloseMessage() const;
-
-    void ProcessOpenMessage(const uint8_t* in_data, size_t in_size);
-    void ProcessPendingMessages();
 
     void TriggerOpen();
     void TriggerClose();
@@ -73,10 +91,10 @@ private:
     std::string label_;
     std::string protocol_;
     StreamId stream_id_;
+    const bool negotiated_ = false;
     std::shared_ptr<SctpMessage::Reliability> reliability_;
 
     bool is_opened_ = false;
-
     std::weak_ptr<SctpTransport> sctp_transport_;
 
     std::queue<std::shared_ptr<SctpMessage>> recv_message_queue_;

@@ -103,9 +103,13 @@ void PeerConnection::OnSctpMessageReceived(std::shared_ptr<Packet> in_packet) {
                 bool is_remote_a_dtls_server= ice_transport_->role() == sdp::Role::ACTIVE ? true : false;
                 StreamId remote_parity = is_remote_a_dtls_server ? 1 : 0;
                 if (stream_id % 2 == remote_parity) {
-                    auto remote_data_channel = std::make_shared<DataChannel>(stream_id);
-                    remote_data_channel->AttachTo(sctp_transport_);
-                    remote_data_channel->OnOpened(std::bind(&PeerConnection::OnRemoteDataChannelOpened, this, std::placeholders::_1));
+                    // The remote data channel will negotiate later by processing incomming message, 
+                    // so it's unnegotiated.
+                    auto remote_data_channel = DataChannel::RemoteDataChannel(stream_id, false /* unnegotiated */, sctp_transport_);
+                    std::weak_ptr<DataChannel> weak_dc = remote_data_channel;
+                    remote_data_channel->OnOpened([this, weak_dc](){
+                        this->OnRemoteDataChannelOpened(weak_dc);
+                    });
                     data_channels_.emplace(stream_id, remote_data_channel);
                     remote_data_channel->OnIncomingMessage(message);
                 }else {
@@ -120,14 +124,15 @@ void PeerConnection::OnSctpMessageReceived(std::shared_ptr<Packet> in_packet) {
     });
 }
 
-void PeerConnection::OnRemoteDataChannelOpened(StreamId stream_id) {
-    signal_task_queue_->Async([this, stream_id](){
-        auto data_channel = FindDataChannel(stream_id);
-        if (data_channel) {
+// TODO: OnRemoteDataChannelOpened -> ProcessPendingDataChannels
+void PeerConnection::OnRemoteDataChannelOpened(std::weak_ptr<DataChannel> data_channel) {
+    signal_task_queue_->Async([this, data_channel=std::move(data_channel)](){
+        if (auto dc = data_channel.lock()) {
             if (this->data_channel_callback_) {
-                this->data_channel_callback_(data_channel);
+                this->data_channel_callback_(dc);
             }else {
-                pending_data_channels_.emplace_back(data_channel);
+                // We will process the data_channel when the data_channel_callback_ is ready.
+                pending_data_channels_.push_back(std::move(data_channel));
             }
         }
     });
@@ -140,8 +145,7 @@ void PeerConnection::OpenDataChannels() {
     }
     for (auto it = data_channels_.begin(); it != data_channels_.end(); ++it) {
         auto data_channel = it->second;
-        data_channel->AttachTo(sctp_transport_);
-        data_channel->Open();
+        data_channel->Open(sctp_transport_);
     }
 }
 
