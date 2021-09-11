@@ -1,4 +1,5 @@
 #include "rtc/transports/dtls_srtp_transport.hpp"
+#include "rtc/rtp_rtcp/common/rtp_utils.hpp"
 
 #include <plog/Log.h>
 
@@ -26,7 +27,7 @@ void DtlsSrtpTransport::DtlsHandshakeDone() {
 
 void DtlsSrtpTransport::SendRtpPacket(std::shared_ptr<RtpPacket> packet, PacketSentCallback callback) {
     task_queue_->Async([this, packet=std::move(packet), callback](){
-        if (EncryptPacket(packet)) {
+        if (packet && EncryptPacket(*packet.get())) {
             ForwardOutgoingPacket(std::move(packet), callback);
         }else {
             callback(-1);
@@ -36,7 +37,7 @@ void DtlsSrtpTransport::SendRtpPacket(std::shared_ptr<RtpPacket> packet, PacketS
 
 int DtlsSrtpTransport::SendRtpPacket(std::shared_ptr<RtpPacket> packet) {
     return task_queue_->Sync<int>([this, packet=std::move(packet)](){
-        if (EncryptPacket(packet)) {
+        if (packet && EncryptPacket(*packet.get())) {
             return ForwardOutgoingPacket(std::move(packet));
         }else {
             return -1;
@@ -44,53 +45,20 @@ int DtlsSrtpTransport::SendRtpPacket(std::shared_ptr<RtpPacket> packet) {
     });
 }
 
-bool DtlsSrtpTransport::EncryptPacket(std::shared_ptr<Packet> packet) {
-    if (!packet) {
-        return false;
-    }
-
+bool DtlsSrtpTransport::EncryptPacket(Packet& packet) {
     if (!srtp_init_done_) {
-        PLOG_ERROR << "SRTP not init yet.";
+        PLOG_WARNING << "SRTP not init yet.";
         return false;
     }
 
-    size_t packet_size = packet->size();
+    int protectd_data_size = (int)packet.size();
+    // Rtcp packet
+    if (rtp::utils::IsRtcpPacket(packet)) {
+        // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
+        // into the location in memory immediately following the RTP packet.
+        packet.resize(protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */);
 
-    // RTP header has a minimum size of 12 bytes
-    // RTCP has a minimum size of 8 bytes
-    if (packet_size < 8) {
-        throw std::runtime_error("RTP/RTCP packet too small.");
-    }
-
-    // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
-    // into the location in memory immediately following the RTP packet.
-    packet->resize(packet_size + SRTP_MAX_TRAILER_LEN);
-
-    // RFC 5761 Multiplexing RTP and RTCP 4. Distinguishable RTP and RTCP Packets
-    // https://tools.ietf.org/html/rfc5761#section-4
-    // When RTP and RTCP packets are multiplexed onto a single port, the RTCP packet type 
-    // field (PT: 8 bits) occupies the same posiztion in the packet as the combination of the 
-    // RTP marker (M: 1 bit) and the RTP payload type (PT: 7 bits). This field can be used to
-    // distinguish RTP and RTCP packets when two restrictions are observed: 
-    // 1) the RTP payload type values used are distinct from the RTCP packet type used;
-    // 2) for each RTP payload type, PT+128 is distinct from the RTCP packet types used (
-    // which means the RTCP packet type is always greater than 128);
-    // THe first constraint percludes a direct confict between RTP paylaod type and RTCP packet 
-    // type; the second constraint precludes a conflict between an RTP packet with the market bit
-    // set and an RTCP packet.
-    uint8_t payload_type = (packet->data()[1]) & 0x7f;
-    PLOG_VERBOSE << "Demultiplexing SRTP and SRTCP with RTP payload type: " << payload_type;
-
-    // RFC 5761 Multiplexing RTP and RTCP 4. Distinguishable RTP and RTCP Packets
-    // https://tools.ietf.org/html/rfc5761#section-4
-    // It is RECOMMENDED to follow the guidelines in the RTP/AVP profile for the choice of RTP
-    // payload type values, with the additional restriction that payload type values in the
-    // range 64-95 MUST NOT be used. Specifically, dynamic RTP payload types SHOULD be chosen in
-    // the range 96-127 where possible. Values below 64 MAY be used if that is insufficient.
-    // Rang 64-95 (inclusive) MUST be RTCP
-    int protectd_data_size = (int)packet_size;
-    if (payload_type >= 64 && payload_type <= 95) {
-        if (srtp_err_status_t err = srtp_protect_rtcp(srtp_out_, packet->data(), &protectd_data_size)) {
+        if (srtp_err_status_t err = srtp_protect_rtcp(srtp_out_, packet.data(), &protectd_data_size)) {
             if (err == srtp_err_status_replay_fail) {
                 throw std::runtime_error("Outgoing SRTCP packet is a replay");
             }else {
@@ -99,8 +67,13 @@ bool DtlsSrtpTransport::EncryptPacket(std::shared_ptr<Packet> packet) {
             }
         }
         PLOG_VERBOSE << "Protected SRTCP packet, size=" << protectd_data_size;
-    }else {
-        if (srtp_err_status_t err = srtp_protect(srtp_out_, packet->data(), &protectd_data_size)) {
+    // Rtp packet
+    }else if (rtp::utils::IsRtpPacket(packet)) {
+        // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
+        // into the location in memory immediately following the RTP packet.
+        packet.resize(protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */);
+
+        if (srtp_err_status_t err = srtp_protect(srtp_out_, packet.data(), &protectd_data_size)) {
             if (err == srtp_err_status_replay_fail) {
                 throw std::runtime_error("Outgoing SRTP packet is a replay");
             }else {
@@ -109,15 +82,18 @@ bool DtlsSrtpTransport::EncryptPacket(std::shared_ptr<Packet> packet) {
             }
         }
         PLOG_VERBOSE << "Protected SRTP packet, size=" << protectd_data_size;
+    }else {
+        PLOG_WARNING << "Sending packet is neither a RTP packet nor a RTCP packet, ignoring.";
+        return false;
     }
 
-    packet->resize(protectd_data_size);
+    packet.resize(protectd_data_size);
 
-    if (packet->dscp() == 0) {
+    if (packet.dscp() == 0) {
         // Set recommended medium-priority DSCP value
         // See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
         // AF42: Assured Forwarding class 4, medium drop probability
-        packet->set_dscp(36);
+        packet.set_dscp(36);
     }
 
     return true;
@@ -154,18 +130,8 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
             DtlsTransport::Incoming(in_packet);
         // RTP/RTCP packet
         }else if (first_byte >= 128 && first_byte <= 191) {
-            // The RTP header has a minimum size of 12 bytes
-            // The RTCP header has a minimum size of 8 bytes
-            if (packet_size < 8) {
-                PLOG_VERBOSE << "Incoming SRTP/SRTCP packet too small, size: " << packet_size;
-                return;
-            }
-
-            uint8_t payload_type = in_packet->data()[1] & 0x7F;
-            PLOG_VERBOSE << "Demultiplexing SRTP and SRTCP with RTP payload type: " << std::to_string(payload_type);
-
-            // RTCP packet: Range [64,95] 
-            if (payload_type >= 64 && payload_type <= 95) {
+            // RTCP packet
+            if (rtp::utils::IsRtcpPacket(*in_packet.get())) {
                 PLOG_VERBOSE << "Incoming SRTCP packet, size: " << packet_size;
                 int unprotected_data_size = int(packet_size);
                 if (srtp_err_status_t err = srtp_unprotect_rtcp(srtp_in_, static_cast<void *>(in_packet->data()), &unprotected_data_size)) {
@@ -186,7 +152,7 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                 // if (rtp_packet_recv_callback_) {
                 //     rtp_packet_recv_callback_(rtcp_packet);
                 // }
-            }else {
+            }else if (rtp::utils::IsRtpPacket(*in_packet.get())) {
                 PLOG_VERBOSE << "Incoming SRTP packet, size: " << packet_size;
                 int unprotected_data_size = int(packet_size);
                 if (srtp_err_status_t err = srtp_unprotect(srtp_in_, static_cast<void *>(in_packet->data()), &unprotected_data_size)) {
@@ -208,9 +174,11 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                 // if (rtp_packet_recv_callback_) {
                 //     rtp_packet_recv_callback_(rtp_packet);
                 // }
+            }else {
+                PLOG_WARNING << "Incoming packet is neither a RTP packet nor a RTCP packet, ignoring.";
             }
         }else {
-            PLOG_VERBOSE <<  "Unknown packet type, value: " << first_byte << ", size: " << packet_size;
+            PLOG_WARNING << "Incoming packet is neither a RTP/RTCP packet nor a DTLS packet, ignoring.";
         }
     });
 }

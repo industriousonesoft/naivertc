@@ -33,7 +33,7 @@ private:
     void DtlsHandshakeDone() override;
     void Incoming(std::shared_ptr<Packet> in_packet) override;
 
-    bool EncryptPacket(std::shared_ptr<Packet> packet);
+    bool EncryptPacket(Packet& packet);
 
 private:
     std::atomic<bool> srtp_init_done_ = false;

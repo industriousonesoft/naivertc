@@ -123,6 +123,9 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp_sender_non_paced.cpp
     src/rtc/rtp_rtcp/rtp_sender_video.cpp
 
+    # rtc -> rtp_rtcp -> common
+    src/rtc/rtp_rtcp/common/rtp_utils.cpp
+
     # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.cpp
@@ -293,6 +296,9 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp_sender.hpp
     include/rtc/rtp_rtcp/rtp_sender_video.hpp
     include/rtc/rtp_rtcp/rtp_video_header.hpp
+
+    # rtp -> rtp_rtcp -> common
+    include/rtc/rtp_rtcp/common/rtp_utils.hpp
 
      # rtc -> rtp_rtcp -> rtp -> packet
     include/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp
