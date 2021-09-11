@@ -86,8 +86,7 @@ bool DtlsSrtpTransport::EncryptPacket(std::shared_ptr<Packet> packet) {
     // It is RECOMMENDED to follow the guidelines in the RTP/AVP profile for the choice of RTP
     // payload type values, with the additional restriction that payload type values in the
     // range 64-95 MUST NOT be used. Specifically, dynamic RTP payload types SHOULD be chosen in
-    // the range 96-127 where possible. Values below 64 MAY be used if that is insufficient
-    // [...]
+    // the range 96-127 where possible. Values below 64 MAY be used if that is insufficient.
     // Rang 64-95 (inclusive) MUST be RTCP
     int protectd_data_size = (int)packet_size;
     if (payload_type >= 64 && payload_type <= 95) {
