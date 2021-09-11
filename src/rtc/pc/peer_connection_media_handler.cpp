@@ -9,17 +9,13 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Configura
         try {
             auto description = MediaTrack::BuildDescription(std::move(config));
 
-            std::shared_ptr<MediaTrack> media_track = nullptr;
-
-            if (auto it = this->media_tracks_.find(description.mid()); it != this->media_tracks_.end()) {
-                if (media_track = it->second, media_track) {
-                    media_track->UpdateDescription(std::move(description));
-                }
-            }
+            std::shared_ptr<MediaTrack> media_track = FindMediaTrack(description.mid());
 
             if (!media_track) {
                 media_track = std::make_shared<MediaTrack>(std::move(description));
                 this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
+            }else {
+                media_track->UpdateDescription(std::move(description));
             }
 
             // Renegotiation is needed for the new or updated track

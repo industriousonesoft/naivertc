@@ -288,15 +288,15 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                 [&](std::shared_ptr<sdp::Media> remote_media) {
                     // Prefer local media track
                     if (auto it = media_tracks_.find(remote_media->mid()); it != media_tracks_.end()) {
-                        if (auto local_track = it->second) {
-                            // 此处调用的是拷贝构造函数
+                        // The local media track is still alive.
+                        if (auto local_track = it->second.lock()) {
                             auto local_media = local_track->description();
                             PLOG_DEBUG << "Adding media to local description, mid=" << local_media.mid()
                                         << ", active=" << std::boolalpha
                                         << (local_media.direction() != sdp::Direction::INACTIVE);
 
                             local_sdp.AddMedia(std::move(local_media));
-                        // Local track was removed
+                        // The local media track was not owned any more.
                         }else {
                             auto reciprocated = remote_media->reciprocate();
                             reciprocated.set_direction(sdp::Direction::INACTIVE);
@@ -346,7 +346,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 
         // Add media for local tracks
         for (auto it = media_tracks_.begin(); it != media_tracks_.end(); ++it) {
-            if (auto track = it->second) {
+            if (auto track = it->second.lock()) {
                 // Filter existed tracks
                 if (local_sdp.HasMid(track->mid())) {
                     continue;
@@ -467,9 +467,9 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
 void PeerConnection::ShiftDataChannelIfNeccessary(sdp::Role role) {
     decltype(data_channels_) new_data_channels;
     for (auto it = data_channels_.begin(); it != data_channels_.end(); ++it) {
-        if (auto data_channel = it->second) {
-            data_channel.get()->HintStreamId(role);
-            new_data_channels.emplace(data_channel->stream_id(), data_channel);
+        if (auto dc = it->second.lock()) {
+            dc.get()->HintStreamId(role);
+            new_data_channels.emplace(dc->stream_id(), dc);
         }
     }
     std::swap(data_channels_, new_data_channels);

@@ -105,13 +105,14 @@ void PeerConnection::OnSctpMessageReceived(std::shared_ptr<Packet> in_packet) {
                 if (stream_id % 2 == remote_parity) {
                     // The remote data channel will negotiate later by processing incomming message, 
                     // so it's unnegotiated.
-                    auto remote_data_channel = DataChannel::RemoteDataChannel(stream_id, false /* unnegotiated */, sctp_transport_);
-                    std::weak_ptr<DataChannel> weak_dc = remote_data_channel;
-                    remote_data_channel->OnOpened([this, weak_dc](){
-                        this->OnRemoteDataChannelOpened(weak_dc);
+                    data_channel = DataChannel::RemoteDataChannel(stream_id, false /* unnegotiated */, sctp_transport_);
+                    // We own the data channel temporarily
+                    pending_data_channels_.push_back(data_channel);
+                    data_channels_.emplace(stream_id, data_channel);
+                    data_channel->OnOpened([this](){
+                        this->FlushPendingDataChannels();
                     });
-                    data_channels_.emplace(stream_id, remote_data_channel);
-                    remote_data_channel->OnIncomingMessage(message);
+                    data_channel->OnIncomingMessage(message);
                 }else {
                     PLOG_WARNING << "Try to close a received remote data channel with invalid stream id: " << stream_id;
                     sctp_transport_->ShutdownStream(stream_id);
@@ -124,15 +125,11 @@ void PeerConnection::OnSctpMessageReceived(std::shared_ptr<Packet> in_packet) {
     });
 }
 
-// TODO: OnRemoteDataChannelOpened -> ProcessPendingDataChannels
 void PeerConnection::OnRemoteDataChannelOpened(std::weak_ptr<DataChannel> data_channel) {
     signal_task_queue_->Async([this, data_channel=std::move(data_channel)](){
         if (auto dc = data_channel.lock()) {
             if (this->data_channel_callback_) {
                 this->data_channel_callback_(dc);
-            }else {
-                // We will process the data_channel when the data_channel_callback_ is ready.
-                pending_data_channels_.push_back(std::move(data_channel));
             }
         }
     });
@@ -144,32 +141,28 @@ void PeerConnection::OpenDataChannels() {
         return;
     }
     for (auto it = data_channels_.begin(); it != data_channels_.end(); ++it) {
-        auto data_channel = it->second;
-        data_channel->Open(sctp_transport_);
+        if (auto dc = it->second.lock()) {
+            dc->Open(sctp_transport_);
+        }
     }
 }
 
 void PeerConnection::CloseDataChannels() {
     for (auto it = data_channels_.begin(); it != data_channels_.end(); ++it) {
-        auto data_channel = it->second;
-        data_channel->Close();
+        if (auto dc = it->second.lock()) {
+            dc->Close();
+        }
     }
     data_channels_.clear();
 }
 
 void PeerConnection::RemoteCloseDataChannels() {
     for (auto it = data_channels_.begin(); it != data_channels_.end(); ++it) {
-        auto data_channel = it->second;
-        data_channel->RemoteClose();
+        if (auto dc = it->second.lock()) {
+            dc->RemoteClose();
+        }
     }
     data_channels_.clear();
 }
 
-std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(StreamId stream_id) {
-    if (auto it = data_channels_.find(stream_id); it != data_channels_.end()) {
-        return it->second;
-    }
-    return nullptr;
-}
-    
 } // namespace naivertc

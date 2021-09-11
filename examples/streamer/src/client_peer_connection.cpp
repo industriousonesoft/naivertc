@@ -79,23 +79,27 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     std::string media_stream_id = "naivertc-media-stream";
     // Video track
     MediaTrack::Config video_track_config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264, {102}, 1, "video-stream", media_stream_id, "video-track1");
-    peer_conn_->AddTrack(std::move(video_track_config));
+    video_track_ = peer_conn_->AddTrack(std::move(video_track_config));
 
     // Audio track
     MediaTrack::Config audio_track_config("2", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS, {111}, 2, "audio-stream", media_stream_id, "audio-track1");
-    peer_conn_->AddTrack(std::move(audio_track_config));
+    audio_track_ = peer_conn_->AddTrack(std::move(audio_track_config));
 #endif
 
     // Data channel
     DataChannel::Init data_channel_init("naivertc-chat-data-channel");
     data_channel_ = peer_conn_->CreateDataChannel(std::move(data_channel_init));
 
-    data_channel_->OnOpened([weak_dc=make_weak_ptr(data_channel_)](StreamId stream_id){
-        std::cout << "OnOpened : " << stream_id << std::endl;
+    data_channel_->OnOpened([weak_dc=make_weak_ptr(data_channel_)](){
+        if (auto dc = weak_dc.lock()) {
+            std::cout << "OnOpened : " << weak_dc.lock()->label() << std::endl;
+        }
     });
 
-    data_channel_->OnClosed([](StreamId stream_id){
-        std::cout << "OnClosed : " << stream_id << std::endl;
+    data_channel_->OnClosed([weak_dc=make_weak_ptr(data_channel_)](){
+        if (auto dc = weak_dc.lock()) {
+            std::cout << "OnClosed : " << weak_dc.lock()->label() << std::endl;
+        }
     });
 
     data_channel_->OnTextMessageReceivedCallback([weak_dc=make_weak_ptr(data_channel_)](const std::string text){

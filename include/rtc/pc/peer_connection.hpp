@@ -135,7 +135,10 @@ private:
     void CloseDataChannels();
     void RemoteCloseDataChannels();
     void OnRemoteDataChannelOpened(std::weak_ptr<DataChannel> data_channel);
-    std::shared_ptr<DataChannel> FindDataChannel(StreamId stream_id);
+    void FlushPendingDataChannels();
+
+    std::shared_ptr<DataChannel> FindDataChannel(StreamId stream_id) const;
+    std::shared_ptr<MediaTrack> FindMediaTrack(std::string mid) const;
   
 private:
     // IceTransport callbacks
@@ -181,13 +184,15 @@ private:
     std::optional<sdp::Description> local_sdp_ = std::nullopt;
     std::optional<sdp::Description> remote_sdp_ = std::nullopt;
 
-    // Using std::shared_ptr instead of std::weak_ptr to make sure them still valid during the peer connection
-    std::unordered_map<StreamId, std::shared_ptr<DataChannel>> data_channels_;
-    std::unordered_map<std::string /* mid */, std::shared_ptr<MediaTrack>> media_tracks_;
+    // Keep a weak reference instead of shared one, since the life cycle of 
+    // data channels or media tracks should be owned by the one who has created them.
+    std::unordered_map<StreamId, std::weak_ptr<DataChannel>> data_channels_;
+    std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_;
 
+    // The pending data channels will be owned by peer connection before 
+    // handled by user, that's why we use shared_ptr here.
+    std::vector<std::shared_ptr<DataChannel>> pending_data_channels_;
     std::vector<const sdp::Candidate> remote_candidates_;
-    // TODO:  Using std::shared_ptr instead of std::weak_ptr
-    std::vector<std::weak_ptr<DataChannel>> pending_data_channels_;
 
 };
 

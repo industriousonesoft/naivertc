@@ -163,15 +163,34 @@ void PeerConnection::OnDataChannel(DataChannelCallback callback) {
     signal_task_queue_->Async([this, callback=std::move(callback)](){
         this->data_channel_callback_ = std::move(callback);
         // Flush pending data channels
-        if (this->data_channel_callback_) {
-            for (auto& data_channel : pending_data_channels_) {
-                if (auto dc = data_channel.lock()) {
-                    this->data_channel_callback_(std::move(dc));
-                }
+        this->FlushPendingDataChannels();
+    });
+}
+
+void PeerConnection::FlushPendingDataChannels() {
+    signal_task_queue_->Async([this](){
+        if (this->data_channel_callback_ && pending_data_channels_.size() > 0) {
+            for (auto dc : pending_data_channels_) {
+                this->data_channel_callback_(std::move(dc));
             }
             pending_data_channels_.clear();
         }
     });
+}
+
+// Private methods
+std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(StreamId stream_id) const {
+    if (auto it = data_channels_.find(stream_id); it != data_channels_.end()) {
+        return it->second.lock();
+    }
+    return nullptr;
+}
+
+std::shared_ptr<MediaTrack> PeerConnection::FindMediaTrack(std::string mid) const {
+    if (auto it = this->media_tracks_.find(mid); it != this->media_tracks_.end()) {
+        return it->second.lock();
+    }
+    return nullptr;
 }
     
 }
