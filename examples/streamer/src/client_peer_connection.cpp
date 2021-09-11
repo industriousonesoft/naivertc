@@ -77,13 +77,25 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 
 #if HAS_MEDIA
     std::string media_stream_id = "naivertc-media-stream";
-    // Video track
+    // Local video track
     MediaTrack::Config video_track_config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264, {102}, 1, "video-stream", media_stream_id, "video-track1");
     video_track_ = peer_conn_->AddTrack(std::move(video_track_config));
+    video_track_->OnOpened([](){
+        std::cout << "Local video track is opened.";
+    });
+    video_track_->OnClosed([](){
+        std::cout << "Local video track is closed.";
+    });
 
-    // Audio track
+    // Local audio track
     MediaTrack::Config audio_track_config("2", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS, {111}, 2, "audio-stream", media_stream_id, "audio-track1");
     audio_track_ = peer_conn_->AddTrack(std::move(audio_track_config));
+    audio_track_->OnOpened([](){
+        std::cout << "Local audio track is opened.";
+    });
+    audio_track_->OnClosed([](){
+        std::cout << "Local audio track is closed.";
+    });
 #endif
 
     // Data channel
@@ -117,6 +129,16 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 
     data_channel_->OnBufferedAmountChanged([](uint64_t previous_amount){
         std::cout << "OnBufferedAmountChanged : " << previous_amount << std::endl;
+    });
+
+    // Incoming data channel
+    peer_conn_->OnDataChannel([](std::shared_ptr<DataChannel> data_channel){
+        std::cout << "Incoming data channel:" << data_channel->stream_id();
+    });
+
+    // Incoming media track
+    peer_conn_->OnMediaTrack([](std::shared_ptr<MediaTrack> media_track){
+        std::cout << "Incoming media track:" << media_track->mid();
     });
 
 }

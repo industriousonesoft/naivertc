@@ -96,6 +96,7 @@ set(LIB_SOURCES
     src/rtc/pc/peer_connection_media_handler.cpp
 
     # rtc -> channels
+    src/rtc/channels/channel.cpp
     src/rtc/channels/data_channel.cpp
     src/rtc/channels/data_channel_message.cpp
     src/rtc/channels/media_channel.cpp
@@ -267,6 +268,7 @@ set(LIB_HEADERS
     include/rtc/pc/peer_connection.hpp
 
     # rtc -> channels
+    include/rtc/channels/channel.hpp
     include/rtc/channels/data_channel.hpp
     include/rtc/channels/media_channel.hpp
 

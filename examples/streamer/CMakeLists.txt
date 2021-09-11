@@ -6,12 +6,22 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCE_FILES
+    # src files
     src/main.cpp
     src/client.cpp
     src/client_signaling_delegate.cpp
+    src/client_peer_connection.cpp
 
+    # stream
+    src/stream/media_file_stream_source.cpp
+    src/stream/h264_file_stream_source.cpp
+
+    # include files
     include/client.hpp
-    # src/websocket_client_sync_ssl.cpp
+    # stream
+    include/stream/media_stream_source.hpp
+    include/stream/media_file_stream_source.hpp
+    include/stream/h264_file_stream_source.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages

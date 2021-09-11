@@ -42,6 +42,8 @@ private:
     std::shared_ptr<PeerConnection> peer_conn_;
 
     std::shared_ptr<DataChannel> data_channel_;
+    std::shared_ptr<MediaTrack> audio_track_;
+    std::shared_ptr<MediaTrack> video_track_;
 };
 
 #endif
