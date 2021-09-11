@@ -5,6 +5,7 @@
 #include "rtc/transports/sctp_transport.hpp"
 #include "rtc/transports/sctp_message.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
+#include "common/task_queue.hpp"
 
 #include <memory>
 #include <queue>
@@ -57,7 +58,6 @@ public:
     void RemoteClose();
 
     void Send(const std::string text);
-
     void OnIncomingMessage(std::shared_ptr<SctpMessage> message);
     void OnBufferedAmount(size_t amount);
     static bool IsOpenMessage(std::shared_ptr<SctpMessage> message);
@@ -67,11 +67,6 @@ public:
     void OnBinaryMessageReceivedCallback(BinaryMessageReceivedCallback callback);
     void OnTextMessageReceivedCallback(TextMessageReceivedCallback callback);
     void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
-
-private:
-    DataChannel(StreamId stream_id,
-                bool negotiated,
-                std::weak_ptr<SctpTransport> sctp_transport);
 
 private:
     void OnOpenMessageReceived(const SctpMessage& open_message);
@@ -84,7 +79,6 @@ private:
 
     void TriggerOpen();
     void TriggerClose();
-    void TriggerAvailable(size_t count);
     void TriggerBufferedAmount(size_t amount);
 
 private:
@@ -93,6 +87,8 @@ private:
     StreamId stream_id_;
     const bool negotiated_ = false;
     std::shared_ptr<SctpMessage::Reliability> reliability_;
+    
+    TaskQueue task_queue_;
 
     bool is_opened_ = false;
     std::weak_ptr<SctpTransport> sctp_transport_;

@@ -98,51 +98,63 @@ struct Close {
 } // namespace message
 
 void DataChannel::OnBufferedAmount(size_t amount) {
-    TriggerBufferedAmount(amount);
+    task_queue_.Async([this, amount](){
+        TriggerBufferedAmount(amount);
+    });
 }
 
 void DataChannel::OnIncomingMessage(std::shared_ptr<SctpMessage> message) {
-    if (!message) {
-		return;
-	}
-    switch (message->type()) {
-        case SctpMessage::Type::CONTROL: {
-            if (message->size() == 0) {
+    if (!message) return;
+    task_queue_.Async([this, message=std::move(message)](){
+        switch (message->type()) {
+            case SctpMessage::Type::CONTROL: {
+                if (message->size() == 0) {
+                    break;
+                }
+                auto message_type = message::Type(message->data()[0]);
+                switch (message_type) {
+                case message::Type::OPEN: 
+                    OnOpenMessageReceived(*message.get());
+                    break;
+                case message::Type::ACK:
+                    TriggerOpen();
+                    break;
+                case message::Type::CLOSE:
+                    // The close message will be processted in-order
+                    recv_message_queue_.push(message);
+                    ProcessPendingMessages();
+                    break;
+                default:
+                    // Ignore
+                    break;
+                }
                 break;
             }
-            auto message_type = message::Type(message->data()[0]);
-            switch (message_type) {
-            case message::Type::OPEN: 
-                OnOpenMessageReceived(*message.get());
-                break;
-            case message::Type::ACK:
-                TriggerOpen();
-                break;
-            case message::Type::CLOSE:
-                // The close message will be processted in-order
+            case SctpMessage::Type::STRING: {
                 recv_message_queue_.push(message);
-                TriggerAvailable(recv_message_queue_.size());
+                ProcessPendingMessages();
                 break;
+            }
+            case SctpMessage::Type::BINARY: {
+                recv_message_queue_.push(message);
+                ProcessPendingMessages();
+                break;
+            }
             default:
                 // Ignore
                 break;
-            }
-            break;
         }
-        case SctpMessage::Type::STRING: {
-            recv_message_queue_.push(message);
-            TriggerAvailable(recv_message_queue_.size());
-            break;
+    });
+}
+
+void DataChannel::Send(const std::string text) {
+    task_queue_.Async([this, text=std::move(text)](){
+        if (auto transport = sctp_transport_.lock()) {
+            transport->Send(SctpMessage::Create(text.c_str(), text.length(), SctpMessage::Type::STRING, stream_id_, reliability_));
+        }else {
+            PLOG_WARNING << "The data channel is not ready to send data.";
         }
-        case SctpMessage::Type::BINARY: {
-            recv_message_queue_.push(message);
-            TriggerAvailable(recv_message_queue_.size());
-            break;
-        }
-        default:
-            // Ignore
-            break;
-    }
+    });
 }
 
 bool DataChannel::IsOpenMessage(std::shared_ptr<SctpMessage> message) {
@@ -151,14 +163,6 @@ bool DataChannel::IsOpenMessage(std::shared_ptr<SctpMessage> message) {
     }
     auto message_type = message::Type(message->data()[0]);
     return message_type == message::Type::OPEN;
-}
-
-void DataChannel::Send(const std::string text) {
-    auto transport = sctp_transport_.lock();
-    if (!transport) {
-        throw std::logic_error("DataChannel has no transport");
-    }
-    transport->Send(SctpMessage::Create(text.c_str(), text.length(), SctpMessage::Type::STRING, stream_id_, reliability_));
 }
 
 // Protected methods
