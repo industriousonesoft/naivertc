@@ -59,6 +59,7 @@ set(LIB_SOURCES
     src/rtc/base/clock_real_time.cpp
     src/rtc/base/repeating_task.cpp
     src/rtc/base/bit_rate_statistics.cpp
+    src/rtc/base/copy_on_write_buffer.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_utils.cpp
@@ -225,6 +226,11 @@ set(LIB_HEADERS
 
     # rtc
     # rtc -> base
+    include/rtc/base/units/unit_base.hpp
+    include/rtc/base/units/unit_relative.hpp
+    include/rtc/base/units/timestamp.hpp
+    include/rtc/base/units/time_delta.hpp
+    include/rtc/base/units/bit_rate.hpp
     include/rtc/base/internals.hpp
     include/rtc/base/packet.hpp
     include/rtc/base/byte_io.hpp
@@ -238,11 +244,7 @@ set(LIB_HEADERS
     include/rtc/base/divide_round.hpp
     include/rtc/base/repeating_task.hpp
     include/rtc/base/bit_rate_statistics.hpp
-    include/rtc/base/units/unit_base.hpp
-    include/rtc/base/units/unit_relative.hpp
-    include/rtc/base/units/timestamp.hpp
-    include/rtc/base/units/time_delta.hpp
-    include/rtc/base/units/bit_rate.hpp
+    include/rtc/base/copy_on_write_buffer.hpp
 
     # rtc -> sdp
     include/rtc/sdp/sdp_defines.hpp
