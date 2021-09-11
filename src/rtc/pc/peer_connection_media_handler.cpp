@@ -30,14 +30,6 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Configura
     });
 }
 
-void PeerConnection::AddReciprocatedMediaTrack(sdp::Media description) {
-    if (media_tracks_.find(description.mid()) == media_tracks_.end()) {
-        auto media_track = std::make_shared<MediaTrack>(std::move(description));
-        media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
-        // TODO: trigger track manually
-    }
-}
-
 // Data Channels
 std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Init config) {
     return signal_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, init_config = std::move(config)]() -> std::shared_ptr<DataChannel> {

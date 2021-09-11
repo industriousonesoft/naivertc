@@ -6,6 +6,7 @@
 #include "rtc/transports/sctp_message.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 #include "common/task_queue.hpp"
+#include "rtc/channels/channel.hpp"
 
 #include <memory>
 #include <queue>
@@ -13,7 +14,8 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT DataChannel : public std::enable_shared_from_this<DataChannel> {
+class RTC_CPP_EXPORT DataChannel : public Channel, 
+                                   public std::enable_shared_from_this<DataChannel> {
 public:
     struct RTC_CPP_EXPORT Init {
         std::string label;
@@ -29,8 +31,6 @@ public:
              bool negotiated = false);
     };
 
-    using OpenedCallback = std::function<void()>;
-    using ClosedCallback = std::function<void()>;
     using BinaryMessageReceivedCallback = std::function<void(const uint8_t* in_data, size_t in_size)>;
     using TextMessageReceivedCallback = std::function<void(const std::string text)>;
     using BufferedAmountChangedCallback = std::function<void(uint64_t previous_amount)>;
@@ -54,7 +54,7 @@ public:
     void HintStreamId(sdp::Role role);
 
     void Open(std::weak_ptr<SctpTransport> sctp_transport);
-    void Close();
+    void Close() override;
     void RemoteClose();
 
     void Send(const std::string text);
@@ -62,8 +62,8 @@ public:
     void OnBufferedAmount(size_t amount);
     static bool IsOpenMessage(std::shared_ptr<SctpMessage> message);
 
-    void OnOpened(OpenedCallback callback);
-    void OnClosed(ClosedCallback callback);
+    void OnOpened(OpenedCallback callback) override;
+    void OnClosed(ClosedCallback callback) override;
     void OnBinaryMessageReceivedCallback(BinaryMessageReceivedCallback callback);
     void OnTextMessageReceivedCallback(TextMessageReceivedCallback callback);
     void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);

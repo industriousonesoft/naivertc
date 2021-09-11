@@ -86,7 +86,7 @@ void DataChannel::HintStreamId(sdp::Role role) {
 void DataChannel::Open(std::weak_ptr<SctpTransport> sctp_transport) {
     task_queue_.Async([this, sctp_transport=std::move(sctp_transport)](){
         if (is_opened_) {
-            PLOG_VERBOSE << "DataChannel did open already.";
+            PLOG_VERBOSE << "DataChannel: " + std::to_string(stream_id_) + "did open already.";
             return;
         }
         PLOG_VERBOSE << __FUNCTION__;
@@ -99,17 +99,14 @@ void DataChannel::Open(std::weak_ptr<SctpTransport> sctp_transport) {
 void DataChannel::Close() {
     task_queue_.Async([this](){
         if (!is_opened_) {
-            PLOG_VERBOSE << "DataChannel did close already.";
+            PLOG_VERBOSE << "DataChannel:" + std::to_string(stream_id_) + " did close already.";
             return;
         }
         PLOG_VERBOSE << __FUNCTION__;
-        auto transport = sctp_transport_.lock();
-        if (!transport) {
-            PLOG_WARNING << "DataChannel has no transport";
-            return;
-        }
         is_opened_ = false;
-        transport->ShutdownStream(stream_id_);
+        if (auto transport = sctp_transport_.lock()) {
+            transport->ShutdownStream(stream_id_);
+        }
     });
 }
 
@@ -136,12 +133,14 @@ void DataChannel::OnClosed(ClosedCallback callback) {
 void DataChannel::OnBinaryMessageReceivedCallback(BinaryMessageReceivedCallback callback) {
     task_queue_.Async([this, callback=std::move(callback)](){
         binary_message_received_callback_ = callback;
+        // TODO: Flush pending binary message 
     });
 }
 
 void DataChannel::OnTextMessageReceivedCallback(TextMessageReceivedCallback callback) {
     task_queue_.Async([this, callback=std::move(callback)](){
         text_message_received_callback_ = callback;
+        // TODO: Flush pending text message 
     });
 }
 

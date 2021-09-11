@@ -58,15 +58,17 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
             }else {
                 this->UpdateConnectionState(ConnectionState::CONNECTED);
             }
-            // TODO: To open local media tracks
+            this->OpenMediaTracks();
             break;
         }
         case DtlsSrtpTransport::State::FAILED: {
             this->UpdateConnectionState(ConnectionState::FAILED);
+            this->CloseMediaTracks();
             break;
         }
         case DtlsSrtpTransport::State::DISCONNECTED: {
             this->UpdateConnectionState(ConnectionState::DISCONNECTED);
+            this->CloseMediaTracks();
             break;
         }
         default:
@@ -91,7 +93,31 @@ bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
 }
 
 void PeerConnection::OnRtpPacketReceived(std::shared_ptr<RtpPacket> in_packet) {
-    
+    signal_task_queue_->Async([this, rtp_packet=std::move(in_packet)](){
+
+    });
+}
+
+void PeerConnection::OpenMediaTracks() {
+    assert(signal_task_queue_->is_in_current_queue());
+    auto srtp_transport = std::dynamic_pointer_cast<DtlsSrtpTransport>(dtls_transport_);
+    for (auto& kv : media_tracks_) {
+        if (auto media_track = kv.second.lock()) {
+            if (!media_track->is_opened()) {
+                media_track->Open(srtp_transport);
+            }
+        }
+    }
+}
+
+void PeerConnection::CloseMediaTracks() {
+    assert(signal_task_queue_->is_in_current_queue());
+    for (auto& kv : media_tracks_) {
+        if (auto media_track = kv.second.lock()) {
+            media_track->Close();
+        }
+    }
+    media_tracks_.clear();
 }
 
 } // namespace naivertc

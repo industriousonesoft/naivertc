@@ -22,25 +22,29 @@ MediaTrack::Configuration::Configuration::Configuration(const std::string _mid,
 
 // Media track
 MediaTrack::MediaTrack(const sdp::Media description) 
-    : description_(std::move(description)) {;
+    : MediaChannel(description.mid()),
+      description_(std::move(description)) {;
 }
 
 MediaTrack::~MediaTrack() {}
 
-std::string MediaTrack::mid() const {
-    return description_.mid();
-}
-
 sdp::Direction MediaTrack::direction() const {
-    return description_.direction();
+    return task_queue_.Sync<sdp::Direction>([this](){
+        return description_.direction();
+    });
 }
 
 sdp::Media MediaTrack::description() const {
-    return description_;
+    return task_queue_.Sync<sdp::Media>([this](){
+        return description_;
+    });
 }
 
 void MediaTrack::UpdateDescription(const sdp::Media description) {
-    description_ = std::move(description);
+    task_queue_.Async([this, description=std::move(description)](){
+        description_ = std::move(description);
+    });
+    
 }
 
 } // namespace naivertc

@@ -57,7 +57,9 @@ public:
     using GatheringStateCallback = std::function<void(GatheringState new_state)>;
     using CandidateCallback = std::function<void(const sdp::Candidate& candidate)>;
     using SignalingStateCallback = std::function<void(SignalingState new_state)>;
+
     using DataChannelCallback = std::function<void(std::shared_ptr<DataChannel>)>;
+    using MediaTrackCallback = std::function<void(std::shared_ptr<MediaTrack>)>;
 
     using SDPCreateSuccessCallback = std::function<void(const sdp::Description sdp)>;
     using SDPCreateFailureCallback = std::function<void(const std::exception exp)>;
@@ -96,7 +98,10 @@ public:
     void OnIceGatheringStateChanged(GatheringStateCallback callback);
     void OnIceCandidate(CandidateCallback callback);
     void OnSignalingStateChanged(SignalingStateCallback callback);
+
+    // Incoming data channel or media track created by remote peer
     void OnDataChannel(DataChannelCallback callback);
+    void OnMediaTrack(MediaTrackCallback callback);
 
     static std::string signaling_state_to_string(SignalingState state);
 
@@ -124,9 +129,6 @@ private:
     void ProcessRemoteCandidate(sdp::Candidate candidate);
     void AddRemoteCandidate(const sdp::Candidate& candidate);
 
-    void AddReciprocatedMediaTrack(sdp::Media media_sdp);
-    void ShiftDataChannelIfNeccessary(sdp::Role role);
-
     void ResetCallbacks();
     void CloseTransports();
 
@@ -134,8 +136,15 @@ private:
     void OpenDataChannels();
     void CloseDataChannels();
     void RemoteCloseDataChannels();
-    void OnRemoteDataChannelOpened(std::weak_ptr<DataChannel> data_channel);
     void FlushPendingDataChannels();
+    void ShiftDataChannelIfNeccessary(sdp::Role role);
+    void OnIncomingDataChannel(std::shared_ptr<DataChannel> data_channel);
+
+    // MediaTacks
+    void OpenMediaTracks();
+    void CloseMediaTracks();
+    void FlushPendingMediaTracks();
+    void OnIncomingMediaTrack(sdp::Media media_sdp);
 
     std::shared_ptr<DataChannel> FindDataChannel(StreamId stream_id) const;
     std::shared_ptr<MediaTrack> FindMediaTrack(std::string mid) const;
@@ -179,10 +188,14 @@ private:
     GatheringStateCallback gathering_state_callback_ = nullptr;
     CandidateCallback candidate_callback_ = nullptr;
     SignalingStateCallback signaling_state_callback_ = nullptr;
+
     DataChannelCallback data_channel_callback_ = nullptr;
+    MediaTrackCallback media_track_callback_ = nullptr;
 
     std::optional<sdp::Description> local_sdp_ = std::nullopt;
     std::optional<sdp::Description> remote_sdp_ = std::nullopt;
+
+    std::vector<const sdp::Candidate> remote_candidates_;
 
     // Keep a weak reference instead of shared one, since the life cycle of 
     // data channels or media tracks should be owned by the one who has created them.
@@ -192,8 +205,8 @@ private:
     // The pending data channels will be owned by peer connection before 
     // handled by user, that's why we use shared_ptr here.
     std::vector<std::shared_ptr<DataChannel>> pending_data_channels_;
-    std::vector<const sdp::Candidate> remote_candidates_;
-
+    std::vector<std::shared_ptr<MediaTrack>> pending_media_tracks_;
+    
 };
 
 }

@@ -6,13 +6,16 @@
 namespace naivertc {
 namespace sdp {
 
+Media::Media() 
+    : Media("") {}
+
 Media::Media(const std::string& sdp) 
     : MediaEntry(sdp, ""),
-    direction_(Direction::UNKNOWN) {}
+     direction_(Direction::UNKNOWN) {}
     
 Media::Media(const std::string& mline, const std::string mid, Direction direction) 
     : MediaEntry(mline, std::move(mid)),
-    direction_(direction) {}
+     direction_(direction) {}
 
 Direction Media::direction() const {
     return direction_;

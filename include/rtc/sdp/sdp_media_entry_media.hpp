@@ -31,6 +31,7 @@ public:
         std::string codec_params;
     };
 public:
+    Media();
     Media(const std::string& sdp);
     Media(const std::string& mline, const std::string mid, Direction direction = Direction::SEND_ONLY);
     virtual ~Media() = default;

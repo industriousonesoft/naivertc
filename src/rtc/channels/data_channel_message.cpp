@@ -170,12 +170,17 @@ void DataChannel::OnOpenMessageReceived(const SctpMessage& open_message) {
     if (negotiated_) {
         PLOG_WARNING << "The open messages for a user-negotiated DataChannel received, ignoring";
     }else {
-        // Negotiating with remote data channel
-        ProcessOpenMessage(open_message);
-        // Send back a ACK message
-        SendAckMessage();
-        // Trigger open callback
-        TriggerOpen();
+        try {
+            // Negotiating with remote data channel
+            ProcessOpenMessage(open_message);
+            // Send back a ACK message
+            SendAckMessage();
+            // Trigger open callback
+            TriggerOpen();
+        }catch (const std::exception& e) {
+            PLOG_ERROR << "Failed to open data channel: " << e.what();
+            TriggerClose();
+        }
     }
 }
 

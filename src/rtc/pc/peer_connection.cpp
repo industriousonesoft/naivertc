@@ -10,7 +10,7 @@ namespace naivertc {
 
 PeerConnection::PeerConnection(const RtcConfiguration config) 
     : rtc_config_(std::move(config)),
-    certificate_(Certificate::MakeCertificate(rtc_config_.certificate_type)) {
+      certificate_(Certificate::MakeCertificate(rtc_config_.certificate_type)) {
 
     if (rtc_config_.port_range_end > 0 && rtc_config_.port_range_end < rtc_config_.port_range_begin) {
         throw std::invalid_argument("Invaild port range.");
@@ -50,10 +50,10 @@ void PeerConnection::Close() {
         this->CloseDataChannels();
         this->CloseTransports();
     });
-
 }
 
 void PeerConnection::ResetCallbacks() {
+    assert(signal_task_queue_->is_in_current_queue());
     connection_state_callback_ = nullptr;
     gathering_state_callback_ = nullptr;
     candidate_callback_ = nullptr;
@@ -61,6 +61,7 @@ void PeerConnection::ResetCallbacks() {
 }
 
 void PeerConnection::CloseTransports() {
+    assert(signal_task_queue_->is_in_current_queue());
     if (!UpdateConnectionState(ConnectionState::CLOSED)) {
         // Closed already
         return;
@@ -85,6 +86,7 @@ void PeerConnection::CloseTransports() {
 }
 
 bool PeerConnection::UpdateConnectionState(ConnectionState state) {
+    assert(signal_task_queue_->is_in_current_queue());
     if (connection_state_ == state) {
         return false;
     }
@@ -96,6 +98,7 @@ bool PeerConnection::UpdateConnectionState(ConnectionState state) {
 }
 
 bool PeerConnection::UpdateGatheringState(GatheringState state) {
+    assert(signal_task_queue_->is_in_current_queue());
     if (gathering_state_ == state) {
         return false;
     }
@@ -107,6 +110,7 @@ bool PeerConnection::UpdateGatheringState(GatheringState state) {
 }
 
 bool PeerConnection::UpdateSignalingState(SignalingState state) {
+    assert(signal_task_queue_->is_in_current_queue());
     if (signaling_state_ == state) {
         return false;
     }
@@ -167,19 +171,39 @@ void PeerConnection::OnDataChannel(DataChannelCallback callback) {
     });
 }
 
+void PeerConnection::OnMediaTrack(MediaTrackCallback callback) {
+    signal_task_queue_->Async([this, callback=std::move(callback)](){
+        this->media_track_callback_ = std::move(callback);
+        // Flush pending media tracks
+        this->FlushPendingMediaTracks();
+    });
+}
+
 void PeerConnection::FlushPendingDataChannels() {
     signal_task_queue_->Async([this](){
-        if (this->data_channel_callback_ && pending_data_channels_.size() > 0) {
-            for (auto dc : pending_data_channels_) {
+        if (this->data_channel_callback_ && this->pending_data_channels_.size() > 0) {
+            for (auto dc : this->pending_data_channels_) {
                 this->data_channel_callback_(std::move(dc));
             }
-            pending_data_channels_.clear();
+            this->pending_data_channels_.clear();
+        }
+    });
+}
+
+void PeerConnection::FlushPendingMediaTracks() {
+    signal_task_queue_->Async([this](){
+        if (this->media_track_callback_ && this->pending_media_tracks_.size() > 0) {
+            for (auto dc : this->pending_media_tracks_) {
+                this->media_track_callback_(std::move(dc));
+            }
+            this->pending_media_tracks_.clear();
         }
     });
 }
 
 // Private methods
 std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(StreamId stream_id) const {
+    assert(signal_task_queue_->is_in_current_queue());
     if (auto it = data_channels_.find(stream_id); it != data_channels_.end()) {
         return it->second.lock();
     }
@@ -187,6 +211,7 @@ std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(StreamId stream_id)
 }
 
 std::shared_ptr<MediaTrack> PeerConnection::FindMediaTrack(std::string mid) const {
+    assert(signal_task_queue_->is_in_current_queue());
     if (auto it = this->media_tracks_.find(mid); it != this->media_tracks_.end()) {
         return it->second.lock();
     }

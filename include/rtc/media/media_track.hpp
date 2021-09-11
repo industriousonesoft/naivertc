@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/sdp/sdp_media_entry_media.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
+#include "rtc/channels/media_channel.hpp"
 
 #include <string>
 #include <vector>
@@ -11,7 +12,8 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT MediaTrack : std::enable_shared_from_this<MediaTrack> {
+class RTC_CPP_EXPORT MediaTrack : public MediaChannel,
+                                  public std::enable_shared_from_this<MediaTrack> {
 public:
     enum class Kind {
         VIDEO,
@@ -49,7 +51,6 @@ public:
     MediaTrack(const sdp::Media description);
     ~MediaTrack();
 
-    std::string mid() const;
     sdp::Direction direction() const;
     sdp::Media description() const;
 
