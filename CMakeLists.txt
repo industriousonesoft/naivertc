@@ -459,6 +459,7 @@ set(TEST_SOURCES
     src/rtc/base/units/time_delta_unittest.cpp
     src/rtc/base/units/bit_rate_unittest.cpp
     src/rtc/base/bit_rate_statistics_unittest.cpp
+    src/rtc/base/copy_on_write_buffer_unittest.cpp
     
     src/rtc/sdp/sdp_media_entry_unittest.cpp
     src/rtc/sdp/candidate_unittest.cpp

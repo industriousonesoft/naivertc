@@ -25,7 +25,7 @@ public:
    
     virtual ~CopyOnWriteBuffer();
 
-    const uint8_t* data() const;
+    const uint8_t* cdata() const;
     uint8_t* data();
 
     size_t size() const;
@@ -40,6 +40,9 @@ public:
     void Assign(const uint8_t* data, size_t size);
     void Resize(size_t size);
     void Clear();
+
+private:
+    void CloneIfNecessary(size_t new_capacity);
 
 private:
     std::shared_ptr<BinaryBuffer> buffer_ = nullptr;

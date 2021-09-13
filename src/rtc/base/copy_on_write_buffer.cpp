@@ -33,12 +33,16 @@ CopyOnWriteBuffer::CopyOnWriteBuffer(const uint8_t* data, size_t size, size_t ca
 
 CopyOnWriteBuffer::~CopyOnWriteBuffer() = default;
 
-const uint8_t* CopyOnWriteBuffer::data() const {
+const uint8_t* CopyOnWriteBuffer::cdata() const {
     return buffer_ != nullptr ? buffer_->data() : nullptr;
 }
 
 uint8_t* CopyOnWriteBuffer::data() {
-    return buffer_ != nullptr ? buffer_->data() : nullptr;
+    if (!buffer_) {
+        return nullptr;
+    }
+    CloneIfNecessary(capacity());
+    return buffer_->data();
 }
 
 size_t CopyOnWriteBuffer::size() const {
@@ -65,13 +69,13 @@ CopyOnWriteBuffer& CopyOnWriteBuffer::operator=(CopyOnWriteBuffer&& other) {
 
 bool CopyOnWriteBuffer::operator==(const CopyOnWriteBuffer& other) const {
     return size() == other.size() && 
-           (data() == other.data() || (memcmp(data(), other.data(), size())));
+           (cdata() == other.cdata() || (memcmp(cdata(), other.cdata(), size()) == 0));
 }
 
 uint8_t CopyOnWriteBuffer::operator[](size_t index) const {
     assert(buffer_ != nullptr);
     assert(index < buffer_->size());
-    return data()[index];
+    return cdata()[index];
 }
 
 void CopyOnWriteBuffer::Assign(const uint8_t* data, size_t size) {
@@ -96,16 +100,9 @@ void CopyOnWriteBuffer::Resize(size_t size) {
         }
         return;
     }
-    if (buffer_.use_count() == 1) {
-        if (size > buffer_->capacity()) {
-            buffer_->reserve(size);
-        }
-        buffer_->resize(size);
-    }else {
-        size_t capacity = std::max(buffer_->capacity(), size);
-        buffer_ = std::make_shared<BinaryBuffer>(size);
-        buffer_->reserve(capacity);
-    }
+    size_t new_capacity = std::max(buffer_->capacity(), size);
+    CloneIfNecessary(new_capacity);
+    buffer_->resize(size);
 }
 
 void CopyOnWriteBuffer::Clear() {
@@ -119,6 +116,18 @@ void CopyOnWriteBuffer::Clear() {
         buffer_ = std::make_shared<BinaryBuffer>(0);
         buffer_->reserve(capacity);
     }
+}
+
+// Private methods
+void CopyOnWriteBuffer::CloneIfNecessary(size_t new_capacity) {
+    if (buffer_.use_count() == 1) {
+        if (new_capacity > capacity()) {
+            buffer_->reserve(new_capacity);
+        }
+        return;
+    }
+    buffer_ = std::make_shared<BinaryBuffer>(buffer_->data(), buffer_->data() + buffer_->size());
+    buffer_->reserve(new_capacity);
 }
 
 } // namespace naivertc
