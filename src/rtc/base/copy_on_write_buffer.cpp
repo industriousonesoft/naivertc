@@ -21,17 +21,25 @@ CopyOnWriteBuffer::CopyOnWriteBuffer(size_t size, size_t capacity)
     }
 }
 
-CopyOnWriteBuffer::CopyOnWriteBuffer(const uint8_t* data, size_t size) 
-    : CopyOnWriteBuffer(data, size, size) {}
-
-CopyOnWriteBuffer::CopyOnWriteBuffer(const uint8_t* data, size_t size, size_t capacity)
-    : CopyOnWriteBuffer(size, capacity) {
-    if (buffer_) {
-        std::memcpy(buffer_->data(), data, size);
+CopyOnWriteBuffer& CopyOnWriteBuffer::operator=(const CopyOnWriteBuffer& other) {
+    if (&other != this) {
+        buffer_ = other.buffer_;
     }
+    return *this;
+}
+
+CopyOnWriteBuffer& CopyOnWriteBuffer::operator=(CopyOnWriteBuffer&& other) {
+    if (&other != this) {
+        buffer_ = std::move(other.buffer_);
+    }
+    return *this;
 }
 
 CopyOnWriteBuffer::~CopyOnWriteBuffer() = default;
+
+const uint8_t* CopyOnWriteBuffer::data() const {
+    return cdata();
+}
 
 const uint8_t* CopyOnWriteBuffer::cdata() const {
     return buffer_ != nullptr ? buffer_->data() : nullptr;
@@ -53,44 +61,105 @@ size_t CopyOnWriteBuffer::capacity() const {
     return buffer_ != nullptr ? buffer_->capacity() : 0;
 }
 
-CopyOnWriteBuffer& CopyOnWriteBuffer::operator=(const CopyOnWriteBuffer& other) {
-    if (&other != this) {
-        buffer_ = other.buffer_;
-    }
-    return *this;
-}
-
-CopyOnWriteBuffer& CopyOnWriteBuffer::operator=(CopyOnWriteBuffer&& other) {
-    if (&other != this) {
-        buffer_ = std::move(other.buffer_);
-    }
-    return *this;
-}
-
 bool CopyOnWriteBuffer::operator==(const CopyOnWriteBuffer& other) const {
     return size() == other.size() && 
-           (cdata() == other.cdata() || (memcmp(cdata(), other.cdata(), size()) == 0));
+           (data() == other.data() || (memcmp(data(), other.data(), size()) == 0));
 }
 
-uint8_t CopyOnWriteBuffer::operator[](size_t index) const {
+uint8_t& CopyOnWriteBuffer::operator[](size_t index) {
+    return at(index);
+}
+
+const uint8_t& CopyOnWriteBuffer::operator[](size_t index) const {
+    return at(index);
+}
+
+uint8_t& CopyOnWriteBuffer::at(size_t index) {
     assert(buffer_ != nullptr);
     assert(index < buffer_->size());
-    return cdata()[index];
+    return data()[index];
 }
 
-void CopyOnWriteBuffer::Assign(const uint8_t* data, size_t size) {
+const uint8_t& CopyOnWriteBuffer::at(size_t index) const {
+    assert(buffer_ != nullptr);
+    assert(index < buffer_->size());
+    return data()[index];
+}
+
+std::vector<uint8_t>::iterator CopyOnWriteBuffer::begin() {
     if (!buffer_) {
-        buffer_ = size > 0 ? std::make_shared<BinaryBuffer>(data, data + size) : nullptr;
-    }else if (buffer_.use_count() == 1) {
-        if (size > buffer_->capacity()) {
-            buffer_->reserve(size);
-        }
-        buffer_->assign(data, data + size);
+        buffer_ = std::make_shared<BinaryBuffer>();
     }else {
-        size_t capacity = std::max(buffer_->capacity(), size);
-        buffer_ = std::make_shared<BinaryBuffer>(data, data + size);
-        buffer_->reserve(capacity);
+        CloneIfNecessary(capacity());
     }
+    return buffer_->begin();
+}
+
+std::vector<uint8_t>::iterator CopyOnWriteBuffer::end() {
+    if (!buffer_) {
+        buffer_ = std::make_shared<BinaryBuffer>();
+    }else {
+        CloneIfNecessary(capacity());
+    }
+    return buffer_->end();
+}
+
+std::vector<uint8_t>::const_iterator CopyOnWriteBuffer::cbegin() const {
+    // This const_const is not pretty, but the alternative is to declare 
+    // the member as mutable.
+    const_cast<CopyOnWriteBuffer*>(this)->CreateEmptyBufferIfNecessary();
+    return buffer_->cbegin();
+}
+
+std::vector<uint8_t>::const_iterator CopyOnWriteBuffer::cend() const {
+    const_cast<CopyOnWriteBuffer*>(this)->CreateEmptyBufferIfNecessary();
+    return buffer_->cend();
+}
+
+std::vector<uint8_t>::reverse_iterator CopyOnWriteBuffer::rbegin() {
+    if (!buffer_) {
+        buffer_ = std::make_shared<BinaryBuffer>();
+    }else {
+        CloneIfNecessary(capacity());
+    }
+    return buffer_->rbegin();
+}
+
+std::vector<uint8_t>::reverse_iterator CopyOnWriteBuffer::rend() {
+    if (!buffer_) {
+        buffer_ = std::make_shared<BinaryBuffer>();
+    }else {
+        CloneIfNecessary(capacity());
+    }
+    return buffer_->rend();
+}
+
+std::vector<uint8_t>::const_reverse_iterator CopyOnWriteBuffer::crbegin() const {
+    const_cast<CopyOnWriteBuffer*>(this)->CreateEmptyBufferIfNecessary();
+    return buffer_->crbegin();
+}
+
+std::vector<uint8_t>::const_reverse_iterator CopyOnWriteBuffer::crend() const {
+    const_cast<CopyOnWriteBuffer*>(this)->CreateEmptyBufferIfNecessary();
+    return buffer_->crend();
+}
+
+void CopyOnWriteBuffer::Append(std::vector<uint8_t>::const_iterator begin, 
+                               std::vector<uint8_t>::const_iterator end) {
+    if (!buffer_) {
+        buffer_ = std::make_shared<BinaryBuffer>(begin, end);
+        return;
+    }
+    CloneIfNecessary(capacity());
+    buffer_->insert(buffer_->end(), begin, end);
+}
+
+void CopyOnWriteBuffer::Insert(std::vector<uint8_t>::iterator pos, 
+                               std::vector<uint8_t>::const_iterator begin, 
+                               std::vector<uint8_t>::const_iterator end) {
+    assert(buffer_ != nullptr);
+    CloneIfNecessary(buffer_->capacity());                 
+    buffer_->insert(pos, begin, end);
 }
 
 void CopyOnWriteBuffer::Resize(size_t size) {
@@ -118,6 +187,10 @@ void CopyOnWriteBuffer::Clear() {
     }
 }
 
+void CopyOnWriteBuffer::Swap(CopyOnWriteBuffer& other) {
+    buffer_->swap(*other.buffer_.get());
+}
+
 // Private methods
 void CopyOnWriteBuffer::CloneIfNecessary(size_t new_capacity) {
     if (buffer_.use_count() == 1) {
@@ -128,6 +201,12 @@ void CopyOnWriteBuffer::CloneIfNecessary(size_t new_capacity) {
     }
     buffer_ = std::make_shared<BinaryBuffer>(buffer_->data(), buffer_->data() + buffer_->size());
     buffer_->reserve(new_capacity);
+}
+
+void CopyOnWriteBuffer::CreateEmptyBufferIfNecessary() {
+    if (!buffer_) {
+        buffer_ = std::make_shared<BinaryBuffer>();
+    }
 }
 
 } // namespace naivertc

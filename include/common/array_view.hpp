@@ -37,7 +37,7 @@ public:
     ArrayView(const U& u) noexcept : ArrayView(u.data(), u.size()) {}
 
     T& operator[](int i) noexcept { return ptr_[i]; }
-    T const& operator[](int i) const noexcept { return  ptr_[i]; }
+    const T& operator[](int i) const noexcept { return  ptr_[i]; }
     T* data() const noexcept { return ptr_; }
     size_t size() const noexcept { return size_; };
     bool empty() const noexcept { return this->size() == 0; }
