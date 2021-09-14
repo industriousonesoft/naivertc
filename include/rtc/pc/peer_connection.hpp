@@ -163,7 +163,7 @@ private:
     // SctpTransport callbacks
     void OnSctpTransportStateChanged(SctpTransport::State transport_state);
     void OnBufferedAmountChanged(StreamId stream_id, size_t amount);
-    void OnSctpMessageReceived(Packet in_packet);
+    void OnSctpMessageReceived(SctpMessage in_packet);
 
 private:
     const RtcConfiguration rtc_config_;

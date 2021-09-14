@@ -37,7 +37,7 @@ void PeerConnection::InitSctpTransport() {
 
         sctp_transport_->OnStateChanged(std::bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
         sctp_transport_->OnBufferedAmountChanged(std::bind(&PeerConnection::OnBufferedAmountChanged, this, std::placeholders::_1, std::placeholders::_2));
-        sctp_transport_->OnPacketReceived(std::bind(&PeerConnection::OnSctpMessageReceived, this, std::placeholders::_1));
+        sctp_transport_->OnSctpMessageReceived(std::bind(&PeerConnection::OnSctpMessageReceived, this, std::placeholders::_1));
 
         sctp_transport_->Start();
 
@@ -81,15 +81,13 @@ void PeerConnection::OnBufferedAmountChanged(StreamId stream_id, size_t amount) 
     });
 }
 
-void PeerConnection::OnSctpMessageReceived(Packet in_packet) {
+void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
     // TODO: Using work task queue
-    signal_task_queue_->Async([this, in_packet=std::move(in_packet)]() mutable {
-        SctpMessage* message_ptr = dynamic_cast<SctpMessage*>(&in_packet);
-        if (!message_ptr) {
+    signal_task_queue_->Async([this, message=std::move(message)]() mutable {
+        if (message.empty()) {
             PLOG_WARNING << "Received empty sctp message";
             return;
         }
-        auto message = *message_ptr;
         auto stream_id = message.stream_id();
         auto data_channel = FindDataChannel(stream_id);
         if (!data_channel) {

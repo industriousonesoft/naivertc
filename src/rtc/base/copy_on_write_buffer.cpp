@@ -1,5 +1,7 @@
 #include "rtc/base/copy_on_write_buffer.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
 
 CopyOnWriteBuffer::CopyOnWriteBuffer() : buffer_(nullptr) {}
@@ -7,13 +9,15 @@ CopyOnWriteBuffer::CopyOnWriteBuffer() : buffer_(nullptr) {}
 CopyOnWriteBuffer::CopyOnWriteBuffer(const CopyOnWriteBuffer& other) 
     : buffer_(other.buffer_) {}
 
-CopyOnWriteBuffer::CopyOnWriteBuffer(CopyOnWriteBuffer && other) 
-    : buffer_(std::move(other.buffer_)) {}
+CopyOnWriteBuffer::CopyOnWriteBuffer(CopyOnWriteBuffer&& other) 
+    : buffer_(std::move(other.buffer_)) {
+    PLOG_DEBUG << "Called move consrtuctor.";
+}
 
 CopyOnWriteBuffer::CopyOnWriteBuffer(const BinaryBuffer& other_buffer) 
     : buffer_(std::make_shared<BinaryBuffer>(other_buffer)) {}
 
-CopyOnWriteBuffer::CopyOnWriteBuffer(BinaryBuffer && other_buffer) 
+CopyOnWriteBuffer::CopyOnWriteBuffer(BinaryBuffer&& other_buffer) 
     : buffer_(std::make_shared<BinaryBuffer>(std::move(other_buffer))) {}
 
 CopyOnWriteBuffer::CopyOnWriteBuffer(size_t size) 
@@ -38,6 +42,7 @@ CopyOnWriteBuffer& CopyOnWriteBuffer::operator=(CopyOnWriteBuffer&& other) {
     if (&other != this) {
         buffer_ = std::move(other.buffer_);
     }
+    PLOG_DEBUG << "Called move =.";
     return *this;
 }
 

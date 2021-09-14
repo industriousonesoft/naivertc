@@ -28,6 +28,15 @@ void DtlsSrtpTransport::DtlsHandshakeDone() {
 void DtlsSrtpTransport::SendRtpPacket(Packet packet, PacketSentCallback callback) {
     task_queue_->Async([this, packet=std::move(packet), callback]() mutable {
         if (packet.empty() && EncryptPacket(packet)) {
+            if (packet.dscp() == 0) {
+                // Set recommended medium-priority DSCP value
+                // See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
+                // AF42: Assured Forwarding class 4, medium drop probability
+                // TODO: Set DSCP for audio and video separately
+                // packet.type == audio ? packet.set_dscp(46) // EF: Expedited Forwarding
+                //                      : packet.set_dscp(36) // AF42: Assured Forwarding class 4, medium drop probability
+                packet.set_dscp(36);
+            }
             ForwardOutgoingPacket(std::move(packet), callback);
         }else {
             callback(-1);
@@ -38,6 +47,12 @@ void DtlsSrtpTransport::SendRtpPacket(Packet packet, PacketSentCallback callback
 int DtlsSrtpTransport::SendRtpPacket(Packet packet) {
     return task_queue_->Sync<int>([this, packet=std::move(packet)]() mutable {
         if (packet.empty() && EncryptPacket(packet)) {
+            if (packet.dscp() == 0) {
+                // Set recommended medium-priority DSCP value
+                // See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
+                // AF42: Assured Forwarding class 4, medium drop probability
+                packet.set_dscp(36);
+            }
             return ForwardOutgoingPacket(std::move(packet));
         }else {
             return -1;
@@ -90,13 +105,6 @@ bool DtlsSrtpTransport::EncryptPacket(Packet& packet) {
     }
 
     packet.Resize(protectd_data_size);
-
-    if (packet.dscp() == 0) {
-        // Set recommended medium-priority DSCP value
-        // See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
-        // AF42: Assured Forwarding class 4, medium drop probability
-        packet.set_dscp(36);
-    }
 
     return true;
 }

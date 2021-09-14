@@ -22,7 +22,7 @@ public:
 
     using StartedCallback = std::function<void(std::optional<const std::exception>)>;
     using StopedCallback = std::function<void(std::optional<const std::exception>)>;
-    using PacketSentCallback = std::function<void(size_t sent_size)>;
+    using PacketSentCallback = std::function<void(int sent_size)>;
 
     using StateChangedCallback = std::function<void(State state)>;
     using PacketReceivedCallback = std::function<void(Packet in_packet)>;

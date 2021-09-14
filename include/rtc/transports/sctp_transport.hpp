@@ -46,6 +46,8 @@ public:
 
     using BufferedAmountChangedCallback = std::function<void(StreamId, size_t)>;
     void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
+    using SctpMessageReceivedCallback = std::function<void(SctpMessage in_packet)>;
+    void OnSctpMessageReceived(SctpMessageReceivedCallback callback);
 
 private:
     // Order seems wrong but these are the actual values
@@ -69,17 +71,8 @@ private:
     void ResetStream(StreamId stream_id);
     void CloseStream(StreamId stream_id);
 
-    bool FlushPendingMessages();
-    int TrySendMessage(SctpMessage message);
-    void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
-
     void HandleSctpUpCall();
     bool HandleSctpWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
-
-    void ProcessPendingIncomingPackets();
-    void ProcessIncomingPacket(Packet in_packet);
-    void ProcessNotification(const union sctp_notification* notification, size_t len);
-    void ProcessMessage(const BinaryBuffer& message_data, StreamId stream_id, PayloadId payload_id);
 
     void InitUsrSCTP(const Configuration& config);
     // usrsctp callbacks
@@ -94,6 +87,17 @@ private:
     int Send(Packet packet) override { return -1; };
 
     int SendInternal(SctpMessage message);
+
+    bool FlushPendingMessages();
+    int TrySendMessage(SctpMessage message);
+    void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
+
+    void ProcessPendingIncomingPackets();
+    void ProcessIncomingPacket(Packet in_packet);
+    void ProcessNotification(const union sctp_notification* notification, size_t len);
+    void ProcessMessage(const BinaryBuffer& message_data, StreamId stream_id, PayloadId payload_id);
+
+    void ForwardReceivedSctpMessage(SctpMessage message);
 
 private:
     Configuration config_;
@@ -118,6 +122,7 @@ private:
     std::queue<Packet> pending_incoming_packets_;
 
     BufferedAmountChangedCallback buffered_amount_changed_callback_ = nullptr;
+    SctpMessageReceivedCallback sctp_message_received_callback_ = nullptr;
 };
 
 }

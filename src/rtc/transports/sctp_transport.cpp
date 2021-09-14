@@ -48,6 +48,12 @@ void SctpTransport::OnBufferedAmountChanged(BufferedAmountChangedCallback callba
     });
 }
 
+void SctpTransport::OnSctpMessageReceived(SctpMessageReceivedCallback callback) {
+	task_queue_->Async([this, callback](){
+        this->sctp_message_received_callback_ = std::move(callback);
+    });
+}
+
 bool SctpTransport::Start() {
 	return task_queue_->Sync<bool>([this](){
 		if (is_stoped_) {
@@ -79,6 +85,26 @@ void SctpTransport::ShutdownStream(StreamId stream_id) {
 	});
 }
 
+bool SctpTransport::Flush() {
+	return task_queue_->Sync<bool>([this]() -> bool {
+		return FlushPendingMessages();
+	});
+}
+
+void SctpTransport::Send(SctpMessage packet, PacketSentCallback callback) {
+	task_queue_->Async([this, packet=std::move(packet), callback](){
+		int sent_size = SendInternal(std::move(packet));
+		callback(sent_size);
+	});
+}
+
+int SctpTransport::Send(SctpMessage packet) {
+	return task_queue_->Sync<int>([this, packet=std::move(packet)](){
+		return SendInternal(std::move(packet));
+	});
+}
+
+// Private method
 void SctpTransport::Close() {
 	if (socket_) {
 		usrsctp_close(socket_);
@@ -146,25 +172,6 @@ void SctpTransport::Shutdown() {
 }
 
 // Send
-bool SctpTransport::Flush() {
-	return task_queue_->Sync<bool>([this]() -> bool {
-		return FlushPendingMessages();
-	});
-}
-
-void SctpTransport::Send(SctpMessage packet, PacketSentCallback callback) {
-	task_queue_->Async([this, packet=std::move(packet), callback](){
-		int sent_size = SendInternal(std::move(packet));
-		callback(sent_size);
-	});
-}
-
-int SctpTransport::Send(SctpMessage packet) {
-	return task_queue_->Sync<int>([this, packet=std::move(packet)](){
-		return SendInternal(std::move(packet));
-	});
-}
-
 int SctpTransport::SendInternal(SctpMessage packet) {
 	if (packet.empty()) {
 		return FlushPendingMessages() ? 0 : -1;
@@ -457,7 +464,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 			for (int i = 0; i < count; ++i) {
 				StreamId stream_id = reset_event.strreset_stream_list[i];
 				SctpMessage sctp_message(&data_channel_close_message, 1, SctpMessage::Type::CONTROL, stream_id);
-				ForwardIncomingPacket(std::move(sctp_message));
+				ForwardReceivedSctpMessage(std::move(sctp_message));
 			}
 		}
 
@@ -480,7 +487,7 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, StreamId st
 	switch (payload_id) {
 	case PayloadId::PPID_CONTROL: {
 		SctpMessage sctp_message(message_data, SctpMessage::Type::CONTROL, stream_id);
-		ForwardIncomingPacket(std::move(sctp_message));
+		ForwardReceivedSctpMessage(std::move(sctp_message));
 		break;
 	}
 	case PayloadId::PPID_STRING_PARTIAL: 
@@ -491,19 +498,19 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, StreamId st
 		if (string_data_fragments_.empty()) {
 			bytes_recv_ += message_data.size();
 			SctpMessage sctp_message(message_data, SctpMessage::Type::STRING, stream_id);
-			ForwardIncomingPacket(std::move(sctp_message));
+			ForwardReceivedSctpMessage(std::move(sctp_message));
 		}else {
 			bytes_recv_ += message_data.size();
 			string_data_fragments_.insert(string_data_fragments_.end(), message_data.begin(), message_data.end());
 			SctpMessage sctp_message(string_data_fragments_, SctpMessage::Type::STRING, stream_id);
-			ForwardIncomingPacket(std::move(sctp_message));
+			ForwardReceivedSctpMessage(std::move(sctp_message));
 			string_data_fragments_.clear();
 		}
 		break;
 	}
 	case PayloadId::PPID_STRING_EMPTY: {
 		SctpMessage sctp_message(string_data_fragments_, SctpMessage::Type::STRING, stream_id);
-		ForwardIncomingPacket(std::move(sctp_message));
+		ForwardReceivedSctpMessage(std::move(sctp_message));
 		string_data_fragments_.clear();
 		break;
 	}
@@ -514,19 +521,19 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, StreamId st
 		if (binary_data_fragments_.empty()) {
 			bytes_recv_ += message_data.size();
 			SctpMessage sctp_message(message_data, SctpMessage::Type::BINARY, stream_id);
-			ForwardIncomingPacket(std::move(sctp_message));
+			ForwardReceivedSctpMessage(std::move(sctp_message));
 		}else {
 			bytes_recv_ += message_data.size();
 			binary_data_fragments_.insert(binary_data_fragments_.end(), message_data.begin(), message_data.end());
 			SctpMessage sctp_message(binary_data_fragments_, SctpMessage::Type::BINARY, stream_id);
-			ForwardIncomingPacket(std::move(sctp_message));
+			ForwardReceivedSctpMessage(std::move(sctp_message));
 			binary_data_fragments_.clear();
 		}
 		break;
 	}
 	case PayloadId::PPID_BINARY_EMPTY: {
 		SctpMessage sctp_message(binary_data_fragments_, SctpMessage::Type::BINARY, stream_id);
-		ForwardIncomingPacket(std::move(sctp_message));
+		ForwardReceivedSctpMessage(std::move(sctp_message));
 		binary_data_fragments_.clear();
 		break;
 	}
@@ -589,6 +596,12 @@ void SctpTransport::ProcessIncomingPacket(Packet in_packet) {
 
 	// This will trigger 'on_sctp_upcall'
 	usrsctp_conninput(this, in_packet.cdata(), in_packet.size(), 0);
+}
+
+void SctpTransport::ForwardReceivedSctpMessage(SctpMessage message) {
+	if (sctp_message_received_callback_) {
+		sctp_message_received_callback_(std::move(message));
+	}
 }
 
 // Override methods
