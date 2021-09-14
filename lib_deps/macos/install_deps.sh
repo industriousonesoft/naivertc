@@ -36,8 +36,8 @@ fi
 
 if [ $BOOST_VERSION_CHANGED -eq 1 -o ! -e $INSTALL_DIR/boost/lib/libboost_filesystem.a ]; then
     # fetch Boost source codes
-    # rm -rf $SOURCE_DIR/boost
-    # ./fetch_boost.sh $BOOST_BUILD_VERSION $SOURCE_DIR/boost $CACHE_DIR/boost
+    rm -rf $SOURCE_DIR/boost
+    ./fetch_boost.sh $BOOST_BUILD_VERSION $SOURCE_DIR/boost $CACHE_DIR/boost
 
     # build 
     rm -rf $BUILD_DIR/boost
