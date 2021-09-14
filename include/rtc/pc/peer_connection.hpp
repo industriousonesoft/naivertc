@@ -13,7 +13,6 @@
 #include "rtc/transports/sctp_transport.hpp"
 #include "rtc/media/media_track.hpp"
 #include "rtc/channels/data_channel.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp"
 
 
 #include <exception>
@@ -159,12 +158,12 @@ private:
     // DtlsTransport callbacks
     void OnDtlsTransportStateChanged(DtlsTransport::State transport_state);
     bool OnDtlsVerify(std::string_view fingerprint);
-    void OnRtpPacketReceived(std::shared_ptr<RtpPacket> in_packet);
+    void OnRtpPacketReceived(Packet in_packet, bool is_rtcp);
 
     // SctpTransport callbacks
     void OnSctpTransportStateChanged(SctpTransport::State transport_state);
     void OnBufferedAmountChanged(StreamId stream_id, size_t amount);
-    void OnSctpMessageReceived(std::shared_ptr<Packet> in_packet);
+    void OnSctpMessageReceived(Packet in_packet);
 
 private:
     const RtcConfiguration rtc_config_;

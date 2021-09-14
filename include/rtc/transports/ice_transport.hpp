@@ -1,5 +1,5 @@
-#ifndef _RTC_ICE_TRANSPORT_H_
-#define _RTC_ICE_TRANSPORT_H_
+#ifndef _RTC_TRANSPORTS_ICE_TRANSPORT_H_
+#define _RTC_TRANSPORTS_ICE_TRANSPORT_H_
 
 #include "base/defines.hpp"
 #include "rtc/transports/transport.hpp"
@@ -69,8 +69,8 @@ public:
     bool Start() override;
     bool Stop() override;
 
-    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override;
-    int Send(std::shared_ptr<Packet> packet) override;
+    void Send(Packet packet, PacketSentCallback callback) override;
+    int Send(Packet packet) override;
 
     void StartToGatherLocalCandidate(std::string mid);
     void AddRemoteCandidate(const sdp::Candidate candidate);
@@ -93,10 +93,10 @@ private:
     void ProcessGatheredCandidate(const char* sdp);
     void ProcessReceivedData(const char* data, size_t size);
 
-    void Incoming(std::shared_ptr<Packet> in_packet) override;
-    int Outgoing(std::shared_ptr<Packet> out_packet) override;
+    void Incoming(Packet in_packet) override;
+    int Outgoing(Packet out_packet) override;
 
-    int SendInternal(std::shared_ptr<Packet> packet);
+    int SendInternal(Packet packet);
 
 private:
 #if USE_NICE

@@ -45,11 +45,10 @@ public:
     // Payload
     size_t payload_size() const { return payload_size_; }
     ArrayView<const uint8_t> payload() const {
-        return ArrayView(data() + payload_offset_, payload_size_);
+        return ArrayView(cdata() + payload_offset_, payload_size_);
     }
-    BinaryBuffer PayloadBuffer() const {
-        auto paylaod_begin = begin() + payload_offset_;
-        return BinaryBuffer(paylaod_begin, paylaod_begin + payload_size_);
+    CopyOnWriteBuffer PayloadBuffer() const {
+        return CopyOnWriteBuffer(cdata() + payload_offset_, payload_size_);
     }
 
     size_t size() const {

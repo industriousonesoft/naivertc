@@ -2,7 +2,6 @@
 #define _RTC_CHANNELS_DATA_CHANNEL_H_
 
 #include "base/defines.hpp"
-#include "rtc/transports/sctp_transport.hpp"
 #include "rtc/transports/sctp_message.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 #include "common/task_queue.hpp"
@@ -13,6 +12,8 @@
 #include <functional>
 
 namespace naivertc {
+
+class SctpTransport;
 
 class RTC_CPP_EXPORT DataChannel : public Channel, 
                                    public std::enable_shared_from_this<DataChannel> {
@@ -58,9 +59,9 @@ public:
     void RemoteClose();
 
     void Send(const std::string text);
-    void OnIncomingMessage(std::shared_ptr<SctpMessage> message);
+    void OnIncomingMessage(SctpMessage message);
     void OnBufferedAmount(size_t amount);
-    static bool IsOpenMessage(std::shared_ptr<SctpMessage> message);
+    static bool IsOpenMessage(SctpMessage message);
 
     void OnOpened(OpenedCallback callback) override;
     void OnClosed(ClosedCallback callback) override;
@@ -93,7 +94,7 @@ private:
     bool is_opened_ = false;
     std::weak_ptr<SctpTransport> sctp_transport_;
 
-    std::queue<std::shared_ptr<SctpMessage>> recv_message_queue_;
+    std::queue<SctpMessage> recv_message_queue_;
 
     OpenedCallback opened_callback_ = nullptr;
     ClosedCallback closed_callback_ = nullptr;

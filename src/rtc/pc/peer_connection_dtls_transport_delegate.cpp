@@ -23,7 +23,7 @@ void PeerConnection::InitDtlsTransport() {
         // DTLS-SRTP
         if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVideo())) {
             auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(std::move(dtls_init_config), lower, network_task_queue_);
-            dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1));
+            dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1, std::placeholders::_2));
             dtls_transport_ = dtls_srtp_transport;
         // DTLS only
         }else {
@@ -92,8 +92,9 @@ bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
     }); 
 }
 
-void PeerConnection::OnRtpPacketReceived(std::shared_ptr<RtpPacket> in_packet) {
-    signal_task_queue_->Async([this, rtp_packet=std::move(in_packet)](){
+void PeerConnection::OnRtpPacketReceived(Packet in_packet, bool is_rtcp) {
+    // TODO: Using work task queue
+    signal_task_queue_->Async([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
 
     });
 }

@@ -81,14 +81,16 @@ void PeerConnection::OnBufferedAmountChanged(StreamId stream_id, size_t amount) 
     });
 }
 
-void PeerConnection::OnSctpMessageReceived(std::shared_ptr<Packet> in_packet) {
-    signal_task_queue_->Async([this, in_packet=std::move(in_packet)](){
-        auto message = std::dynamic_pointer_cast<SctpMessage>(in_packet);
-        if (!message) {
-            PLOG_WARNING << "Received non-sctp message";
+void PeerConnection::OnSctpMessageReceived(Packet in_packet) {
+    // TODO: Using work task queue
+    signal_task_queue_->Async([this, in_packet=std::move(in_packet)]() mutable {
+        SctpMessage* message_ptr = dynamic_cast<SctpMessage*>(&in_packet);
+        if (!message_ptr) {
+            PLOG_WARNING << "Received empty sctp message";
             return;
         }
-        auto stream_id = message->stream_id();
+        auto message = *message_ptr;
+        auto stream_id = message.stream_id();
         auto data_channel = FindDataChannel(stream_id);
         if (!data_channel) {
             if (!ice_transport_ || !sctp_transport_) {
@@ -113,7 +115,7 @@ void PeerConnection::OnSctpMessageReceived(std::shared_ptr<Packet> in_packet) {
                         // Add incoming data channel after it's opened.
                         this->OnIncomingDataChannel(data_channel);
                     });
-                    data_channel->OnIncomingMessage(message);
+                    data_channel->OnIncomingMessage(std::move(message));
                 }else {
                     PLOG_WARNING << "Try to close a received remote data channel with invalid stream id: " << stream_id;
                     sctp_transport_->ShutdownStream(stream_id);
@@ -121,7 +123,7 @@ void PeerConnection::OnSctpMessageReceived(std::shared_ptr<Packet> in_packet) {
                 }
             }
         }else {
-            data_channel->OnIncomingMessage(message);
+            data_channel->OnIncomingMessage(std::move(message));
         }
     });
 }

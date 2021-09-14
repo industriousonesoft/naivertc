@@ -1,4 +1,5 @@
 #include "rtc/channels/data_channel.hpp"
+#include "rtc/transports/sctp_transport.hpp"
 
 #include <plog/Log.h>
 
@@ -103,18 +104,19 @@ void DataChannel::OnBufferedAmount(size_t amount) {
     });
 }
 
-void DataChannel::OnIncomingMessage(std::shared_ptr<SctpMessage> message) {
-    if (!message) return;
-    task_queue_.Async([this, message=std::move(message)](){
-        switch (message->type()) {
+void DataChannel::OnIncomingMessage(SctpMessage message) {
+    if (!message.empty()) return;
+
+    task_queue_.Async([this, message=std::move(message)]() mutable {
+        switch (message.type()) {
             case SctpMessage::Type::CONTROL: {
-                if (message->size() == 0) {
+                if (message.size() == 0) {
                     break;
                 }
-                auto message_type = message::Type(message->data()[0]);
+                auto message_type = message::Type(message.cdata()[0]);
                 switch (message_type) {
                 case message::Type::OPEN: 
-                    OnOpenMessageReceived(*message.get());
+                    OnOpenMessageReceived(message);
                     break;
                 case message::Type::ACK:
                     TriggerOpen();
@@ -150,18 +152,18 @@ void DataChannel::OnIncomingMessage(std::shared_ptr<SctpMessage> message) {
 void DataChannel::Send(const std::string text) {
     task_queue_.Async([this, text=std::move(text)](){
         if (auto transport = sctp_transport_.lock()) {
-            transport->Send(SctpMessage::Create(text.c_str(), text.length(), SctpMessage::Type::STRING, stream_id_, reliability_));
+            transport->Send(SctpMessage(reinterpret_cast<const uint8_t*>(text.c_str()), text.length(), SctpMessage::Type::STRING, stream_id_, reliability_));
         }else {
             PLOG_WARNING << "The data channel is not ready to send data.";
         }
     });
 }
 
-bool DataChannel::IsOpenMessage(std::shared_ptr<SctpMessage> message) {
-    if (message->type() != SctpMessage::Type::CONTROL) {
+bool DataChannel::IsOpenMessage(SctpMessage message) {
+    if (message.empty() || message.type() != SctpMessage::Type::CONTROL) {
         return false;
     }
-    auto message_type = message::Type(message->data()[0]);
+    auto message_type = message::Type(message.data()[0]);
     return message_type == message::Type::OPEN;
 }
 
@@ -187,12 +189,12 @@ void DataChannel::OnOpenMessageReceived(const SctpMessage& open_message) {
 void DataChannel::ProcessPendingMessages() {
     while(!recv_message_queue_.empty()) {
         auto message = recv_message_queue_.front();
-        if (message->type() == SctpMessage::Type::BINARY) {
+        if (message.type() == SctpMessage::Type::BINARY) {
             if (binary_message_received_callback_) {
-                binary_message_received_callback_(message->data(), message->size());
+                binary_message_received_callback_(message.data(), message.size());
             }
-        }else if (message->type() == SctpMessage::Type::STRING) {
-            std::string text = std::string(message->data(), message->data() + message->size());
+        }else if (message.type() == SctpMessage::Type::STRING) {
+            std::string text = std::string(message.data(), message.data() + message.size());
             if (text_message_received_callback_) {
                 text_message_received_callback_(text);
             }else {
@@ -200,9 +202,9 @@ void DataChannel::ProcessPendingMessages() {
             }
         }else {
             // Close message from remote peer
-            if (!message->empty() && 
-                message->type() == SctpMessage::Type::CONTROL &&
-                message->data()[0] == uint8_t(message::Type::CLOSE)) {
+            if (!message.empty() && 
+                message.type() == SctpMessage::Type::CONTROL &&
+                message.data()[0] == uint8_t(message::Type::CLOSE)) {
                 RemoteClose();
             }
         }
@@ -215,7 +217,7 @@ void DataChannel::ProcessOpenMessage(const SctpMessage& open_message) {
     if (!transport) {
         throw std::runtime_error("DataChannel has no transport");
     }
-    const uint8_t* message_data = open_message.data();
+    const uint8_t* message_data = open_message.cdata();
     const size_t message_size = open_message.size();
     if (message_size < sizeof(message::Open)) {
         throw std::invalid_argument("DataChannel open message too small");
@@ -299,7 +301,7 @@ void DataChannel::SendOpenMessage() const {
     std::copy(label_.begin(), label_.end(), open_msg_variable_part);
     std::copy(protocol_.begin(), protocol_.end(), open_msg_variable_part + label_.size());
 
-    transport->Send(SctpMessage::Create(buffer.data(), buffer.size(), SctpMessage::Type::CONTROL, stream_id_, reliability_));
+    transport->Send(SctpMessage(std::move(buffer), SctpMessage::Type::CONTROL, stream_id_, reliability_));
 }
 
 void DataChannel::SendAckMessage() const {
@@ -311,7 +313,7 @@ void DataChannel::SendAckMessage() const {
     auto &ack_msg = *reinterpret_cast<message::Ack *>(buffer.data());
     ack_msg.type = uint8_t(message::Type::ACK);
 
-    transport->Send(SctpMessage::Create(buffer.data(), buffer.size(), SctpMessage::Type::CONTROL, stream_id_, reliability_));
+    transport->Send(SctpMessage(std::move(buffer), SctpMessage::Type::CONTROL, stream_id_, reliability_));
 }
 
 void DataChannel::SendCloseMessage() const {
@@ -323,7 +325,7 @@ void DataChannel::SendCloseMessage() const {
     auto &ack_msg = *reinterpret_cast<message::Close *>(buffer.data());
     ack_msg.type = uint8_t(message::Type::CLOSE);
 
-    transport->Send(SctpMessage::Create(buffer.data(), buffer.size(), SctpMessage::Type::CONTROL, stream_id_, reliability_));
+    transport->Send(SctpMessage(std::move(buffer), SctpMessage::Type::CONTROL, stream_id_, reliability_));
 }
     
 } // namespace naivertc

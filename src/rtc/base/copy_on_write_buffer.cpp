@@ -10,6 +10,12 @@ CopyOnWriteBuffer::CopyOnWriteBuffer(const CopyOnWriteBuffer& other)
 CopyOnWriteBuffer::CopyOnWriteBuffer(CopyOnWriteBuffer && other) 
     : buffer_(std::move(other.buffer_)) {}
 
+CopyOnWriteBuffer::CopyOnWriteBuffer(const BinaryBuffer& other_buffer) 
+    : buffer_(std::make_shared<BinaryBuffer>(other_buffer)) {}
+
+CopyOnWriteBuffer::CopyOnWriteBuffer(BinaryBuffer && other_buffer) 
+    : buffer_(std::make_shared<BinaryBuffer>(std::move(other_buffer))) {}
+
 CopyOnWriteBuffer::CopyOnWriteBuffer(size_t size) 
     : buffer_(size > 0 ? std::make_shared<BinaryBuffer>(size) : nullptr) {}
 
@@ -35,7 +41,9 @@ CopyOnWriteBuffer& CopyOnWriteBuffer::operator=(CopyOnWriteBuffer&& other) {
     return *this;
 }
 
-CopyOnWriteBuffer::~CopyOnWriteBuffer() = default;
+CopyOnWriteBuffer::~CopyOnWriteBuffer() {
+    buffer_.reset();
+};
 
 const uint8_t* CopyOnWriteBuffer::data() const {
     return cdata();
@@ -63,7 +71,7 @@ size_t CopyOnWriteBuffer::capacity() const {
 
 bool CopyOnWriteBuffer::operator==(const CopyOnWriteBuffer& other) const {
     return size() == other.size() && 
-           (data() == other.data() || (memcmp(data(), other.data(), size()) == 0));
+           (cdata() == other.cdata() || (memcmp(cdata(), other.cdata(), size()) == 0));
 }
 
 uint8_t& CopyOnWriteBuffer::operator[](size_t index) {
@@ -83,7 +91,7 @@ uint8_t& CopyOnWriteBuffer::at(size_t index) {
 const uint8_t& CopyOnWriteBuffer::at(size_t index) const {
     assert(buffer_ != nullptr);
     assert(index < buffer_->size());
-    return data()[index];
+    return cdata()[index];
 }
 
 std::vector<uint8_t>::iterator CopyOnWriteBuffer::begin() {
@@ -188,7 +196,20 @@ void CopyOnWriteBuffer::Clear() {
 }
 
 void CopyOnWriteBuffer::Swap(CopyOnWriteBuffer& other) {
-    buffer_->swap(*other.buffer_.get());
+    if (buffer_ == nullptr) {
+        buffer_ = std::move(other.buffer_);
+        other.buffer_ = nullptr;
+        return;
+    }else {
+        CloneIfNecessary(buffer_->capacity());
+    }
+
+    if (other.buffer_ == nullptr) {
+        other.buffer_ = std::move(buffer_);
+        buffer_ = nullptr;
+    }else {
+        buffer_->swap(*other.buffer_.get());
+    }
 }
 
 // Private methods

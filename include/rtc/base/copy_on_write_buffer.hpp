@@ -31,6 +31,9 @@ public:
     CopyOnWriteBuffer(const CopyOnWriteBuffer&);
     CopyOnWriteBuffer(CopyOnWriteBuffer &&);
 
+    CopyOnWriteBuffer(const BinaryBuffer&);
+    CopyOnWriteBuffer(BinaryBuffer &&);
+
     explicit CopyOnWriteBuffer(size_t size);
     CopyOnWriteBuffer(size_t size, size_t capacity);
 
@@ -144,7 +147,6 @@ public:
     void Insert(std::vector<uint8_t>::iterator pos, 
                 std::vector<uint8_t>::const_iterator begin, 
                 std::vector<uint8_t>::const_iterator end);
-
     void Resize(size_t size);
     void Clear();
 

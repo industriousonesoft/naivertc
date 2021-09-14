@@ -1,5 +1,5 @@
-#ifndef _RTC_TRANSPORT_H_
-#define _RTC_TRANSPORT_H_
+#ifndef _RTC_TRANSPORTS_TRANSPORT_H_
+#define _RTC_TRANSPORTS_TRANSPORT_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/packet.hpp"
@@ -25,7 +25,7 @@ public:
     using PacketSentCallback = std::function<void(size_t sent_size)>;
 
     using StateChangedCallback = std::function<void(State state)>;
-    using PacketReceivedCallback = std::function<void(std::shared_ptr<Packet> in_packet)>;
+    using PacketReceivedCallback = std::function<void(Packet in_packet)>;
 public:
     Transport(std::shared_ptr<Transport> lower = nullptr, std::shared_ptr<TaskQueue> task_queue = nullptr);
     virtual ~Transport();
@@ -36,24 +36,24 @@ public:
     virtual bool Start() = 0;
     virtual bool Stop() = 0;
     
-    virtual void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) = 0;
-    virtual int Send(std::shared_ptr<Packet> packet) = 0;
+    virtual void Send(Packet packet, PacketSentCallback callback) = 0;
+    virtual int Send(Packet packet) = 0;
 
     void OnStateChanged(StateChangedCallback callback);    
     void OnPacketReceived(PacketReceivedCallback callback);
     
 protected:
-    virtual void Incoming(std::shared_ptr<Packet> in_packet) = 0;
-    virtual int Outgoing(std::shared_ptr<Packet> in_packet) = 0;
+    virtual void Incoming(Packet packet) = 0;
+    virtual int Outgoing(Packet packet) = 0;
   
     void UpdateState(State state);
 
     void RegisterIncoming();
     void DeregisterIncoming();
 
-    void ForwardIncomingPacket(std::shared_ptr<Packet> packet);
-    void ForwardOutgoingPacket(std::shared_ptr<Packet> out_packet, PacketSentCallback callback);
-    int ForwardOutgoingPacket(std::shared_ptr<Packet> out_packet);
+    void ForwardIncomingPacket(Packet packet);
+    void ForwardOutgoingPacket(Packet packet, PacketSentCallback callback);
+    int ForwardOutgoingPacket(Packet packet);
 
 protected:
     std::shared_ptr<Transport> lower_;

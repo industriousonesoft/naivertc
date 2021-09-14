@@ -1,5 +1,5 @@
-#ifndef _RTC_DTLS_TRANSPORT_H_
-#define _RTC_DTLS_TRANSPORT_H_
+#ifndef _RTC_TRANSPORTS_DTLS_TRANSPORT_H_
+#define _RTC_TRANSPORTS_DTLS_TRANSPORT_H_
 
 #include "base/defines.hpp"
 #include "base/certificate.hpp"
@@ -38,8 +38,8 @@ public:
     virtual bool Start() override;
     virtual bool Stop() override;
 
-    virtual int Send(std::shared_ptr<Packet> packet) override;
-    virtual void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override;
+    virtual int Send(Packet packet) override;
+    virtual void Send(Packet packet, PacketSentCallback callback) override;
 
 protected:
     void InitOpenSSL(const Configuration& config);
@@ -67,10 +67,10 @@ protected:
     bool IsClient() const;
 
 protected:
-    virtual void Incoming(std::shared_ptr<Packet> in_packet) override;
-    virtual int Outgoing(std::shared_ptr<Packet> out_packet) override;
+    virtual void Incoming(Packet in_packet) override;
+    virtual int Outgoing(Packet out_packet) override;
 
-    int SendInternal(std::shared_ptr<Packet> packet);
+    int SendInternal(Packet packet);
     int HandleDtlsWrite(const char* in_data, int in_size);
 
 private:

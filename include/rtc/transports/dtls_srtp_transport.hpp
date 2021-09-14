@@ -1,5 +1,5 @@
-#ifndef _RTC_DTLS_SRTP_TRANSPORT_H_
-#define _RTC_DTLS_SRTP_TRANSPORT_H_
+#ifndef _RTC_TRANSPORTS_DTLS_SRTP_TRANSPORT_H_
+#define _RTC_TRANSPORTS_DTLS_SRTP_TRANSPORT_H_
 
 #include "base/defines.hpp"
 #include "rtc/transports/dtls_transport.hpp"
@@ -19,10 +19,10 @@ public:
     DtlsSrtpTransport(const DtlsTransport::Configuration config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
     ~DtlsSrtpTransport();
 
-    void SendRtpPacket(std::shared_ptr<RtpPacket> packet, PacketSentCallback callback);
-    int SendRtpPacket(std::shared_ptr<RtpPacket> packet);
+    void SendRtpPacket(Packet packet, PacketSentCallback callback);
+    int SendRtpPacket(Packet packet);
 
-    using RtpPacketRecvCallback = std::function<void(std::shared_ptr<RtpPacket>)>;
+    using RtpPacketRecvCallback = std::function<void(Packet, bool /* is_rtcp */)>;
     void OnReceivedRtpPacket(RtpPacketRecvCallback callback);
 
 private:
@@ -31,7 +31,7 @@ private:
     void InitSrtp();
 
     void DtlsHandshakeDone() override;
-    void Incoming(std::shared_ptr<Packet> in_packet) override;
+    void Incoming(Packet in_packet) override;
 
     bool EncryptPacket(Packet& packet);
 

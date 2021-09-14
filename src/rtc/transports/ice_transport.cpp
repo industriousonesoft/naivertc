@@ -276,8 +276,8 @@ IceTransport::CandidatePair IceTransport::GetSelectedCandidatePair() const {
     });
 }
 
-int IceTransport::SendInternal(std::shared_ptr<Packet> packet) {
-    if (!packet || (state_ != State::CONNECTED && state_ != State::COMPLETED)) {
+int IceTransport::SendInternal(Packet packet) {
+    if (packet.empty() || (state_ != State::CONNECTED && state_ != State::COMPLETED)) {
         return -1;
     }
     return Outgoing(std::move(packet));
@@ -320,8 +320,8 @@ void IceTransport::ProcessReceivedData(const char* data, size_t size) {
     task_queue_->Async([this, data = std::move(data), size](){
         try {
             // PLOG_VERBOSE << "Incoming ICE packet size: " << size;
-            auto packet = Packet::Create(data, size);
-            Incoming(packet);
+            auto bytes = reinterpret_cast<const uint8_t*>(data);
+            Incoming(Packet(bytes, size));
         } catch(const std::exception &e) {
             PLOG_WARNING << e.what();
         }
@@ -329,38 +329,38 @@ void IceTransport::ProcessReceivedData(const char* data, size_t size) {
 }
 
 // Override 
-void IceTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
+void IceTransport::Send(Packet packet, PacketSentCallback callback) {
     task_queue_->Async([this, packet = std::move(packet), callback](){
         int sent_size = SendInternal(std::move(packet));
         callback(sent_size);
     });
 }
 
-int IceTransport::Send(std::shared_ptr<Packet> packet) {
+int IceTransport::Send(Packet packet) {
     return task_queue_->Sync<int>([this, packet=std::move(packet)](){
         return SendInternal(std::move(packet));
     });
 }
 
-void IceTransport::Incoming(std::shared_ptr<Packet> in_packet) {
+void IceTransport::Incoming(Packet in_packet) {
     ForwardIncomingPacket(std::move(in_packet));
 }
 
-int IceTransport::Outgoing(std::shared_ptr<Packet> out_packet) {
+int IceTransport::Outgoing(Packet out_packet) {
     int ret = false;
 #if !USE_NICE
     // Explicit Congestion Notification takes the least-significant 2 bits of the DS field.
-    int ds = int(out_packet->dscp() << 2);
-    ret = juice_send_diffserv(juice_agent_.get(), out_packet->data(), out_packet->size(), ds);
+    int ds = int(out_packet.dscp() << 2);
+    ret = juice_send_diffserv(juice_agent_.get(), out_packet.data(), out_packet.size(), ds);
 #else
-    if (outgoing_dscp_ != out_packet->dscp()) {
-        outgoing_dscp_ = out_packet->dscp();
+    if (outgoing_dscp_ != out_packet.dscp()) {
+        outgoing_dscp_ = out_packet.dscp();
         // Explicit Congestion Notification takes the least-significant 2 bits of the DS field
         int ds = int(outgoing_dscp_ << 2);
         // ToS is the lagacy name for DS
         nice_agent_set_stream_tos(nice_agent_.get(), stream_id_, ds);
     }
-    ret = nice_agent_send(nice_agent_.get(), stream_id_, component_id_, out_packet->size(), reinterpret_cast<const char*>(out_packet->data()));
+    ret = nice_agent_send(nice_agent_.get(), stream_id_, component_id_, out_packet.size(), reinterpret_cast<const char*>(out_packet.data()));
 #endif
     PLOG_VERBOSE << "Send size=" << ret;
     return ret;

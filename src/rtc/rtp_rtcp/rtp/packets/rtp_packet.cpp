@@ -63,12 +63,12 @@ RtpPacket::~RtpPacket() {}
 
 // Getter
 std::vector<uint32_t> RtpPacket::csrcs() const {
-    size_t num_csrc = data()[0] & 0x0F;
+    size_t num_csrc = cdata()[0] & 0x0F;
     assert((kFixedHeaderSize + num_csrc * 4) <= capacity());
     std::vector<uint32_t> csrcs(num_csrc);
     size_t offset = kFixedHeaderSize;
     for (size_t i = 0; i < num_csrc; ++i) {
-        csrcs[i] = ByteReader<uint32_t>::ReadBigEndian(&data()[offset]);
+        csrcs[i] = ByteReader<uint32_t>::ReadBigEndian(&cdata()[offset]);
         offset += 4;
     }
     return csrcs;
@@ -123,7 +123,7 @@ bool RtpPacket::SetPadding(uint8_t padding_size) {
         return false;
     }
     padding_size_ = padding_size;
-    resize(payload_offset_ + payload_size_ + padding_size_);
+    Resize(payload_offset_ + payload_size_ + padding_size_);
     if (padding_size_ > 0) {
         size_t padding_offset = payload_offset_ + payload_size_;
         size_t padding_end = padding_offset + padding_size_;
@@ -141,9 +141,9 @@ bool RtpPacket::SetPadding(uint8_t padding_size) {
 void RtpPacket::SetPayload(ArrayView<const uint8_t> payload) {
     payload_size_ = payload.size();
     // Resize with new payload size
-    BinaryBuffer::resize(payload_offset_ + payload_size_);
+    Resize(payload_offset_ + payload_size_);
     // Insert payload at the front of the padding
-    BinaryBuffer::insert(begin() + payload_offset_, payload.begin(), payload.end());
+    Insert(begin() + payload_offset_, payload.begin(), payload.size());
 }
 
 void RtpPacket::SetPayload(const uint8_t* buffer, size_t size) {
@@ -161,7 +161,7 @@ uint8_t* RtpPacket::SetPayloadSize(size_t size) {
         return nullptr;
     }
     payload_size_ = size;
-    BinaryBuffer::resize(payload_offset_ + payload_size_);
+    Resize(payload_offset_ + payload_size_);
     return WriteAt(payload_offset_);
 }
 
@@ -187,7 +187,7 @@ void RtpPacket::set_csrcs(ArrayView<const uint32_t> csrcs) {
         ByteWriter<uint32_t>::WriteBigEndian(WriteAt(offset), csrc);
         offset += 4;
     }
-    BinaryBuffer::resize(payload_offset_);
+    Resize(payload_offset_);
 }
 
 void RtpPacket::CopyHeaderFrom(const RtpPacket& other) {
@@ -198,7 +198,7 @@ void RtpPacket::CopyHeaderFrom(const RtpPacket& other) {
     ssrc_ = other.ssrc_;
     payload_offset_ = other.payload_offset_;
     // Assign header memory
-    BinaryBuffer::assign(other.begin(), other.begin() + other.header_size());
+    Assign(other.cdata(), other.header_size());
 
     // Reset payload and padding
     payload_size_ = 0;
@@ -216,8 +216,8 @@ void RtpPacket::Reset() {
     padding_size_ = 0;
 
     // After clear, size changes to 0 and capacity stays the same.
-    BinaryBuffer::clear();
-    BinaryBuffer::resize(kFixedHeaderSize);
+    Clear();
+    Resize(kFixedHeaderSize);
     WriteAt(0, kRtpVersion << 6);
 }
 
@@ -287,14 +287,14 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
         Reset();
         return false;
     }
-    BinaryBuffer::resize(size);
-    BinaryBuffer::assign(buffer, buffer + size);
+    Resize(size);
+    Assign(buffer, buffer + size);
     return true;
 }
 
 // Private methods
 inline void RtpPacket::WriteAt(size_t offset, uint8_t byte) {
-    BinaryBuffer::at(offset) = byte;
+    at(offset) = byte;
 }
 
 inline uint8_t* RtpPacket::WriteAt(size_t offset) {
@@ -304,7 +304,7 @@ inline uint8_t* RtpPacket::WriteAt(size_t offset) {
 
 inline const uint8_t* RtpPacket::ReadAt(size_t offset) const {
     assert(offset < capacity());
-    return &data()[offset];
+    return &cdata()[offset];
 }
 
 const RtpPacket::ExtensionInfo* RtpPacket::FindExtensionInfo(int id) const {
@@ -456,7 +456,7 @@ ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
 
     uint16_t extensions_size_padded = UpdateaExtensionSizeByAddZeroPadding(extensions_offset);
     payload_offset_ = extensions_offset + extensions_size_padded;
-    BinaryBuffer::resize(payload_offset_);
+    Resize(payload_offset_);
     return ArrayView<uint8_t>(WriteAt(extension_info_offset), extension_info_length);
 }
 
@@ -523,7 +523,7 @@ void RtpPacket::PromoteToTwoByteHeaderExtension() {
     extensions_size_ += extension_entries_.size();
     uint16_t extensions_size_padded = UpdateaExtensionSizeByAddZeroPadding(extensions_offset);
     payload_offset_ = extensions_offset + extensions_size_padded;
-    BinaryBuffer::resize(payload_offset_);
+    Resize(payload_offset_);
 }
 
 // Parse

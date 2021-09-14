@@ -69,29 +69,29 @@ bool DtlsTransport::Stop() {
     });
 }
 
-void DtlsTransport::Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) {
+void DtlsTransport::Send(Packet packet, PacketSentCallback callback) {
     task_queue_->Async([this, packet = std::move(packet), callback](){
         bool sent_size = SendInternal(std::move(packet));
         callback(sent_size);
     });
 }
 
-int DtlsTransport::Send(std::shared_ptr<Packet> packet) {
+int DtlsTransport::Send(Packet packet) {
     return task_queue_->Sync<int>([this, packet = std::move(packet)](){
         return SendInternal(std::move(packet));
     });
 }
 
-void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
+void DtlsTransport::Incoming(Packet in_packet) {
     task_queue_->Async([this, in_packet = std::move(in_packet)](){
-        if (!in_packet || !ssl_) {
+        if (in_packet.empty() || !ssl_) {
             return;
         }
         try {
-            // PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet->size();
+            // PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet.size();
 
             // Write into SSL in BIO, and will be retrieved by SSL_read
-            BIO_write(in_bio_, in_packet->data(), int(in_packet->size()));
+            BIO_write(in_bio_, in_packet.cdata(), int(in_packet.size()));
 
             // In non-blocking mode, We may try to do handshake multiple time. 
             if (state_ == State::CONNECTING) {
@@ -110,7 +110,7 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                 return;
             }
 
-            uint8_t read_buffer[DEFAULT_SSL_BUFFER_SIZE];
+            static uint8_t read_buffer[DEFAULT_SSL_BUFFER_SIZE];
             int read_size = SSL_read(ssl_, read_buffer, DEFAULT_SSL_BUFFER_SIZE);
 
             // Read failed
@@ -122,7 +122,7 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
             // PLOG_VERBOSE << "SSL read size: " << read_size;
 
             if (read_size > 0) {
-                ForwardIncomingPacket(Packet::Create(read_buffer, size_t(read_size)));
+                ForwardIncomingPacket(Packet(read_buffer, read_size));
             }
 
         }catch (const std::exception& exp) {
@@ -134,25 +134,24 @@ void DtlsTransport::Incoming(std::shared_ptr<Packet> in_packet) {
 int DtlsTransport::HandleDtlsWrite(const char* in_data, int in_size) {
     return task_queue_->Sync<int>([this, in_data, in_size](){
         auto bytes = reinterpret_cast<const uint8_t*>(in_data);
-        auto pakcet = Packet::Create(std::move(bytes), in_size);
-        return Outgoing(std::move(pakcet));
+        return Outgoing(Packet(bytes, in_size));
     });
 }
     
-int DtlsTransport::Outgoing(std::shared_ptr<Packet> out_packet) {
-    if (out_packet->dscp() == 0) {
-        out_packet->set_dscp(curr_dscp_);
+int DtlsTransport::Outgoing(Packet out_packet) {
+    if (out_packet.dscp() == 0) {
+        out_packet.set_dscp(curr_dscp_);
     }
     return ForwardOutgoingPacket(std::move(out_packet));
 }
 
-int DtlsTransport::SendInternal(std::shared_ptr<Packet> packet) {
-     if (!packet || state_ != State::CONNECTED) {
+int DtlsTransport::SendInternal(Packet packet) {
+     if (packet.empty() || state_ != State::CONNECTED) {
         return -1;
     }
 
-    this->curr_dscp_ = packet->dscp();
-    int ret = SSL_write(this->ssl_, packet->data(), int(packet->size()));
+    this->curr_dscp_ = packet.dscp();
+    int ret = SSL_write(this->ssl_, packet.cdata(), int(packet.size()));
 
     if (openssl::check(this->ssl_, ret)) {
         PLOG_VERBOSE << "Send size=" << ret;

@@ -25,9 +25,9 @@ void DtlsSrtpTransport::DtlsHandshakeDone() {
     srtp_init_done_ = true;
 }
 
-void DtlsSrtpTransport::SendRtpPacket(std::shared_ptr<RtpPacket> packet, PacketSentCallback callback) {
-    task_queue_->Async([this, packet=std::move(packet), callback](){
-        if (packet && EncryptPacket(*packet.get())) {
+void DtlsSrtpTransport::SendRtpPacket(Packet packet, PacketSentCallback callback) {
+    task_queue_->Async([this, packet=std::move(packet), callback]() mutable {
+        if (packet.empty() && EncryptPacket(packet)) {
             ForwardOutgoingPacket(std::move(packet), callback);
         }else {
             callback(-1);
@@ -35,9 +35,9 @@ void DtlsSrtpTransport::SendRtpPacket(std::shared_ptr<RtpPacket> packet, PacketS
     });
 }
 
-int DtlsSrtpTransport::SendRtpPacket(std::shared_ptr<RtpPacket> packet) {
-    return task_queue_->Sync<int>([this, packet=std::move(packet)](){
-        if (packet && EncryptPacket(*packet.get())) {
+int DtlsSrtpTransport::SendRtpPacket(Packet packet) {
+    return task_queue_->Sync<int>([this, packet=std::move(packet)]() mutable {
+        if (packet.empty() && EncryptPacket(packet)) {
             return ForwardOutgoingPacket(std::move(packet));
         }else {
             return -1;
@@ -56,7 +56,8 @@ bool DtlsSrtpTransport::EncryptPacket(Packet& packet) {
     if (rtp::utils::IsRtcpPacket(packet)) {
         // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
         // into the location in memory immediately following the RTP packet.
-        packet.resize(protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */);
+        size_t reserve_packet_size = protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */;
+        packet.Resize(reserve_packet_size);
 
         if (srtp_err_status_t err = srtp_protect_rtcp(srtp_out_, packet.data(), &protectd_data_size)) {
             if (err == srtp_err_status_replay_fail) {
@@ -71,7 +72,8 @@ bool DtlsSrtpTransport::EncryptPacket(Packet& packet) {
     }else if (rtp::utils::IsRtpPacket(packet)) {
         // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
         // into the location in memory immediately following the RTP packet.
-        packet.resize(protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */);
+        size_t reserve_packet_size = protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */;
+        packet.Resize(reserve_packet_size);
 
         if (srtp_err_status_t err = srtp_protect(srtp_out_, packet.data(), &protectd_data_size)) {
             if (err == srtp_err_status_replay_fail) {
@@ -87,7 +89,7 @@ bool DtlsSrtpTransport::EncryptPacket(Packet& packet) {
         return false;
     }
 
-    packet.resize(protectd_data_size);
+    packet.Resize(protectd_data_size);
 
     if (packet.dscp() == 0) {
         // Set recommended medium-priority DSCP value
@@ -105,15 +107,15 @@ void DtlsSrtpTransport::OnReceivedRtpPacket(RtpPacketRecvCallback callback) {
     });
 }
 
-void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
-    task_queue_->Async([this, in_packet=std::move(in_packet)](){
+void DtlsSrtpTransport::Incoming(Packet in_packet) {
+    task_queue_->Async([this, in_packet=std::move(in_packet)]() mutable {
         // DTLS handshake is still in progress
         if (!srtp_init_done_) {
-            DtlsTransport::Incoming(in_packet);
+            DtlsTransport::Incoming(std::move(in_packet));
             return;
         }
 
-        size_t packet_size = in_packet->size();
+        size_t packet_size = in_packet.size();
         if (packet_size == 0) {
             return;
         }
@@ -122,19 +124,19 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
         // The process for demultiplexing a packet is as follows. The receiver looks at the first byte
         // of the packet. [...] If the value is in between 128 and 191 (inclusive), then the packet is
         // RTP (or RTCP [...]). If the value is between 20 and 63 (inclusive), the packet is DTLS.
-        uint8_t first_byte = in_packet->data()[0];
+        uint8_t first_byte = in_packet.cdata()[0];
         PLOG_VERBOSE << "Demultiplexing DTLS and SRTP/SRTCP with first byte: " << std::to_string(first_byte);
 
         // DTLS packet
         if (first_byte >= 20 && first_byte <= 63) {
-            DtlsTransport::Incoming(in_packet);
+            DtlsTransport::Incoming(std::move(in_packet));
         // RTP/RTCP packet
         }else if (first_byte >= 128 && first_byte <= 191) {
             // RTCP packet
-            if (rtp::utils::IsRtcpPacket(*in_packet.get())) {
+            if (rtp::utils::IsRtcpPacket(in_packet)) {
                 PLOG_VERBOSE << "Incoming SRTCP packet, size: " << packet_size;
                 int unprotected_data_size = int(packet_size);
-                if (srtp_err_status_t err = srtp_unprotect_rtcp(srtp_in_, static_cast<void *>(in_packet->data()), &unprotected_data_size)) {
+                if (srtp_err_status_t err = srtp_unprotect_rtcp(srtp_in_, static_cast<void *>(in_packet.data()), &unprotected_data_size)) {
                     if (err == srtp_err_status_replay_fail) {
                         PLOG_VERBOSE << "Incoming SRTCP packet is a replay.";
                     }else if (err == srtp_err_status_auth_fail) {
@@ -145,17 +147,13 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                     return;
                 }
                 PLOG_VERBOSE << "Unprotected SRTCP packet, size: " << unprotected_data_size;
-                // TODO: To parse rtcp sr and get ssrc
-                // unsigned int ssrc = 0;
-                in_packet->resize(unprotected_data_size);
-                // auto rtcp_packet = RtpPacket::Create(std::move(in_packet), RtpPacket::Type::RTCP, ssrc);
-                // if (rtp_packet_recv_callback_) {
-                //     rtp_packet_recv_callback_(rtcp_packet);
-                // }
-            }else if (rtp::utils::IsRtpPacket(*in_packet.get())) {
+              
+                in_packet.Resize(unprotected_data_size);
+             
+            }else if (rtp::utils::IsRtpPacket(in_packet)) {
                 PLOG_VERBOSE << "Incoming SRTP packet, size: " << packet_size;
                 int unprotected_data_size = int(packet_size);
-                if (srtp_err_status_t err = srtp_unprotect(srtp_in_, static_cast<void *>(in_packet->data()), &unprotected_data_size)) {
+                if (srtp_err_status_t err = srtp_unprotect(srtp_in_, static_cast<void *>(in_packet.data()), &unprotected_data_size)) {
                     if (err == srtp_err_status_replay_fail) {
                         PLOG_VERBOSE << "Incoming SRTP packet is a replay.";
                     }else if (err == srtp_err_status_auth_fail) {
@@ -166,14 +164,9 @@ void DtlsSrtpTransport::Incoming(std::shared_ptr<Packet> in_packet) {
                     return;
                 }
                 PLOG_VERBOSE << "Unprotected SRTP packet, size: " << unprotected_data_size;
-                // TODO: To parse rtp and get ssrc
-                // unsigned int ssrc = 0;
-                // shrink size
-                in_packet->resize(unprotected_data_size);
-                // auto rtp_packet = RtpPacket::Create(std::move(in_packet), RtpPacket::Type::RTP, ssrc);
-                // if (rtp_packet_recv_callback_) {
-                //     rtp_packet_recv_callback_(rtp_packet);
-                // }
+             
+                in_packet.Resize(unprotected_data_size);
+                
             }else {
                 PLOG_WARNING << "Incoming packet is neither a RTP packet nor a RTCP packet, ignoring.";
             }

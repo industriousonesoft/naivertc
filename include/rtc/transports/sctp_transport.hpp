@@ -1,5 +1,5 @@
-#ifndef _RTC_SCTP_TRANSPORT_H_
-#define _RTC_SCTP_TRANSPORT_H_
+#ifndef _RTC_TRANSPORTS_SCTP_TRANSPORT_H_
+#define _RTC_TRANSPORTS_SCTP_TRANSPORT_H_
 
 #include "base/defines.hpp"
 #include "rtc/transports/transport.hpp"
@@ -39,8 +39,8 @@ public:
     bool Start() override;
     bool Stop() override;
 
-    void Send(std::shared_ptr<SctpMessage> message, PacketSentCallback callback);
-    int Send(std::shared_ptr<SctpMessage> message);
+    void Send(SctpMessage message, PacketSentCallback callback);
+    int Send(SctpMessage message);
     bool Flush();
     void ShutdownStream(StreamId stream_id);
 
@@ -70,16 +70,16 @@ private:
     void CloseStream(StreamId stream_id);
 
     bool FlushPendingMessages();
-    int TrySendMessage(std::shared_ptr<SctpMessage> message);
+    int TrySendMessage(SctpMessage message);
     void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
 
     void HandleSctpUpCall();
     bool HandleSctpWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
 
     void ProcessPendingIncomingPackets();
-    void ProcessIncomingPacket(std::shared_ptr<Packet> in_packet);
+    void ProcessIncomingPacket(Packet in_packet);
     void ProcessNotification(const union sctp_notification* notification, size_t len);
-    void ProcessMessage(BinaryBuffer& message_data, StreamId stream_id, PayloadId payload_id);
+    void ProcessMessage(const BinaryBuffer& message_data, StreamId stream_id, PayloadId payload_id);
 
     void InitUsrSCTP(const Configuration& config);
     // usrsctp callbacks
@@ -87,13 +87,13 @@ private:
     static int on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8_t tos, uint8_t set_df);
 
 private:
-    void Incoming(std::shared_ptr<Packet> in_packet) override;
-    int Outgoing(std::shared_ptr<Packet> out_packet) override;
+    void Incoming(Packet in_packet) override;
+    int Outgoing(Packet out_packet) override;
 
-    void Send(std::shared_ptr<Packet> packet, PacketSentCallback callback) override { callback(-1); };
-    int Send(std::shared_ptr<Packet> packet) override { return -1; };
+    void Send(Packet packet, PacketSentCallback callback) override { callback(-1); };
+    int Send(Packet packet) override { return -1; };
 
-    int SendInternal(std::shared_ptr<SctpMessage> message);
+    int SendInternal(SctpMessage message);
 
 private:
     Configuration config_;
@@ -112,10 +112,10 @@ private:
 
     bool has_sent_once_ = false;
 
-    std::queue<std::shared_ptr<SctpMessage>> pending_outgoing_messages_;
+    std::queue<SctpMessage> pending_outgoing_packets_;
     std::map<uint16_t, size_t> stream_buffered_amounts_;
 
-    std::queue<std::shared_ptr<Packet>> pending_incoming_messages_;
+    std::queue<Packet> pending_incoming_packets_;
 
     BufferedAmountChangedCallback buffered_amount_changed_callback_ = nullptr;
 };
