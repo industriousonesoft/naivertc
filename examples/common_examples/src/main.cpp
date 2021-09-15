@@ -45,6 +45,8 @@ int main(int argc, const char* argv[]) {
     task_queue.Async([buf6=std::move(buf1) /* move */]() {
         
     });
+    task_queue.Async([&buf1]() {
+    });
 
     // sdp
     // sdptest::BuildAnOffer();
