@@ -4,7 +4,8 @@
 #include "base/defines.hpp"
 
 namespace naivertc {
-// ToS field: Type of service, the predecessor is DS field, used the left-most 3 bits
+// ToS field: Type of service, 1 byte in the IPv4 and IPv6 headers (used the left-most 3 bits),
+// which is the predecessor is DSCP.
 // See https://datatracker.ietf.org/doc/html/rfc1122#section-3.2.1.6
 // The ToS field structure is presented below:
 //   0   1   2   3   4   5   6   7
@@ -29,8 +30,8 @@ namespace naivertc {
 // p1: default
 
 // DSCP: Differentiated Services Code Point
-// The Differentiated Services Field (DS Field) in the IPv4 and IPv6 headers, used the left-most 3 bits
 // See https://datatracker.ietf.org/doc/html/rfc2474
+// 1 byte in the IPv4 and IPv6 headers (used the left-most 3 bits)
 //   0   1   2   3   4   5   6   7
 // +---+---+---+---+---+---+---+---+
 // |         DSCP          |unused |
@@ -76,30 +77,30 @@ namespace naivertc {
 // |          Data          |  CS1  |  DF  |     AF11    |     AF21    |
 // |                        |  (8)  | (0)  |             |             |
 // +------------------------+-------+------+-------------+-------------+
-enum class DSCP : int8_t {
-    NO_CHANGE = -1,
-    DF = 0,
-    CS0 = 0,
-    CS1 = 8,
-    AF11 = 10,
-    AF12 = 12,
-    AF13 = 14,
-    CS2 = 16,
-    AF21 = 18,
-    AF22 = 20,
-    AF23 = 22,
-    CS3 = 24,
-    AF31 = 26,
-    AF32 = 28,
-    AF33 = 30,
-    CS4 = 32,
-    AF41 = 34,
-    AF42 = 36,
-    AF43 = 38,
-    CS5 = 40,
-    EF = 46,
-    CS6 = 48,
-    CS7 = 56,
+enum DSCP : int8_t {
+    DSCP_NO_CHANGE = -1,
+    DSCP_DF = 0,
+    DSCP_CS0 = 0,
+    DSCP_CS1 = 8,
+    DSCP_AF11 = 10,
+    DSCP_AF12 = 12,
+    DSCP_AF13 = 14,
+    DSCP_CS2 = 16,
+    DSCP_AF21 = 18,
+    DSCP_AF22 = 20,
+    DSCP_AF23 = 22,
+    DSCP_CS3 = 24,
+    DSCP_AF31 = 26,
+    DSCP_AF32 = 28,
+    DSCP_AF33 = 30,
+    DSCP_CS4 = 32,
+    DSCP_AF41 = 34,
+    DSCP_AF42 = 36,
+    DSCP_AF43 = 38,
+    DSCP_CS5 = 40,
+    DSCP_EF = 46,
+    DSCP_CS6 = 48,
+    DSCP_CS7 = 56,
 };
 
 } // namespace naivertc
