@@ -1,6 +1,7 @@
 #include "task_queue_examples.hpp"
 // #include "volatile_examples.hpp"
 #include "sdp_description_examples.hpp"
+#include "rtc/base/copy_on_write_buffer.hpp"
 
 // naivertc
 #include <common/logger.hpp>
@@ -28,16 +29,24 @@ int main(int argc, const char* argv[]) {
     std::cout << "test start" << std::endl;
 
     // TaskQueue
-    std::unique_ptr<taskqueue::Example> task_queue_example = std::make_unique<taskqueue::Example>();
+    // std::unique_ptr<taskqueue::Example> task_queue_example = std::make_unique<taskqueue::Example>();
     // task_queue_example->DelayPost();
     // task_queue_example->Post();
-    task_queue_example->TestRepeatingTask();
+    // task_queue_example->TestRepeatingTask();
     // task_queue_example.reset();
 
-    // // Volatile
-    // // volatile_tests::WithoutVolatile();
+    // CopyOnWriteBuffer
+    naivertc::CopyOnWriteBuffer buf1(10);
+    auto buf2 = buf1; // Copy
+    naivertc::CopyOnWriteBuffer buf3(buf1); // Copy
+    auto bu4 = std::move(buf2); // Move
+    naivertc::CopyOnWriteBuffer buf5(std::move(buf3)); // Move
+    naivertc::TaskQueue task_queue;
+    task_queue.Async([buf6=std::move(buf1) /* move */]() {
+        
+    });
 
-    // // sdp
+    // sdp
     // sdptest::BuildAnOffer();
     // sdptest::ParseAnAnswer();
 
