@@ -69,7 +69,6 @@ public:
     bool Start() override;
     bool Stop() override;
 
-    void Send(Packet packet, PacketSentCallback callback) override;
     int Send(Packet packet) override;
 
     void StartToGatherLocalCandidate(std::string mid);
@@ -95,8 +94,6 @@ private:
 
     void Incoming(Packet in_packet) override;
     int Outgoing(Packet out_packet) override;
-
-    int SendInternal(Packet packet);
 
 private:
 #if USE_NICE

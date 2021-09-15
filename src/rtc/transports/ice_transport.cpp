@@ -10,9 +10,9 @@ namespace naivertc {
 using namespace std::chrono_literals;
 
 IceTransport::IceTransport(const RtcConfiguration& config, std::shared_ptr<TaskQueue> task_queue) 
-    : Transport(nullptr, std::move(task_queue)), 
-    curr_mid_("0"),
-    role_(sdp::Role::ACT_PASS) {
+    : Transport(std::weak_ptr<Transport>(), std::move(task_queue)), 
+      curr_mid_("0"),
+      role_(sdp::Role::ACT_PASS) {
 #if !USE_NICE
     if (config.enable_ice_tcp) {
         PLOG_WARNING << "ICE-TCP is not supported with libjuice.";
@@ -41,19 +41,19 @@ std::exception_ptr IceTransport::last_exception() const {
 
 void IceTransport::OnCandidateGathered(CandidateGatheredCallback callback) {
     task_queue_->Async([this, callback](){
-        this->candidate_gathered_callback_ = std::move(callback);
+        candidate_gathered_callback_ = std::move(callback);
     });
 }
 
 void IceTransport::OnGatheringStateChanged(GatheringStateChangedCallback callback) {
     task_queue_->Async([this, callback](){
-        this->gathering_state_changed_callback_ = std::move(callback);
+        gathering_state_changed_callback_ = std::move(callback);
     });
 }
 
 void IceTransport::OnRoleChanged(RoleChangedCallback callback) {
     task_queue_->Async([this, callback](){
-        this->role_changed_callback_ = std::move(callback);
+        role_changed_callback_ = std::move(callback);
     });
 }
 
@@ -276,13 +276,16 @@ IceTransport::CandidatePair IceTransport::GetSelectedCandidatePair() const {
     });
 }
 
-int IceTransport::SendInternal(Packet packet) {
-    if (packet.empty() || (state_ != State::CONNECTED && state_ != State::COMPLETED)) {
-        return -1;
-    }
-    return Outgoing(std::move(packet));
+int IceTransport::Send(Packet packet) {
+    return task_queue_->Sync<int>([this, packet=std::move(packet)]() mutable {
+        if (packet.empty() || (state_ != State::CONNECTED && state_ != State::COMPLETED)) {
+            return -1;
+        }
+        return Outgoing(std::move(packet));
+    });
 }
 
+// Private methods
 void IceTransport::NegotiateRole(sdp::Role remote_role) {
     // If we can act the both DTLS server and client, to decide local role according to remote role.
     if (role_ == sdp::Role::ACT_PASS) {
@@ -297,12 +300,11 @@ void IceTransport::NegotiateRole(sdp::Role remote_role) {
     }
 }
 
-// State Callbacks
 void IceTransport::UpdateGatheringState(GatheringState state) {
     task_queue_->Async([this, state](){
-        if (this->gathering_state_.exchange(state) != state) {
-            if (this->gathering_state_changed_callback_) {
-                this->gathering_state_changed_callback_(state);
+        if (gathering_state_.exchange(state) != state) {
+            if (gathering_state_changed_callback_) {
+                gathering_state_changed_callback_(state);
             }
         }
     });
@@ -310,8 +312,8 @@ void IceTransport::UpdateGatheringState(GatheringState state) {
 
 void IceTransport::ProcessGatheredCandidate(const char* sdp) {
     task_queue_->Async([this, sdp = std::move(sdp)](){
-        if (this->candidate_gathered_callback_) {
-            this->candidate_gathered_callback_(std::move(sdp::Candidate(sdp, this->curr_mid_)));
+        if (candidate_gathered_callback_) {
+            candidate_gathered_callback_(std::move(sdp::Candidate(sdp, curr_mid_)));
         }
     });
 }
@@ -328,26 +330,8 @@ void IceTransport::ProcessReceivedData(const char* data, size_t size) {
     });
 }
 
-// Override 
-void IceTransport::Send(Packet packet, PacketSentCallback callback) {
-    task_queue_->Async([this, packet = std::move(packet), callback](){
-        int sent_size = SendInternal(std::move(packet));
-        callback(sent_size);
-    });
-}
-
-int IceTransport::Send(Packet packet) {
-    return task_queue_->Sync<int>([this, packet=std::move(packet)](){
-        return SendInternal(std::move(packet));
-    });
-}
-
-void IceTransport::Incoming(Packet in_packet) {
-    ForwardIncomingPacket(std::move(in_packet));
-}
-
 int IceTransport::Outgoing(Packet out_packet) {
-    int ret = false;
+    int ret = -1;
 #if !USE_NICE
     // Explicit Congestion Notification takes the least-significant 2 bits of the DS field.
     int ds = int(out_packet.dscp() << 2);
@@ -364,6 +348,10 @@ int IceTransport::Outgoing(Packet out_packet) {
 #endif
     PLOG_VERBOSE << "Send size=" << ret;
     return ret;
+}
+
+void IceTransport::Incoming(Packet in_packet) {
+    ForwardIncomingPacket(std::move(in_packet));
 }
 
 } // namespace naivertc

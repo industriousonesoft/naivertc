@@ -27,8 +27,8 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsTransport(const Configuration config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
-    ~DtlsTransport();
+    DtlsTransport(Configuration config, std::weak_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
+    virtual ~DtlsTransport();
 
     bool is_client() const;
 
@@ -39,7 +39,6 @@ public:
     virtual bool Stop() override;
 
     virtual int Send(Packet packet) override;
-    virtual void Send(Packet packet, PacketSentCallback callback) override;
 
 protected:
     void InitOpenSSL(const Configuration& config);
@@ -68,13 +67,12 @@ protected:
 
 protected:
     virtual void Incoming(Packet in_packet) override;
-    virtual int Outgoing(Packet out_packet) override;
+    int Outgoing(Packet out_packet) override;
 
-    int SendInternal(Packet packet);
     int HandleDtlsWrite(const char* in_data, int in_size);
 
 private:
-    Configuration config_;
+    const Configuration config_;
     const bool is_client_;
     VerifyCallback verify_callback_ = nullptr;
 

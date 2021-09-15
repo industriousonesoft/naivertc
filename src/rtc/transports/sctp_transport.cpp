@@ -29,9 +29,10 @@
 namespace naivertc {
 
 // SctpTransport
-SctpTransport::SctpTransport(const Configuration config, std::shared_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue) 
-    : Transport(std::move(lower), std::move(task_queue)),
-    config_(std::move(config)) {
+SctpTransport::SctpTransport(Configuration config, std::weak_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue) 
+    : Transport(std::move(lower), 
+	  std::move(task_queue)),
+      config_(std::move(config)) {
     InitUsrSCTP(config_);
 	WeakPtrManager::SharedInstance()->Register(this);
 }
@@ -44,13 +45,13 @@ SctpTransport::~SctpTransport() {
 
 void SctpTransport::OnBufferedAmountChanged(BufferedAmountChangedCallback callback) {
 	task_queue_->Async([this, callback](){
-        this->buffered_amount_changed_callback_ = std::move(callback);
+        buffered_amount_changed_callback_ = std::move(callback);
     });
 }
 
 void SctpTransport::OnSctpMessageReceived(SctpMessageReceivedCallback callback) {
 	task_queue_->Async([this, callback](){
-        this->sctp_message_received_callback_ = std::move(callback);
+        sctp_message_received_callback_ = std::move(callback);
     });
 }
 
@@ -59,7 +60,7 @@ bool SctpTransport::Start() {
 		if (is_stoped_) {
 			Reset();
 			RegisterIncoming();
-			this->Connect();
+			Connect();
 			is_stoped_ = false;
 		}
 		return true;
@@ -71,9 +72,9 @@ bool SctpTransport::Stop() {
 		if (!is_stoped_) {
 			DeregisterIncoming();
 			// Shutdwon SCTP connection
-			this->Shutdown();
-			this->OnPacketReceived(nullptr);
+			Shutdown();
 			is_stoped_ = true;
+			// TODO: Reset callback
 		}
 		return true;
 	});
@@ -88,13 +89,6 @@ void SctpTransport::ShutdownStream(StreamId stream_id) {
 bool SctpTransport::Flush() {
 	return task_queue_->Sync<bool>([this]() -> bool {
 		return FlushPendingMessages();
-	});
-}
-
-void SctpTransport::Send(SctpMessage packet, PacketSentCallback callback) {
-	task_queue_->Async([this, packet=std::move(packet), callback](){
-		int sent_size = SendInternal(std::move(packet));
-		callback(sent_size);
 	});
 }
 
@@ -264,7 +258,7 @@ int SctpTransport::TrySendMessage(SctpMessage packet) {
 		break;
 	}
 
-	ssize_t ret;
+	int ret;
 	if (!packet.empty()) {
 		ret = usrsctp_sendv(socket_, packet.cdata(), packet.size(), nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
 	}else {
@@ -546,19 +540,19 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, StreamId st
 // SCTP callback methods
 void SctpTransport::HandleSctpUpCall() {
 	task_queue_->Async([this](){
-		if (this->socket_ == nullptr)
+		if (socket_ == nullptr)
 			return;
 
-		int events = usrsctp_get_events(this->socket_);
+		int events = usrsctp_get_events(socket_);
 
 		if (events & SCTP_EVENT_READ) {
 			PLOG_VERBOSE << "Handle SCTP upcall: do Recv";
-			this->DoRecv();
+			DoRecv();
 		}
 
 		if (events & SCTP_EVENT_WRITE) {
 			// PLOG_VERBOSE << "Handle SCTP upcall: do flush";
-			this->DoFlush();
+			DoFlush();
 		}
 	});
 }
@@ -567,12 +561,12 @@ bool SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t
 	return task_queue_->Sync<bool>([this, in_data, in_size](){
 		// PLOG_VERBOSE << "Handle SCTP write: " << in_size;
 		Packet packet(static_cast<const uint8_t*>(in_data), in_size);
-		int sent_size = this->Outgoing(std::move(packet));
+		int sent_size = Outgoing(std::move(packet));
 		// Reset the sent flag and ready to handle the incoming message
-		if (sent_size >= 0 && !this->has_sent_once_) {
+		if (sent_size >= 0 && !has_sent_once_) {
 			PLOG_VERBOSE << "SCTP has set once";
 			ProcessPendingIncomingPackets();
-			this->has_sent_once_ = true;
+			has_sent_once_ = true;
 		}
 		return sent_size >= 0 ? true : false;
 	});
@@ -604,11 +598,8 @@ void SctpTransport::ForwardReceivedSctpMessage(SctpMessage message) {
 	}
 }
 
-// Override methods
 void SctpTransport::Incoming(Packet in_packet) {
-
 	// PLOG_VERBOSE << "Incoming packet size: " << in_packet.size();
-
 	task_queue_->Async([this, in_packet=std::move(in_packet)](){
 		// There could be a race condition here where we receive the remote INIT before the local one is
 		// sent, which would result in the connection being aborted. Therefore, we need to wait for data

@@ -33,13 +33,12 @@ public:
     static void CustomizeSctp(const SctpCustomizedSettings& settings);
     static void Cleanup();
 public:
-    SctpTransport(const Configuration config, std::shared_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
+    SctpTransport(Configuration config, std::weak_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
     ~SctpTransport();
 
     bool Start() override;
     bool Stop() override;
 
-    void Send(SctpMessage message, PacketSentCallback callback);
     int Send(SctpMessage message);
     bool Flush();
     void ShutdownStream(StreamId stream_id);
@@ -83,9 +82,7 @@ private:
     void Incoming(Packet in_packet) override;
     int Outgoing(Packet out_packet) override;
 
-    void Send(Packet packet, PacketSentCallback callback) override { callback(-1); };
     int Send(Packet packet) override { return -1; };
-
     int SendInternal(SctpMessage message);
 
     bool FlushPendingMessages();
@@ -100,7 +97,7 @@ private:
     void ForwardReceivedSctpMessage(SctpMessage message);
 
 private:
-    Configuration config_;
+    const Configuration config_;
     struct socket* socket_ = NULL;
   
     static const size_t buffer_size_ = 65536;

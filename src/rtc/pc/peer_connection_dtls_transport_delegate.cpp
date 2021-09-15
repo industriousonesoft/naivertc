@@ -94,9 +94,9 @@ bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
 
 void PeerConnection::OnRtpPacketReceived(Packet in_packet, bool is_rtcp) {
     // TODO: Using work task queue
-    signal_task_queue_->Async([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
+    // signal_task_queue_->Async([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
 
-    });
+    // });
 }
 
 void PeerConnection::OpenMediaTracks() {

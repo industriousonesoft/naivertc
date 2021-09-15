@@ -8,12 +8,11 @@
 
 namespace naivertc {
 
-DtlsTransport::DtlsTransport(const Configuration config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue) 
+DtlsTransport::DtlsTransport(Configuration config, std::weak_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue) 
     : Transport(lower, std::move(task_queue)),
-    config_(std::move(config)),
-    is_client_(lower->role() == sdp::Role::ACTIVE),
-    curr_dscp_(0) {
-
+      config_(std::move(config)),
+      is_client_(lower.lock() != nullptr ? lower.lock()->role() == sdp::Role::ACTIVE : false),
+      curr_dscp_(0) {
     InitOpenSSL(config_);
     WeakPtrManager::SharedInstance()->Register(this);
 }
@@ -44,10 +43,10 @@ bool DtlsTransport::is_client() const {
 bool DtlsTransport::Start() { 
     return task_queue_->Sync<bool>([this](){
         if (is_stoped_) {
-            this->UpdateState(State::CONNECTING);
+            UpdateState(State::CONNECTING);
             // Start to handshake
-            this->InitHandshake();
             // TODO: Do we should use delay post to check handshake timeout in 30s here?
+            InitHandshake();
             RegisterIncoming();
             is_stoped_ = false;
         }
@@ -61,24 +60,28 @@ bool DtlsTransport::Stop() {
             // Cut down incomming data
             DeregisterIncoming();
             // Shutdown SSL connection
-            SSL_shutdown(this->ssl_);
-            this->ssl_ = NULL;
+            SSL_shutdown(ssl_);
+            ssl_ = NULL;
             is_stoped_ = true;
         }
         return true;
     });
 }
 
-void DtlsTransport::Send(Packet packet, PacketSentCallback callback) {
-    task_queue_->Async([this, packet = std::move(packet), callback](){
-        bool sent_size = SendInternal(std::move(packet));
-        callback(sent_size);
-    });
-}
-
 int DtlsTransport::Send(Packet packet) {
-    return task_queue_->Sync<int>([this, packet = std::move(packet)](){
-        return SendInternal(std::move(packet));
+    return task_queue_->Sync<int>([this, packet = std::move(packet)]() mutable {
+        if (packet.empty() || state_ != State::CONNECTED) {
+            return -1;
+        }
+        curr_dscp_ = packet.dscp();
+        int ret = SSL_write(ssl_, packet.cdata(), int(packet.size()));
+        if (openssl::check(ssl_, ret)) {
+            PLOG_VERBOSE << "Send size=" << ret;
+            return ret;
+        }else {
+            PLOG_VERBOSE << "Failed to send size=" << ret;
+            return -1;
+        }
     });
 }
 
@@ -143,24 +146,6 @@ int DtlsTransport::Outgoing(Packet out_packet) {
         out_packet.set_dscp(curr_dscp_);
     }
     return ForwardOutgoingPacket(std::move(out_packet));
-}
-
-int DtlsTransport::SendInternal(Packet packet) {
-     if (packet.empty() || state_ != State::CONNECTED) {
-        return -1;
-    }
-
-    this->curr_dscp_ = packet.dscp();
-    int ret = SSL_write(this->ssl_, packet.cdata(), int(packet.size()));
-
-    if (openssl::check(this->ssl_, ret)) {
-        PLOG_VERBOSE << "Send size=" << ret;
-        return ret;
-    }else {
-        PLOG_VERBOSE << "Failed to send size=" << ret;
-        return -1;
-    }
-    
 }
     
 } // namespace naivertc

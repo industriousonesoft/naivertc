@@ -16,10 +16,9 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsSrtpTransport(const DtlsTransport::Configuration config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
+    DtlsSrtpTransport(Configuration config, std::weak_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
     ~DtlsSrtpTransport();
 
-    void SendRtpPacket(Packet packet, PacketSentCallback callback);
     int SendRtpPacket(Packet packet);
 
     using RtpPacketRecvCallback = std::function<void(Packet, bool /* is_rtcp */)>;

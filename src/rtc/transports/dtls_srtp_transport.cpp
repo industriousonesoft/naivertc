@@ -5,9 +5,11 @@
 
 namespace naivertc {
 
-DtlsSrtpTransport::DtlsSrtpTransport(const DtlsTransport::Configuration config, std::shared_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue) 
-    : DtlsTransport(std::move(config), std::move(lower), std::move(task_queue)),
-    srtp_init_done_(false) {
+DtlsSrtpTransport::DtlsSrtpTransport(DtlsTransport::Configuration config, std::weak_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue) 
+    : DtlsTransport(std::move(config), 
+      std::move(lower), 
+      std::move(task_queue)),
+      srtp_init_done_(false) {
     PLOG_DEBUG << "Initializing DTLS-SRTP transport";
     CreateSrtp();
 }
@@ -25,8 +27,8 @@ void DtlsSrtpTransport::DtlsHandshakeDone() {
     srtp_init_done_ = true;
 }
 
-void DtlsSrtpTransport::SendRtpPacket(Packet packet, PacketSentCallback callback) {
-    task_queue_->Async([this, packet=std::move(packet), callback]() mutable {
+int DtlsSrtpTransport::SendRtpPacket(Packet packet) {
+    return task_queue_->Sync<int>([this, packet=std::move(packet)]() mutable {
         if (packet.empty() && EncryptPacket(packet)) {
             if (packet.dscp() == 0) {
                 // Set recommended medium-priority DSCP value
@@ -35,22 +37,6 @@ void DtlsSrtpTransport::SendRtpPacket(Packet packet, PacketSentCallback callback
                 // TODO: Set DSCP for audio and video separately
                 // packet.type == audio ? packet.set_dscp(46) // EF: Expedited Forwarding
                 //                      : packet.set_dscp(36) // AF42: Assured Forwarding class 4, medium drop probability
-                packet.set_dscp(36);
-            }
-            ForwardOutgoingPacket(std::move(packet), callback);
-        }else {
-            callback(-1);
-        }
-    });
-}
-
-int DtlsSrtpTransport::SendRtpPacket(Packet packet) {
-    return task_queue_->Sync<int>([this, packet=std::move(packet)]() mutable {
-        if (packet.empty() && EncryptPacket(packet)) {
-            if (packet.dscp() == 0) {
-                // Set recommended medium-priority DSCP value
-                // See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
-                // AF42: Assured Forwarding class 4, medium drop probability
                 packet.set_dscp(36);
             }
             return ForwardOutgoingPacket(std::move(packet));

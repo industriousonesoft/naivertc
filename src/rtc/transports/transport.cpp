@@ -6,11 +6,12 @@
 
 namespace naivertc {
 
-Transport::Transport(std::shared_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue) 
+Transport::Transport(std::weak_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue) 
     : lower_(std::move(lower)), 
-    is_stoped_(true),
-    state_(State::DISCONNECTED) {
-    task_queue_ = task_queue ? std::move(task_queue) : std::make_shared<TaskQueue>("TransportTaskQueue");
+      is_stoped_(true),
+      state_(State::DISCONNECTED) {
+    task_queue_ = task_queue != nullptr ? std::move(task_queue) 
+                                        : std::make_shared<TaskQueue>("Transport.default.task.queue");
 }
 
 Transport::~Transport() {}
@@ -29,35 +30,11 @@ Transport::State Transport::state() const {
 
 void Transport::OnStateChanged(StateChangedCallback callback) {
     task_queue_->Async([this, callback](){
-        this->state_changed_callback_ = std::move(callback);
-    });
-}
-
-void Transport::OnPacketReceived(PacketReceivedCallback callback) {
-    task_queue_->Async([this, callback](){
-        this->packet_recv_callback_ = std::move(callback);
+        state_changed_callback_ = std::move(callback);
     });
 }
 
 // Protected methods
-void Transport::RegisterIncoming() {
-    task_queue_->Async([this](){
-        if (lower_) {
-            PLOG_VERBOSE << "Registering incoming callback";
-            lower_->OnPacketReceived(std::bind(&Transport::Incoming, this, std::placeholders::_1));
-        }
-    });
-}
-
-void Transport::DeregisterIncoming() {
-    task_queue_->Async([this](){
-        if (lower_) {
-            lower_->OnPacketReceived(nullptr);
-            PLOG_VERBOSE << "Deregistered incoming callback";
-        }
-    });
-}
-
 void Transport::UpdateState(State state) {
     task_queue_->Async([this, state](){
         if (state_ == state) 
@@ -69,33 +46,47 @@ void Transport::UpdateState(State state) {
     });
 }
 
-void Transport::ForwardOutgoingPacket(Packet packet, PacketSentCallback callback) {
-    task_queue_->Async([this, packet = std::move(packet), callback](){
-        if (lower_) {
-            lower_->Send(std::move(packet), callback);
-        }else {
-            callback(-1);
-        }
-    });
-}
-
 int Transport::ForwardOutgoingPacket(Packet packet) {
     return task_queue_->Sync<int>([this, packet=std::move(packet)](){
-        if (lower_) {
-            return lower_->Send(std::move(packet));
+        try {
+            if (auto lower = lower_.lock()) {
+                return lower->Send(std::move(packet));
+            }else {
+                return -1;
+            }
+        }catch (std::exception& e) {
+            PLOG_WARNING << "Failed to forward outgoing packet: " << e.what();
+            return -1;
         }
-        return -1;
     });
 }
 
 void Transport::ForwardIncomingPacket(Packet packet) {
     task_queue_->Async([this, packet=std::move(packet)](){
         try {
-            if (this->packet_recv_callback_) {
-                this->packet_recv_callback_(std::move(packet));
+            if (packet_recv_callback_) {
+                packet_recv_callback_(std::move(packet));
             }
-        } catch (std::exception& exp) {
-            PLOG_WARNING << exp.what();
+        } catch (std::exception& e) {
+            PLOG_WARNING << "Failed to forward incoming packet: " << e.what();
+        }
+    });
+}
+
+void Transport::RegisterIncoming() {
+    task_queue_->Async([this](){
+        if (auto lower = lower_.lock()) {
+            PLOG_VERBOSE << "Registering incoming callback";
+            lower->packet_recv_callback_ = std::bind(&Transport::Incoming, this, std::placeholders::_1);
+        }
+    });
+}
+
+void Transport::DeregisterIncoming() {
+    task_queue_->Async([this](){
+        if (auto lower = lower_.lock()) {
+            lower->packet_recv_callback_ = nullptr;
+            PLOG_VERBOSE << "Deregistered incoming callback";
         }
     });
 }

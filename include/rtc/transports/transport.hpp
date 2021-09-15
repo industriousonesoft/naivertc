@@ -20,14 +20,9 @@ public:
         FAILED
     };
 
-    using StartedCallback = std::function<void(std::optional<const std::exception>)>;
-    using StopedCallback = std::function<void(std::optional<const std::exception>)>;
-    using PacketSentCallback = std::function<void(int sent_size)>;
-
     using StateChangedCallback = std::function<void(State state)>;
-    using PacketReceivedCallback = std::function<void(Packet in_packet)>;
 public:
-    Transport(std::shared_ptr<Transport> lower = nullptr, std::shared_ptr<TaskQueue> task_queue = nullptr);
+    Transport(std::weak_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue);
     virtual ~Transport();
 
     bool is_stoped() const;
@@ -36,12 +31,10 @@ public:
     virtual bool Start() = 0;
     virtual bool Stop() = 0;
     
-    virtual void Send(Packet packet, PacketSentCallback callback) = 0;
     virtual int Send(Packet packet) = 0;
 
     void OnStateChanged(StateChangedCallback callback);    
-    void OnPacketReceived(PacketReceivedCallback callback);
-    
+
 protected:
     virtual void Incoming(Packet packet) = 0;
     virtual int Outgoing(Packet packet) = 0;
@@ -52,19 +45,18 @@ protected:
     void DeregisterIncoming();
 
     void ForwardIncomingPacket(Packet packet);
-    void ForwardOutgoingPacket(Packet packet, PacketSentCallback callback);
     int ForwardOutgoingPacket(Packet packet);
 
 protected:
-    std::shared_ptr<Transport> lower_;
+    std::weak_ptr<Transport> lower_;
+    std::shared_ptr<TaskQueue> task_queue_;
+
     bool is_stoped_;
     State state_;
 
-    std::shared_ptr<TaskQueue> task_queue_;
-
+    using PacketReceivedCallback = std::function<void(Packet packet)>;
     PacketReceivedCallback packet_recv_callback_ = nullptr;
     StateChangedCallback state_changed_callback_ = nullptr;
-
 };
 
 }
