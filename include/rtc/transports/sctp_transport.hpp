@@ -79,10 +79,10 @@ private:
     static int on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8_t tos, uint8_t set_df);
 
 private:
-    void Incoming(Packet in_packet) override;
-    int Outgoing(Packet out_packet) override;
+    void Incoming(CopyOnWriteBuffer in_packet) override;
+    int Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) override;
 
-    int Send(Packet packet) override { return -1; };
+    int Send(CopyOnWriteBuffer packet, const PacketOptions& options) override { return -1; };
     int SendInternal(SctpMessage message);
 
     bool FlushPendingMessages();
@@ -90,7 +90,7 @@ private:
     void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
 
     void ProcessPendingIncomingPackets();
-    void ProcessIncomingPacket(Packet in_packet);
+    void ProcessIncomingPacket(CopyOnWriteBuffer in_packet);
     void ProcessNotification(const union sctp_notification* notification, size_t len);
     void ProcessMessage(const BinaryBuffer& message_data, StreamId stream_id, PayloadId payload_id);
 
@@ -98,6 +98,8 @@ private:
 
 private:
     const Configuration config_;
+    const PacketOptions packet_options_;
+    
     struct socket* socket_ = NULL;
   
     static const size_t buffer_size_ = 65536;
@@ -116,7 +118,7 @@ private:
     std::queue<SctpMessage> pending_outgoing_packets_;
     std::map<uint16_t, size_t> stream_buffered_amounts_;
 
-    std::queue<Packet> pending_incoming_packets_;
+    std::queue<CopyOnWriteBuffer> pending_incoming_packets_;
 
     BufferedAmountChangedCallback buffered_amount_changed_callback_ = nullptr;
     SctpMessageReceivedCallback sctp_message_received_callback_ = nullptr;

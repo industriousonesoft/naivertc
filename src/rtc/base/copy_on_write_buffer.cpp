@@ -7,7 +7,9 @@ namespace naivertc {
 CopyOnWriteBuffer::CopyOnWriteBuffer() : buffer_(nullptr) {}
 
 CopyOnWriteBuffer::CopyOnWriteBuffer(const CopyOnWriteBuffer& other) 
-    : buffer_(other.buffer_) {}
+    : buffer_(other.buffer_) {
+    PLOG_DEBUG << "Called copy consrtuctor.";
+}
 
 CopyOnWriteBuffer::CopyOnWriteBuffer(CopyOnWriteBuffer&& other) 
     : buffer_(std::move(other.buffer_)) {
@@ -42,7 +44,6 @@ CopyOnWriteBuffer& CopyOnWriteBuffer::operator=(CopyOnWriteBuffer&& other) {
     if (&other != this) {
         buffer_ = std::move(other.buffer_);
     }
-    PLOG_DEBUG << "Called move =.";
     return *this;
 }
 

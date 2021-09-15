@@ -46,11 +46,11 @@ void Transport::UpdateState(State state) {
     });
 }
 
-int Transport::ForwardOutgoingPacket(Packet packet) {
-    return task_queue_->Sync<int>([this, packet=std::move(packet)](){
+int Transport::ForwardOutgoingPacket(CopyOnWriteBuffer packet, const PacketOptions& options) {
+    return task_queue_->Sync<int>([this, packet=std::move(packet), &options](){
         try {
             if (auto lower = lower_.lock()) {
-                return lower->Send(std::move(packet));
+                return lower->Send(std::move(packet), options);
             }else {
                 return -1;
             }
@@ -61,7 +61,7 @@ int Transport::ForwardOutgoingPacket(Packet packet) {
     });
 }
 
-void Transport::ForwardIncomingPacket(Packet packet) {
+void Transport::ForwardIncomingPacket(CopyOnWriteBuffer packet) {
     task_queue_->Async([this, packet=std::move(packet)](){
         try {
             if (packet_recv_callback_) {

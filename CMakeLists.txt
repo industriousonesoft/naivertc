@@ -245,6 +245,8 @@ set(LIB_HEADERS
     include/rtc/base/repeating_task.hpp
     include/rtc/base/bit_rate_statistics.hpp
     include/rtc/base/copy_on_write_buffer.hpp
+    include/rtc/base/dscp.hpp
+    include/rtc/base/packet_options.hpp
 
     # rtc -> sdp
     include/rtc/sdp/sdp_defines.hpp

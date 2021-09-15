@@ -276,12 +276,12 @@ IceTransport::CandidatePair IceTransport::GetSelectedCandidatePair() const {
     });
 }
 
-int IceTransport::Send(Packet packet) {
-    return task_queue_->Sync<int>([this, packet=std::move(packet)]() mutable {
+int IceTransport::Send(CopyOnWriteBuffer packet, const PacketOptions& options) {
+    return task_queue_->Sync<int>([this, packet=std::move(packet), &options]() mutable {
         if (packet.empty() || (state_ != State::CONNECTED && state_ != State::COMPLETED)) {
             return -1;
         }
-        return Outgoing(std::move(packet));
+        return Outgoing(std::move(packet), options);
     });
 }
 
@@ -323,22 +323,22 @@ void IceTransport::ProcessReceivedData(const char* data, size_t size) {
         try {
             // PLOG_VERBOSE << "Incoming ICE packet size: " << size;
             auto bytes = reinterpret_cast<const uint8_t*>(data);
-            Incoming(Packet(bytes, size));
+            Incoming(CopyOnWriteBuffer(bytes, size));
         } catch(const std::exception &e) {
             PLOG_WARNING << e.what();
         }
     });
 }
 
-int IceTransport::Outgoing(Packet out_packet) {
+int IceTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) {
     int ret = -1;
 #if !USE_NICE
     // Explicit Congestion Notification takes the least-significant 2 bits of the DS field.
-    int ds = int(out_packet.dscp() << 2);
+    int ds = int(options.dscp << 2);
     ret = juice_send_diffserv(juice_agent_.get(), out_packet.data(), out_packet.size(), ds);
 #else
-    if (outgoing_dscp_ != out_packet.dscp()) {
-        outgoing_dscp_ = out_packet.dscp();
+    if (outgoing_dscp_ != options.dscp) {
+        outgoing_dscp_ = options.dscp;
         // Explicit Congestion Notification takes the least-significant 2 bits of the DS field
         int ds = int(outgoing_dscp_ << 2);
         // ToS is the lagacy name for DS
@@ -350,7 +350,7 @@ int IceTransport::Outgoing(Packet out_packet) {
     return ret;
 }
 
-void IceTransport::Incoming(Packet in_packet) {
+void IceTransport::Incoming(CopyOnWriteBuffer in_packet) {
     ForwardIncomingPacket(std::move(in_packet));
 }
 

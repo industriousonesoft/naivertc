@@ -32,7 +32,9 @@ namespace naivertc {
 SctpTransport::SctpTransport(Configuration config, std::weak_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue) 
     : Transport(std::move(lower), 
 	  std::move(task_queue)),
-      config_(std::move(config)) {
+      config_(std::move(config)),
+	  packet_options_(DSCP::DSCP_AF11) // AF11: Assured Forwarding class 1, low drop probability
+	{
     InitUsrSCTP(config_);
 	WeakPtrManager::SharedInstance()->Register(this);
 }
@@ -119,7 +121,7 @@ void SctpTransport::Reset() {
 	stream_buffered_amounts_.clear();
 
 	std::queue<SctpMessage>().swap(pending_outgoing_packets_);
-	std::queue<Packet>().swap(pending_incoming_packets_);
+	std::queue<CopyOnWriteBuffer>().swap(pending_incoming_packets_);
 }
 
 void SctpTransport::Connect() {
@@ -560,8 +562,8 @@ void SctpTransport::HandleSctpUpCall() {
 bool SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
 	return task_queue_->Sync<bool>([this, in_data, in_size](){
 		// PLOG_VERBOSE << "Handle SCTP write: " << in_size;
-		Packet packet(static_cast<const uint8_t*>(in_data), in_size);
-		int sent_size = Outgoing(std::move(packet));
+		CopyOnWriteBuffer packet(static_cast<const uint8_t*>(in_data), in_size);
+		int sent_size = Outgoing(std::move(packet), packet_options_);
 		// Reset the sent flag and ready to handle the incoming message
 		if (sent_size >= 0 && !has_sent_once_) {
 			PLOG_VERBOSE << "SCTP has set once";
@@ -580,7 +582,7 @@ void SctpTransport::ProcessPendingIncomingPackets() {
 	}
 }
 
-void SctpTransport::ProcessIncomingPacket(Packet in_packet) {
+void SctpTransport::ProcessIncomingPacket(CopyOnWriteBuffer in_packet) {
 	// PLOG_VERBOSE << "Process incoming SCTP packet size: " << in_packet.size();
 	if (in_packet.empty()) {
 		// FIXME: Empty packet means diconnection?
@@ -598,7 +600,7 @@ void SctpTransport::ForwardReceivedSctpMessage(SctpMessage message) {
 	}
 }
 
-void SctpTransport::Incoming(Packet in_packet) {
+void SctpTransport::Incoming(CopyOnWriteBuffer in_packet) {
 	// PLOG_VERBOSE << "Incoming packet size: " << in_packet.size();
 	task_queue_->Async([this, in_packet=std::move(in_packet)](){
 		// There could be a race condition here where we receive the remote INIT before the local one is
@@ -613,11 +615,8 @@ void SctpTransport::Incoming(Packet in_packet) {
 	});
 }
 
-int SctpTransport::Outgoing(Packet out_packet) {
-	// Set recommended medium-priority DSCP value
-	// See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
-	out_packet.set_dscp(10); // AF11: Assured Forwarding class 1, low drop probability
-	return ForwardOutgoingPacket(std::move(out_packet));
+int SctpTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) {
+	return ForwardOutgoingPacket(std::move(out_packet), options);
 }
 
 } // namespace naivertc

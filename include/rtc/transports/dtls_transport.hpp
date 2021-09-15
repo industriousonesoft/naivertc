@@ -38,7 +38,7 @@ public:
     virtual bool Start() override;
     virtual bool Stop() override;
 
-    virtual int Send(Packet packet) override;
+    virtual int Send(CopyOnWriteBuffer packet, const PacketOptions& options) override;
 
 protected:
     void InitOpenSSL(const Configuration& config);
@@ -66,8 +66,8 @@ protected:
     bool IsClient() const;
 
 protected:
-    virtual void Incoming(Packet in_packet) override;
-    int Outgoing(Packet out_packet) override;
+    virtual void Incoming(CopyOnWriteBuffer in_packet) override;
+    virtual int Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) override;
 
     int HandleDtlsWrite(const char* in_data, int in_size);
 
@@ -76,7 +76,7 @@ private:
     const bool is_client_;
     VerifyCallback verify_callback_ = nullptr;
 
-    unsigned int curr_dscp_;
+    const PacketOptions* curr_packet_options_ = nullptr;
 
     SSL_CTX* ctx_ = NULL;
     SSL* ssl_ = NULL;

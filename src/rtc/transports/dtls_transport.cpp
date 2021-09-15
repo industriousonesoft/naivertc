@@ -11,8 +11,7 @@ namespace naivertc {
 DtlsTransport::DtlsTransport(Configuration config, std::weak_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue) 
     : Transport(lower, std::move(task_queue)),
       config_(std::move(config)),
-      is_client_(lower.lock() != nullptr ? lower.lock()->role() == sdp::Role::ACTIVE : false),
-      curr_dscp_(0) {
+      is_client_(lower.lock() != nullptr ? lower.lock()->role() == sdp::Role::ACTIVE : false) {
     InitOpenSSL(config_);
     WeakPtrManager::SharedInstance()->Register(this);
 }
@@ -68,12 +67,12 @@ bool DtlsTransport::Stop() {
     });
 }
 
-int DtlsTransport::Send(Packet packet) {
-    return task_queue_->Sync<int>([this, packet = std::move(packet)]() mutable {
+int DtlsTransport::Send(CopyOnWriteBuffer packet, const PacketOptions& options) {
+    return task_queue_->Sync<int>([this, packet = std::move(packet), &options]() mutable {
         if (packet.empty() || state_ != State::CONNECTED) {
             return -1;
         }
-        curr_dscp_ = packet.dscp();
+        curr_packet_options_ = &options;
         int ret = SSL_write(ssl_, packet.cdata(), int(packet.size()));
         if (openssl::check(ssl_, ret)) {
             PLOG_VERBOSE << "Send size=" << ret;
@@ -85,7 +84,7 @@ int DtlsTransport::Send(Packet packet) {
     });
 }
 
-void DtlsTransport::Incoming(Packet in_packet) {
+void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
     task_queue_->Async([this, in_packet = std::move(in_packet)](){
         if (in_packet.empty() || !ssl_) {
             return;
@@ -125,7 +124,7 @@ void DtlsTransport::Incoming(Packet in_packet) {
             // PLOG_VERBOSE << "SSL read size: " << read_size;
 
             if (read_size > 0) {
-                ForwardIncomingPacket(Packet(read_buffer, read_size));
+                ForwardIncomingPacket(CopyOnWriteBuffer(read_buffer, read_size));
             }
 
         }catch (const std::exception& exp) {
@@ -137,15 +136,13 @@ void DtlsTransport::Incoming(Packet in_packet) {
 int DtlsTransport::HandleDtlsWrite(const char* in_data, int in_size) {
     return task_queue_->Sync<int>([this, in_data, in_size](){
         auto bytes = reinterpret_cast<const uint8_t*>(in_data);
-        return Outgoing(Packet(bytes, in_size));
+        // TODO: Set packet options for the data from system call
+        return Outgoing(CopyOnWriteBuffer(bytes, in_size), *curr_packet_options_);
     });
 }
     
-int DtlsTransport::Outgoing(Packet out_packet) {
-    if (out_packet.dscp() == 0) {
-        out_packet.set_dscp(curr_dscp_);
-    }
-    return ForwardOutgoingPacket(std::move(out_packet));
+int DtlsTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) {
+    return ForwardOutgoingPacket(std::move(out_packet), options);
 }
     
 } // namespace naivertc

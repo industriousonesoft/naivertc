@@ -69,7 +69,7 @@ public:
     bool Start() override;
     bool Stop() override;
 
-    int Send(Packet packet) override;
+    int Send(CopyOnWriteBuffer packet, const PacketOptions& options) override;
 
     void StartToGatherLocalCandidate(std::string mid);
     void AddRemoteCandidate(const sdp::Candidate candidate);
@@ -92,8 +92,8 @@ private:
     void ProcessGatheredCandidate(const char* sdp);
     void ProcessReceivedData(const char* data, size_t size);
 
-    void Incoming(Packet in_packet) override;
-    int Outgoing(Packet out_packet) override;
+    void Incoming(CopyOnWriteBuffer in_packet) override;
+    int Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) override;
 
 private:
 #if USE_NICE
@@ -126,7 +126,7 @@ private:
     uint32_t stream_id_ = 0;
     const guint component_id_ = 1;
     guint timeout_id_ = 0;
-    unsigned int outgoing_dscp_ = 0;
+    uint8_t outgoing_dscp_ = 0;
     std::thread main_loop_thread_;
     std::chrono::milliseconds trickle_timeout_;
     std::unique_ptr<NiceAgent, void(*)(gpointer)> nice_agent_{nullptr, nullptr};

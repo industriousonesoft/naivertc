@@ -19,9 +19,9 @@ public:
     DtlsSrtpTransport(Configuration config, std::weak_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
     ~DtlsSrtpTransport();
 
-    int SendRtpPacket(Packet packet);
+    int SendRtpPacket(CopyOnWriteBuffer packet, const PacketOptions& options);
 
-    using RtpPacketRecvCallback = std::function<void(Packet, bool /* is_rtcp */)>;
+    using RtpPacketRecvCallback = std::function<void(CopyOnWriteBuffer, bool /* is_rtcp */)>;
     void OnReceivedRtpPacket(RtpPacketRecvCallback callback);
 
 private:
@@ -30,10 +30,10 @@ private:
     void InitSrtp();
 
     void DtlsHandshakeDone() override;
-    void Incoming(Packet in_packet) override;
+    void Incoming(CopyOnWriteBuffer in_packet) override;
+    int Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) override;
 
-    bool EncryptPacket(Packet& packet);
-
+    bool EncryptPacket(CopyOnWriteBuffer& packet);
 private:
     std::atomic<bool> srtp_init_done_ = false;
 
@@ -44,7 +44,6 @@ private:
     unsigned char server_write_key_[SRTP_AES_128_KEY_LEN + SRTP_SALT_LEN];
 
     RtpPacketRecvCallback rtp_packet_recv_callback_ = nullptr;
-
 };
 
 

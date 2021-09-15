@@ -77,8 +77,7 @@ namespace naivertc {
 // |          Data          |  CS1  |  DF  |     AF11    |     AF21    |
 // |                        |  (8)  | (0)  |             |             |
 // +------------------------+-------+------+-------------+-------------+
-enum DSCP : int8_t {
-    DSCP_NO_CHANGE = -1,
+enum DSCP : uint8_t {
     DSCP_DF = 0,
     DSCP_CS0 = 0,
     DSCP_CS1 = 8,

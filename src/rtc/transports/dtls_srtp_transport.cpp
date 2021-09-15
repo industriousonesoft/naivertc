@@ -5,7 +5,9 @@
 
 namespace naivertc {
 
-DtlsSrtpTransport::DtlsSrtpTransport(DtlsTransport::Configuration config, std::weak_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue) 
+DtlsSrtpTransport::DtlsSrtpTransport(DtlsTransport::Configuration config, 
+                                     std::weak_ptr<IceTransport> lower, 
+                                     std::shared_ptr<TaskQueue> task_queue) 
     : DtlsTransport(std::move(config), 
       std::move(lower), 
       std::move(task_queue)),
@@ -27,26 +29,17 @@ void DtlsSrtpTransport::DtlsHandshakeDone() {
     srtp_init_done_ = true;
 }
 
-int DtlsSrtpTransport::SendRtpPacket(Packet packet) {
-    return task_queue_->Sync<int>([this, packet=std::move(packet)]() mutable {
-        if (packet.empty() && EncryptPacket(packet)) {
-            if (packet.dscp() == 0) {
-                // Set recommended medium-priority DSCP value
-                // See https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos-18
-                // AF42: Assured Forwarding class 4, medium drop probability
-                // TODO: Set DSCP for audio and video separately
-                // packet.type == audio ? packet.set_dscp(46) // EF: Expedited Forwarding
-                //                      : packet.set_dscp(36) // AF42: Assured Forwarding class 4, medium drop probability
-                packet.set_dscp(36);
-            }
-            return ForwardOutgoingPacket(std::move(packet));
+int DtlsSrtpTransport::SendRtpPacket(CopyOnWriteBuffer packet, const PacketOptions& options) {
+    return task_queue_->Sync<int>([this, packet=std::move(packet), &options]() mutable {
+        if (!packet.empty() && EncryptPacket(packet)) {
+            return Outgoing(std::move(packet), options);
         }else {
             return -1;
         }
     });
 }
 
-bool DtlsSrtpTransport::EncryptPacket(Packet& packet) {
+bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
     if (!srtp_init_done_) {
         PLOG_WARNING << "SRTP not init yet.";
         return false;
@@ -101,7 +94,7 @@ void DtlsSrtpTransport::OnReceivedRtpPacket(RtpPacketRecvCallback callback) {
     });
 }
 
-void DtlsSrtpTransport::Incoming(Packet in_packet) {
+void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
     task_queue_->Async([this, in_packet=std::move(in_packet)]() mutable {
         // DTLS handshake is still in progress
         if (!srtp_init_done_) {
@@ -168,6 +161,19 @@ void DtlsSrtpTransport::Incoming(Packet in_packet) {
             PLOG_WARNING << "Incoming packet is neither a RTP/RTCP packet nor a DTLS packet, ignoring.";
         }
     });
+}
+
+int DtlsSrtpTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) {
+    // if (out_packet.dscp() == 0) {
+    //     // Set recommended medium-priority DSCP value
+    //     // See https://datatracker.ietf.org/doc/html/draft-ietf-tsvwg-rtcweb-qos-18
+    //     // AF42: Assured Forwarding class 4, medium drop probability
+    //     // TODO: Set DSCP for audio and video separately
+    //     // packet.type == audio ? packet.set_dscp(46) // EF: Expedited Forwarding
+    //     //                      : packet.set_dscp(36) // AF42: Assured Forwarding class 4, medium drop probability
+    //     out_packet.set_dscp(36);
+    // }
+    return ForwardOutgoingPacket(std::move(out_packet), options);
 }
     
 } // namespace naivertc
