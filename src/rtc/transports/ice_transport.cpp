@@ -334,13 +334,13 @@ int IceTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& op
     int ret = -1;
 #if !USE_NICE
     // Explicit Congestion Notification takes the least-significant 2 bits of the DS field.
-    int ds = int(options.dscp << 2);
+    int ds = int(uint8_t(options.dscp) << 2);
     ret = juice_send_diffserv(juice_agent_.get(), out_packet.data(), out_packet.size(), ds);
 #else
-    if (outgoing_dscp_ != options.dscp) {
-        outgoing_dscp_ = options.dscp;
+    if (last_dscp_ != options.dscp) {
+        last_dscp_ = options.dscp;
         // Explicit Congestion Notification takes the least-significant 2 bits of the DS field
-        int ds = int(outgoing_dscp_ << 2);
+        int ds = int(uint8_t(last_dscp_) << 2);
         // ToS is the lagacy name for DS
         nice_agent_set_stream_tos(nice_agent_.get(), stream_id_, ds);
     }

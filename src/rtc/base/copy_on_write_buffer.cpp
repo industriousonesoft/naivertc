@@ -8,12 +8,12 @@ CopyOnWriteBuffer::CopyOnWriteBuffer() : buffer_(nullptr) {}
 
 CopyOnWriteBuffer::CopyOnWriteBuffer(const CopyOnWriteBuffer& other) 
     : buffer_(other.buffer_) {
-    PLOG_DEBUG << "Called copy consrtuctor.";
+    // PLOG_DEBUG << "Called copy consrtuctor.";
 }
 
 CopyOnWriteBuffer::CopyOnWriteBuffer(CopyOnWriteBuffer&& other) 
     : buffer_(std::move(other.buffer_)) {
-    PLOG_DEBUG << "Called move consrtuctor.";
+    // PLOG_DEBUG << "Called move consrtuctor.";
 }
 
 CopyOnWriteBuffer::CopyOnWriteBuffer(const BinaryBuffer& other_buffer) 
@@ -37,6 +37,7 @@ CopyOnWriteBuffer& CopyOnWriteBuffer::operator=(const CopyOnWriteBuffer& other) 
     if (&other != this) {
         buffer_ = other.buffer_;
     }
+    // PLOG_DEBUG << "Called copy =.";
     return *this;
 }
 
@@ -44,6 +45,7 @@ CopyOnWriteBuffer& CopyOnWriteBuffer::operator=(CopyOnWriteBuffer&& other) {
     if (&other != this) {
         buffer_ = std::move(other.buffer_);
     }
+    // PLOG_DEBUG << "Called move =.";
     return *this;
 }
 

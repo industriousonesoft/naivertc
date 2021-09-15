@@ -74,9 +74,9 @@ protected:
 private:
     const Configuration config_;
     const bool is_client_;
-    VerifyCallback verify_callback_ = nullptr;
-
-    const PacketOptions* curr_packet_options_ = nullptr;
+    
+    const PacketOptions system_packet_options_;
+    PacketOptions user_packet_options_;
 
     SSL_CTX* ctx_ = NULL;
     SSL* ssl_ = NULL;
@@ -89,6 +89,9 @@ private:
     static std::mutex global_mutex_;
 
     static constexpr size_t DEFAULT_SSL_BUFFER_SIZE = 4096;
+    uint8_t ssl_read_buffer_[DEFAULT_SSL_BUFFER_SIZE];
+
+    VerifyCallback verify_callback_ = nullptr;
 };
 
 }

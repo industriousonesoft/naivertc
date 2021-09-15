@@ -126,7 +126,7 @@ private:
     uint32_t stream_id_ = 0;
     const guint component_id_ = 1;
     guint timeout_id_ = 0;
-    uint8_t outgoing_dscp_ = 0;
+    DSCP last_dscp_ = DSCP::DSCP_DF;
     std::thread main_loop_thread_;
     std::chrono::milliseconds trickle_timeout_;
     std::unique_ptr<NiceAgent, void(*)(gpointer)> nice_agent_{nullptr, nullptr};

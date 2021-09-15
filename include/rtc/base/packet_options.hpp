@@ -13,8 +13,18 @@ struct RTC_CPP_EXPORT PacketOptions {
     PacketOptions(const PacketOptions&) = default;
     PacketOptions(PacketOptions&&) = default;
     ~PacketOptions() = default;
+
+    PacketOptions& operator=(const PacketOptions& other) {
+        this->dscp = other.dscp;
+        return *this;
+    }
     
-    DSCP dscp = DSCP_DF;
+    PacketOptions& operator=(PacketOptions&& other) {
+        this->dscp = other.dscp;
+        return *this;
+    }
+    
+    DSCP dscp = DSCP::DSCP_DF;
 };
     
 } // namespace naivertc
