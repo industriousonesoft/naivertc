@@ -14,12 +14,12 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT TaskQueue : std::enable_shared_from_this<TaskQueue> {
 public:
-    TaskQueue(const std::string name = "");
+    TaskQueue(std::string&& name = "");
     ~TaskQueue();
 
-    void Sync(const std::function<void()> handler) const;
-    void Async(const std::function<void()> handler) const;
-    void AsyncAfter(TimeInterval delay_in_sec, const std::function<void()> handler);
+    void Sync(std::function<void()> handler) const;
+    void Async(std::function<void()> handler) const;
+    void AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler);
 
     template<typename T>
     T Sync(std::function<T(void)> handler) const {
@@ -37,7 +37,7 @@ public:
         return ret;
     }
 
-    void Dispatch(const std::function<void()> handler) const;
+    void Dispatch(std::function<void()> handler) const;
 
     bool is_in_current_queue() const;
 

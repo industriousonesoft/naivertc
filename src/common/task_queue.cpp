@@ -8,7 +8,7 @@ namespace naivertc {
 
 // std::shared_ptr<TaskQueue> TaskQueue::GlobalTaskQueue = std::make_shared<TaskQueue>();
 
-TaskQueue::TaskQueue(const std::string name) 
+TaskQueue::TaskQueue(std::string&& name) 
     : work_guard_(boost::asio::make_work_guard(ioc_)),
       strand_(ioc_),
       timer_(ioc_) {
@@ -46,7 +46,7 @@ TaskQueue::~TaskQueue() {
     PLOG_VERBOSE << __FUNCTION__ << " did destroy.";
 }
 
-void TaskQueue::Sync(const std::function<void()> handler) const {
+void TaskQueue::Sync(std::function<void()> handler) const {
     if (is_in_current_queue()) {
         handler();
     }else {
@@ -59,7 +59,7 @@ void TaskQueue::Sync(const std::function<void()> handler) const {
     }
 }
 
-void TaskQueue::Async(const std::function<void()> handler) const {
+void TaskQueue::Async(std::function<void()> handler) const {
     if (is_in_current_queue()) {
         handler();
     }else {
@@ -67,7 +67,7 @@ void TaskQueue::Async(const std::function<void()> handler) const {
     }
 }
 
-void TaskQueue::Dispatch(const std::function<void()> handler) const {
+void TaskQueue::Dispatch(std::function<void()> handler) const {
     if (is_in_current_queue()) {
         handler();
     }else {
@@ -75,7 +75,7 @@ void TaskQueue::Dispatch(const std::function<void()> handler) const {
     }
 }
 
-void TaskQueue::AsyncAfter(TimeInterval delay_in_sec, const std::function<void()> handler) {
+void TaskQueue::AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler) {
     // Construct a timer without setting an expiry time.
     timer_.expires_from_now(boost::posix_time::seconds(delay_in_sec));
     // Start an asynchronous wait
