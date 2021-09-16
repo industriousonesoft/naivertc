@@ -105,7 +105,7 @@ void DataChannel::OnBufferedAmount(size_t amount) {
 }
 
 void DataChannel::OnIncomingMessage(SctpMessage message) {
-    if (!message.empty()) return;
+    if (message.empty()) return;
 
     task_queue_.Async([this, message=std::move(message)]() mutable {
         switch (message.type()) {

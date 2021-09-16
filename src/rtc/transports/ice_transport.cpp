@@ -60,7 +60,6 @@ void IceTransport::OnRoleChanged(RoleChangedCallback callback) {
 bool IceTransport::Start() {
     return task_queue_->Sync<bool>([this](){
         if (is_stoped_) {
-            RegisterIncoming();
             is_stoped_= false;
         }
         return true;
@@ -81,7 +80,6 @@ bool IceTransport::Stop() {
             g_main_loop_quit(main_loop_.get());
             main_loop_thread_.join();
 #endif
-            DeregisterIncoming();
             is_stoped_ = true;
         }
         return true;

@@ -64,6 +64,7 @@ bool DtlsTransport::Stop() {
             SSL_shutdown(ssl_);
             this->ssl_ = NULL;
             this->is_stoped_ = true;
+            UpdateState(State::DISCONNECTED);
         }
         return true;
     });

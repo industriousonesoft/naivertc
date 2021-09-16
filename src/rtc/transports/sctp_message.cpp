@@ -28,4 +28,23 @@ SctpMessage::SctpMessage(BinaryBuffer&& buffer, Type type, StreamId stream_id, s
 
 SctpMessage::~SctpMessage() {}
 
+std::ostream& operator<<(std::ostream &out, naivertc::SctpMessage::Type type) {
+    using Type = naivertc::SctpMessage::Type;
+    switch(type) {
+    case Type::CONTROL:
+      out << "control";
+      break;
+    case Type::BINARY:
+      out << "binary";
+      break;
+    case Type::STRING:
+      out << "string";
+      break;
+    case Type::RESET:
+      out << "reset";
+      break;
+    }
+    return out;
+}
+
 } // namespace naivertc

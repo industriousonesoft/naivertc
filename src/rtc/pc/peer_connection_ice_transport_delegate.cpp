@@ -37,9 +37,11 @@ void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state
             break;
         case Transport::State::FAILED: 
             this->UpdateConnectionState(ConnectionState::FAILED);
+            PLOG_DEBUG << "ICE transport failed";
             break;
         case Transport::State::DISCONNECTED:
             this->UpdateConnectionState(ConnectionState::DISCONNECTED);
+            PLOG_DEBUG << "ICE transport disconnected";
             break;
         default:
             // Ignore the others state

@@ -91,9 +91,6 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
         auto stream_id = message.stream_id();
         auto data_channel = FindDataChannel(stream_id);
         if (!data_channel) {
-            if (!ice_transport_ || !sctp_transport_) {
-                return;
-            }
             // Create a remote data channel
             if (DataChannel::IsOpenMessage(message)) {
                 // FRC 8832: The peer that initiates opening a data channel selects a stream identifier for 

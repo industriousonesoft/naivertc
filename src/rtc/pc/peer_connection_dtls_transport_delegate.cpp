@@ -64,11 +64,13 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
         case DtlsSrtpTransport::State::FAILED: {
             this->UpdateConnectionState(ConnectionState::FAILED);
             this->CloseMediaTracks();
+            PLOG_DEBUG << "DTLS transport failed";
             break;
         }
         case DtlsSrtpTransport::State::DISCONNECTED: {
             this->UpdateConnectionState(ConnectionState::DISCONNECTED);
             this->CloseMediaTracks();
+            PLOG_DEBUG << "DTLS transport dicconnected";
             break;
         }
         default:

@@ -162,7 +162,6 @@ void SctpTransport::Shutdown() {
 	if (usrsctp_shutdown(socket_, SHUT_RDWR) != 0 && errno != ENOTCONN /* ENOTCONN: not connection error */ ) {
 		PLOG_WARNING << "SCTP shutdown failed, errno= " << errno;
 	}
-
 	Close();
 	UpdateState(State::DISCONNECTED);
 }

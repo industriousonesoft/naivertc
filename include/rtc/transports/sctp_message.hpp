@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <variant>
+#include <iostream>
 
 namespace naivertc {
 
@@ -60,6 +61,8 @@ private:
     StreamId stream_id_;
     std::shared_ptr<Reliability> reliability_;
 };
+
+RTC_CPP_EXPORT std::ostream& operator<<(std::ostream &out, naivertc::SctpMessage::Type type);
 
 } // namespace naivertc
 
