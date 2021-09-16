@@ -29,7 +29,6 @@ PeerConnection::PeerConnection(const RtcConfiguration config)
 
     signal_task_queue_ = std::make_unique<TaskQueue>("SignalTaskQueue");
     network_task_queue_ = std::make_shared<TaskQueue>("NetworkTaskQueue");
-    work_task_queue_ = std::make_unique<TaskQueue>("WorkTaskQueue");
 
     InitIceTransport();
 }
@@ -39,7 +38,6 @@ PeerConnection::~PeerConnection() {
 
     signal_task_queue_.reset();
     network_task_queue_.reset();
-    work_task_queue_.reset();
 }
 
 void PeerConnection::Close() {

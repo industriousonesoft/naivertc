@@ -177,7 +177,6 @@ private:
 
     std::unique_ptr<TaskQueue> signal_task_queue_ = nullptr;
     std::shared_ptr<TaskQueue> network_task_queue_ = nullptr;
-    std::unique_ptr<TaskQueue> work_task_queue_ = nullptr;
 
     std::shared_ptr<IceTransport> ice_transport_ = nullptr;
     std::shared_ptr<DtlsTransport> dtls_transport_ = nullptr;
