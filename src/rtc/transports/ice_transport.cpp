@@ -108,8 +108,8 @@ void IceTransport::StartToGatherLocalCandidate(std::string mid) {
     });
 }
 
-void IceTransport::AddRemoteCandidate(const sdp::Candidate candidate) {
-    task_queue_->Async([this, candidate=std::move(candidate)](){
+void IceTransport::AddRemoteCandidate(const sdp::Candidate& candidate) {
+    task_queue_->Async([this, &candidate](){
         try {
             // Don't try to pass unresolved candidates for more safety.
             if (!candidate.isResolved()) {

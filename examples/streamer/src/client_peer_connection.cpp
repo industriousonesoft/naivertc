@@ -7,13 +7,12 @@
 template <class T> std::weak_ptr<T> make_weak_ptr(std::shared_ptr<T> ptr) { return ptr; }
 
 void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
-
     if (peer_conn_) {
         peer_conn_->Close();
         peer_conn_.reset();
     }
 
-    peer_conn_ = PeerConnection::Create(std::move(rtc_config));
+    peer_conn_ = PeerConnection::Create(rtc_config);
 
     peer_conn_->OnConnectionStateChanged([](PeerConnection::ConnectionState new_state){
         std::string conn_state_str = "Peer connection state: ";
@@ -79,7 +78,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     std::string media_stream_id = "naivertc-media-stream";
     // Local video track
     MediaTrack::Config video_track_config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264, {102}, 1, "video-stream", media_stream_id, "video-track1");
-    video_track_ = peer_conn_->AddTrack(std::move(video_track_config));
+    video_track_ = peer_conn_->AddTrack(video_track_config);
     video_track_->OnOpened([](){
         std::cout << "Local video track is opened.";
     });
@@ -89,7 +88,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 
     // Local audio track
     MediaTrack::Config audio_track_config("2", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS, {111}, 2, "audio-stream", media_stream_id, "audio-track1");
-    audio_track_ = peer_conn_->AddTrack(std::move(audio_track_config));
+    audio_track_ = peer_conn_->AddTrack(audio_track_config);
     audio_track_->OnOpened([](){
         std::cout << "Local audio track is opened.";
     });
@@ -100,7 +99,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 
     // Data channel
     DataChannel::Init data_channel_init("naivertc-chat-data-channel");
-    data_channel_ = peer_conn_->CreateDataChannel(std::move(data_channel_init));
+    data_channel_ = peer_conn_->CreateDataChannel(data_channel_init);
 
     data_channel_->OnOpened([weak_dc=make_weak_ptr(data_channel_)](){
         if (auto dc = weak_dc.lock()) {

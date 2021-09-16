@@ -8,8 +8,8 @@
 
 namespace naivertc {
 
-PeerConnection::PeerConnection(const RtcConfiguration config) 
-    : rtc_config_(std::move(config)),
+PeerConnection::PeerConnection(const RtcConfiguration& config) 
+    : rtc_config_(config),
       certificate_(Certificate::MakeCertificate(rtc_config_.certificate_type)) {
 
     if (rtc_config_.port_range_end > 0 && rtc_config_.port_range_end < rtc_config_.port_range_begin) {

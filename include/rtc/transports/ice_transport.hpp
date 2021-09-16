@@ -72,7 +72,7 @@ public:
     int Send(CopyOnWriteBuffer packet, const PacketOptions& options) override;
 
     void StartToGatherLocalCandidate(std::string mid);
-    void AddRemoteCandidate(const sdp::Candidate candidate);
+    void AddRemoteCandidate(const sdp::Candidate& candidate);
 
     Description GetLocalDescription(sdp::Type type) const;
     void SetRemoteDescription(const Description remote_sdp);

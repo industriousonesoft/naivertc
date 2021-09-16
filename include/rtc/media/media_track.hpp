@@ -37,7 +37,7 @@ public:
         std::optional<std::string> msid; // media stream id
         std::optional<std::string> track_id;
 
-        Configuration(const std::string mid, 
+        Configuration(std::string mid, 
                 Kind kind, 
                 Codec codec, 
                 std::vector<int> payload_types, 
@@ -46,21 +46,21 @@ public:
                 std::optional<std::string> msid = std::nullopt,
                 std::optional<std::string> track_id = std::nullopt);
     };
-
+   
 public:
-    MediaTrack(const sdp::Media description);
+    MediaTrack(sdp::Media description);
     ~MediaTrack();
 
     sdp::Direction direction() const;
     sdp::Media description() const;
 
-    void UpdateDescription(const sdp::Media description);
+    void UpdateDescription(sdp::Media description);
     
 public:
     static std::string kind_to_string(Kind kind);
     static std::string codec_to_string(Codec codec);
     static std::optional<std::string> FormatProfileForPayloadType(int payload_type);
-    static sdp::Media BuildDescription(const MediaTrack::Configuration& config);
+    static sdp::Media CreateDescription(const MediaTrack::Configuration& config);
 
 private:
     sdp::Media description_;

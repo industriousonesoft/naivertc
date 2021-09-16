@@ -60,19 +60,19 @@ public:
     using DataChannelCallback = std::function<void(std::shared_ptr<DataChannel>)>;
     using MediaTrackCallback = std::function<void(std::shared_ptr<MediaTrack>)>;
 
-    using SDPCreateSuccessCallback = std::function<void(const sdp::Description sdp)>;
-    using SDPCreateFailureCallback = std::function<void(const std::exception exp)>;
+    using SDPCreateSuccessCallback = std::function<void(const sdp::Description& sdp)>;
+    using SDPCreateFailureCallback = std::function<void(const std::exception& exp)>;
 
     using SDPSetSuccessCallback = std::function<void()>;
-    using SDPSetFailureCallback = std::function<void(const std::exception exp)>;
+    using SDPSetFailureCallback = std::function<void(const std::exception& exp)>;
 public:
-    static std::shared_ptr<PeerConnection> Create(const RtcConfiguration config) {
-        return std::shared_ptr<PeerConnection>(new PeerConnection(std::move(config)));
+    static std::shared_ptr<PeerConnection> Create(const RtcConfiguration& config) {
+        return std::shared_ptr<PeerConnection>(new PeerConnection(config));
     }
     ~PeerConnection();
 
-    std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Configuration config);
-    std::shared_ptr<DataChannel> CreateDataChannel(const DataChannel::Init config);
+    std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Configuration& config);
+    std::shared_ptr<DataChannel> CreateDataChannel(const DataChannel::Init& config);
 
     void CreateOffer(SDPCreateSuccessCallback on_success = nullptr, 
                     SDPCreateFailureCallback on_failure = nullptr);
@@ -81,11 +81,11 @@ public:
 
     // Passing 'sdp' by value other than reference in a async method
     void SetOffer(const std::string sdp,
-                SDPSetSuccessCallback on_success = nullptr, 
-                SDPSetFailureCallback on_failure = nullptr);
+                  SDPSetSuccessCallback on_success = nullptr, 
+                  SDPSetFailureCallback on_failure = nullptr);
     void SetAnswer(const std::string sdp, 
-                SDPSetSuccessCallback on_success = nullptr, 
-                SDPSetFailureCallback on_failure = nullptr);
+                   SDPSetSuccessCallback on_success = nullptr, 
+                   SDPSetFailureCallback on_failure = nullptr);
 
     void AddRemoteCandidate(const std::string mid, const std::string sdp);
 
@@ -105,7 +105,7 @@ public:
     static std::string signaling_state_to_string(SignalingState state);
 
 protected:
-    PeerConnection(const RtcConfiguration config);
+    PeerConnection(const RtcConfiguration& config);
 
 private:
     void InitIceTransport();
@@ -126,7 +126,6 @@ private:
     void TryToGatherLocalCandidate();
     void ProcessRemoteCandidates();
     void ProcessRemoteCandidate(sdp::Candidate candidate);
-    void AddRemoteCandidate(const sdp::Candidate& candidate);
 
     void ResetCallbacks();
     void CloseTransports();

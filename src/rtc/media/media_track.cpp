@@ -3,25 +3,25 @@
 namespace naivertc {
 
 // Configuration
-MediaTrack::Configuration::Configuration::Configuration(const std::string _mid, 
-                                                        Kind _kind, 
-                                                        Codec _codec, 
-                                                        const std::vector<int> _payload_types, 
-                                                        uint32_t _ssrc, 
-                                                        std::optional<std::string> _cname, 
-                                                        std::optional<std::string> _msid,
-                                                        std::optional<std::string> _track_id) 
-    : mid(std::move(_mid)),
-    kind(_kind),
-    codec(_codec),
-    payload_types(std::move(_payload_types)),
-    ssrc(_ssrc),
-    cname(std::move(_cname)),
-    msid(std::move(_msid)),
-    track_id(std::move(_track_id)) {}
+MediaTrack::Configuration::Configuration::Configuration(std::string mid, 
+                                                        Kind kind, 
+                                                        Codec codec, 
+                                                        std::vector<int> payload_types, 
+                                                        uint32_t ssrc, 
+                                                        std::optional<std::string> cname, 
+                                                        std::optional<std::string> msid,
+                                                        std::optional<std::string> track_id) 
+    : mid(std::move(mid)),
+      kind(kind),
+      codec(codec),
+      payload_types(std::move(payload_types)),
+      ssrc(ssrc),
+      cname(std::move(cname)),
+      msid(std::move(msid)),
+      track_id(std::move(track_id)) {}
 
 // Media track
-MediaTrack::MediaTrack(const sdp::Media description) 
+MediaTrack::MediaTrack(sdp::Media description) 
     : MediaChannel(description.mid()),
       description_(std::move(description)) {;
 }
@@ -40,7 +40,7 @@ sdp::Media MediaTrack::description() const {
     });
 }
 
-void MediaTrack::UpdateDescription(const sdp::Media description) {
+void MediaTrack::UpdateDescription(sdp::Media description) {
     task_queue_.Async([this, description=std::move(description)](){
         description_ = std::move(description);
     });

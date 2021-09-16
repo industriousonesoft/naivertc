@@ -14,7 +14,7 @@ const std::string DEFAULT_OPUS_AUDIO_PROFILE =
 
 namespace naivertc {
 
-sdp::Media MediaTrack::BuildDescription(const MediaTrack::Configuration& config) {
+sdp::Media MediaTrack::CreateDescription(const MediaTrack::Configuration& config) {
     auto codec = config.codec;
     auto kind = config.kind;
     if (kind == MediaTrack::Kind::VIDEO) {

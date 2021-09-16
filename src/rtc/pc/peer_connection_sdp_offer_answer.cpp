@@ -31,7 +31,7 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
 }
 
 void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success, 
-                                    SDPCreateFailureCallback on_failure) {
+                                  SDPCreateFailureCallback on_failure) {
     signal_task_queue_->Async([this, on_success, on_failure](){
         try {
             if (this->signaling_state_ == SignalingState::HAVE_REMOTE_OFFER) {
@@ -44,21 +44,21 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
                 throw std::runtime_error("Failed to create local answer sdp.");
             }
         }catch(const std::exception& exp) {
-            on_failure(std::move(exp));
+            on_failure(exp);
         }
     });
 }
 
 void PeerConnection::SetOffer(const std::string sdp,
-                                SDPSetSuccessCallback on_success,
-                                SDPSetFailureCallback on_failure) {
-    signal_task_queue_->Async([this, sdp = std::move(sdp), on_success, on_failure](){
+                              SDPSetSuccessCallback on_success,
+                              SDPSetFailureCallback on_failure) {
+    signal_task_queue_->Async([this, sdp=std::move(sdp), on_success, on_failure](){
         try {
-            auto remote_sdp = sdp::Description::Parser::Parse(std::move(sdp), sdp::Type::OFFER);
+            auto remote_sdp = sdp::Description::Parser::Parse(sdp, sdp::Type::OFFER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
         }catch(const std::exception& exp) {
-            on_failure(std::move(exp));
+            on_failure(exp);
         }
     });
 }
@@ -66,9 +66,9 @@ void PeerConnection::SetOffer(const std::string sdp,
 void PeerConnection::SetAnswer(const std::string sdp, 
                                 SDPSetSuccessCallback on_success, 
                                 SDPSetFailureCallback on_failure) {
-    signal_task_queue_->Async([this, sdp = std::move(sdp), on_success, on_failure](){
+    signal_task_queue_->Async([this, sdp=std::move(sdp), on_success, on_failure](){
         try {
-            auto remote_sdp = sdp::Description::Parser::Parse(std::move(sdp), sdp::Type::ANSWER);
+            auto remote_sdp = sdp::Description::Parser::Parse(sdp, sdp::Type::ANSWER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
         }catch (const std::exception& exp) {
@@ -78,16 +78,9 @@ void PeerConnection::SetAnswer(const std::string sdp,
 }
 
 void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string sdp) {
-    signal_task_queue_->Async([this, mid = std::move(mid), sdp = std::move(sdp)](){
-        auto candidate = sdp::Candidate(sdp, mid);
-        AddRemoteCandidate(std::move(candidate));
-    });
-}
+    signal_task_queue_->Async([this, mid, sdp](){
 
-void PeerConnection::AddRemoteCandidate(const sdp::Candidate& candidate) {
-    signal_task_queue_->Async([this, candidate = std::move(candidate)](){
-
-        remote_candidates_.emplace_back(std::move(candidate));
+        remote_candidates_.emplace_back(sdp::Candidate(sdp, mid));
 
         // Start to process remote candidate if the remote sdp is ready and the connection is not done yet.
         if (remote_sdp_ && connection_state_ != ConnectionState::CONNECTED) {
@@ -397,7 +390,7 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
 
 void PeerConnection::ProcessRemoteCandidates() {
     assert(signal_task_queue_->is_in_current_queue());
-    for (const auto &candidate : remote_candidates_) {
+    for (auto candidate : remote_candidates_) {
         ProcessRemoteCandidate(std::move(candidate));
     }
     remote_candidates_.clear();
@@ -420,10 +413,10 @@ void PeerConnection::ProcessRemoteCandidate(sdp::Candidate candidate) {
     candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
 
     if (candidate.isResolved()) {
-        ice_transport_->AddRemoteCandidate(std::move(candidate));
+        ice_transport_->AddRemoteCandidate(candidate);
     // We might need a lookup
     }else if (candidate.Resolve(sdp::Candidate::ResolveMode::LOOK_UP)) {
-        ice_transport_->AddRemoteCandidate(std::move(candidate));
+        ice_transport_->AddRemoteCandidate(candidate);
     }else {
         throw std::runtime_error("Failed to resolve remote candidate");
     }

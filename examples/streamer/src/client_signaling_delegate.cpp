@@ -9,7 +9,7 @@ void Client::OnIceServers(std::vector<IceServer> ice_servers) {
         RtcConfiguration rtc_config;
         rtc_config.ice_servers = std::move(ice_servers);
 
-        this->CreatePeerConnection(std::move(rtc_config));
+        this->CreatePeerConnection(rtc_config);
 
     }));
 }

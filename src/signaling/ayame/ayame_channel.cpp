@@ -219,15 +219,15 @@ void AyameChannel::OnRead(boost::system::error_code ec,
         }
         
     } else if (type == "offer") {
-        const std::string sdp = json_message["sdp"];
+        std::string sdp = json_message["sdp"];
         if (auto ob = observer_.lock()) {
-            ob->OnRemoteSDP(sdp, true);
+            ob->OnRemoteSDP(std::move(sdp), true);
         }
     
     } else if (type == "answer") {
-        const std::string sdp = json_message["sdp"];
+        std::string sdp = json_message["sdp"];
         if (auto ob = observer_.lock()) {
-            ob->OnRemoteSDP(sdp, false);
+            ob->OnRemoteSDP(std::move(sdp), false);
         }
     } else if (type == "candidate") {
         int sdp_mlineindex = 0;
@@ -256,7 +256,7 @@ void AyameChannel::OnRead(boost::system::error_code ec,
 void AyameChannel::SendLocalSDP(const std::string sdp, bool is_offer) {
     json json_message = {
         {"type", is_offer ? "offer" : "answer"}, 
-        {"sdp", std::move(sdp)}
+        {"sdp", sdp}
     };
     ws_->WriteText(json_message.dump());
 }
@@ -267,9 +267,9 @@ void AyameChannel::SendLocalCandidate(const std::string sdp_mid, const int sdp_m
         {"type", "candidate"}
     };
     // Set candidate information as object in ice property and send
-    json_message["ice"] = {{"candidate", std::move(candidate)},
+    json_message["ice"] = {{"candidate", candidate},
                             {"sdpMLineIndex", sdp_mlineindex},
-                            {"sdpMid", std::move(sdp_mid)}};
+                            {"sdpMid", sdp_mid}};
     ws_->WriteText(json_message.dump());
 }
 
