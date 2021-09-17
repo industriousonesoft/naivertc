@@ -8,7 +8,7 @@ namespace naivertc {
 // Implement of DataChannel::Init
 DataChannel::Init::Init(const std::string label_, 
                         const std::string protocol_, 
-                        std::optional<StreamId> stream_id_, 
+                        std::optional<uint16_t> stream_id_, 
                         bool unordered_,
                         bool negotiated_) 
     : label(std::move(label_)),
@@ -18,7 +18,7 @@ DataChannel::Init::Init(const std::string label_,
       negotiated(negotiated_) {}
     
 // Implement of DataChannel
-std::shared_ptr<DataChannel> DataChannel::RemoteDataChannel(StreamId stream_id,
+std::shared_ptr<DataChannel> DataChannel::RemoteDataChannel(uint16_t stream_id,
                                                             bool negotiated,
                                                             std::weak_ptr<SctpTransport> sctp_transport) {
     auto dc = std::shared_ptr<DataChannel>(new DataChannel("","", stream_id, false, negotiated));
@@ -28,7 +28,7 @@ std::shared_ptr<DataChannel> DataChannel::RemoteDataChannel(StreamId stream_id,
 
 DataChannel::DataChannel(const std::string label, 
                          const std::string protocol, 
-                         const StreamId stream_id, 
+                         const uint16_t stream_id, 
                          bool unordered,
                          bool negotiated) 
     : label_(std::move(label)),
@@ -44,8 +44,8 @@ DataChannel::~DataChannel() {
     Close(); 
 }
 
-StreamId DataChannel::stream_id() const {
-    return task_queue_.Sync<StreamId>([this](){
+uint16_t DataChannel::stream_id() const {
+    return task_queue_.Sync<uint16_t>([this](){
         return stream_id_;
     });
 }
@@ -131,14 +131,14 @@ void DataChannel::OnClosed(ClosedCallback callback) {
     });
 }
 
-void DataChannel::OnBinaryMessageReceivedCallback(BinaryMessageReceivedCallback callback) {
+void DataChannel::OnMessageReceived(BinaryMessageReceivedCallback callback) {
     task_queue_.Async([this, callback=std::move(callback)](){
         binary_message_received_callback_ = callback;
         // TODO: Flush pending binary message 
     });
 }
 
-void DataChannel::OnTextMessageReceivedCallback(TextMessageReceivedCallback callback) {
+void DataChannel::OnMessageReceived(TextMessageReceivedCallback callback) {
     task_queue_.Async([this, callback=std::move(callback)](){
         text_message_received_callback_ = callback;
         // TODO: Flush pending text message 

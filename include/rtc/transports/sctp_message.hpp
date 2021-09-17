@@ -30,27 +30,27 @@ public:
 public:
     SctpMessage(size_t capacity, 
                Type type, 
-               StreamId stream_id, 
+               uint16_t stream_id, 
                std::shared_ptr<Reliability> reliability = nullptr);
                
     SctpMessage(const uint8_t* data, size_t size, 
                Type type, 
-               StreamId stream_id, 
+               uint16_t stream_id, 
                std::shared_ptr<Reliability> reliability = nullptr);
 
     SctpMessage(const BinaryBuffer& buffer, 
                Type type, 
-               StreamId stream_id, 
+               uint16_t stream_id, 
                std::shared_ptr<Reliability> reliability = nullptr);
     
     SctpMessage(BinaryBuffer&& buffer, 
                Type type, 
-               StreamId stream_id, 
+               uint16_t stream_id, 
                std::shared_ptr<Reliability> reliability = nullptr);
     ~SctpMessage();
 
     Type type() const { return type_; }
-    StreamId stream_id() const { return stream_id_; }
+    uint16_t stream_id() const { return stream_id_; }
     const std::shared_ptr<Reliability> reliability() const { return reliability_; }
 
     size_t payload_size() {
@@ -58,7 +58,7 @@ public:
     }
 private:
     Type type_;
-    StreamId stream_id_;
+    uint16_t stream_id_;
     std::shared_ptr<Reliability> reliability_;
 };
 

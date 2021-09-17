@@ -6,8 +6,6 @@
 
 namespace naivertc {
 
-constexpr size_t kDefaultSctpPort = 5000;
-constexpr size_t kDefaultLocalMaxMessageSize = 256 * 1024;
 // IPv6 minimum guaranteed MTU
 // IPv6 requires that every link in the internet have an MTU
 // of 1280 octects or greater. On any link that cannot convey
@@ -16,9 +14,6 @@ constexpr size_t kDefaultLocalMaxMessageSize = 256 * 1024;
 // See https://blog.csdn.net/dog250/article/details/88820733
 constexpr size_t kDefaultMtuSize = 1280;
 
-using StreamId = uint16_t;
-constexpr StreamId kStreamIdMaxValue = 65535;
-
-}
+} // namespace naivertc
 
 #endif

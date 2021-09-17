@@ -265,6 +265,7 @@ set(LIB_HEADERS
     include/rtc/transports/transport.hpp
     include/rtc/transports/ice_transport.hpp
     include/rtc/transports/sctp_transport.hpp
+    include/rtc/transports/sctp_transport_internals.hpp
     include/rtc/transports/sctp_transport_usr_sctp_settings.hpp
     include/rtc/transports/sctp_message.hpp
     include/rtc/transports/dtls_transport.hpp

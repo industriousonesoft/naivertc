@@ -1,4 +1,5 @@
 #include "rtc/transports/sctp_transport.hpp"
+#include "rtc/transports/sctp_transport_internals.hpp"
 #include "rtc/base/internals.hpp"
 #include "common/utils_numeric.hpp"
 #include "common/weak_ptr_manager.hpp"
@@ -7,6 +8,26 @@
 
 #include <thread>
 #include <chrono>
+
+/** 
+ * RFC 8831: SCTP MUST support perfoming Path MTU Discovery without relying on ICMP or ICMPv6 as 
+ * specified in [RFC4821] by using probing messages specified in [RFC4820].
+ * See https://tools.ietf.org/html/rfc8831#section-5
+ * 
+ * However, usrsctp dost not implement Path MTU Discovery, so we need to disable it for now,
+ * See https://github.com/sctplab/usrsctp/issues/205
+*/
+#define ENABLE_PMTUD 0
+// TODO: When Path MTU Discovery is supported by usrsctp, it needs to be enabled with libjuice as ICE backend on all platforms excepts MacOS on which the Don't Fragment(DF) flag can't be set:
+/**
+#ifndef __APPLE__
+// libjuice enables Linux path MTU discovery or sets the DF flag
+#define USE_PMTUD 1
+#else
+// Setting the DF flag is not available on Mac OS
+#define USE_PMTUD 0
+#endif 
+*/
 
 namespace naivertc {
 
@@ -167,7 +188,7 @@ void SctpTransport::InitUsrSCTP(const Configuration& config) {
 		spp.spp_flags |= SPP_PMTUD_DISABLE;
 		// The MTU value provided specifies the space available for chunks in the
 		// packet, so we also subtract the SCTP header size.
-		size_t pmtu = config.mtu.value_or(kDefaultMtuSize) - 12 - 37 - 8 - 40; // SCTP/DTLS/UDP/IPv6
+		size_t pmtu = config.mtu.value_or(kDefaultSctpMtuSize) - sizeof(struct sctp_common_header);
 		spp.spp_pathmtu = utils::numeric::to_uint32(pmtu);
 		PLOG_VERBOSE << "Path MTU discovery disabled, SCTP MTU set to " << pmtu;
 	}
@@ -180,9 +201,12 @@ void SctpTransport::InitUsrSCTP(const Configuration& config) {
 	// The number of streams negotiated during SCTP association setup SHOULD be 65535, which is the
 	// maximum number of streams that can be negotiated during the association setup.
 	// See https://tools.ietf.org/html/rfc8831#section-6.2
+	// However, we use 1024 in order to save memory. usrsctp allocates 104 bytes
+	// for each pair of incoming/outgoing streams (on a 64-bit system), so 65535
+	// streams would waste ~6MB.
 	struct sctp_initmsg sinit = {};
-	sinit.sinit_num_ostreams = 65535;
-	sinit.sinit_max_instreams = 65535;
+	sinit.sinit_num_ostreams = kMaxSctpStreams;
+	sinit.sinit_max_instreams = kMaxSctpStreams;
 	if (usrsctp_setsockopt(socket_, IPPROTO_SCTP, SCTP_INITMSG, &sinit, sizeof(sinit)))
 		throw std::runtime_error("Could not set socket option SCTP_INITMSG, errno=" +
 		                         std::to_string(errno));

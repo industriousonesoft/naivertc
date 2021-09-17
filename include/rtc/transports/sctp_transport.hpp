@@ -21,7 +21,7 @@ namespace naivertc {
 class RTC_CPP_EXPORT SctpTransport final : public Transport {
 public:
     struct Configuration {
-        // SCTP port
+        // SCTP port, local and remote use the same port
         uint16_t port;
         // MTU: Maximum Transmission Unit
         std::optional<size_t> mtu;
@@ -41,9 +41,9 @@ public:
 
     int Send(SctpMessage message);
     bool Flush();
-    void ShutdownStream(StreamId stream_id);
+    void ShutdownStream(uint16_t stream_id);
 
-    using BufferedAmountChangedCallback = std::function<void(StreamId, size_t)>;
+    using BufferedAmountChangedCallback = std::function<void(uint16_t, size_t)>;
     void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
     using SctpMessageReceivedCallback = std::function<void(SctpMessage in_packet)>;
     void OnSctpMessageReceived(SctpMessageReceivedCallback callback);
@@ -67,8 +67,8 @@ private:
     void Reset();
     void DoRecv();
     void DoFlush();
-    void ResetStream(StreamId stream_id);
-    void CloseStream(StreamId stream_id);
+    void ResetStream(uint16_t stream_id);
+    void CloseStream(uint16_t stream_id);
 
     void HandleSctpUpCall();
     bool HandleSctpWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
@@ -87,12 +87,12 @@ private:
 
     bool FlushPendingMessages();
     int TrySendMessage(SctpMessage message);
-    void UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta);
+    void UpdateBufferedAmount(uint16_t stream_id, ptrdiff_t delta);
 
     void ProcessPendingIncomingPackets();
     void ProcessIncomingPacket(CopyOnWriteBuffer in_packet);
     void ProcessNotification(const union sctp_notification* notification, size_t len);
-    void ProcessMessage(const BinaryBuffer& message_data, StreamId stream_id, PayloadId payload_id);
+    void ProcessMessage(const BinaryBuffer& message_data, uint16_t stream_id, PayloadId payload_id);
 
     void ForwardReceivedSctpMessage(SctpMessage message);
 

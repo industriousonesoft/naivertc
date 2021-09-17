@@ -2,6 +2,7 @@
 #include "rtc/base/internals.hpp"
 #include "rtc/sdp/sdp_entry.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
+#include "rtc/transports/sctp_transport_internals.hpp"
 
 #include <plog/Log.h>
 
@@ -327,7 +328,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
             // FIXED: No matter we are either DTLS client or server, we still need to create a data channel with mid started from 0,
             // since the data channel is owned by both of peers(the DTLS client and server). The only thing we need to do is to correct the mid of data channel 
             // added by user after the DTLS role of local peer was negotiated(After the remote sdp was processed by ICE transport).
-            StreamId new_mid = 0;
+            int new_mid = 0;
             while (local_sdp.HasMid(std::to_string(new_mid))) {
                 ++new_mid;
             }

@@ -1,4 +1,5 @@
 #include "rtc/pc/peer_connection.hpp"
+#include "rtc/transports/sctp_transport_internals.hpp"
 
 #include <plog/Log.h>
 
@@ -33,11 +34,11 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Configura
 // Data Channels
 std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Init& init_config) {
     return signal_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, &init_config]() -> std::shared_ptr<DataChannel> {
-        StreamId stream_id;
+        uint16_t stream_id;
         try {
             if (init_config.stream_id) {
                 stream_id = *init_config.stream_id;
-                if (stream_id > kStreamIdMaxValue) {
+                if (stream_id > kMaxSctpStreamId) {
                     throw std::invalid_argument("Invalid DataChannel stream id.");
                 }
             }else {
@@ -54,7 +55,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
                 stream_id = (role == sdp::Role::ACTIVE) ? 0 : 1;
                 // Avoid conflict with existed data channel
                 while (data_channels_.find(stream_id) != data_channels_.end()) {
-                    if (stream_id >= kStreamIdMaxValue - 2) {
+                    if (stream_id >= kMaxSctpStreamId - 2) {
                         throw std::overflow_error("Too many DataChannels");
                     }
                     stream_id += 2;

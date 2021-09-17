@@ -1,5 +1,6 @@
 #include "rtc/pc/peer_connection.hpp"
 #include "rtc/base/internals.hpp"
+#include "rtc/transports/sctp_transport_internals.hpp"
 
 #include <plog/Log.h>
 
@@ -73,7 +74,7 @@ void PeerConnection::OnSctpTransportStateChanged(Transport::State transport_stat
     });
 }
 
-void PeerConnection::OnBufferedAmountChanged(StreamId stream_id, size_t amount) {
+void PeerConnection::OnBufferedAmountChanged(uint16_t stream_id, size_t amount) {
     signal_task_queue_->Async([this, stream_id, amount](){
         if (auto data_channel = FindDataChannel(stream_id)) {
             data_channel->OnBufferedAmount(amount);
@@ -98,7 +99,7 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                 // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
                 // See https://tools.ietf.org/html/rfc8832#section-6
                 bool is_remote_a_dtls_server= ice_transport_->role() == sdp::Role::ACTIVE ? true : false;
-                StreamId remote_parity = is_remote_a_dtls_server ? 1 : 0;
+                uint16_t remote_parity = is_remote_a_dtls_server ? 1 : 0;
                 if (stream_id % 2 == remote_parity) {
                     // The remote data channel will negotiate later by processing incomming message, 
                     // so it's unnegotiated.

@@ -144,7 +144,7 @@ private:
     void FlushPendingMediaTracks();
     void OnIncomingMediaTrack(sdp::Media media_sdp);
 
-    std::shared_ptr<DataChannel> FindDataChannel(StreamId stream_id) const;
+    std::shared_ptr<DataChannel> FindDataChannel(uint16_t stream_id) const;
     std::shared_ptr<MediaTrack> FindMediaTrack(std::string mid) const;
   
 private:
@@ -161,7 +161,7 @@ private:
 
     // SctpTransport callbacks
     void OnSctpTransportStateChanged(SctpTransport::State transport_state);
-    void OnBufferedAmountChanged(StreamId stream_id, size_t amount);
+    void OnBufferedAmountChanged(uint16_t stream_id, size_t amount);
     void OnSctpMessageReceived(SctpMessage in_packet);
 
 private:
@@ -196,7 +196,7 @@ private:
 
     // Keep a weak reference instead of shared one, since the life cycle of 
     // data channels or media tracks should be owned by the one who has created them.
-    std::unordered_map<StreamId, std::weak_ptr<DataChannel>> data_channels_;
+    std::unordered_map<uint16_t, std::weak_ptr<DataChannel>> data_channels_;
     std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_;
 
     // The pending data channels will be owned by peer connection before 

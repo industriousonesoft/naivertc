@@ -200,7 +200,7 @@ void PeerConnection::FlushPendingMediaTracks() {
 }
 
 // Private methods
-std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(StreamId stream_id) const {
+std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(uint16_t stream_id) const {
     assert(signal_task_queue_->is_in_current_queue());
     if (auto it = data_channels_.find(stream_id); it != data_channels_.end()) {
         return it->second.lock();

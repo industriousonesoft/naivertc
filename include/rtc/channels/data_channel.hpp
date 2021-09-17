@@ -21,13 +21,13 @@ public:
     struct RTC_CPP_EXPORT Init {
         std::string label;
         std::string protocol = "";
-        std::optional<StreamId> stream_id = std::nullopt;
+        std::optional<uint16_t> stream_id = std::nullopt;
         bool unordered = false;
         bool negotiated = false;
 
         Init(const std::string label, 
              const std::string protocol = "", 
-             std::optional<StreamId> stream_id = std::nullopt, 
+             std::optional<uint16_t> stream_id = std::nullopt, 
              bool unordered = false,
              bool negotiated = false);
     };
@@ -36,18 +36,18 @@ public:
     using TextMessageReceivedCallback = std::function<void(const std::string text)>;
     using BufferedAmountChangedCallback = std::function<void(uint64_t previous_amount)>;
 public:
-    static std::shared_ptr<DataChannel> RemoteDataChannel(StreamId stream_id,
+    static std::shared_ptr<DataChannel> RemoteDataChannel(uint16_t stream_id,
                                                           bool negotiated,
                                                           std::weak_ptr<SctpTransport> sctp_transport);
 public:
     DataChannel(const std::string label, 
                 const std::string protocol, 
-                const StreamId stream_id, 
+                const uint16_t stream_id, 
                 bool unordered,
                 bool negotiated);
     virtual ~DataChannel();
 
-    StreamId stream_id() const;
+    uint16_t stream_id() const;
     const std::string label() const;
     const std::string protocol() const;
     bool is_opened() const;
@@ -65,8 +65,8 @@ public:
 
     void OnOpened(OpenedCallback callback) override;
     void OnClosed(ClosedCallback callback) override;
-    void OnBinaryMessageReceivedCallback(BinaryMessageReceivedCallback callback);
-    void OnTextMessageReceivedCallback(TextMessageReceivedCallback callback);
+    void OnMessageReceived(BinaryMessageReceivedCallback callback);
+    void OnMessageReceived(TextMessageReceivedCallback callback);
     void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
 
 private:
@@ -85,7 +85,7 @@ private:
 private:
     std::string label_;
     std::string protocol_;
-    StreamId stream_id_;
+    uint16_t stream_id_;
     const bool negotiated_ = false;
     std::shared_ptr<SctpMessage::Reliability> reliability_;
     

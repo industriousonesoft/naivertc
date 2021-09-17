@@ -6,26 +6,6 @@
 
 #include <future>
 
-/** 
- * RFC 8831: SCTP MUST support perfoming Path MTU Discovery without relying on ICMP or ICMPv6 as 
- * specified in [RFC4821] by using probing messages specified in [RFC4820].
- * See https://tools.ietf.org/html/rfc8831#section-5
- * 
- * However, usrsctp dost not implement Path MTU Discovery, so we need to disable it for now,
- * See https://github.com/sctplab/usrsctp/issues/205
-*/
-#define ENABLE_PMTUD 0
-// TODO: When Path MTU Discovery is supported by usrsctp, it needs to be enabled with libjuice as ICE backend on all platforms excepts MacOS on which the Don't Fragment(DF) flag can't be set:
-/**
-#ifndef __APPLE__
-// libjuice enables Linux path MTU discovery or sets the DF flag
-#define USE_PMTUD 1
-#else
-// Setting the DF flag is not available on Mac OS
-#define USE_PMTUD 0
-#endif 
-*/
-
 namespace naivertc {
 
 // SctpTransport
@@ -82,7 +62,7 @@ bool SctpTransport::Stop() {
 	});
 }
 
-void SctpTransport::ShutdownStream(StreamId stream_id) {
+void SctpTransport::ShutdownStream(uint16_t stream_id) {
 	task_queue_->Async([this, stream_id](){
 		CloseStream(stream_id);
 	});
@@ -137,7 +117,9 @@ void SctpTransport::Connect() {
 	sock_conn.sconn_family = AF_CONN;
 	sock_conn.sconn_port = htons(config_.port);
 	sock_conn.sconn_addr = this;
+#ifdef HAVE_SCONN_LEN // Defined in usrsctp lib
 	sock_conn.sconn_len = sizeof(sock_conn);
+#endif
 
 	if (usrsctp_bind(socket_, reinterpret_cast<struct sockaddr *>(&sock_conn), sizeof(sock_conn)) != 0) {
 		throw std::runtime_error("Failed to bind usrsctp socket, errno: " + std::to_string(errno));
@@ -178,7 +160,7 @@ int SctpTransport::SendInternal(SctpMessage packet) {
 	}
 
 	// enqueue
-	StreamId stream_id = packet.stream_id();
+	uint16_t stream_id = packet.stream_id();
 	size_t payload_size = packet.payload_size();
 	pending_outgoing_packets_.push(std::move(packet));
 	UpdateBufferedAmount(stream_id, ptrdiff_t(payload_size));
@@ -188,7 +170,7 @@ int SctpTransport::SendInternal(SctpMessage packet) {
 bool SctpTransport::FlushPendingMessages() {
 	while (!pending_outgoing_packets_.empty()) {
 		auto packet = pending_outgoing_packets_.front();
-		StreamId stream_id = packet.stream_id();
+		uint16_t stream_id = packet.stream_id();
 		size_t payload_size = packet.payload_size();
 		if (TrySendMessage(std::move(packet)) < 0) {
 			return false;
@@ -286,7 +268,7 @@ int SctpTransport::TrySendMessage(SctpMessage packet) {
 	return ret;
 }
 
-void SctpTransport::UpdateBufferedAmount(StreamId stream_id, ptrdiff_t delta) {
+void SctpTransport::UpdateBufferedAmount(uint16_t stream_id, ptrdiff_t delta) {
 	// Find the pair for stream_id, or create a new pair
 	auto it = stream_buffered_amounts_.insert(std::make_pair(stream_id, 0)).first;
 	size_t amount = size_t(std::max(ptrdiff_t(it->second) + delta, ptrdiff_t(0)));
@@ -355,13 +337,13 @@ void SctpTransport::DoFlush() {
 	}
 }
 
-void SctpTransport::CloseStream(StreamId stream_id) {
+void SctpTransport::CloseStream(uint16_t stream_id) {
 	static const uint8_t stream_close_message{0x0};
 	SctpMessage sctp_message(&stream_close_message, 1, SctpMessage::Type::RESET, stream_id);
 	SendInternal(std::move(sctp_message));
 }
 
-void SctpTransport::ResetStream(StreamId stream_id) {
+void SctpTransport::ResetStream(uint16_t stream_id) {
 	if (!socket_ || state_ != State::CONNECTED) {
 		return;
 	}
@@ -369,7 +351,7 @@ void SctpTransport::ResetStream(StreamId stream_id) {
 	PLOG_DEBUG << "SCTP resetting stream: " << stream_id;
 
 	using srs_t = struct sctp_reset_streams;
-	const size_t len = sizeof(srs_t) + sizeof(StreamId);
+	const size_t len = sizeof(srs_t) + sizeof(uint16_t);
 	uint8_t buffer[len] = {};
 	srs_t& srs = *reinterpret_cast<srs_t *>(buffer);
 	srs.srs_flags = SCTP_STREAM_RESET_OUTGOING;
@@ -439,7 +421,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 
 			desc << ", streams=[";
 			for (int i = 0; i < count; ++i) {
-				StreamId stream_id = reset_event.strreset_stream_list[i];
+				uint16_t stream_id = reset_event.strreset_stream_list[i];
 				desc << (i != 0 ? "," : "") << stream_id;
 			}
 			desc << "]";
@@ -449,7 +431,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 
 		if (flags & SCTP_STREAM_RESET_OUTGOING_SSN) {
 			for (int i = 0; i < count; ++i) {
-				StreamId stream_id = reset_event.strreset_stream_list[i];
+				uint16_t stream_id = reset_event.strreset_stream_list[i];
 				CloseStream(stream_id);
 			}
 		}
@@ -457,7 +439,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 		if (flags & SCTP_STREAM_RESET_INCOMING_SSN) {
 			static const uint8_t data_channel_close_message{0x04};
 			for (int i = 0; i < count; ++i) {
-				StreamId stream_id = reset_event.strreset_stream_list[i];
+				uint16_t stream_id = reset_event.strreset_stream_list[i];
 				SctpMessage sctp_message(&data_channel_close_message, 1, SctpMessage::Type::CONTROL, stream_id);
 				ForwardReceivedSctpMessage(std::move(sctp_message));
 			}
@@ -470,7 +452,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 	}
 }
 
-void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, StreamId stream_id, SctpTransport::PayloadId payload_id) {
+void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, uint16_t stream_id, SctpTransport::PayloadId payload_id) {
 
 	PLOG_VERBOSE << "Process message, stream id: " << stream_id << ", payload id: " << int(payload_id);
 

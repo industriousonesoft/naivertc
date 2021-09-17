@@ -113,7 +113,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
         }
     });
 
-    data_channel_->OnTextMessageReceivedCallback([weak_dc=make_weak_ptr(data_channel_)](const std::string text){
+    data_channel_->OnMessageReceived([weak_dc=make_weak_ptr(data_channel_)](const std::string text){
         std::cout << "OnTextMessageReceived : " << text << std::endl;
         if (auto dc = weak_dc.lock()) {
             auto res = "Hi, " + text;
@@ -122,7 +122,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
         }
     });
 
-    data_channel_->OnBinaryMessageReceivedCallback([](const uint8_t* in_data, size_t in_size){
+    data_channel_->OnMessageReceived([](const uint8_t* in_data, size_t in_size){
         std::cout << "OnBinaryMessageReceived : " << in_size << std::endl;
     });
 
