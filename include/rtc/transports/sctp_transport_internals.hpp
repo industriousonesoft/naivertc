@@ -15,7 +15,7 @@ namespace naivertc {
 //                        of overhead after a channel has been established.)
 constexpr size_t kDefaultSctpMtuSize = 1191;
 constexpr size_t kDefaultSctpPort = 5000;
-constexpr size_t kDefaultLocalMaxMessageSize = 256 * 1024;
+constexpr size_t kDefaultSctpMaxMessageSize = 256 * 1024;
 
 // The number of outgoing streams that we'll negotiate. Since stream IDs (SIDs)
 // are 0-based, the highest usable SID is 1023.

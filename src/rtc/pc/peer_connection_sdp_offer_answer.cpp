@@ -249,7 +249,7 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
 void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
     assert(signal_task_queue_->is_in_current_queue());
     const uint16_t local_sctp_port = kDefaultSctpPort;
-    const size_t local_max_message_size = rtc_config_.max_message_size.value_or(kDefaultLocalMaxMessageSize);
+    const size_t local_max_message_size = rtc_config_.max_message_size.value_or(kDefaultSctpMaxMessageSize);
 
     // Clean up the application entry added by ICE transport already.
     local_sdp.ClearMedia();

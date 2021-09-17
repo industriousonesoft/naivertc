@@ -13,52 +13,67 @@ SctpTransport::SctpTransport(Configuration config, std::weak_ptr<Transport> lowe
     : Transport(std::move(lower), 
 	  std::move(task_queue)),
       config_(std::move(config)),
-	  packet_options_(DSCP::DSCP_AF11) // AF11: Assured Forwarding class 1, low drop probability
-	{
-    InitUsrSCTP(config_);
+	  // AF11: Assured Forwarding class 1, low drop probability
+	  packet_options_(DSCP::DSCP_AF11) {
 	WeakPtrManager::SharedInstance()->Register(this);
 }
 
 SctpTransport::~SctpTransport() {
-	Stop();
+	Close();
     usrsctp_deregister_address(this);
     WeakPtrManager::SharedInstance()->Deregister(this);
 }
 
 void SctpTransport::OnBufferedAmountChanged(BufferedAmountChangedCallback callback) {
-	task_queue_->Async([this, callback](){
+	task_queue_->Async([this, callback=std::move(callback)](){
         buffered_amount_changed_callback_ = std::move(callback);
     });
 }
 
 void SctpTransport::OnSctpMessageReceived(SctpMessageReceivedCallback callback) {
-	task_queue_->Async([this, callback](){
+	task_queue_->Async([this, callback=std::move(callback)](){
         sctp_message_received_callback_ = std::move(callback);
+    });
+}
+
+void SctpTransport::OnReadyToSendData(ReadyToSendDataCallback callback) {
+	task_queue_->Async([this, callback=std::move(callback)](){
+        ready_to_send_data_callback_ = std::move(callback);
     });
 }
 
 bool SctpTransport::Start() {
 	return task_queue_->Sync<bool>([this](){
-		if (is_stoped_) {
-			Reset();
-			RegisterIncoming();
-			Connect();
-			is_stoped_ = false;
+		try {
+			if (is_stoped_) {
+				Reset();
+				RegisterIncoming();
+				Connect();
+				is_stoped_ = false;
+			}
+			return true;
+		}catch(std::exception& e) {
+			PLOG_WARNING << e.what();
+			return false;
 		}
-		return true;
 	});
 }
 
 bool SctpTransport::Stop() {
 	return task_queue_->Sync<bool>([this](){
-		if (!is_stoped_) {
-			DeregisterIncoming();
-			// Shutdwon SCTP connection
-			Shutdown();
-			is_stoped_ = true;
-			// TODO: Reset callback
+		try {
+			if (!is_stoped_) {
+				DeregisterIncoming();
+				// Shutdwon SCTP connection
+				Shutdown();
+				is_stoped_ = true;
+				// TODO: Reset callback
+			}
+			return true;
+		}catch(std::exception& e) {
+			PLOG_WARNING << e.what();
+			return false;
 		}
-		return true;
 	});
 }
 
@@ -134,6 +149,10 @@ void SctpTransport::Connect() {
 		PLOG_ERROR << "usrsctp connect errno: " << err_str;
 		throw std::runtime_error("Failed to connect usrsctp socket, errno: " + err_str);
 	}
+
+	// Since this is a fresh SCTP association, we'll always start out with empty
+    // queues, so "ReadyToSendData" should be true.
+	ReadyToSend();
 }
 
 void SctpTransport::Shutdown() {
@@ -150,15 +169,13 @@ void SctpTransport::Shutdown() {
 
 // Send
 int SctpTransport::SendInternal(SctpMessage packet) {
-	if (packet.empty()) {
-		return FlushPendingMessages() ? 0 : -1;
-	}
-
-	// Flush the queue, and if nothing is pending, try to send directly
-	if (FlushPendingMessages()) {
+	// if nothing is pending, try to send directly
+	if (pending_outgoing_packets_.empty()) {
+		// TODO: Consider the situation if the packet is too large to send in one time.
 		return TrySendMessage(std::move(packet));
 	}
 
+	ready_to_send_ = false;
 	// enqueue
 	uint16_t stream_id = packet.stream_id();
 	size_t payload_size = packet.payload_size();
@@ -251,13 +268,17 @@ int SctpTransport::TrySendMessage(SctpMessage packet) {
 	}
 
 	if (ret < 0) {
-		if (errno == EWOULDBLOCK || errno == EAGAIN) {
-			PLOG_WARNING << "SCTP sending not possible.";
+		if (errno == EWOULDBLOCK) {
+			PLOG_WARNING << "SCTP sending blocked.";
+			ready_to_send_ = false;
 			return -1;
+		}else if (errno == EAGAIN) {
+			PLOG_WARNING << "SCTP sending not possible, try it again.";
+			return -1;
+		}else {
+			PLOG_ERROR << "SCTP sending failed, errno: " << errno;
+			throw std::runtime_error("Faild to send SCTP message, errno: " + std::to_string(errno));
 		}
-
-		PLOG_ERROR << "SCTP sending failed, errno: " << errno;
-		throw std::runtime_error("Faild to send SCTP message, errno: " + std::to_string(errno));
 	}
 
 	PLOG_VERBOSE << "SCTP send size: " << ret;
@@ -281,6 +302,15 @@ void SctpTransport::UpdateBufferedAmount(uint16_t stream_id, ptrdiff_t delta) {
 
 	if (buffered_amount_changed_callback_) {
 		buffered_amount_changed_callback_(stream_id, amount);
+	}
+}
+
+void SctpTransport::ReadyToSend() {
+	if (!ready_to_send_) {
+		ready_to_send_ = true;
+		if (ready_to_send_data_callback_) {
+			ready_to_send_data_callback_();
+		}
 	}
 }
 
@@ -515,41 +545,6 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, uint16_t st
 	}
 }
 
-// SCTP callback methods
-void SctpTransport::HandleSctpUpCall() {
-	task_queue_->Async([this](){
-		if (socket_ == nullptr)
-			return;
-
-		int events = usrsctp_get_events(socket_);
-
-		if (events & SCTP_EVENT_READ) {
-			PLOG_VERBOSE << "Handle SCTP upcall: do Recv";
-			DoRecv();
-		}
-
-		if (events & SCTP_EVENT_WRITE) {
-			// PLOG_VERBOSE << "Handle SCTP upcall: do flush";
-			DoFlush();
-		}
-	});
-}
-    
-bool SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
-	return task_queue_->Sync<bool>([this, in_data, in_size](){
-		// PLOG_VERBOSE << "Handle SCTP write: " << in_size;
-		CopyOnWriteBuffer packet(static_cast<const uint8_t*>(in_data), in_size);
-		int sent_size = Outgoing(std::move(packet), packet_options_);
-		// Reset the sent flag and ready to handle the incoming message
-		if (sent_size >= 0 && !has_sent_once_) {
-			PLOG_VERBOSE << "SCTP has set once";
-			ProcessPendingIncomingPackets();
-			has_sent_once_ = true;
-		}
-		return sent_size >= 0 ? true : false;
-	});
-}
-
 void SctpTransport::ProcessPendingIncomingPackets() {
 	while (!pending_incoming_packets_.empty()) {
 		auto packet = pending_incoming_packets_.front();
@@ -593,6 +588,51 @@ void SctpTransport::Incoming(CopyOnWriteBuffer in_packet) {
 
 int SctpTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) {
 	return ForwardOutgoingPacket(std::move(out_packet), options);
+}
+
+// SCTP callback methods
+void SctpTransport::HandleSctpUpCall() {
+	task_queue_->Async([this](){
+		if (socket_ == nullptr)
+			return;
+
+		int events = usrsctp_get_events(socket_);
+
+		if (events & SCTP_EVENT_READ) {
+			PLOG_VERBOSE << "Handle SCTP upcall: do Recv";
+			DoRecv();
+		}
+
+		if (events & SCTP_EVENT_WRITE) {
+			// PLOG_VERBOSE << "Handle SCTP upcall: do flush";
+			// DoFlush();
+			ReadyToSend();
+		}
+	});
+}
+    
+bool SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
+	return task_queue_->Sync<bool>([this, in_data, in_size](){
+		// PLOG_VERBOSE << "Handle SCTP write: " << in_size;
+		CopyOnWriteBuffer packet(static_cast<const uint8_t*>(in_data), in_size);
+		int sent_size = Outgoing(std::move(packet), packet_options_);
+		// Reset the sent flag and ready to handle the incoming message
+		if (sent_size >= 0 && !has_sent_once_) {
+			PLOG_VERBOSE << "SCTP has set once";
+			ProcessPendingIncomingPackets();
+			has_sent_once_ = true;
+		}
+		return sent_size >= 0 ? true : false;
+	});
+}
+
+void SctpTransport::OnSctpSendThresholdReached() {
+	task_queue_->Async([this](){
+		// TODO: Move pending message queue to data channel and try to send the left partial data of the last sent message.
+		if (FlushPendingMessages()) {
+			ReadyToSend();
+		}
+	});
 }
 
 } // namespace naivertc

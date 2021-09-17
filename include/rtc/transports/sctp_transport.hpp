@@ -47,6 +47,8 @@ public:
     void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
     using SctpMessageReceivedCallback = std::function<void(SctpMessage in_packet)>;
     void OnSctpMessageReceived(SctpMessageReceivedCallback callback);
+    using ReadyToSendDataCallback = std::function<void(void)>;
+    void OnReadyToSendData(ReadyToSendDataCallback callback);
 
 private:
     // Order seems wrong but these are the actual values
@@ -61,6 +63,9 @@ private:
 		PPID_BINARY_EMPTY = 57
     };
 
+    void OpenSctpSocket();
+    void ConfigSctpSocket();
+
     void Connect();
     void Shutdown();
     void Close();
@@ -68,14 +73,15 @@ private:
     void DoRecv();
     void DoFlush();
     void ResetStream(uint16_t stream_id);
-   
+
     void HandleSctpUpCall();
     bool HandleSctpWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
+    void OnSctpSendThresholdReached();
 
-    void InitUsrSCTP(const Configuration& config);
     // usrsctp callbacks
     static void on_sctp_upcall(struct socket* socket, void* arg, int flags);
     static int on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8_t tos, uint8_t set_df);
+    static int on_sctp_send_threshold_reached(struct socket* socket, uint32_t sb_free, void* ulp_info);
 
 private:
     void Incoming(CopyOnWriteBuffer in_packet) override;
@@ -87,6 +93,7 @@ private:
     bool FlushPendingMessages();
     int TrySendMessage(SctpMessage message);
     void UpdateBufferedAmount(uint16_t stream_id, ptrdiff_t delta);
+    void ReadyToSend();
 
     void ProcessPendingIncomingPackets();
     void ProcessIncomingPacket(CopyOnWriteBuffer in_packet);
@@ -113,6 +120,7 @@ private:
     size_t bytes_recv_ = 0;
 
     bool has_sent_once_ = false;
+    bool ready_to_send_ = false;
 
     std::queue<SctpMessage> pending_outgoing_packets_;
     std::map<uint16_t, size_t> stream_buffered_amounts_;
@@ -121,6 +129,7 @@ private:
 
     BufferedAmountChangedCallback buffered_amount_changed_callback_ = nullptr;
     SctpMessageReceivedCallback sctp_message_received_callback_ = nullptr;
+    ReadyToSendDataCallback ready_to_send_data_callback_ = nullptr;
 };
 
 }

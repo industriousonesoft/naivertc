@@ -1,9 +1,7 @@
 #include "common/weak_ptr_manager.hpp"
 
 namespace naivertc {
-WeakPtrManager::WeakPtrManager() {
-
-}
+WeakPtrManager::WeakPtrManager() {}
 
 WeakPtrManager::~WeakPtrManager() {
     ptr_set_.clear();

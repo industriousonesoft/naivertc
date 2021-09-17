@@ -41,6 +41,12 @@ void SctpTransport::Init() {
 	usrsctp_sysctl_set_sctp_pr_enable(1);
 	// Disable Explicit Congestion Notification
 	usrsctp_sysctl_set_sctp_ecn_enable(0);
+	// This is harmless, but we should find out when the library default
+    // changes.
+    int send_size = usrsctp_sysctl_get_sctp_sendspace();
+    if (send_size != kDefaultSctpMaxMessageSize) {
+        PLOG_WARNING << "Got different send size than expected: " << send_size;
+    }
 }
 
 void SctpTransport::CustomizeSctp(const SctpCustomizedSettings& settings) {
@@ -96,19 +102,33 @@ void SctpTransport::Cleanup() {
 	}
 }
 
-void SctpTransport::InitUsrSCTP(const Configuration& config) {
-    PLOG_VERBOSE << "Initializing SCTP transport.";
+void SctpTransport::OpenSctpSocket() {
+	if (socket_) {
+		return;
+	}
+	PLOG_VERBOSE << "Initializing SCTP transport.";
 
-    // Register this class as an address for usrsctp, This is used by SCTP to 
+	// Register this class as an address for usrsctp, This is used by SCTP to 
     // direct the packets received by sctp socket to this class.
     usrsctp_register_address(this);
 
+	// TODO: That was previously set to 50%, not 25%, but it was reduced to a recent usrsctp regression.
+	// TODO: Can return to 50% when the root cause is fixed.
+    static const int kSendThreshold = usrsctp_sysctl_get_sctp_sendspace() / 4;
     // usrsctp_socket(domain, type, protocol, recv_callback, send_callback, sd_threshold, ulp_info)
-    socket_ = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, nullptr, nullptr, 0, nullptr);
+    socket_ = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, nullptr, &SctpTransport::on_sctp_send_threshold_reached, kSendThreshold, this);
 
     if (!socket_) {
         throw std::runtime_error("Failed to create SCTP socket, errno: " + std::to_string(errno));
     }
+
+	ConfigSctpSocket();
+}
+
+void SctpTransport::ConfigSctpSocket() {
+	if (!socket_) {
+		return;
+	}
 
     usrsctp_set_upcall(socket_, &SctpTransport::on_sctp_upcall, this);
 
@@ -117,6 +137,9 @@ void SctpTransport::InitUsrSCTP(const Configuration& config) {
     }
 
     // SCTP must stop sending after the lower layer is shut down, so disable linger
+	// This ensures that the usrsctp close call deletes the association. This
+  	// prevents usrsctp from calling OnSctpOutboundPacket with references to
+  	// this class as the address.
     struct linger sol = {};
     sol.l_linger = 0;
     sol.l_onoff = 1;
@@ -175,7 +198,7 @@ void SctpTransport::InitUsrSCTP(const Configuration& config) {
 	// 1200 bytes.
 	// See https://tools.ietf.org/html/rfc8261#section-5
 #if ENABLE_PMTUD
-	if (!config.mtu.has_value()) {
+	if (!config_.mtu.has_value()) {
 #else
 	if (false) {
 #endif
@@ -188,7 +211,7 @@ void SctpTransport::InitUsrSCTP(const Configuration& config) {
 		spp.spp_flags |= SPP_PMTUD_DISABLE;
 		// The MTU value provided specifies the space available for chunks in the
 		// packet, so we also subtract the SCTP header size.
-		size_t pmtu = config.mtu.value_or(kDefaultSctpMtuSize) - sizeof(struct sctp_common_header);
+		size_t pmtu = config_.mtu.value_or(kDefaultSctpMtuSize) - sizeof(struct sctp_common_header);
 		spp.spp_pathmtu = utils::numeric::to_uint32(pmtu);
 		PLOG_VERBOSE << "Path MTU discovery disabled, SCTP MTU set to " << pmtu;
 	}
@@ -231,7 +254,7 @@ void SctpTransport::InitUsrSCTP(const Configuration& config) {
 		                         std::to_string(errno));
 
 	// Ensure the buffer is also large enough to accomodate the largest messages
-	const size_t maxMessageSize = config.max_message_size.value_or(kDefaultLocalMaxMessageSize);
+	const size_t maxMessageSize = config_.max_message_size.value_or(kDefaultSctpMaxMessageSize);
 	const int minBuf = int(std::min(maxMessageSize, size_t(std::numeric_limits<int>::max())));
 	rcvBuf = std::max(rcvBuf, minBuf);
 	sndBuf = std::max(sndBuf, minBuf);
@@ -264,6 +287,14 @@ int SctpTransport::on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8
     }else {
         return -1;
     }
+}
+
+int SctpTransport::on_sctp_send_threshold_reached(struct socket* socket, uint32_t sb_free, void* ulp_info) {
+	auto* transport = static_cast<SctpTransport*>(ulp_info);
+	if (WeakPtrManager::SharedInstance()->Lock(transport)) {
+        transport->OnSctpSendThresholdReached();
+    }
+	return 0;
 }
 
 } // namespace naivertc
