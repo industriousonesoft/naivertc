@@ -66,7 +66,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
         auto mid = candidate.mid();
         auto sdp = std::string(candidate);
         ioc_.post(strand_.wrap([this, mid = std::move(mid), sdp = std::move(sdp)](){
-            this->SendLocalCandidate(std::move(mid), std::move(sdp));
+            this->SendLocalCandidate(mid, sdp);
         }));
     });
 
@@ -142,14 +142,14 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 
 }
 
-void Client::SendLocalSDP(const std::string& sdp, bool is_offer) {
+void Client::SendLocalSDP(const std::string sdp, bool is_offer) {
     if (ayame_channel_) {
-        ayame_channel_->SendLocalSDP(std::move(sdp), is_offer);
+        ayame_channel_->SendLocalSDP(sdp, is_offer);
     }
 }
 
-void Client::SendLocalCandidate(const std::string& mid, const std::string& sdp) {
+void Client::SendLocalCandidate(const std::string mid, const std::string sdp) {
     if (ayame_channel_) {
-        ayame_channel_->SendLocalCandidate(std::move(mid), 0, std::move(sdp));
+        ayame_channel_->SendLocalCandidate(mid, 0, sdp);
     }
 }

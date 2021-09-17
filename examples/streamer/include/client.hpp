@@ -24,8 +24,8 @@ public:
 private:
     void CreatePeerConnection(const RtcConfiguration& rtc_config);
 
-    void SendLocalSDP(const std::string& sdp, bool is_offer);
-    void SendLocalCandidate(const std::string& mid, const std::string& sdp);
+    void SendLocalSDP(const std::string sdp, bool is_offer);
+    void SendLocalCandidate(const std::string mid, const std::string sdp);
 
 private:
     void OnConnected(bool is_initiator) override;

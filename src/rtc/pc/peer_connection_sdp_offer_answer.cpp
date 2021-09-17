@@ -20,7 +20,7 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
             }
             if (this->local_sdp_.has_value()) {
                 auto local_sdp = this->local_sdp_.value();
-                on_success(std::move(local_sdp));
+                on_success(local_sdp);
             }else {
                 throw std::runtime_error("Failed to create local offer sdp.");
             }
@@ -39,7 +39,7 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
             }
             if (this->local_sdp_.has_value()) {
                 auto local_sdp = this->local_sdp_.value();
-                on_success(std::move(local_sdp));
+                on_success(local_sdp);
             }else {
                 throw std::runtime_error("Failed to create local answer sdp.");
             }
