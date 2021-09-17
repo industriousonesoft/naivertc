@@ -40,9 +40,6 @@ std::ostream& operator<<(std::ostream &out, naivertc::SctpMessage::Type type) {
     case Type::STRING:
       out << "string";
       break;
-    case Type::RESET:
-      out << "reset";
-      break;
     }
     return out;
 }

@@ -41,7 +41,7 @@ public:
 
     int Send(SctpMessage message);
     bool Flush();
-    void ShutdownStream(uint16_t stream_id);
+    void CloseStream(uint16_t stream_id);
 
     using BufferedAmountChangedCallback = std::function<void(uint16_t, size_t)>;
     void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
@@ -68,8 +68,7 @@ private:
     void DoRecv();
     void DoFlush();
     void ResetStream(uint16_t stream_id);
-    void CloseStream(uint16_t stream_id);
-
+   
     void HandleSctpUpCall();
     bool HandleSctpWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
 

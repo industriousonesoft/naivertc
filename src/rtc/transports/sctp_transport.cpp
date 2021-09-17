@@ -62,9 +62,9 @@ bool SctpTransport::Stop() {
 	});
 }
 
-void SctpTransport::ShutdownStream(uint16_t stream_id) {
+void SctpTransport::CloseStream(uint16_t stream_id) {
 	task_queue_->Async([this, stream_id](){
-		CloseStream(stream_id);
+		ResetStream(stream_id);
 	});
 }
 
@@ -196,9 +196,6 @@ int SctpTransport::TrySendMessage(SctpMessage packet) {
 	case SctpMessage::Type::CONTROL:
 		ppid = PayloadId::PPID_CONTROL;	
 		break;
-	case SctpMessage::Type::RESET:
-		ResetStream(packet.stream_id());
-		return 0;
 	default:
 		// Ignore
 		return 0;
@@ -209,12 +206,16 @@ int SctpTransport::TrySendMessage(SctpMessage packet) {
 
 	const auto reliability = packet.reliability() ? *packet.reliability() : SctpMessage::Reliability();
 	
-	struct sctp_sendv_spa spa = {};
-	
+	struct sctp_sendv_spa spa = {0};
 	// set sndinfo
 	spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
 	spa.sendv_sndinfo.snd_sid = packet.stream_id();
 	spa.sendv_sndinfo.snd_ppid = htonl(uint32_t(ppid));
+	// Explicitly marking the EOR flag turns the usrsctp_sendv call below into a
+	// non atomic operation. This means that the sctp lib might only accept the
+	// message partially. This is done in order to improve throughput, so that we
+	// don't have to wait for an empty buffer to send the max message length, for
+	// example.
 	spa.sendv_sndinfo.snd_flags |= SCTP_EOR;
 
 	// set prinfo
@@ -337,12 +338,6 @@ void SctpTransport::DoFlush() {
 	}
 }
 
-void SctpTransport::CloseStream(uint16_t stream_id) {
-	static const uint8_t stream_close_message{0x0};
-	SctpMessage sctp_message(&stream_close_message, 1, SctpMessage::Type::RESET, stream_id);
-	SendInternal(std::move(sctp_message));
-}
-
 void SctpTransport::ResetStream(uint16_t stream_id) {
 	if (!socket_ || state_ != State::CONNECTED) {
 		return;
@@ -432,7 +427,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 		if (flags & SCTP_STREAM_RESET_OUTGOING_SSN) {
 			for (int i = 0; i < count; ++i) {
 				uint16_t stream_id = reset_event.strreset_stream_list[i];
-				CloseStream(stream_id);
+				ResetStream(stream_id);
 			}
 		}
 

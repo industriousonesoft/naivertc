@@ -16,8 +16,7 @@ public:
     enum class Type {
         BINARY,
         STRING,
-        CONTROL,
-        RESET
+        CONTROL
     };
     struct Reliability {
         enum class Policy { NONE = 0, RTX, TTL };

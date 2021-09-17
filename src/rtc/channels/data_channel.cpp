@@ -106,7 +106,7 @@ void DataChannel::Close() {
         PLOG_VERBOSE << __FUNCTION__;
         is_opened_ = false;
         if (auto transport = sctp_transport_.lock()) {
-            transport->ShutdownStream(stream_id_);
+            transport->CloseStream(stream_id_);
         }
     });
 }
