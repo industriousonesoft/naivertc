@@ -12,7 +12,7 @@ DtlsTransport::DtlsTransport(Configuration config, std::weak_ptr<IceTransport> l
     : Transport(lower, std::move(task_queue)),
       config_(std::move(config)),
       is_client_(lower.lock() != nullptr ? lower.lock()->role() == sdp::Role::ACTIVE : false),
-      system_packet_options_(DSCP::DSCP_CS6),
+      handshake_packet_options_(DSCP::DSCP_AF21 /* Assured Forwarding class 2, low drop precedence, the recommendation for high-priority data in RFC 8837 */),
       user_packet_options_(DSCP::DSCP_DF) {
     InitOpenSSL(config_);
     WeakPtrManager::SharedInstance()->Register(this);
@@ -139,7 +139,7 @@ int DtlsTransport::HandleDtlsWrite(const char* in_data, int in_size) {
     return task_queue_->Sync<int>([this, in_data, in_size](){
         auto bytes = reinterpret_cast<const uint8_t*>(in_data);
         if (this->state_ != State::CONNECTED) {
-            return this->Outgoing(CopyOnWriteBuffer(bytes, in_size), this->system_packet_options_);
+            return this->Outgoing(CopyOnWriteBuffer(bytes, in_size), this->handshake_packet_options_);
         }else {
             return this->Outgoing(CopyOnWriteBuffer(bytes, in_size), this->user_packet_options_);
         }

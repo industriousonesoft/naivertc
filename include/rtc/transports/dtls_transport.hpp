@@ -75,7 +75,7 @@ private:
     const Configuration config_;
     const bool is_client_;
     
-    const PacketOptions system_packet_options_;
+    const PacketOptions handshake_packet_options_;
     PacketOptions user_packet_options_;
 
     SSL_CTX* ctx_ = NULL;
