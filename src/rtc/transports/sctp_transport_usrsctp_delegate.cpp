@@ -95,10 +95,11 @@ void SctpTransport::CustomizeSctp(const SctpCustomizedSettings& settings) {
 
 	// This parameter configures the threshold below which more space should be added to 
 	// a socket send buffer. The default value is 1452 bytes.
-	// TODO: That was previously set to 50%, not 25%, but it was reduced to a recent usrsctp regression.
-	// TODO: Can return to 50% when the root cause is fixed.
-    static const int kSendThreshold = usrsctp_sysctl_get_sctp_sendspace() / 4;
-	usrsctp_sysctl_set_sctp_add_more_threshold(kSendThreshold);
+	// TODO: Is it necessary to set threshold?
+	// FIXME: That was previously set to 50%, not 25%, but it was reduced to a recent usrsctp regression.
+	// FIXME: Can return to 50% when the root cause is fixed.
+    // static const int kSendThreshold = usrsctp_sysctl_get_sctp_sendspace() / 4;
+	// usrsctp_sysctl_set_sctp_add_more_threshold(kSendThreshold);
 }
 
 void SctpTransport::Cleanup() {
