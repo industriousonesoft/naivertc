@@ -10,11 +10,7 @@
 
 #include <functional>
 #include <optional>
-#include <vector>
-#include <mutex>
 #include <queue>
-#include <map>
-#include <chrono>
 
 namespace naivertc {
 
@@ -39,16 +35,14 @@ public:
     bool Start() override;
     bool Stop() override;
 
-    int Send(SctpMessage message);
-    bool Flush();
+    bool Send(SctpMessageToSend message);
     void CloseStream(uint16_t stream_id);
+    bool ready_to_send() const;
 
-    using BufferedAmountChangedCallback = std::function<void(uint16_t, size_t)>;
-    void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
-    using SctpMessageReceivedCallback = std::function<void(SctpMessage in_packet)>;
+    using ReadyToSendCallback = std::function<void(void)>;
+    void OnReadyToSend(ReadyToSendCallback callback);
+    using SctpMessageReceivedCallback = std::function<void(SctpMessage message)>;
     void OnSctpMessageReceived(SctpMessageReceivedCallback callback);
-    using ReadyToSendDataCallback = std::function<void(void)>;
-    void OnReadyToSendData(ReadyToSendDataCallback callback);
 
 private:
     // Order seems wrong but these are the actual values
@@ -79,20 +73,25 @@ private:
     void OnSctpSendThresholdReached();
 
     // usrsctp callbacks
-    static void on_sctp_upcall(struct socket* socket, void* arg, int flags);
-    static int on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8_t tos, uint8_t set_df);
-    static int on_sctp_send_threshold_reached(struct socket* socket, uint32_t sb_free, void* ulp_info);
+    static void on_sctp_upcall(struct socket* socket, 
+                               void* arg, 
+                               int flags);
+    static int on_sctp_write(void* ptr, 
+                             void* in_data, 
+                             size_t in_size, 
+                             uint8_t tos, 
+                             uint8_t set_df);
 
 private:
     void Incoming(CopyOnWriteBuffer in_packet) override;
     int Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) override;
-
+    // Disable inherited Send method
     int Send(CopyOnWriteBuffer packet, const PacketOptions& options) override { return -1; };
-    int SendInternal(SctpMessage message);
 
-    bool FlushPendingMessages();
-    int TrySendMessage(SctpMessage message);
-    void UpdateBufferedAmount(uint16_t stream_id, ptrdiff_t delta);
+    bool SendInternal(SctpMessageToSend message);
+
+    bool FlushPendingMessage();
+    bool TrySend(SctpMessageToSend& message);
     void ReadyToSend();
 
     void ProcessPendingIncomingPackets();
@@ -122,14 +121,11 @@ private:
     bool has_sent_once_ = false;
     bool ready_to_send_ = false;
 
-    std::queue<SctpMessage> pending_outgoing_packets_;
-    std::map<uint16_t, size_t> stream_buffered_amounts_;
-
+    std::optional<SctpMessageToSend> partial_outgoing_packet_;
     std::queue<CopyOnWriteBuffer> pending_incoming_packets_;
 
-    BufferedAmountChangedCallback buffered_amount_changed_callback_ = nullptr;
     SctpMessageReceivedCallback sctp_message_received_callback_ = nullptr;
-    ReadyToSendDataCallback ready_to_send_data_callback_ = nullptr;
+    ReadyToSendCallback ready_to_send_callback_ = nullptr;
 };
 
 }

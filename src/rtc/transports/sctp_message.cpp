@@ -2,32 +2,45 @@
 
 namespace naivertc {
 
-SctpMessage::SctpMessage(size_t capacity, Type type, uint16_t stream_id, std::shared_ptr<Reliability> reliability) 
-    : Packet(capacity),
-      type_(type), 
+// SctpMessage
+SctpMessage::SctpMessage(Type type, 
+                         uint16_t stream_id,
+                         CopyOnWriteBuffer payload) 
+    : type_(type), 
       stream_id_(stream_id),
-      reliability_(reliability) {}
-
-SctpMessage::SctpMessage(const uint8_t* data, size_t size, Type type, uint16_t stream_id, std::shared_ptr<Reliability> reliability) 
-    : Packet(data, size),
-      type_(type), 
-      stream_id_(stream_id),
-      reliability_(reliability) {}
-
-SctpMessage::SctpMessage(const BinaryBuffer& buffer, Type type, uint16_t stream_id, std::shared_ptr<Reliability> reliability) 
-    : Packet(buffer),
-      type_(type), 
-      stream_id_(stream_id),
-      reliability_(reliability) {}
-
-SctpMessage::SctpMessage(BinaryBuffer&& buffer, Type type, uint16_t stream_id, std::shared_ptr<Reliability> reliability) 
-    : Packet(std::move(buffer)),
-      type_(type), 
-      stream_id_(stream_id),
-      reliability_(reliability) {}
+      payload_(std::move(payload)) {}
 
 SctpMessage::~SctpMessage() {}
 
+
+// SctpMessageToSend
+SctpMessageToSend::SctpMessageToSend(Type type, 
+                                     uint16_t stream_id,
+                                     CopyOnWriteBuffer payload,
+                                     const Reliability& reliability)
+    : SctpMessage(type, stream_id, std::move(payload)),
+      reliability_(reliability),
+      offset_(0) {}
+
+SctpMessageToSend::~SctpMessageToSend() {}
+
+size_t SctpMessageToSend::available_payload_size() const {
+    return payload_.size() - offset_;
+}
+
+const uint8_t* SctpMessageToSend::available_payload_data() const {
+    return payload_.data() + offset_;
+}
+
+void SctpMessageToSend::Advance(size_t increment) {
+    size_t new_offset = offset_ + increment;
+    if (new_offset > payload_.size()) {
+        new_offset = payload_.size();
+    }
+    offset_ = new_offset;
+}
+
+// operator <<
 std::ostream& operator<<(std::ostream &out, naivertc::SctpMessage::Type type) {
     using Type = naivertc::SctpMessage::Type;
     switch(type) {

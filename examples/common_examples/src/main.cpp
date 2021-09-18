@@ -2,6 +2,7 @@
 // #include "volatile_examples.hpp"
 #include "sdp_description_examples.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
+#include "rtc/transports/sctp_message.hpp"
 
 // naivertc
 #include <common/logger.hpp>
@@ -12,6 +13,7 @@
 
 #include <iostream>
 #include <memory>
+#include <optional>
 
 int main(int argc, const char* argv[]) {
 
@@ -50,6 +52,14 @@ int main(int argc, const char* argv[]) {
     });
     buf2 = buf1; // Copy =
     buf4 = std::move(buf2); // Move =
+
+    // SctpMessageToSend
+    // std::optional<naivertc::SctpMessageToSend> test_buffer_opt = std::nullopt;
+    // naivertc::SctpMessageToSend message(naivertc::SctpMessageToSend::Type::STRING, 0, naivertc::CopyOnWriteBuffer(100), naivertc::SctpMessageToSend::Reliability());
+    // message.Advance(55);
+    // test_buffer_opt.emplace(std::move(message));
+    // PLOG_DEBUG << "Test buffer offset: " << test_buffer_opt.value().available_payload_size();
+
     // sdp
     // sdptest::BuildAnOffer();
     // sdptest::ParseAnAnswer();

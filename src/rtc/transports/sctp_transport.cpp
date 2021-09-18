@@ -24,21 +24,15 @@ SctpTransport::~SctpTransport() {
     WeakPtrManager::SharedInstance()->Deregister(this);
 }
 
-void SctpTransport::OnBufferedAmountChanged(BufferedAmountChangedCallback callback) {
-	task_queue_->Async([this, callback=std::move(callback)](){
-        buffered_amount_changed_callback_ = std::move(callback);
-    });
-}
-
 void SctpTransport::OnSctpMessageReceived(SctpMessageReceivedCallback callback) {
 	task_queue_->Async([this, callback=std::move(callback)](){
         sctp_message_received_callback_ = std::move(callback);
     });
 }
 
-void SctpTransport::OnReadyToSendData(ReadyToSendDataCallback callback) {
+void SctpTransport::OnReadyToSend(ReadyToSendCallback callback) {
 	task_queue_->Async([this, callback=std::move(callback)](){
-        ready_to_send_data_callback_ = std::move(callback);
+        ready_to_send_callback_ = std::move(callback);
     });
 }
 
@@ -54,6 +48,7 @@ bool SctpTransport::Start() {
 			return true;
 		}catch(std::exception& e) {
 			PLOG_WARNING << e.what();
+			UpdateState(State::FAILED);
 			return false;
 		}
 	});
@@ -72,6 +67,7 @@ bool SctpTransport::Stop() {
 			return true;
 		}catch(std::exception& e) {
 			PLOG_WARNING << e.what();
+			UpdateState(State::FAILED);
 			return false;
 		}
 	});
@@ -83,15 +79,15 @@ void SctpTransport::CloseStream(uint16_t stream_id) {
 	});
 }
 
-bool SctpTransport::Flush() {
-	return task_queue_->Sync<bool>([this]() -> bool {
-		return FlushPendingMessages();
+bool SctpTransport::ready_to_send() const {
+	return task_queue_->Sync<bool>([this](){
+		return ready_to_send_;
 	});
 }
 
-int SctpTransport::Send(SctpMessage packet) {
-	return task_queue_->Sync<int>([this, packet=std::move(packet)](){
-		return SendInternal(std::move(packet));
+bool SctpTransport::Send(SctpMessageToSend message) {
+	return task_queue_->Sync<bool>([this, message=std::move(message)](){
+		return SendInternal(std::move(message));
 	});
 }
 
@@ -113,20 +109,21 @@ void SctpTransport::Reset() {
     string_data_fragments_.clear();
     binary_data_fragments_.clear();
 
-	stream_buffered_amounts_.clear();
-
-	std::queue<SctpMessage>().swap(pending_outgoing_packets_);
+	partial_outgoing_packet_.reset();
 	std::queue<CopyOnWriteBuffer>().swap(pending_incoming_packets_);
 }
 
 void SctpTransport::Connect() {
-	if (socket_ == nullptr) {
-		throw std::logic_error("Attempted to connect with closed sctp socket.");
+	if (socket_ != nullptr) {
+		PLOG_VERBOSE << "SCTP is already connected.";
+		return;
 	}
 
 	PLOG_DEBUG << "SCTP connecting";
 
 	UpdateState(State::CONNECTING);
+
+	OpenSctpSocket();
 
 	struct sockaddr_conn sock_conn = {};
 	sock_conn.sconn_family = AF_CONN;
@@ -168,65 +165,63 @@ void SctpTransport::Shutdown() {
 }
 
 // Send
-int SctpTransport::SendInternal(SctpMessage packet) {
-	// if nothing is pending, try to send directly
-	if (pending_outgoing_packets_.empty()) {
-		// TODO: Consider the situation if the packet is too large to send in one time.
-		return TrySendMessage(std::move(packet));
+bool SctpTransport::SendInternal(SctpMessageToSend message) {
+	if (partial_outgoing_packet_.has_value()) {
+		ready_to_send_ = false;
+		return false;
 	}
-
-	ready_to_send_ = false;
-	// enqueue
-	uint16_t stream_id = packet.stream_id();
-	size_t payload_size = packet.payload_size();
-	pending_outgoing_packets_.push(std::move(packet));
-	UpdateBufferedAmount(stream_id, ptrdiff_t(payload_size));
-	return 0;
+	if (TrySend(message)) {
+		if (message.available_payload_size() > 0) {
+			partial_outgoing_packet_.emplace(std::move(message));
+		}
+		return true;	
+	}
+	return false;
 }
 
-bool SctpTransport::FlushPendingMessages() {
-	while (!pending_outgoing_packets_.empty()) {
-		auto packet = pending_outgoing_packets_.front();
-		uint16_t stream_id = packet.stream_id();
-		size_t payload_size = packet.payload_size();
-		if (TrySendMessage(std::move(packet)) < 0) {
-			return false;
+bool SctpTransport::FlushPendingMessage() {
+	if (partial_outgoing_packet_.has_value()) {
+		auto& message = partial_outgoing_packet_.value();
+		if (TrySend(message)) {
+			if (message.available_payload_size() == 0) {
+				partial_outgoing_packet_.reset();
+				return true;
+			}else {
+				return false;
+			}
 		}
-		pending_outgoing_packets_.pop();
-		UpdateBufferedAmount(stream_id, -ptrdiff_t(payload_size));
 	}
 	return true;
 }
 
-int SctpTransport::TrySendMessage(SctpMessage packet) {
+bool SctpTransport::TrySend(SctpMessageToSend& message) {
 	if (!socket_ || state_ != State::CONNECTED) {
-		return -1;
+		return false;
 	}
+	const size_t available_payload_size = message.available_payload_size();
 	PayloadId ppid;
-	switch (packet.type()) {
+	switch (message.type()) {
 	case SctpMessage::Type::STRING:
-		ppid = packet.empty() ? PayloadId::PPID_STRING_EMPTY : PayloadId::PPID_STRING;
+		ppid = available_payload_size == 0 ? PayloadId::PPID_STRING_EMPTY : PayloadId::PPID_STRING;
 		break;
 	case SctpMessage::Type::BINARY:
-		ppid = packet.empty() ? PayloadId::PPID_BINARY_EMPTY : PayloadId::PPID_BINARY;
+		ppid = available_payload_size == 0 ? PayloadId::PPID_BINARY_EMPTY : PayloadId::PPID_BINARY;
 		break;
 	case SctpMessage::Type::CONTROL:
 		ppid = PayloadId::PPID_CONTROL;	
 		break;
 	default:
 		// Ignore
-		return 0;
+		return false;
 	}
 
 	// TODO: Implement SCTP ndata specification draft when supported everywhere
 	// See https://tools.ietf.org/html/draft-ietf-tsvwg-sctp-ndata-08
 
-	const auto reliability = packet.reliability() ? *packet.reliability() : SctpMessage::Reliability();
-	
 	struct sctp_sendv_spa spa = {0};
 	// set sndinfo
 	spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
-	spa.sendv_sndinfo.snd_sid = packet.stream_id();
+	spa.sendv_sndinfo.snd_sid = message.stream_id();
 	spa.sendv_sndinfo.snd_ppid = htonl(uint32_t(ppid));
 	// Explicitly marking the EOR flag turns the usrsctp_sendv call below into a
 	// non atomic operation. This means that the sctp lib might only accept the
@@ -235,81 +230,65 @@ int SctpTransport::TrySendMessage(SctpMessage packet) {
 	// example.
 	spa.sendv_sndinfo.snd_flags |= SCTP_EOR;
 
+	const auto& reliability = message.reliability();
 	// set prinfo
 	spa.sendv_flags |= SCTP_SEND_PRINFO_VALID;
-	if (reliability.unordered) {
+	if (!reliability.ordered) {
 		spa.sendv_sndinfo.snd_flags |= SCTP_UNORDERED;
 	}
 
-	switch (reliability.policy) {
-	case SctpMessage::Reliability::Policy::RTX: {
+	if (reliability.max_rtx_count.has_value()) {
 		spa.sendv_flags |= SCTP_SEND_PRINFO_VALID;
 		spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_RTX;
-		spa.sendv_prinfo.pr_value = utils::numeric::to_uint32(std::get<int>(reliability.rexmit));
-		break;
-	}
-	case SctpMessage::Reliability::Policy::TTL: {
+		spa.sendv_prinfo.pr_value = uint32_t(reliability.max_rtx_count.value());
+	}else if (reliability.max_rtx_ms.has_value()) {
 		spa.sendv_flags |= SCTP_SEND_PRINFO_VALID;
-		spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_TTL;
-		spa.sendv_prinfo.pr_value = utils::numeric::to_uint32(std::get<std::chrono::milliseconds>(reliability.rexmit).count());
-		break;
-	}
-	default:
+		spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_RTX;
+		spa.sendv_prinfo.pr_value = uint32_t(reliability.max_rtx_ms.value());
+	}else {
 		spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_NONE;
-		break;
 	}
 
-	int ret;
-	if (!packet.empty()) {
-		ret = usrsctp_sendv(socket_, packet.cdata(), packet.size(), nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
+	int sent_ret;
+	if (available_payload_size != 0) {
+		sent_ret = usrsctp_sendv(socket_, message.available_payload_data(), available_payload_size, nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
 	}else {
 		const char zero = 0;
-		ret = usrsctp_sendv(socket_, &zero, 1, nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
+		sent_ret = usrsctp_sendv(socket_, &zero, 1, nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
 	}
 
-	if (ret < 0) {
+	if (sent_ret < 0) {
 		if (errno == EWOULDBLOCK) {
 			PLOG_WARNING << "SCTP sending blocked.";
 			ready_to_send_ = false;
-			return -1;
+			return false;
 		}else if (errno == EAGAIN) {
 			PLOG_WARNING << "SCTP sending not possible, try it again.";
-			return -1;
+			return false;
 		}else {
 			PLOG_ERROR << "SCTP sending failed, errno: " << errno;
 			throw std::runtime_error("Faild to send SCTP message, errno: " + std::to_string(errno));
 		}
 	}
 
-	PLOG_VERBOSE << "SCTP send size: " << ret;
+	message.Advance(size_t(sent_ret));
 
-	if (packet.type() == SctpMessage::Type::STRING || packet.type() == SctpMessage::Type::BINARY) {
-		bytes_sent_ += ret;
+	PLOG_VERBOSE << "SCTP send size: " << sent_ret
+				 << ", left message size: " << message.available_payload_size();
+
+	if (message.type() == SctpMessage::Type::STRING || 
+		message.type() == SctpMessage::Type::BINARY) {
+		bytes_sent_ += sent_ret;
 	}
 
-	return ret;
-}
-
-void SctpTransport::UpdateBufferedAmount(uint16_t stream_id, ptrdiff_t delta) {
-	// Find the pair for stream_id, or create a new pair
-	auto it = stream_buffered_amounts_.insert(std::make_pair(stream_id, 0)).first;
-	size_t amount = size_t(std::max(ptrdiff_t(it->second) + delta, ptrdiff_t(0)));
-	if (amount == 0) {
-		stream_buffered_amounts_.erase(it);
-	}else {
-		it->second = amount;
-	}
-
-	if (buffered_amount_changed_callback_) {
-		buffered_amount_changed_callback_(stream_id, amount);
-	}
+	return true;
 }
 
 void SctpTransport::ReadyToSend() {
 	if (!ready_to_send_) {
 		ready_to_send_ = true;
-		if (ready_to_send_data_callback_) {
-			ready_to_send_data_callback_();
+		if (ready_to_send_callback_) {
+			ready_to_send_callback_();
 		}
 	}
 }
@@ -362,7 +341,9 @@ void SctpTransport::DoRecv() {
 
 void SctpTransport::DoFlush() {
 	try {
-		FlushPendingMessages();
+		if (FlushPendingMessage()) {
+			ReadyToSend();
+		}
 	} catch(const std::exception& exp) {
 		PLOG_WARNING << exp.what();
 	}
@@ -423,7 +404,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 		PLOG_VERBOSE << "SCTP dry event.";
 		// It should not be necessary since the sand callback should have been called already,
 		// but to be sure, let's try to send now.
-		Flush();
+		DoFlush();
 		break;
 	}
 
@@ -465,7 +446,8 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 			static const uint8_t data_channel_close_message{0x04};
 			for (int i = 0; i < count; ++i) {
 				uint16_t stream_id = reset_event.strreset_stream_list[i];
-				SctpMessage sctp_message(&data_channel_close_message, 1, SctpMessage::Type::CONTROL, stream_id);
+				CopyOnWriteBuffer payload(&data_channel_close_message, 1);
+				SctpMessage sctp_message(SctpMessage::Type::CONTROL, stream_id, std::move(payload));
 				ForwardReceivedSctpMessage(std::move(sctp_message));
 			}
 		}
@@ -488,7 +470,7 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, uint16_t st
 	// We handle those PPIDs at reception for compatibility reasons but shall never send them.
 	switch (payload_id) {
 	case PayloadId::PPID_CONTROL: {
-		SctpMessage sctp_message(message_data, SctpMessage::Type::CONTROL, stream_id);
+		SctpMessage sctp_message(SctpMessage::Type::CONTROL, stream_id, message_data);
 		ForwardReceivedSctpMessage(std::move(sctp_message));
 		break;
 	}
@@ -499,19 +481,19 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, uint16_t st
 		// Received a complete string message
 		if (string_data_fragments_.empty()) {
 			bytes_recv_ += message_data.size();
-			SctpMessage sctp_message(message_data, SctpMessage::Type::STRING, stream_id);
+			SctpMessage sctp_message(SctpMessage::Type::STRING, stream_id, message_data);
 			ForwardReceivedSctpMessage(std::move(sctp_message));
 		}else {
 			bytes_recv_ += message_data.size();
 			string_data_fragments_.insert(string_data_fragments_.end(), message_data.begin(), message_data.end());
-			SctpMessage sctp_message(string_data_fragments_, SctpMessage::Type::STRING, stream_id);
+			SctpMessage sctp_message(SctpMessage::Type::STRING, stream_id, string_data_fragments_);
 			ForwardReceivedSctpMessage(std::move(sctp_message));
 			string_data_fragments_.clear();
 		}
 		break;
 	}
 	case PayloadId::PPID_STRING_EMPTY: {
-		SctpMessage sctp_message(string_data_fragments_, SctpMessage::Type::STRING, stream_id);
+		SctpMessage sctp_message(SctpMessage::Type::STRING, stream_id, string_data_fragments_);
 		ForwardReceivedSctpMessage(std::move(sctp_message));
 		string_data_fragments_.clear();
 		break;
@@ -522,19 +504,19 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, uint16_t st
 	case PayloadId::PPID_BINARY: {
 		if (binary_data_fragments_.empty()) {
 			bytes_recv_ += message_data.size();
-			SctpMessage sctp_message(message_data, SctpMessage::Type::BINARY, stream_id);
+			SctpMessage sctp_message(SctpMessage::Type::BINARY, stream_id, message_data);
 			ForwardReceivedSctpMessage(std::move(sctp_message));
 		}else {
 			bytes_recv_ += message_data.size();
 			binary_data_fragments_.insert(binary_data_fragments_.end(), message_data.begin(), message_data.end());
-			SctpMessage sctp_message(binary_data_fragments_, SctpMessage::Type::BINARY, stream_id);
+			SctpMessage sctp_message(SctpMessage::Type::BINARY, stream_id, binary_data_fragments_);
 			ForwardReceivedSctpMessage(std::move(sctp_message));
 			binary_data_fragments_.clear();
 		}
 		break;
 	}
 	case PayloadId::PPID_BINARY_EMPTY: {
-		SctpMessage sctp_message(binary_data_fragments_, SctpMessage::Type::BINARY, stream_id);
+		SctpMessage sctp_message(SctpMessage::Type::BINARY, stream_id, binary_data_fragments_);
 		ForwardReceivedSctpMessage(std::move(sctp_message));
 		binary_data_fragments_.clear();
 		break;
@@ -605,8 +587,7 @@ void SctpTransport::HandleSctpUpCall() {
 
 		if (events & SCTP_EVENT_WRITE) {
 			// PLOG_VERBOSE << "Handle SCTP upcall: do flush";
-			// DoFlush();
-			ReadyToSend();
+			DoFlush();
 		}
 	});
 }
@@ -623,15 +604,6 @@ bool SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t
 			has_sent_once_ = true;
 		}
 		return sent_size >= 0 ? true : false;
-	});
-}
-
-void SctpTransport::OnSctpSendThresholdReached() {
-	task_queue_->Async([this](){
-		// TODO: Move pending message queue to data channel and try to send the left partial data of the last sent message.
-		if (FlushPendingMessages()) {
-			ReadyToSend();
-		}
 	});
 }
 

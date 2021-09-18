@@ -92,6 +92,13 @@ void SctpTransport::CustomizeSctp(const SctpCustomizedSettings& settings) {
 	
 	// Heartbeat interval 10s
 	usrsctp_sysctl_set_sctp_heartbeat_interval_default(to_uint32(settings.heartbeatInterval.value_or(10000ms).count()));
+
+	// This parameter configures the threshold below which more space should be added to 
+	// a socket send buffer. The default value is 1452 bytes.
+	// TODO: That was previously set to 50%, not 25%, but it was reduced to a recent usrsctp regression.
+	// TODO: Can return to 50% when the root cause is fixed.
+    static const int kSendThreshold = usrsctp_sysctl_get_sctp_sendspace() / 4;
+	usrsctp_sysctl_set_sctp_add_more_threshold(kSendThreshold);
 }
 
 void SctpTransport::Cleanup() {
@@ -112,11 +119,8 @@ void SctpTransport::OpenSctpSocket() {
     // direct the packets received by sctp socket to this class.
     usrsctp_register_address(this);
 
-	// TODO: That was previously set to 50%, not 25%, but it was reduced to a recent usrsctp regression.
-	// TODO: Can return to 50% when the root cause is fixed.
-    static const int kSendThreshold = usrsctp_sysctl_get_sctp_sendspace() / 4;
     // usrsctp_socket(domain, type, protocol, recv_callback, send_callback, sd_threshold, ulp_info)
-    socket_ = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, nullptr, &SctpTransport::on_sctp_send_threshold_reached, kSendThreshold, this);
+    socket_ = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, nullptr, nullptr, 0, nullptr);
 
     if (!socket_) {
         throw std::runtime_error("Failed to create SCTP socket, errno: " + std::to_string(errno));
@@ -211,7 +215,16 @@ void SctpTransport::ConfigSctpSocket() {
 		spp.spp_flags |= SPP_PMTUD_DISABLE;
 		// The MTU value provided specifies the space available for chunks in the
 		// packet, so we also subtract the SCTP header size.
-		size_t pmtu = config_.mtu.value_or(kDefaultSctpMtuSize) - sizeof(struct sctp_common_header);
+		// Sctp default settings
+		// The biggest size of a SCTP packet. 
+		// 1280 Ipv6 MTU
+		//  -40 IPv6 header
+		//   -8 UDP
+		//  -37 DTLS (GCM Cipher(24) + DTLS record header(13))
+		//   -4 TURN ChannelData (It's possible than TURN adds an additional 4 bytes
+		//                        of overhead after a channel has been established.)
+		const size_t sctp_pmtu = config_.mtu.value_or(kDefaultMtuSize) - 40 - 8 - 37 - 4;
+		const size_t pmtu = sctp_pmtu - sizeof(struct sctp_common_header);
 		spp.spp_pathmtu = utils::numeric::to_uint32(pmtu);
 		PLOG_VERBOSE << "Path MTU discovery disabled, SCTP MTU set to " << pmtu;
 	}
@@ -287,14 +300,6 @@ int SctpTransport::on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8
     }else {
         return -1;
     }
-}
-
-int SctpTransport::on_sctp_send_threshold_reached(struct socket* socket, uint32_t sb_free, void* ulp_info) {
-	auto* transport = static_cast<SctpTransport*>(ulp_info);
-	if (WeakPtrManager::SharedInstance()->Lock(transport)) {
-        transport->OnSctpSendThresholdReached();
-    }
-	return 0;
 }
 
 } // namespace naivertc

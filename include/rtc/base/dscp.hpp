@@ -78,7 +78,7 @@ namespace naivertc {
 // |                        |  (8)  | (0)  |             |             |
 // +------------------------+-------+------+-------------+-------------+
 enum class DSCP : uint8_t {
-    DSCP_DF = 0,
+    DSCP_DF = 0, // Default forwarding
     DSCP_CS0 = 0,
     DSCP_CS1 = 8,
     DSCP_AF11 = 10,

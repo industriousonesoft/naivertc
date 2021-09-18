@@ -72,7 +72,7 @@ public:
     ~PeerConnection();
 
     std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Configuration& config);
-    std::shared_ptr<DataChannel> CreateDataChannel(const DataChannel::Init& config);
+    std::shared_ptr<DataChannel> CreateDataChannel(const DataChannel::Init& config, std::optional<uint16_t> stream_id = std::nullopt);
 
     void CreateOffer(SDPCreateSuccessCallback on_success = nullptr, 
                     SDPCreateFailureCallback on_failure = nullptr);
@@ -162,7 +162,8 @@ private:
     // SctpTransport callbacks
     void OnSctpTransportStateChanged(SctpTransport::State transport_state);
     void OnBufferedAmountChanged(uint16_t stream_id, size_t amount);
-    void OnSctpMessageReceived(SctpMessage in_packet);
+    void OnSctpMessageReceived(SctpMessage message);
+    void OnSctpReadyToSend();
 
 private:
     const RtcConfiguration rtc_config_;

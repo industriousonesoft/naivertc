@@ -37,7 +37,6 @@ void PeerConnection::InitSctpTransport() {
         }
 
         sctp_transport_->OnStateChanged(std::bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
-        sctp_transport_->OnBufferedAmountChanged(std::bind(&PeerConnection::OnBufferedAmountChanged, this, std::placeholders::_1, std::placeholders::_2));
         sctp_transport_->OnSctpMessageReceived(std::bind(&PeerConnection::OnSctpMessageReceived, this, std::placeholders::_1));
 
         sctp_transport_->Start();
@@ -74,26 +73,14 @@ void PeerConnection::OnSctpTransportStateChanged(Transport::State transport_stat
     });
 }
 
-void PeerConnection::OnBufferedAmountChanged(uint16_t stream_id, size_t amount) {
-    signal_task_queue_->Async([this, stream_id, amount](){
-        if (auto data_channel = FindDataChannel(stream_id)) {
-            data_channel->OnBufferedAmount(amount);
-        }
-    });
-}
-
 void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
     // TODO: Using work task queue
     signal_task_queue_->Async([this, message=std::move(message)]() mutable {
-        if (message.empty()) {
-            PLOG_WARNING << "Received empty sctp message";
-            return;
-        }
         auto stream_id = message.stream_id();
         auto data_channel = FindDataChannel(stream_id);
         if (!data_channel) {
-            // Create a remote data channel
-            if (DataChannel::IsOpenMessage(message)) {
+            // Response a remote data channel
+            if (message.type() == SctpMessage::Type::CONTROL && DataChannel::IsOpenMessage(message.payload())) {
                 // FRC 8832: The peer that initiates opening a data channel selects a stream identifier for 
                 // which the corresponding incoming and outgoing streams are unused. If the side is acting as the DTLS client,
                 // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
@@ -125,6 +112,16 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
             }
         }else {
             data_channel->OnIncomingMessage(std::move(message));
+        }
+    });
+}
+
+void PeerConnection::OnSctpReadyToSend() {
+    signal_task_queue_->Async([this](){
+        for (auto& kv : data_channels_) {
+            if (auto dc = kv.second.lock()) {
+                dc->OnReadyToSend();
+            }
         }
     });
 }

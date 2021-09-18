@@ -32,12 +32,12 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Configura
 }
 
 // Data Channels
-std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Init& init_config) {
-    return signal_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, &init_config]() -> std::shared_ptr<DataChannel> {
+std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Init& init_config, std::optional<uint16_t> stream_id_opt) {
+    return signal_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, init_config, stream_id_opt=std::move(stream_id_opt)]() -> std::shared_ptr<DataChannel> {
         uint16_t stream_id;
         try {
-            if (init_config.stream_id) {
-                stream_id = *init_config.stream_id;
+            if (stream_id_opt.has_value()) {
+                stream_id = stream_id_opt.value();
                 if (stream_id > kMaxSctpStreamId) {
                     throw std::invalid_argument("Invalid DataChannel stream id.");
                 }
@@ -63,11 +63,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
             }
 
             // We assume the DataChannel is not negotiacted
-            auto data_channel = std::make_shared<DataChannel>(init_config.label, 
-                                                              init_config.protocol, 
-                                                              stream_id, 
-                                                              init_config.unordered,
-                                                              init_config.negotiated) ;
+            auto data_channel = std::make_shared<DataChannel>(init_config, stream_id) ;
 
             // If sctp transport is connected yet, we open the data channel immidiately
             if (sctp_transport_ && sctp_transport_->state() == SctpTransport::State::CONNECTED) {
