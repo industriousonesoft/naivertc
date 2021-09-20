@@ -25,6 +25,13 @@ public:
         OPUS
     };
 
+    enum class FecCodec {
+        // UlpFec + Red
+        ULP_FEC,
+        // Flex + Ssrc
+        FLEX_FEC
+    };
+
     struct Configuration {
         std::string mid;
         
@@ -33,6 +40,11 @@ public:
         std::vector<int> payload_types;
 
         uint32_t ssrc;
+
+        bool nack_enabled;
+        bool rtx_enabled;
+        std::optional<FecCodec> fec_codec;
+
         std::optional<std::string> cname;
         std::optional<std::string> msid; // media stream id
         std::optional<std::string> track_id;

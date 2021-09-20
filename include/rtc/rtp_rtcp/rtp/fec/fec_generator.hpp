@@ -13,8 +13,8 @@ namespace naivertc {
 class RTC_CPP_EXPORT FecGenerator {
 public:
     enum class FecType {
-        FLEX_FEC,
-        ULP_FEC
+        ULP_FEC,
+        FLEX_FEC
     };
 
 public:
