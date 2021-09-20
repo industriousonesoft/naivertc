@@ -19,7 +19,7 @@ public:
     H264FileStreamSource(const std::string directory, int fps, bool loop = true);
     ~H264FileStreamSource();
 private:
-    const Sample CreateSample(std::ifstream& source) override;
+    Sample CreateSample(std::ifstream& source) override;
 
 };
 

@@ -37,7 +37,7 @@ void MediaFileStreamSource::OnSampleAvailable(SampleAvailableCallback callback) 
 }
 
 // Protected methods
-const MediaFileStreamSource::Sample MediaFileStreamSource::CreateSample(std::ifstream& source) {
+MediaFileStreamSource::Sample MediaFileStreamSource::CreateSample(std::ifstream& source) {
     return Sample((std::istreambuf_iterator<char>(source)), std::istreambuf_iterator<char>());
 }
 
@@ -66,7 +66,7 @@ void MediaFileStreamSource::LoadNextSample() {
         return;
     }
 
-    const auto sample = CreateSample(source);
+    auto sample = CreateSample(source);
     
     int64_t end_ms = clock_.now_ms();
     if (sample_callback_) {

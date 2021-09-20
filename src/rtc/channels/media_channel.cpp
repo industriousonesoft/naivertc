@@ -29,7 +29,7 @@ void MediaChannel::Open(std::weak_ptr<DtlsSrtpTransport> srtp_transport) {
             return;
         }
         PLOG_VERBOSE << __FUNCTION__;
-        srtp_transport_ = srtp_transport;
+        srtp_transport_ = std::move(srtp_transport);
         TriggerOpen();
     });
 }
@@ -37,6 +37,7 @@ void MediaChannel::Open(std::weak_ptr<DtlsSrtpTransport> srtp_transport) {
 void MediaChannel::Close() {
     task_queue_.Async([this](){
         PLOG_VERBOSE << __FUNCTION__;
+        srtp_transport_.reset();
         TriggerClose();
     });
 }

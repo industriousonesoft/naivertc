@@ -19,7 +19,7 @@ public:
     void OnSampleAvailable(SampleAvailableCallback callback) override;
 
 protected:
-    virtual const Sample CreateSample(std::ifstream& source);
+    virtual Sample CreateSample(std::ifstream& source);
 
 private:
     void LoadNextSample();

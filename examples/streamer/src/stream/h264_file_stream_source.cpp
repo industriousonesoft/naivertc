@@ -5,7 +5,7 @@ H264FileStreamSource::H264FileStreamSource(const std::string directory, int fps,
 
 H264FileStreamSource::~H264FileStreamSource() = default;
 
-const H264FileStreamSource::Sample H264FileStreamSource::CreateSample(std::ifstream& source) {
+H264FileStreamSource::Sample H264FileStreamSource::CreateSample(std::ifstream& source) {
     Frame frame;
     frame.assign((std::istreambuf_iterator<char>(source)), std::istreambuf_iterator<char>());
     size_t offset = 0;

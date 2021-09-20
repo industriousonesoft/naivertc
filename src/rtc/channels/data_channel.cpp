@@ -106,9 +106,9 @@ void DataChannel::Close() {
             return;
         }
         PLOG_VERBOSE << __FUNCTION__;
-        is_opened_ = false;
         Reset();
         CloseStream();
+        TriggerClose();
     });
 }
 
@@ -190,6 +190,7 @@ void DataChannel::Reset() {
     std::queue<SctpMessageToSend>().swap(pending_outgoing_messages_);
 	std::queue<SctpMessage>().swap(pending_incoming_messages_);
     buffered_amount_ = 0;
+    sctp_transport_.reset();
 }
 
 void DataChannel::CloseStream() {
