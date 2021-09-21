@@ -4,7 +4,9 @@ namespace naivertc {
 namespace sdp {
 
 Video::Video(std::string mid, Direction direction) 
-    : Media("video 9 UDP/TLS/RTP/SAVPF", std::move(mid), direction) {}
+    : Media(Type::VIDEO, std::move(mid), "UDP/TLS/RTP/SAVPF", direction) {}
+
+Video::~Video() {}
 
 void Video::AddCodec(int payload_type, const std::string codec, std::optional<std::string> profile) {
     RTPMap map(std::to_string(payload_type) + " " + std::move(codec) + "/90000");

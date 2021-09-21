@@ -1,6 +1,7 @@
 #include "rtc/media/media_track.hpp"
 #include "rtc/sdp/sdp_media_entry_audio.hpp"
 #include "rtc/sdp/sdp_media_entry_video.hpp"
+#include "common/utils_random.hpp"
 
 namespace {
 

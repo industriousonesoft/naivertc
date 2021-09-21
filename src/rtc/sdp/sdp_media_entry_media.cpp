@@ -7,15 +7,23 @@ namespace naivertc {
 namespace sdp {
 
 Media::Media() 
-    : Media("") {}
+    : MediaEntry(),
+      direction_(Direction::UNKNOWN) {}
 
-Media::Media(const std::string& sdp) 
-    : MediaEntry(sdp, ""),
-     direction_(Direction::UNKNOWN) {}
-    
-Media::Media(const std::string& mline, const std::string mid, Direction direction) 
-    : MediaEntry(mline, std::move(mid)),
-     direction_(direction) {}
+Media::Media(const MediaEntry& entry, Direction direction)
+    : MediaEntry(entry),
+      direction_(direction) {}
+
+Media::Media(MediaEntry&& entry, Direction direction) 
+    : MediaEntry(entry),
+      direction_(direction) {}
+
+Media::Media(Type type, 
+             std::string mid, 
+             const std::string protocols,
+             Direction direction) 
+    : MediaEntry(type, std::move(mid), protocols),
+      direction_(direction) {}
 
 Direction Media::direction() const {
     return direction_;
@@ -25,12 +33,13 @@ void Media::set_direction(Direction direction) {
     direction_ = direction;
 }
 
-std::string Media::description() const {
+std::string Media::MediaDescription() const {
     std::ostringstream desc;
-    desc << MediaEntry::description();
+    const std::string sp = " ";
+    desc << MediaEntry::MediaDescription();
     
     for (auto it = rtp_map_.begin(); it != rtp_map_.end(); ++it) {
-        desc << ' ' << it->first;
+        desc << sp << it->first;
     }
 
     return desc.str();

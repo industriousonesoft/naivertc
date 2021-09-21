@@ -6,15 +6,19 @@
 namespace naivertc {
 namespace sdp {
 
-Application::Application(const std::string& mline, const std::string mid) 
-    : MediaEntry(mline, std::move(mid)) {
-}
+Application::Application(const MediaEntry& entry) 
+    : MediaEntry(entry) {}
 
-Application::Application(const std::string mid)
-    : MediaEntry("application 9 UDP/DTLS/SCTP", std::move(mid)) {}
+Application::Application(MediaEntry&& entry)
+    : MediaEntry(entry) {}
 
-std::string Application::description() const {
-    return MediaEntry::description() + " webrtc-datachannel";
+Application::Application(std::string mid)
+    : MediaEntry(Type::APPLICATION, std::move(mid), "UDP/DTLS/SCTP") {}
+
+Application::~Application() {}
+
+std::string Application::MediaDescription() const {
+    return MediaEntry::MediaDescription() + " webrtc-datachannel";
 }
 
 Application Application::reciprocate() const {

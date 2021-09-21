@@ -31,15 +31,18 @@ public:
         std::string codec_params;
     };
 public:
-    Media();
-    Media(const std::string& sdp);
-    Media(const std::string& mline, const std::string mid, Direction direction = Direction::SEND_ONLY);
+    Media(); // For Template in TaskQueue
+    Media(const MediaEntry& entry, Direction direction);
+    Media(MediaEntry&& entry, Direction direction);
+    Media(Type type, 
+          std::string mid, 
+          const std::string protocols,
+          Direction direction = Direction::SEND_ONLY);
     virtual ~Media() = default;
 
     Direction direction() const;
     void set_direction(Direction direction);
 
-    std::string description() const override;
     Media reciprocate() const;
 
     void set_bandwidth_max_value(int value);
@@ -60,6 +63,7 @@ public:
     void AddRTPMap(const RTPMap& map);
 
 private:
+    std::string MediaDescription() const override;
     virtual std::string GenerateSDPLines(const std::string eol) const override;
 
 private:

@@ -9,6 +9,7 @@ namespace sdp {
 struct RTC_CPP_EXPORT Video : public Media {
 public: 
     Video(std::string mid, Direction direction = Direction::SEND_ONLY);
+    ~Video();
 
     void AddCodec(int payload_type, const std::string codec, std::optional<std::string> profile = std::nullopt);
 };

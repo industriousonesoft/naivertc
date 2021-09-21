@@ -8,11 +8,11 @@ namespace sdp {
 
 struct RTC_CPP_EXPORT Application : public MediaEntry {
 public:
-    Application(const std::string& mline, const std::string mid);
-    Application(const std::string mid);
-    virtual ~Application() = default;
+    Application(const MediaEntry& entry);
+    Application(MediaEntry&& entry);
+    Application(std::string mid);
+    ~Application();
 
-    std::string description() const override;
     Application reciprocate() const;
 
     std::optional<uint16_t> sctp_port() const { return sctp_port_; }
@@ -26,7 +26,8 @@ public:
     bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
 
 private:
-    virtual std::string GenerateSDPLines(const std::string eol) const override;
+    std::string MediaDescription() const override;
+    std::string GenerateSDPLines(const std::string eol) const override;
 
     std::optional<uint16_t> sctp_port_;
     std::optional<size_t> max_message_size_;

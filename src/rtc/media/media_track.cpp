@@ -23,8 +23,7 @@ MediaTrack::Configuration::Configuration::Configuration(std::string mid,
 // Media track
 MediaTrack::MediaTrack(sdp::Media description) 
     : MediaChannel(description.mid()),
-      description_(std::move(description)) {;
-}
+      description_(std::move(description)) {}
 
 MediaTrack::~MediaTrack() {}
 

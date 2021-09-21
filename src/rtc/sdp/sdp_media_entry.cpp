@@ -9,24 +9,29 @@
 namespace naivertc {
 namespace sdp {
 
-MediaEntry::MediaEntry(const std::string& mline, const std::string mid) 
-    : mid_(std::move(mid)) {
-    unsigned int port;
-    std::istringstream ss(mline);
-    ss >> type_string_ >> port >> description_;
-    type_ = type_string_to_type(type_string_);
+MediaEntry MediaEntry::Parse(const std::string& mline, std::string mid) {
+    std::istringstream iss(mline);
+    int port = 0;
+    std::string type_string;
+    std::string protocols;
+    iss >> type_string >> port >> protocols;
+    return MediaEntry(ToType(type_string), std::move(mid), protocols);
 }
 
-MediaEntry::Type MediaEntry::type_string_to_type(std::string_view type_string) const {
-    if (type_string == "application" || type_string == "APPLICATION") {
-        return Type::APPLICATION;
-    }else if (type_string == "audio" || type_string == "AUDIO") {
-        return Type::AUDIO;
-    }else if (type_string == "video" || type_string == "VIDEO") {
-        return Type::VIDEO;
-    }else {
-        throw std::invalid_argument("Unknown entry type" + std::string(type_string));
-    }
+MediaEntry::MediaEntry() 
+    : type_(Type::NONE),
+      mid_(""),
+      protocols_("") {}
+
+MediaEntry::MediaEntry(Type media_type, 
+                       std::string mid, 
+                       const std::string protocols) 
+    : type_(media_type), 
+      mid_(std::move(mid)),
+      protocols_(protocols) {}
+
+std::string MediaEntry::MediaDescription() const {
+    return protocols_;
 }
 
 std::string MediaEntry::GenerateSDP(const std::string eol, Role role) const {
@@ -37,7 +42,7 @@ std::string MediaEntry::GenerateSDP(const std::string eol, Role role) const {
     // 9：代表音频使用端口9来传输
     const auto addr = "0.0.0.0";
     const auto port = "9";
-    oss << "m=" << type_string() << sp << port << sp << description() << eol;
+    oss << "m=" << type_ << sp << port << sp << MediaDescription() << eol;
     // connection line: c=<nettype> <addrtype> <connection-address>
     // nettype: network type, eg: IN represents Internet
     // addrtype: address type, eg: IPv4, IPv6
@@ -101,6 +106,38 @@ bool MediaEntry::ParseSDPAttributeField(std::string_view key, std::string_view v
     }else {
         return Entry::ParseSDPAttributeField(key, value);
     }
+}
+
+MediaEntry::Type MediaEntry::ToType(std::string_view type_string) {
+    if (type_string == "application" || type_string == "APPLICATION") {
+        return Type::APPLICATION;
+    }else if (type_string == "audio" || type_string == "AUDIO") {
+        return Type::AUDIO;
+    }else if (type_string == "video" || type_string == "VIDEO") {
+        return Type::VIDEO;
+    }else {
+        throw std::invalid_argument("Unknown entry type" + std::string(type_string));
+    }
+}
+
+// Ostream <<
+std::ostream& operator<<(std::ostream& out, MediaEntry::Type type) {
+    using Type = MediaEntry::Type;
+    switch (type) {
+    case Type::AUDIO:
+        out << "audio";
+        break;
+    case Type::VIDEO:
+        out << "video";
+        break;
+    case Type::APPLICATION:
+        out << "applocation";
+        break;
+    default:
+        out << "";
+        break;
+    }
+    return out;
 }
 
 } // namespace sdp
