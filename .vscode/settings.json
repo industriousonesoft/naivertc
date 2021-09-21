@@ -4,10 +4,10 @@
     "clang-format.style": "Google",
     "clang-format.fallbackStyle": "Google",
     "[cpp]": {
-    "editor.defaultFormatter": "xaver.clang-format"
+    "editor.defaultFormatter": "ms-vscode.cpptools"
     },
     "[c]": {
-    "editor.defaultFormatter": "xaver.clang-format"
+    "editor.defaultFormatter": "ms-vscode.cpptools"
     },
     // files.associations
     "files.associations": {

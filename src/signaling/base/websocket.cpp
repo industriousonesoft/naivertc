@@ -144,7 +144,6 @@ void Websocket::OnSSLConnect(boost::system::error_code ec) {
     return;
   }
 
-  // SSL のハンドシェイク
   wss_->next_layer().async_handshake(
       boost::asio::ssl::stream_base::client,
       std::bind(&Websocket::OnSSLHandshake, this, std::placeholders::_1));

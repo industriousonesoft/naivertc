@@ -33,7 +33,9 @@ void Client::OnConnected(bool is_initiator) {
 void Client::OnClosed(boost::system::error_code ec) {
     std::cout << __FUNCTION__ << ": Signaling channel did close: " << ec.message() <<std::endl;
     ioc_.post(strand_.wrap([this](){
-        this->peer_conn_->Close();
+        if (this->peer_conn_) {
+            this->peer_conn_->Close();
+        }
     }));
 }
 
