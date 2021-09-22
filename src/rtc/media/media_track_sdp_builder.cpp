@@ -56,7 +56,7 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
             // Codec: H264
             if (auto payload_type_opt = NextPayloadType(kind)) {
                 int payload_type = payload_type_opt.value();
-                media_entry.AddCodec(payload_type, "H264", MediaTrack::FormatProfileForPayloadType(payload_type));
+                media_entry.AddCodec(payload_type, "H264", kDefaultOpusFormatProfile);
                 // Feedback: NACK
                 if (config.nack_enabled) {
                     media_entry.AddFeedback(payload_type, "nack");
@@ -114,9 +114,17 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
 
             // ssrcs
             // Media ssrc
-            media_entry.AddSsrc(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
+            Media::SsrcEntry ssrc_entry;
+            ssrc_entry.ssrc = utils::random::generate_random<uint32_t>();
+            ssrc_entry.cname = std::move(config.cname);
+            ssrc_entry.msid = std::move(config.msid);
+            ssrc_entry.track_id = std::move(config.track_id);
+            media_entry.AddSsrcEntry(ssrc_entry);
             // RTX ssrc
-            media_entry.AddSsrc(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
+            if (config.rtx_enabled) {
+                ssrc_entry.ssrc = utils::random::generate_random<uint32_t>();
+                media_entry.AddSsrcEntry(ssrc_entry);
+            }
             return std::move(media_entry);
         }else {
             PLOG_WARNING << "Unsupported video codec: " << codec;
@@ -128,12 +136,17 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
             // Codec: Opus 
             if (auto payload_type_opt = NextPayloadType(kind)) {
                 int payload_type = payload_type_opt.value();
-                media_entry.AddCodec(payload_type, "opus", 48000, 2, MediaTrack::FormatProfileForPayloadType(payload_type));
+                media_entry.AddCodec(payload_type, "opus", 48000, 2, kDefaultH264FormatProfile);
             }
             // TODO: Add feedback and FEC support.
             // ssrc
             // Media ssrc
-            media_entry.AddSsrc(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
+            Media::SsrcEntry ssrc_entry;
+            ssrc_entry.ssrc = utils::random::generate_random<uint32_t>();
+            ssrc_entry.cname = std::move(config.cname);
+            ssrc_entry.msid = std::move(config.msid);
+            ssrc_entry.track_id = std::move(config.track_id);
+            media_entry.AddSsrcEntry(ssrc_entry);
             return std::move(media_entry);
         }else {
             PLOG_WARNING << "Unsupported audio codec: " << codec;
@@ -141,19 +154,6 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
         }
     }else {
         PLOG_WARNING << "Unsupported media kind: " << kind;
-        return std::nullopt;
-    }
-}
-
-std::optional<std::string> MediaTrack::FormatProfileForPayloadType(int payload_type) {
-    // audio
-    if (payload_type == 111) {
-        return kDefaultOpusFormatProfile;
-    }
-    // video
-    else if (payload_type == 102) {
-        return kDefaultH264FormatProfile;
-    }else {
         return std::nullopt;
     }
 }

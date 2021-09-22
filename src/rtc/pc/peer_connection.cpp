@@ -215,5 +215,75 @@ std::shared_ptr<MediaTrack> PeerConnection::FindMediaTrack(std::string mid) cons
     }
     return nullptr;
 }
+
+// ostream operator << override
+std::ostream& operator<<(std::ostream& out, PeerConnection::ConnectionState state) {
+    using State = PeerConnection::ConnectionState;
+    switch(state) {
+    case State::NEW:
+        out << "NEW";
+        break;
+    case State::CONNECTING:
+        out << "CONNECTING";
+        break;
+    case State::CONNECTED:
+        out << "CONNECTED";
+        break;
+    case State::DISCONNECTED:
+        out << "DISCONNECTED";
+        break;
+    case State::FAILED:
+        out << "FAILED";
+        break;
+    case State::CLOSED:
+        out << "CLOSED";
+        break;
+    default:
+        break;
+    }
+    return out;
+}
+
+std::ostream& operator<<(std::ostream& out, PeerConnection::GatheringState state) {
+    using State = PeerConnection::GatheringState;
+    switch(state) {
+    case State::NEW:
+        out << "NEW";
+        break;
+    case State::GATHERING:
+        out << "GATHERING";
+        break;
+    case State::COMPLETED:
+        out << "COMPLETED";
+        break;
+    default:
+        break;
+    }
+    return out;
+}
+
+std::ostream& operator<<(std::ostream& out, PeerConnection::SignalingState state) {
+    using State = PeerConnection::SignalingState;
+    switch(state) {
+    case State::STABLE:
+        out << "STABLE";
+        break;
+    case State::HAVE_LOCAL_OFFER:
+        out << "HAVE_LOCAL_OFFER";
+        break;
+    case State::HAVE_LOCAL_PRANSWER:
+        out << "HAVE_LOCAL_PRANSWER";
+        break;
+    case State::HAVE_REMOTE_OFFER:
+        out << "HAVE_REMOTE_OFFER";
+        break;
+    case State::HAVE_REMOTE_PRANSWER:
+        out << "HAVE_REMOTE_PRANSWER";
+        break;
+    default:
+        break;
+    }
+    return out;
+}
     
 }

@@ -11,22 +11,43 @@ namespace sdp {
 struct RTC_CPP_EXPORT Media : public MediaEntry {
 public:
     struct RtpMap {
-        int payload_type = -1;
-        std::string codec = "";
-        int clock_rate = -1;
-        std::optional<std::string> codec_params = std::nullopt;
+        int payload_type;
+        std::string codec;
+        int clock_rate;
+        std::optional<const std::string> codec_params = std::nullopt;
 
         std::vector<std::string> rtcp_feedbacks;
         std::vector<std::string> fmt_profiles;
+
+        RtpMap()
+            : payload_type(-1),
+              codec(""),
+              clock_rate(-1) {};
+
+        RtpMap(int payload_type, 
+               std::string codec, 
+               int clock_rate, 
+               std::optional<std::string> codec_params = std::nullopt) 
+            : payload_type(payload_type),
+              codec(std::move(codec)),
+              clock_rate(clock_rate),
+              codec_params(std::move(codec_params)) {};
+    };
+
+    struct SsrcEntry {
+        uint32_t ssrc = 0;
+        std::optional<std::string> cname = std::nullopt;
+        std::optional<std::string> msid = std::nullopt;
+        std::optional<std::string> track_id = std::nullopt;
     };
 public:
     Media(); // For Template in TaskQueue
-    Media(const MediaEntry& entry, Direction direction);
-    Media(MediaEntry&& entry, Direction direction);
     Media(Type type, 
           std::string mid, 
           const std::string protocols,
           Direction direction = Direction::SEND_ONLY);
+    Media(const MediaEntry& entry, Direction direction);
+    Media(MediaEntry&& entry, Direction direction);
     virtual ~Media() = default;
 
     Direction direction() const { return direction_; };
@@ -39,16 +60,9 @@ public:
     std::optional<std::string> CNameForSsrc(uint32_t ssrc);
     bool HasSsrc(uint32_t ssrc);
 
-    void AddSsrc(uint32_t ssrc, 
-                 std::optional<std::string> cname = std::nullopt, 
-                 std::optional<std::string> msid = std::nullopt, 
-                 std::optional<std::string> track_id = std::nullopt);
-    void RemoveSsrc(uint32_t ssrc);
-    void ReplaceSsrc(uint32_t old_ssrc, 
-                     uint32_t ssrc, 
-                     std::optional<std::string> cname = std::nullopt, 
-                     std::optional<std::string> msid = std::nullopt, 
-                     std::optional<std::string> track_id = std::nullopt);
+    void AddSsrcEntry(SsrcEntry ssrc_entry);
+    void RemoveSsrcEntry(uint32_t ssrc);
+    void ReplaceSsrcEntry(uint32_t old_ssrc, SsrcEntry new_ssrc_entry);
     
     void AddFeedback(int payload_type, const std::string feed_back);
 
@@ -71,7 +85,9 @@ private:
     
     std::map<int, RtpMap> rtp_map_;
     std::vector<uint32_t> ssrcs_;
-    std::map<uint32_t, std::string> cname_map_;
+    std::map<uint32_t, SsrcEntry> ssrc_entries_;
+
+    std::vector<std::string> extra_attributes_;
 
     int bandwidth_max_value_ = -1;
 };

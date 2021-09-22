@@ -68,18 +68,7 @@ std::string MediaEntry::GenerateSDPLines(const std::string eol) const {
     // See https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-bundle-negotiation-38#section-6
     oss << "a=bundle-only" << eol;
     oss << "a=mid:" << mid_ << eol;
-
-    // Extra attributes
-    for (const auto& attr : attributes_) {
-        // extmap：表示rtp报头拓展的映射，可能有多个，eg: a=extmap:5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
-        // rtcp-resize(rtcp reduced size), 表示rtcp包是使用固定算法缩小过的
-        // TODO: Except "extmap" and "rtcp-rsize", but why?
-        // 是不是表示当前版本暂不支持这个两个属性
-        if (attr.find("extmap") == std::string::npos && attr.find("rtcp-rsize") == std::string::npos) {
-            oss << "a=" << attr << eol;
-        }
-    }
-
+    
     return oss.str();
 }
 

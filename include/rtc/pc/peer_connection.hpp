@@ -17,6 +17,7 @@
 
 #include <exception>
 #include <unordered_map>
+#include <iostream>
 
 namespace naivertc {
 
@@ -207,6 +208,10 @@ private:
     
 };
 
-}
+RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, PeerConnection::ConnectionState state);
+RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, PeerConnection::GatheringState state);
+RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, PeerConnection::SignalingState state);
+
+} // namespace naivertc
 
 #endif

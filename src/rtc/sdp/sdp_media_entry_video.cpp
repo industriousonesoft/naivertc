@@ -9,12 +9,7 @@ Video::Video(std::string mid, Direction direction)
 Video::~Video() {}
 
 void Video::AddCodec(int payload_type, const std::string codec, std::optional<const std::string> profile) {
-    RtpMap rtp_map;
-    rtp_map.payload_type = payload_type;
-    rtp_map.codec = codec;
-    rtp_map.clock_rate = 90000;
-    rtp_map.codec_params = std::nullopt;
-
+    RtpMap rtp_map(payload_type, codec, 90000);
     if (profile.has_value())
         rtp_map.fmt_profiles.emplace_back(profile.value());
 

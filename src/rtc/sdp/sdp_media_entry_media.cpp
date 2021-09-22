@@ -60,6 +60,8 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
         break;
     }
 
+    // Rtp and Rtcp share the same socket and connection
+    // instead of using two separate connections.
     oss << "a=rtcp-mux" << eol;
 
     for (auto it = rtp_map_.begin(); it != rtp_map_.end(); ++it) {
@@ -67,14 +69,13 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
 
         // a=rtpmap
         oss << "a=rtpmap:" << map.payload_type << ' ' << map.codec << "/" << map.clock_rate;
-        if (!map.codec_params.has_value()) {
+        if (map.codec_params.has_value()) {
             oss << "/" << map.codec_params.value();
         }
         oss << eol;
 
         // a=rtcp-fb
         for (const auto& val : map.rtcp_feedbacks) {
-            // TODO: Add transport-cc support
             if (val != "transport-cc") {
                 oss << "a=rtcp-fb" << map.payload_type << ' ' << val << eol;
             }
@@ -83,6 +84,31 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
         // a=fmtp
         for (const auto& val : map.fmt_profiles) {
             oss << "a=fmtp:" << map.payload_type << ' ' << val << eol;
+        }
+    }
+    
+    // Ssrc entries
+    for (const auto& kv : ssrc_entries_) {
+        uint32_t ssrc = kv.first;
+        auto entry = kv.second;
+        if (entry.cname.has_value()) {
+            oss << "ssrc:" << ssrc << " " << "cname:" << entry.cname.value();
+        }else {
+            oss << "ssrc:" << ssrc;
+        }
+
+        if (entry.msid.has_value()) {
+            oss << "ssrc:" << ssrc << " " << "msid:" << entry.msid.value() << " " << entry.track_id.value_or(entry.msid.value());
+        }
+    }
+  
+    // Extra attributes
+    for (const auto& attr : extra_attributes_) {
+        // extmap：表示rtp报头拓展的映射，可能有多个，eg: a=extmap:5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+        // rtcp-resize(rtcp reduced size), 表示rtcp包是使用固定算法缩小过的
+        // FIXME: Add rtcp-rsize support
+        if (attr.find("extmap") == std::string::npos && attr.find("rtcp-rsize") == std::string::npos) {
+            oss << "a=" << attr << eol;
         }
     }
 
@@ -109,29 +135,13 @@ Media Media::reciprocate() const {
     return reciprocated;
 }
 
-void Media::AddSsrc(uint32_t ssrc, 
-                    std::optional<std::string> cname, 
-                    std::optional<std::string> msid, 
-                    std::optional<std::string> track_id) {
-    if (cname.has_value()) {
-        attributes_.emplace_back("ssrc:" + std::to_string(ssrc) + " cname:" + cname.value());
-    }else {
-        attributes_.emplace_back("ssrc:" + std::to_string(ssrc));
-    }
-
-    if (msid.has_value()) {
-        attributes_.emplace_back("ssrc:" + std::to_string(ssrc) + " msid:" + msid.value() + " " + track_id.value_or(*msid));
-    }
-
-    ssrcs_.emplace_back(ssrc);
+void Media::AddSsrcEntry(SsrcEntry entry) {
+    ssrc_entries_.emplace(entry.ssrc, std::move(entry));
+    ssrcs_.emplace_back(entry.ssrc);
 }
 
-void Media::RemoveSsrc(uint32_t ssrc) {
-    for (auto it = attributes_.begin(); it != attributes_.end(); ++it) {
-        if (utils::string::match_prefix(*it, "ssrc:" + std::to_string(ssrc))) {
-            it = attributes_.erase(it);
-        }
-    }
+void Media::RemoveSsrcEntry(uint32_t ssrc) {
+    ssrc_entries_.erase(ssrc);
     for (auto it = ssrcs_.begin(); it != ssrcs_.end(); ++it) {
         if (*it == ssrc) {
             it = ssrcs_.erase(it);
@@ -139,12 +149,10 @@ void Media::RemoveSsrc(uint32_t ssrc) {
     }
 }
 
-void Media::ReplaceSsrc(uint32_t old_ssrc, 
-                        uint32_t ssrc, std::optional<std::string> name, 
-                        std::optional<std::string> msid, 
-                        std::optional<std::string> track_id) {
-    RemoveSsrc(old_ssrc);
-    AddSsrc(ssrc, std::move(name), std::move(msid), std::move(track_id));
+void Media::ReplaceSsrcEntry(uint32_t old_ssrc, 
+                        SsrcEntry new_ssrc_entry) {
+    RemoveSsrcEntry(old_ssrc);
+    AddSsrcEntry(new_ssrc_entry);
 } 
 
 bool Media::HasSsrc(uint32_t ssrc) {
@@ -152,9 +160,9 @@ bool Media::HasSsrc(uint32_t ssrc) {
 }
 
 std::optional<std::string> Media::CNameForSsrc(uint32_t ssrc) {
-    auto it = cname_map_.find(ssrc);
-    if (it != cname_map_.end()) {
-        return it->second;
+    auto it = ssrc_entries_.find(ssrc);
+    if (it != ssrc_entries_.end()) {
+        return it->second.cname;
     }
     return std::nullopt;
 }
@@ -215,7 +223,9 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
                 it->second.payload_type = rtp_map->payload_type;
                 it->second.codec = rtp_map->codec;
                 it->second.clock_rate = rtp_map->clock_rate;
-                it->second.codec_params = rtp_map->codec_params;
+                if (rtp_map->codec_params.has_value()) {
+                    it->second.codec_params.emplace(it->second.codec_params.value());
+                }
             }
             return true;
         }else {
@@ -257,18 +267,31 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
         if (!HasSsrc(ssrc)) {
             ssrcs_.emplace_back(ssrc);
         }
+        ssrc_entries_[ssrc].ssrc = ssrc;
         auto cname_pos = value.find("cname:");
         if (cname_pos != std::string::npos) {
             auto cname = value.substr(cname_pos + 6);
-            cname_map_.emplace(ssrc, cname);
+            ssrc_entries_[ssrc].cname = cname;
         }
-        attributes_.emplace_back("ssrc:" + std::string(value));
+        auto msid_pos = value.find("msid:");
+        if (msid_pos != std::string::npos) {
+            auto track_id_pos = value.find(" ");
+            if (track_id_pos != std::string::npos) {
+                auto msid = value.substr(msid_pos + 5, track_id_pos - msid_pos - 5);
+                auto track_id = value.substr(track_id_pos + 1);
+                ssrc_entries_[ssrc].msid = msid;
+                ssrc_entries_[ssrc].track_id = track_id;
+            }else {
+                auto msid = value.substr(msid_pos + 5);
+                ssrc_entries_[ssrc].msid = msid;
+            }
+        }
         return true;
     }
     // TODO: Support more attributes
     else if (key == "extmap" ||
                 key == "rtcp-rsize") {
-        attributes_.emplace_back(std::string(value));
+        extra_attributes_.emplace_back(std::string(value));
         return true;
     }
     else {
@@ -316,7 +339,7 @@ std::optional<Media::RtpMap> Media::Parse(const std::string_view& attr_value) {
         rtp_map.clock_rate = utils::string::to_integer<int>(line);
     }else {
         rtp_map.clock_rate = utils::string::to_integer<int>(line.substr(0, spl));
-        rtp_map.codec_params = line.substr(spl + 1);
+        rtp_map.codec_params.emplace(line.substr(spl + 1));
     }
 
     return rtp_map;

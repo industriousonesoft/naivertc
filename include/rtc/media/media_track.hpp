@@ -51,7 +51,6 @@ public:
     };
 
 public:
-    static std::optional<std::string> FormatProfileForPayloadType(int payload_type);
     static std::optional<sdp::Media> BuildDescription(const MediaTrack::Configuration& config);
    
 public:

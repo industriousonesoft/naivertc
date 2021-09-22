@@ -44,8 +44,6 @@ protected:
     virtual std::string GenerateSDPLines(const std::string eol) const;   
 
     static Type ToType(std::string_view type_string);
-   
-    std::vector<std::string> attributes_;
 
 private:
     Type type_;

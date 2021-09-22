@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#define HAS_MEDIA 0
+#define HAS_MEDIA 1
 
 template <class T> std::weak_ptr<T> make_weak_ptr(std::shared_ptr<T> ptr) { return ptr; }
 
@@ -15,50 +15,11 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     peer_conn_ = PeerConnection::Create(rtc_config);
 
     peer_conn_->OnConnectionStateChanged([](PeerConnection::ConnectionState new_state){
-        std::string conn_state_str = "Peer connection state: ";
-        switch (new_state)
-        {
-        case PeerConnection::ConnectionState::NEW:
-            conn_state_str += "New";
-            break;
-        case PeerConnection::ConnectionState::CONNECTING:
-            conn_state_str += "Connecting";
-            break;
-        case PeerConnection::ConnectionState::CONNECTED:
-            conn_state_str += "Connected";
-            break;
-        case PeerConnection::ConnectionState::DISCONNECTED:
-            conn_state_str += "Disconnected";
-            break;
-        case PeerConnection::ConnectionState::FAILED:
-            conn_state_str += "Failed";
-            break;
-        case PeerConnection::ConnectionState::CLOSED:
-            conn_state_str += "Closed";
-            break;
-        default:
-            break;
-        }
-        std::cout << conn_state_str << std::endl;
+        std::cout << "Peer connection state:" << new_state << std::endl;
     });
 
     peer_conn_->OnIceGatheringStateChanged([](PeerConnection::GatheringState new_state) {
-        std::string conn_state_str = "Peer gathering state: ";
-        switch (new_state)
-        {
-        case PeerConnection::GatheringState::NEW:
-            conn_state_str += "New";
-            break;
-        case PeerConnection::GatheringState::GATHERING:
-            conn_state_str += "Gathering";
-            break;
-        case PeerConnection::GatheringState::COMPLETED:
-            conn_state_str += "Completed";
-            break;
-        default:
-            break;
-        }
-        std::cout << conn_state_str << std::endl;
+        std::cout << "Peer gathering state: " << new_state << std::endl;
     });
 
     peer_conn_->OnIceCandidate([this](const sdp::Candidate& candidate){
@@ -75,9 +36,18 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     }); 
 
 #if HAS_MEDIA
-    std::string media_stream_id = "naivertc-media-stream";
+    // TODO: Generate a random 16-char and case-insensitive string, e.g.; TjtznXLCNH7nbRw
+    std::string cname = "naivertc-media-cname";
+    // TODO: Generate a random 36-char and case-insensitive string, e.g.; h1aZ20mbQB0GSsq0YxLfJmiYWE9CBfGch97C
+    std::string media_stream_id = "naivertc-media-stream-id";
     // Local video track
-    MediaTrack::Config video_track_config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264, {102}, 1, "video-stream", media_stream_id, "video-track1");
+    MediaTrack::Configuration video_track_config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264);
+    // video_track_config.nack_enabled = true;
+    // video_track_config.rtx_enabled = true;
+    // video_track_config.fec_codec.emplace(MediaTrack::FecCodec::ULP_FEC)
+    video_track_config.cname.emplace(cname);
+    video_track_config.msid.emplace(media_stream_id);
+    video_track_config.track_id.emplace("video-track-id-1");
     video_track_ = peer_conn_->AddTrack(video_track_config);
     video_track_->OnOpened([](){
         std::cout << "Local video track is opened.";
@@ -87,7 +57,11 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     });
 
     // Local audio track
-    MediaTrack::Config audio_track_config("2", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS, {111}, 2, "audio-stream", media_stream_id, "audio-track1");
+    MediaTrack::Configuration audio_track_config("2", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS);
+    video_track_config.cname.emplace(cname);
+    video_track_config.msid.emplace(media_stream_id);
+    video_track_config.track_id.emplace("audio-track-id-1");
+
     audio_track_ = peer_conn_->AddTrack(audio_track_config);
     audio_track_->OnOpened([](){
         std::cout << "Local audio track is opened.";
