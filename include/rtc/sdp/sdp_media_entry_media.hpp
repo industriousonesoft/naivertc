@@ -10,25 +10,14 @@ namespace sdp {
 
 struct RTC_CPP_EXPORT Media : public MediaEntry {
 public:
-    struct RTPMap {
-    public:
-        RTPMap(std::string_view mline);
-        RTPMap() {}
+    struct RtpMap {
+        int payload_type = -1;
+        std::string codec = "";
+        int clock_rate = -1;
+        std::optional<std::string> codec_params = std::nullopt;
 
-        void AddFeedback(const std::string line);
-        void RemoveFeedback(const std::string& line);
-        void AddAttribute(std::string attr) { fmt_profiles.emplace_back(std::move(attr)); }
-
-        static int ParsePayloadType(std::string_view pt);
-        void SetMLine(std::string_view mline);
-
-    public:
         std::vector<std::string> rtcp_feedbacks;
         std::vector<std::string> fmt_profiles;
-        int pt;
-        std::string format;
-        int clock_rate;
-        std::string codec_params;
     };
 public:
     Media(); // For Template in TaskQueue
@@ -40,36 +29,47 @@ public:
           Direction direction = Direction::SEND_ONLY);
     virtual ~Media() = default;
 
-    Direction direction() const;
-    void set_direction(Direction direction);
+    Direction direction() const { return direction_; };
+    void set_direction(Direction direction) { direction_ = direction; };
 
-    Media reciprocate() const;
+    void set_bandwidth_max_value(int value) { bandwidth_max_value_ = value; };
+    int bandwidth_max_value() const { return bandwidth_max_value_; };
 
-    void set_bandwidth_max_value(int value);
-    int bandwidth_max_value();
+    std::vector<uint32_t> ssrcs() const { return ssrcs_; };
+    std::optional<std::string> CNameForSsrc(uint32_t ssrc);
+    bool HasSsrc(uint32_t ssrc);
 
-    void AddSSRC(uint32_t ssrc, std::optional<std::string> name, std::optional<std::string> msid = std::nullopt, std::optional<std::string> track_id = std::nullopt);
-    void RemoveSSRC(uint32_t ssrc);
-    void ReplaceSSRC(uint32_t old_ssrc, uint32_t ssrc, std::optional<std::string> name, std::optional<std::string> msid = std::nullopt, std::optional<std::string> track_id = std::nullopt);
-    bool HasSSRC(uint32_t ssrc);
-    std::vector<uint32_t> GetSSRCS();
-    std::optional<std::string> GetCNameForSSRC(uint32_t ssrc);
+    void AddSsrc(uint32_t ssrc, 
+                 std::optional<std::string> cname = std::nullopt, 
+                 std::optional<std::string> msid = std::nullopt, 
+                 std::optional<std::string> track_id = std::nullopt);
+    void RemoveSsrc(uint32_t ssrc);
+    void ReplaceSsrc(uint32_t old_ssrc, 
+                     uint32_t ssrc, 
+                     std::optional<std::string> cname = std::nullopt, 
+                     std::optional<std::string> msid = std::nullopt, 
+                     std::optional<std::string> track_id = std::nullopt);
+    
+    void AddFeedback(int payload_type, const std::string feed_back);
 
     bool HasPayloadType(int pt) const;
 
     virtual bool ParseSDPLine(std::string_view line) override;
     virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
 
-    void AddRTPMap(const RTPMap& map);
+    Media reciprocate() const;
+
+    void AddRtpMap(const RtpMap& map);
 
 private:
     std::string MediaDescription() const override;
     virtual std::string GenerateSDPLines(const std::string eol) const override;
 
+    static std::optional<RtpMap> Parse(const std::string_view& attr_value);
 private:
     Direction direction_;
     
-    std::map<int, RTPMap> rtp_map_;
+    std::map<int, RtpMap> rtp_map_;
     std::vector<uint32_t> ssrcs_;
     std::map<uint32_t, std::string> cname_map_;
 

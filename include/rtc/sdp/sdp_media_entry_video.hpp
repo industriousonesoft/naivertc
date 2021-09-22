@@ -11,7 +11,7 @@ public:
     Video(std::string mid, Direction direction = Direction::SEND_ONLY);
     ~Video();
 
-    void AddCodec(int payload_type, const std::string codec, std::optional<std::string> profile = std::nullopt);
+    void AddCodec(int payload_type, const std::string codec, std::optional<const std::string> profile = std::nullopt);
 };
 
 } // namespace sdp

@@ -10,6 +10,8 @@
 #include <vector>
 #include <optional>
 
+#include <iostream>
+
 namespace naivertc {
 
 class RTC_CPP_EXPORT MediaTrack : public MediaChannel,
@@ -28,36 +30,29 @@ public:
     enum class FecCodec {
         // UlpFec + Red
         ULP_FEC,
-        // Flex + Ssrc
+        // FlexFec + Ssrc
         FLEX_FEC
     };
 
     struct Configuration {
         std::string mid;
-        
         Kind kind;
         Codec codec;
-        std::vector<int> payload_types;
+     
+        bool nack_enabled = false;
+        bool rtx_enabled = false;
+        std::optional<FecCodec> fec_codec = std::nullopt;
 
-        uint32_t ssrc;
+        std::optional<std::string> cname = std::nullopt;
+        std::optional<std::string> msid = std::nullopt; 
+        std::optional<std::string> track_id = std::nullopt;
 
-        bool nack_enabled;
-        bool rtx_enabled;
-        std::optional<FecCodec> fec_codec;
-
-        std::optional<std::string> cname;
-        std::optional<std::string> msid; // media stream id
-        std::optional<std::string> track_id;
-
-        Configuration(std::string mid, 
-                Kind kind, 
-                Codec codec, 
-                std::vector<int> payload_types, 
-                uint32_t ssrc, 
-                std::optional<std::string> cname = std::nullopt, 
-                std::optional<std::string> msid = std::nullopt,
-                std::optional<std::string> track_id = std::nullopt);
+        Configuration(std::string mid, Kind kind, Codec codec);
     };
+
+public:
+    static std::optional<std::string> FormatProfileForPayloadType(int payload_type);
+    static std::optional<sdp::Media> BuildDescription(const MediaTrack::Configuration& config);
    
 public:
     MediaTrack(sdp::Media description);
@@ -67,16 +62,16 @@ public:
     sdp::Media description() const;
 
     void UpdateDescription(sdp::Media description);
-    
-public:
-    static std::string kind_to_string(Kind kind);
-    static std::string codec_to_string(Codec codec);
-    static std::optional<std::string> FormatProfileForPayloadType(int payload_type);
-    static sdp::Media CreateDescription(const MediaTrack::Configuration& config);
 
+private:
+    static std::optional<int> NextPayloadType(Kind kind);
+    
 private:
     sdp::Media description_;
 };
+
+RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Kind kind);
+RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec);
 
 } // namespace naivertc
 

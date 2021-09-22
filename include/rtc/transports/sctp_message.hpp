@@ -84,7 +84,7 @@ private:
     size_t offset_ = 0;
 };
 
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, naivertc::SctpMessage::Type type);
+RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, SctpMessage::Type type);
 
 } // namespace naivertc
 

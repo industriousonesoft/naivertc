@@ -14,11 +14,15 @@ Audio::Audio(std::string mid, Direction direction)
 Audio::~Audio() {}
 
 void Audio::AddCodec(int payload_type, const std::string codec, int clock_rate, int channels, std::optional<const std::string> profile) {
-    RTPMap map(std::to_string(payload_type) + " " + std::move(codec) + "/" + std::to_string(clock_rate) + "/" + std::to_string(channels));
-    if (profile) {
-        map.fmt_profiles.emplace_back(*profile);
+    RtpMap rtp_map;
+    rtp_map.payload_type = payload_type;
+    rtp_map.codec = codec;
+    rtp_map.clock_rate = clock_rate;
+    rtp_map.codec_params = std::to_string(channels);
+    if (profile.has_value()) {
+        rtp_map.fmt_profiles.emplace_back(profile.value());
     }
-    AddRTPMap(map);
+    AddRtpMap(rtp_map);
 }
 
 } // namespace sdp

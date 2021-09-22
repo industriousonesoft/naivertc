@@ -5,20 +5,10 @@ namespace naivertc {
 // Configuration
 MediaTrack::Configuration::Configuration::Configuration(std::string mid, 
                                                         Kind kind, 
-                                                        Codec codec, 
-                                                        std::vector<int> payload_types, 
-                                                        uint32_t ssrc, 
-                                                        std::optional<std::string> cname, 
-                                                        std::optional<std::string> msid,
-                                                        std::optional<std::string> track_id) 
+                                                        Codec codec) 
     : mid(std::move(mid)),
       kind(kind),
-      codec(codec),
-      payload_types(std::move(payload_types)),
-      ssrc(ssrc),
-      cname(std::move(cname)),
-      msid(std::move(msid)),
-      track_id(std::move(track_id)) {}
+      codec(codec) {}
 
 // Media track
 MediaTrack::MediaTrack(sdp::Media description) 
@@ -44,6 +34,35 @@ void MediaTrack::UpdateDescription(sdp::Media description) {
         description_ = std::move(description);
     });
     
+}
+
+std::ostream& operator<<(std::ostream& out, MediaTrack::Kind kind) {
+    switch(kind) {
+    case MediaTrack::Kind::AUDIO:
+        out << "Audio";
+        break;
+    case MediaTrack::Kind::VIDEO:
+        out << "Video";
+        break;
+    default:
+        break;
+    }
+    return out;
+}
+
+std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec) {
+    switch (codec)
+    {
+    case MediaTrack::Codec::H264:
+        out << "H264";
+        break;
+    case MediaTrack::Codec::OPUS:
+        out << "Opus";
+        break;
+    default:
+        break;
+    }
+    return out;
 }
 
 } // namespace naivertc

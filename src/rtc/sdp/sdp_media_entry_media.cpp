@@ -1,6 +1,8 @@
 #include "rtc/sdp/sdp_media_entry_media.hpp"
 #include "common/utils_string.hpp"
 
+#include <plog/Log.h>
+
 #include <sstream>
 
 namespace naivertc {
@@ -24,14 +26,6 @@ Media::Media(Type type,
              Direction direction) 
     : MediaEntry(type, std::move(mid), protocols),
       direction_(direction) {}
-
-Direction Media::direction() const {
-    return direction_;
-}
-
-void Media::set_direction(Direction direction) {
-    direction_ = direction;
-}
 
 std::string Media::MediaDescription() const {
     std::ostringstream desc;
@@ -72,9 +66,9 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
         auto &map = it->second;
 
         // a=rtpmap
-        oss << "a=rtpmap:" << map.pt << ' ' << map.format << "/" << map.clock_rate;
-        if (!map.codec_params.empty()) {
-            oss << "/" << map.codec_params;
+        oss << "a=rtpmap:" << map.payload_type << ' ' << map.codec << "/" << map.clock_rate;
+        if (!map.codec_params.has_value()) {
+            oss << "/" << map.codec_params.value();
         }
         oss << eol;
 
@@ -82,13 +76,13 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
         for (const auto& val : map.rtcp_feedbacks) {
             // TODO: Add transport-cc support
             if (val != "transport-cc") {
-                oss << "a=rtcp-fb" << map.pt << ' ' << val << eol;
+                oss << "a=rtcp-fb" << map.payload_type << ' ' << val << eol;
             }
         }
 
         // a=fmtp
         for (const auto& val : map.fmt_profiles) {
-            oss << "a=fmtp:" << map.pt << ' ' << val << eol;
+            oss << "a=fmtp:" << map.payload_type << ' ' << val << eol;
         }
     }
 
@@ -115,27 +109,29 @@ Media Media::reciprocate() const {
     return reciprocated;
 }
 
-void Media::AddSSRC(uint32_t ssrc, std::optional<std::string> name, std::optional<std::string> msid, std::optional<std::string> track_id) {
-    if (name) {
-        attributes_.emplace_back("ssrc:" + std::to_string(ssrc) + " cname:" + *name);
+void Media::AddSsrc(uint32_t ssrc, 
+                    std::optional<std::string> cname, 
+                    std::optional<std::string> msid, 
+                    std::optional<std::string> track_id) {
+    if (cname.has_value()) {
+        attributes_.emplace_back("ssrc:" + std::to_string(ssrc) + " cname:" + cname.value());
     }else {
         attributes_.emplace_back("ssrc:" + std::to_string(ssrc));
     }
 
-    if (msid) {
-        attributes_.emplace_back("ssrc:" + std::to_string(ssrc) + " msid:" + *msid + " " + track_id.value_or(*msid));
+    if (msid.has_value()) {
+        attributes_.emplace_back("ssrc:" + std::to_string(ssrc) + " msid:" + msid.value() + " " + track_id.value_or(*msid));
     }
 
     ssrcs_.emplace_back(ssrc);
 }
 
-void Media::RemoveSSRC(uint32_t ssrc) {
+void Media::RemoveSsrc(uint32_t ssrc) {
     for (auto it = attributes_.begin(); it != attributes_.end(); ++it) {
         if (utils::string::match_prefix(*it, "ssrc:" + std::to_string(ssrc))) {
             it = attributes_.erase(it);
         }
     }
-
     for (auto it = ssrcs_.begin(); it != ssrcs_.end(); ++it) {
         if (*it == ssrc) {
             it = ssrcs_.erase(it);
@@ -143,20 +139,19 @@ void Media::RemoveSSRC(uint32_t ssrc) {
     }
 }
 
-void Media::ReplaceSSRC(uint32_t old_ssrc, uint32_t ssrc, std::optional<std::string> name, std::optional<std::string> msid, std::optional<std::string> track_id) {
-    RemoveSSRC(old_ssrc);
-    AddSSRC(ssrc, std::move(name), std::move(msid), std::move(track_id));
+void Media::ReplaceSsrc(uint32_t old_ssrc, 
+                        uint32_t ssrc, std::optional<std::string> name, 
+                        std::optional<std::string> msid, 
+                        std::optional<std::string> track_id) {
+    RemoveSsrc(old_ssrc);
+    AddSsrc(ssrc, std::move(name), std::move(msid), std::move(track_id));
 } 
 
-bool Media::HasSSRC(uint32_t ssrc) {
+bool Media::HasSsrc(uint32_t ssrc) {
     return std::find(ssrcs_.begin(), ssrcs_.end(), ssrc) != ssrcs_.end();
 }
 
-std::vector<uint32_t> Media::GetSSRCS() {
-    return ssrcs_;
-}
-
-std::optional<std::string> Media::GetCNameForSSRC(uint32_t ssrc) {
+std::optional<std::string> Media::CNameForSsrc(uint32_t ssrc) {
     auto it = cname_map_.find(ssrc);
     if (it != cname_map_.end()) {
         return it->second;
@@ -164,18 +159,19 @@ std::optional<std::string> Media::GetCNameForSSRC(uint32_t ssrc) {
     return std::nullopt;
 }
 
-void Media::set_bandwidth_max_value(int value) {
-    bandwidth_max_value_ = value;
-}
-
-int Media::bandwidth_max_value() {
-    return bandwidth_max_value_;
-}
-
 bool Media::HasPayloadType(int pt) const {
     return rtp_map_.find(pt) != rtp_map_.end();
 }
 
+void Media::AddFeedback(int payload_type, const std::string feed_back) {
+    auto it = rtp_map_.find(payload_type);
+    if (it == rtp_map_.end()) {
+        it = rtp_map_.insert(std::make_pair(payload_type, RtpMap())).first;
+    }
+    it->second.rtcp_feedbacks.emplace_back(feed_back);
+}
+
+// Override
 bool Media::ParseSDPLine(std::string_view line) {
     if (utils::string::match_prefix(line, "a=")) {
         std::string_view attr = line.substr(2);
@@ -210,14 +206,21 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
     }
     // eg: a=rtpmap:101 VP9/90000
     else if (key == "rtpmap") {
-        auto pt = RTPMap::ParsePayloadType(value);
-        auto it = rtp_map_.find(pt);
-        if (it == rtp_map_.end()) {
-            it = rtp_map_.insert(std::make_pair(pt, RTPMap(value))).first;
+        auto rtp_map = Parse(value);
+        if (rtp_map.has_value()) {
+            auto it = rtp_map_.find(rtp_map->payload_type);
+            if (it == rtp_map_.end()) {
+                it = rtp_map_.insert(std::make_pair(rtp_map->payload_type, rtp_map.value())).first;
+            }else {
+                it->second.payload_type = rtp_map->payload_type;
+                it->second.codec = rtp_map->codec;
+                it->second.clock_rate = rtp_map->clock_rate;
+                it->second.codec_params = rtp_map->codec_params;
+            }
+            return true;
         }else {
-            it->second.SetMLine(value);
+            return false;
         }
-        return true;
     }
     // eg: a=rtcp-fb:101 nack pli
     // eg: a=rtcp-fb:101 goog-remb
@@ -226,7 +229,7 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
         int pt = utils::string::to_integer<int>(value.substr(0, sp));
         auto it = rtp_map_.find(pt);
         if (it == rtp_map_.end()) {
-            it = rtp_map_.insert(std::make_pair(pt, RTPMap())).first;
+            it = rtp_map_.insert(std::make_pair(pt, RtpMap())).first;
         }
         it->second.rtcp_feedbacks.emplace_back(value.substr(sp + 1));
         return true;
@@ -237,7 +240,7 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
         int pt = utils::string::to_integer<int>(value.substr(0, sp));
         auto it = rtp_map_.find(pt);
         if (it == rtp_map_.end()) {
-            it = rtp_map_.insert(std::make_pair(pt, RTPMap())).first;
+            it = rtp_map_.insert(std::make_pair(pt, RtpMap())).first;
         }
         it->second.fmt_profiles.emplace_back(value.substr(sp + 1));
         return true;
@@ -251,7 +254,7 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
     // eg: a=ssrc:3463951252 cname:sTjtznXLCNH7nbRw
     else if (key == "ssrc") {
         auto ssrc = utils::string::to_integer<uint32_t>(value);
-        if (!HasSSRC(ssrc)) {
+        if (!HasSsrc(ssrc)) {
             ssrcs_.emplace_back(ssrc);
         }
         auto cname_pos = value.find("cname:");
@@ -273,29 +276,30 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
     }
 }
 
-// RTPMap
-Media::RTPMap::RTPMap(std::string_view mline) {
-    SetMLine(mline);
+void Media::AddRtpMap(const RtpMap& map) {
+    rtp_map_.emplace(map.payload_type, map);
 }
 
+// [key]:[value]
 // a=rtpmap:102 H264/90000
-// mline = 102 H264/90000
-void Media::RTPMap::SetMLine(std::string_view mline) {
-    size_t p = mline.find(' ');
+std::optional<Media::RtpMap> Media::Parse(const std::string_view& attr_value) {
+    size_t p = attr_value.find(' ');
     if (p == std::string::npos) {
-        throw std::invalid_argument("Invalid m-line");
+        PLOG_WARNING << "No payload type found in attribure line: " << attr_value;
+        return std::nullopt;
     }
 
-    this->pt = utils::string::to_integer<int>(mline.substr(0, p));
+    int payload_type = utils::string::to_integer<int>(attr_value.substr(0, p));
 
-    std::string_view line = mline.substr(p + 1);
+    std::string_view line = attr_value.substr(p + 1);
     // find separator line
     size_t spl = line.find('/');
     if (spl == std::string::npos) {
-        throw std::invalid_argument("Invalid m-line");
+        PLOG_WARNING << "No codec type found in attribure line: " << attr_value;
+        return std::nullopt;
     }
 
-    this->format = line.substr(0, spl);
+    auto codec = line.substr(0, spl);
 
     line = line.substr(spl + 1);
     spl = line.find('/');
@@ -304,34 +308,18 @@ void Media::RTPMap::SetMLine(std::string_view mline) {
         spl = line.find(' ');
     }
 
+    Media::RtpMap rtp_map;
+    rtp_map.payload_type = payload_type;
+    rtp_map.codec = std::move(codec);
+
     if (spl == std::string::npos) {
-        this->clock_rate = utils::string::to_integer<int>(line);
+        rtp_map.clock_rate = utils::string::to_integer<int>(line);
     }else {
-        this->clock_rate = utils::string::to_integer<int>(line.substr(0, spl));
-        this->codec_params = line.substr(spl + 1);
+        rtp_map.clock_rate = utils::string::to_integer<int>(line.substr(0, spl));
+        rtp_map.codec_params = line.substr(spl + 1);
     }
 
-}
-
-int Media::RTPMap::ParsePayloadType(std::string_view line) {
-    size_t p = line.find(' ');
-    return utils::string::to_integer<int>(line.substr(0, p));
-}
-
-void Media::RTPMap::AddFeedback(const std::string line) {
-    this->rtcp_feedbacks.emplace_back(std::move(line));
-}
-
-void Media::RTPMap::RemoveFeedback(const std::string& line) {
-    for (auto it = this->rtcp_feedbacks.begin(); it != this->rtcp_feedbacks.end(); ++it) {
-        if (it->find(line) != std::string::npos) {
-            it = this->rtcp_feedbacks.erase(it);
-        }
-    }
-}
-
-void Media::AddRTPMap(const RTPMap& map) {
-    rtp_map_.emplace(map.pt, map);
+    return rtp_map;
 }
 
 } // namespace sdp

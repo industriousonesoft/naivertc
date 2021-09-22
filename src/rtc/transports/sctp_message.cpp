@@ -41,8 +41,8 @@ void SctpMessageToSend::Advance(size_t increment) {
 }
 
 // operator <<
-std::ostream& operator<<(std::ostream &out, naivertc::SctpMessage::Type type) {
-    using Type = naivertc::SctpMessage::Type;
+std::ostream& operator<<(std::ostream &out, SctpMessage::Type type) {
+    using Type = SctpMessage::Type;
     switch(type) {
     case Type::CONTROL:
       out << "control";

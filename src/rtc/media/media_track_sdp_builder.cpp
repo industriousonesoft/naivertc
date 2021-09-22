@@ -3,81 +3,156 @@
 #include "rtc/sdp/sdp_media_entry_video.hpp"
 #include "common/utils_random.hpp"
 
-namespace {
+#include <plog/Log.h>
 
-const std::string DEFAULT_H264_VIDEO_PROFILE =
+namespace {
+// Video payload type range: [96, 111]
+constexpr int kVideoPayloadTypeLowerRangeValue = 96;
+constexpr int kVideoPayloadTypeUpperRangeValue = 111;
+// Audio payload type range: [112, 127]
+constexpr int kAudioPayloadTypeLowerRangeValue = 112;
+constexpr int kAudioPayloadTypeUpperRangeValue = 127;
+
+const std::string kDefaultH264FormatProfile =
     "profile-level-id=42e01f;packetization-mode=1;level-asymmetry-allowed=1";
    
-const std::string DEFAULT_OPUS_AUDIO_PROFILE =
+const std::string kDefaultOpusFormatProfile =
     "minptime=10;maxaveragebitrate=96000;stereo=1;sprop-stereo=1;useinbandfec=1";
 
 }
 
 namespace naivertc {
 
-sdp::Media MediaTrack::CreateDescription(const MediaTrack::Configuration& config) {
+std::optional<int> MediaTrack::NextPayloadType(Kind kind) {
+    if (kind == Kind::AUDIO) {
+        static int payload_type = kAudioPayloadTypeLowerRangeValue;
+        if (payload_type + 1 <= kAudioPayloadTypeUpperRangeValue) {
+            return payload_type++;
+        }else {
+            PLOG_WARNING << "No more payload type available for Audio codec";
+            return std::nullopt;
+        }
+    }else if (kind == Kind::VIDEO) {
+        static int payload_type = kVideoPayloadTypeLowerRangeValue;
+        if (payload_type + 1 <= kVideoPayloadTypeUpperRangeValue) {
+            return payload_type++;
+        }else {
+            PLOG_WARNING << "No more payload type available for Video codec";
+            return std::nullopt;
+        }
+    }else {
+        return std::nullopt;
+    }
+}
+
+std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configuration& config) {
     auto codec = config.codec;
     auto kind = config.kind;
     if (kind == MediaTrack::Kind::VIDEO) {
         if (codec == MediaTrack::Codec::H264) {
-            auto description = sdp::Video(config.mid);
-            // payload types
-            for (auto payload_type : config.payload_types) {
-                description.AddCodec(payload_type, MediaTrack::codec_to_string(codec), MediaTrack::FormatProfileForPayloadType(payload_type));
+            auto media_entry = sdp::Video(config.mid);
+            // Associated payload types of RTX
+            std::vector<int> associated_payload_types;
+            // Codec: H264
+            if (auto payload_type_opt = NextPayloadType(kind)) {
+                int payload_type = payload_type_opt.value();
+                media_entry.AddCodec(payload_type, "H264", MediaTrack::FormatProfileForPayloadType(payload_type));
+                // Feedback: NACK
+                if (config.nack_enabled) {
+                    media_entry.AddFeedback(payload_type, "nack");
+                    // TODO: Support more feedbacks
+                }
+                // Protected by RTX
+                if (config.rtx_enabled) {
+                    associated_payload_types.push_back(payload_type);
+                }
+            }else {
+                PLOG_WARNING << "No more payload type for H264 codec";
             }
-            // ssrc
-            description.AddSSRC(config.ssrc, config.cname, config.msid, config.track_id);
-            return std::move(description);
+            
+            // Codec: FEC
+            if (config.fec_codec.has_value()) {
+                // ULP_FEC + RED
+                if (config.fec_codec.value() == FecCodec::ULP_FEC) {
+                    // Codec: RED
+                    if (auto payload_type_opt = NextPayloadType(kind)) {
+                        int payload_type = payload_type_opt.value();
+                        media_entry.AddCodec(payload_type, "red");
+                        // Protected by RTX
+                        if (config.rtx_enabled) {
+                            associated_payload_types.push_back(payload_type);
+                        }
+                    }else {
+                        PLOG_WARNING << "No more payload type for RED codec";
+                    }
+                    // Codec: ULP_FEC
+                    if (auto payload_type_opt = NextPayloadType(kind)) {
+                        int payload_type = payload_type_opt.value();
+                        media_entry.AddCodec(payload_type, "ulpfec");
+                    }else {
+                        PLOG_WARNING << "No more payload type for ULP_FEC codec";
+                    }
+                }
+                // FlexFec + Ssrc
+                else {
+                    // TODO: Build SDL line for FELX_FEC
+                }
+            }
+            // Codec: RTX
+            // See https://datatracker.ietf.org/doc/html/rfc4588#section-8
+            if (config.rtx_enabled) {
+                for (const auto& apt : associated_payload_types) {
+                    if (auto payload_type = NextPayloadType(kind)) {
+                        // a=fmtp:<number> apt=<apt-value>;rtx-time=<rtx-time-val>
+                        // TODO: Set rtx-time if necessary
+                        media_entry.AddCodec(payload_type.value(), "rtx", "apt=" + std::to_string(apt));
+                    }else {
+                        PLOG_WARNING << "No more payload type for RTX codec";
+                    }
+                }
+            }
+
+            // ssrcs
+            // Media ssrc
+            media_entry.AddSsrc(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
+            // RTX ssrc
+            media_entry.AddSsrc(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
+            return std::move(media_entry);
         }else {
-            throw std::invalid_argument("Unsupported video codec: " + MediaTrack::codec_to_string(codec));
+            PLOG_WARNING << "Unsupported video codec: " << codec;
+            return std::nullopt;
         }
     }else if (kind == MediaTrack::Kind::AUDIO) {
         if (codec == MediaTrack::Codec::OPUS) {
-            auto description = sdp::Audio(config.mid);
-            // payload types
-            for (int payload_type : config.payload_types) {
-                // TODO: Not use fixed sample rate and channel value
-                description.AddCodec(payload_type, MediaTrack::codec_to_string(codec), 48000, 2, MediaTrack::FormatProfileForPayloadType(payload_type));
+            auto media_entry = sdp::Audio(config.mid);
+            // Codec: Opus 
+            if (auto payload_type_opt = NextPayloadType(kind)) {
+                int payload_type = payload_type_opt.value();
+                media_entry.AddCodec(payload_type, "opus", 48000, 2, MediaTrack::FormatProfileForPayloadType(payload_type));
             }
+            // TODO: Add feedback and FEC support.
             // ssrc
-            description.AddSSRC(config.ssrc, config.cname, config.msid, config.track_id);
-            return std::move(description);
+            // Media ssrc
+            media_entry.AddSsrc(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
+            return std::move(media_entry);
         }else {
-            throw std::invalid_argument("Unsupported audio codec: " + MediaTrack::codec_to_string(codec));
+            PLOG_WARNING << "Unsupported audio codec: " << codec;
+            return std::nullopt;
         }
     }else {
-        throw std::invalid_argument("Unsupported media kind: " + MediaTrack::kind_to_string(kind));
-    }
-}
-
-std::string MediaTrack::kind_to_string(Kind kind) {
-    switch (kind)
-    {
-    case Kind::VIDEO:
-        return "video";
-    case Kind::AUDIO:
-        return "audio";
-    }
-}
-
-std::string MediaTrack::codec_to_string(Codec codec) {
-    switch (codec)
-    {
-    case Codec::H264:
-        return "h264";
-    case Codec::OPUS:
-        return "opus";
+        PLOG_WARNING << "Unsupported media kind: " << kind;
+        return std::nullopt;
     }
 }
 
 std::optional<std::string> MediaTrack::FormatProfileForPayloadType(int payload_type) {
     // audio
     if (payload_type == 111) {
-        return DEFAULT_OPUS_AUDIO_PROFILE;
+        return kDefaultOpusFormatProfile;
     }
     // video
     else if (payload_type == 102) {
-        return DEFAULT_H264_VIDEO_PROFILE;
+        return kDefaultH264FormatProfile;
     }else {
         return std::nullopt;
     }

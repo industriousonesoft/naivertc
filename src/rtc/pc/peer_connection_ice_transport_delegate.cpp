@@ -6,7 +6,10 @@ namespace naivertc {
 // Init IceTransport 
 void PeerConnection::InitIceTransport() {
     try {
-       PLOG_VERBOSE << "Init Ice transport";
+        if (ice_transport_) {
+           return;
+        }
+        PLOG_VERBOSE << "Init Ice transport";
     
        ice_transport_.reset(new IceTransport(rtc_config_, network_task_queue_));
        

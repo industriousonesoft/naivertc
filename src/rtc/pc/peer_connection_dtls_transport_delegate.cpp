@@ -7,6 +7,10 @@ namespace naivertc {
 
 void PeerConnection::InitDtlsTransport() {
     try {
+        if (dtls_transport_) {
+            return;
+        }
+
         PLOG_VERBOSE << "Init DTLS transport";
 
         auto lower = ice_transport_;

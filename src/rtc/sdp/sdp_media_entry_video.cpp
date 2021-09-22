@@ -8,16 +8,17 @@ Video::Video(std::string mid, Direction direction)
 
 Video::~Video() {}
 
-void Video::AddCodec(int payload_type, const std::string codec, std::optional<std::string> profile) {
-    RTPMap map(std::to_string(payload_type) + " " + std::move(codec) + "/90000");
-    // TODO: Replace fixed feedback settings with input parameters
-    map.AddFeedback("nack");
-    map.AddFeedback("nack pli");
-    map.AddFeedback("goog-remb");
-    if (profile)
-        map.fmt_profiles.emplace_back(*profile);
+void Video::AddCodec(int payload_type, const std::string codec, std::optional<const std::string> profile) {
+    RtpMap rtp_map;
+    rtp_map.payload_type = payload_type;
+    rtp_map.codec = codec;
+    rtp_map.clock_rate = 90000;
+    rtp_map.codec_params = std::nullopt;
 
-    AddRTPMap(map);
+    if (profile.has_value())
+        rtp_map.fmt_profiles.emplace_back(profile.value());
+
+    AddRtpMap(rtp_map);
 }
 
 } // namespace sdp

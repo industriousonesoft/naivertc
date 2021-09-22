@@ -7,25 +7,20 @@ namespace naivertc {
     
 std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Configuration& config) {
     return signal_task_queue_->Sync<std::shared_ptr<MediaTrack>>([this, &config]() -> std::shared_ptr<MediaTrack> {
-        try {
-            auto description = MediaTrack::CreateDescription(config);
-
+        if (auto description_opt = MediaTrack::BuildDescription(config)) {
+            auto description = description_opt.value();
             std::shared_ptr<MediaTrack> media_track = FindMediaTrack(description.mid());
-
             if (!media_track) {
                 media_track = std::make_shared<MediaTrack>(std::move(description));
                 this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
             }else {
                 media_track->UpdateDescription(std::move(description));
             }
-
             // Renegotiation is needed for the new or updated track
             negotiation_needed_ = true;
-
             return media_track;
-
-        }catch (const std::exception& exp) {
-            PLOG_ERROR << "Failed to add media track: " << exp.what();
+        }else {
+            PLOG_WARNING << "Failed to add media track.";
             return nullptr;
         }
     });
