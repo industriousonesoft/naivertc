@@ -62,9 +62,9 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     });
 
     peer_conn_->OnIceCandidate([this](const sdp::Candidate& candidate){
-        std::cout << "Local candidate: " << std::string(candidate) << std::endl;
         auto mid = candidate.mid();
         auto sdp = std::string(candidate);
+        std::cout << "Local candidate => mid: " << mid << " sdp: " << sdp << std::endl;
         ioc_.post(strand_.wrap([this, mid = std::move(mid), sdp = std::move(sdp)](){
             this->SendLocalCandidate(mid, sdp);
         }));

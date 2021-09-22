@@ -361,7 +361,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 
     // TODO: Add candidates existed in old local sdp
 
-    PLOG_VERBOSE << "Did process local sdp: " << std::string(local_sdp);
+    // PLOG_VERBOSE << "Did process local sdp: " << std::string(local_sdp);
 
     local_sdp_ = std::move(local_sdp);
    

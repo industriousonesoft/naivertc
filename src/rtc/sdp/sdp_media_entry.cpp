@@ -131,7 +131,7 @@ std::ostream& operator<<(std::ostream& out, MediaEntry::Type type) {
         out << "video";
         break;
     case Type::APPLICATION:
-        out << "applocation";
+        out << "application";
         break;
     default:
         out << "";

@@ -19,8 +19,8 @@ void Client::OnConnected(bool is_initiator) {
     ioc_.post(strand_.wrap([this, is_initiator](){
         // If we are not initiator, we act as a offer
         if (!is_initiator) {
-            this->peer_conn_->CreateOffer([this](const sdp::Description& local_sdp){
-                std::cout << "Did create local offer sdp " << std::endl;
+            this->peer_conn_->CreateOffer([this](const sdp::Description local_sdp){
+                std::cout << "Did create local offer sdp: " << std::string(local_sdp) << std::endl;
                 this->SendLocalSDP(local_sdp, true);
             }, [this](const std::exception& exp){
                 std::cout << "Failed to create offer: " << exp.what() << std::endl;

@@ -60,7 +60,7 @@ public:
     using DataChannelCallback = std::function<void(std::shared_ptr<DataChannel>)>;
     using MediaTrackCallback = std::function<void(std::shared_ptr<MediaTrack>)>;
 
-    using SDPCreateSuccessCallback = std::function<void(const sdp::Description& sdp)>;
+    using SDPCreateSuccessCallback = std::function<void(const sdp::Description sdp)>;
     using SDPCreateFailureCallback = std::function<void(const std::exception& exp)>;
 
     using SDPSetSuccessCallback = std::function<void()>;
