@@ -14,24 +14,14 @@ public:
         int payload_type;
         std::string codec;
         int clock_rate;
-        std::optional<const std::string> codec_params = std::nullopt;
-
+        std::optional<std::string> codec_params = std::nullopt;
         std::vector<std::string> rtcp_feedbacks;
         std::vector<std::string> fmt_profiles;
-
-        RtpMap()
-            : payload_type(-1),
-              codec(""),
-              clock_rate(-1) {};
 
         RtpMap(int payload_type, 
                std::string codec, 
                int clock_rate, 
-               std::optional<std::string> codec_params = std::nullopt) 
-            : payload_type(payload_type),
-              codec(std::move(codec)),
-              clock_rate(clock_rate),
-              codec_params(std::move(codec_params)) {};
+               std::optional<std::string> codec_params = std::nullopt);
     };
 
     struct SsrcEntry {
@@ -39,6 +29,11 @@ public:
         std::optional<std::string> cname = std::nullopt;
         std::optional<std::string> msid = std::nullopt;
         std::optional<std::string> track_id = std::nullopt;
+
+        SsrcEntry(uint32_t ssrc, 
+                  std::optional<std::string> cname = std::nullopt, 
+                  std::optional<std::string> msid = std::nullopt, 
+                  std::optional<std::string> track_id = std::nullopt);
     };
 public:
     Media(); // For Template in TaskQueue
@@ -48,7 +43,7 @@ public:
           Direction direction = Direction::SEND_ONLY);
     Media(const MediaEntry& entry, Direction direction);
     Media(MediaEntry&& entry, Direction direction);
-    virtual ~Media() = default;
+    virtual ~Media();
 
     Direction direction() const { return direction_; };
     void set_direction(Direction direction) { direction_ = direction; };
@@ -64,7 +59,7 @@ public:
     void RemoveSsrcEntry(uint32_t ssrc);
     void ReplaceSsrcEntry(uint32_t old_ssrc, SsrcEntry new_ssrc_entry);
     
-    void AddFeedback(int payload_type, const std::string feed_back);
+    bool AddFeedback(int payload_type, const std::string feed_back);
 
     bool HasPayloadType(int pt) const;
 

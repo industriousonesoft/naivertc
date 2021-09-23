@@ -114,11 +114,7 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
 
             // ssrcs
             // Media ssrc
-            Media::SsrcEntry ssrc_entry;
-            ssrc_entry.ssrc = utils::random::generate_random<uint32_t>();
-            ssrc_entry.cname = std::move(config.cname);
-            ssrc_entry.msid = std::move(config.msid);
-            ssrc_entry.track_id = std::move(config.track_id);
+            sdp::Media::SsrcEntry ssrc_entry(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
             media_entry.AddSsrcEntry(ssrc_entry);
             // RTX ssrc
             if (config.rtx_enabled) {
@@ -141,11 +137,7 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
             // TODO: Add feedback and FEC support.
             // ssrc
             // Media ssrc
-            Media::SsrcEntry ssrc_entry;
-            ssrc_entry.ssrc = utils::random::generate_random<uint32_t>();
-            ssrc_entry.cname = std::move(config.cname);
-            ssrc_entry.msid = std::move(config.msid);
-            ssrc_entry.track_id = std::move(config.track_id);
+            sdp::Media::SsrcEntry ssrc_entry(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
             media_entry.AddSsrcEntry(ssrc_entry);
             return std::move(media_entry);
         }else {
