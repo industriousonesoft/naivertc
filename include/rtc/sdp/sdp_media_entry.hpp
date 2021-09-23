@@ -39,17 +39,16 @@ protected:
                std::string mid, 
                const std::string protocols);
 
-    virtual std::string MediaDescription() const;
-
+    virtual std::string FormatDescription() const;
     virtual std::string GenerateSDPLines(const std::string eol) const;   
 
     static Type ToType(std::string_view type_string);
-
+   
 private:
     Type type_;
     std::string mid_;
     std::string protocols_;
-
+   
     // ICE attribute
     // See https://tools.ietf.org/id/draft-ietf-mmusic-ice-sip-sdp-14.html#rfc.section.5.4
     std::optional<std::string> ice_ufrag_ = std::nullopt;

@@ -39,7 +39,8 @@ Role Description::role() const {
 }
 
 const std::string Description::bundle_id() const {
-    return !media_entries_.empty() ? media_entries_[0]->mid() : "0";
+    // Compatible with WebRTC: Get the mid of the first media
+    return application_ ? application_->mid() : media_entries_.size() > 0 ? media_entries_[0].mid() : "0";
 }
 
 std::optional<std::string> Description::ice_ufrag() const {
@@ -70,22 +71,21 @@ void Description::HintRole(Role role) {
     }
 }
 
-void Description::ClearMedia() {
+void Description::ClearMedias() {
     media_entries_.clear();
 }
 
-bool Description::HasApplication() const {
-    for (auto entry : media_entries_) {
-        if (entry->type() == sdp::MediaEntry::Type::APPLICATION) {
-            return true;
-        } 
-    }
-    return false;
+void Description::ResetApplication() {
+    application_.reset();
+}
+
+bool Description::HasMedia() const {
+    return media_entries_.size() > 0;
 }
 
 bool Description::HasAudio() const {
     for (auto entry : media_entries_) {
-        if (entry->type() == sdp::MediaEntry::Type::AUDIO) {
+        if (entry.type() == sdp::MediaEntry::Type::AUDIO) {
             return true;
         } 
     }
@@ -94,7 +94,7 @@ bool Description::HasAudio() const {
 
 bool Description::HasVideo() const {
     for (auto entry : media_entries_) {
-        if (entry->type() == sdp::MediaEntry::Type::VIDEO) {
+        if (entry.type() == sdp::MediaEntry::Type::VIDEO) {
             return true;
         } 
     }
@@ -102,50 +102,60 @@ bool Description::HasVideo() const {
 }
 
 bool Description::HasMid(const std::string_view mid) const {
-    for (auto entry : media_entries_) {
-        if (entry->mid() == mid) {
+    for (const auto& entry : media_entries_) {
+        if (entry.mid() == mid) {
             return true;
         } 
     }
-    return false;
+    return application_.has_value() ? application_->mid() == mid : false;
 }
 
-void Description::AddApplication(Application app) {
-   AddApplication(std::make_shared<Application>(std::move(app)));
+bool Description::HasApplication() const {
+    return application_.has_value();
 }
 
-void Description::AddApplication(std::shared_ptr<Application> app) {
+std::optional<const Application> Description::application() const {
+    return application_;
+}
+
+void Description::set_application(Application app) {
     // Update ICE and DTLS attributes
-    app->Hint(session_entry_);
-    media_entries_.emplace_back(app);
+    app.Hint(session_entry_);
+    application_.emplace(std::move(app));
 }
 
 void Description::AddMedia(Media media) {
-    AddMedia(std::make_shared<Media>(std::move(media)));
-}
-
-void Description::AddMedia(std::shared_ptr<Media> media) {
     // Update ICE and DTLS attributes
-    media->Hint(session_entry_);
-    media_entries_.emplace_back(media);
+    media.Hint(session_entry_);
+    media_entries_.emplace_back(std::move(media));
 }
 
-std::shared_ptr<Application> Description::AddApplication(const std::string mid) {
-    auto app = std::make_shared<Application>(std::move(mid));
-    AddApplication(app);
-    return app;
+void Description::RemoveMedia(const std::string_view mid) {
+    for (auto it = media_entries_.begin(); it != media_entries_.end();) {
+        if (it->mid() == mid) {
+            media_entries_.erase(it);
+        }else {
+            it++;
+        }
+    }
 }
 
-std::shared_ptr<Audio> Description::AddAudio(const std::string mid, Direction direction) {
-    auto audio = std::make_shared<Audio>(std::move(mid), direction);
-    AddMedia(audio);
-    return audio;
+void Description::ForEach(std::function<void(const Media&)> handler) const {
+    if (!handler) {
+        return;
+    }
+    for (const auto& media : media_entries_) {
+        handler(media);
+    }
 }
 
-std::shared_ptr<Video> Description::AddVideo(const std::string mid, Direction direction) {
-    auto video = std::make_shared<Video>(std::move(mid), direction);
-    AddMedia(video);
-    return video;
+std::optional<const Media> Description::media(std::string_view mid) const {
+    for (const auto& entry : media_entries_) {
+        if (entry.mid() == mid) {
+            return entry;
+        }
+    }
+    return std::nullopt;
 }
 
 Description::operator std::string() const {
@@ -163,13 +173,16 @@ std::string Description::GenerateSDP(const std::string eol, bool application_onl
 
     // 除了data channel之外还有音视频流时设置此属性，共用一个传输通道传输的媒体，
     // 如果没有设置该属性，音、视频、data channel就会分别单独用一个udp端口来传输数据
-    if (application_only == false) {
+    if (!application_only) {
         // Bundle (RFC8843 Negotiating Media Multiplexing Using the Session Description Protocol)
         // https://tools.ietf.org/html/rfc8843
         // eg: a=group:BUNDLE audio video data 
         oss << "a=group:BUNDLE";
-        for (const auto &entry : media_entries_) {
-            oss << sp << entry->mid();
+        for (const auto& entry : media_entries_) {
+            oss << sp << entry.mid();
+        }
+        if (application_) {
+            oss << sp << application_->mid();
         }
         oss << eol;
     }
@@ -180,61 +193,20 @@ std::string Description::GenerateSDP(const std::string eol, bool application_onl
     // 可以参考这里 http://tools.ietf.org/html/draft-ietf-mmusic-msid
     oss << "a=msid-semantic:" << sp << "WMS" << eol;
         
-     // Media-level lines
-    for (const auto& entry : media_entries_) {
-        if (application_only && entry->type() != MediaEntry::Type::APPLICATION) {
-            continue;
+    // Application lines
+    // FIXME: Here let the application in front of medias to make sure the bundle_id correct. How to fix it?
+    if (application_) {
+        oss << application_->GenerateSDP(eol, role_);
+    }
+
+    // Media-level lines
+    if (!application_only) {
+        for (const auto& entry : media_entries_) {
+            oss << entry.GenerateSDP(eol, role_);
         }
-        oss << entry->GenerateSDP(eol, role_);
     }
 
     return oss.str();
-}
-
-std::variant<std::shared_ptr<Media>, std::shared_ptr<Application>> Description::media(unsigned int index) const {
-     if (index >= media_entries_.size()) {
-        throw std::out_of_range("Media index out of range.");
-    }
-    const auto& entry = media_entries_[index];
-    if (entry->type() == MediaEntry::Type::APPLICATION) {
-        auto app = std::dynamic_pointer_cast<Application>(entry);
-        if (!entry) {
-            throw std::logic_error("Bad type of application in description.");
-        }
-        return app;
-    }else {
-        auto media = std::dynamic_pointer_cast<Media>(entry);
-        if (!media) {
-            throw std::logic_error("Bad type of media in description.");
-        }
-        return media;
-    }
-}
-
-std::shared_ptr<Media> Description::media(std::string_view mid) const {
-    for (auto entry : media_entries_) {
-        if (entry->mid() == mid && entry->type() != MediaEntry::Type::APPLICATION) {
-             auto media = std::dynamic_pointer_cast<Media>(entry);
-            if (!media) {
-                throw std::logic_error("Bad type of media in description.");
-            }
-            return media;
-        }
-    }
-    return nullptr;
-}
-
-unsigned int Description::media_count() const {
-    return unsigned(media_entries_.size());
-}
-
-std::shared_ptr<Application> Description::application() const {
-    for (auto entry : media_entries_) {
-        if (entry->type() == sdp::MediaEntry::Type::APPLICATION) {
-            return std::dynamic_pointer_cast<Application>(entry);
-        } 
-    }
-    return nullptr;
 }
 
 } // namespace sdp

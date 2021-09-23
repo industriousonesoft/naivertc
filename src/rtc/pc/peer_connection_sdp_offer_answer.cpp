@@ -248,72 +248,69 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
 
 void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
     assert(signal_task_queue_->is_in_current_queue());
-    const uint16_t local_sctp_port = kDefaultSctpPort;
-    const size_t local_max_message_size = rtc_config_.max_message_size.value_or(kDefaultSctpMaxMessageSize);
+    const uint16_t local_sctp_port = rtc_config_.local_sctp_port.value_or(kDefaultSctpPort);
+    const size_t local_max_message_size = rtc_config_.sctp_max_message_size.value_or(kDefaultSctpMaxMessageSize);
 
     // Clean up the application entry added by ICE transport already.
-    local_sdp.ClearMedia();
+    local_sdp.ClearMedias();
+    local_sdp.ResetApplication();
 
     // Reciprocate remote session description
     if (auto remote = this->remote_sdp_) {
         // https://wanghenshui.github.io/2018/08/15/variant-visit
-        for (unsigned int i = 0; i < remote->media_count(); ++i) {
-            std::visit(overloaded {
-                [&](std::shared_ptr<sdp::Application> remote_app) {
-                    // Prefer local description
-                   if (!data_channels_.empty()) {
-                        sdp::Application local_app(remote_app->mid());
-                        local_app.set_sctp_port(local_sctp_port);
-                        local_app.set_max_message_size(local_max_message_size);
-                       
-                        PLOG_DEBUG << "Adding application to local description, mid= " << local_app.mid();
+        if (auto remote_app = remote->application()) {
+            // Prefer local description
+            if (!data_channels_.empty()) {
+                sdp::Application local_app(remote_app->mid());
+                local_app.set_sctp_port(local_sctp_port);
+                local_app.set_max_message_size(local_max_message_size);
+                
+                PLOG_DEBUG << "Adding application to local description, mid= " << local_app.mid();
 
-                        local_sdp.AddApplication(std::move(local_app));
+                local_sdp.set_application(std::move(local_app));
 
-                   }else {
-                        auto reciprocated = remote_app->reciprocate();
-                        reciprocated.HintSctpPort(local_sctp_port);
-                        reciprocated.set_max_message_size(local_max_message_size);
+            }else {
+                auto reciprocated = remote_app->reciprocate();
+                reciprocated.HintSctpPort(local_sctp_port);
+                reciprocated.set_max_message_size(local_max_message_size);
 
-                        PLOG_DEBUG 
-                            << "Reciprocating application in local description, mid: " 
+                PLOG_DEBUG << "Reciprocating application in local description, mid: " 
                             << reciprocated.mid();
 
-                        local_sdp.AddApplication(std::move(reciprocated));
-                   }
-                },
-                [&](std::shared_ptr<sdp::Media> remote_media) {
-                    // Prefer local media track
-                    if (auto it = media_tracks_.find(remote_media->mid()); it != media_tracks_.end()) {
-                        // The local media track is still alive.
-                        if (auto local_track = it->second.lock()) {
-                            auto local_media = local_track->description();
-                            PLOG_DEBUG << "Adding media to local description, mid=" << local_media.mid()
-                                        << ", active=" << std::boolalpha
-                                        << (local_media.direction() != sdp::Direction::INACTIVE);
-
-                            local_sdp.AddMedia(std::move(local_media));
-                        // The local media track was not owned any more.
-                        }else {
-                            auto reciprocated = remote_media->reciprocate();
-                            reciprocated.set_direction(sdp::Direction::INACTIVE);
-
-                            PLOG_DEBUG << "Adding inactive media to local description, mid=" << reciprocated.mid();
-
-                            local_sdp.AddMedia(std::move(reciprocated));
-                        }
-                    }else {
-                        auto reciprocated = remote_media->reciprocate();
-
-                        OnIncomingMediaTrack(reciprocated);
-
-                        PLOG_DEBUG << "Reciprocating media in local description, mid: " << reciprocated.mid();
-
-                        local_sdp.AddMedia(std::move(reciprocated));
-                    }
-                }
-            }, remote->media(i));
+                local_sdp.set_application(std::move(reciprocated));
+            }
         }
+        remote->ForEach([this, &local_sdp](const sdp::Media& remote_media){
+            // Prefer local media track
+            if (auto it = media_tracks_.find(remote_media.mid()); it != media_tracks_.end()) {
+                // The local media track is still alive.
+                if (auto local_track = it->second.lock()) {
+                    auto local_media = local_track->description();
+                    PLOG_DEBUG << "Adding media to local description, mid=" << local_media.mid()
+                                << ", active=" << std::boolalpha
+                                << (local_media.direction() != sdp::Direction::INACTIVE);
+
+                    local_sdp.AddMedia(std::move(local_media));
+                // The local media track was not owned any more.
+                }else {
+                    auto reciprocated = remote_media.reciprocate();
+                    reciprocated.set_direction(sdp::Direction::INACTIVE);
+
+                    PLOG_DEBUG << "Adding inactive media to local description, mid=" << reciprocated.mid();
+
+                    local_sdp.AddMedia(std::move(reciprocated));
+                }
+            }else {
+                auto reciprocated = remote_media.reciprocate();
+
+                OnIncomingMediaTrack(reciprocated);
+
+                PLOG_DEBUG << "Reciprocating media in local description, mid: " << reciprocated.mid();
+
+                local_sdp.AddMedia(std::move(reciprocated));
+            }
+        });
+
     } 
 
     if (local_sdp.type() == sdp::Type::OFFER) {
@@ -338,7 +335,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 
             PLOG_DEBUG << "Adding application to local description, mid=" + app.mid();
 
-            local_sdp.AddApplication(std::move(app));
+            local_sdp.set_application(std::move(app));
         }
 
         // Add media for local tracks
@@ -438,24 +435,17 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
         throw std::invalid_argument("Remote sdp has no valid fingerprint");
     }
 
-    if (!remote_sdp.media_count()) {
+    if (!remote_sdp.HasApplication() && !remote_sdp.HasMedia()) {
         throw std::invalid_argument("Remote sdp has no media line");
     }
 
-    int active_media_count = 0;
-    for(unsigned int i = 0; i < remote_sdp.media_count(); ++i ) {
-        std::visit(overloaded{
-            [&](std::shared_ptr<sdp::Application> app) {
-                ++active_media_count;
-            },
-            [&](std::shared_ptr<sdp::Media> media) {
-                if (media->direction() != sdp::Direction::INACTIVE) {
-                    ++active_media_count;
-                }
-            }
-        }, remote_sdp.media(i));
-    }
-
+    int active_media_count = remote_sdp.HasApplication() ? 1 : 0;
+    remote_sdp.ForEach([&active_media_count](const sdp::Media& media){
+        if (media.direction() != sdp::Direction::INACTIVE) {
+            ++active_media_count;
+        }
+    });
+   
     if (active_media_count == 0) {
         throw std::invalid_argument("Remote sdp has no active media");
     }

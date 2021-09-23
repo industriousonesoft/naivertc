@@ -116,10 +116,10 @@ bool Entry::ParseSDPAttributeField(std::string_view key, std::string_view value)
         }
         return true;
     }else if (key == "ice-ufrag") {
-        ice_ufrag_.emplace(std::move(value));
+        ice_ufrag_.emplace(value);
         return true;
     }else if (key == "ice-pwd") {
-        ice_pwd_.emplace(std::move(value));
+        ice_pwd_.emplace(value);
         return true;
     }else if (key == "ice-options" && value == "trickle") {
         // Default setting

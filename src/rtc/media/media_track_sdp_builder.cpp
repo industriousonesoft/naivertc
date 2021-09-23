@@ -121,7 +121,7 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
                 ssrc_entry.ssrc = utils::random::generate_random<uint32_t>();
                 media_entry.AddSsrcEntry(ssrc_entry);
             }
-            return std::move(media_entry);
+            return media_entry;
         }else {
             PLOG_WARNING << "Unsupported video codec: " << codec;
             return std::nullopt;
@@ -139,7 +139,7 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
             // Media ssrc
             sdp::Media::SsrcEntry ssrc_entry(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
             media_entry.AddSsrcEntry(ssrc_entry);
-            return std::move(media_entry);
+            return media_entry;
         }else {
             PLOG_WARNING << "Unsupported audio codec: " << codec;
             return std::nullopt;

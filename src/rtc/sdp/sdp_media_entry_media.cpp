@@ -49,20 +49,18 @@ Media::Media(Type type,
 
 Media::~Media() = default;
 
-std::string Media::MediaDescription() const {
+std::string Media::FormatDescription() const {
     std::ostringstream desc;
     const std::string sp = " ";
-    desc << MediaEntry::MediaDescription();
-    
-    for (auto it = rtp_map_.begin(); it != rtp_map_.end(); ++it) {
-        desc << sp << it->first;
+    for (const auto& kv : rtp_maps_) {
+        desc << sp << kv.first;
     }
-
-    return desc.str();
+    return desc.str().substr(1 /* Trim the first space */);
 }
 
 std::string Media::GenerateSDPLines(const std::string eol) const {
     std::ostringstream oss;
+    const std::string sp = " ";
     oss << MediaEntry::GenerateSDPLines(eol);
 
     switch(direction_) {
@@ -86,11 +84,9 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
     // instead of using two separate connections.
     oss << "a=rtcp-mux" << eol;
 
-    for (auto it = rtp_map_.begin(); it != rtp_map_.end(); ++it) {
-        auto &map = it->second;
-
+    for (const auto& [key, map] : rtp_maps_) {
         // a=rtpmap
-        oss << "a=rtpmap:" << map.payload_type << ' ' << map.codec << "/" << map.clock_rate;
+        oss << "a=rtpmap:" << map.payload_type << sp << map.codec << "/" << map.clock_rate;
         if (map.codec_params.has_value()) {
             oss << "/" << map.codec_params.value();
         }
@@ -99,28 +95,29 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
         // a=rtcp-fb
         for (const auto& val : map.rtcp_feedbacks) {
             if (val != "transport-cc") {
-                oss << "a=rtcp-fb" << map.payload_type << ' ' << val << eol;
+                oss << "a=rtcp-fb:" << map.payload_type << sp << val << eol;
             }
         }
 
         // a=fmtp
         for (const auto& val : map.fmt_profiles) {
-            oss << "a=fmtp:" << map.payload_type << ' ' << val << eol;
+            oss << "a=fmtp:" << map.payload_type << sp << val << eol;
         }
     }
     
     // Ssrc entries
+    // TODO: a=ssrc-group:FID 
     for (const auto& kv : ssrc_entries_) {
         uint32_t ssrc = kv.first;
         auto entry = kv.second;
         if (entry.cname.has_value()) {
-            oss << "ssrc:" << ssrc << " " << "cname:" << entry.cname.value();
+            oss << "a=" << "ssrc:" << ssrc << sp << "cname:" << entry.cname.value() << eol;;
         }else {
-            oss << "ssrc:" << ssrc;
+            oss << "a=" << "ssrc:" << ssrc << eol;;
         }
 
         if (entry.msid.has_value()) {
-            oss << "ssrc:" << ssrc << " " << "msid:" << entry.msid.value() << " " << entry.track_id.value_or(entry.msid.value());
+            oss << "a=" << "ssrc:" << ssrc << sp << "msid:" << entry.msid.value() << sp << entry.track_id.value_or(entry.msid.value()) << eol;;
         }
     }
   
@@ -190,12 +187,12 @@ std::optional<std::string> Media::CNameForSsrc(uint32_t ssrc) {
 }
 
 bool Media::HasPayloadType(int pt) const {
-    return rtp_map_.find(pt) != rtp_map_.end();
+    return rtp_maps_.find(pt) != rtp_maps_.end();
 }
 
 bool Media::AddFeedback(int payload_type, const std::string feed_back) {
-    auto it = rtp_map_.find(payload_type);
-    if (it == rtp_map_.end()) {
+    auto it = rtp_maps_.find(payload_type);
+    if (it == rtp_maps_.end()) {
         PLOG_WARNING << "No RTP map found to add feedback with payload type: " << payload_type;
         return false;
     }
@@ -240,9 +237,9 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
     else if (key == "rtpmap") {
         auto rtp_map = Parse(value);
         if (rtp_map.has_value()) {
-            auto it = rtp_map_.find(rtp_map->payload_type);
-            if (it == rtp_map_.end()) {
-                it = rtp_map_.insert(std::make_pair(rtp_map->payload_type, rtp_map.value())).first;
+            auto it = rtp_maps_.find(rtp_map->payload_type);
+            if (it == rtp_maps_.end()) {
+                it = rtp_maps_.insert(std::make_pair(rtp_map->payload_type, rtp_map.value())).first;
             }else {
                 it->second.payload_type = rtp_map->payload_type;
                 it->second.codec = rtp_map->codec;
@@ -261,8 +258,8 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
     else if (key == "rtcp-fb") {
         size_t sp = value.find(' ');
         int payload_type = utils::string::to_integer<int>(value.substr(0, sp));
-        auto it = rtp_map_.find(payload_type);
-        if (it == rtp_map_.end()) {
+        auto it = rtp_maps_.find(payload_type);
+        if (it == rtp_maps_.end()) {
             PLOG_WARNING << "No RTP map found before parsing 'rtcp-fb' with payload type: " << payload_type;
             return false;
         }
@@ -273,8 +270,8 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
     else if (key == "fmtp") {
         size_t sp = value.find(' ');
         int payload_type = utils::string::to_integer<int>(value.substr(0, sp));
-        auto it = rtp_map_.find(payload_type);
-        if (it == rtp_map_.end()) {
+        auto it = rtp_maps_.find(payload_type);
+        if (it == rtp_maps_.end()) {
             PLOG_WARNING << "No RTP map found before parsing 'fmtp' with payload type: " << payload_type;
             return false;
         }
@@ -329,7 +326,7 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
 }
 
 void Media::AddRtpMap(const RtpMap& map) {
-    rtp_map_.emplace(map.payload_type, map);
+    rtp_maps_.emplace(map.payload_type, map);
 }
 
 // [key]:[value]

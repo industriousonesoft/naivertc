@@ -13,7 +13,7 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
     auto description = Description(type, Role::ACT_PASS /* The role value will be updated later */);
     int index = -1;
     std::istringstream iss(sdp);
-    std::shared_ptr<MediaEntry> curr_entry;
+    MediaEntry* curr_entry = nullptr;
     while (iss) {
         std::string line;
         std::getline(iss, line);
@@ -28,13 +28,11 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
             auto sp = " ";
             std::string type = mline.substr(0, mline.find(sp));
             if (type == "application") {
-                auto app = std::make_shared<Application>(MediaEntry::Parse(mline, std::to_string(++index)));
-                description.media_entries_.emplace_back(app);
-                curr_entry = app;
+                description.application_.emplace(MediaEntry::Parse(mline, std::to_string(++index)));
+                curr_entry = &description.application_.value();
             }else {
-                auto media = std::make_shared<Media>(MediaEntry::Parse(mline, std::to_string(++index)), Direction::UNKNOWN);
-                description.media_entries_.emplace_back(media);
-                curr_entry = media;
+                description.media_entries_.emplace_back(MediaEntry::Parse(mline, std::to_string(++index)), Direction::UNKNOWN);
+                curr_entry = &description.media_entries_.back();
             }
         }
         // attributes which can appear at either session-level or media-level

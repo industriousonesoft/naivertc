@@ -30,25 +30,25 @@ MediaEntry::MediaEntry(Type media_type,
       mid_(std::move(mid)),
       protocols_(protocols) {}
 
-std::string MediaEntry::MediaDescription() const {
-    return protocols_;
-}
-
 std::string MediaEntry::GenerateSDP(const std::string eol, Role role) const {
     std::ostringstream oss;
     std::string sp = " ";
 
+    // m=<media> <port> <proto> <fmt>
+    // See https://datatracker.ietf.org/doc/html/rfc4566#section-5.14
     // 0.0.0.0：表示你要用来接收或者发送音频使用的IP地址，webrtc使用ice传输，不使用这个地址
     // 9：代表音频使用端口9来传输
     const auto addr = "0.0.0.0";
     const auto port = "9";
-    oss << "m=" << type_ << sp << port << sp << MediaDescription() << eol;
+    oss << "m=" << type_ << sp << port << sp << protocols_ << sp << FormatDescription() << eol;
     // connection line: c=<nettype> <addrtype> <connection-address>
     // nettype: network type, eg: IN represents Internet
     // addrtype: address type, eg: IPv4, IPv6
     // connection-address
     oss << "c=IN" << sp << "IP4" << sp <<  addr << eol;
     if (type_ != Type::APPLICATION) {
+        // a=rtcp:<port> <nettype> <addrtype> <connection-address>
+        // See https://tools.ietf.org/id/draft-ietf-mmusic-sdp4nat-00.txt
         oss << "a=rtcp:" << port << sp << "IN" << sp << "IP4" << sp << addr << eol;
     }
     // ICE and DTLS lines
@@ -70,6 +70,10 @@ std::string MediaEntry::GenerateSDPLines(const std::string eol) const {
     oss << "a=mid:" << mid_ << eol;
     
     return oss.str();
+}
+
+std::string MediaEntry::FormatDescription() const {
+    return "";
 }
 
 bool MediaEntry::ParseSDPLine(std::string_view line) {

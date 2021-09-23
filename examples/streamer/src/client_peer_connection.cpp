@@ -41,10 +41,10 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     // TODO: Generate a random 36-char and case-insensitive string, e.g.; h1aZ20mbQB0GSsq0YxLfJmiYWE9CBfGch97C
     std::string media_stream_id = "naivertc-media-stream-id";
     // Local video track
-    MediaTrack::Configuration video_track_config("1", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264);
-    // video_track_config.nack_enabled = true;
-    // video_track_config.rtx_enabled = true;
-    // video_track_config.fec_codec.emplace(MediaTrack::FecCodec::ULP_FEC)
+    MediaTrack::Configuration video_track_config("video", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264);
+    video_track_config.nack_enabled = true;
+    video_track_config.rtx_enabled = true;
+    video_track_config.fec_codec.emplace(MediaTrack::FecCodec::ULP_FEC);
     video_track_config.cname.emplace(cname);
     video_track_config.msid.emplace(media_stream_id);
     video_track_config.track_id.emplace("video-track-id-1");
@@ -57,10 +57,10 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     });
 
     // Local audio track
-    MediaTrack::Configuration audio_track_config("2", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS);
-    video_track_config.cname.emplace(cname);
-    video_track_config.msid.emplace(media_stream_id);
-    video_track_config.track_id.emplace("audio-track-id-1");
+    MediaTrack::Configuration audio_track_config("audio", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS);
+    audio_track_config.cname.emplace(cname);
+    audio_track_config.msid.emplace(media_stream_id);
+    audio_track_config.track_id.emplace("audio-track-id-1");
 
     audio_track_ = peer_conn_->AddTrack(audio_track_config);
     audio_track_->OnOpened([](){

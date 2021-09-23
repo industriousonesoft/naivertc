@@ -13,10 +13,13 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <functional>
+#include <optional>
 
 namespace naivertc {
 namespace sdp {
 
+// This class is not thread-safe, the caller MUST provide that.
 class RTC_CPP_EXPORT Description {
 public:
 // Builder
@@ -61,31 +64,25 @@ public:
     void HintType(Type type);
     void HintRole(Role role);
 
-    operator std::string() const;
-    std::string GenerateSDP(const std::string eol, bool application_only = false) const;
-
-    bool HasApplication() const;
-    bool HasAudio() const;
-    bool HasVideo() const;
     bool HasMid(const std::string_view mid) const;
 
-    std::variant<std::shared_ptr<Media>, std::shared_ptr<Application>> media(unsigned int index) const;
+    bool HasMedia() const;
+    bool HasAudio() const;
+    bool HasVideo() const;
     
-    unsigned int media_count() const;
-
-    std::shared_ptr<Application> application() const;
-    std::shared_ptr<Media> media(const std::string_view mid) const;
-
-    void AddApplication(std::shared_ptr<Application> app);
-    void AddApplication(Application app);
+    bool HasApplication() const;
+    std::optional<const Application> application() const;
+    void set_application(Application app);
+    void ResetApplication();
+    
+    std::optional<const Media> media(const std::string_view mid) const;
     void AddMedia(Media media);
-    void AddMedia(std::shared_ptr<Media> media);
-
-    std::shared_ptr<Application> AddApplication(const std::string mid = "data");
-    std::shared_ptr<Audio> AddAudio(const std::string mid = "audio", Direction direction = Direction::SEND_ONLY);
-    std::shared_ptr<Video> AddVideo(const std::string mid = "video", Direction direction = Direction::SEND_ONLY);
-
-    void ClearMedia();
+    void RemoveMedia(const std::string_view mid);
+    void ClearMedias();
+    void ForEach(std::function<void(const Media&)> handler) const;
+    
+    operator std::string() const;
+    std::string GenerateSDP(const std::string eol, bool application_only = false) const;
 
 private:
     Description(Type type = Type::UNSPEC, 
@@ -100,7 +97,8 @@ private:
     // Session-level entries
     SessionEntry session_entry_; 
     // Media-level Entries
-    std::vector<std::shared_ptr<MediaEntry>> media_entries_;
+    std::vector<Media> media_entries_;
+    std::optional<Application> application_;
 
 };
 

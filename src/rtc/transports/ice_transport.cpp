@@ -136,6 +136,7 @@ void IceTransport::AddRemoteCandidate(const sdp::Candidate& candidate) {
             if (!bRet) {
                 // throw std::runtime_error("Failed to add remote candidate: " + candidate_sdp);
                 PLOG_WARNING << "Failed to add remote candidate: " << candidate_sdp;
+                return;
             }  
         }catch (...) {
             last_exception_ = std::current_exception();

@@ -102,8 +102,9 @@ struct RTC_CPP_EXPORT RtcConfiguration {
     // MTU: Maximum Transmission Unit
     std::optional<size_t> mtu;
 
-    // Local max message size at reception
-    std::optional<size_t> max_message_size;
+    // SCTP
+    std::optional<uint16_t> local_sctp_port;
+    std::optional<size_t> sctp_max_message_size;
 
 };
 

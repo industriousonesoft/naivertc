@@ -71,14 +71,15 @@ public:
     void AddRtpMap(const RtpMap& map);
 
 private:
-    std::string MediaDescription() const override;
+    std::string FormatDescription() const override;
+
     virtual std::string GenerateSDPLines(const std::string eol) const override;
 
     static std::optional<RtpMap> Parse(const std::string_view& attr_value);
 private:
     Direction direction_;
     
-    std::map<int, RtpMap> rtp_map_;
+    std::map<int, RtpMap> rtp_maps_;
     std::vector<uint32_t> ssrcs_;
     std::map<uint32_t, SsrcEntry> ssrc_entries_;
 

@@ -67,7 +67,10 @@ void Client::OnRemoteSDP(const std::string remote_sdp, bool is_offer) {
 }
 
 void Client::OnRemoteCandidate(const std::string sdp_mid, const int sdp_mlineindex, const std::string candidate) {
-    ioc_.post(strand_.wrap([this, sdp_mid, candidate](){
+    ioc_.post(strand_.wrap([this, sdp_mid, candidate, sdp_mlineindex](){
+        std::cout << __FUNCTION__ << ": Remote candidate => mid: " << sdp_mid 
+                                  << " lineindex: " << sdp_mlineindex 
+                                  << " sdp: " << candidate <<std::endl;
         this->peer_conn_->AddRemoteCandidate(sdp_mid, candidate);
     }));
 }

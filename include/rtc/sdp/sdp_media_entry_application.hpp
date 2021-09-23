@@ -26,7 +26,7 @@ public:
     bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
 
 private:
-    std::string MediaDescription() const override;
+    std::string FormatDescription() const override;
     std::string GenerateSDPLines(const std::string eol) const override;
 
     std::optional<uint16_t> sctp_port_;
