@@ -7,7 +7,7 @@
 
 #include "client.hpp"
 
-#include <iostream>
+#include <plog/Log.h>
 
 int main(int argc, const char* argv[]) {
   
@@ -19,10 +19,10 @@ int main(int argc, const char* argv[]) {
     boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
     signals.async_wait([&](const boost::system::error_code&, int) {
         ioc.stop();
-        std::cout << "main ioc exit" << std::endl;
+        PLOG_VERBOSE << "main ioc exit";
     });
 
-    std::cout << "main start." << std::endl;
+    PLOG_VERBOSE << "main start.";
 
     std::shared_ptr<Client> client = Client::Create(ioc);
     client->Start();
@@ -33,7 +33,7 @@ int main(int argc, const char* argv[]) {
 
     naivertc::Cleanup();
 
-    std::cout << "main exit." << std::endl;
+    PLOG_VERBOSE << "main exit.";
 
     return 0;
 }
