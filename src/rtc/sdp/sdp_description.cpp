@@ -11,10 +11,14 @@
 namespace naivertc {
 namespace sdp {
 
-Description::Description(Type type, Role role, std::optional<std::string> ice_ufrag, std::optional<std::string> ice_pwd, std::optional<std::string> fingerprint) 
+Description::Description(Type type, 
+                         Role role, 
+                         std::optional<std::string> ice_ufrag, 
+                         std::optional<std::string> ice_pwd, 
+                         std::optional<std::string> fingerprint) 
     : type_(type),
-    role_(Role::ACT_PASS) {
-
+      role_(Role::ACT_PASS) {
+          
     HintRole(role);
 
     if (ice_ufrag.has_value() && ice_pwd.has_value()) {
@@ -121,16 +125,16 @@ Application* Description::application() {
 }
 
 Application* Description::SetApplication(Application app) {
-    // Update ICE and DTLS attributes
     application_ = std::make_shared<Application>(std::move(app));
+    // Update ICE and DTLS attributes
     application_->Hint(session_entry_);
     media_entries_.emplace(application_->mid(), application_);
     return application_.get();
 }
 
 Media* Description::AddMedia(Media media) {
-    // Update ICE and DTLS attributes
     auto new_media = std::make_shared<Media>(std::move(media));
+    // Update ICE and DTLS attributes
     new_media->Hint(session_entry_);
     medias_.emplace_back(new_media);
     media_entries_.emplace(new_media->mid(), new_media);

@@ -39,7 +39,8 @@ TEST(MediaTrackConfigTest, BuildVideoDescription) {
     auto media = MediaTrack::BuildDescription(config);
     EXPECT_TRUE(media.has_value());
     // Media + RTX
-    EXPECT_EQ(media->ssrcs().size(), 2);
+    EXPECT_EQ(media->media_ssrcs().size(), 1);
+    EXPECT_EQ(media->rtx_ssrcs().size(), 1);
 }
 
 TEST(MediaTrackConfigTest, BuildAudioDescription) {
@@ -52,7 +53,7 @@ TEST(MediaTrackConfigTest, BuildAudioDescription) {
     auto media = MediaTrack::BuildDescription(config);
     EXPECT_TRUE(media.has_value());
     // Media
-    EXPECT_EQ(media->ssrcs().size(), 1);
+    EXPECT_EQ(media->media_ssrcs().size(), 1);
 }
 
 }

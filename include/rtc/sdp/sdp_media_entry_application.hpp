@@ -13,7 +13,7 @@ public:
     Application(std::string mid);
     ~Application();
 
-    Application reciprocate() const;
+    Application ReciprocatedSDP() const;
 
     std::optional<uint16_t> sctp_port() const { return sctp_port_; }
     void set_sctp_port(uint16_t port) { sctp_port_ = port; }

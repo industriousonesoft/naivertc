@@ -269,7 +269,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                 local_sdp.SetApplication(std::move(local_app));
 
             }else {
-                auto reciprocated = remote_app->reciprocate();
+                auto reciprocated = remote_app->ReciprocatedSDP();
                 reciprocated.HintSctpPort(local_sctp_port);
                 reciprocated.set_max_message_size(local_max_message_size);
 
@@ -292,7 +292,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                     local_sdp.AddMedia(std::move(local_media));
                 // The local media track was not owned any more.
                 }else {
-                    auto reciprocated = remote_media.reciprocate();
+                    auto reciprocated = remote_media.ReciprocatedSDP();
                     reciprocated.set_direction(sdp::Direction::INACTIVE);
 
                     PLOG_DEBUG << "Adding inactive media to local description, mid=" << reciprocated.mid();
@@ -300,7 +300,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                     local_sdp.AddMedia(std::move(reciprocated));
                 }
             }else {
-                auto reciprocated = remote_media.reciprocate();
+                auto reciprocated = remote_media.ReciprocatedSDP();
 
                 OnIncomingMediaTrack(reciprocated);
 

@@ -114,12 +114,14 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
 
             // ssrcs
             // Media ssrc
-            sdp::Media::SsrcEntry ssrc_entry(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
-            media_entry.AddSsrcEntry(ssrc_entry);
+            media_entry.AddSsrc(utils::random::generate_random<uint32_t>(), 
+                                sdp::Media::SsrcEntry::Kind::MEDIA, 
+                                config.cname, config.msid, config.track_id);
             // RTX ssrc
             if (config.rtx_enabled) {
-                ssrc_entry.ssrc = utils::random::generate_random<uint32_t>();
-                media_entry.AddSsrcEntry(ssrc_entry);
+                media_entry.AddSsrc(utils::random::generate_random<uint32_t>(), 
+                                    sdp::Media::SsrcEntry::Kind::RTX, 
+                                    config.cname, config.msid, config.track_id);
             }
             return media_entry;
         }else {
@@ -137,8 +139,9 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
             // TODO: Add feedback and FEC support.
             // ssrc
             // Media ssrc
-            sdp::Media::SsrcEntry ssrc_entry(utils::random::generate_random<uint32_t>(), config.cname, config.msid, config.track_id);
-            media_entry.AddSsrcEntry(ssrc_entry);
+            media_entry.AddSsrc(utils::random::generate_random<uint32_t>(), 
+                                sdp::Media::SsrcEntry::Kind::MEDIA,
+                                config.cname, config.msid, config.track_id);
             return media_entry;
         }else {
             PLOG_WARNING << "Unsupported audio codec: " << codec;

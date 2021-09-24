@@ -23,10 +23,10 @@ std::string Application::FormatDescription() const {
     return "webrtc-datachannel";
 }
 
-Application Application::reciprocate() const {
-    Application reciprocate(*this);
-    reciprocate.max_message_size_.reset();
-    return reciprocate;
+Application Application::ReciprocatedSDP() const {
+    Application reciprocated_sdp(*this);
+    reciprocated_sdp.max_message_size_.reset();
+    return reciprocated_sdp;
 }
 
 bool Application::ParseSDPLine(std::string_view line) {
