@@ -50,6 +50,7 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
     auto kind = config.kind;
     if (kind == MediaTrack::Kind::VIDEO) {
         if (codec == MediaTrack::Codec::H264) {
+            // TODO: Set direction explicitly (Only sender has ssrc streams in sdp)
             auto media_entry = sdp::Video(config.mid);
             // Associated payload types of RTX
             std::vector<int> associated_payload_types;
@@ -130,6 +131,7 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
         }
     }else if (kind == MediaTrack::Kind::AUDIO) {
         if (codec == MediaTrack::Codec::OPUS) {
+            // TODO: Set direction explicitly
             auto media_entry = sdp::Audio(config.mid);
             // Codec: Opus 
             if (auto payload_type_opt = NextPayloadType(kind)) {
