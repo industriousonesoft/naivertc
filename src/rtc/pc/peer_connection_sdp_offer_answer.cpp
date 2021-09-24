@@ -252,8 +252,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
     const size_t local_max_message_size = rtc_config_.sctp_max_message_size.value_or(kDefaultSctpMaxMessageSize);
 
     // Clean up the application entry added by ICE transport already.
-    local_sdp.ClearMedias();
-    local_sdp.ResetApplication();
+    local_sdp.ClearMediaEntries();
 
     // Reciprocate remote session description
     if (auto remote = this->remote_sdp_) {
@@ -267,7 +266,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                 
                 PLOG_DEBUG << "Adding application to local description, mid= " << local_app.mid();
 
-                local_sdp.set_application(std::move(local_app));
+                local_sdp.SetApplication(std::move(local_app));
 
             }else {
                 auto reciprocated = remote_app->reciprocate();
@@ -277,7 +276,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                 PLOG_DEBUG << "Reciprocating application in local description, mid: " 
                             << reciprocated.mid();
 
-                local_sdp.set_application(std::move(reciprocated));
+                local_sdp.SetApplication(std::move(reciprocated));
             }
         }
         remote->ForEach([this, &local_sdp](const sdp::Media& remote_media){
@@ -335,7 +334,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 
             PLOG_DEBUG << "Adding application to local description, mid=" + app.mid();
 
-            local_sdp.set_application(std::move(app));
+            local_sdp.SetApplication(std::move(app));
         }
 
         // Add media for local tracks

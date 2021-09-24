@@ -11,7 +11,7 @@
 #include <rtc/sdp/sdp_media_entry_video.hpp>
 
 #include <string>
-#include <variant>
+#include <map>
 #include <vector>
 #include <functional>
 #include <optional>
@@ -65,21 +65,23 @@ public:
     void HintRole(Role role);
 
     bool HasMid(const std::string_view mid) const;
-
     bool HasMedia() const;
     bool HasAudio() const;
     bool HasVideo() const;
-    
     bool HasApplication() const;
-    std::optional<const Application> application() const;
-    void set_application(Application app);
-    void ResetApplication();
+
+    Application* SetApplication(Application app);
+    const Application* application() const;
+    Application* application();
     
-    std::optional<const Media> media(const std::string_view mid) const;
-    void AddMedia(Media media);
+    Media* AddMedia(Media media);
     void RemoveMedia(const std::string_view mid);
-    void ClearMedias();
+    const Media* media(const std::string_view mid) const;
+    Media* media(const std::string_view mid);
     void ForEach(std::function<void(const Media&)> handler) const;
+
+    // Clear all media and application entries.
+    void ClearMediaEntries();
     
     operator std::string() const;
     std::string GenerateSDP(const std::string eol, bool application_only = false) const;
@@ -94,11 +96,12 @@ private:
 private:
     Type type_;
     Role role_;
-    // Session-level entries
     SessionEntry session_entry_; 
-    // Media-level Entries
-    std::vector<Media> media_entries_;
-    std::optional<Application> application_;
+
+    std::vector<std::shared_ptr<Media>> medias_;
+    std::shared_ptr<Application> application_;
+    // Used for generating SDP
+    std::map<std::string, std::weak_ptr<MediaEntry>> media_entries_;
 
 };
 

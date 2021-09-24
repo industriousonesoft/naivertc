@@ -27,7 +27,7 @@ Description::Description(Type type, Role role, std::optional<std::string> ice_uf
 }
 
 Description::~Description() {
-    media_entries_.clear();
+    medias_.clear();
 }
 
 Type Description::type() const {
@@ -40,7 +40,7 @@ Role Description::role() const {
 
 const std::string Description::bundle_id() const {
     // Compatible with WebRTC: Get the mid of the first media
-    return application_ ? application_->mid() : media_entries_.size() > 0 ? media_entries_[0].mid() : "0";
+    return !media_entries_.empty() ? media_entries_.begin()->first : "0";
 }
 
 std::optional<std::string> Description::ice_ufrag() const {
@@ -71,21 +71,19 @@ void Description::HintRole(Role role) {
     }
 }
 
-void Description::ClearMedias() {
+void Description::ClearMediaEntries() {
+    medias_.clear();
+    application_.reset();
     media_entries_.clear();
 }
 
-void Description::ResetApplication() {
-    application_.reset();
-}
-
 bool Description::HasMedia() const {
-    return media_entries_.size() > 0;
+    return medias_.size() > 0;
 }
 
 bool Description::HasAudio() const {
-    for (auto entry : media_entries_) {
-        if (entry.type() == sdp::MediaEntry::Type::AUDIO) {
+    for (const auto& entry : medias_) {
+        if (entry->type() == sdp::MediaEntry::Type::AUDIO) {
             return true;
         } 
     }
@@ -93,8 +91,8 @@ bool Description::HasAudio() const {
 }
 
 bool Description::HasVideo() const {
-    for (auto entry : media_entries_) {
-        if (entry.type() == sdp::MediaEntry::Type::VIDEO) {
+    for (const auto& entry : medias_) {
+        if (entry->type() == sdp::MediaEntry::Type::VIDEO) {
             return true;
         } 
     }
@@ -102,38 +100,48 @@ bool Description::HasVideo() const {
 }
 
 bool Description::HasMid(const std::string_view mid) const {
-    for (const auto& entry : media_entries_) {
-        if (entry.mid() == mid) {
+    for (const auto& entry : medias_) {
+        if (entry->mid() == mid) {
             return true;
         } 
     }
-    return application_.has_value() ? application_->mid() == mid : false;
+    return application_ != nullptr ? application_->mid() == mid : false;
 }
 
 bool Description::HasApplication() const {
-    return application_.has_value();
+    return application_ != nullptr;
 }
 
-std::optional<const Application> Description::application() const {
-    return application_;
+const Application* Description::application() const {
+    return application_.get();
 }
 
-void Description::set_application(Application app) {
+Application* Description::application() {
+    return application_.get();
+}
+
+Application* Description::SetApplication(Application app) {
     // Update ICE and DTLS attributes
-    app.Hint(session_entry_);
-    application_.emplace(std::move(app));
+    application_ = std::make_shared<Application>(std::move(app));
+    application_->Hint(session_entry_);
+    media_entries_.emplace(application_->mid(), application_);
+    return application_.get();
 }
 
-void Description::AddMedia(Media media) {
+Media* Description::AddMedia(Media media) {
     // Update ICE and DTLS attributes
-    media.Hint(session_entry_);
-    media_entries_.emplace_back(std::move(media));
+    auto new_media = std::make_shared<Media>(std::move(media));
+    new_media->Hint(session_entry_);
+    medias_.emplace_back(new_media);
+    media_entries_.emplace(new_media->mid(), new_media);
+    return new_media.get();
 }
 
 void Description::RemoveMedia(const std::string_view mid) {
-    for (auto it = media_entries_.begin(); it != media_entries_.end();) {
-        if (it->mid() == mid) {
-            media_entries_.erase(it);
+    for (auto it = medias_.begin(); it != medias_.end();) {
+        auto media = std::shared_ptr<Media>(*it);
+        if (media->mid() == mid) {
+            medias_.erase(it);
         }else {
             it++;
         }
@@ -144,18 +152,27 @@ void Description::ForEach(std::function<void(const Media&)> handler) const {
     if (!handler) {
         return;
     }
-    for (const auto& media : media_entries_) {
-        handler(media);
+    for (const auto& media : medias_) {
+        handler(*media.get());
     }
 }
 
-std::optional<const Media> Description::media(std::string_view mid) const {
-    for (const auto& entry : media_entries_) {
-        if (entry.mid() == mid) {
-            return entry;
+const Media* Description::media(std::string_view mid) const {
+    for (const auto& entry : medias_) {
+        if (entry->mid() == mid) {
+            return entry.get();
         }
     }
-    return std::nullopt;
+    return nullptr;
+}
+
+Media* Description::media(std::string_view mid) {
+    for (auto& entry : medias_) {
+        if (entry->mid() == mid) {
+            return entry.get();
+        }
+    }
+    return nullptr;
 }
 
 Description::operator std::string() const {
@@ -178,11 +195,8 @@ std::string Description::GenerateSDP(const std::string eol, bool application_onl
         // https://tools.ietf.org/html/rfc8843
         // eg: a=group:BUNDLE audio video data 
         oss << "a=group:BUNDLE";
-        for (const auto& entry : media_entries_) {
-            oss << sp << entry.mid();
-        }
-        if (application_) {
-            oss << sp << application_->mid();
+        for (const auto& kv : media_entries_) {
+            oss << sp << kv.first;
         }
         oss << eol;
     }
@@ -192,17 +206,14 @@ std::string Description::GenerateSDP(const std::string eol, bool application_onl
     // 这些track就是通过这个唯一标识符关联起来的，具体见下面的媒体行(m=)以及它对应的附加属性(a=ssrc:)
     // 可以参考这里 http://tools.ietf.org/html/draft-ietf-mmusic-msid
     oss << "a=msid-semantic:" << sp << "WMS" << eol;
-        
-    // Application lines
-    // FIXME: Here let the application in front of medias to make sure the bundle_id correct. How to fix it?
-    if (application_) {
-        oss << application_->GenerateSDP(eol, role_);
-    }
-
-    // Media-level lines
-    if (!application_only) {
-        for (const auto& entry : media_entries_) {
-            oss << entry.GenerateSDP(eol, role_);
+      
+    // Media entries lines
+    for (const auto& [key, value] : media_entries_) {
+        if (auto entry = value.lock()) {
+            if (application_only && entry->type() != MediaEntry::Type::APPLICATION) {
+                continue;
+            }
+            oss << entry->GenerateSDP(eol, role_);
         }
     }
 

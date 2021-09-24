@@ -28,11 +28,14 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
             auto sp = " ";
             std::string type = mline.substr(0, mline.find(sp));
             if (type == "application") {
-                description.application_.emplace(MediaEntry::Parse(mline, std::to_string(++index)));
-                curr_entry = &description.application_.value();
+                Application app(MediaEntry::Parse(mline, std::to_string(++index)));
+                description.SetApplication(std::move(app));
+                curr_entry = description.application();
             }else {
-                description.media_entries_.emplace_back(MediaEntry::Parse(mline, std::to_string(++index)), Direction::UNKNOWN);
-                curr_entry = &description.media_entries_.back();
+                Media media(MediaEntry::Parse(mline, std::to_string(++index)), Direction::UNKNOWN);
+                const std::string mid = media.mid();
+                description.AddMedia(std::move(media));
+                curr_entry = description.media(mid);
             }
         }
         // attributes which can appear at either session-level or media-level

@@ -14,7 +14,7 @@ TEST(DescriptionTest, BuildAnOffer) {
                     .set_ice_pwd("u8XPW6fYzsDGjQmCYCQ+9W8S")
                     .set_fingerprint("8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB");
     auto local_sdp = builder.Build();
-    local_sdp.set_application(sdp::Application("0"));
+    local_sdp.SetApplication(sdp::Application("0"));
     local_sdp.AddMedia(sdp::Audio("1", sdp::Direction::SEND_RECV));
     local_sdp.AddMedia(sdp::Video("2", sdp::Direction::SEND_RECV));
 
@@ -30,11 +30,11 @@ TEST(DescriptionTest, BuildAnOffer) {
     EXPECT_EQ(local_sdp.HasAudio(), true);
     EXPECT_EQ(local_sdp.HasVideo(), true);
 
-    std::optional<const sdp::Application> app = local_sdp.application();
-    std::optional<const sdp::Media> audio = local_sdp.media("1");
-    std::optional<const sdp::Media> video = local_sdp.media("2");
+    const sdp::Application* app = local_sdp.application();
+    const sdp::Media* audio = local_sdp.media("1");
+    const sdp::Media* video = local_sdp.media("2");
 
-    EXPECT_TRUE(app.has_value());
+    EXPECT_TRUE(app != nullptr);
     EXPECT_EQ(app->mid(), "0");
     EXPECT_TRUE(app->ice_ufrag().has_value());
     EXPECT_EQ(app->ice_ufrag().value(), "KTqE");
@@ -43,7 +43,7 @@ TEST(DescriptionTest, BuildAnOffer) {
     EXPECT_TRUE(app->fingerprint().has_value());
     EXPECT_EQ(app->fingerprint().value(), "8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB");
 
-    EXPECT_TRUE(audio.has_value());
+    EXPECT_TRUE(audio != nullptr);
     EXPECT_EQ(audio->mid(), "1");
     EXPECT_TRUE(audio->ice_ufrag().has_value());
     EXPECT_EQ(audio->ice_ufrag().value(), "KTqE");
@@ -53,7 +53,7 @@ TEST(DescriptionTest, BuildAnOffer) {
     EXPECT_EQ(audio->fingerprint().value(), "8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB");
     EXPECT_EQ(audio->direction(), sdp::Direction::SEND_RECV);
 
-    EXPECT_TRUE(video.has_value());
+    EXPECT_TRUE(video != nullptr);
     EXPECT_EQ(video->mid(), "2");
     EXPECT_TRUE(video->ice_ufrag().has_value());
     EXPECT_EQ(video->ice_ufrag().value(), "KTqE");
@@ -109,9 +109,9 @@ TEST(DescriptionTest, ParseAnOffer) {
     a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f)";
 
     auto remote_sdp = sdp::Description::Parser::Parse(remote_sdp_string, sdp::Type::OFFER);
-    std::optional<const sdp::Application> app = remote_sdp.application();
-    std::optional<const sdp::Media> audio = remote_sdp.media("1");
-    std::optional<const sdp::Media> video = remote_sdp.media("2");
+    const sdp::Application* app = remote_sdp.application();
+    const sdp::Media* audio = remote_sdp.media("1");
+    const sdp::Media* video = remote_sdp.media("2");
 
     EXPECT_EQ(remote_sdp.type(), sdp::Type::OFFER);
     EXPECT_EQ(remote_sdp.role(), sdp::Role::ACTIVE);
@@ -122,7 +122,7 @@ TEST(DescriptionTest, ParseAnOffer) {
     EXPECT_TRUE(remote_sdp.HasAudio());
     EXPECT_TRUE(remote_sdp.HasVideo());
 
-    EXPECT_TRUE(app.has_value());
+    EXPECT_TRUE(app != nullptr);
     EXPECT_EQ(app->mid(), "0");
     EXPECT_TRUE(app->ice_ufrag().has_value());
     EXPECT_EQ(app->ice_ufrag().value(), "KTqE");
@@ -131,7 +131,7 @@ TEST(DescriptionTest, ParseAnOffer) {
     EXPECT_TRUE(app->fingerprint().has_value());
     EXPECT_EQ(app->fingerprint().value(), "8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB");
 
-    EXPECT_TRUE(audio.has_value());
+    EXPECT_TRUE(audio != nullptr);
     EXPECT_EQ(audio->mid(), "1");
     EXPECT_TRUE(audio->ice_ufrag().has_value());
     EXPECT_EQ(audio->ice_ufrag().value(), "KTqE");
@@ -141,7 +141,7 @@ TEST(DescriptionTest, ParseAnOffer) {
     EXPECT_EQ(audio->fingerprint().value(), "8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB");
     EXPECT_EQ(audio->direction(), sdp::Direction::RECV_ONLY);
 
-    EXPECT_TRUE(video.has_value());
+    EXPECT_TRUE(video != nullptr);
     EXPECT_EQ(video->mid(), "2");
     EXPECT_TRUE(video->ice_ufrag().has_value());
     EXPECT_EQ(video->ice_ufrag().value(), "KTqE");
