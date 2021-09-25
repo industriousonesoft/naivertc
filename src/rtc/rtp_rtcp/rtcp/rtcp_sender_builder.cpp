@@ -195,7 +195,7 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
 
     PLOG_INFO << "timestamp_offset: " << timestamp_offset_ 
               << " last_rtp_timestamp: " << last_rtp_timestamp_ 
-              << "rtp_timestamp: " << rtp_timestamp;
+              << " rtp_timestamp: " << rtp_timestamp;
 
     rtcp::SenderReport sr;
     sr.set_sender_ssrc(ssrc_);

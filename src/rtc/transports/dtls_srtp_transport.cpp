@@ -136,7 +136,11 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
                 PLOG_VERBOSE << "Unprotected SRTCP packet, size: " << unprotected_data_size;
               
                 in_packet.Resize(unprotected_data_size);
-             
+
+                if (rtp_packet_recv_callback_) {
+                    rtp_packet_recv_callback_(std::move(in_packet), true /* RTCP */);
+                }
+            // RTP packet
             }else if (rtp::utils::IsRtpPacket(in_packet)) {
                 PLOG_VERBOSE << "Incoming SRTP packet, size: " << packet_size;
                 int unprotected_data_size = int(packet_size);
@@ -153,6 +157,10 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
                 PLOG_VERBOSE << "Unprotected SRTP packet, size: " << unprotected_data_size;
              
                 in_packet.Resize(unprotected_data_size);
+
+                if (rtp_packet_recv_callback_) {
+                    rtp_packet_recv_callback_(std::move(in_packet), false);
+                }
                 
             }else {
                 PLOG_WARNING << "Incoming packet is neither a RTP packet nor a RTCP packet, ignoring.";

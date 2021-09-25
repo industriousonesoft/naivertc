@@ -9,7 +9,7 @@ namespace rtcp {
 
 // PSFB: Payload-specific feedback message are identified by  
 // the value PT=PSFB as RTCP message type
-// RFC 4585, Section 6.3
+// RFC 4585, section 6.3
 // Three payload-specific FB messages are defined so far plus an
 //    application layer FB message.  They are identified by means of the
 //    FMT parameter as follows:

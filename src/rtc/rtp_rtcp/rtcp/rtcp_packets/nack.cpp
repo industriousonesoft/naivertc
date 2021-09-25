@@ -8,7 +8,7 @@
 namespace naivertc {
 namespace rtcp {
 
-// RFC 4585: Feedback format.
+// RFC 4585, section 6.1: Feedback format.
 //
 // Common packet format:
 //
