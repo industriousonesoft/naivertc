@@ -24,9 +24,11 @@ std::string Application::FormatDescription() const {
 }
 
 Application Application::ReciprocatedSDP() const {
-    Application reciprocated_sdp(*this);
-    reciprocated_sdp.max_message_size_.reset();
-    return reciprocated_sdp;
+    Application reciprocated(*this);
+    // FIXME: I think reserving those properties as default value is better, as we can change them anytime.
+    // reciprocated.sctp_port_.reset();
+    // reciprocated.max_message_size_.reset();
+    return reciprocated;
 }
 
 bool Application::ParseSDPLine(std::string_view line) {

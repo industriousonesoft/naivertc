@@ -281,18 +281,20 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
         }
         remote->ForEach([this, &local_sdp](const sdp::Media& remote_media){
             // Prefer local media track
+            // The local media track will override the remote media track with the same mid
             if (auto it = media_tracks_.find(remote_media.mid()); it != media_tracks_.end()) {
-                // The local media track is still alive.
-                if (auto local_track = it->second.lock()) {
-                    auto local_media = local_track->description();
-                    PLOG_DEBUG << "Adding media to local description, mid=" << local_media.mid()
+                // The local media track for mid is still alive.
+                if (auto existed_track = it->second.lock()) {
+                    auto media = existed_track->description();
+                    PLOG_DEBUG << "Adding media to local description, mid=" << media.mid()
                                 << ", active=" << std::boolalpha
-                                << (local_media.direction() != sdp::Direction::INACTIVE);
+                                << (media.direction() != sdp::Direction::INACTIVE);
 
-                    local_sdp.AddMedia(std::move(local_media));
+                    local_sdp.AddMedia(std::move(media));
                 // The local media track was not owned any more.
                 }else {
                     auto reciprocated = remote_media.ReciprocatedSDP();
+                    // Unowned media track means inactive.
                     reciprocated.set_direction(sdp::Direction::INACTIVE);
 
                     PLOG_DEBUG << "Adding inactive media to local description, mid=" << reciprocated.mid();
@@ -304,7 +306,8 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 
                 OnIncomingMediaTrack(reciprocated);
 
-                PLOG_DEBUG << "Reciprocating media in local description, mid: " << reciprocated.mid();
+                PLOG_DEBUG << "Reciprocating media in local description, mid=" << reciprocated.mid()
+                           << ", active=" << (reciprocated.direction() != sdp::Direction::INACTIVE ? "true" : "false");
 
                 local_sdp.AddMedia(std::move(reciprocated));
             }
@@ -337,7 +340,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
             local_sdp.SetApplication(std::move(app));
         }
 
-        // Add media for local tracks
+        // Add local media tracks
         for (auto& kv : media_tracks_) {
             if (auto track = kv.second.lock()) {
                 // Filter existed tracks

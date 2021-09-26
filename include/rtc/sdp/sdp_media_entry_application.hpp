@@ -13,8 +13,6 @@ public:
     Application(std::string mid);
     ~Application();
 
-    Application ReciprocatedSDP() const;
-
     std::optional<uint16_t> sctp_port() const { return sctp_port_; }
     void set_sctp_port(uint16_t port) { sctp_port_ = port; }
     void HintSctpPort(uint16_t port) { sctp_port_ = sctp_port_.value_or(port); }
@@ -24,6 +22,8 @@ public:
 
     bool ParseSDPLine(std::string_view line) override;
     bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
+
+    Application ReciprocatedSDP() const;
 
 private:
     std::string FormatDescription() const override;

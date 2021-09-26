@@ -32,7 +32,7 @@ Media::SsrcEntry::SsrcEntry(uint32_t ssrc,
 // Media
 Media::Media() 
     : MediaEntry(),
-      direction_(Direction::UNKNOWN) {}
+      direction_(Direction::INACTIVE) {}
 
 Media::Media(const MediaEntry& entry, Direction direction)
     : MediaEntry(entry),
@@ -76,10 +76,10 @@ Media::SsrcEntry* Media::AddSsrc(SsrcEntry entry) {
 }
 
 Media::SsrcEntry* Media::AddSsrc(uint32_t ssrc,
-                    SsrcEntry::Kind kind,
-                    std::optional<std::string> cname, 
-                    std::optional<std::string> msid, 
-                    std::optional<std::string> track_id) {
+                                 SsrcEntry::Kind kind,
+                                 std::optional<std::string> cname, 
+                                 std::optional<std::string> msid, 
+                                 std::optional<std::string> track_id) {
     return AddSsrc(SsrcEntry(ssrc, kind, cname, msid, track_id));
 }
 
@@ -153,6 +153,13 @@ std::optional<uint32_t> Media::FecSsrcAssociatedWithMediaSsrc(uint32_t ssrc) con
     return std::nullopt;
 }
 
+void Media::ClearAllSsrcs() {
+    ssrc_entries_.clear();
+    media_ssrcs_.clear();
+    rtx_ssrcs_.clear();
+    fec_ssrcs_.clear();
+}
+
 bool Media::HasPayloadType(int pt) const {
     return rtp_maps_.find(pt) != rtp_maps_.end();
 }
@@ -172,22 +179,25 @@ void Media::AddRtpMap(RtpMap map) {
 }
 
 Media Media::ReciprocatedSDP() const {
-    Media reciprocated_sdp(*this);
+    Media reciprocated(*this);
 
     // Invert direction
     switch (direction()) {
     case sdp::Direction::RECV_ONLY:
-        reciprocated_sdp.set_direction(sdp::Direction::SEND_ONLY);
+        reciprocated.set_direction(sdp::Direction::SEND_ONLY);
         break;
     case sdp::Direction::SEND_ONLY:
-        reciprocated_sdp.set_direction(sdp::Direction::RECV_ONLY);
+        reciprocated.set_direction(sdp::Direction::RECV_ONLY);
         break;
     default:
         // Keep the original direction
         break;
     }
 
-    return reciprocated_sdp;
+    // Clear all ssrcs as them are individual
+    reciprocated.ClearAllSsrcs();
+
+    return reciprocated;
 }
 
 // Override

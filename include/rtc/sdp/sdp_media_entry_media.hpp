@@ -58,6 +58,7 @@ public:
     SsrcEntry* ssrc(uint32_t ssrc);
     const SsrcEntry* ssrc(uint32_t ssrc) const;
     SsrcEntry::Kind kind(uint32_t ssrc) const;
+    void ClearAllSsrcs();
 
     std::optional<uint32_t> RtxSsrcAssociatedWithMediaSsrc(uint32_t ssrc) const;
     std::optional<uint32_t> FecSsrcAssociatedWithMediaSsrc(uint32_t ssrc) const;

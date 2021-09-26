@@ -32,7 +32,7 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
                 description.SetApplication(std::move(app));
                 curr_entry = description.application();
             }else {
-                Media media(MediaEntry::Parse(mline, std::to_string(++index)), Direction::UNKNOWN);
+                Media media(MediaEntry::Parse(mline, std::to_string(++index)), Direction::INACTIVE);
                 const std::string mid = media.mid();
                 description.AddMedia(std::move(media));
                 curr_entry = description.media(mid);

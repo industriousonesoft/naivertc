@@ -22,11 +22,10 @@ enum class Role {
 };
 
 enum class Direction {
+    INACTIVE,
     SEND_ONLY,
     RECV_ONLY,
-    SEND_RECV,
-    INACTIVE,
-    UNKNOWN
+    SEND_RECV
 };
 
 } // namespace sdp
