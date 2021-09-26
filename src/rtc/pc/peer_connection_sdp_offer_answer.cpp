@@ -93,7 +93,7 @@ void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string
 // SDP Processor
 void PeerConnection::SetLocalDescription(sdp::Type type) {
     assert(signal_task_queue_->is_in_current_queue());
-    PLOG_VERBOSE << "Setting local description, type: " << sdp::TypeToString(type);
+    PLOG_VERBOSE << "Setting local description, type: " << type;
 
     if (type == sdp::Type::ROLLBACK) {
         if (signaling_state_ == SignalingState::HAVE_LOCAL_OFFER ||
@@ -129,7 +129,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     case SignalingState::STABLE: {
         // Stable means both the local and remote sdp not created yet, and here we need to create local sdp, and remote sdp is created by remote peer.
         if (type != sdp::Type::OFFER) {
-            throw std::logic_error("Unexpected local sdp type: " + sdp::TypeToString(type) + " for signaling state: stable");
+            throw std::logic_error("Unexpected local sdp type: " + sdp::ToString(type) + " for signaling state: stable");
         }
         new_signaling_state = SignalingState::HAVE_LOCAL_OFFER;
         break;
@@ -142,14 +142,15 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
         // 2. We have local pranswer, and now we need to recreate a pr-answer
         if (type != sdp::Type::ANSWER && 
             type != sdp::Type::PRANSWER) {
-            throw std::logic_error("Unexpected local sdp type: " + sdp::TypeToString(type) + "for signling state: " + signaling_state_to_string(signaling_state_));
+            throw std::logic_error("Unexpected local sdp type: " + sdp::ToString(type) + "for signling state: " + signaling_state_to_string(signaling_state_));
         }
         // Now we have both local and remote sdp. so the signaling state goes to stable.
         new_signaling_state = SignalingState::STABLE;
         break;
     }
     default:
-        PLOG_WARNING << "Ignore unexpected local sdp type: " <<  sdp::TypeToString(type) << " in signaling state: " << signaling_state_to_string(signaling_state_);
+        PLOG_WARNING << "Ignore unexpected local sdp type: " <<  type
+                     << " in signaling state: " << signaling_state_to_string(signaling_state_);
         return;
     }
 
@@ -175,7 +176,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
 
 void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
     assert(signal_task_queue_->is_in_current_queue());
-    PLOG_VERBOSE << "Setting remote sdp: " << sdp::TypeToString(remote_sdp.type());
+    PLOG_VERBOSE << "Setting remote sdp: " << remote_sdp.type();
 
     // This is basically not gonna happen since we accept any offer
     if (remote_sdp.type() == sdp::Type::ROLLBACK) {
@@ -196,7 +197,7 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
         // TODO: Do we need to accept a remote pr-answer sdp in stable signaling state, not only the remote offer sdp?
         remote_sdp.HintType(sdp::Type::OFFER);
         if (remote_sdp.type() != sdp::Type::OFFER) {
-            throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: stable");
+            throw std::logic_error("Unexpected remote sdp type: " + sdp::ToString(remote_sdp.type()) + " in signaling state: stable");
         }
         new_signaling_state = SignalingState::HAVE_REMOTE_OFFER;
         break;
@@ -205,7 +206,7 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
         remote_sdp.HintType(sdp::Type::ANSWER);
         if (remote_sdp.type() != sdp::Type::ANSWER &&
             remote_sdp.type() != sdp::Type::PRANSWER) {
-            throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
+            throw std::logic_error("Unexpected remote sdp type: " + sdp::ToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
         }
         if (remote_sdp.type() == sdp::Type::OFFER) {
             // The ICE agent will intiate a rollback automatically when a peer had
@@ -223,14 +224,14 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
         remote_sdp.HintType(sdp::Type::ANSWER);
         if (remote_sdp.type() != sdp::Type::ANSWER &&
             remote_sdp.type() != sdp::Type::PRANSWER) {
-            throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
+            throw std::logic_error("Unexpected remote sdp type: " + sdp::ToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
         }
         new_signaling_state = SignalingState::STABLE;
         break;
     }
     default:
         // TODO: Do we need to accept a remote offer sdp in the HAVE_REMOTE_OFFER state, and repalce the old remote offer sdp with the new one?
-        throw std::logic_error("Unexpected remote sdp type: " + sdp::TypeToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
+        throw std::logic_error("Unexpected remote sdp type: " + sdp::ToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
     }
 
     ProcessRemoteDescription(std::move(remote_sdp));
@@ -254,7 +255,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
     // Clean up the application entry added by ICE transport already.
     local_sdp.ClearMediaEntries();
 
-    // Reciprocate remote session description
+    // Reciprocate remote session description, e.g.: the local is answer and the remote is offer.
     if (auto remote = this->remote_sdp_) {
         // https://wanghenshui.github.io/2018/08/15/variant-visit
         if (auto remote_app = remote->application()) {
@@ -291,6 +292,8 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                                 << (media.direction() != sdp::Direction::INACTIVE);
 
                     local_sdp.AddMedia(std::move(media));
+
+                    // TODO: Add receive stream if remote has SSRC stream
                 // The local media track was not owned any more.
                 }else {
                     auto reciprocated = remote_media.ReciprocatedSDP();
@@ -492,6 +495,8 @@ void PeerConnection::OnIncomingMediaTrack(sdp::Media description) {
             }else {
                 this->pending_media_tracks_.push_back(std::move(media_track));
             }
+        }else {
+            // TODO: Add a reveive stream if incoming media has SSRC stream
         }
     });
 }

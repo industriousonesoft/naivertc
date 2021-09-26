@@ -92,7 +92,7 @@ std::string Entry::GenerateSDP(const std::string eol, Role role) const {
     }
 
     // The role in DTLS negotiation, See rfc4145 rfc4572
-    oss << "a=setup:" << RoleToString(role) << eol;
+    oss << "a=setup:" << role << eol;
 
     return oss.str();
 }

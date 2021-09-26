@@ -372,22 +372,8 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
     const std::string sp = " ";
     oss << MediaEntry::GenerateSDPLines(eol);
 
-    switch(direction_) {
-    case Direction::SEND_ONLY: 
-        oss << "a=sendonly" << eol;
-        break;
-    case Direction::RECV_ONLY: 
-        oss << "a=recvonly" << eol;
-        break;
-    case Direction::SEND_RECV: 
-        oss << "a=sendrecv" << eol;
-        break;
-    case Direction::INACTIVE: 
-        oss << "a=inactive" << eol;
-        break;
-    default:
-        break;
-    }
+    // a=sendrecv
+    oss << "a=" << direction_ << eol;
 
     // Rtp and Rtcp share the same socket and connection
     // instead of using two separate connections.

@@ -221,22 +221,22 @@ std::ostream& operator<<(std::ostream& out, PeerConnection::ConnectionState stat
     using State = PeerConnection::ConnectionState;
     switch(state) {
     case State::NEW:
-        out << "NEW";
+        out << "new";
         break;
     case State::CONNECTING:
-        out << "CONNECTING";
+        out << "connecting";
         break;
     case State::CONNECTED:
-        out << "CONNECTED";
+        out << "connected";
         break;
     case State::DISCONNECTED:
-        out << "DISCONNECTED";
+        out << "disconnected";
         break;
     case State::FAILED:
-        out << "FAILED";
+        out << "failed";
         break;
     case State::CLOSED:
-        out << "CLOSED";
+        out << "closed";
         break;
     default:
         break;
@@ -248,13 +248,13 @@ std::ostream& operator<<(std::ostream& out, PeerConnection::GatheringState state
     using State = PeerConnection::GatheringState;
     switch(state) {
     case State::NEW:
-        out << "NEW";
+        out << "new";
         break;
     case State::GATHERING:
-        out << "GATHERING";
+        out << "gathering";
         break;
     case State::COMPLETED:
-        out << "COMPLETED";
+        out << "completed";
         break;
     default:
         break;
@@ -266,19 +266,19 @@ std::ostream& operator<<(std::ostream& out, PeerConnection::SignalingState state
     using State = PeerConnection::SignalingState;
     switch(state) {
     case State::STABLE:
-        out << "STABLE";
+        out << "stable";
         break;
     case State::HAVE_LOCAL_OFFER:
-        out << "HAVE_LOCAL_OFFER";
+        out << "has local offer";
         break;
     case State::HAVE_LOCAL_PRANSWER:
-        out << "HAVE_LOCAL_PRANSWER";
+        out << "have local pranswer";
         break;
     case State::HAVE_REMOTE_OFFER:
-        out << "HAVE_REMOTE_OFFER";
+        out << "has remote offer";
         break;
     case State::HAVE_REMOTE_PRANSWER:
-        out << "HAVE_REMOTE_PRANSWER";
+        out << "have remote pranswer";
         break;
     default:
         break;
@@ -286,4 +286,4 @@ std::ostream& operator<<(std::ostream& out, PeerConnection::SignalingState state
     return out;
 }
     
-}
+} // namespace naivertc

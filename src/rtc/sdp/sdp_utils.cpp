@@ -4,7 +4,7 @@
 namespace naivertc {
 namespace sdp {
 
-sdp::Type StringToType(std::string_view type_string) {
+sdp::Type StringToType(const std::string_view type_string) {
     using type_map_t = std::unordered_map<std::string_view, sdp::Type>;
     static const type_map_t type_map = {
         {"unspec", sdp::Type::UNSPEC},
@@ -17,7 +17,7 @@ sdp::Type StringToType(std::string_view type_string) {
     return it != type_map.end() ? it->second : sdp::Type::UNSPEC;
 }
 
-std::string TypeToString(sdp::Type type) {
+std::string ToString(sdp::Type type) {
     switch (type) {
     case sdp::Type::UNSPEC:
         return "unspec";
@@ -34,7 +34,7 @@ std::string TypeToString(sdp::Type type) {
     }
 }
 
-std::string RoleToString(sdp::Role role) {
+std::string ToString(sdp::Role role) {
     switch (role) {
     case sdp::Role::ACT_PASS:
         return "actpass";
@@ -61,7 +61,7 @@ std::optional<std::string> ParseFingerprintAttribute(std::string_view value) {
 // 常规的SHA256哈希值是一个长度为32个字节的数组，通常用一个长度为64的十六进制字符串来表示
 // SDP中的fingerprint在每两个个字节之间加入了一个间隔符”:“，因此长度=32 * 2 +（32 - 1）
 constexpr int kSHA256FixedLength = 32 * 3 - 1;
-bool IsSHA256Fingerprint(std::string_view fingerprint) {
+bool IsSHA256Fingerprint(const std::string_view fingerprint) {
     if (fingerprint.size() != kSHA256FixedLength) {
         return false;
     }

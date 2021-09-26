@@ -62,6 +62,7 @@ set(LIB_SOURCES
     src/rtc/base/copy_on_write_buffer.cpp
     
     # rtc -> sdp
+    src/rtc/sdp/sdp_defines.cpp
     src/rtc/sdp/sdp_utils.cpp
     src/rtc/sdp/candidate.cpp
     src/rtc/sdp/sdp_description.cpp
