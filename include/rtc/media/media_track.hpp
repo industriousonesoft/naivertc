@@ -58,9 +58,9 @@ public:
     ~MediaTrack();
 
     sdp::Direction direction() const;
+    
     sdp::Media description() const;
-
-    void UpdateDescription(sdp::Media description);
+    void set_description(sdp::Media description);
 
 private:
     static std::optional<int> NextPayloadType(Kind kind);

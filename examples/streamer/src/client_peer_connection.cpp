@@ -17,24 +17,24 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     peer_conn_ = PeerConnection::Create(rtc_config);
 
     peer_conn_->OnConnectionStateChanged([](PeerConnection::ConnectionState new_state){
-        PLOG_DEBUG << "Peer connection state:" << new_state;
+        PLOG_INFO << "Peer connection state:" << new_state;
     });
 
     peer_conn_->OnIceGatheringStateChanged([](PeerConnection::GatheringState new_state) {
-        PLOG_DEBUG << "Peer gathering state: " << new_state;
+        PLOG_INFO << "Peer gathering state: " << new_state;
     });
 
     peer_conn_->OnIceCandidate([this](const sdp::Candidate& candidate){
         auto mid = candidate.mid();
         auto sdp = std::string(candidate);
-        PLOG_DEBUG << "Local candidate => mid: " << mid << " sdp: " << sdp;
+        PLOG_INFO << "Local candidate => mid: " << mid << " sdp: " << sdp;
         ioc_.post(strand_.wrap([this, mid = std::move(mid), sdp = std::move(sdp)](){
             this->SendLocalCandidate(mid, sdp);
         }));
     });
 
     peer_conn_->OnDataChannel([](std::shared_ptr<DataChannel> data_channel){
-        PLOG_DEBUG << "Remote data channel: " << data_channel->label();
+        PLOG_INFO << "Remote data channel: " << data_channel->label();
     }); 
 
 #if HAS_MEDIA
@@ -91,10 +91,10 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     });
 
     data_channel_->OnMessageReceived([weak_dc=make_weak_ptr(data_channel_)](const std::string text){
-        PLOG_VERBOSE << "OnTextMessageReceived : " << text;
+        PLOG_INFO << "OnTextMessageReceived : " << text;
         if (auto dc = weak_dc.lock()) {
             auto res = "Hi, " + text;
-            PLOG_VERBOSE << "Response: " << res;
+            PLOG_INFO << "Response: " << res;
             dc->Send(res);
         }
     });

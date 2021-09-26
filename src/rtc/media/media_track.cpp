@@ -29,7 +29,7 @@ sdp::Media MediaTrack::description() const {
     });
 }
 
-void MediaTrack::UpdateDescription(sdp::Media description) {
+void MediaTrack::set_description(sdp::Media description) {
     task_queue_.Async([this, description=std::move(description)](){
         description_ = std::move(description);
     });

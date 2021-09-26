@@ -239,7 +239,8 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
     UpdateSignalingState(new_signaling_state);
 
     // If this is an offer, we need to answer it
-    if (remote_sdp_ && remote_sdp_->type() == sdp::Type::OFFER && rtc_config_.auto_negotiation) {
+    if (remote_sdp_ && remote_sdp_->type() == sdp::Type::OFFER &&
+        rtc_config_.auto_negotiation) {
         SetLocalDescription(sdp::Type::ANSWER);
     }
 
