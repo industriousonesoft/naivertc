@@ -7,8 +7,6 @@
 #include "rtc/sdp/sdp_session_entry.hpp"
 #include "rtc/sdp/sdp_media_entry_application.hpp"
 #include "rtc/sdp/sdp_media_entry_media.hpp"
-#include <rtc/sdp/sdp_media_entry_audio.hpp>
-#include <rtc/sdp/sdp_media_entry_video.hpp>
 
 #include <string>
 #include <map>

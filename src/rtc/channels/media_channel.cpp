@@ -4,11 +4,18 @@
 
 namespace naivertc {
 
-MediaChannel::MediaChannel(const std::string mid) 
-    : mid_(std::move(mid)),
+MediaChannel::MediaChannel(Kind kind, std::string mid) 
+    : kind_(kind),
+      mid_(std::move(mid)),
       task_queue_("MediaChannel."+ mid + ".task.queue") {}
 
 MediaChannel::~MediaChannel() {}
+
+MediaChannel::Kind MediaChannel::kind() const {
+    return task_queue_.Sync<Kind>([this](){
+        return kind_;
+    });
+}
 
 const std::string MediaChannel::mid() const {
     return task_queue_.Sync<std::string>([this](){
@@ -71,6 +78,20 @@ void MediaChannel::TriggerClose() {
     if (closed_callback_) {
         closed_callback_();
     }
+}
+
+std::ostream& operator<<(std::ostream& out, MediaChannel::Kind kind) {
+    switch(kind) {
+    case MediaChannel::Kind::AUDIO:
+        out << "audio";
+        break;
+    case MediaChannel::Kind::VIDEO:
+        out << "video";
+        break;
+    default:
+        break;
+    }
+    return out;
 }
 
 } // namespace naivertc

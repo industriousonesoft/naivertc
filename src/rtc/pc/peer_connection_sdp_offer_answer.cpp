@@ -287,12 +287,12 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
             if (auto it = media_tracks_.find(remote_media.mid()); it != media_tracks_.end()) {
                 // The local media track for mid is still alive.
                 if (auto existed_track = it->second.lock()) {
-                    auto media = existed_track->description();
-                    PLOG_DEBUG << "Adding media to local description, mid=" << media.mid()
+                    const sdp::Media* media = existed_track->description();
+                    PLOG_DEBUG << "Adding media to local description, mid=" << media->mid()
                                 << ", active=" << std::boolalpha
-                                << (media.direction() != sdp::Direction::INACTIVE);
+                                << (media->direction() != sdp::Direction::INACTIVE);
 
-                    local_sdp.AddMedia(std::move(media));
+                    local_sdp.AddMedia(*media);
 
                     // TODO: Add receive stream if remote has SSRC stream
                 // The local media track was not owned any more.
@@ -351,13 +351,13 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                 if (local_sdp.HasMid(track->mid())) {
                     continue;
                 }
-                auto media = track->description();
+                const sdp::Media* media = track->description();
 
-                PLOG_DEBUG << "Adding media to local description, mid=" << media.mid()
+                PLOG_DEBUG << "Adding media to local description, mid=" << media->mid()
                             << ", active=" << std::boolalpha
-                            << (media.direction() != sdp::Direction::INACTIVE);
+                            << (media->direction() != sdp::Direction::INACTIVE);
 
-                local_sdp.AddMedia(std::move(media));
+                local_sdp.AddMedia(*media);
             }
         }
     } 

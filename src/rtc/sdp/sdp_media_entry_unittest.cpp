@@ -1,7 +1,6 @@
 #include "rtc/sdp/sdp_media_entry.hpp"
 #include "rtc/sdp/sdp_media_entry_application.hpp"
-#include "rtc/sdp/sdp_media_entry_audio.hpp"
-#include "rtc/sdp/sdp_media_entry_video.hpp"
+#include "rtc/sdp/sdp_media_entry_media.hpp"
 
 #include <gtest/gtest.h>
 
@@ -15,24 +14,24 @@ TEST(SDPEntryTest, CreateApplicationEntry) {
     sdp::Application app("data");
 
     EXPECT_EQ(app.mid(), "data");
-    EXPECT_EQ(app.type(), sdp::MediaEntry::Type::APPLICATION);
+    EXPECT_EQ(app.kind(), sdp::MediaEntry::Kind::APPLICATION);
 }
 
 // Video entry
 TEST(SDPEntryTest, CreateVideoEntry) {
-    sdp::Video video("video", sdp::Direction::SEND_ONLY);
+    sdp::Media video(sdp::MediaEntry::Kind::VIDEO, "video", "UDP/TLS/RTP/SAVPF", sdp::Direction::SEND_ONLY);
 
     EXPECT_EQ(video.mid(), "video");
-    EXPECT_EQ(video.type(), sdp::MediaEntry::Type::VIDEO);
+    EXPECT_EQ(video.kind(), sdp::MediaEntry::Kind::VIDEO);
     EXPECT_EQ(video.direction(), sdp::Direction::SEND_ONLY);
 }
 
 // Audio entry
 TEST(SDPEntryTest, CreateAudioEntry) {
-    sdp::Audio audio("audio", sdp::Direction::RECV_ONLY);
+    sdp::Media audio(sdp::MediaEntry::Kind::AUDIO, "audio", "UDP/TLS/RTP/SAVPF", sdp::Direction::RECV_ONLY);
 
     EXPECT_EQ(audio.mid(), "audio");
-    EXPECT_EQ(audio.type(), sdp::MediaEntry::Type::AUDIO);
+    EXPECT_EQ(audio.kind(), sdp::MediaEntry::Kind::AUDIO);
     EXPECT_EQ(audio.direction(), sdp::Direction::RECV_ONLY);
 }
 

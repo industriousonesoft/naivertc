@@ -1,7 +1,5 @@
 #include "rtc/sdp/sdp_description.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
-#include "rtc/sdp/sdp_media_entry_audio.hpp"
-#include "rtc/sdp/sdp_media_entry_video.hpp"
 
 #include <plog/Log.h>
 
@@ -87,7 +85,7 @@ bool Description::HasMedia() const {
 
 bool Description::HasAudio() const {
     for (const auto& entry : medias_) {
-        if (entry->type() == sdp::MediaEntry::Type::AUDIO) {
+        if (entry->kind() == MediaEntry::Kind::AUDIO) {
             return true;
         } 
     }
@@ -96,7 +94,7 @@ bool Description::HasAudio() const {
 
 bool Description::HasVideo() const {
     for (const auto& entry : medias_) {
-        if (entry->type() == sdp::MediaEntry::Type::VIDEO) {
+        if (entry->kind() == MediaEntry::Kind::VIDEO) {
             return true;
         } 
     }
@@ -214,7 +212,7 @@ std::string Description::GenerateSDP(const std::string eol, bool application_onl
     // Media entries lines
     for (const auto& [key, value] : media_entries_) {
         if (auto entry = value.lock()) {
-            if (application_only && entry->type() != MediaEntry::Type::APPLICATION) {
+            if (application_only && entry->kind() != MediaEntry::Kind::APPLICATION) {
                 continue;
             }
             oss << entry->GenerateSDP(eol, role_);

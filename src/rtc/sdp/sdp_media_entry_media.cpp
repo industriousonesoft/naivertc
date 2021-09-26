@@ -42,11 +42,11 @@ Media::Media(MediaEntry&& entry, Direction direction)
     : MediaEntry(entry),
       direction_(direction) {}
 
-Media::Media(Type type, 
+Media::Media(Kind kind, 
              std::string mid, 
              const std::string protocols,
              Direction direction) 
-    : MediaEntry(type, std::move(mid), protocols),
+    : MediaEntry(kind, std::move(mid), protocols),
       direction_(direction) {}
 
 Media::~Media() = default;
@@ -119,7 +119,7 @@ const Media::SsrcEntry* Media::ssrc(uint32_t ssrc) const {
     return nullptr;
 }
 
-Media::SsrcEntry::Kind Media::kind(uint32_t ssrc) const {
+Media::SsrcEntry::Kind Media::ssrc_kind(uint32_t ssrc) const {
     if (IsRtxSsrc(ssrc)) {
         return Media::SsrcEntry::Kind::RTX;
     }else if (IsFecSsrc(ssrc)) {
@@ -164,6 +164,14 @@ bool Media::HasPayloadType(int pt) const {
     return rtp_maps_.find(pt) != rtp_maps_.end();
 }
 
+std::vector<int> Media::payload_types() const {
+    std::vector<int> payload_types;
+    for (const auto& kv : rtp_maps_) {
+        payload_types.push_back(kv.first);
+    }
+    return payload_types;
+}
+
 bool Media::AddFeedback(int payload_type, const std::string feed_back) {
     auto it = rtp_maps_.find(payload_type);
     if (it == rtp_maps_.end()) {
@@ -176,6 +184,18 @@ bool Media::AddFeedback(int payload_type, const std::string feed_back) {
 
 void Media::AddRtpMap(RtpMap map) {
     rtp_maps_.emplace(map.payload_type, std::move(map));
+}
+
+void Media::AddCodec(int payload_type, 
+                     const std::string codec,
+                     int clock_rate,
+                     std::optional<const std::string> codec_params,
+                     std::optional<const std::string> profile) {
+    RtpMap rtp_map(payload_type, codec, clock_rate, codec_params);
+    if (profile.has_value()) {
+        rtp_map.fmt_profiles.emplace_back(profile.value());
+    }
+    AddRtpMap(rtp_map);
 }
 
 Media Media::ReciprocatedSDP() const {

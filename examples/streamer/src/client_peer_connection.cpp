@@ -44,7 +44,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     std::string media_stream_id = "naivertc-media-stream-id";
 
     // Local audio track
-    MediaTrack::Configuration audio_track_config("1", MediaTrack::Kind::AUDIO, MediaTrack::Codec::OPUS);
+    MediaTrack::Configuration audio_track_config(MediaTrack::Kind::AUDIO, "1", MediaTrack::Codec::OPUS);
     audio_track_config.cname.emplace(cname);
     audio_track_config.msid.emplace(media_stream_id);
     audio_track_config.track_id.emplace("audio-track-id-1");
@@ -58,7 +58,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     });
 
     // Local video track
-    MediaTrack::Configuration video_track_config("2", MediaTrack::Kind::VIDEO, MediaTrack::Codec::H264);
+    MediaTrack::Configuration video_track_config(MediaTrack::Kind::VIDEO, "2", MediaTrack::Codec::H264);
     video_track_config.nack_enabled = true;
     video_track_config.rtx_enabled = true;
     video_track_config.fec_codec.emplace(MediaTrack::FecCodec::ULP_FEC);

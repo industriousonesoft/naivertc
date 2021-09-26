@@ -6,13 +6,22 @@
 #include "common/task_queue.hpp"
 #include "rtc/transports/dtls_srtp_transport.hpp"
 
+#include <iostream>
+
 namespace naivertc {
 
 class RTC_CPP_EXPORT MediaChannel : public Channel {
 public:
-    MediaChannel(const std::string mid);
+    enum class Kind {
+        UNKNOWN,
+        VIDEO,
+        AUDIO
+    };
+public:
+    MediaChannel(Kind kind, std::string mid);
     virtual ~MediaChannel();
 
+    Kind kind() const;
     const std::string mid() const;
 
     bool is_opened() const;
@@ -28,6 +37,7 @@ private:
     void TriggerClose();
 
 protected:
+    const Kind kind_;
     const std::string mid_;
     TaskQueue task_queue_;
     bool is_opened_ = false;
@@ -38,6 +48,8 @@ protected:
     std::weak_ptr<DtlsSrtpTransport> srtp_transport_;
 };
 
-}
+RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaChannel::Kind kind);
+
+} // nemespace naivertc
 
 #endif

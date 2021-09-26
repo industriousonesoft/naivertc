@@ -73,8 +73,8 @@ set(LIB_SOURCES
     src/rtc/sdp/sdp_session_entry.cpp
     src/rtc/sdp/sdp_media_entry_application.cpp
     src/rtc/sdp/sdp_media_entry_media.cpp
-    src/rtc/sdp/sdp_media_entry_audio.cpp
-    src/rtc/sdp/sdp_media_entry_video.cpp
+    src/rtc/sdp/sdp_media_entry_media_audio.cpp
+    src/rtc/sdp/sdp_media_entry_media_video.cpp
 
     # rtc -> transports
     src/rtc/transports/transport.cpp
@@ -111,7 +111,7 @@ set(LIB_SOURCES
     
     # rtc -> media
     src/rtc/media/media_track.cpp
-    src/rtc/media/media_track_sdp_builder.cpp
+    src/rtc/media/media_track_sdp.cpp
     src/rtc/media/video/encoded_frame.cpp
     src/rtc/media/video/h264/nalunit.cpp
     src/rtc/media/video/h264/nalunit_fragment.cpp
@@ -260,8 +260,6 @@ set(LIB_HEADERS
     include/rtc/sdp/sdp_session_entry.hpp
     include/rtc/sdp/sdp_media_entry_application.hpp
     include/rtc/sdp/sdp_media_entry_media.hpp
-    include/rtc/sdp/sdp_media_entry_audio.hpp
-    include/rtc/sdp/sdp_media_entry_video.hpp
 
     # rtc -> transports
     include/rtc/transports/transport.hpp

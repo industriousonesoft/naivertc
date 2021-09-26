@@ -26,7 +26,7 @@ public:
     };
 public:
     Media(); // For Template in TaskQueue
-    Media(Type type, 
+    Media(Kind kind, 
           std::string mid, 
           const std::string protocols,
           Direction direction = Direction::SEND_ONLY);
@@ -40,6 +40,7 @@ public:
     void set_bandwidth_max_value(int value) { bandwidth_max_value_ = value; };
     int bandwidth_max_value() const { return bandwidth_max_value_; };
 
+    // Ssrc
     SsrcEntry* AddSsrc(uint32_t ssrc, 
                  SsrcEntry::Kind kind,
                  std::optional<std::string> cname = std::nullopt, 
@@ -57,14 +58,31 @@ public:
     const std::vector<uint32_t> fec_ssrcs() const { return fec_ssrcs_; };
     SsrcEntry* ssrc(uint32_t ssrc);
     const SsrcEntry* ssrc(uint32_t ssrc) const;
-    SsrcEntry::Kind kind(uint32_t ssrc) const;
+    SsrcEntry::Kind ssrc_kind(uint32_t ssrc) const;
     void ClearAllSsrcs();
 
     std::optional<uint32_t> RtxSsrcAssociatedWithMediaSsrc(uint32_t ssrc) const;
     std::optional<uint32_t> FecSsrcAssociatedWithMediaSsrc(uint32_t ssrc) const;
 
+    // Codec
+    void AddAudioCodec(int payload_type, 
+                       const std::string codec, 
+                       int clock_rate = 48000, 
+                       int channels = 2, 
+                       std::optional<const std::string> profile = std::nullopt);
+    void AddVideoCodec(int payload_type, 
+                       const std::string codec,
+                       std::optional<const std::string> profile = std::nullopt);
+
+    void AddCodec(int payload_type, 
+                  const std::string codec,
+                  int clock_rate,
+                  std::optional<const std::string> codec_params = std::nullopt,
+                  std::optional<const std::string> profile = std::nullopt);
+    
     bool AddFeedback(int payload_type, const std::string feed_back);
     bool HasPayloadType(int pt) const;
+    std::vector<int> payload_types() const;
 
     virtual bool ParseSDPLine(std::string_view line) override;
     virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;

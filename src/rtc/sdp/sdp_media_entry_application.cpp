@@ -13,7 +13,7 @@ Application::Application(MediaEntry&& entry)
     : MediaEntry(entry) {}
 
 Application::Application(std::string mid)
-    : MediaEntry(Type::APPLICATION, std::move(mid), "UDP/DTLS/SCTP") {}
+    : MediaEntry(Kind::APPLICATION, std::move(mid), "UDP/DTLS/SCTP") {}
 
 Application::~Application() {}
 

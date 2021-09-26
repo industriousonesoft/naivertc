@@ -16,18 +16,18 @@ namespace sdp {
 
 struct RTC_CPP_EXPORT MediaEntry : public Entry {
 public:
-    enum class Type {
+    enum class Kind {
         NONE,
         AUDIO,
         VIDEO,
-        APPLICATION
+        APPLICATION,
     };
 public:
     static MediaEntry Parse(const std::string& mline, std::string mid);
     virtual ~MediaEntry() = default;
 
-    Type type() const { return type_; }
-    std::string mid() const { return mid_; };
+    Kind kind() const { return kind_; }
+    const std::string mid() const { return mid_; };
     
     virtual bool ParseSDPLine(std::string_view line) override;
     virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
@@ -35,17 +35,17 @@ public:
 
 protected:
     MediaEntry();
-    MediaEntry(Type type, 
+    MediaEntry(Kind kind, 
                std::string mid, 
                const std::string protocols);
 
     virtual std::string FormatDescription() const;
     virtual std::string GenerateSDPLines(const std::string eol) const;   
 
-    static Type ToType(std::string_view type_string);
+    static Kind ToKind(const std::string_view kind_string);
    
 private:
-    Type type_;
+    Kind kind_;
     std::string mid_;
     std::string protocols_;
    
@@ -57,7 +57,7 @@ private:
     std::optional<std::string> fingerprint_ = std::nullopt;
 };
 
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaEntry::Type type);
+RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaEntry::Kind kind);
 
 } // namespace sdp
 } // namespace naivert 

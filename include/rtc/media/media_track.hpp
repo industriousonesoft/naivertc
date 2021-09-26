@@ -13,15 +13,9 @@
 #include <iostream>
 
 namespace naivertc {
-
 class RTC_CPP_EXPORT MediaTrack : public MediaChannel,
                                   public std::enable_shared_from_this<MediaTrack> {
 public:
-    enum class Kind {
-        VIDEO,
-        AUDIO
-    };
-
     enum class Codec {
         H264,
         OPUS
@@ -35,42 +29,65 @@ public:
     };
 
     struct Configuration {
-        std::string mid;
         Kind kind;
+        std::string mid;
+        
+        std::optional<std::string> transport_protocols = std::nullopt;
+
+        std::optional<std::string> cname = std::nullopt;
+        std::optional<std::string> msid = std::nullopt;
+        std::optional<std::string> track_id = std::nullopt;
+
+        Configuration(Kind kind, 
+                      std::string mid,
+                      std::optional<std::string> transport_protocols = std::nullopt,
+                      std::optional<std::string> cname = std::nullopt,
+                      std::optional<std::string> msid = std::nullopt,
+                      std::optional<std::string> track_id = std::nullopt);
+    };
+
+    struct CodecParams {
         Codec codec;
-     
         bool nack_enabled = false;
         bool rtx_enabled = false;
         std::optional<FecCodec> fec_codec = std::nullopt;
+        std::optional<std::string> profile = std::nullopt;
 
-        std::optional<std::string> cname = std::nullopt;
-        std::optional<std::string> msid = std::nullopt; 
-        std::optional<std::string> track_id = std::nullopt;
-
-        Configuration(std::string mid, Kind kind, Codec codec);
+        CodecParams(Codec codec, 
+                    bool nack_enabled, 
+                    bool rtx_enabled, 
+                    std::optional<FecCodec> fec_codec = std::nullopt, 
+                    std::optional<std::string> profile = std::nullopt);
     };
-
+    
 public:
-    static std::optional<sdp::Media> BuildDescription(const MediaTrack::Configuration& config);
+    static std::optional<sdp::Media> CreateDescription(const MediaTrack::Configuration& config);
    
 public:
     MediaTrack(sdp::Media description);
     ~MediaTrack();
 
     sdp::Direction direction() const;
-    
-    sdp::Media description() const;
+    const sdp::Media* description() const;
     void set_description(sdp::Media description);
+
+    bool AddCodec(const CodecParams& cp);
+
+    // void AddSendStream(uint32_t media_ssrc, std::optional<uint32_t> rtx_ssrc, std::optional<uint32_t> fec_ssrc);
+    // void AddRecvStream(uint32_t media_ssrc, std::optional<uint32_t> rtx_ssrc, std::optional<uint32_t> fec_ssrc);
 
 private:
     static std::optional<int> NextPayloadType(Kind kind);
+
+    bool AddVideoCodec(const CodecParams& cp);
+    bool AddAudioCodec(const CodecParams& cp);
     
 private:
     sdp::Media description_;
 };
 
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Kind kind);
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec);
+RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::FecCodec codec);
 
 } // namespace naivertc
 

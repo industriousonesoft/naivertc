@@ -15,11 +15,11 @@ TEST(DescriptionTest, BuildAnOffer) {
                     .set_fingerprint("8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB");
     auto local_sdp = builder.Build();
     sdp::Application* app = local_sdp.SetApplication(sdp::Application("0"));
-    sdp::Media* audio = local_sdp.AddMedia(sdp::Audio("1", sdp::Direction::SEND_RECV));
+    sdp::Media* audio = local_sdp.AddMedia(sdp::Media(sdp::MediaEntry::Kind::AUDIO, "1", "UDP/TLS/RTP/SAVPF", sdp::Direction::SEND_RECV));
     audio->AddSsrc(18509423, sdp::Media::SsrcEntry::Kind::MEDIA, "sTjtznXLCNH7nbRw", "h1aZ20mbQB0GSsq0YxLfJmiYWE9CBfGch97C", "15598a91-caf9-4fff-a28f-3082310b2b7a");
     audio->AddSsrc(27389734, sdp::Media::SsrcEntry::Kind::FEC, "sTjtznXLCNH7nbRw", "h1aZ20mbQB0GSsq0YxLfJmiYWE9CBfGch97C", "15598a91-caf9-4fff-a28f-3082310b2b7a");
 
-    sdp::Media* video = local_sdp.AddMedia(sdp::Video("2", sdp::Direction::SEND_RECV));
+    sdp::Media* video = local_sdp.AddMedia(sdp::Media(sdp::MediaEntry::Kind::VIDEO, "2", "UDP/TLS/RTP/SAVPF", sdp::Direction::SEND_RECV));
     video->AddSsrc(3463951252, sdp::Media::SsrcEntry::Kind::MEDIA, "sTjtznXLCNH7nbRw", "h1aZ20mbQB0GSsq0YxLfJmiYWE9CBfGch97C", "ead4b4e9-b650-4ed5-86f8-6f5f5806346d");
     video->AddSsrc(1461041037, sdp::Media::SsrcEntry::Kind::RTX, "sTjtznXLCNH7nbRw", "h1aZ20mbQB0GSsq0YxLfJmiYWE9CBfGch97C", "ead4b4e9-b650-4ed5-86f8-6f5f5806346d");
 
