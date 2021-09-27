@@ -41,6 +41,7 @@ set(LIB_SOURCES
     # common
     src/common/task_queue.cpp
     src/common/utils_string.cpp
+    src/common/utils_random.cpp
     src/common/utils_time.cpp
     src/common/utils_network.cpp
     src/common/logger.cpp

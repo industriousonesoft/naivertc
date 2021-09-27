@@ -40,6 +40,9 @@ RTC_CPP_EXPORT T random(T lhs, T rhs) {
     return uniform(generator);
 };
 
+// Random string
+RTC_CPP_EXPORT std::string random_string(int max_length);
+
 } // namespace random
 } // namespace utils
 } // naivertc
