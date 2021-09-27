@@ -143,7 +143,7 @@ void Description::RemoveMedia(const std::string_view mid) {
     for (auto it = medias_.begin(); it != medias_.end();) {
         auto media = std::shared_ptr<Media>(*it);
         if (media->mid() == mid) {
-            medias_.erase(it);
+            it = medias_.erase(it);
         }else {
             it++;
         }

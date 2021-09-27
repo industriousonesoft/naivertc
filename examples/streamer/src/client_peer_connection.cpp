@@ -44,33 +44,40 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     std::string media_stream_id = "naivertc-media-stream-id";
 
     // Local audio track
-    MediaTrack::Configuration audio_track_config(MediaTrack::Kind::AUDIO, "1", MediaTrack::Codec::OPUS);
+    MediaTrack::Configuration audio_track_config(MediaTrack::Kind::AUDIO, "1");
+    audio_track_config.direction = MediaTrack::Direction::SEND_ONLY;
+    audio_track_config.AddCodec(MediaTrack::Codec::OPUS);
+
     audio_track_config.cname.emplace(cname);
     audio_track_config.msid.emplace(media_stream_id);
     audio_track_config.track_id.emplace("audio-track-id-1");
-
+    
     audio_track_ = peer_conn_->AddTrack(audio_track_config);
     audio_track_->OnOpened([](){
-        PLOG_VERBOSE << "Local audio track is opened.";
+        PLOG_INFO << "Local audio track is opened.";
     });
     audio_track_->OnClosed([](){
-        PLOG_VERBOSE << "Local audio track is closed.";
+        PLOG_INFO << "Local audio track is closed.";
     });
 
     // Local video track
-    MediaTrack::Configuration video_track_config(MediaTrack::Kind::VIDEO, "2", MediaTrack::Codec::H264);
-    video_track_config.nack_enabled = true;
+    MediaTrack::Configuration video_track_config(MediaTrack::Kind::VIDEO, "2");
+    video_track_config.direction = MediaTrack::Direction::SEND_ONLY;
     video_track_config.rtx_enabled = true;
     video_track_config.fec_codec.emplace(MediaTrack::FecCodec::ULP_FEC);
+    video_track_config.AddCodec(MediaTrack::Codec::H264);
+    video_track_config.AddFeedback(MediaTrack::RtcpFeedback::NACK);
+
     video_track_config.cname.emplace(cname);
     video_track_config.msid.emplace(media_stream_id);
     video_track_config.track_id.emplace("video-track-id-1");
+
     video_track_ = peer_conn_->AddTrack(video_track_config);
     video_track_->OnOpened([](){
-        PLOG_VERBOSE << "Local video track is opened.";
+        PLOG_INFO << "Local video track is opened.";
     });
     video_track_->OnClosed([](){
-        PLOG_VERBOSE << "Local video track is closed.";
+        PLOG_INFO << "Local video track is closed.";
     });
 #endif
 
@@ -80,21 +87,21 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 
     data_channel_->OnOpened([weak_dc=make_weak_ptr(data_channel_)](){
         if (auto dc = weak_dc.lock()) {
-            PLOG_VERBOSE << "OnOpened : " << weak_dc.lock()->label();
+            PLOG_INFO << "OnOpened : " << weak_dc.lock()->label();
         }
     });
 
     data_channel_->OnClosed([weak_dc=make_weak_ptr(data_channel_)](){
         if (auto dc = weak_dc.lock()) {
-            PLOG_VERBOSE << "OnClosed : " << weak_dc.lock()->label();
+            PLOG_INFO << "OnClosed : " << weak_dc.lock()->label();
         }
     });
 
     data_channel_->OnMessageReceived([weak_dc=make_weak_ptr(data_channel_)](const std::string text){
-        PLOG_INFO << "OnTextMessageReceived : " << text;
+        PLOG_VERBOSE << "OnTextMessageReceived : " << text;
         if (auto dc = weak_dc.lock()) {
             auto res = "Hi, " + text;
-            PLOG_INFO << "Response: " << res;
+            PLOG_VERBOSE << "Response: " << res;
             dc->Send(res);
         }
     });
@@ -109,12 +116,12 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 
     // Incoming data channel
     peer_conn_->OnDataChannel([](std::shared_ptr<DataChannel> data_channel){
-        PLOG_VERBOSE << "Incoming data channel:" << data_channel->stream_id();
+        PLOG_INFO << "Incoming data channel:" << data_channel->stream_id();
     });
 
     // Incoming media track
     peer_conn_->OnMediaTrack([](std::shared_ptr<MediaTrack> media_track){
-        PLOG_VERBOSE << "Incoming media track:" << media_track->mid();
+        PLOG_INFO << "Incoming media track:" << media_track->mid();
     });
 
 }

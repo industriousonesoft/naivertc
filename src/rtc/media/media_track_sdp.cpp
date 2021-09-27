@@ -25,6 +25,8 @@ const std::string kDefaultOpusFormatProfile =
 */
 const std::string kDefaultTransportPortocols = "UDP/TLS/RTP/SAVPF";
 
+constexpr int kDefaultAudioChannels = 2;
+constexpr int kDefaultAudioSampleRate = 48000;
 constexpr int kDefaultVideoClockRate = 90000;
 
 }
@@ -53,138 +55,154 @@ std::optional<int> MediaTrack::NextPayloadType(Kind kind) {
     }
 }
 
-std::optional<sdp::Media> MediaTrack::CreateDescription(const MediaTrack::Configuration& config) {
+std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configuration& config) {
     std::optional<sdp::Media> media = std::nullopt;
-    if (config.kind == MediaTrack::Kind::VIDEO) {
-        media.emplace(sdp::Media(sdp::MediaEntry::Kind::VIDEO,
-                                 config.mid, 
-                                 config.transport_protocols.value_or(kDefaultTransportPortocols), 
-                                 sdp::Direction::SEND_ONLY));
-    }else if (config.kind == MediaTrack::Kind::AUDIO) {
-        media.emplace(sdp::Media(sdp::MediaEntry::Kind::AUDIO,
-                                 config.mid,
-                                 config.transport_protocols.value_or(kDefaultTransportPortocols), 
-                                 sdp::Direction::SEND_ONLY));
+    if (config.kind() == MediaTrack::Kind::AUDIO) {
+        sdp::Media audio = sdp::Media(sdp::MediaEntry::Kind::AUDIO,
+                                      config.mid(),
+                                      kDefaultTransportPortocols, 
+                                      config.direction);
+        AddCodecs(config, audio);
+        AddSsrcs(config, audio);
+        media.emplace(std::move(audio));
+    }else if (config.kind() == MediaTrack::Kind::VIDEO) {
+        sdp::Media video = sdp::Media(sdp::MediaEntry::Kind::VIDEO,
+                                      config.mid(),
+                                      kDefaultTransportPortocols, 
+                                      config.direction);
+        AddCodecs(config, video);
+        AddSsrcs(config, video);
+        media.emplace(std::move(video));
     }
+
     return media;
 }
 
-bool MediaTrack::AddCodec(const CodecParams& cp) {
-    return task_queue_.Sync<bool>([this, &cp](){
-        if (kind_ == MediaTrack::Kind::AUDIO) {
-            return AddAudioCodec(cp);
-        }else if (kind_ == MediaTrack::Kind::VIDEO) {
-            return AddVideoCodec(cp);
-        }else {
-            PLOG_WARNING << "Failed to add codec to a unknown kind media track.";
-            return false;
-        }
-    });
-}
-
-bool MediaTrack::AddVideoCodec(const CodecParams& cp) {
-    if (cp.codec == MediaTrack::Codec::H264) {
-        // Associated payload types of RTX
-        std::vector<int> associated_payload_types;
-        // Codec: H264
-        if (auto payload_type_opt = NextPayloadType(kind_)) {
+void MediaTrack::AddCodecs(const Configuration& config, sdp::Media& media) {
+    auto kind = config.kind();
+    // Associated payload types of RTX
+    std::vector<int> associated_payload_types;
+    // Media codecs
+    config.ForEachCodec([&](const CodecParams& cp){
+        if (auto payload_type_opt = NextPayloadType(kind)) {
             int payload_type = payload_type_opt.value();
-            description_.AddVideoCodec(payload_type, "H264", cp.profile.value_or(kDefaultH264FormatProfile));
-            // Feedback: NACK
-            if (cp.nack_enabled) {
-                description_.AddFeedback(payload_type, "nack");
-                // TODO: Support more feedbacks
-            }
+            // Media codec
+            AddMediaCodec(payload_type, cp, media);
+            // Feedbacks
+            config.ForEachFeedback([&](RtcpFeedback fb){
+                AddFeedback(payload_type, fb, media);
+            });
             // Protected by RTX
-            if (cp.rtx_enabled) {
+            if (config.rtx_enabled) {
                 associated_payload_types.push_back(payload_type);
             }
         }else {
-            PLOG_WARNING << "No more payload type for H264 codec";
+            PLOG_WARNING << "No more payload type for video codec:" << cp.codec;
+            return;
         }
-        
-        // Codec: FEC
-        if (cp.fec_codec.has_value()) {
-            // ULP_FEC + RED
-            if (cp.fec_codec.value() == FecCodec::ULP_FEC) {
-                // Codec: RED
-                if (auto payload_type_opt = NextPayloadType(kind_)) {
-                    int payload_type = payload_type_opt.value();
-                    description_.AddCodec(payload_type, "red", kDefaultVideoClockRate);
-                    // Protected by RTX
-                    if (cp.rtx_enabled) {
-                        associated_payload_types.push_back(payload_type);
-                    }
-                }else {
-                    PLOG_WARNING << "No more payload type for RED codec";
-                }
-                // Codec: ULP_FEC
-                if (auto payload_type_opt = NextPayloadType(kind_)) {
-                    int payload_type = payload_type_opt.value();
-                    description_.AddCodec(payload_type, "ulpfec", kDefaultVideoClockRate);
-                }else {
-                    PLOG_WARNING << "No more payload type for ULP_FEC codec";
-                }
-            }
-            // FlexFec + Ssrc
-            else {
-                // TODO: Build SDL line for FELX_FEC
-            }
-        }
-        // Codec: RTX
-        // See https://datatracker.ietf.org/doc/html/rfc4588#section-8
-        if (cp.rtx_enabled) {
-            for (const auto& apt : associated_payload_types) {
-                if (auto payload_type = NextPayloadType(kind_)) {
-                    // a=fmtp:<number> apt=<apt-value>;rtx-time=<rtx-time-val>
-                    // TODO: Set rtx-time if necessary
-                    description_.AddCodec(payload_type.value(), "rtx", kDefaultVideoClockRate, std::nullopt, "apt=" + std::to_string(apt));
-                }else {
-                    PLOG_WARNING << "No more payload type for RTX codec";
-                }
-            }
-        }
+    });
 
-        // ssrcs
-        // Media ssrc
-        // TODO: Add ssrc stream for sender
-        // media->AddSsrc(utils::random::generate_random<uint32_t>(), 
-        //                     sdp::Media::SsrcEntry::Kind::MEDIA, 
-        //                     cp.cname, config.msid, config.track_id);
-        // // RTX ssrc
-        // if (config.rtx_enabled) {
-        //     media_entry.AddSsrc(utils::random::generate_random<uint32_t>(), 
-        //                         sdp::Media::SsrcEntry::Kind::RTX, 
-        //                         config.cname, config.msid, config.track_id);
-        // }
-        // return media_entry;
-
-        return true;
-    }else {
-        PLOG_WARNING << "Unsupported video codec: " << cp.codec;
-        return false;
-    }
-}
-
-bool MediaTrack::AddAudioCodec(const CodecParams& cp) {
-    if (cp.codec == MediaTrack::Codec::OPUS) {
-        // Codec: Opus 
-        if (auto payload_type_opt = NextPayloadType(kind_)) {
+    int clock_rate = kind == MediaTrack::Kind::AUDIO ? kDefaultAudioSampleRate : kDefaultVideoClockRate;
+    // FEC codec
+    // ULP_FEC + RED
+    if (config.fec_codec == FecCodec::ULP_FEC) {
+        // Codec: RED
+        if (auto payload_type_opt = NextPayloadType(kind)) {
             int payload_type = payload_type_opt.value();
-            description_.AddAudioCodec(payload_type, "opus", 48000, 2, cp.profile.value_or(kDefaultOpusFormatProfile));
+            media.AddCodec(payload_type, "red", clock_rate);
+            // Protected by RTX
+            if (config.rtx_enabled) {
+                associated_payload_types.push_back(payload_type);
+            }
+        }else {
+            PLOG_WARNING << "No more payload type for RED codec";
         }
-        // TODO: Add feedback and FEC support.
-        // ssrc
-        // Media ssrc
-        // TODO: Add ssrc stream for sender
-        // media->AddSsrc(utils::random::generate_random<uint32_t>(), 
-        //                     sdp::Media::SsrcEntry::Kind::MEDIA,
-        //                     config.cname, config.msid, config.track_id);
+        // Codec: ULP_FEC
+        if (auto payload_type = NextPayloadType(kind)) {
+            media.AddCodec(payload_type.value(), "ulpfec", clock_rate);
+        }else {
+            PLOG_WARNING << "No more payload type for ULP_FEC codec";
+        }
+    }
+    // FlexFec + Ssrc
+    else if (config.fec_codec == FecCodec::FLEX_FEC) {
+        // Codec: FLEX_FEC
+        if (auto payload_type = NextPayloadType(kind)) {
+            media.AddCodec(payload_type.value(), "flexfec", clock_rate);
+        }else {
+            PLOG_WARNING << "No more payload type for ULP_FEC codec";
+        }
+        // TODO: Does the FLEX_FEC be protected by RTX?
+    }
+
+    // RTX codex
+    // a=fmtp:<number> apt=<apt-value>;rtx-time=<rtx-time-val>
+    // See https://datatracker.ietf.org/doc/html/rfc4588#section-8
+    if (config.rtx_enabled) {
+        for (const auto& apt : associated_payload_types) {
+            if (auto payload_type = NextPayloadType(kind)) {
+                // TODO: Add rtx-time attribute if necessary
+                media.AddCodec(payload_type.value(), "rtx", clock_rate, std::nullopt, "apt=" + std::to_string(apt));
+            }else {
+                PLOG_WARNING << "No more payload type for RTX codec";
+            }
+        }
+    }
+
+}
+
+bool MediaTrack::AddMediaCodec(int payload_type, const CodecParams& cp, sdp::Media& media) {
+    // Audio codecs
+    // OPUS
+    if (cp.codec == MediaTrack::Codec::OPUS) {
+        media.AddAudioCodec(payload_type, "opus", kDefaultAudioSampleRate, kDefaultAudioChannels, cp.profile.value_or(kDefaultOpusFormatProfile));
         return true;
-    }else {
-        PLOG_WARNING << "Unsupported audio codec: " << cp.codec;
+    }
+    // Video codecs
+    // H264
+    else if (cp.codec == MediaTrack::Codec::H264) {
+        media.AddVideoCodec(payload_type, "H264", cp.profile.value_or(kDefaultH264FormatProfile));
+        return true;
+    }
+    else {
+        PLOG_WARNING << "Unsupported media codec: " << cp.codec;
         return false;
     }
 }
 
+void MediaTrack::AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media) {
+    switch(fb) {
+    case RtcpFeedback::NACK:
+        media.AddFeedback(payload_type, "nack");
+        break;
+    default:
+        break;
+    }
+}
+
+bool MediaTrack::AddSsrcs(const Configuration& config, sdp::Media& media) {
+    if (media.direction() != sdp::Direction::SEND_ONLY &&
+        media.direction() != sdp::Direction::SEND_RECV) {
+        PLOG_WARNING << "Inactive or only received media track do not contains send stream.";
+        return false;
+    }
+    // Media ssrc
+    media.AddSsrc(utils::random::generate_random<uint32_t>(), 
+                  sdp::Media::SsrcEntry::Kind::MEDIA, 
+                  config.cname, config.msid, config.track_id);
+    // RTX ssrc
+    if (config.rtx_enabled) {
+        media.AddSsrc(utils::random::generate_random<uint32_t>(), 
+                      sdp::Media::SsrcEntry::Kind::RTX, 
+                      config.cname, config.msid, config.track_id);
+    }
+    // FlexFEC ssrc
+    if (config.fec_codec == FecCodec::FLEX_FEC) {
+        media.AddSsrc(utils::random::generate_random<uint32_t>(), 
+                      sdp::Media::SsrcEntry::Kind::FEC, 
+                      config.cname, config.msid, config.track_id);
+    }
+    return true;
+}
+    
 } // namespace naivertc
