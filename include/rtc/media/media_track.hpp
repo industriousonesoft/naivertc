@@ -97,10 +97,9 @@ public:
 
 private:
     static std::optional<int> NextPayloadType(Kind kind);
-    static void AddCodecs(const Configuration& config, sdp::Media& media);
+    static bool AddCodecs(const Configuration& config, sdp::Media& media);
     static bool AddMediaCodec(int payload_type, const CodecParams& cp, sdp::Media& media);
-    static void AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media);
-    
+    static bool AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media);
     static bool AddSsrcs(const Configuration& config, sdp::Media& media);
 private:
     sdp::Media description_;

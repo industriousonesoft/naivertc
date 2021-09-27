@@ -78,11 +78,12 @@ std::optional<sdp::Media> MediaTrack::BuildDescription(const MediaTrack::Configu
     return media;
 }
 
-void MediaTrack::AddCodecs(const Configuration& config, sdp::Media& media) {
+bool MediaTrack::AddCodecs(const Configuration& config, sdp::Media& media) {
     auto kind = config.kind();
     // Associated payload types of RTX
     std::vector<int> associated_payload_types;
     // Media codecs
+    bool error_occured = false;
     config.ForEachCodec([&](const CodecParams& cp){
         if (auto payload_type_opt = NextPayloadType(kind)) {
             int payload_type = payload_type_opt.value();
@@ -98,9 +99,13 @@ void MediaTrack::AddCodecs(const Configuration& config, sdp::Media& media) {
             }
         }else {
             PLOG_WARNING << "No more payload type for video codec:" << cp.codec;
+            error_occured = true;
             return;
         }
     });
+    if (error_occured) {
+        return false;
+    }
 
     int clock_rate = kind == MediaTrack::Kind::AUDIO ? kDefaultAudioSampleRate : kDefaultVideoClockRate;
     // FEC codec
@@ -116,12 +121,14 @@ void MediaTrack::AddCodecs(const Configuration& config, sdp::Media& media) {
             }
         }else {
             PLOG_WARNING << "No more payload type for RED codec";
+            return false;
         }
         // Codec: ULP_FEC
         if (auto payload_type = NextPayloadType(kind)) {
             media.AddCodec(payload_type.value(), "ulpfec", clock_rate);
         }else {
             PLOG_WARNING << "No more payload type for ULP_FEC codec";
+            return false;
         }
     }
     // FlexFec + Ssrc
@@ -131,6 +138,7 @@ void MediaTrack::AddCodecs(const Configuration& config, sdp::Media& media) {
             media.AddCodec(payload_type.value(), "flexfec", clock_rate);
         }else {
             PLOG_WARNING << "No more payload type for ULP_FEC codec";
+            return false;
         }
         // TODO: Does the FLEX_FEC be protected by RTX?
     }
@@ -145,9 +153,11 @@ void MediaTrack::AddCodecs(const Configuration& config, sdp::Media& media) {
                 media.AddCodec(payload_type.value(), "rtx", clock_rate, std::nullopt, "apt=" + std::to_string(apt));
             }else {
                 PLOG_WARNING << "No more payload type for RTX codec";
+                return false;
             }
         }
     }
+    return true;
 
 }
 
@@ -170,7 +180,7 @@ bool MediaTrack::AddMediaCodec(int payload_type, const CodecParams& cp, sdp::Med
     }
 }
 
-void MediaTrack::AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media) {
+bool MediaTrack::AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media) {
     switch(fb) {
     case RtcpFeedback::NACK:
         media.AddFeedback(payload_type, "nack");
@@ -178,6 +188,7 @@ void MediaTrack::AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& medi
     default:
         break;
     }
+    return true;
 }
 
 bool MediaTrack::AddSsrcs(const Configuration& config, sdp::Media& media) {
