@@ -214,7 +214,9 @@ Media Media::ReciprocatedSDP() const {
         break;
     }
 
-    // Clear all ssrcs as them are individual
+    // Clear all SSRCs as them are individual
+    // SSRC attributes are local and shouldn't be reciprocated
+    // TODO: Attributes for remote SSRCs must be specified with the remote-ssrc SDP attribute.
     reciprocated.ClearAllSsrcs();
 
     return reciprocated;
