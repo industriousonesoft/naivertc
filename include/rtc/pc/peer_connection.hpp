@@ -143,7 +143,7 @@ private:
     void OpenMediaTracks();
     void CloseMediaTracks();
     void FlushPendingMediaTracks();
-    void OnIncomingMediaTrack(sdp::Media media_sdp);
+    void OnIncomingMediaTrack(std::shared_ptr<MediaTrack> media_track);
 
     std::shared_ptr<DataChannel> FindDataChannel(uint16_t stream_id) const;
     std::shared_ptr<MediaTrack> FindMediaTrack(std::string mid) const;

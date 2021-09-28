@@ -85,24 +85,30 @@ public:
     };
     
 public:
-    static std::optional<sdp::Media> BuildDescription(const Configuration& config);
-
-public:
+    MediaTrack(const Configuration& config);
     MediaTrack(sdp::Media description);
     ~MediaTrack();
 
-    const sdp::Media* description() const;
+    const sdp::Media* local_description() const;
+    bool Reconfig(const Configuration& config);
 
-    void Reset(sdp::Media description);
-
+    const sdp::Media* remote_description() const;
+    bool set_remote_description(sdp::Media description);
+    
 private:
-    static std::optional<int> NextPayloadType(Kind kind);
-    static bool AddCodecs(const Configuration& config, sdp::Media& media);
-    static bool AddMediaCodec(int payload_type, const CodecParams& cp, sdp::Media& media);
-    static bool AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media);
-    static bool AddSsrcs(const Configuration& config, sdp::Media& media);
+    class SDPBuilder {
+    public:
+        static std::optional<sdp::Media> Build(const Configuration& config);
+    private:
+        static bool AddCodecs(const Configuration& config, sdp::Media& media);
+        static bool AddMediaCodec(int payload_type, const CodecParams& cp, sdp::Media& media);
+        static bool AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media);
+        static bool AddSsrcs(const Configuration& config, sdp::Media& media);
+        static std::optional<int> NextPayloadType(Kind kind);
+    };
 private:
-    sdp::Media description_;
+    std::optional<sdp::Media> local_description_;
+    std::optional<sdp::Media> remote_description_;
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec);

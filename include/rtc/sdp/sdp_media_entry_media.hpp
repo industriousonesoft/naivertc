@@ -29,7 +29,7 @@ public:
     Media(Kind kind, 
           std::string mid, 
           std::string protocols,
-          Direction direction = Direction::SEND_RECV);
+          Direction direction = Direction::INACTIVE);
     Media(const MediaEntry& entry, Direction direction);
     Media(MediaEntry&& entry, Direction direction);
     virtual ~Media();
@@ -59,7 +59,7 @@ public:
     SsrcEntry* ssrc(uint32_t ssrc);
     const SsrcEntry* ssrc(uint32_t ssrc) const;
     SsrcEntry::Kind ssrc_kind(uint32_t ssrc) const;
-    void ClearAllSsrcs();
+    void ClearSsrcs();
 
     std::optional<uint32_t> RtxSsrcAssociatedWithMediaSsrc(uint32_t ssrc) const;
     std::optional<uint32_t> FecSsrcAssociatedWithMediaSsrc(uint32_t ssrc) const;
@@ -83,6 +83,8 @@ public:
     bool AddFeedback(int payload_type, const std::string feed_back);
     bool HasPayloadType(int pt) const;
     std::vector<int> payload_types() const;
+
+    void AddExtraAttribute(std::string attr_value);
 
     virtual bool ParseSDPLine(std::string_view line) override;
     virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
@@ -116,6 +118,7 @@ private:
     Direction direction_;
     
     std::map<int, RtpMap> rtp_maps_;
+
     std::vector<uint32_t> media_ssrcs_;
     std::vector<uint32_t> rtx_ssrcs_;
     std::vector<uint32_t> fec_ssrcs_;

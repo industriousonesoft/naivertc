@@ -256,7 +256,8 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
     // Clean up the application entry added by ICE transport already.
     local_sdp.ClearMediaEntries();
 
-    // Reciprocate remote session description, e.g.: the local is answer and the remote is offer.
+    // Reciprocate remote session description, 
+    // e.g.: the local is answer and the remote is offer.
     if (auto remote = this->remote_sdp_) {
         // https://wanghenshui.github.io/2018/08/15/variant-visit
         if (auto remote_app = remote->application()) {
@@ -286,15 +287,16 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
             // The local media track will override the remote media track with the same mid
             if (auto it = media_tracks_.find(remote_media.mid()); it != media_tracks_.end()) {
                 // The local media track for mid is still alive.
-                if (auto existed_track = it->second.lock()) {
-                    const sdp::Media* media = existed_track->description();
+                if (auto local_track = it->second.lock()) {
+                    const sdp::Media* media = local_track->local_description();
                     PLOG_DEBUG << "Adding media to local description, mid=" << media->mid()
                                 << ", active=" << std::boolalpha
                                 << (media->direction() != sdp::Direction::INACTIVE);
 
                     local_sdp.AddMedia(*media);
 
-                    // TODO: Add receive stream if remote has SSRC stream
+                    local_track->set_remote_description(remote_media);
+
                 // The local media track was not owned any more.
                 }else {
                     auto reciprocated = remote_media.ReciprocatedSDP();
@@ -307,13 +309,18 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                 }
             }else {
                 auto reciprocated = remote_media.ReciprocatedSDP();
+                // Create a local media track with reciprocated SDP. 
+                auto media_track = std::make_shared<MediaTrack>(reciprocated);
 
-                OnIncomingMediaTrack(reciprocated);
+                OnIncomingMediaTrack(media_track);
 
                 PLOG_DEBUG << "Reciprocating media in local description, mid=" << reciprocated.mid()
-                           << ", active=" << (reciprocated.direction() != sdp::Direction::INACTIVE ? "true" : "false");
+                           << ", active=" << std::boolalpha
+                           << (reciprocated.direction() != sdp::Direction::INACTIVE);;
 
                 local_sdp.AddMedia(std::move(reciprocated));
+
+                media_track->set_remote_description(remote_media);
             }
         });
 
@@ -351,7 +358,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                 if (local_sdp.HasMid(track->mid())) {
                     continue;
                 }
-                const sdp::Media* media = track->description();
+                const sdp::Media* media = track->local_description();
 
                 PLOG_DEBUG << "Adding media to local description, mid=" << media->mid()
                             << ", active=" << std::boolalpha
@@ -380,14 +387,38 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
     auto remote_ice_sdp = IceTransport::Description(remote_sdp.type(), remote_sdp.role(), remote_sdp.ice_ufrag(), remote_sdp.ice_pwd());
     ice_transport_->SetRemoteDescription(remote_ice_sdp);
 
-    // If both the local and remote sdp have application, we need to create sctp transport for data channel
+    // we need to create sctp transport for data channel if we could.
     if (remote_sdp.HasApplication()) {
-        if (!sctp_transport_ && dtls_transport_ && dtls_transport_->state() == Transport::State::CONNECTED) {
+        if (!sctp_transport_ && dtls_transport_ && 
+            dtls_transport_->state() == Transport::State::CONNECTED) {
             InitSctpTransport();
         }
     }
 
     PLOG_VERBOSE << "Did process remote sdp: " << std::string(remote_sdp);
+
+    // Handle incoming media track in remote SDP.
+    if (remote_sdp.type() == sdp::Type::ANSWER) {
+        remote_sdp.ForEach([this](const sdp::Media& remote_media){
+            if (auto it = media_tracks_.find(remote_media.mid()); it != media_tracks_.end()) {
+                if (auto local_track = it->second.lock()) {
+                    local_track->set_remote_description(remote_media);
+                }
+            }else {
+                auto reciprocated = remote_media.ReciprocatedSDP();
+                // Create a local media track with reciprocated SDP. 
+                auto media_track = std::make_shared<MediaTrack>(reciprocated);
+
+                OnIncomingMediaTrack(media_track);
+
+                PLOG_DEBUG << "Reciprocating media in local description, mid=" << reciprocated.mid()
+                           << ", active=" << std::boolalpha
+                           << (reciprocated.direction() != sdp::Direction::INACTIVE);;
+
+                media_track->set_remote_description(remote_media);
+            }
+        });
+    }
 
     remote_sdp_ = std::move(remote_sdp);
 }
@@ -485,21 +516,17 @@ void PeerConnection::TryToGatherLocalCandidate() {
     }
 }
 
-void PeerConnection::OnIncomingMediaTrack(sdp::Media description) {
-    signal_task_queue_->Async([this, description=std::move(description)](){
-        // Make sure the current media track dosen't be added before.
-        if (this->media_tracks_.find(description.mid()) == this->media_tracks_.end()) {
-            auto media_track = std::make_shared<MediaTrack>(std::move(description));
-            this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
-            if (this->media_track_callback_) {
-                this->media_track_callback_(std::move(media_track));
-            }else {
-                this->pending_media_tracks_.push_back(std::move(media_track));
-            }
+void PeerConnection::OnIncomingMediaTrack(std::shared_ptr<MediaTrack> media_track) {
+    assert(signal_task_queue_->is_in_current_queue());
+    // Make sure the current media track dosen't be added before.
+    if (media_tracks_.find(media_track->mid()) == media_tracks_.end()) {
+        media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
+        if (media_track_callback_) {
+            media_track_callback_(std::move(media_track));
         }else {
-            // TODO: Add a reveive stream if incoming media has SSRC stream
+            pending_media_tracks_.push_back(std::move(media_track));
         }
-    });
+    }
 }
 
 } // namespace naivertc

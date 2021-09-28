@@ -1,39 +1,81 @@
 #include "rtc/media/media_track.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
 namespace {
-MediaChannel::Kind MediaKindFromDescription(const sdp::Media& description) {
-    switch (description.kind()) {
+
+MediaTrack::Kind MediaTackKindFromSDP(const sdp::Media& description) {
+    switch(description.kind()) {
     case sdp::MediaEntry::Kind::AUDIO:
-        return MediaChannel::Kind::AUDIO;
+        return MediaTrack::Kind::AUDIO;
     case sdp::MediaEntry::Kind::VIDEO:
-        return MediaChannel::Kind::VIDEO;
+        return MediaTrack::Kind::VIDEO;
     default:
-        return MediaChannel::Kind::UNKNOWN;
+        return MediaTrack::Kind::UNKNOWN;
     }
 }
 
 } // namespace
 
 // Media track
+MediaTrack::MediaTrack(const Configuration& config) 
+    : MediaChannel(config.kind(), config.mid()),
+      local_description_(SDPBuilder::Build(config)) {}
+
 MediaTrack::MediaTrack(sdp::Media description) 
-    : MediaChannel(MediaKindFromDescription(description), description.mid()),
-      description_(std::move(description)) {}
+    : MediaChannel(MediaTackKindFromSDP(description), description.mid()),
+      local_description_(std::move(std::move(description))) {}
 
 MediaTrack::~MediaTrack() {}
 
-const sdp::Media* MediaTrack::description() const {
+const sdp::Media* MediaTrack::local_description() const {
     return task_queue_.Sync<const sdp::Media*>([this](){
-        return &description_;
+        return local_description_.has_value() ? &local_description_.value() : nullptr;
     });
 }
 
-void MediaTrack::Reset(sdp::Media description) {
-    task_queue_.Async([this, description=std::move(description)](){
-        description_ = std::move(description);
-        // TODO: Reset other properties.
+bool MediaTrack::Reconfig(const Configuration& config) {
+    return task_queue_.Sync<bool>([this, &config](){
+        if (config.kind() != kind_) {
+            PLOG_WARNING << "Failed to reconfig as the incomming kind=" << config.kind()
+                         << " is different from media track kind=" << kind_;
+            return false;
+        }else if (config.mid() != mid_) {
+            PLOG_WARNING << "Failed to reconfig as the incomming mid=" << config.mid()
+                         << " is different from local media mid=" << mid_;
+            return false;
+        }
+        local_description_ = SDPBuilder::Build(config);
+        return local_description_.has_value();
     });
     
+}
+
+const sdp::Media* MediaTrack::remote_description() const {
+    return task_queue_.Sync<const sdp::Media*>([this](){
+        return remote_description_.has_value() ? &remote_description_.value() : nullptr;
+    });
+}
+
+bool MediaTrack::set_remote_description(sdp::Media description) {
+    return task_queue_.Sync<bool>([this, remote_description=std::move(description)](){
+        if (!local_description_.has_value()) {
+            PLOG_WARNING << "Failed to set remote description before setting local description.";
+            return false;
+        }
+        if (local_description_->kind() != remote_description.kind()) {
+            PLOG_WARNING << "Failed to set remote description as remote media kind=" << remote_description.kind()
+                         << " is different from local kind=" << local_description_->kind() ;
+            return false;
+        }else if (local_description_->mid() != remote_description.mid()) {
+            PLOG_WARNING << "Failed to set remote description as remote media mid=" << remote_description.mid()
+                         << " is different from local media mid=" << local_description_->mid();
+            return false;
+        }
+        remote_description_.emplace(std::move(remote_description));
+        return remote_description_.has_value();
+    });
 }
 
 } // namespace naivertc

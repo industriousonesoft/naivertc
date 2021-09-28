@@ -153,11 +153,11 @@ std::optional<uint32_t> Media::FecSsrcAssociatedWithMediaSsrc(uint32_t ssrc) con
     return std::nullopt;
 }
 
-void Media::ClearAllSsrcs() {
-    ssrc_entries_.clear();
+void Media::ClearSsrcs() {
     media_ssrcs_.clear();
     rtx_ssrcs_.clear();
     fec_ssrcs_.clear();
+    ssrc_entries_.clear();
 }
 
 bool Media::HasPayloadType(int pt) const {
@@ -198,6 +198,10 @@ void Media::AddCodec(int payload_type,
     AddRtpMap(rtp_map);
 }
 
+void Media::AddExtraAttribute(std::string attr_value) {
+    extra_attributes_.push_back(std::move(attr_value));
+}
+
 Media Media::ReciprocatedSDP() const {
     Media reciprocated(*this);
 
@@ -217,10 +221,18 @@ Media Media::ReciprocatedSDP() const {
     // Clear all SSRCs as them are individual
     // SSRC attributes are local and shouldn't be reciprocated
     // TODO: Attributes for remote SSRCs must be specified with the remote-ssrc SDP attribute.
-    reciprocated.ClearAllSsrcs();
+    reciprocated.ClearSsrcs();
 
     return reciprocated;
 }
+
+// void Media::Reset() {
+//     direction_ = Direction::INACTIVE;
+//     rtp_maps_.clear();
+//     ClearSsrcs();
+//     extra_attributes_.clear();
+//     bandwidth_max_value_ = -1;
+// }
 
 // Override
 bool Media::ParseSDPLine(std::string_view line) {
@@ -371,7 +383,7 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
     // TODO: Support more attributes
     else if (key == "extmap" ||
                 key == "rtcp-rsize") {
-        extra_attributes_.emplace_back(std::string(value));
+        extra_attributes_.push_back(std::string(value));
         return true;
     }
     else {

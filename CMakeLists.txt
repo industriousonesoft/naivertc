@@ -113,7 +113,7 @@ set(LIB_SOURCES
     # rtc -> media
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_configuration.cpp
-    src/rtc/media/media_track_sdp.cpp
+    src/rtc/media/media_track_sdp_builder.cpp
     src/rtc/media/video/encoded_frame.cpp
     src/rtc/media/video/h264/nalunit.cpp
     src/rtc/media/video/h264/nalunit_fragment.cpp

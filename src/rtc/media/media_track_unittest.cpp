@@ -37,15 +37,16 @@ TEST(MediaTrackConfigTest, CreateVideoMediaSDPWithUlpFEC) {
     config.AddFeedback(MediaTrack::RtcpFeedback::NACK);
     EXPECT_TRUE(config.AddCodec(MediaTrack::Codec::H264));
 
-    auto media = MediaTrack::BuildDescription(config);
-    EXPECT_TRUE(media.has_value());
+    MediaTrack media_track(config);
+    const sdp::Media* description = media_track.local_description();
+    EXPECT_NE(description, nullptr);
 
-    EXPECT_EQ(media->direction(), sdp::Direction::SEND_ONLY);
+    EXPECT_EQ(description->direction(), sdp::Direction::SEND_ONLY);
     // Payload type: h264(+ rtx) + red(+ rtx) + fec
-    EXPECT_EQ(media->payload_types().size(), 5);
-    EXPECT_EQ(media->media_ssrcs().size(), 1);
-    EXPECT_EQ(media->rtx_ssrcs().size(), 1);
-    EXPECT_EQ(media->fec_ssrcs().size(), 0);
+    EXPECT_EQ(description->payload_types().size(), 5);
+    EXPECT_EQ(description->media_ssrcs().size(), 1);
+    EXPECT_EQ(description->rtx_ssrcs().size(), 1);
+    EXPECT_EQ(description->fec_ssrcs().size(), 0);
 }
 
 TEST(MediaTrackConfigTest, CreateVideoMediaSDPWithFlexFEC) {
@@ -56,15 +57,16 @@ TEST(MediaTrackConfigTest, CreateVideoMediaSDPWithFlexFEC) {
     config.AddFeedback(MediaTrack::RtcpFeedback::NACK);
     EXPECT_TRUE(config.AddCodec(MediaTrack::Codec::H264));
 
-    auto media = MediaTrack::BuildDescription(config);
-    EXPECT_TRUE(media.has_value());
+    MediaTrack media_track(config);
+    const sdp::Media* description = media_track.local_description();
+    EXPECT_NE(description, nullptr);
 
-    EXPECT_EQ(media->direction(), sdp::Direction::SEND_ONLY);
+    EXPECT_EQ(description->direction(), sdp::Direction::SEND_ONLY);
     // Payload type: h264(+ rtx) + fec
-    EXPECT_EQ(media->payload_types().size(), 3);
-    EXPECT_EQ(media->media_ssrcs().size(), 1);
-    EXPECT_EQ(media->rtx_ssrcs().size(), 1);
-    EXPECT_EQ(media->fec_ssrcs().size(), 1);
+    EXPECT_EQ(description->payload_types().size(), 3);
+    EXPECT_EQ(description->media_ssrcs().size(), 1);
+    EXPECT_EQ(description->rtx_ssrcs().size(), 1);
+    EXPECT_EQ(description->fec_ssrcs().size(), 1);
 }
 
 TEST(MediaTrackConfigTest, CreateAudioMediaSDP) {
@@ -76,15 +78,16 @@ TEST(MediaTrackConfigTest, CreateAudioMediaSDP) {
     config.rtx_enabled = false;
     EXPECT_TRUE(config.AddCodec(MediaTrack::Codec::OPUS));
 
-    auto media = MediaTrack::BuildDescription(config);
-    EXPECT_TRUE(media.has_value());
+    MediaTrack media_track(config);
+    const sdp::Media* description = media_track.local_description();
+    EXPECT_NE(description, nullptr);
 
-    EXPECT_EQ(media->direction(), sdp::Direction::SEND_ONLY);
+    EXPECT_EQ(description->direction(), sdp::Direction::SEND_ONLY);
     // Payload type: opus
-    EXPECT_EQ(media->payload_types().size(), 1);
-    EXPECT_EQ(media->media_ssrcs().size(), 1);
-    EXPECT_EQ(media->rtx_ssrcs().size(), 0);
-    EXPECT_EQ(media->fec_ssrcs().size(), 0);
+    EXPECT_EQ(description->payload_types().size(), 1);
+    EXPECT_EQ(description->media_ssrcs().size(), 1);
+    EXPECT_EQ(description->rtx_ssrcs().size(), 0);
+    EXPECT_EQ(description->fec_ssrcs().size(), 0);
 }
 
 } // namespace test
