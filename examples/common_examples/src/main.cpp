@@ -3,6 +3,7 @@
 #include "sdp_description_examples.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/transports/sctp_message.hpp"
+#include "common/utils_random.hpp"
 
 // naivertc
 #include <common/logger.hpp>
@@ -38,20 +39,20 @@ int main(int argc, const char* argv[]) {
     // task_queue_example.reset();
 
     // CopyOnWriteBuffer
-    naivertc::CopyOnWriteBuffer buf1(10);
-    auto buf2 = buf1; // Copy
-    naivertc::CopyOnWriteBuffer buf3(buf1); // Copy
-    auto buf4 = std::move(buf2); // Move
-    naivertc::CopyOnWriteBuffer buf5(std::move(buf3)); // Move
-    naivertc::TaskQueue task_queue;
-    task_queue.Async([&buf1]() {
-        std::cout << "Reference with no copy or move" << std::endl;
-    });
-    task_queue.Async([buf6=std::move(buf5) /* move */]() {
+    // naivertc::CopyOnWriteBuffer buf1(10);
+    // auto buf2 = buf1; // Copy
+    // naivertc::CopyOnWriteBuffer buf3(buf1); // Copy
+    // auto buf4 = std::move(buf2); // Move
+    // naivertc::CopyOnWriteBuffer buf5(std::move(buf3)); // Move
+    // naivertc::TaskQueue task_queue;
+    // task_queue.Async([&buf1]() {
+    //     std::cout << "Reference with no copy or move" << std::endl;
+    // });
+    // task_queue.Async([buf6=std::move(buf5) /* move */]() {
         
-    });
-    buf2 = buf1; // Copy =
-    buf4 = std::move(buf2); // Move =
+    // });
+    // buf2 = buf1; // Copy =
+    // buf4 = std::move(buf2); // Move =
 
     // SctpMessageToSend
     // std::optional<naivertc::SctpMessageToSend> test_buffer_opt = std::nullopt;
@@ -63,6 +64,10 @@ int main(int argc, const char* argv[]) {
     // sdp
     // sdptest::BuildAnOffer();
     // sdptest::ParseAnAnswer();
+
+    // Random string
+    std::cout << "16 length random string: " << naivertc::utils::random::random_string(16) << std::endl;
+    std::cout << "36 length random string: " << naivertc::utils::random::random_string(36) << std::endl;
 
     ioc.run();
 
