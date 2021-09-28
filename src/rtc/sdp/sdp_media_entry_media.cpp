@@ -153,6 +153,12 @@ std::optional<uint32_t> Media::FecSsrcAssociatedWithMediaSsrc(uint32_t ssrc) con
     return std::nullopt;
 }
 
+void Media::ForEachSsrc(std::function<void(const SsrcEntry& ssrc_entry)>&& handler) const {
+    for (auto& kv : ssrc_entries_) {
+        handler(kv.second);
+    }
+}
+
 void Media::ClearSsrcs() {
     media_ssrcs_.clear();
     rtx_ssrcs_.clear();

@@ -4,6 +4,7 @@
 #include "rtc/sdp/sdp_media_entry.hpp"
 
 #include <map>
+#include <functional>
 
 namespace naivertc {
 namespace sdp {
@@ -51,14 +52,15 @@ public:
     bool IsMediaSsrc(uint32_t ssrc) const;
     bool IsRtxSsrc(uint32_t ssrc) const;
     bool IsFecSsrc(uint32_t ssrc) const;
-    const std::vector<uint32_t> media_ssrcs() const { return media_ssrcs_; };
+    std::vector<uint32_t> media_ssrcs() const { return media_ssrcs_; };
     // If we use RTX there MUST be an association media_ssrcs[i] <-> rtx_ssrcs[i].
-    const std::vector<uint32_t> rtx_ssrcs() const { return rtx_ssrcs_; };
+    std::vector<uint32_t> rtx_ssrcs() const { return rtx_ssrcs_; };
     // If we use FEC there MUST be an association media_ssrcs[i] <-> fec_ssrcs[i].
-    const std::vector<uint32_t> fec_ssrcs() const { return fec_ssrcs_; };
+    std::vector<uint32_t> fec_ssrcs() const { return fec_ssrcs_; };
     SsrcEntry* ssrc(uint32_t ssrc);
     const SsrcEntry* ssrc(uint32_t ssrc) const;
     SsrcEntry::Kind ssrc_kind(uint32_t ssrc) const;
+    void ForEachSsrc(std::function<void(const SsrcEntry& ssrc_entry)>&& handler) const;
     void ClearSsrcs();
 
     std::optional<uint32_t> RtxSsrcAssociatedWithMediaSsrc(uint32_t ssrc) const;

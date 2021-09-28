@@ -144,6 +144,7 @@ private:
     void CloseMediaTracks();
     void FlushPendingMediaTracks();
     void OnIncomingMediaTrack(std::shared_ptr<MediaTrack> media_track);
+    void UpdateMidBySsrcs(const sdp::Media& media);
 
     std::shared_ptr<DataChannel> FindDataChannel(uint16_t stream_id) const;
     std::shared_ptr<MediaTrack> FindMediaTrack(std::string mid) const;
@@ -205,6 +206,8 @@ private:
     // handled by user, that's why we use shared_ptr here.
     std::vector<std::shared_ptr<DataChannel>> pending_data_channels_;
     std::vector<std::shared_ptr<MediaTrack>> pending_media_tracks_;
+
+    std::unordered_map<uint32_t, std::string> mid_by_ssrc_map_;
     
 };
 

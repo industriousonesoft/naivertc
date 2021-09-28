@@ -216,6 +216,13 @@ std::shared_ptr<MediaTrack> PeerConnection::FindMediaTrack(std::string mid) cons
     return nullptr;
 }
 
+void PeerConnection::UpdateMidBySsrcs(const sdp::Media& media) {
+    assert(signal_task_queue_->is_in_current_queue());
+    media.ForEachSsrc([this, &media](const sdp::Media::SsrcEntry& ssrc_entry){
+        mid_by_ssrc_map_[ssrc_entry.ssrc] = media.mid();
+    });
+}
+
 // ostream operator << override
 std::ostream& operator<<(std::ostream& out, PeerConnection::ConnectionState state) {
     using State = PeerConnection::ConnectionState;
