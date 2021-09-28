@@ -130,6 +130,10 @@ Application* Description::SetApplication(Application app) {
     return application_.get();
 }
 
+Application* Description::SetApplication(std::string mid) {
+    return SetApplication(Application(std::move(mid)));
+}
+
 Media* Description::AddMedia(Media media) {
     auto new_media = std::make_shared<Media>(std::move(media));
     // Update ICE and DTLS attributes
@@ -137,6 +141,18 @@ Media* Description::AddMedia(Media media) {
     medias_.emplace_back(new_media);
     media_entries_.emplace(new_media->mid(), new_media);
     return new_media.get();
+}
+
+Media* Description::AddAudio(std::string mid, 
+                             std::string protocols,
+                             Direction direction) {
+    return AddMedia(Media(sdp::MediaEntry::Kind::AUDIO, std::move(mid), std::move(protocols), direction));
+}
+
+Media* Description::AddVideo(std::string mid, 
+                             std::string protocols,
+                             Direction direction) {
+    return AddMedia(Media(sdp::MediaEntry::Kind::VIDEO, std::move(mid), std::move(protocols), direction));
 }
 
 void Description::RemoveMedia(const std::string_view mid) {

@@ -69,10 +69,17 @@ public:
     bool HasApplication() const;
 
     Application* SetApplication(Application app);
+    Application* SetApplication(std::string mid);
     const Application* application() const;
     Application* application();
     
     Media* AddMedia(Media media);
+    Media* AddAudio(std::string mid, 
+                    std::string protocols,
+                    Direction direction = Direction::SEND_RECV);
+    Media* AddVideo(std::string mid, 
+                    std::string protocols,
+                    Direction direction = Direction::SEND_RECV);
     void RemoveMedia(const std::string_view mid);
     const Media* media(const std::string_view mid) const;
     Media* media(const std::string_view mid);

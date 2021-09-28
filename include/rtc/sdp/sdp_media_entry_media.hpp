@@ -28,8 +28,8 @@ public:
     Media(); // For Template in TaskQueue
     Media(Kind kind, 
           std::string mid, 
-          const std::string protocols,
-          Direction direction = Direction::SEND_ONLY);
+          std::string protocols,
+          Direction direction = Direction::SEND_RECV);
     Media(const MediaEntry& entry, Direction direction);
     Media(MediaEntry&& entry, Direction direction);
     virtual ~Media();

@@ -44,9 +44,9 @@ Media::Media(MediaEntry&& entry, Direction direction)
 
 Media::Media(Kind kind, 
              std::string mid, 
-             const std::string protocols,
+             std::string protocols,
              Direction direction) 
-    : MediaEntry(kind, std::move(mid), protocols),
+    : MediaEntry(kind, std::move(mid), std::move(protocols)),
       direction_(direction) {}
 
 Media::~Media() = default;
