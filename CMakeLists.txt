@@ -137,6 +137,7 @@ set(LIB_SOURCES
     # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_packet_received.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.cpp
 
@@ -315,6 +316,7 @@ set(LIB_HEADERS
      # rtc -> rtp_rtcp -> rtp -> packet
     include/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp
     include/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp
+    include/rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp
     include/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp
     include/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp
 

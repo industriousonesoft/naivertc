@@ -80,6 +80,8 @@ public:
     uint8_t* AllocatePayload(size_t size);
     
     bool Parse(const uint8_t* buffer, size_t size);
+    bool Parse(ArrayView<const uint8_t> buffer);
+    bool Parse(CopyOnWriteBuffer buffer);
 
     // Header extensions
     template <typename Extension>

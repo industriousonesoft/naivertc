@@ -1,4 +1,5 @@
 #include "rtc/media/media_track.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 #include <plog/Log.h>
 
@@ -78,7 +79,7 @@ bool MediaTrack::OnRemoteDescription(sdp::Media description) {
     });
 }
 
-void MediaTrack::OnRtpPacket(CopyOnWriteBuffer in_packet) {
+void MediaTrack::OnRtpPacket(RtpPacketReceived in_packet) {
 
 }
 

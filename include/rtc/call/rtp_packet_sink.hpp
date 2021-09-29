@@ -6,12 +6,13 @@
 namespace naivertc {
 
 class CopyOnWriteBuffer;
+class RtpPacketReceived;
 
 class RTC_CPP_EXPORT RtpPacketSink {
     public:
         virtual ~RtpPacketSink() = default;
-        virtual void OnRtpPacket(CopyOnWriteBuffer in_packet) = 0;
         virtual void OnRtcpPacket(CopyOnWriteBuffer in_packet) = 0;
+        virtual void OnRtpPacket(RtpPacketReceived in_packet) = 0;
     };
 
 } // namespace naivertc

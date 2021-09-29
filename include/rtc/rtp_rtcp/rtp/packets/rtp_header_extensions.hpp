@@ -234,7 +234,7 @@ public:
     BaseRtpString(const std::string str);
     virtual ~BaseRtpString();
 
-    std::string_view value() const { return value_; }
+    std::string value() const { return value_; }
 
     size_t size() const override { return value_.size(); }
     virtual RtpExtensionType type() const override = 0;

@@ -15,6 +15,10 @@
 #include <iostream>
 
 namespace naivertc {
+
+class RtpPacketReceived;
+class CopyOnWriteBuffer;
+
 class RTC_CPP_EXPORT MediaTrack : public MediaChannel,
                                   public RtpPacketSink,
                                   public std::enable_shared_from_this<MediaTrack> {
@@ -97,7 +101,7 @@ public:
     const sdp::Media* remote_description() const;
     bool OnRemoteDescription(sdp::Media description);
 
-    void OnRtpPacket(CopyOnWriteBuffer in_packet) override;
+    void OnRtpPacket(RtpPacketReceived in_packet) override;
     void OnRtcpPacket(CopyOnWriteBuffer in_packet) override;
     
 private:

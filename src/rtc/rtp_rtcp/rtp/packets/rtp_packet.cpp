@@ -292,6 +292,19 @@ bool RtpPacket::Parse(const uint8_t* buffer, size_t size) {
     return true;
 }
 
+bool RtpPacket::Parse(ArrayView<const uint8_t> buffer) {
+    return Parse(buffer.data(), buffer.size());
+}
+
+bool RtpPacket::Parse(CopyOnWriteBuffer buffer) {
+    if (!ParseInternal(buffer.data(), buffer.size())) {
+        Reset();
+        return false;
+    }
+    *(reinterpret_cast<CopyOnWriteBuffer*>(this)) = std::move(buffer);
+    return true;
+}
+
 // Private methods
 inline void RtpPacket::WriteAt(size_t offset, uint8_t byte) {
     at(offset) = byte;
