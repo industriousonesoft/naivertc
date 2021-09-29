@@ -295,10 +295,9 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 
                     local_sdp.AddMedia(*local_media);
 
-                    local_track->set_remote_description(remote_media);
-
-                    // Update mid by ssrcs in local media
-                    UpdateMidBySsrcs(*local_media);
+                    local_track->OnRemoteDescription(remote_media);
+                    // local media track negotiated with remote
+                    OnNegotiatedMediaTrack(local_track);
 
                 // The local media track was not owned any more.
                 }else {
@@ -320,14 +319,12 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                 local_sdp.AddMedia(reciprocated);
                 // Create a local media track with reciprocated SDP. 
                 auto media_track = std::make_shared<MediaTrack>(std::move(reciprocated));
+                media_track->OnRemoteDescription(remote_media);
+
+                OnNegotiatedMediaTrack(media_track);
 
                 OnIncomingMediaTrack(media_track);
-
-                media_track->set_remote_description(remote_media);
             }
-
-            // Update mid by ssrcs in remote media
-            UpdateMidBySsrcs(remote_media);
         });
 
     } 
@@ -371,7 +368,8 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 
                     local_sdp.AddMedia(*media);
                     // Update mid by ssrcs in local media
-                    UpdateMidBySsrcs(*media);
+                    track->OnRemoteDescription(*media);
+                    OnNegotiatedMediaTrack(track);
                 }            
             }
         }
@@ -410,23 +408,22 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
         remote_sdp.ForEach([this](const sdp::Media& remote_media){
             if (auto it = media_tracks_.find(remote_media.mid()); it != media_tracks_.end()) {
                 if (auto local_track = it->second.lock()) {
-                    local_track->set_remote_description(remote_media);
+                    local_track->OnRemoteDescription(remote_media);
+                    OnNegotiatedMediaTrack(local_track);
                 }
             }else {
                 auto reciprocated = remote_media.ReciprocatedSDP();
-                // Create a local media track with reciprocated SDP. 
-                auto media_track = std::make_shared<MediaTrack>(reciprocated);
-
-                OnIncomingMediaTrack(media_track);
 
                 PLOG_DEBUG << "Reciprocating media in local description, mid=" << reciprocated.mid()
                            << ", active=" << std::boolalpha
                            << (reciprocated.direction() != sdp::Direction::INACTIVE);;
 
-                media_track->set_remote_description(remote_media);
+                // Create a local media track with reciprocated SDP. 
+                auto media_track = std::make_shared<MediaTrack>(reciprocated);
+                media_track->OnRemoteDescription(remote_media);
+                OnNegotiatedMediaTrack(media_track);
+                OnIncomingMediaTrack(media_track);
             }
-            // Update mid by ssrcs in remote media
-            UpdateMidBySsrcs(remote_media);
         });
     }
 

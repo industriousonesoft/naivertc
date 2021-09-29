@@ -13,7 +13,7 @@
 #include "rtc/transports/sctp_transport.hpp"
 #include "rtc/media/media_track.hpp"
 #include "rtc/channels/data_channel.hpp"
-
+#include "rtc/call/rtp_demuxer.hpp"
 
 #include <exception>
 #include <unordered_map>
@@ -144,10 +144,11 @@ private:
     void CloseMediaTracks();
     void FlushPendingMediaTracks();
     void OnIncomingMediaTrack(std::shared_ptr<MediaTrack> media_track);
-    void UpdateMidBySsrcs(const sdp::Media& media);
-
+    
     std::shared_ptr<DataChannel> FindDataChannel(uint16_t stream_id) const;
     std::shared_ptr<MediaTrack> FindMediaTrack(std::string mid) const;
+
+    void OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_track);
   
 private:
     // IceTransport callbacks
@@ -179,6 +180,7 @@ private:
 
     std::unique_ptr<TaskQueue> signal_task_queue_ = nullptr;
     std::shared_ptr<TaskQueue> network_task_queue_ = nullptr;
+    std::shared_ptr<TaskQueue> worker_task_queue_ = nullptr;
 
     std::shared_ptr<IceTransport> ice_transport_ = nullptr;
     std::shared_ptr<DtlsTransport> dtls_transport_ = nullptr;
@@ -207,7 +209,7 @@ private:
     std::vector<std::shared_ptr<DataChannel>> pending_data_channels_;
     std::vector<std::shared_ptr<MediaTrack>> pending_media_tracks_;
 
-    std::unordered_map<uint32_t, std::string> mid_by_ssrc_map_;
+    RtpDemuxer rtp_demuxer_;
     
 };
 

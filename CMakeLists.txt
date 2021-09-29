@@ -109,6 +109,7 @@ set(LIB_SOURCES
     src/rtc/call/rtp_rtcp_config.cpp
     src/rtc/call/rtp_media_sender.cpp
     src/rtc/call/rtp_video_sender.cpp
+    src/rtc/call/rtp_demuxer.cpp
     
     # rtc -> media
     src/rtc/media/media_track.cpp
@@ -286,6 +287,8 @@ set(LIB_HEADERS
     include/rtc/call/rtp_rtcp_config.hpp
     include/rtc/call/rtp_media_sender.hpp
     include/rtc/call/rtp_video_sender.hpp
+    include/rtc/call/rtp_demuxer.hpp
+    include/rtc/call/rtp_packet_sink.hpp
 
     # rtc -> media
     include/rtc/media/media_track.hpp

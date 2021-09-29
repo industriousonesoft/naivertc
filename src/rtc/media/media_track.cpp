@@ -35,7 +35,7 @@ const sdp::Media* MediaTrack::local_description() const {
     });
 }
 
-bool MediaTrack::Reconfig(const Configuration& config) {
+bool MediaTrack::ReconfigLocalDescription(const Configuration& config) {
     return task_queue_.Sync<bool>([this, &config](){
         if (config.kind() != kind_) {
             PLOG_WARNING << "Failed to reconfig as the incomming kind=" << config.kind()
@@ -58,7 +58,7 @@ const sdp::Media* MediaTrack::remote_description() const {
     });
 }
 
-bool MediaTrack::set_remote_description(sdp::Media description) {
+bool MediaTrack::OnRemoteDescription(sdp::Media description) {
     return task_queue_.Sync<bool>([this, remote_description=std::move(description)](){
         if (!local_description_.has_value()) {
             PLOG_WARNING << "Failed to set remote description before setting local description.";
@@ -76,6 +76,10 @@ bool MediaTrack::set_remote_description(sdp::Media description) {
         remote_description_.emplace(std::move(remote_description));
         return remote_description_.has_value();
     });
+}
+
+void MediaTrack::OnRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
+
 }
 
 } // namespace naivertc

@@ -5,6 +5,7 @@
 #include "rtc/sdp/sdp_media_entry_media.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/channels/media_channel.hpp"
+#include "rtc/call/rtp_packet_sink.hpp"
 
 #include <string>
 #include <vector>
@@ -15,6 +16,7 @@
 
 namespace naivertc {
 class RTC_CPP_EXPORT MediaTrack : public MediaChannel,
+                                  public RtpPacketSink,
                                   public std::enable_shared_from_this<MediaTrack> {
 public:
     using Direction = sdp::Direction;
@@ -90,10 +92,12 @@ public:
     ~MediaTrack();
 
     const sdp::Media* local_description() const;
-    bool Reconfig(const Configuration& config);
+    bool ReconfigLocalDescription(const Configuration& config);
 
     const sdp::Media* remote_description() const;
-    bool set_remote_description(sdp::Media description);
+    bool OnRemoteDescription(sdp::Media description);
+
+    void OnRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) override;
     
 private:
     class SDPBuilder {

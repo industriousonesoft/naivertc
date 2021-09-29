@@ -13,7 +13,7 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Configura
                 media_track = std::make_shared<MediaTrack>(config);
                 this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
             }else {
-                media_track->Reconfig(config);
+                media_track->ReconfigLocalDescription(config);
             }
             // Renegotiation is needed for the new or updated media track
             negotiation_needed_ = true;

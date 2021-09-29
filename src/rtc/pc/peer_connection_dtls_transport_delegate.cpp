@@ -99,8 +99,8 @@ bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
 }
 
 void PeerConnection::OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rtcp) {
-    signal_task_queue_->Async([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
-        // TODO: Retrieve ssrcs from packet and forward to media track using mid_by_ssrc_map_
+    worker_task_queue_->Async([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
+        rtp_demuxer_.OnRtpPacket(in_packet, is_rtcp);
     });
 }
 

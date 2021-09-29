@@ -27,8 +27,9 @@ PeerConnection::PeerConnection(const RtcConfiguration& config)
         }
     }
 
-    signal_task_queue_ = std::make_unique<TaskQueue>("SignalTaskQueue");
-    network_task_queue_ = std::make_shared<TaskQueue>("NetworkTaskQueue");
+    signal_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.signal.task.queue");
+    network_task_queue_ = std::make_shared<TaskQueue>("PeerConnection.network.task.queue");
+    worker_task_queue_ = std::make_shared<TaskQueue>("PeerConnection.worker.task.queue");
 
     InitIceTransport();
 }
@@ -38,6 +39,7 @@ PeerConnection::~PeerConnection() {
 
     signal_task_queue_.reset();
     network_task_queue_.reset();
+    worker_task_queue_.reset();
 }
 
 void PeerConnection::Close() {
@@ -216,10 +218,19 @@ std::shared_ptr<MediaTrack> PeerConnection::FindMediaTrack(std::string mid) cons
     return nullptr;
 }
 
-void PeerConnection::UpdateMidBySsrcs(const sdp::Media& media) {
-    assert(signal_task_queue_->is_in_current_queue());
-    media.ForEachSsrc([this, &media](const sdp::Media::SsrcEntry& ssrc_entry){
-        mid_by_ssrc_map_[ssrc_entry.ssrc] = media.mid();
+void PeerConnection::OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_track) {
+    worker_task_queue_->Async([this, media_track=std::move(media_track)](){
+        if (auto media_sdp = media_track->local_description()) {
+            media_sdp->ForEachSsrc([this, &media_track](const sdp::Media::SsrcEntry& ssrc_entry){
+                rtp_demuxer_.AddSink(ssrc_entry.ssrc, media_track);
+            });
+        }
+
+        if (auto media_sdp = media_track->remote_description()) {
+            media_sdp->ForEachSsrc([this, &media_track](const sdp::Media::SsrcEntry& ssrc_entry){
+                rtp_demuxer_.AddSink(ssrc_entry.ssrc, media_track);
+            });
+        }
     });
 }
 
