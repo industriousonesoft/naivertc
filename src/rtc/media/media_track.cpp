@@ -78,7 +78,11 @@ bool MediaTrack::OnRemoteDescription(sdp::Media description) {
     });
 }
 
-void MediaTrack::OnRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
+void MediaTrack::OnRtpPacket(CopyOnWriteBuffer in_packet) {
+
+}
+
+void MediaTrack::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
 
 }
 

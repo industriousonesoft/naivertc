@@ -110,6 +110,8 @@ set(LIB_SOURCES
     src/rtc/call/rtp_media_sender.cpp
     src/rtc/call/rtp_video_sender.cpp
     src/rtc/call/rtp_demuxer.cpp
+    src/rtc/call/rtp_demuxer_rtp.cpp
+    src/rtc/call/rtp_demuxer_rtcp.cpp
     
     # rtc -> media
     src/rtc/media/media_track.cpp

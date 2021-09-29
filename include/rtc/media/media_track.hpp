@@ -97,7 +97,8 @@ public:
     const sdp::Media* remote_description() const;
     bool OnRemoteDescription(sdp::Media description);
 
-    void OnRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) override;
+    void OnRtpPacket(CopyOnWriteBuffer in_packet) override;
+    void OnRtcpPacket(CopyOnWriteBuffer in_packet) override;
     
 private:
     class SDPBuilder {

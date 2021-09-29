@@ -141,7 +141,7 @@ void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
 std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const FeedbackState& feedback_state) {
     std::vector<rtcp::ReportBlock> report_blocks;
     
-    // TODO: Retrive report blocks from Receiver statistics
+    // TODO: Retrieve report blocks from Receiver statistics
 
     // How to calculate RTT: https://blog.jianchihu.net/webrtc-research-stats-rtt.html
     // Receiver          Network         Sender

@@ -10,7 +10,8 @@ class CopyOnWriteBuffer;
 class RTC_CPP_EXPORT RtpPacketSink {
     public:
         virtual ~RtpPacketSink() = default;
-        virtual void OnRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) = 0;
+        virtual void OnRtpPacket(CopyOnWriteBuffer in_packet) = 0;
+        virtual void OnRtcpPacket(CopyOnWriteBuffer in_packet) = 0;
     };
 
 } // namespace naivertc

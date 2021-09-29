@@ -42,7 +42,11 @@ void RtpDemuxer::RemoveSink(std::string mid) {
 }
 
 void RtpDemuxer::OnRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
-    
+    if (is_rtcp) {
+        DeliverRtcpPacket(std::move(in_packet));
+    }else {
+        DeliverRtpPacket(std::move(in_packet));
+    }
 }
 
 } // namespace naivertc

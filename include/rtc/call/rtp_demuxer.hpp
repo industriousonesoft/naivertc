@@ -24,6 +24,10 @@ public:
     void OnRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp);
 
 private:
+    bool DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const;
+    bool DeliverRtpPacket(CopyOnWriteBuffer in_packet) const;
+
+private:
     std::unordered_map<uint32_t, std::weak_ptr<RtpPacketSink>> sink_by_ssrc_;
     // FIXME: Why does std::unordered_map not work with std::string key
     std::map<std::string, std::weak_ptr<RtpPacketSink>> sink_by_mid_;
