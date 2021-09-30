@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-
 namespace naivertc {
+namespace test {
 
 TEST(RtcpNackStatsTest, Requests) {
     RtcpNackStats stats;
@@ -52,4 +52,5 @@ TEST(RtcpNackStatsTest, RequestsWithWrap) {
     EXPECT_EQ(8U, stats.requests());
 }
 
+} // namespace test
 } // namespace naivertc

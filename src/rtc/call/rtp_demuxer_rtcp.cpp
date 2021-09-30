@@ -1,5 +1,5 @@
 #include "rtc/call/rtp_demuxer.hpp"
-#include "rtc/rtp_rtcp/common/rtp_utils.hpp"
+#include "rtc/call/rtp_utils.hpp"
 
 #include <plog/Log.h>
 
@@ -74,7 +74,7 @@ struct RTC_CPP_EXPORT ReceiverReport {
 } // namespace rtcp
 
 bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
-    if (!rtp::utils::IsRtcpPacket(in_packet)) {
+    if (!IsRtcpPacket(in_packet)) {
         return false;
     }
     std::set<uint32_t> ssrcs;

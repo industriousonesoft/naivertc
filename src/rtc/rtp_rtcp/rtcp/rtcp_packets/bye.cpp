@@ -53,8 +53,9 @@ bool Bye::Parse(const CommonHeader& packet) {
     } else {
         set_sender_ssrc(ByteReader<uint32_t>::ReadBigEndian(payload));
         csrcs_.resize(src_count - 1);
-        for (size_t i = 1; i < src_count; ++i)
-        csrcs_[i - 1] = ByteReader<uint32_t>::ReadBigEndian(&payload[4 * i]);
+        for (size_t i = 1; i < src_count; ++i) {
+            csrcs_[i - 1] = ByteReader<uint32_t>::ReadBigEndian(&payload[4 * i]);
+        }
     }
 
     if (has_reason) {

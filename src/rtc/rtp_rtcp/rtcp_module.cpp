@@ -4,7 +4,7 @@
 namespace naivertc {
 
 RtcpModule::RtcpModule(const RtcpConfiguration& config,
-                               std::shared_ptr<TaskQueue> task_queue)
+                       std::shared_ptr<TaskQueue> task_queue)
     : clock_(config.clock),
       task_queue_(task_queue),
       rtcp_sender_(config, task_queue_),

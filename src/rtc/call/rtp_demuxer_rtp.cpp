@@ -1,5 +1,5 @@
 #include "rtc/call/rtp_demuxer.hpp"
-#include "rtc/rtp_rtcp/common/rtp_utils.hpp"
+#include "rtc/call/rtp_utils.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 #include <plog/Log.h>
@@ -7,7 +7,7 @@
 namespace naivertc {
 
 bool RtpDemuxer::DeliverRtpPacket(CopyOnWriteBuffer in_packet) const {
-    if (!rtp::utils::IsRtpPacket(in_packet)) {
+    if (!IsRtpPacket(in_packet)) {
         return false;
     }
 
@@ -30,14 +30,13 @@ bool RtpDemuxer::DeliverRtpPacket(CopyOnWriteBuffer in_packet) const {
     }
 
     // Deliver rtp packet by mid
+    // TODO: Deliver RTP packet by RRID or RSID
     if (auto sink = sink_by_mid_.at(rtp_mid_extension->value()).lock()) {
         sink->OnRtpPacket(std::move(received_packet));
-    }
-
-    // TODO: Deliver RTP packet by RRID or RSID
-
-    if (auto sink = sink_by_ssrc_.at(received_packet.ssrc()).lock()) {
+    }else if (auto sink = sink_by_ssrc_.at(received_packet.ssrc()).lock()) {
         sink->OnRtpPacket(std::move(received_packet));
+    }else {
+        PLOG_WARNING << "No sink found for RTP packet, ssrc=" << received_packet.ssrc();
     }
 
     return true;

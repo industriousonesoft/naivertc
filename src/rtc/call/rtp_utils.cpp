@@ -1,10 +1,8 @@
-#include "rtc/rtp_rtcp/common/rtp_utils.hpp"
+#include "rtc/call/rtp_utils.hpp"
 
 // #include <boost/range/irange.hpp>
 
 namespace naivertc {
-namespace rtp {
-namespace utils {
 namespace {
 constexpr uint8_t kFixedRtpVersion = 2;
 // The RTP header has a minimum size of 12 bytes
@@ -54,6 +52,4 @@ bool IsRtpPacket(ArrayView<const uint8_t> packet) {
            PayloadTypeIsReservedForRtp(packet[1] & 0x7F);
 }
 
-} // namespace utils
-} // namespace rtp
 } // namespace naivertc

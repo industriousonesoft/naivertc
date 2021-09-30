@@ -1,5 +1,5 @@
 #include "rtc/transports/dtls_srtp_transport.hpp"
-#include "rtc/rtp_rtcp/common/rtp_utils.hpp"
+#include "rtc/call/rtp_utils.hpp"
 
 #include <plog/Log.h>
 
@@ -47,7 +47,7 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
 
     int protectd_data_size = (int)packet.size();
     // Rtcp packet
-    if (rtp::utils::IsRtcpPacket(packet)) {
+    if (IsRtcpPacket(packet)) {
         // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
         // into the location in memory immediately following the RTP packet.
         size_t reserve_packet_size = protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */;
@@ -63,7 +63,7 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
         }
         PLOG_VERBOSE << "Protected SRTCP packet, size=" << protectd_data_size;
     // Rtp packet
-    }else if (rtp::utils::IsRtpPacket(packet)) {
+    }else if (IsRtpPacket(packet)) {
         // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
         // into the location in memory immediately following the RTP packet.
         size_t reserve_packet_size = protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */;
@@ -120,7 +120,7 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
         // RTP/RTCP packet
         }else if (first_byte >= 128 && first_byte <= 191) {
             // RTCP packet
-            if (rtp::utils::IsRtcpPacket(in_packet)) {
+            if (IsRtcpPacket(in_packet)) {
                 PLOG_VERBOSE << "Incoming SRTCP packet, size: " << packet_size;
                 int unprotected_data_size = int(packet_size);
                 if (srtp_err_status_t err = srtp_unprotect_rtcp(srtp_in_, static_cast<void *>(in_packet.data()), &unprotected_data_size)) {
@@ -141,7 +141,7 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
                     rtp_packet_recv_callback_(std::move(in_packet), true /* RTCP */);
                 }
             // RTP packet
-            }else if (rtp::utils::IsRtpPacket(in_packet)) {
+            }else if (IsRtpPacket(in_packet)) {
                 PLOG_VERBOSE << "Incoming SRTP packet, size: " << packet_size;
                 int unprotected_data_size = int(packet_size);
                 if (srtp_err_status_t err = srtp_unprotect(srtp_in_, static_cast<void *>(in_packet.data()), &unprotected_data_size)) {
