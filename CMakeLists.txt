@@ -496,6 +496,7 @@ set(TEST_SOURCES
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics_unittest.cpp
     src/rtc/rtp_rtcp/components/wrap_around_checker_unittest.cpp
+    src/rtc/rtp_rtcp/components/number_unwrapper_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packets
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_unittest.cpp
