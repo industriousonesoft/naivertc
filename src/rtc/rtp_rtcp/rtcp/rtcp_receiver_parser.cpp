@@ -13,7 +13,7 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/bye.hpp"
 
 #include "common/utils_time.hpp"
-#include "rtc/base/ntp_time_util.hpp"
+#include "rtc/base/time/ntp_time_util.hpp"
 #include <plog/Log.h>
 
 namespace naivertc {

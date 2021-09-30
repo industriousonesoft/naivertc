@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
-#include "rtc/base/ntp_time.hpp"
+#include "rtc/base/time/ntp_time.hpp"
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/base/units/time_delta.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"

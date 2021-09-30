@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_TIME_UTIL_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/ntp_time.hpp"
+#include "rtc/base/time/ntp_time.hpp"
 
 namespace naivertc {
 

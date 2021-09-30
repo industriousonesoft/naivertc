@@ -2,7 +2,7 @@
 #define _RTC_BASE_REPEATING_TASK_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/clock.hpp"
+#include "rtc/base/time/clock.hpp"
 #include "rtc/base/units/time_delta.hpp"
 #include "common/task_queue.hpp"
 

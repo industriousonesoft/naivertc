@@ -2,8 +2,8 @@
 #define _RTC_BASE_CLOCK_REAK_TIME_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/clock.hpp"
-#include "rtc/base/ntp_time.hpp"
+#include "rtc/base/time/clock.hpp"
+#include "rtc/base/time/ntp_time.hpp"
 
 namespace naivertc {
 

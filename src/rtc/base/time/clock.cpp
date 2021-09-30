@@ -1,5 +1,5 @@
-#include "rtc/base/clock.hpp"
-#include "rtc/base/clock_real_time.hpp"
+#include "rtc/base/time/clock.hpp"
+#include "rtc/base/time/clock_real_time.hpp"
 
 #if defined(NAIVERTC_POSIX)
 #include <sys/time.h>

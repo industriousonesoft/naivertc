@@ -54,10 +54,10 @@ set(LIB_SOURCES
     # rtc
     # rtc -> base
     src/rtc/base/packet.cpp
-    src/rtc/base/ntp_time.cpp
-    src/rtc/base/ntp_time_util.cpp
-    src/rtc/base/clock.cpp
-    src/rtc/base/clock_real_time.cpp
+    src/rtc/base/time/ntp_time.cpp
+    src/rtc/base/time/ntp_time_util.cpp
+    src/rtc/base/time/clock.cpp
+    src/rtc/base/time/clock_real_time.cpp
     src/rtc/base/repeating_task.cpp
     src/rtc/base/bit_rate_statistics.cpp
     src/rtc/base/copy_on_write_buffer.cpp
@@ -246,10 +246,10 @@ set(LIB_HEADERS
     include/rtc/base/byte_io.hpp
     include/rtc/base/byte_io_reader.hpp
     include/rtc/base/byte_io_writer.hpp
-    include/rtc/base/ntp_time.hpp
-    include/rtc/base/ntp_time_util.hpp
-    include/rtc/base/clock.hpp
-    include/rtc/base/clock_real_time.hpp
+    include/rtc/base/time/ntp_time.hpp
+    include/rtc/base/time/ntp_time_util.hpp
+    include/rtc/base/time/clock.hpp
+    include/rtc/base/time/clock_real_time.hpp
     include/rtc/base/sequence_number_utils.hpp
     include/rtc/base/divide_round.hpp
     include/rtc/base/repeating_task.hpp
@@ -472,8 +472,8 @@ set(TEST_SOURCES
     # rtc -> base
     src/rtc/base/packet_unittest.cpp
     src/rtc/base/byte_io_unittest.cpp
-    src/rtc/base/clock_unittest.cpp
-    src/rtc/base/ntp_time_unittest.cpp
+    src/rtc/base/time/clock_unittest.cpp
+    src/rtc/base/time/ntp_time_unittest.cpp
     src/rtc/base/divide_round_unittest.cpp
     src/rtc/base/units/unit_base_unittest.cpp
     src/rtc/base/units/timestamp_unittest.cpp

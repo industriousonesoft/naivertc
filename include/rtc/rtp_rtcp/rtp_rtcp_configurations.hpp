@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_RTCP_INTERFACE_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/clock.hpp"
+#include "rtc/base/time/clock.hpp"
 #include "rtc/transports/transport.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"

@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_PACKET_SEQUENCER_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/clock.hpp"
+#include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
