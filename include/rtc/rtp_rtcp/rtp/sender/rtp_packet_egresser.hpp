@@ -9,7 +9,7 @@
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
-#include "rtc/base/bit_rate_statistics.hpp"
+#include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
 #include "rtc/base/repeating_task.hpp"
 
 #include <optional>

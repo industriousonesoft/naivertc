@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
-#include "rtc/base/sequence_number_utils.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_checker.hpp"
 
 #include <plog/Log.h>
 

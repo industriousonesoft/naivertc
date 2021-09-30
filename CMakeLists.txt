@@ -59,7 +59,6 @@ set(LIB_SOURCES
     src/rtc/base/time/clock.cpp
     src/rtc/base/time/clock_real_time.cpp
     src/rtc/base/repeating_task.cpp
-    src/rtc/base/bit_rate_statistics.cpp
     src/rtc/base/copy_on_write_buffer.cpp
     
     # rtc -> sdp
@@ -125,6 +124,8 @@ set(LIB_SOURCES
     src/rtc/media/video/h264/nalunit_auxiliaries.cpp
 
     # rtc -> rtp_rtcp -> components
+    src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
+    src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.cpp
 
     # rtc -> rtp_rtcp
@@ -250,10 +251,8 @@ set(LIB_HEADERS
     include/rtc/base/time/ntp_time_util.hpp
     include/rtc/base/time/clock.hpp
     include/rtc/base/time/clock_real_time.hpp
-    include/rtc/base/sequence_number_utils.hpp
     include/rtc/base/divide_round.hpp
     include/rtc/base/repeating_task.hpp
-    include/rtc/base/bit_rate_statistics.hpp
     include/rtc/base/copy_on_write_buffer.hpp
     include/rtc/base/dscp.hpp
     include/rtc/base/packet_options.hpp
@@ -307,6 +306,9 @@ set(LIB_HEADERS
     include/rtc/media/video/h264/nalunit_fragment.hpp
 
     # rtp -> rtp_rtcp -> components
+    include/rtc/rtp_rtcp/components/bit_rate_statistics.hpp
+    include/rtc/rtp_rtcp/components/wrap_around_checker.hpp
+    include/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.hpp
     include/rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp
 
     # rtc -> rtp_rtcp
@@ -479,7 +481,6 @@ set(TEST_SOURCES
     src/rtc/base/units/timestamp_unittest.cpp
     src/rtc/base/units/time_delta_unittest.cpp
     src/rtc/base/units/bit_rate_unittest.cpp
-    src/rtc/base/bit_rate_statistics_unittest.cpp
     src/rtc/base/copy_on_write_buffer_unittest.cpp
     src/rtc/base/numerics/percentile_filter_unittest.cpp
     src/rtc/base/numerics/moving_median_filter_unittest.cpp
@@ -491,6 +492,10 @@ set(TEST_SOURCES
 
     # rtc -> pc
     src/rtc/pc/peer_connection_configuration_unittest.cpp
+
+    # rtc -> rtp_rtcp -> components
+    src/rtc/rtp_rtcp/components/bit_rate_statistics_unittest.cpp
+    src/rtc/rtp_rtcp/components/wrap_around_checker_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packets
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_unittest.cpp

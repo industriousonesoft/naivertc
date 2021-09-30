@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_RATE_STATISTICS_H_
-#define _RTC_BASE_RATE_STATISTICS_H_
+#ifndef _RTC_RTP_RTCP_COMPONENTS_RATE_STATISTICS_H_
+#define _RTC_RTP_RTCP_COMPONENTS_RATE_STATISTICS_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/units/bit_rate.hpp"

@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp"
-#include "rtc/base/sequence_number_utils.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_checker.hpp"
 
 namespace naivertc {
 
