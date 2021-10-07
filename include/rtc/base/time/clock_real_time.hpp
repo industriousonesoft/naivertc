@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_CLOCK_REAK_TIME_H_
-#define _RTC_BASE_CLOCK_REAK_TIME_H_
+#ifndef _RTC_BASE_TIME_CLOCK_REAK_TIME_H_
+#define _RTC_BASE_TIME_CLOCK_REAK_TIME_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"

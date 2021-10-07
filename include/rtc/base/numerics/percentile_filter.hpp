@@ -33,8 +33,8 @@ private:
     void Refresh();
 
 private:
-    const float percentile_;
     std::multiset<T> set_;
+    const float percentile_;
     int64_t percentile_index_;
     // Maintain iterator and index of current target percentile value.
     typename std::multiset<T>::iterator percentile_it_;
@@ -44,8 +44,8 @@ private:
 template <typename T>
 PercentileFilter<T>::PercentileFilter(float percentile) 
     : percentile_(percentile),
-      percentile_it_(set_.begin()),
-      percentile_index_(0) {
+      percentile_index_(0),
+      percentile_it_(set_.begin()) {
     assert(percentile >= 0.0);
     assert(percentile <= 1.0);
 }

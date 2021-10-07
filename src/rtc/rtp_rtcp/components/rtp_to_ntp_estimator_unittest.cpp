@@ -178,7 +178,7 @@ TEST(UpdateRtcpMeasurementTests, FailsForEqualNtp) {
     EXPECT_TRUE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
     // Ntp time already added, list not updated.
     ++timestamp;
-    EXPECT_TRUE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
+    EXPECT_FALSE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
 }
 
 TEST(UpdateRtcpMeasurementTests, FailsForOldNtp) {
@@ -215,7 +215,7 @@ TEST(UpdateRtcpMeasurementTests, FailsForEqualTimestamp) {
 
     // Timestamp already added, list not updated.
     ++ntp_frac;
-    EXPECT_TRUE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
+    EXPECT_FALSE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
 }
 
 TEST(UpdateRtcpMeasurementTests, FailsForOldRtpTimestamp) {

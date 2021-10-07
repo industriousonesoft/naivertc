@@ -36,9 +36,9 @@ private:
 
 template <typename T>
 MovingMedianFilter<T>::MovingMedianFilter(size_t window_size) 
-    : percentile_filter_(0.5f),
-      stored_sample_count_(0),
-      window_size_(window_size) {
+    : window_size_(window_size),
+      percentile_filter_(0.5f),
+      stored_sample_count_(0) {
     assert(window_size > 0);
 }
 

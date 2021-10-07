@@ -58,6 +58,7 @@ set(LIB_SOURCES
     src/rtc/base/time/ntp_time_util.cpp
     src/rtc/base/time/clock.cpp
     src/rtc/base/time/clock_real_time.cpp
+    src/rtc/base/time/clock_simulated.cpp
     src/rtc/base/repeating_task.cpp
     src/rtc/base/copy_on_write_buffer.cpp
     
@@ -251,6 +252,7 @@ set(LIB_HEADERS
     include/rtc/base/time/ntp_time_util.hpp
     include/rtc/base/time/clock.hpp
     include/rtc/base/time/clock_real_time.hpp
+    include/rtc/base/time/clock_simulated.hpp
     include/rtc/base/divide_round.hpp
     include/rtc/base/repeating_task.hpp
     include/rtc/base/copy_on_write_buffer.hpp
@@ -498,6 +500,7 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/components/wrap_around_checker_unittest.cpp
     src/rtc/rtp_rtcp/components/number_unwrapper_unittest.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator_unittest.cpp
+    src/rtc/rtp_rtcp/components/remote_ntp_time_estimator_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packets
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_unittest.cpp

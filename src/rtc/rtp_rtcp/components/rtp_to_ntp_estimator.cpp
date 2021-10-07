@@ -44,7 +44,7 @@ bool RtpToNtpEstimator::UpdateMeasurements(uint32_t ntp_secs, uint32_t ntp_frac,
     int64_t unwrapped_rtp_timestamp = unwrapper_.Unwrap(rtp_timestamp);
     Measurement new_measurement(ntp_time_ms, unwrapped_rtp_timestamp);
     if (Contains(new_measurement)) {
-        return true;
+        return false;
     }
     bool invalid_sample = false;
     if (!measurements_.empty()) {
