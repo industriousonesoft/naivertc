@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.hpp"
+#include "rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer_h264.hpp"
 #include "common/array_view.hpp"
 
 #include <gtest/gtest.h>

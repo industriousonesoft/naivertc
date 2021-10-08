@@ -1,4 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp"
+#include "rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer_h264.hpp"
 
 #include <plog/Log.h>
 
