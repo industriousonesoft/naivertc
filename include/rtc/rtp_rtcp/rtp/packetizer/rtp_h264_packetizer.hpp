@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "common/array_view.hpp"
-#include "rtc/media/video/h264/common.hpp"
+#include "rtc/media/video/codecs/h264/common.hpp"
 #include "rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp"
 
 #include <deque>

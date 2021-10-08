@@ -1,5 +1,5 @@
-#ifndef _RTC_MEDIA_VIDEO_H264_COMMON_H_
-#define _RTC_MEDIA_VIDEO_H264_COMMON_H_
+#ifndef _RTC_MEDIA_VIDEO_CODECS_H264_COMMON_H_
+#define _RTC_MEDIA_VIDEO_CODECS_H264_COMMON_H_
 
 #include "base/defines.hpp"
 

@@ -1,11 +1,11 @@
-#include "rtc/media/video/h264/nalunit_fragment.hpp"
+#include "rtc/media/video/codecs/h264/nalunit_fu_a.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
 #include <cmath>
 
-using namespace naivertc::h264;
+using namespace naivertc::H264;
 
 namespace naivertc {
 namespace test {
@@ -29,7 +29,7 @@ constexpr size_t kPacketSize = sizeof(kPacket);
 } // namespace
 
 TEST(H264NaluFragmentTest, Create) {
-    NalUnitFragmentA nalu_fragment_a(NalUnitFragmentA::FragmentType::START, false, 0x03, 0x0F, &kFragmentPacket[2], kFragmentPacketSize-2);
+    NalUnit_FU_A nalu_fragment_a(NalUnit_FU_A::FragmentType::START, false, 0x03, 0x0F, &kFragmentPacket[2], kFragmentPacketSize-2);
 
     EXPECT_FALSE(nalu_fragment_a.forbidden_bit());
     EXPECT_EQ(0x03u, nalu_fragment_a.nri());
@@ -53,13 +53,13 @@ TEST(H264NaluFragmentTest, ParseFromNalUnit) {
     EXPECT_EQ(0x3u, nalu->nri());
     EXPECT_EQ(0x0Fu, nalu->unit_type());
 
-    auto fragments = NalUnitFragmentA::FragmentsFrom(nalu, kMaxFragmentSize);
+    auto fragments = nalu->Fragments(kMaxFragmentSize);
     EXPECT_EQ(3u, fragments.size());
 
     EXPECT_FALSE(fragments[0]->forbidden_bit());
     EXPECT_EQ(0x3u, fragments[0]->nri());
     EXPECT_EQ(0x0Fu, fragments[0]->unit_type());
-    EXPECT_EQ(NalUnitFragmentA::FragmentType::START, fragments[0]->fragment_type());
+    EXPECT_EQ(NalUnit_FU_A::FragmentType::START, fragments[0]->fragment_type());
     EXPECT_EQ(10 + 2, fragments[0]->size());
     EXPECT_EQ(0x7C, fragments[0]->at(0));
     EXPECT_EQ(0x8F, fragments[0]->at(1));
@@ -67,13 +67,13 @@ TEST(H264NaluFragmentTest, ParseFromNalUnit) {
     EXPECT_FALSE(fragments[1]->forbidden_bit());
     EXPECT_EQ(0x3u, fragments[1]->nri());
     EXPECT_EQ(0x0Fu, fragments[1]->unit_type());
-    EXPECT_EQ(NalUnitFragmentA::FragmentType::MIDDLE, fragments[1]->fragment_type());
+    EXPECT_EQ(NalUnit_FU_A::FragmentType::MIDDLE, fragments[1]->fragment_type());
     EXPECT_EQ(10 + 2, fragments[1]->size());
 
     EXPECT_FALSE(fragments[2]->forbidden_bit());
     EXPECT_EQ(0x3u, fragments[2]->nri());
     EXPECT_EQ(0x0Fu, fragments[2]->unit_type());
-    EXPECT_EQ(NalUnitFragmentA::FragmentType::END, fragments[2]->fragment_type());
+    EXPECT_EQ(NalUnit_FU_A::FragmentType::END, fragments[2]->fragment_type());
     EXPECT_EQ(3 + 2, fragments[2]->size());
 }
 

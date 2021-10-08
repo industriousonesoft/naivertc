@@ -120,9 +120,10 @@ set(LIB_SOURCES
     src/rtc/media/media_track_configuration.cpp
     src/rtc/media/media_track_sdp_builder.cpp
     src/rtc/media/video/encoded_frame.cpp
-    src/rtc/media/video/h264/nalunit.cpp
-    src/rtc/media/video/h264/nalunit_fragment.cpp
-    src/rtc/media/video/h264/nalunit_auxiliaries.cpp
+    src/rtc/media/video/codecs/h264/nalunit.cpp
+    src/rtc/media/video/codecs/h264/nalunit_fragment.cpp
+    src/rtc/media/video/codecs/h264/nalunit_auxiliaries.cpp
+    src/rtc/media/video/video_receive_stream.cpp
 
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
@@ -303,9 +304,10 @@ set(LIB_HEADERS
     include/rtc/media/media_track.hpp
     include/rtc/media/video/common.hpp
     include/rtc/media/video/encoded_frame.hpp
-    include/rtc/media/video/h264/common.hpp
-    include/rtc/media/video/h264/nalunit.hpp
-    include/rtc/media/video/h264/nalunit_fragment.hpp
+    include/rtc/media/video/codecs/h264/common.hpp
+    include/rtc/media/video/codecs/h264/nalunit.hpp
+    include/rtc/media/video/codecs/h264/nalunit_fragment.hpp
+    include/rtc/media/video/video_receive_stream.hpp
 
     # rtp -> rtp_rtcp -> components
     include/rtc/rtp_rtcp/components/bit_rate_statistics.hpp
@@ -470,8 +472,8 @@ set(TEST_SOURCES
 
     # rtc -> media
     src/rtc/media/media_track_unittest.cpp
-    src/rtc/media/video/h264/nalunit_unittest.cpp 
-    src/rtc/media/video/h264/nalunit_fragment_unittest.cpp
+    src/rtc/media/video/codecs/h264/nalunit_unittest.cpp 
+    src/rtc/media/video/codecs/h264/nalunit_fragment_unittest.cpp
 
     # rtc -> base
     src/rtc/base/packet_unittest.cpp

@@ -1,9 +1,9 @@
-#ifndef _RTC_MEDIA_VIDEO_H264_NALUNIT_H_
-#define _RTC_MEDIA_VIDEO_H264_NALUNIT_H_
+#ifndef _RTC_MEDIA_VIDEO_CODECS_H264_NAL_UNIT_H_
+#define _RTC_MEDIA_VIDEO_CODECS_H264_NAL_UNIT_H_
 
 #include "base/defines.hpp"
 #include "common/array_view.hpp"
-#include "rtc/media/video/h264/common.hpp"
+#include "rtc/media/video/codecs/h264/common.hpp"
 
 #include <vector>
 

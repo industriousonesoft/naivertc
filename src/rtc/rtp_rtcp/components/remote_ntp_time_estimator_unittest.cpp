@@ -109,8 +109,7 @@ TEST_F(RemoteNtpTimeEstimatorTest, AveragesErrorsOut) {
     int64_t capture_ntp_time_ms = local_clock_->CurrentNtpTime().ToMs();
     // Local peer gets enough RTCP SR to calculate the capture time.
     EXPECT_EQ(capture_ntp_time_ms, estimator_->Estimate(rtp_timestamp));
-    EXPECT_EQ(kRemoteToLocalClockOffsetMs,
-                estimator_->EstimatedOffsetInMs());
+    EXPECT_EQ(kRemoteToLocalClockOffsetMs, estimator_->EstimatedOffsetInMs());
 
     // Remote sends corrupted RTCP SRs
     AdvanceTimeMilliseconds(1000);

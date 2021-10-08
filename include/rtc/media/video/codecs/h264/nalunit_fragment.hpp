@@ -1,8 +1,8 @@
-#ifndef _RTC_MEDIA_VIDEO_H264_H_
-#define _RTC_MEDIA_VIDEO_H264_H_
+#ifndef _RTC_MEDIA_VIDEO_CODECS_H264_NAL_UNIT_FRAGMENT_H_
+#define _RTC_MEDIA_VIDEO_CODECS_H264_NAL_UNIT_FRAGMENT_H_
 
 #include "base/defines.hpp"
-#include "rtc/media/video/h264/nalunit.hpp"
+#include "rtc/media/video/codecs/h264/nalunit.hpp"
 
 namespace naivertc {
 namespace h264 {
