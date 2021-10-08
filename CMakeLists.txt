@@ -114,6 +114,7 @@ set(LIB_SOURCES
     src/rtc/call/rtp_demuxer_rtp.cpp
     src/rtc/call/rtp_demuxer_rtcp.cpp
     src/rtc/call/rtp_video_stream_receiver.cpp
+    src/rtc/call/rtx_receive_stream.cpp
     
     # rtc -> media
     src/rtc/media/media_track.cpp
@@ -299,6 +300,7 @@ set(LIB_HEADERS
     include/rtc/call/rtp_demuxer.hpp
     include/rtc/call/rtp_packet_sink.hpp
     include/rtc/call/rtp_video_stream_receiver.hpp
+    include/rtc/call/rtx_receive_stream.hpp
 
     # rtc -> media
     include/rtc/media/media_track.hpp

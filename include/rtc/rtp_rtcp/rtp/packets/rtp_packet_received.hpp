@@ -23,8 +23,13 @@ public:
     Timestamp arrival_time() const { return arrival_time_; }
     void set_arrival_time(Timestamp time) { arrival_time_ = time; }
 
+    // Flag if packet was recovered via RTX or FEX
+    bool is_recovered() const { return is_recovered_; }
+    void set_is_recovered(bool recovered) { is_recovered_ = recovered; }
+
 private:
     Timestamp arrival_time_ = Timestamp::MaxValue();
+    bool is_recovered_ = false;
 };
     
 } // namespace naivertc

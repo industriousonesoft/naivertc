@@ -20,7 +20,9 @@ public:
             int ulpfec_payload_type = -1;
             int red_payload_type = -1;
 
+            // For RTX to be enabled, both rtx_ssrc and maping are needed.
             uint32_t rtx_ssrc = 0;
+            // Map from RTX payload type -> media payload type.
             std::map<int, int> rtx_associated_payload_types;
 
             // Set if the stream is protected using FlexFEC.
