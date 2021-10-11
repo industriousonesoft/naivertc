@@ -26,7 +26,7 @@ public:
     static std::optional<PpsState> ParsePps(const uint8_t* data, size_t size);
 
     static bool ParsePpsIds(const uint8_t* data, size_t size,  uint32_t* pps_id, uint32_t* sps_id);
-    static std::optional<uint32_t> ParsePpsIdsFromSlice(const uint8_t* data, size_t size);
+    static std::optional<uint32_t> ParsePpsIdFromSlice(const uint8_t* data, size_t size);
 private:
     static std::optional<PpsState> ParseInternal(BitReader& bit_reader);
     static bool ParsePpsIdsInternal(BitReader& bit_reader, uint32_t* pps_id, uint32_t* sps_id);

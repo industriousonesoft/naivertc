@@ -8,19 +8,19 @@ const int kMinPicInitQpDeltaValue = -26;
 }  // namespace
 
 std::optional<PpsParser::PpsState> PpsParser::ParsePps(const uint8_t* data, size_t size) {
-    std::vector<uint8_t> rbsp_buffer = h264::NalUnit::RetrieveRbsp(data, size);
+    std::vector<uint8_t> rbsp_buffer = h264::NalUnit::RetrieveRbspFromEbsp(data, size);
     BitReader bit_reader(rbsp_buffer.data(), rbsp_buffer.size());
     return ParseInternal(bit_reader);
 }
 
 bool PpsParser::ParsePpsIds(const uint8_t* data, size_t size,  uint32_t* pps_id, uint32_t* sps_id) {
-    std::vector<uint8_t> rbsp_buffer = h264::NalUnit::RetrieveRbsp(data, size);
+    std::vector<uint8_t> rbsp_buffer = h264::NalUnit::RetrieveRbspFromEbsp(data, size);
     BitReader bit_reader(rbsp_buffer.data(), rbsp_buffer.size());
     return ParsePpsIdsInternal(bit_reader, pps_id, sps_id);
 }
 
-std::optional<uint32_t> PpsParser::ParsePpsIdsFromSlice(const uint8_t* data, size_t size) {
-    std::vector<uint8_t> rbsp_buffer = h264::NalUnit::RetrieveRbsp(data, size);
+std::optional<uint32_t> PpsParser::ParsePpsIdFromSlice(const uint8_t* data, size_t size) {
+    std::vector<uint8_t> rbsp_buffer = h264::NalUnit::RetrieveRbspFromEbsp(data, size);
     BitReader slice_reader(rbsp_buffer.data(), rbsp_buffer.size());
     uint32_t golomb_tmp;
     // first_mb_in_slice: ue(v)
@@ -38,16 +38,13 @@ std::optional<uint32_t> PpsParser::ParsePpsIdsFromSlice(const uint8_t* data, siz
 
 // Private methods
 bool PpsParser::ParsePpsIdsInternal(BitReader& bit_reader, uint32_t* pps_id, uint32_t* sps_id) {
-    if (pps_id != nullptr && bit_reader.ReadExpGolomb(*pps_id)) {
-        return true;
-    }else {
+    if (pps_id == nullptr || !bit_reader.ReadExpGolomb(*pps_id)) {
         return false;
     }
-    if (sps_id != nullptr && bit_reader.ReadExpGolomb(*sps_id)) {
-        return true;
-    }else {
+    if (sps_id == nullptr || !bit_reader.ReadExpGolomb(*sps_id)) {
         return false;
     }
+    return true;
 }
 
 std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reader) {
@@ -55,7 +52,6 @@ std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reade
     if(!ParsePpsIdsInternal(bit_reader, &pps.id, &pps.sps_id)) {
         return std::nullopt;
     }
-
     uint32_t bits_tmp;
     uint32_t golomb_ignored;
     // entropy_coding_mode_flag: u(1)
@@ -69,14 +65,14 @@ std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reade
     if(!bit_reader.ReadBits(1, bottom_field_pic_order_in_frame_present_flag)) {
         return std::nullopt;
     }
-    pps.bottom_field_pic_order_in_frame_present_flag =
-        bottom_field_pic_order_in_frame_present_flag != 0;
+    pps.bottom_field_pic_order_in_frame_present_flag = bottom_field_pic_order_in_frame_present_flag != 0;
 
     // num_slice_groups_minus1: ue(v)
     uint32_t num_slice_groups_minus1;
     if(!bit_reader.ReadExpGolomb(num_slice_groups_minus1)) {
         return std::nullopt;
     }
+
     if (num_slice_groups_minus1 > 0) {
         uint32_t slice_group_map_type;
         // slice_group_map_type: ue(v)
@@ -84,16 +80,15 @@ std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reade
             return std::nullopt;
         }
         if (slice_group_map_type == 0) {
-        for (uint32_t i_group = 0; i_group <= num_slice_groups_minus1;
-            ++i_group) {
-            // run_length_minus1[iGroup]: ue(v)
-            if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
-                return std::nullopt;
+            for (uint32_t i_group = 0; i_group <= num_slice_groups_minus1; ++i_group) {
+                // run_length_minus1[iGroup]: ue(v)
+                if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+                    return std::nullopt;
+                }
             }
-        }
         } else if (slice_group_map_type == 1) {
-        // TODO(sprang): Implement support for dispersed slice group map type.
-        // See 8.2.2.2 Specification for dispersed slice group map type.
+            // TODO: Implement support for dispersed slice group map type.
+            // See 8.2.2.2 Specification for dispersed slice group map type.
         } else if (slice_group_map_type == 2) {
             for (uint32_t i_group = 0; i_group <= num_slice_groups_minus1;
                 ++i_group) {
@@ -141,38 +136,45 @@ std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reade
             }
         }
     }
+    
     // num_ref_idx_l0_default_active_minus1: ue(v)
     if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
         return std::nullopt;
     }
+    
     // num_ref_idx_l1_default_active_minus1: ue(v)
     if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
         return std::nullopt;
     }
+    
     // weighted_pred_flag: u(1)
     uint32_t weighted_pred_flag;
     if(!bit_reader.ReadBits(1, weighted_pred_flag)) {
         return std::nullopt;
     }
+    
     pps.weighted_pred_flag = weighted_pred_flag != 0;
     // weighted_bipred_idc: u(2)
     if(!bit_reader.ReadBits(2, pps.weighted_bipred_idc)) {
         return std::nullopt;
     }
-
+    
     // pic_init_qp_minus26: se(v)
     if(!bit_reader.ReadSignedExpGolomb(pps.pic_init_qp_minus26)) {
         return std::nullopt;
     }
+    
     // Sanity-check parsed value
     if (pps.pic_init_qp_minus26 > kMaxPicInitQpDeltaValue ||
         pps.pic_init_qp_minus26 < kMinPicInitQpDeltaValue) {
         return std::nullopt;
     }
+    
     // pic_init_qs_minus26: se(v)
     if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
         return std::nullopt;
     }
+    
     // chroma_qp_index_offset: se(v)
     if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
         return std::nullopt;
@@ -182,11 +184,12 @@ std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reade
     if(!bit_reader.ReadBits(2, bits_tmp)) {
         return std::nullopt;
     }
+    
     // redundant_pic_cnt_present_flag: u(1)
     if(!bit_reader.ReadBits(1, pps.redundant_pic_cnt_present_flag)) {
         return std::nullopt;
     }
-
+    
     return pps;
 }
     
