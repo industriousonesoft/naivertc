@@ -15,6 +15,9 @@ public:
 
     bool WriteBits(uint64_t val, size_t bit_count);
 
+    template <typename T>
+    bool WriteByte(T& val);
+
     bool WriteExpGolomb(uint32_t val);
     bool WriteSignedExpGolomb(int32_t val);
 
@@ -34,6 +37,11 @@ private:
 
     DISALLOW_COPY_AND_ASSIGN(BitWriter);
 };
+
+template <typename T>
+bool BitWriter::WriteByte(T& val) {
+    return WriteBits(val, sizeof(T) * 8);
+}
     
 } // namespace naivertc
 
