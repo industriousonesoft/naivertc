@@ -41,9 +41,6 @@ namespace h264 {
 
 class RTC_CPP_EXPORT NalUnit : public BinaryBuffer {
 public:
-    // Returns a vector of the NALU indices in the given buffer.
-    static std::vector<NaluIndex> FindNaluIndices(const uint8_t* buffer, size_t size);
-public:
     NalUnit();
     NalUnit(const NalUnit&);
     NalUnit(BinaryBuffer&&);
@@ -60,6 +57,23 @@ public:
     void set_unit_type(uint8_t type);
     void set_payload(const BinaryBuffer& payload);
     void set_payload(const uint8_t* buffer, size_t size);
+public:
+    // Returns a vector of the NALU indices in the given buffer.
+    static std::vector<NaluIndex> FindNaluIndices(const uint8_t* buffer, size_t size);
+
+    // SODB: String of Data Bits, the raw encoded data and unprocessed.
+    // RBSP: Raw Byte Sequence Payload, Added trailing bits(one RBSP Stop bit + zere or more 0 bits) based on SODB for memory alignment.
+    // EBSP: Encapsulated Byte Sequence Paylaod, Added emulation byte (0x03) based on RBSP.
+    
+    // RBSP = SODB + RBSP Stop bit + 0 bits.
+    // EBSP = RBSP Part_1 + 0x03 + RBSP Part_2 + 0x03 ... + RBSP + Part_n.
+    // NALU = NALU Header + EBSP.
+    // H264 Byte stream = start code + NALU + ... + start code + NALU.
+
+    // Retrieve RBSP from EBSP by removing 0x03 emulation byte
+    // See section 7.4.1 of the H264 spec.
+    static std::vector<uint8_t> RetrieveRbspFromEbsp(const uint8_t* ebsp_buffer, size_t ebsp_size);
+    static void WriteRbsp(const uint8_t* rbsp_buffer, size_t rbsp_size, std::vector<uint8_t>& ebsp_buffer);
 };
     
 } // namespace h264

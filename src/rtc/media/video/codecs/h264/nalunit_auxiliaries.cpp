@@ -47,6 +47,49 @@ std::vector<NaluIndex> NalUnit::FindNaluIndices(const uint8_t* buffer, size_t si
     return indices;
 }
 
+std::vector<uint8_t> NalUnit::RetrieveRbspFromEbsp(const uint8_t* ebsp_buffer, size_t ebsp_size) {
+    std::vector<uint8_t> rbsp_buffer;
+    rbsp_buffer.reserve(ebsp_size);
+    for (size_t i = 0; i < ebsp_size;) {
+        if (ebsp_size - i >= 3 && 
+            ebsp_buffer[i] == 0x00 && 
+            ebsp_buffer[i + 1] == 0x00 && 
+            ebsp_buffer[i + 2] == 0x03) {
+            // Two RBSP bytes
+            rbsp_buffer.push_back(ebsp_buffer[i++]);
+            rbsp_buffer.push_back(ebsp_buffer[i++]);
+            // Skip the emulation byte.
+            i++;
+        }else {
+            // Single RBSP byte.
+            rbsp_buffer.push_back(ebsp_buffer[i++]);
+        }
+    }
+    return rbsp_buffer;
+}
+
+void NalUnit::WriteRbsp(const uint8_t* rbsp_buffer, size_t rbsp_size, std::vector<uint8_t>& ebsp_buffer) {
+    static const uint8_t kZerosInStartSequence = 2;
+    static const uint8_t kEmulationByte = 0x03u;
+    size_t num_consecutive_zeros = 0;
+    ebsp_buffer.reserve(ebsp_buffer.size() + rbsp_size);
+
+    for (size_t i = 0; i < rbsp_size; ++i) {
+        uint8_t byte = rbsp_buffer[i];
+        // Insert emulation byte to escape.
+        if (byte <= kEmulationByte &&
+            num_consecutive_zeros >= kZerosInStartSequence) {
+            ebsp_buffer.push_back(kEmulationByte);
+            num_consecutive_zeros = 0;
+        }
+        ebsp_buffer.push_back(byte);
+        if (byte == 0) {
+            ++num_consecutive_zeros;
+        } else {
+            num_consecutive_zeros = 0;
+        }
+    }
+}
     
 } // namespace H264
 } // namespace naivertc

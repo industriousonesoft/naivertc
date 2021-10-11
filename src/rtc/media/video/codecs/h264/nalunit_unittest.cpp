@@ -48,11 +48,36 @@ TEST(H264NalUnitTest, Parse) {
 TEST(H264NalUnitTest, FindNaluIndices) {
     const uint8_t h264_encoded_buffer[] = {0, 0, 1, uint8_t(h264::NaluType::IDR), 0xFF};
 
-    std::vector<NaluIndex> nalu_indices = NalUnit::FindNaluIndices(h264_encoded_buffer, sizeof(h264_encoded_buffer));
+    std::vector<NaluIndex> nalu_indices = NalUnit::FindNaluIndices(h264_encoded_buffer, 5);
     EXPECT_EQ(nalu_indices.size(), 1u);
     EXPECT_EQ(nalu_indices[0].start_offset, 0);
     EXPECT_EQ(nalu_indices[0].payload_start_offset, 3);
     EXPECT_EQ(nalu_indices[0].payload_size, 2);
+}
+
+TEST(H264NalUnitTest, RetrieveRbspFromEbsp) {
+    uint8_t ebsp_buffer_1[] = {0x00, 0x00, 0x03, 0x01};
+    uint8_t ebsp_buffer_2[] = {0x00, 0x00, 0x03, 0x02};
+    uint8_t ebsp_buffer_3[] = {0x00, 0x00, 0x03, 0x03};
+
+    auto rbsp_buffer_1 = NalUnit::RetrieveRbspFromEbsp(ebsp_buffer_1, 4);
+    EXPECT_EQ(rbsp_buffer_1.size(), 3);
+    EXPECT_EQ(rbsp_buffer_1[0], 0x00);
+    EXPECT_EQ(rbsp_buffer_1[1], 0x00);
+    EXPECT_EQ(rbsp_buffer_1[2], 0x01);
+
+    auto rbsp_buffer_2 = NalUnit::RetrieveRbspFromEbsp(ebsp_buffer_2, 4);
+    EXPECT_EQ(rbsp_buffer_2.size(), 3);
+    EXPECT_EQ(rbsp_buffer_2[0], 0x00);
+    EXPECT_EQ(rbsp_buffer_2[1], 0x00);
+    EXPECT_EQ(rbsp_buffer_2[2], 0x02);
+
+    auto rbsp_buffer_3 = NalUnit::RetrieveRbspFromEbsp(ebsp_buffer_3, 4);
+    EXPECT_EQ(rbsp_buffer_3.size(), 3);
+    EXPECT_EQ(rbsp_buffer_3[0], 0x00);
+    EXPECT_EQ(rbsp_buffer_3[1], 0x00);
+    EXPECT_EQ(rbsp_buffer_3[2], 0x03);
+    
 }
     
 } // namespace test
