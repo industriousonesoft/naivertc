@@ -14,11 +14,14 @@ public:
 
     // Reads bit-sized values from the buffer.
     // Return false if there isn't enough data left for the specified bit cout.
-    template <class T>
+    template <typename T>
     bool ReadBits(size_t bit_count, T& val);
 
-    bool ReadExpGolomb(uint32_t& value);
-    bool ReadExpGolomb(int32_t& value);
+    template <typename T>
+    bool ReadByte(T& val);
+
+    bool ReadExpGolomb(uint32_t& val);
+    bool ReadExpGolomb(int32_t& val);
 
     // Peeks bit-sized values from the buffer.
     // Return false if there isn't enough data left for the specified bit cout.
@@ -46,12 +49,18 @@ private:
 };
 
 template <typename T>
+bool BitReader::ReadByte(T& val) {
+    return ReadBits(sizeof(T) * 8, val);
+}
+
+template <typename T>
 bool BitReader::ReadBits(size_t bit_count, T& val) {
     return PeekBits(bit_count, val) && ConsumeBits(bit_count);
 }
 
 template <typename T>
 bool BitReader::PeekBits(size_t bit_count, T& val) {
+    static_assert(std::is_integral<T>::value, "Type must be an integer.");
     if (bit_count > RemainingBitCount() || bit_count > (sizeof(T) * 8)) {
         return false;
     }

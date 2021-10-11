@@ -30,6 +30,76 @@ TEST(BitReaderTest, ConsumeBits) {
     EXPECT_EQ(total_bits, bit_reader.RemainingBitCount());
 }
 
+TEST(BitReaderTest, ReadByteAligned) {
+    const uint8_t bytes[] = {0x0A, 0xBC, 0xDE, 0xF1, 0x23, 0x45, 0x67, 0x89};
+    uint8_t val8;
+    uint16_t val16;
+    uint32_t val32;
+    BitReader bit_reader(bytes, 8);
+    EXPECT_TRUE(bit_reader.ReadByte(val8));
+    EXPECT_EQ(0x0Au, val8);
+    EXPECT_TRUE(bit_reader.ReadByte(val8));
+    EXPECT_EQ(0xBCu, val8);
+    EXPECT_TRUE(bit_reader.ReadByte(val16));
+    EXPECT_EQ(0xDEF1u, val16);
+    EXPECT_TRUE(bit_reader.ReadByte(val32));
+    EXPECT_EQ(0x23456789u, val32);
+}
+
+TEST(BitReaderTest, ReadBytesOffset4) {
+    const uint8_t bytes[] = {0x0A, 0xBC, 0xDE, 0xF1, 0x23,
+                            0x45, 0x67, 0x89, 0x0A};
+    uint8_t val8;
+    uint16_t val16;
+    uint32_t val32;
+    BitReader bit_reader(bytes, 9);
+    EXPECT_TRUE(bit_reader.ConsumeBits(4));
+
+    EXPECT_TRUE(bit_reader.ReadByte(val8));
+    EXPECT_EQ(0xABu, val8);
+    EXPECT_TRUE(bit_reader.ReadByte(val8));
+    EXPECT_EQ(0xCDu, val8);
+    EXPECT_TRUE(bit_reader.ReadByte(val16));
+    EXPECT_EQ(0xEF12u, val16);
+    EXPECT_TRUE(bit_reader.ReadByte(val32));
+    EXPECT_EQ(0x34567890u, val32);
+}
+
+TEST(BitReaderTest, ReadBytesOffset3) {
+    // The pattern we'll check against is counting down from 0b1111. It looks
+    // weird here because it's all offset by 3.
+    // Byte pattern is:
+    //    56701234
+    //  0b00011111,
+    //  0b11011011,
+    //  0b10010111,
+    //  0b01010011,
+    //  0b00001110,
+    //  0b11001010,
+    //  0b10000110,
+    //  0b01000010
+    //       xxxxx <-- last 5 bits unused.
+
+    // The bytes. It almost looks like counting down by two at a time, except the
+    // jump at 5->3->0, since that's when the high bit is turned off.
+    const uint8_t bytes[] = {0x1F, 0xDB, 0x97, 0x53, 0x0E, 0xCA, 0x86, 0x42};
+
+    uint8_t val8;
+    uint16_t val16;
+    uint32_t val32;
+    BitReader bit_reader(bytes, 8);
+    EXPECT_TRUE(bit_reader.ConsumeBits(3));
+    EXPECT_TRUE(bit_reader.ReadByte(val8));
+    EXPECT_EQ(0xFEu, val8);
+    EXPECT_TRUE(bit_reader.ReadByte(val16));
+    EXPECT_EQ(0xDCBAu, val16);
+    EXPECT_TRUE(bit_reader.ReadByte(val32));
+    EXPECT_EQ(0x98765432u, val32);
+    // 5 bits left unread. Not enough to read a uint8_t.
+    EXPECT_EQ(5u, bit_reader.RemainingBitCount());
+    EXPECT_FALSE(bit_reader.ReadByte(val8));
+}
+
 TEST(BitReaderTest, ReadBits) {
     // Bit values are:
     //  0b01001101,
