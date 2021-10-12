@@ -57,6 +57,11 @@ public:
     }
 
     template <typename T,
+              size_t N,
+              typename std::enable_if<internal::IsCompatible<uint8_t, T>::value>::type* = nullptr>
+    CopyOnWriteBuffer(const T (&array)[N]) : CopyOnWriteBuffer(array, N) {}
+
+    template <typename T,
         // Container has data and size
         typename std::enable_if<
             std::is_convertible<decltype(std::declval<T>().data()), uint8_t*>::value &&
@@ -131,6 +136,13 @@ public:
         }
         CloneIfNecessary(buffer_->capacity());
         buffer_->insert(buffer_->end(), data, data + size);
+    }
+
+    template <typename T,
+              size_t N,
+              typename std::enable_if<internal::IsCompatible<uint8_t, T>::value>::type* = nullptr>
+    void Append(const T (&array)[N]) {
+        Append(array, N);
     }
 
     void Append(std::vector<uint8_t>::const_iterator begin, 
