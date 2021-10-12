@@ -20,6 +20,7 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSps(const uint8_t* data, size
     return ParseSpsUpToVui(bit_reader);
 }
 
+// VUI(Video Usability Infomation Guide)
 std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(BitReader& bit_reader) {
     SpsState sps_state;
 

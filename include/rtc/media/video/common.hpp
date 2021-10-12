@@ -8,14 +8,14 @@ namespace video {
 
 // Frame types
 enum class FrameType {
-    EMPTTY,
-    KEY,
-    DELTA
+    EMPTTY = 0,
+    KEY = 1,
+    DELTA = 2
 };
 
 // Codec types
 enum class CodecType {
-    NONE,
+    NONE = 0,
     H264,
     VP8,
     VP9,

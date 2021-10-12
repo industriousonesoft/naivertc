@@ -28,6 +28,20 @@ struct RTC_CPP_EXPORT NaluIndex {
     size_t payload_size;
 };
 
+enum class PacketizationType {
+    // This packet contains a single NAL unit.
+    SIGNLE = 0,
+    // This packet contains STAP-A (single time
+    // aggregation) packets. If this packet has an
+    // associated NAL unit type, it'll be for the
+    // first such aggregated packet.
+    STAP_A,
+    // This packet contains a FU-A (fragmentation
+    // unit) packet, meaning it is a part of a frame
+    // that was too large to fit into a single packet.
+    FU_A  
+};
+
 // Packetization modes are defined in RFC 6184 section 6
 // Due to the structure containing this being initialized 
 // with zeroes in some places, and mode 1 (non-interleaved) 
@@ -41,7 +55,7 @@ enum class PacketizationMode {
     SINGLE_NAL_UNIT
 };
 
-enum class NaluType : uint8_t {
+enum NaluType : uint8_t {
     SLICE = 1,
     IDR = 5,
     SEI = 6,
@@ -54,6 +68,30 @@ enum class NaluType : uint8_t {
     PREFIX = 14,
     STAP_A = 24,
     FU_A = 28
+};
+
+struct NaluInfo {
+    uint8_t type;
+    int sps_id;
+    int pps_id;
+    size_t offset;
+    size_t size;
+};
+
+constexpr size_t kMaxNaluNumPerPacket = 10;
+
+struct PacketizationInfo {
+    // The packetization mode of this transport. Packetization mode
+    // determines which packetization types are allowed when packetizing.
+    PacketizationMode packetization_mode;
+    // The packetization type of this buffer - single, aggregated or fragmented.
+    PacketizationType packetization_type;
+    
+    // The NAL unit type of the original data for fragmented packet, or
+    // the first NAL unit type in the packet for an aggregated packet.
+    uint8_t packet_nalu_type;
+    NaluInfo nalus[kMaxNaluNumPerPacket];
+    size_t available_nalu_num = 0;
 };
     
 } // namespace h264
