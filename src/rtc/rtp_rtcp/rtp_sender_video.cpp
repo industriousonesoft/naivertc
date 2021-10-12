@@ -1,6 +1,6 @@
 #include "rtc/rtp_rtcp/rtp_sender_video.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
-#include "rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.hpp"
+#include "rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer_h264.hpp"
 #include <plog/Log.h>
 
 namespace naivertc {
@@ -18,7 +18,7 @@ RtpSenderVideo::RtpSenderVideo(video::CodecType codec_type,
       playout_delay_pending_(false) {
           
     if (codec_type_ == video::CodecType::H264) {
-        rtp_packetizer_ = std::make_shared<RtpH264Packetizer>();
+        rtp_packetizer_ = std::make_unique<RtpH264Packetizer>();
     }
 }
     
@@ -92,7 +92,7 @@ bool RtpSenderVideo::SendVideo(int payload_type,
         limits.last_packet_reduction_size = last_packet->header_size() - middle_packet->header_size();
 
         if (codec_type_ == video::CodecType::H264) {
-            std::static_pointer_cast<RtpH264Packetizer>(this->rtp_packetizer_)->Packetize(payload, limits, h264::PacketizationMode::NON_INTERLEAVED);
+            dynamic_cast<RtpH264Packetizer*>(this->rtp_packetizer_.get())->Packetize(payload, limits, h264::PacketizationMode::NON_INTERLEAVED);
         }else {
             PLOG_WARNING << "Unsupported codec type.";
             return false;

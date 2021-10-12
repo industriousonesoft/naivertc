@@ -7,7 +7,7 @@
 namespace naivertc {
 
 // TODO: Put into encoded frame
-struct RTC_CPP_EXPORT RtpVideoHeader { 
+struct RTC_CPP_EXPORT RtpVideoHeader {
 public:
     RtpVideoHeader() = default;
     RtpVideoHeader(const RtpVideoHeader& other) = default;
@@ -20,7 +20,6 @@ public:
     video::CodecType codec_type = video::CodecType::NONE;
 
     video::PlayoutDelay playout_delay;
-
 };
     
 } // namespace naivertc

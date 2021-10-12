@@ -7,8 +7,10 @@
 #include <type_traits>
 
 namespace naivertc {
+namespace seq_num_utils {
 
 // Check if the sequence number `a` is ahead or at sequence number `b`.
+// NOTE: Same as `IsNewer` in wrap_around_checker.hpp
 template <typename T, T M>
 inline typename std::enable_if<(M > 0), bool>::type AheadOrAt(T a, T b) {
     static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
@@ -42,7 +44,26 @@ inline bool AheadOf(T a, T b) {
     static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
     return a != b && AheadOrAt<T, M>(a, b);
 }
-    
+
+// Comparator used to compare sequence numbers in a continuous fashion.
+//
+// WARNING! If used to sort sequence numbers of length M then the interval
+//          covered by the sequence numbers may not be larger than floor(M/2).
+template <typename T, T M = 0>
+struct AscendingComp {
+    bool operator()(T a, T b) const { return AheadOf<T, M>(a, b); }
+};
+
+// Comparator used to compare sequence numbers in a continuous fashion.
+//
+// WARNING! If used to sort sequence numbers of length M then the interval
+//          covered by the sequence numbers may not be larger than floor(M/2).
+template <typename T, T M = 0>
+struct DescendingComp {
+    bool operator()(T a, T b) const { return AheadOf<T, M>(b, a); }
+};
+
+} // namespace seq_num_utils
 } // namespace naivertc
 
 

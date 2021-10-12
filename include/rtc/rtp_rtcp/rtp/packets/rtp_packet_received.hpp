@@ -27,9 +27,13 @@ public:
     bool is_recovered() const { return is_recovered_; }
     void set_is_recovered(bool recovered) { is_recovered_ = recovered; }
 
+    int payload_type_frequency() const { return payload_type_frequency_; }
+    void set_payload_type_frequency(int frequency) { payload_type_frequency_ = frequency; }
+
 private:
     Timestamp arrival_time_ = Timestamp::MaxValue();
     bool is_recovered_ = false;
+    int payload_type_frequency_;
 };
     
 } // namespace naivertc

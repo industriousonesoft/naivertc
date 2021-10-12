@@ -26,6 +26,7 @@ public:
 public:
     ExtensionManager();
     explicit ExtensionManager(bool extmap_allow_mixed);
+    // explicit ExtensionManager(ArrayView<const HeaderExtension> extensions);
     ~ExtensionManager();
 
     bool extmap_allow_mixed() const { return extmap_allow_mixed_; }

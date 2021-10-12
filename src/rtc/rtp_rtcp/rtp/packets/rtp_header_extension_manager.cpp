@@ -35,7 +35,14 @@ ExtensionManager::ExtensionManager(bool extmap_allow_mixed)
     for (auto& id : extension_ids_) {
         id = kInvalidId;
     }
-}   
+}
+
+// ExtensionManager::ExtensionManager(ArrayView<const HeaderExtension> extensions) 
+//     : ExtensionManager(false) {
+//     for (const auto& extension : extensions) {
+//         RegisterByUri(extension.id, extension.uri);
+//     }
+// }
 
 ExtensionManager::~ExtensionManager() = default;
 
@@ -53,18 +60,22 @@ RtpExtensionType ExtensionManager::GetType(int id) const {
 }
 
 bool ExtensionManager::RegisterByType(int id, RtpExtensionType type) {
-    for (const ExtensionInfo& extension : kExtensions)
-        if (type == extension.type)
+    for (const ExtensionInfo& extension : kExtensions) {
+        if (type == extension.type) {
             return Register(id, extension.type, extension.uri);
+        }
+    }
     return false;
 }
 
 bool ExtensionManager::RegisterByUri(int id, std::string_view uri) {
-    for (const ExtensionInfo& extension : kExtensions)
-        if (uri == extension.uri)
+    for (const ExtensionInfo& extension : kExtensions) {
+        if (uri == extension.uri) {
             return Register(id, extension.type, extension.uri);
-    PLOG_WARNING << "Unknown extension uri:'" << uri << "', id: " << id
-                        << '.';
+        }
+    }  
+    PLOG_WARNING << "Unknown extension uri='" << uri 
+                 << "', id=" << id << '.';
     return false;
 }
 

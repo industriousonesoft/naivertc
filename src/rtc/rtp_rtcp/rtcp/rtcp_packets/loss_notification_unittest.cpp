@@ -62,12 +62,13 @@ TEST(RtcpPacketLossNotificationTest, ParseLegalLossNotificationMessagesCorrectly
     uint8_t packet[] = {0x8f, 206,  0x00, 0x04, 0x12, 0x34, 0x56, 0x78,  //
                         0xab, 0xcd, 0xef, 0x01, 'L',  'N',  'T',  'F',   //
                         0x3c, 0x7b, 0x65, 0x43};
+    size_t packet_size = 20;
   
     // First, prove that the failure we're expecting to see happens because of
     // the length, by showing that before the modification to the length,
     // the packet was correctly parsed.
     CommonHeader common_header;
-    EXPECT_TRUE(common_header.Parse(packet, sizeof(packet)));
+    EXPECT_TRUE(common_header.Parse(packet, packet_size));
 
     LossNotification loss_notification;
     EXPECT_TRUE(loss_notification.Parse(common_header));

@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+using namespace naivertc::seq_num_utils;
+
 namespace naivertc {
 namespace test {
 
@@ -139,6 +141,58 @@ TEST(SeqNumUtilsTest, ReverseDiffWithDivisor) {
     for (uint8_t i = 1; i < kDivisor; ++i) {
         ASSERT_EQ(kDivisor - i, (ReverseDiff<uint8_t, kDivisor>(0, i)));
         ASSERT_EQ(i, (ReverseDiff<uint8_t, kDivisor>(i, 0)));
+    }
+}
+
+TEST(SeqNumUtilsTest, Comparator) {
+    std::set<uint8_t, AscendingComp<uint8_t>> seq_nums_asc;
+    std::set<uint8_t, DescendingComp<uint8_t>> seq_nums_desc;
+
+    uint8_t x = 0;
+    for (int i = 0; i < 128; ++i) {
+        seq_nums_asc.insert(x);
+        seq_nums_desc.insert(x);
+        ASSERT_EQ(x, *seq_nums_asc.begin());
+        ASSERT_EQ(x, *seq_nums_desc.rbegin());
+        ++x;
+    }
+
+    seq_nums_asc.clear();
+    seq_nums_desc.clear();
+    x = 199;
+    for (int i = 0; i < 128; ++i) {
+        seq_nums_asc.insert(x);
+        seq_nums_desc.insert(x);
+        ASSERT_EQ(x, *seq_nums_asc.begin());
+        ASSERT_EQ(x, *seq_nums_desc.rbegin());
+        ++x;
+    }
+}
+
+TEST(SeqNumUtilsTest, ComparatorWithDivisor) {
+    const uint8_t D = 223;
+
+    std::set<uint8_t, AscendingComp<uint8_t, D>> seq_nums_asc;
+    std::set<uint8_t, DescendingComp<uint8_t, D>> seq_nums_desc;
+
+    uint8_t x = 0;
+    for (int i = 0; i < D / 2; ++i) {
+        seq_nums_asc.insert(x);
+        seq_nums_desc.insert(x);
+        ASSERT_EQ(x, *seq_nums_asc.begin());
+        ASSERT_EQ(x, *seq_nums_desc.rbegin());
+        x = Add<D>(x, 1);
+    }
+
+    seq_nums_asc.clear();
+    seq_nums_desc.clear();
+    x = 200;
+    for (int i = 0; i < D / 2; ++i) {
+        seq_nums_asc.insert(x);
+        seq_nums_desc.insert(x);
+        ASSERT_EQ(x, *seq_nums_asc.begin());
+        ASSERT_EQ(x, *seq_nums_desc.rbegin());
+        x = Add<D>(x, 1);
     }
 }
     

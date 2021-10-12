@@ -3,8 +3,10 @@
 
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
+#include "rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp"
 
 #include <memory>
+#include <map>
 
 namespace naivertc {
 
@@ -13,17 +15,44 @@ class CopyOnWriteBuffer;
 
 class RTC_CPP_EXPORT RtpVideoStreamReceiver {
 public:
-    RtpVideoStreamReceiver(std::shared_ptr<TaskQueue> task_queue);
+    struct Configuration {
+        // Sender SSRC used for sending RTCP (such as receiver reports).
+        uint32_t local_ssrc = 0;
+        // Synchronization source to be received.
+        uint32_t remote_ssrc = 0;
+
+        int ulpfec_payload_type = -1;
+        int red_payload_type = -1;
+
+        // For RTX to be enabled, both rtx_ssrc and maping are needed.
+        uint32_t rtx_ssrc = 0;
+        // Map from RTX payload type -> media payload type.
+        std::map<int, int> rtx_associated_payload_types;
+
+        // Set if the stream is protected using FlexFEC.
+        bool protected_by_flexfec = false;
+    };
+public:
+    RtpVideoStreamReceiver(Configuration config, 
+                           std::shared_ptr<TaskQueue> task_queue);
     ~RtpVideoStreamReceiver();
 
-    void OnIncomingRtcpPacket(CopyOnWriteBuffer in_packet);
-    void OnIncomingRtpPacket(RtpPacketReceived in_packet);
+    void OnRtcpPacket(CopyOnWriteBuffer in_packet);
+    void OnRtpPacket(RtpPacketReceived in_packet);
+
+    // Packet recovered by FlexFEX or UlpFEC
+    void OnRecoveredPacket(const uint8_t* packet, size_t packet_size);
 
 private:
-    void OnEmptyPacketReceived(uint16_t seq_num);
+    void HandleReceivedPacket(const RtpPacketReceived& packet);
+    void HandleEmptyPacket(uint16_t seq_num);
+    void HandleRedPacket(const RtpPacketReceived& packet);
 
 private:
+    const Configuration config_;
     std::shared_ptr<TaskQueue> task_queue_;
+
+    std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;
     
 };
     

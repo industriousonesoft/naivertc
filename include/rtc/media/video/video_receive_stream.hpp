@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
+#include "rtc/call/rtp_video_stream_receiver.hpp"
 
 #include <map>
 
@@ -11,23 +12,8 @@ namespace naivertc {
 class RTC_CPP_EXPORT VideoReceiveStream {
 public:
     struct Configuration {
-        struct Rtp {
-            // Sender SSRC used for sending RTCP (such as receiver reports).
-            uint32_t local_ssrc = 0;
-            // Synchronization source to be received.
-            uint32_t remote_ssrc = 0;
-
-            int ulpfec_payload_type = -1;
-            int red_payload_type = -1;
-
-            // For RTX to be enabled, both rtx_ssrc and maping are needed.
-            uint32_t rtx_ssrc = 0;
-            // Map from RTX payload type -> media payload type.
-            std::map<int, int> rtx_associated_payload_types;
-
-            // Set if the stream is protected using FlexFEC.
-            bool protected_by_flexfec = false;
-        };
+        using Rtp = struct RtpVideoStreamReceiver::Configuration;
+        Rtp rtp;
     };  
 public:
     VideoReceiveStream(Configuration config, 

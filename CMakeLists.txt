@@ -61,6 +61,9 @@ set(LIB_SOURCES
     src/rtc/base/time/clock_simulated.cpp
     src/rtc/base/repeating_task.cpp
     src/rtc/base/copy_on_write_buffer.cpp
+    src/rtc/base/bit_io.cpp
+    src/rtc/base/bit_io_reader.cpp
+    src/rtc/base/bit_io_writer.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.cpp
@@ -115,6 +118,7 @@ set(LIB_SOURCES
     src/rtc/call/rtp_demuxer_rtcp.cpp
     src/rtc/call/rtp_video_stream_receiver.cpp
     src/rtc/call/rtx_receive_stream.cpp
+    src/rtc/call/rtp_video_frame_assembler.cpp
     
     # rtc -> media
     src/rtc/media/media_track.cpp
@@ -124,6 +128,8 @@ set(LIB_SOURCES
     src/rtc/media/video/codecs/h264/nalunit.cpp
     src/rtc/media/video/codecs/h264/nalunit_fragment.cpp
     src/rtc/media/video/codecs/h264/nalunit_auxiliaries.cpp
+    src/rtc/media/video/codecs/h264/pps_parser.cpp
+    src/rtc/media/video/codecs/h264/sps_parser.cpp
     src/rtc/media/video/video_receive_stream.cpp
 
     # rtc -> rtp_rtcp -> components
@@ -155,7 +161,11 @@ set(LIB_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
-    src/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.cpp
+    src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer_h264.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> depacketizer
+    src/rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.cpp
+    src/rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer_h264.cpp
 
     # rtc -> rtp_rtcp -> rtp -> pacing
     src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
@@ -240,28 +250,33 @@ set(LIB_HEADERS
 
     # rtc
     # rtc -> base
-    include/rtc/base/units/unit_base.hpp
-    include/rtc/base/units/unit_relative.hpp
-    include/rtc/base/units/timestamp.hpp
-    include/rtc/base/units/time_delta.hpp
-    include/rtc/base/units/bit_rate.hpp
     include/rtc/base/internals.hpp
     include/rtc/base/packet.hpp
     include/rtc/base/byte_io.hpp
     include/rtc/base/byte_io_reader.hpp
     include/rtc/base/byte_io_writer.hpp
-    include/rtc/base/time/ntp_time.hpp
-    include/rtc/base/time/ntp_time_util.hpp
-    include/rtc/base/time/clock.hpp
-    include/rtc/base/time/clock_real_time.hpp
-    include/rtc/base/time/clock_simulated.hpp
     include/rtc/base/divide_round.hpp
     include/rtc/base/repeating_task.hpp
     include/rtc/base/copy_on_write_buffer.hpp
     include/rtc/base/dscp.hpp
     include/rtc/base/packet_options.hpp
+    include/rtc/base/bit_io.hpp
+    include/rtc/base/bit_io_reader.hpp
+    include/rtc/base/bit_io_writer.hpp
+    include/rtc/base/units/unit_base.hpp
+    include/rtc/base/units/unit_relative.hpp
+    include/rtc/base/units/timestamp.hpp
+    include/rtc/base/units/time_delta.hpp
+    include/rtc/base/units/bit_rate.hpp
+    include/rtc/base/time/ntp_time.hpp
+    include/rtc/base/time/ntp_time_util.hpp
+    include/rtc/base/time/clock.hpp
+    include/rtc/base/time/clock_real_time.hpp
+    include/rtc/base/time/clock_simulated.hpp
+    include/rtc/base/numerics/moving_median_filter.hpp
     include/rtc/base/numerics/percentile_filter.hpp
-
+    include/rtc/base/numerics/modulo_operator.hpp
+    
     # rtc -> sdp
     include/rtc/sdp/sdp_defines.hpp
     include/rtc/sdp/sdp_utils.hpp
@@ -301,6 +316,7 @@ set(LIB_HEADERS
     include/rtc/call/rtp_packet_sink.hpp
     include/rtc/call/rtp_video_stream_receiver.hpp
     include/rtc/call/rtx_receive_stream.hpp
+    include/rtc/call/rtp_video_frame_assembler.hpp
 
     # rtc -> media
     include/rtc/media/media_track.hpp
@@ -309,6 +325,8 @@ set(LIB_HEADERS
     include/rtc/media/video/codecs/h264/common.hpp
     include/rtc/media/video/codecs/h264/nalunit.hpp
     include/rtc/media/video/codecs/h264/nalunit_fragment.hpp
+    include/rtc/media/video/codecs/h264/pps_parser.hpp
+    include/rtc/media/video/codecs/h264/sps_parser.hpp
     include/rtc/media/video/video_receive_stream.hpp
 
     # rtp -> rtp_rtcp -> components
@@ -316,6 +334,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/components/wrap_around_checker.hpp
     include/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.hpp
     include/rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp
+    include/rtc/rtp_rtcp/components/seq_num_utils.hpp
 
     # rtc -> rtp_rtcp
     include/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
@@ -342,7 +361,11 @@ set(LIB_HEADERS
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp
-    include/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer.hpp
+    include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer_h264.hpp
+
+    # rtc -> rtp_rtcp -> rtp -> depacketizer
+    include/rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp
+    include/rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer_h264.hpp
 
     # rtc -> rtp_rtcp -> rtp -> pacing
     include/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp
@@ -476,20 +499,25 @@ set(TEST_SOURCES
     src/rtc/media/media_track_unittest.cpp
     src/rtc/media/video/codecs/h264/nalunit_unittest.cpp 
     src/rtc/media/video/codecs/h264/nalunit_fragment_unittest.cpp
+    src/rtc/media/video/codecs/h264/pps_parser_unittest.cpp
+    src/rtc/media/video/codecs/h264/sps_parser_unittest.cpp
 
     # rtc -> base
     src/rtc/base/packet_unittest.cpp
     src/rtc/base/byte_io_unittest.cpp
+    src/rtc/base/bit_io_reader_unittest.cpp
+    src/rtc/base/bit_io_writer_unittest.cpp
     src/rtc/base/time/clock_unittest.cpp
     src/rtc/base/time/ntp_time_unittest.cpp
     src/rtc/base/divide_round_unittest.cpp
+    src/rtc/base/copy_on_write_buffer_unittest.cpp
     src/rtc/base/units/unit_base_unittest.cpp
     src/rtc/base/units/timestamp_unittest.cpp
     src/rtc/base/units/time_delta_unittest.cpp
     src/rtc/base/units/bit_rate_unittest.cpp
-    src/rtc/base/copy_on_write_buffer_unittest.cpp
     src/rtc/base/numerics/percentile_filter_unittest.cpp
     src/rtc/base/numerics/moving_median_filter_unittest.cpp
+    src/rtc/base/numerics/modulo_operator_unittest.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp
@@ -505,13 +533,17 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/components/number_unwrapper_unittest.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator_unittest.cpp
+    src/rtc/rtp_rtcp/components/seq_num_utils_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packets
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_unittest.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager_unittest.cpp
     
     # rtc -> rtp_rtcp -> rtp -> packetizer
-    src/rtc/rtp_rtcp/rtp/packetizer/rtp_h264_packetizer_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer_h264_unittest.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> depacketizer
+    src/rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer_h264_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> fec
     src/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp_unittest.cpp

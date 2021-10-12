@@ -45,7 +45,7 @@ private:
 
     bool playout_delay_pending_;
 
-    std::shared_ptr<RtpPacketizer> rtp_packetizer_;
+    std::unique_ptr<RtpPacketizer> rtp_packetizer_;
     
 };
     
