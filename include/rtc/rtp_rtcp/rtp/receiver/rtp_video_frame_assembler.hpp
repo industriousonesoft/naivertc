@@ -1,5 +1,5 @@
-#ifndef _RTC_CALL_RTP_VIDEO_FRAME_ASSEMBLER_H_
-#define _RTC_CALL_RTP_VIDEO_FRAME_ASSEMBLER_H_
+#ifndef _RTC_RTP_RTCP_RTP_RTP_VIDEO_FRAME_ASSEMBLER_H_
+#define _RTC_RTP_RTCP_RTP_RTP_VIDEO_FRAME_ASSEMBLER_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"

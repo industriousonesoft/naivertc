@@ -160,6 +160,7 @@ set(LIB_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> receiver
     src/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/nack_module.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
@@ -362,6 +363,7 @@ set(LIB_HEADERS
 
     # rt -> rtp_rtcp -> rtp -> receiver
     include/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp
+    include/rtc/rtp_rtcp/rtp/receiver/nack_module.hpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp

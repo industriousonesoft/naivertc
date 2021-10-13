@@ -150,8 +150,8 @@ TEST(SeqNumUtilsTest, Comparator) {
 
     uint8_t x = 0;
     for (int i = 0; i < 128; ++i) {
-        seq_nums_asc.insert(x);
-        seq_nums_desc.insert(x);
+        EXPECT_TRUE(seq_nums_asc.insert(x).second);
+        EXPECT_TRUE(seq_nums_desc.insert(x).second);
         ASSERT_EQ(x, *seq_nums_asc.begin());
         ASSERT_EQ(x, *seq_nums_desc.rbegin());
         ++x;
@@ -161,8 +161,8 @@ TEST(SeqNumUtilsTest, Comparator) {
     seq_nums_desc.clear();
     x = 199;
     for (int i = 0; i < 128; ++i) {
-        seq_nums_asc.insert(x);
-        seq_nums_desc.insert(x);
+        EXPECT_TRUE(seq_nums_asc.insert(x).second);
+        EXPECT_TRUE(seq_nums_desc.insert(x).second);
         ASSERT_EQ(x, *seq_nums_asc.begin());
         ASSERT_EQ(x, *seq_nums_desc.rbegin());
         ++x;
