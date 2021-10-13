@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp"
 
 #include <memory>
 #include <map>
@@ -44,16 +45,18 @@ public:
     void OnRecoveredPacket(const uint8_t* packet, size_t packet_size);
 
 private:
-    void HandleReceivedPacket(const RtpPacketReceived& packet);
+    void OnReceivedPacket(const RtpPacketReceived& packet);
     void HandleEmptyPacket(uint16_t seq_num);
     void HandleRedPacket(const RtpPacketReceived& packet);
+
+    void OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, 
+                               const RtpPacketReceived& packet);
 
 private:
     const Configuration config_;
     std::shared_ptr<TaskQueue> task_queue_;
 
-    std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;
-    
+    std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;    
 };
     
 } // namespace naivertc

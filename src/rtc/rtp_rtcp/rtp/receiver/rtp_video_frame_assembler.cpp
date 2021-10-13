@@ -1,6 +1,9 @@
-#include "rtc/call/rtp_video_frame_assembler.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp"
+#include "rtc/media/video/codecs/h264/common.hpp"
 
 #include <plog/Log.h>
+
+#include <variant>
 
 namespace naivertc {
 
@@ -10,20 +13,24 @@ RtpVideoFrameAssembler::Packet::Packet(RtpVideoHeader video_header,
                                        uint16_t seq_num, 
                                        uint8_t payload_type, 
                                        uint32_t timestamp, 
-                                       bool marker_bit) 
+                                       bool is_first_packet_in_frame,
+                                       bool is_last_packet_in_frame) 
     : video_header(std::move(video_header)),
       seq_num(seq_num),
       payload_type(payload_type),
       timestamp(timestamp),
-      marker_bit(marker_bit) {}
+      is_first_packet_in_frame(is_first_packet_in_frame),
+      is_last_packet_in_frame(is_last_packet_in_frame) {}
 
 
 RtpVideoFrameAssembler::RtpVideoFrameAssembler(size_t initial_buffer_size, size_t max_buffer_size) 
     : max_packet_buffer_size_(max_buffer_size),
       packet_buffer_(initial_buffer_size),
       first_seq_num_(0),
+      curr_seq_num_(0),
       first_packet_received_(false),
-      is_cleared_to_first_seq_num_(false) {}
+      is_cleared_to_first_seq_num_(false),
+      sps_pps_idr_is_h264_keyframe_(true) {}
 
 RtpVideoFrameAssembler::~RtpVideoFrameAssembler() {
     Clear();
@@ -93,7 +100,32 @@ void RtpVideoFrameAssembler::Assemble() {
         curr_packet->continuous = true;
         // If all packets of the frame is continuous, assmbling them as a frame.
         if (curr_packet->is_last_packet_in_frame) {
+            uint16_t start_seq_num = seq_num;
+            int start_index = index;
+            size_t tested_packets = 0;
+            int64_t frame_timestamp = curr_packet->timestamp;
 
+            // Identify H264 keyframes by means of SPS, PPS, and IDR.
+            bool is_h264 = curr_packet->video_header.codec_type == video::CodecType::H264;
+            bool has_h264_sps = false;
+            bool has_h264_pps = false;
+            bool has_h264_idr = false;
+            bool is_h264_keyframe = false;
+            int idr_width = -1;
+            int idr_height = -1;
+            while (true) {
+                ++tested_packets;
+
+                if (!is_h264 && curr_packet->is_first_packet_in_frame) {
+                    break;
+                }
+
+                if (is_h264) {
+                    // const auto* h264_header = std::get_if<h264::PacketizationInfo>(curr_packet->)
+                }
+                
+            }
+             
         }
 
         ++seq_num;

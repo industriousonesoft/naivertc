@@ -118,7 +118,6 @@ set(LIB_SOURCES
     src/rtc/call/rtp_demuxer_rtcp.cpp
     src/rtc/call/rtp_video_stream_receiver.cpp
     src/rtc/call/rtx_receive_stream.cpp
-    src/rtc/call/rtp_video_frame_assembler.cpp
     
     # rtc -> media
     src/rtc/media/media_track.cpp
@@ -158,6 +157,9 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> receiver
+    src/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
@@ -316,7 +318,6 @@ set(LIB_HEADERS
     include/rtc/call/rtp_packet_sink.hpp
     include/rtc/call/rtp_video_stream_receiver.hpp
     include/rtc/call/rtx_receive_stream.hpp
-    include/rtc/call/rtp_video_frame_assembler.hpp
 
     # rtc -> media
     include/rtc/media/media_track.hpp
@@ -358,6 +359,9 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp
+
+    # rt -> rtp_rtcp -> rtp -> receiver
+    include/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp

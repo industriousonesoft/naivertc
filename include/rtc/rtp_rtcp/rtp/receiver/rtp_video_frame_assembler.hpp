@@ -16,11 +16,12 @@ namespace naivertc {
 class RTC_CPP_EXPORT RtpVideoFrameAssembler {
 public:
     struct Packet {
-        Packet(RtpVideoHeader video_header, 
+        Packet(RtpVideoHeader video_header,
                uint16_t seq_num, 
                uint8_t payload_type, 
                uint32_t timestamp, 
-               bool marker_bit);
+               bool is_first_packet_in_frame,
+               bool is_last_packet_in_frame);
         Packet() = default;
         Packet(const Packet&) = delete;
         Packet(Packet&&) = delete;
@@ -62,9 +63,10 @@ private:
     std::vector<std::unique_ptr<Packet>> packet_buffer_;
 
     uint16_t first_seq_num_;
+    uint16_t curr_seq_num_;
     bool first_packet_received_;
     bool is_cleared_to_first_seq_num_;
-    uint16_t curr_seq_num_;
+    bool sps_pps_idr_is_h264_keyframe_;
 
     std::optional<uint16_t> newest_inserted_seq_num_;
     std::set<uint16_t, seq_num_utils::DescendingComp<uint16_t>> missing_packets_;

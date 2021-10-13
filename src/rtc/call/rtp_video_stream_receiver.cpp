@@ -22,7 +22,7 @@ void RtpVideoStreamReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
 
 void RtpVideoStreamReceiver::OnRtpPacket(RtpPacketReceived in_packet) {
     task_queue_->Async([this, in_packet=std::move(in_packet)](){
-        this->HandleReceivedPacket(std::move(in_packet));
+        this->OnReceivedPacket(std::move(in_packet));
     });
 }
 
@@ -42,12 +42,12 @@ void RtpVideoStreamReceiver::OnRecoveredPacket(const uint8_t* packet, size_t pac
         // TODO: Identify header extensions of RTP packet.
         recovered_packet.set_payload_type_frequency(kVideoPayloadTypeFrequency);
 
-        this->HandleReceivedPacket(std::move(recovered_packet));
+        this->OnReceivedPacket(std::move(recovered_packet));
     });
 }
 
 // Private methods
-void RtpVideoStreamReceiver::HandleReceivedPacket(const RtpPacketReceived& packet) {
+void RtpVideoStreamReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
     // Padding or keep-alive packet
     if (packet.payload_size() == 0) {
         HandleEmptyPacket(packet.sequence_number());
@@ -68,6 +68,33 @@ void RtpVideoStreamReceiver::HandleReceivedPacket(const RtpPacketReceived& packe
         PLOG_WARNING << "Failed to depacketize RTP payload.";
         return;
     }
+
+    OnDepacketizedPayload(std::move(*depacketized_payload), packet);
+}
+
+void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, const RtpPacketReceived& rtp_packet) {
+    auto assembling_packet = std::make_unique<RtpVideoFrameAssembler::Packet>(depacketized_payload.video_header, 
+                                                                              rtp_packet.sequence_number(), 
+                                                                              rtp_packet.payload_type(), 
+                                                                              rtp_packet.timestamp(),
+                                                                              depacketized_payload.is_first_packet_in_frame,
+                                                                              depacketized_payload.is_last_packet_in_frame | rtp_packet.marker());
+    RtpVideoHeader& video_header = assembling_packet->video_header;
+
+    // TODO: Collect packet info
+
+    if (auto extension = rtp_packet.GetExtension<rtp::PlayoutDelayLimits>()) {
+        video_header.playout_delay.min_ms = extension->min_ms();
+        video_header.playout_delay.max_ms = extension->max_ms();
+    }
+
+    // TODO: Support more RTP header extensions
+
+    if (!rtp_packet.is_recovered()) {
+        // TODO: Update packet receive timestamp
+    }
+
+    // TODO: Update NACK module.
     
 }
 
