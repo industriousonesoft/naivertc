@@ -160,6 +160,7 @@ set(LIB_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> receiver
     src/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.cpp
     src/rtc/rtp_rtcp/rtp/receiver/nack_module.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
@@ -363,6 +364,7 @@ set(LIB_HEADERS
 
     # rt -> rtp_rtcp -> rtp -> receiver
     include/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp
+    include/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.hpp
     include/rtc/rtp_rtcp/rtp/receiver/nack_module.hpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
@@ -554,6 +556,9 @@ set(TEST_SOURCES
     # rtc -> rtp_rtcp -> rtp -> fec
     src/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp_unittest.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_generator_ulp_unittest.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> receiver
+    src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtcp 
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp

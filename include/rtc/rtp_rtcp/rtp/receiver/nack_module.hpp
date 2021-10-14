@@ -3,59 +3,42 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/rtp_rtcp/components/seq_num_utils.hpp"
-
-#include <memory>
-#include <set>
-#include <map>
+#include "common/task_queue.hpp"
+#include "rtc/base/repeating_task.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/nack_module_impl.hpp"
 
 namespace naivertc {
 
-// This class is not thread-safety, the caller MUST privode it.
-class RTC_CPP_EXPORT NackModule {
+static constexpr TimeDelta kDefaultUpdateInterval = TimeDelta::Millis(20);
+
+class RTC_CPP_EXPORT NackModule final {
 public:
-    NackModule(std::shared_ptr<Clock> clock, int64_t send_nack_delay_ms);
+    NackModule(std::shared_ptr<Clock> clock, 
+               int64_t send_nack_delay_ms,
+               TimeDelta update_interval,
+               std::shared_ptr<TaskQueue> task_queue);
     ~NackModule();
 
-    int OnReceivedPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered = false);
+    int OnReceivedPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered);
 
     void ClearUpTo(uint16_t seq_num);
     void UpdateRtt(int64_t rtt_ms);
 
+    using NackListToSendCallback = std::function<void(std::vector<uint16_t> nack_list)>;
+    void OnNackListToSend(NackListToSendCallback callback);
+
+    using RequestKeyFrameCallback = std::function<void()>;
+    void OnRequestKeyFrame(RequestKeyFrameCallback callback);
+    
 private:
-    struct NackInfo {
-        NackInfo();
-        NackInfo(uint16_t seq_num, 
-                 int64_t created_time);
-
-        uint16_t seq_num;
-        int64_t created_time;
-        std::optional<int64_t> sent_time;
-        int retries;
-    };
-
-    // Which fields to consider when deciding which packet to nack in batch
-    enum NackFilterType { 
-        SEQ_NUM,
-        TIME
-    };
+    void PeriodicUpdate();
 private:
-    void AddMissingPackets(uint16_t seq_num_start, uint16_t seq_num_end);
-    bool RemovePacketsUntilKeyFrame();
-    std::vector<uint16_t> GetNackBatch(NackFilterType type);
-private:
-    std::shared_ptr<Clock> clock_;
-
-    bool intialized_;
-    int64_t rtt_ms_;
-    uint16_t newest_seq_num_;
-    // Delay before send nack on packet received.
-    const int64_t send_nack_delay_ms_;
-
-    // FIXME: Why not use AscendingComp here?
-    std::set<uint16_t, seq_num_utils::DescendingComp<uint16_t>> keyframe_list_;
-    std::set<uint16_t, seq_num_utils::DescendingComp<uint16_t>> recovered_list_;
-    std::map<uint16_t, NackInfo, seq_num_utils::DescendingComp<uint16_t>> nack_list_;
+    NackModuleImpl impl_;
+    std::shared_ptr<TaskQueue> task_queue_;
+    std::unique_ptr<RepeatingTask> periodic_task_;
+    
+    NackListToSendCallback nack_list_to_send_callback_ = nullptr;
+    RequestKeyFrameCallback request_key_frame_callback_ = nullptr;
 };
     
 } // namespace naivertc
