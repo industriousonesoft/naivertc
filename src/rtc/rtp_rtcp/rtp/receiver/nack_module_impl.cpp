@@ -98,12 +98,18 @@ std::pair<int, bool> NackModuleImpl::OnReceivedPacket(uint16_t seq_num, bool is_
     ret.second = !AddPacketsToNack(newest_seq_num_ + 1, seq_num);
     newest_seq_num_ = seq_num;
 
+    // TODO: Return nack list up to seq_num here, not call explicitly
+
     return ret;
 }
 
 std::vector<uint16_t> NackModuleImpl::NackListUpTo(uint16_t seq_num) {
      // Are there any nacks that are waiting for this seq_num.
     return GetNackListToSend(NackModuleImpl::NackFilterType::SEQ_NUM, seq_num);
+}
+
+std::vector<uint16_t> NackModuleImpl::NackListUpToNewest() {
+    return NackListUpTo(newest_seq_num_);
 }
 
 std::vector<uint16_t> NackModuleImpl::PeriodicUpdate() {

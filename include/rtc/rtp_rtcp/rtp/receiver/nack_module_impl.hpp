@@ -27,7 +27,10 @@ public:
     void UpdateRtt(int64_t rtt_ms);
 
     std::vector<uint16_t> NackListUpTo(uint16_t seq_num);
+    std::vector<uint16_t> NackListUpToNewest();
     std::vector<uint16_t> PeriodicUpdate();
+
+    size_t nack_list_count() const { return nack_list_.size(); }
 
 private:
     struct NackInfo {

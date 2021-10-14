@@ -23,84 +23,89 @@ protected:
 
 };
 
-// TEST_F(TestNackModule, NackOnePacket) {
-//     sent_nacks_.clear();
-//     auto& nack_module = CreateNackModule();
-//     nack_module.OnReceivedPacket(1, false, false);
-//     nack_module.OnReceivedPacket(3, false, false);
-//     ASSERT_EQ(1u, sent_nacks_.size());
-//     EXPECT_EQ(2, sent_nacks_[0]);
-// }
+TEST_F(TestNackModule, NackOnePacket) {
+    auto& nack_module = CreateNackModule();
+    nack_module.OnReceivedPacket(1, false, false);
+    nack_module.OnReceivedPacket(3, false, false);
+    auto sent_nacks = nack_module.NackListUpToNewest();
+    ASSERT_EQ(1u, sent_nacks.size());
+    EXPECT_EQ(2, sent_nacks[0]);
+}
 
-// TEST_F(TestNackModule, WrappingSeqNumClearToKeyframe) {
-//     // Filtered by sequence number
-//     sent_nacks_.clear();
-//     auto& nack_module = CreateNackModule();
-//     nack_module.OnReceivedPacket(0xfffe, false, false);
-//     nack_module.OnReceivedPacket(1, false, false);
-//     ASSERT_EQ(2u, sent_nacks_.size());
-//     EXPECT_EQ(0xffff, sent_nacks_[0]);
-//     EXPECT_EQ(0, sent_nacks_[1]);
+TEST_F(TestNackModule, WrappingSeqNumClearToKeyframe) {
+    // Filtered by sequence number
+    auto& nack_module = CreateNackModule();
+    nack_module.OnReceivedPacket(0xfffe, false, false);
+    nack_module.OnReceivedPacket(1, false, false);
+    auto sent_nacks = nack_module.NackListUpToNewest();
+    ASSERT_EQ(2u, sent_nacks.size());
+    EXPECT_EQ(0xffff, sent_nacks[0]);
+    EXPECT_EQ(0, sent_nacks[1]);
 
-//     sent_nacks_.clear();
-//     nack_module.OnReceivedPacket(2, true, false);
-//     ASSERT_EQ(0u, sent_nacks_.size());
+    nack_module.OnReceivedPacket(2, true, false);
+    sent_nacks = nack_module.NackListUpToNewest();
+    ASSERT_EQ(0u, sent_nacks.size());
 
-//     nack_module.OnReceivedPacket(501, true, false);
-//     ASSERT_EQ(498u, sent_nacks_.size());
-//     for (uint16_t seq_num = 3; seq_num < 501; ++seq_num) {
-//         EXPECT_EQ(seq_num, sent_nacks_[seq_num - 3]);
-//     }
+    nack_module.OnReceivedPacket(501, true, false);
+    sent_nacks = nack_module.NackListUpToNewest();
+    ASSERT_EQ(498u, sent_nacks.size());
+    for (uint16_t seq_num = 3; seq_num < 501; ++seq_num) {
+        EXPECT_EQ(seq_num, sent_nacks[seq_num - 3]);
+    }
 
-//     sent_nacks_.clear();
-//     nack_module.OnReceivedPacket(1001, false, false);
-//     EXPECT_EQ(499u, sent_nacks_.size());
-//     for (uint16_t seq_num = 502; seq_num < 1001; ++seq_num)
-//         EXPECT_EQ(seq_num, sent_nacks_[seq_num - 502]);
+    nack_module.OnReceivedPacket(1001, false, false);
+    sent_nacks = nack_module.NackListUpToNewest();
+    EXPECT_EQ(499u, sent_nacks.size());
+    for (uint16_t seq_num = 502; seq_num < 1001; ++seq_num)
+        EXPECT_EQ(seq_num, sent_nacks[seq_num - 502]);
 
-//     // Filtered by timing
-//     sent_nacks_.clear();
-//     clock_->AdvanceTimeMilliseconds(100);
-//     // Call PeriodicUpdate() explicitly to simulate repeating task.
-//     nack_module.PeriodicUpdate();
-//     ASSERT_EQ(999u, sent_nacks_.size());
-//     EXPECT_EQ(0xffff, sent_nacks_[0]);
-//     EXPECT_EQ(0, sent_nacks_[1]);
-//     for (int seq_num = 3; seq_num < 501; ++seq_num)
-//         EXPECT_EQ(seq_num, sent_nacks_[seq_num - 1]);
-//     for (int seq_num = 502; seq_num < 1001; ++seq_num)
-//         EXPECT_EQ(seq_num, sent_nacks_[seq_num - 2]);
+    // Filtered by timing
+    clock_->AdvanceTimeMilliseconds(100);
+    // Call PeriodicUpdate() explicitly to simulate repeating task.
+    sent_nacks = nack_module.PeriodicUpdate();
+    ASSERT_EQ(999u, sent_nacks.size());
+    EXPECT_EQ(0xffff, sent_nacks[0]);
+    EXPECT_EQ(0, sent_nacks[1]);
+    for (int seq_num = 3; seq_num < 501; ++seq_num)
+        EXPECT_EQ(seq_num, sent_nacks[seq_num - 1]);
+    for (int seq_num = 502; seq_num < 1001; ++seq_num)
+        EXPECT_EQ(seq_num, sent_nacks[seq_num - 2]);
 
-//     // Adding packet 1004 will cause the nack list to reach it's max limit.
-//     // It will then clear all nacks up to the next keyframe (seq num 2),
-//     // thus removing 0xffff and 0 from the nack list.
-//     sent_nacks_.clear();
-//     nack_module.OnReceivedPacket(1004, false, false);
-//     ASSERT_EQ(2u, sent_nacks_.size());
-//     EXPECT_EQ(1002, sent_nacks_[0]);
-//     EXPECT_EQ(1003, sent_nacks_[1]);
+    // Adding packet 1004 will cause the nack list to reach it's max limit.
+    // It will then clear all nacks up to the next keyframe (seq num 2),
+    // thus removing 0xffff and 0 from the nack list.
+    nack_module.OnReceivedPacket(1004, false, false);
+    sent_nacks = nack_module.NackListUpToNewest();
+    ASSERT_EQ(2u, sent_nacks.size());
+    EXPECT_EQ(1002, sent_nacks[0]);
+    EXPECT_EQ(1003, sent_nacks[1]);
 
-//     sent_nacks_.clear();
-//     clock_->AdvanceTimeMilliseconds(100);
-//     nack_module.PeriodicUpdate();
-//     ASSERT_EQ(999u, sent_nacks_.size());
-//     for (int seq_num = 3; seq_num < 501; ++seq_num)
-//         EXPECT_EQ(seq_num, sent_nacks_[seq_num - 3]);
-//     for (int seq_num = 502; seq_num < 1001; ++seq_num)
-//         EXPECT_EQ(seq_num, sent_nacks_[seq_num - 4]);
+    clock_->AdvanceTimeMilliseconds(100);
+    sent_nacks = nack_module.PeriodicUpdate();
+    ASSERT_EQ(999u, sent_nacks.size());
+    for (int seq_num = 3; seq_num < 501; ++seq_num)
+        EXPECT_EQ(seq_num, sent_nacks[seq_num - 3]);
+    for (int seq_num = 502; seq_num < 1001; ++seq_num)
+        EXPECT_EQ(seq_num, sent_nacks[seq_num - 4]);
 
-//     // Adding packet 1007 will cause the nack module to overflow again, thus
-//     // clearing everything up to 501 which is the next keyframe.
-//     nack_module.OnReceivedPacket(1007, false, false);
-//     sent_nacks_.clear();
-//     clock_->AdvanceTimeMilliseconds(100);
-//     nack_module.PeriodicUpdate();
-//     ASSERT_EQ(503u, sent_nacks_.size());
-//     for (int seq_num = 502; seq_num < 1001; ++seq_num)
-//         EXPECT_EQ(seq_num, sent_nacks_[seq_num - 502]);
-//     EXPECT_EQ(1005, sent_nacks_[501]);
-//     EXPECT_EQ(1006, sent_nacks_[502]);
-// }
+    // Adding packet 1007 will cause the nack module to overflow again, thus
+    // clearing everything up to 501 which is the next keyframe.
+    nack_module.OnReceivedPacket(1007, false, false);
+    sent_nacks = nack_module.NackListUpToNewest();
+    ASSERT_EQ(2u, sent_nacks.size());
+    EXPECT_EQ(1005, sent_nacks[0]);
+    EXPECT_EQ(1006, sent_nacks[1]);
+
+    clock_->AdvanceTimeMilliseconds(100);
+    sent_nacks = nack_module.PeriodicUpdate();
+    ASSERT_EQ(503u, sent_nacks.size());
+    for (int seq_num = 502; seq_num < 1001; ++seq_num)
+        EXPECT_EQ(seq_num, sent_nacks[seq_num - 502]);
+    EXPECT_EQ(1002, sent_nacks[499]);
+    EXPECT_EQ(1003, sent_nacks[500]);
+    EXPECT_EQ(1005, sent_nacks[501]);
+    EXPECT_EQ(1006, sent_nacks[502]);
+}
 
 // TEST_F(TestNackModule, ResendNack) {
 //     auto& nack_module = CreateNackModule();
