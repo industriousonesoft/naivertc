@@ -559,6 +559,7 @@ set(TEST_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> receiver
     src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtcp 
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp

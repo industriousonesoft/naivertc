@@ -3,8 +3,10 @@
 
 #include "base/defines.hpp"
 #include "common/task_queue.hpp"
+#include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/nack_module.hpp"
 
 #include <memory>
 #include <map>
@@ -32,9 +34,12 @@ public:
 
         // Set if the stream is protected using FlexFEC.
         bool protected_by_flexfec = false;
+
+        bool nack_enabled = false;
     };
 public:
-    RtpVideoStreamReceiver(Configuration config, 
+    RtpVideoStreamReceiver(Configuration config,
+                           std::shared_ptr<Clock> clock,
                            std::shared_ptr<TaskQueue> task_queue);
     ~RtpVideoStreamReceiver();
 
@@ -51,12 +56,13 @@ private:
 
     void OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, 
                                const RtpPacketReceived& packet);
-
 private:
     const Configuration config_;
     std::shared_ptr<TaskQueue> task_queue_;
+    std::unique_ptr<NackModule> nack_module_;
 
-    std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;    
+    std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;
+    
 };
     
 } // namespace naivertc

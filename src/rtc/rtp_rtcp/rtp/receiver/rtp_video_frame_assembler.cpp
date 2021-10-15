@@ -23,7 +23,6 @@ RtpVideoFrameAssembler::RtpVideoFrameAssembler(size_t initial_buffer_size, size_
     : max_packet_buffer_size_(max_buffer_size),
       packet_buffer_(initial_buffer_size),
       first_seq_num_(0),
-      curr_seq_num_(0),
       first_packet_received_(false),
       is_cleared_to_first_seq_num_(false),
       sps_pps_idr_is_h264_keyframe_(true) {}
@@ -32,7 +31,8 @@ RtpVideoFrameAssembler::~RtpVideoFrameAssembler() {
     Clear();
 }
 
-void RtpVideoFrameAssembler::Insert(std::unique_ptr<Packet> packet) {
+RtpVideoFrameAssembler::InsertResult RtpVideoFrameAssembler::InsertPacket(std::unique_ptr<Packet> packet) {
+    InsertResult ret;
     uint16_t seq_num = packet->seq_num;
     size_t index = seq_num % packet_buffer_.size();
 
@@ -44,7 +44,7 @@ void RtpVideoFrameAssembler::Insert(std::unique_ptr<Packet> packet) {
         // If we have explicitly cleared past this packet then it's old,
         // don't insert it, just ignore it silently.
         if (is_cleared_to_first_seq_num_) {
-            return;
+            return ret;
         }
         first_seq_num_ = seq_num;
     }
@@ -53,25 +53,29 @@ void RtpVideoFrameAssembler::Insert(std::unique_ptr<Packet> packet) {
     if (packet_buffer_[index] != nullptr) {
         // Duplicate packet, ignoring it.
         if (packet_buffer_[index]->seq_num == packet->seq_num) {
-            return;
+            return ret;
         }
         // Try to expand the packet buffer for new packet
         if (!ExpandPacketBufferIfNecessary(seq_num)) {
             PLOG_WARNING << "Clear packet buffer and request key frame.";
             Clear();
-            return;
+            ret.keyframe_requested = true;
+            return ret;
         }
         // New index after packet buffer expanded.
         index = seq_num % packet_buffer_.size();
     }
-
+    
     // Every new packet is uncontinuous before assembled.
     packet->continuous = false;
     packet_buffer_[index] = std::move(packet);
 
     UpdateMissingPackets(seq_num, kMaxMissingPacketCount);
 
-    curr_seq_num_ = seq_num;
+    // Try to assemble frames
+    ret.assembled_packets = TryToAssembleFrames(seq_num);
+
+    return ret;
 }
 
 void RtpVideoFrameAssembler::Clear() {
@@ -84,9 +88,13 @@ void RtpVideoFrameAssembler::Clear() {
     missing_packets_.clear();
 }
 
-std::vector<std::unique_ptr<RtpVideoFrameAssembler::Packet>> RtpVideoFrameAssembler::Assemble() {
-    uint16_t seq_num = curr_seq_num_;
-    std::vector<std::unique_ptr<Packet>> found_frames;
+void RtpVideoFrameAssembler::ClearTo(uint16_t seq_num) {
+    // TODO: Implement this.
+}
+
+// Private methods
+RtpVideoFrameAssembler::AssembledPackets RtpVideoFrameAssembler::TryToAssembleFrames(uint16_t seq_num) {
+    AssembledPackets assembled_packets;
     for (size_t i = 0; i < packet_buffer_.size(); i++) {
         // The current sequence number is not continuous with previous one.
         if (!IsContinuous(seq_num)) {
@@ -194,29 +202,28 @@ std::vector<std::unique_ptr<RtpVideoFrameAssembler::Packet>> RtpVideoFrameAssemb
                 // If this is not a keyframe, make sure there are no gaps in the packet
                 // sequence numbers up until this point.
                 if (!is_h264_keyframe && missing_packets_.upper_bound(start_seq_num) != missing_packets_.begin()) {
-                    return found_frames;
+                    return assembled_packets;
                 }
             }
             const uint16_t end_seq_num = seq_num + 1;
             uint16_t num_packets = end_seq_num - start_seq_num;
-            found_frames.reserve(found_frames.size() + num_packets);
+            assembled_packets.reserve(assembled_packets.size() + num_packets);
             for (uint16_t i = start_seq_num; i != end_seq_num; ++i) {
                 std::unique_ptr<Packet>& packet = packet_buffer_[i % packet_buffer_.size()];
                 assert(packet != nullptr);
                 assert(i == packet->seq_num);
                 packet->video_header.is_first_packet_in_frame = (i == start_seq_num);
                 packet->video_header.is_last_packet_in_frame = (i == seq_num);
-                found_frames.push_back(std::move(packet));
+                assembled_packets.push_back(std::move(packet));
             }
 
             missing_packets_.erase(missing_packets_.begin(), missing_packets_.upper_bound(seq_num));
         }
         ++seq_num;
     }
-    return found_frames;
+    return assembled_packets;
 }
 
-// Private methods
 // To check the current sequence number is continuous with the previous one.
 bool RtpVideoFrameAssembler::IsContinuous(uint16_t seq_num) {
     size_t index = seq_num % packet_buffer_.size();

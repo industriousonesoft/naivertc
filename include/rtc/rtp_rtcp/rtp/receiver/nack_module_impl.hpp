@@ -14,18 +14,20 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT NackModuleImpl {
 public:
-    NackModuleImpl(std::shared_ptr<Clock> clock, 
-                   int64_t send_nack_delay_ms);
-    ~NackModuleImpl();
-
     struct InsertResult {
         // Nacks sent for `seq_num`.
         size_t nacks_sent_for_seq_num = 0;
-        // Indicate if the nack list is cleared as overflow or not.
+        // Indicate if the nack list was overflow and cleared, which means 
+        // that a key frame request should be sent.
         bool keyframe_requested = false;
         // Nack list on `seq_num` passed.
         std::vector<uint16_t> nack_list_to_send;
     };
+public:
+    NackModuleImpl(std::shared_ptr<Clock> clock, 
+                   int64_t send_nack_delay_ms);
+    ~NackModuleImpl();
+
     InsertResult InsertPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered);
 
     void ClearUpTo(uint16_t seq_num);

@@ -28,24 +28,43 @@ public:
         Packet& operator=(Packet&&) = delete;
         ~Packet() = default;
 
+        int width() const { return video_header.frame_width; }
+        int height() const { return video_header.frame_height; }
+
+        bool is_first_packet_in_frame() const {
+            return video_header.is_first_packet_in_frame;
+        }
+        bool is_last_packet_in_frame() const {
+            return video_header.is_last_packet_in_frame;
+        }
+
         RtpVideoHeader video_header;
         const RtpVideoCodecPacketizationInfo packetization_info;
+        CopyOnWriteBuffer video_payload;
 
-        // Indicates the packet is continuous with the previous one or not.
+        // Indicates the packet is continuous with the previous one.
         bool continuous = false;
         // Packet info
         uint16_t seq_num = 0;
         uint32_t timestamp = 0;
+    };
+    
+    using AssembledPackets = std::vector<std::unique_ptr<Packet>>;
+    struct InsertResult {
+        // Packets of one or more complete frames
+        AssembledPackets assembled_packets;
+        // Indicates if the packet buffer was cleared, which means
+        // that a key frame request should be sent.
+        bool keyframe_requested = false;
     };
 public:
     // `initial_buffer_size` and `max_buffer_size` must always be a power of two
     RtpVideoFrameAssembler(size_t initial_buffer_size, size_t max_buffer_size);
     ~RtpVideoFrameAssembler();
 
-    void Insert(std::unique_ptr<Packet> packet);
+    InsertResult InsertPacket(std::unique_ptr<Packet> packet);
     void Clear();
-
-    std::vector<std::unique_ptr<Packet>> Assemble();
+    void ClearTo(uint16_t seq_num);
 
 private:
     bool ExpandPacketBufferIfNecessary(uint16_t seq_num);
@@ -54,12 +73,13 @@ private:
     void UpdateMissingPackets(uint16_t seq_num, size_t window_size);
     bool IsContinuous(uint16_t seq_num);
 
+    AssembledPackets TryToAssembleFrames(uint16_t seq_num);
+
 private:
     const size_t max_packet_buffer_size_;
     std::vector<std::unique_ptr<Packet>> packet_buffer_;
 
     uint16_t first_seq_num_;
-    uint16_t curr_seq_num_;
     bool first_packet_received_;
     bool is_cleared_to_first_seq_num_;
     bool sps_pps_idr_is_h264_keyframe_;

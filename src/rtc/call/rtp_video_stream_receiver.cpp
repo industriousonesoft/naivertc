@@ -7,10 +7,16 @@
 
 namespace naivertc {
 
-RtpVideoStreamReceiver::RtpVideoStreamReceiver(Configuration config, 
+RtpVideoStreamReceiver::RtpVideoStreamReceiver(Configuration config,
+                                               std::shared_ptr<Clock> clock,
                                                std::shared_ptr<TaskQueue> task_queue) 
     : config_(std::move(config)), 
-      task_queue_(std::move(task_queue)) {}
+      task_queue_(std::move(task_queue)),
+      nack_module_(config.nack_enabled ? std::make_unique<NackModule>(clock, 
+                                                                      kDefaultSendNackDelayMs, 
+                                                                      kDefaultUpdateInterval, 
+                                                                      task_queue_) 
+                                       : nullptr) {}
 
 RtpVideoStreamReceiver::~RtpVideoStreamReceiver() {}
 
@@ -73,13 +79,12 @@ void RtpVideoStreamReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
 }
 
 void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, const RtpPacketReceived& rtp_packet) {
-    auto assembling_packet = std::make_unique<RtpVideoFrameAssembler::Packet>(depacketized_payload.video_header, 
-                                                                              rtp_packet.sequence_number(), 
-                                                                              rtp_packet.payload_type(), 
-                                                                              rtp_packet.timestamp(),
-                                                                              depacketized_payload.is_first_packet_in_frame,
-                                                                              depacketized_payload.is_last_packet_in_frame | rtp_packet.marker());
+    auto assembling_packet = std::make_unique<RtpVideoFrameAssembler::Packet>(depacketized_payload.video_header,
+                                                                              depacketized_payload.packetization_info,
+                                                                              rtp_packet.sequence_number(),
+                                                                              rtp_packet.timestamp());
     RtpVideoHeader& video_header = assembling_packet->video_header;
+    video_header.is_last_packet_in_frame |= rtp_packet.marker();
 
     // TODO: Collect packet info
 
@@ -94,8 +99,26 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
         // TODO: Update packet receive timestamp
     }
 
-    // TODO: Update NACK module.
-    
+    if (nack_module_) {
+        const bool is_keyframe = video_header.is_first_packet_in_frame && video_header.frame_type == video::FrameType::KEY;
+        // TODO: Pack int packet info
+        size_t nacks_sent = nack_module_->InsertPacket(rtp_packet.sequence_number(), is_keyframe, rtp_packet.is_recovered());
+    }
+
+    if (depacketized_payload.video_payload.empty()) {
+        HandleEmptyPacket(rtp_packet.sequence_number());
+        // TODO: Send buffered RTCP feedback.
+        return;
+    }
+
+    // H264
+    if (video_header.codec_type == video::CodecType::H264) {
+
+    }else {
+
+    }
+
+
 }
 
 void RtpVideoStreamReceiver::HandleEmptyPacket(uint16_t seq_num) {
