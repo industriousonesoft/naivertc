@@ -19,8 +19,6 @@ public:
         RtpVideoHeader video_header;
         CopyOnWriteBuffer video_payload;
         RtpVideoCodecPacketizationInfo packetization_info;
-        bool is_first_packet_in_frame = false;
-        bool is_last_packet_in_frame = false;
     };
 public:
     virtual ~RtpDepacketizer() = default;

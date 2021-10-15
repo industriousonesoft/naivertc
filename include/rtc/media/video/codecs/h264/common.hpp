@@ -92,6 +92,10 @@ struct PacketizationInfo {
     uint8_t packet_nalu_type;
     NaluInfo nalus[kMaxNaluNumPerPacket];
     size_t available_nalu_num = 0;
+
+    bool has_sps = false;
+    bool has_pps = false;
+    bool has_idr = false;
 };
     
 } // namespace h264

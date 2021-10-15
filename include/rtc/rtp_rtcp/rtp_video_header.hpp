@@ -20,6 +20,9 @@ public:
     video::CodecType codec_type = video::CodecType::NONE;
 
     video::PlayoutDelay playout_delay;
+
+    bool is_first_packet_in_frame = false;
+    bool is_last_packet_in_frame = false;
 };
     
 } // namespace naivertc

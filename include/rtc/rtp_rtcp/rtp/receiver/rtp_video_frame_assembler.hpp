@@ -5,6 +5,7 @@
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp_video_header.hpp"
 #include "rtc/rtp_rtcp/components/seq_num_utils.hpp"
+#include "rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp"
 
 #include <vector>
 #include <memory>
@@ -17,11 +18,9 @@ class RTC_CPP_EXPORT RtpVideoFrameAssembler {
 public:
     struct Packet {
         Packet(RtpVideoHeader video_header,
-               uint16_t seq_num, 
-               uint8_t payload_type, 
-               uint32_t timestamp, 
-               bool is_first_packet_in_frame,
-               bool is_last_packet_in_frame);
+               RtpVideoCodecPacketizationInfo packetization_info,
+               uint16_t seq_num,
+               uint32_t timestamp);
         Packet() = default;
         Packet(const Packet&) = delete;
         Packet(Packet&&) = delete;
@@ -30,16 +29,13 @@ public:
         ~Packet() = default;
 
         RtpVideoHeader video_header;
+        const RtpVideoCodecPacketizationInfo packetization_info;
 
         // Indicates the packet is continuous with the previous one or not.
         bool continuous = false;
+        // Packet info
         uint16_t seq_num = 0;
-        uint8_t payload_type = 0;
         uint32_t timestamp = 0;
-        bool marker_bit = false;
-        int time_nacked = -1;
-        bool is_first_packet_in_frame = false;
-        bool is_last_packet_in_frame = false;
     };
 public:
     // `initial_buffer_size` and `max_buffer_size` must always be a power of two
@@ -49,7 +45,7 @@ public:
     void Insert(std::unique_ptr<Packet> packet);
     void Clear();
 
-    void Assemble();
+    std::vector<std::unique_ptr<Packet>> Assemble();
 
 private:
     bool ExpandPacketBufferIfNecessary(uint16_t seq_num);

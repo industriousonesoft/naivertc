@@ -10,17 +10,13 @@ namespace naivertc {
 constexpr size_t kMaxMissingPacketCount = 1000;
 
 RtpVideoFrameAssembler::Packet::Packet(RtpVideoHeader video_header, 
+                                       RtpVideoCodecPacketizationInfo packetization_info,
                                        uint16_t seq_num, 
-                                       uint8_t payload_type, 
-                                       uint32_t timestamp, 
-                                       bool is_first_packet_in_frame,
-                                       bool is_last_packet_in_frame) 
+                                       uint32_t timestamp) 
     : video_header(std::move(video_header)),
+      packetization_info(std::move(packetization_info)),
       seq_num(seq_num),
-      payload_type(payload_type),
-      timestamp(timestamp),
-      is_first_packet_in_frame(is_first_packet_in_frame),
-      is_last_packet_in_frame(is_last_packet_in_frame) {}
+      timestamp(timestamp) {}
 
 
 RtpVideoFrameAssembler::RtpVideoFrameAssembler(size_t initial_buffer_size, size_t max_buffer_size) 
@@ -88,48 +84,136 @@ void RtpVideoFrameAssembler::Clear() {
     missing_packets_.clear();
 }
 
-void RtpVideoFrameAssembler::Assemble() {
+std::vector<std::unique_ptr<RtpVideoFrameAssembler::Packet>> RtpVideoFrameAssembler::Assemble() {
     uint16_t seq_num = curr_seq_num_;
+    std::vector<std::unique_ptr<Packet>> found_frames;
     for (size_t i = 0; i < packet_buffer_.size(); i++) {
         // The current sequence number is not continuous with previous one.
         if (!IsContinuous(seq_num)) {
             break;
         }
         size_t index = seq_num % packet_buffer_.size();
-        auto& curr_packet = packet_buffer_[index];
-        curr_packet->continuous = true;
-        // If all packets of the frame is continuous, assmbling them as a frame.
-        if (curr_packet->is_last_packet_in_frame) {
+        packet_buffer_[index]->continuous = true;
+        // If all packets of the frame is continuous, try to assmble them as a frame.
+        if (packet_buffer_[index]->video_header.is_last_packet_in_frame) {
             uint16_t start_seq_num = seq_num;
-            int start_index = index;
             size_t tested_packets = 0;
-            int64_t frame_timestamp = curr_packet->timestamp;
+            int64_t frame_timestamp = packet_buffer_[index]->timestamp;
+            int index_in_frame = index;
 
             // Identify H264 keyframes by means of SPS, PPS, and IDR.
-            bool is_h264 = curr_packet->video_header.codec_type == video::CodecType::H264;
-            bool has_h264_sps = false;
-            bool has_h264_pps = false;
-            bool has_h264_idr = false;
+            bool is_h264 = packet_buffer_[index]->video_header.codec_type == video::CodecType::H264;
             bool is_h264_keyframe = false;
+            bool has_h264_sps_in_frame = false;
+            bool has_h264_pps_in_frame = false;
+            bool has_h264_idr_in_frame = false;
             int idr_width = -1;
             int idr_height = -1;
+        
             while (true) {
                 ++tested_packets;
 
-                if (!is_h264 && curr_packet->is_first_packet_in_frame) {
+                const auto& video_header = packet_buffer_[index_in_frame]->video_header;
+
+                // `is_first_packet_in_frame` flag not works for H264
+                if (!is_h264 && video_header.is_first_packet_in_frame) {
                     break;
                 }
 
+                // Check if there has SPS, PPS or IDR in the packet of the assembling frame.
                 if (is_h264) {
-                    // const auto* h264_header = std::get_if<h264::PacketizationInfo>(curr_packet->)
-                }
-                
-            }
-             
-        }
+                    const auto& h264_header = std::get<h264::PacketizationInfo>(packet_buffer_[index_in_frame]->packetization_info);
+                    if (h264_header.has_sps) {
+                        has_h264_sps_in_frame = true;
+                    }
+                    if (h264_header.has_pps) {
+                        has_h264_pps_in_frame = true;
+                    }
+                    if (h264_header.has_idr) {
+                        has_h264_idr_in_frame = true;
+                    }
+                    // The conditions that determines if the H.264-IDR frame is a key frame.
+                    if ((sps_pps_idr_is_h264_keyframe_ && has_h264_sps_in_frame && has_h264_pps_in_frame && has_h264_idr_in_frame) ||
+                        (!sps_pps_idr_is_h264_keyframe_ && has_h264_idr_in_frame)) {
 
+                        is_h264_keyframe = true;
+                        if (video_header.frame_width > 0 && video_header.frame_height > 0) {
+                            idr_width = video_header.frame_width;
+                            idr_height = video_header.frame_height;
+                        }
+                    }
+                }
+
+                if (tested_packets == packet_buffer_.size()) {
+                    break;
+                }
+
+                // Backwards to previous packet 
+                index_in_frame = index_in_frame > 0 ? index_in_frame - 1 : packet_buffer_.size() - 1;
+
+                // In the case of H264 we don't have a frame_begin bit (yes,
+                // |frame_begin| might be set to true but that is a lie). So instead
+                // we traverese backwards as long as we have a previous packet and
+                // the timestamp of that packet is the same as this one. This may cause
+                // the PacketBuffer to hand out incomplete frames.
+                // See: https://bugs.chromium.org/p/webrtc/issues/detail?id=7106
+                if (is_h264 && (packet_buffer_[index_in_frame] == nullptr || packet_buffer_[index_in_frame]->timestamp != frame_timestamp)) {
+                    break;
+                }
+
+                --start_seq_num;
+            }
+
+            if (is_h264) {
+                 // Warn if this is an unsafe frame.
+                if (has_h264_idr_in_frame && (!has_h264_sps_in_frame || !has_h264_pps_in_frame)) {
+                PLOG_WARNING
+                    << "Received H.264-IDR frame (SPS: "
+                    << has_h264_sps_in_frame << ", PPS: " << has_h264_pps_in_frame << "). Treating as "
+                    << (sps_pps_idr_is_h264_keyframe_ ? "delta" : "key")
+                    << " frame since SpsPpsIdrIsH264Keyframe is "
+                    << (sps_pps_idr_is_h264_keyframe_ ? "enabled." : "disabled");
+                }
+
+                // Now that we have decided whether to treat this frame as a key frame
+                // or delta frame in the frame buffer, we update the `frame_type` of the first 
+                // packet in the frame that determines if the frame is a key frame or delta frame.
+                const size_t first_packet_index = start_seq_num % packet_buffer_.size();
+                if (is_h264_keyframe) {
+                    packet_buffer_[first_packet_index]->video_header.frame_type = video::FrameType::KEY;
+                    if (idr_width > 0 && idr_height > 0) {
+                        // IDR frame was finalized and we have the correct resolution for
+                        // IDR; update first packet to have same resolution as IDR.
+                        packet_buffer_[first_packet_index]->video_header.frame_width = idr_width;
+                        packet_buffer_[first_packet_index]->video_header.frame_height = idr_height;
+                    }
+                } else {
+                    packet_buffer_[first_packet_index]->video_header.frame_type = video::FrameType::DELTA;
+                }
+
+                // If this is not a keyframe, make sure there are no gaps in the packet
+                // sequence numbers up until this point.
+                if (!is_h264_keyframe && missing_packets_.upper_bound(start_seq_num) != missing_packets_.begin()) {
+                    return found_frames;
+                }
+            }
+            const uint16_t end_seq_num = seq_num + 1;
+            uint16_t num_packets = end_seq_num - start_seq_num;
+            found_frames.reserve(found_frames.size() + num_packets);
+            for (uint16_t i = start_seq_num; i != end_seq_num; ++i) {
+                std::unique_ptr<Packet>& packet = packet_buffer_[i % packet_buffer_.size()];
+                assert(packet != nullptr);
+                assert(i == packet->seq_num);
+                packet->video_header.is_first_packet_in_frame = (i == start_seq_num);
+                packet->video_header.is_last_packet_in_frame = (i == seq_num);
+                found_frames.push_back(std::move(packet));
+            }
+
+            missing_packets_.erase(missing_packets_.begin(), missing_packets_.upper_bound(seq_num));
+        }
         ++seq_num;
     }
+    return found_frames;
 }
 
 // Private methods
@@ -146,7 +230,7 @@ bool RtpVideoFrameAssembler::IsContinuous(uint16_t seq_num) {
     }
     
     // No packets are ahead of the current packet, so it is continuous.
-    if (curr_packet->is_first_packet_in_frame) {
+    if (curr_packet->video_header.is_first_packet_in_frame) {
         return true;
     }else {
         size_t prev_index = index > 0 ? index - 1 : packet_buffer_.size() - 1;
