@@ -44,8 +44,8 @@ void NackModuleImpl::UpdateRtt(int64_t rtt_ms) {
     rtt_ms_ = rtt_ms;
 }
 
-std::pair<int, bool> NackModuleImpl::OnReceivedPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered) {
-    std::pair<int, bool> ret{0, false};
+NackModuleImpl::InsertResult NackModuleImpl::InsertPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered) {
+    InsertResult ret;
     if (!initialized_) {
         newest_seq_num_ = seq_num;
         if (is_keyframe) {
@@ -61,13 +61,13 @@ std::pair<int, bool> NackModuleImpl::OnReceivedPacket(uint16_t seq_num, bool is_
 
     // `seq_num` is newer than `newest_seq_num`
     if (seq_num_utils::AheadOf(newest_seq_num_, seq_num)) {
-        int nacks_sent_for_packet = 0;
+        size_t nacks_sent_for_packet = 0;
         auto it = nack_list_.find(seq_num);
         if (it != nack_list_.end()) {
             nacks_sent_for_packet = it->second.retries;
             nack_list_.erase(it);
         }
-        ret.first = nacks_sent_for_packet;
+        ret.nacks_sent_for_seq_num = nacks_sent_for_packet;
         return ret;
     }
 
@@ -95,26 +95,23 @@ std::pair<int, bool> NackModuleImpl::OnReceivedPacket(uint16_t seq_num, bool is_
 
     // Add missing packets: [newest_seq_num_ + 1, seq_num - 1];
     // False on nack list is cleared as overflow, and requesting a keyframe.
-    ret.second = !AddPacketsToNack(newest_seq_num_ + 1, seq_num);
+    ret.keyframe_requested = !AddPacketsToNack(newest_seq_num_ + 1, seq_num);
     newest_seq_num_ = seq_num;
 
-    // TODO: Return nack list up to seq_num here, not call explicitly
+    // Are there any nacks that are waiting for `newest_seq_num_`.
+    ret.nack_list_to_send = NackListUpTo(newest_seq_num_);
 
     return ret;
 }
 
 std::vector<uint16_t> NackModuleImpl::NackListUpTo(uint16_t seq_num) {
      // Are there any nacks that are waiting for this seq_num.
-    return GetNackListToSend(NackModuleImpl::NackFilterType::SEQ_NUM, seq_num);
+    return NackListToSend(NackModuleImpl::NackFilterType::SEQ_NUM, seq_num);
 }
 
-std::vector<uint16_t> NackModuleImpl::NackListUpToNewest() {
-    return NackListUpTo(newest_seq_num_);
-}
-
-std::vector<uint16_t> NackModuleImpl::PeriodicUpdate() {
+std::vector<uint16_t> NackModuleImpl::NackListOnRttPassed() {
     // Are there any nacks that are waiting to send.
-    return GetNackListToSend(NackModuleImpl::NackFilterType::TIME, newest_seq_num_);
+    return NackListToSend(NackModuleImpl::NackFilterType::TIME, newest_seq_num_);
 }
 
 // Private methods
@@ -161,7 +158,7 @@ bool NackModuleImpl::RemovePacketsUntilKeyFrame() {
     return false;
 }
 
-std::vector<uint16_t> NackModuleImpl::GetNackListToSend(NackFilterType type, uint16_t seq_num) {
+std::vector<uint16_t> NackModuleImpl::NackListToSend(NackFilterType type, uint16_t seq_num) {
     Timestamp now = clock_->CurrentTime();
     std::vector<uint16_t> nack_list_to_send;
     auto it = nack_list_.begin();
@@ -170,15 +167,15 @@ std::vector<uint16_t> NackModuleImpl::GetNackListToSend(NackFilterType type, uin
         // Delay to send nack timed out.
         bool delay_timed_out = now.ms() - it->second.created_time >= send_nack_delay_ms_;
         if (delay_timed_out) {
-            // Nack on rtt passed.
             bool nack_on_rtt_passed = false;
+            // Nack on rtt passed and sent once.
             if (type == NackFilterType::TIME && it->second.sent_time) {
                 nack_on_rtt_passed = now.ms() - *it->second.sent_time >= resend_delay.ms();
             }
             bool nack_on_seq_num_passed = false;
-            // Nack on seq_num passed.
-            if (type == NackFilterType::SEQ_NUM) {
-                nack_on_seq_num_passed = !it->second.sent_time && seq_num_utils::AheadOrAt(seq_num, it->second.seq_num);
+            // Nack on seq_num passed and not sent before.
+            if (type == NackFilterType::SEQ_NUM && !it->second.sent_time) {
+                nack_on_seq_num_passed = seq_num_utils::AheadOrAt(seq_num, it->second.seq_num);
             }
 
             if (nack_on_rtt_passed || nack_on_seq_num_passed) {

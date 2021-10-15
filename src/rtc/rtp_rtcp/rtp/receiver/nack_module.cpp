@@ -22,18 +22,16 @@ NackModule::~NackModule() {
     periodic_task_->Stop();
 }
 
-int NackModule::OnReceivedPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered) {
-    return task_queue_->Sync<int>([this, seq_num, is_keyframe, is_recovered](){
-        auto ret = impl_.OnReceivedPacket(seq_num, is_keyframe, is_recovered);
-        // Are there any nacks that are waiting for this seq_num.
-        auto nack_list_to_send = impl_.NackListUpTo(seq_num);
-        if (!nack_list_to_send.empty() && nack_list_to_send_callback_) {
-            nack_list_to_send_callback_(std::move(nack_list_to_send));
-        }
-        if (ret.second && request_key_frame_callback_) {
+size_t NackModule::InsertPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered) {
+    return task_queue_->Sync<size_t>([this, seq_num, is_keyframe, is_recovered](){
+        auto ret = impl_.InsertPacket(seq_num, is_keyframe, is_recovered);
+        if (ret.keyframe_requested && request_key_frame_callback_) {
             request_key_frame_callback_();
         }
-        return ret.first;
+        if (!ret.nack_list_to_send.empty() && nack_list_to_send_callback_) {
+            nack_list_to_send_callback_(std::move(ret.nack_list_to_send));
+        }
+        return ret.nacks_sent_for_seq_num;
     });
 }
 
@@ -64,7 +62,7 @@ void NackModule::OnRequestKeyFrame(RequestKeyFrameCallback callback) {
 // Private methods
 void NackModule::PeriodicUpdate() {
     // Are there any nacks that are waiting to send.
-    auto nack_list_to_send = impl_.PeriodicUpdate();
+    auto nack_list_to_send = impl_.NackListOnRttPassed();
     if (!nack_list_to_send.empty() && nack_list_to_send_callback_) {
         nack_list_to_send_callback_(std::move(nack_list_to_send));
     }

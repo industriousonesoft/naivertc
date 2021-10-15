@@ -19,7 +19,7 @@ public:
                std::shared_ptr<TaskQueue> task_queue);
     ~NackModule();
 
-    int OnReceivedPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered);
+    size_t InsertPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered);
 
     void ClearUpTo(uint16_t seq_num);
     void UpdateRtt(int64_t rtt_ms);

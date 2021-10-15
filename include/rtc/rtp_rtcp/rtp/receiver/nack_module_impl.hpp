@@ -18,19 +18,20 @@ public:
                    int64_t send_nack_delay_ms);
     ~NackModuleImpl();
 
-    // Return pair: 
-    // first: nacks sent for `seq_num`
-    // second: indicate if the nack list is cleared as overflow or not.
-    std::pair<int, bool> OnReceivedPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered);
+    struct InsertResult {
+        // Nacks sent for `seq_num`.
+        size_t nacks_sent_for_seq_num = 0;
+        // Indicate if the nack list is cleared as overflow or not.
+        bool keyframe_requested = false;
+        // Nack list on `seq_num` passed.
+        std::vector<uint16_t> nack_list_to_send;
+    };
+    InsertResult InsertPacket(uint16_t seq_num, bool is_keyframe, bool is_recovered);
 
     void ClearUpTo(uint16_t seq_num);
     void UpdateRtt(int64_t rtt_ms);
 
-    std::vector<uint16_t> NackListUpTo(uint16_t seq_num);
-    std::vector<uint16_t> NackListUpToNewest();
-    std::vector<uint16_t> PeriodicUpdate();
-
-    size_t nack_list_count() const { return nack_list_.size(); }
+    std::vector<uint16_t> NackListOnRttPassed();
 
 private:
     struct NackInfo {
@@ -41,7 +42,7 @@ private:
         uint16_t seq_num;
         int64_t created_time;
         std::optional<int64_t> sent_time;
-        int retries;
+        size_t retries;
     };
 
     // Which fields to consider when deciding 
@@ -52,7 +53,8 @@ private:
     };
     
 private:
-    std::vector<uint16_t> GetNackListToSend(NackFilterType type, uint16_t seq_num);
+    std::vector<uint16_t> NackListToSend(NackFilterType type, uint16_t seq_num);
+    std::vector<uint16_t> NackListUpTo(uint16_t seq_num);
     bool AddPacketsToNack(uint16_t seq_num_start, uint16_t seq_num_end);
     bool RemovePacketsUntilKeyFrame();
 private:
