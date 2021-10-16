@@ -19,7 +19,8 @@ RtpVideoFrameAssembler::Packet::Packet(RtpVideoHeader video_header,
       timestamp(timestamp) {}
 
 
-RtpVideoFrameAssembler::RtpVideoFrameAssembler(size_t initial_buffer_size, size_t max_buffer_size) 
+RtpVideoFrameAssembler::RtpVideoFrameAssembler(size_t initial_buffer_size, 
+                                               size_t max_buffer_size) 
     : max_packet_buffer_size_(max_buffer_size),
       packet_buffer_(initial_buffer_size),
       first_seq_num_(0),
@@ -78,6 +79,13 @@ RtpVideoFrameAssembler::InsertResult RtpVideoFrameAssembler::InsertPacket(std::u
     return ret;
 }
 
+RtpVideoFrameAssembler::InsertResult RtpVideoFrameAssembler::InsertPadding(uint16_t seq_num) {
+    InsertResult ret;
+    UpdateMissingPackets(seq_num, kMaxMissingPacketCount);
+    ret.assembled_packets = TryToAssembleFrames(seq_num + 1);
+    return ret;
+}
+
 void RtpVideoFrameAssembler::Clear() {
     for (auto& packet : packet_buffer_) {
         packet.reset();
@@ -89,7 +97,39 @@ void RtpVideoFrameAssembler::Clear() {
 }
 
 void RtpVideoFrameAssembler::ClearTo(uint16_t seq_num) {
-    // TODO: Implement this.
+    // We have already cleared past this sequence number, no need to do anything.
+    if (is_cleared_to_first_seq_num_ && seq_num_utils::AheadOf<uint16_t>(first_seq_num_, seq_num)) {
+        return;
+    }
+
+    // If the packet buffer was cleared between a frame was created and returned.
+    if (!first_packet_received_) {
+        return;
+    }
+
+    // Avoid iterating over the buffer more than once by capping the number of
+    // iterations to the |size_| of the buffer.
+    ++seq_num;
+    size_t diff = ForwardDiff<uint16_t>(first_seq_num_, seq_num);
+    size_t iterations = std::min(diff, packet_buffer_.size());
+    for (size_t i = 0; i < iterations; ++i) {
+        auto& stored = packet_buffer_[first_seq_num_ % packet_buffer_.size()];
+        if (stored != nullptr && seq_num_utils::AheadOf<uint16_t>(seq_num, stored->seq_num)) {
+            stored = nullptr;
+        }
+        ++first_seq_num_;
+    }
+
+    // If |diff| is larger than |iterations| it means that we don't increment
+    // |first_seq_num_| until we reach |seq_num|, so we set it here.
+    first_seq_num_ = seq_num;
+
+    is_cleared_to_first_seq_num_ = true;
+    auto clear_to_it = missing_packets_.upper_bound(seq_num);
+    if (clear_to_it != missing_packets_.begin()) {
+        --clear_to_it;
+        missing_packets_.erase(missing_packets_.begin(), clear_to_it);
+    }
 }
 
 // Private methods
@@ -130,7 +170,13 @@ RtpVideoFrameAssembler::AssembledPackets RtpVideoFrameAssembler::TryToAssembleFr
 
                 // Check if there has SPS, PPS or IDR in the packet of the assembling frame.
                 if (is_h264) {
+                    // TODO: Using std::get_if instead.
                     const auto& h264_header = std::get<h264::PacketizationInfo>(packet_buffer_[index_in_frame]->packetization_info);
+
+                    if (h264_header.available_nalu_num >= h264::kMaxNaluNumPerPacket) {
+                        return assembled_packets;
+                    }
+
                     if (h264_header.has_sps) {
                         has_h264_sps_in_frame = true;
                     }
@@ -143,7 +189,6 @@ RtpVideoFrameAssembler::AssembledPackets RtpVideoFrameAssembler::TryToAssembleFr
                     // The conditions that determines if the H.264-IDR frame is a key frame.
                     if ((sps_pps_idr_is_h264_keyframe_ && has_h264_sps_in_frame && has_h264_pps_in_frame && has_h264_idr_in_frame) ||
                         (!sps_pps_idr_is_h264_keyframe_ && has_h264_idr_in_frame)) {
-
                         is_h264_keyframe = true;
                         if (video_header.frame_width > 0 && video_header.frame_height > 0) {
                             idr_width = video_header.frame_width;
@@ -230,9 +275,13 @@ bool RtpVideoFrameAssembler::IsContinuous(uint16_t seq_num) {
     const auto& curr_packet = packet_buffer_[index];
 
     // Current packet is not arrived yet,
-    // or the urrent packet is not belong to `seq_num`,
+    if (curr_packet == nullptr) {
+        return false;
+    }
+
+    // The urrent packet is not belong to `seq_num`,
     // so it's not continuous.
-    if (curr_packet == nullptr || curr_packet->seq_num != seq_num) {
+    if (curr_packet->seq_num != seq_num) {
         return false;
     }
     
@@ -244,9 +293,12 @@ bool RtpVideoFrameAssembler::IsContinuous(uint16_t seq_num) {
         const auto& prev_packet = packet_buffer_[prev_index];
 
         // Previous packet is not arrived yet,
-        // or the previous sequence number is not continuous with the current one,
+        if (prev_packet == nullptr) {
+            return false;
+        }
+        // The previous sequence number is not continuous with the current one,
         // so it's not continuous.
-        if (prev_packet == nullptr || prev_packet->seq_num + 1 != seq_num) {
+        if (prev_packet->seq_num != static_cast<uint16_t>(curr_packet->seq_num - 1)) {
             return false;
         }
         // All packets in a frame must have the same timestamp, 
@@ -290,8 +342,7 @@ void RtpVideoFrameAssembler::UpdateMissingPackets(uint16_t seq_num, size_t windo
 
 bool RtpVideoFrameAssembler::ExpandPacketBufferIfNecessary(uint16_t seq_num) {
     // No conflict
-    bool is_conflicted = packet_buffer_[seq_num % packet_buffer_.size()] != nullptr;
-    if (!is_conflicted) {
+    if (packet_buffer_[seq_num % packet_buffer_.size()] == nullptr) {
         return true;
     }
     if (packet_buffer_.size() == max_packet_buffer_size_) {
@@ -299,28 +350,33 @@ bool RtpVideoFrameAssembler::ExpandPacketBufferIfNecessary(uint16_t seq_num) {
                      << max_packet_buffer_size_;
         return false;
     }
-    bool is_overflowed = false;
+    bool no_more_space_to_expand = false;
     size_t new_size = std::min(max_packet_buffer_size_, 2 * packet_buffer_.size());
-    while(!is_overflowed && new_size <= max_packet_buffer_size_) {
-        is_conflicted = false;
-        for (auto& packet : packet_buffer_) {
+    while(!no_more_space_to_expand && new_size <= max_packet_buffer_size_) {
+        auto it = packet_buffer_.begin();
+        for (; it != packet_buffer_.end(); ++it) {
+            auto& packet = *it;
             // Check if We need to expand buffer
             if (packet && (packet->seq_num % new_size == seq_num)) {
                 if (new_size < max_packet_buffer_size_) {
                     new_size = std::min(max_packet_buffer_size_, 2 * new_size);
+                    no_more_space_to_expand = false;
                 // No more space to expand
                 }else {
-                    is_overflowed = true;
+                    no_more_space_to_expand = true;
                 }
-                is_conflicted = true;
                 break;
             }
         }
+        // Conflict fixed.
+        if (it == packet_buffer_.end()) {
+            break;
+        }
     }
-    if (!is_conflicted) {
+    if (!no_more_space_to_expand) {
         ExpandPacketBuffer(new_size);
     }
-    return !is_conflicted;
+    return !no_more_space_to_expand;
 }
 
 void RtpVideoFrameAssembler::ExpandPacketBuffer(size_t new_size) {

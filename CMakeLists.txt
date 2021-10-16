@@ -338,6 +338,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.hpp
     include/rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp
     include/rtc/rtp_rtcp/components/seq_num_utils.hpp
+    include/rtc/rtp_rtcp/components/seq_num_unwrapper.hpp
 
     # rtc -> rtp_rtcp
     include/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
@@ -542,6 +543,7 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/seq_num_utils_unittest.cpp
+    src/rtc/rtp_rtcp/components/seq_num_unwrapper_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packets
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_unittest.cpp

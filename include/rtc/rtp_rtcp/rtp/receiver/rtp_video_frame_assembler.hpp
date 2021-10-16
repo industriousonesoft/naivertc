@@ -39,7 +39,7 @@ public:
         }
 
         RtpVideoHeader video_header;
-        const RtpVideoCodecPacketizationInfo packetization_info;
+        RtpVideoCodecPacketizationInfo packetization_info;
         CopyOnWriteBuffer video_payload;
 
         // Indicates the packet is continuous with the previous one.
@@ -62,7 +62,11 @@ public:
     RtpVideoFrameAssembler(size_t initial_buffer_size, size_t max_buffer_size);
     ~RtpVideoFrameAssembler();
 
+    bool sps_pps_idr_is_h264_keyframe() const { return sps_pps_idr_is_h264_keyframe_; }
+    void set_sps_pps_idr_is_h264_keyframe(bool flag) { sps_pps_idr_is_h264_keyframe_ = flag; }
+
     InsertResult InsertPacket(std::unique_ptr<Packet> packet);
+    InsertResult InsertPadding(uint16_t seq_num);
     void Clear();
     void ClearTo(uint16_t seq_num);
 

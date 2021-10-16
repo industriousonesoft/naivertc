@@ -15,10 +15,12 @@ enum class FrameType {
 
 // Codec types
 enum class CodecType {
-    NONE = 0,
+    GENERIC = 0,
     H264,
-    VP8,
-    VP9,
+    // VP8,
+    // VP9,
+    // AV1,
+    // MULTIPLEX
 };
 
 // Playout delay
