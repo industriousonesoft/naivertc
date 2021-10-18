@@ -89,7 +89,7 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
     depacketized_payload.video_header.codec_type = video::CodecType::H264;
     depacketized_payload.video_header.frame_type = video::FrameType::DELTA;
     depacketized_payload.video_header.is_first_packet_in_frame = true;
-    auto& h264_packetization_info = depacketized_payload.packetization_info.emplace<h264::PacketizationInfo>();
+    auto& h264_video_codec_header = depacketized_payload.video_codec_header.emplace<h264::PacketizationInfo>();
 
     auto nalu_parser = [&](size_t nalu_start_offset, size_t nalu_size) mutable -> bool {
         if (nalu_size < kNalHeaderSize) {
@@ -121,7 +121,7 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
                 PLOG_WARNING << "Failed to parse SPS id from SPS slice.";
             }
             depacketized_payload.video_header.frame_type = video::FrameType::KEY;
-            h264_packetization_info.has_sps = true;
+            h264_video_codec_header.has_sps = true;
             break;
         }
         case h264::NaluType::PPS: {
@@ -133,12 +133,12 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
             }else {
                 PLOG_WARNING << "Failed to parse PPS id and SPS id from PPS slice.";
             }
-            h264_packetization_info.has_pps = true;
+            h264_video_codec_header.has_pps = true;
             break;
         }
         case h264::NaluType::IDR:
             depacketized_payload.video_header.frame_type = video::FrameType::KEY;
-            h264_packetization_info.has_idr = true;
+            h264_video_codec_header.has_idr = true;
             // fallthrough
         case h264::NaluType::SLICE: {
             std::optional<uint32_t> pps_id = PpsParser::ParsePpsIdFromSlice(nalu_payload, payload_size);
@@ -166,12 +166,12 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
             break;
         }
 
-        if (h264_packetization_info.available_nalu_num == h264::kMaxNaluNumPerPacket) {
+        if (h264_video_codec_header.nalus.size() == h264::kMaxNaluNumPerPacket) {
             PLOG_WARNING << "Received packet containing more than "
                          << h264::kMaxNaluNumPerPacket
                          << " NAL units. Will not keep track sps and pps ids for all of them.";
         }else {
-            h264_packetization_info.nalus[h264_packetization_info.available_nalu_num++] = nalu_info;
+            h264_video_codec_header.nalus.push_back(std::move(nalu_info));
         }
         return true;
     };
@@ -190,9 +190,9 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
             return std::nullopt;
         }
 
-        h264_packetization_info.packetization_type = h264::PacketizationType::STAP_A;
+        h264_video_codec_header.packetization_type = h264::PacketizationType::STAP_A;
         // NALU type for aggregated packets is the type of the first packet only.
-        h264_packetization_info.packet_nalu_type = payload_data[kStapAHeaderSize] & kTypeMask;
+        h264_video_codec_header.packet_nalu_type = payload_data[kStapAHeaderSize] & kTypeMask;
 
         // Parse NAL units in STAP-A packet
         for (const auto& nalu_index : nalu_indices.value()) {
@@ -201,9 +201,9 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
             }
         }
     }else {
-        h264_packetization_info.packetization_type = h264::PacketizationType::SIGNLE;
+        h264_video_codec_header.packetization_type = h264::PacketizationType::SIGNLE;
         // The NAL unit type of the original data for fragmented packet
-        h264_packetization_info.packet_nalu_type = nal_type;
+        h264_video_codec_header.packet_nalu_type = nal_type;
         if (!nalu_parser(0, payload_size)) {
             return std::nullopt;
         }
@@ -251,14 +251,13 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
     depacketized_payload.video_header.codec_type = video::CodecType::H264;
     depacketized_payload.video_header.is_first_packet_in_frame = is_first_fragment;
     // H264 packetization info
-    auto& h264_packetization_info = depacketized_payload.packetization_info.emplace<h264::PacketizationInfo>();
-    h264_packetization_info.packetization_type = h264::PacketizationType::FU_A;
-    h264_packetization_info.packetization_mode = h264::PacketizationMode::NON_INTERLEAVED;
-    h264_packetization_info.packet_nalu_type = original_nal_type;
-    h264_packetization_info.has_idr = is_idr;
+    auto& h264_video_codec_header = depacketized_payload.video_codec_header.emplace<h264::PacketizationInfo>();
+    h264_video_codec_header.packetization_type = h264::PacketizationType::FU_A;
+    h264_video_codec_header.packetization_mode = h264::PacketizationMode::NON_INTERLEAVED;
+    h264_video_codec_header.packet_nalu_type = original_nal_type;
+    h264_video_codec_header.has_idr = is_idr;
     if (is_first_fragment) {
-        h264_packetization_info.nalus[h264_packetization_info.available_nalu_num] = std::move(nalu_info);
-        h264_packetization_info.available_nalu_num = 1;
+        h264_video_codec_header.nalus.push_back(std::move(nalu_info));
     }
     return depacketized_payload;
 }

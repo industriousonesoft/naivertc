@@ -400,8 +400,8 @@ TEST_F(PacketAssemblerTest, TooManyNalusInPacket) {
     packet->video_header.frame_type = video::FrameType::KEY;
     packet->video_header.is_first_packet_in_frame = true;
     packet->video_header.is_last_packet_in_frame = true;
-    auto& h264_header = packet->packetization_info.emplace<h264::PacketizationInfo>();
-    h264_header.available_nalu_num = h264::kMaxNaluNumPerPacket;
+    auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
+    h264_header.nalus.resize(h264::kMaxNaluNumPerPacket);
     EXPECT_THAT(frame_assembler_.InsertPacket(std::move(packet)).assembled_packets,
                 IsEmpty());
 }
@@ -427,22 +427,22 @@ protected:
                             uint32_t height = 0) {  // height of frame (SPS/IDR)
         auto packet = std::make_unique<Packet>();
         packet->video_header.codec_type = video::CodecType::H264;
-        auto& h264_header = packet->packetization_info.emplace<h264::PacketizationInfo>();
+        auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
         
         packet->seq_num = seq_num;
         packet->timestamp = timestamp;
         if (keyframe == kKeyFrame) {
             if (frame_assembler_.sps_pps_idr_is_h264_keyframe()) {
+                h264_header.nalus.resize(3);
                 h264_header.nalus[0].type = h264::NaluType::SPS;
                 h264_header.nalus[1].type = h264::NaluType::PPS;
                 h264_header.nalus[2].type = h264::NaluType::IDR;
-                h264_header.available_nalu_num = 3;
                 h264_header.has_sps = true;
                 h264_header.has_pps = true;
                 h264_header.has_idr = true;
             } else {
+                h264_header.nalus.resize(1);
                 h264_header.nalus[0].type = h264::NaluType::IDR;
-                h264_header.available_nalu_num = 1;
                 h264_header.has_sps = false;
                 h264_header.has_pps = false;
                 h264_header.has_idr = true;
@@ -508,8 +508,8 @@ TEST_P(PacketAssemblerH264ParameterizedTest, GetBitstreamBufferPadding) {
     CopyOnWriteBuffer data = "some plain old data";
 
     auto packet = std::make_unique<Packet>();
-    auto& h264_header = packet->packetization_info.emplace<h264::PacketizationInfo>();
-    h264_header.available_nalu_num = 1;
+    auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
+     h264_header.nalus.resize(1);
     h264_header.nalus[0].type = h264::NaluType::IDR;
     h264_header.packetization_type = h264::PacketizationType::SIGNLE;
     packet->seq_num = seq_num;
@@ -613,9 +613,9 @@ protected:
 
 TEST_F(PacketAssemblerH264IdrIsKeyframeTest, IdrIsKeyframe) {
     auto packet = CreatePacket();
-    auto& h264_header = packet->packetization_info.emplace<h264::PacketizationInfo>();
+    auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
+    h264_header.nalus.resize(1);
     h264_header.nalus[0].type = h264::NaluType::IDR;
-    h264_header.available_nalu_num = 1;
     h264_header.has_idr = true;
     EXPECT_THAT(frame_assembler_.InsertPacket(std::move(packet)).assembled_packets,
                 ElementsAre(KeyFrame()));
@@ -623,11 +623,11 @@ TEST_F(PacketAssemblerH264IdrIsKeyframeTest, IdrIsKeyframe) {
 
 TEST_F(PacketAssemblerH264IdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
     auto packet = CreatePacket();
-    auto& h264_header = packet->packetization_info.emplace<h264::PacketizationInfo>();
+    auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
+    h264_header.nalus.resize(3);
     h264_header.nalus[0].type = h264::NaluType::SPS;
     h264_header.nalus[1].type = h264::NaluType::PPS;
     h264_header.nalus[2].type = h264::NaluType::IDR;
-    h264_header.available_nalu_num = 3;
     h264_header.has_sps = true;
     h264_header.has_pps = true;
     h264_header.has_idr = true;
@@ -645,9 +645,9 @@ class PacketAssemblerH264SpsPpsIdrIsKeyframeTest
 
 TEST_F(PacketAssemblerH264SpsPpsIdrIsKeyframeTest, IdrIsNotKeyframe) {
     auto packet = CreatePacket();
-    auto& h264_header = packet->packetization_info.emplace<h264::PacketizationInfo>();
+    auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
+    h264_header.nalus.resize(1);
     h264_header.nalus[0].type = h264::NaluType::IDR;
-    h264_header.available_nalu_num = 1;
     h264_header.has_sps = false;
     h264_header.has_pps = false;
     h264_header.has_idr = true;
@@ -658,10 +658,10 @@ TEST_F(PacketAssemblerH264SpsPpsIdrIsKeyframeTest, IdrIsNotKeyframe) {
 
 TEST_F(PacketAssemblerH264SpsPpsIdrIsKeyframeTest, SpsPpsIsNotKeyframe) {
     auto packet = CreatePacket();
-    auto& h264_header = packet->packetization_info.emplace<h264::PacketizationInfo>();
+    auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
+    h264_header.nalus.resize(2);
     h264_header.nalus[0].type = h264::NaluType::SPS;
     h264_header.nalus[1].type = h264::NaluType::PPS;
-    h264_header.available_nalu_num = 2;
     h264_header.has_sps = true;
     h264_header.has_pps = true;
     h264_header.has_idr = false;
@@ -672,11 +672,11 @@ TEST_F(PacketAssemblerH264SpsPpsIdrIsKeyframeTest, SpsPpsIsNotKeyframe) {
 
 TEST_F(PacketAssemblerH264SpsPpsIdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
     auto packet = CreatePacket();
-    auto& h264_header = packet->packetization_info.emplace<h264::PacketizationInfo>();
+    auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
+    h264_header.nalus.resize(3);
     h264_header.nalus[0].type = h264::NaluType::SPS;
     h264_header.nalus[1].type = h264::NaluType::PPS;
     h264_header.nalus[2].type = h264::NaluType::IDR;
-    h264_header.available_nalu_num = 3;
     h264_header.has_sps = true;
     h264_header.has_pps = true;
     h264_header.has_idr = true;

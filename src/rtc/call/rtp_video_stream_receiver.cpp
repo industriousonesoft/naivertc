@@ -80,7 +80,7 @@ void RtpVideoStreamReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
 
 void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, const RtpPacketReceived& rtp_packet) {
     auto assembling_packet = std::make_unique<RtpVideoFrameAssembler::Packet>(depacketized_payload.video_header,
-                                                                              depacketized_payload.packetization_info,
+                                                                              depacketized_payload.video_codec_header,
                                                                               rtp_packet.sequence_number(),
                                                                               rtp_packet.timestamp());
     RtpVideoHeader& video_header = assembling_packet->video_header;

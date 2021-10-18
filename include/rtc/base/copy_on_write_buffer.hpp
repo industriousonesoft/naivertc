@@ -164,6 +164,8 @@ public:
 
     void Swap(CopyOnWriteBuffer& other);
 
+    void EnsureCapacity(size_t new_capacity);
+
 private:
     void CloneIfNecessary(size_t new_capacity);
     void CreateEmptyBufferIfNecessary();

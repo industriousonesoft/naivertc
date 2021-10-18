@@ -18,7 +18,7 @@ class RTC_CPP_EXPORT RtpVideoFrameAssembler {
 public:
     struct Packet {
         Packet(RtpVideoHeader video_header,
-               RtpVideoCodecPacketizationInfo packetization_info,
+               RtpVideoCodecHeader video_codec_header,
                uint16_t seq_num,
                uint32_t timestamp);
         Packet() = default;
@@ -39,7 +39,7 @@ public:
         }
 
         RtpVideoHeader video_header;
-        RtpVideoCodecPacketizationInfo packetization_info;
+        RtpVideoCodecHeader video_codec_header;
         CopyOnWriteBuffer video_payload;
 
         // Indicates the packet is continuous with the previous one.

@@ -220,6 +220,17 @@ void CopyOnWriteBuffer::Swap(CopyOnWriteBuffer& other) {
     }
 }
 
+void CopyOnWriteBuffer::EnsureCapacity(size_t new_capacity) {
+    if (!buffer_) {
+        buffer_ = std::make_shared<BinaryBuffer>();
+        buffer_->reserve(new_capacity);
+        return;
+    }else if (new_capacity <= capacity()) {
+        return;
+    }
+    CloneIfNecessary(new_capacity);
+}
+
 // Private methods
 void CopyOnWriteBuffer::CloneIfNecessary(size_t new_capacity) {
     if (buffer_.use_count() == 1) {

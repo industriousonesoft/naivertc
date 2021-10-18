@@ -159,9 +159,10 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.cpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver
-    src/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.cpp
     src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.cpp
     src/rtc/rtp_rtcp/rtp/receiver/nack_module.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/h264_sps_pps_tracker.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
@@ -364,9 +365,10 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp
 
     # rt -> rtp_rtcp -> rtp -> receiver
-    include/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp
     include/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.hpp
     include/rtc/rtp_rtcp/rtp/receiver/nack_module.hpp
+    include/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp
+    include/rtc/rtp_rtcp/rtp/receiver/h264_sps_pps_tracker.hpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp
@@ -562,6 +564,7 @@ set(TEST_SOURCES
     # rtc -> rtp_rtcp -> rtp -> receiver
     src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl_unittest.cpp
     src/rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/h264_sps_pps_tracker_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtcp 
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp

@@ -10,11 +10,11 @@ namespace naivertc {
 constexpr size_t kMaxMissingPacketCount = 1000;
 
 RtpVideoFrameAssembler::Packet::Packet(RtpVideoHeader video_header, 
-                                       RtpVideoCodecPacketizationInfo packetization_info,
+                                       RtpVideoCodecHeader video_codec_header,
                                        uint16_t seq_num, 
                                        uint32_t timestamp) 
     : video_header(std::move(video_header)),
-      packetization_info(std::move(packetization_info)),
+      video_codec_header(std::move(video_codec_header)),
       seq_num(seq_num),
       timestamp(timestamp) {}
 
@@ -171,9 +171,9 @@ RtpVideoFrameAssembler::AssembledPackets RtpVideoFrameAssembler::TryToAssembleFr
                 // Check if there has SPS, PPS or IDR in the packet of the assembling frame.
                 if (is_h264) {
                     // TODO: Using std::get_if instead.
-                    const auto& h264_header = std::get<h264::PacketizationInfo>(packet_buffer_[index_in_frame]->packetization_info);
+                    const auto& h264_header = std::get<h264::PacketizationInfo>(packet_buffer_[index_in_frame]->video_codec_header);
 
-                    if (h264_header.available_nalu_num >= h264::kMaxNaluNumPerPacket) {
+                    if (h264_header.nalus.size() >= h264::kMaxNaluNumPerPacket) {
                         return assembled_packets;
                     }
 

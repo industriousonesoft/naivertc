@@ -90,8 +90,7 @@ struct PacketizationInfo {
     // The NAL unit type of the original data for fragmented packet, or
     // the first NAL unit type in the packet for an aggregated packet.
     uint8_t packet_nalu_type;
-    NaluInfo nalus[kMaxNaluNumPerPacket];
-    size_t available_nalu_num = 0;
+    std::vector<NaluInfo> nalus;
 
     bool has_sps = false;
     bool has_pps = false;
