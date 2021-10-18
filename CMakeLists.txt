@@ -117,6 +117,7 @@ set(LIB_SOURCES
     src/rtc/call/rtp_demuxer_rtp.cpp
     src/rtc/call/rtp_demuxer_rtcp.cpp
     src/rtc/call/rtp_video_stream_receiver.cpp
+    src/rtc/call/rtp_video_stream_receiver_auxiliaries.cpp
     src/rtc/call/rtx_receive_stream.cpp
     
     # rtc -> media

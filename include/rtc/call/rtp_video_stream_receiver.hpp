@@ -7,9 +7,11 @@
 #include "rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/nack_module.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 
 #include <memory>
 #include <map>
+#include <vector>
 
 namespace naivertc {
 
@@ -48,6 +50,30 @@ public:
 
     // Packet recovered by FlexFEX or UlpFEC
     void OnRecoveredPacket(const uint8_t* packet, size_t packet_size);
+
+private:
+    class RtcpFeedbackBuffer : public NackSender,
+                               public KeyFrameRequestSender {
+    public:
+        RtcpFeedbackBuffer(std::weak_ptr<NackSender> nack_sender, 
+                           std::weak_ptr<KeyFrameRequestSender> key_frame_request_sender);
+
+        ~RtcpFeedbackBuffer() override;
+
+        void SendNack(std::vector<uint16_t> nack_list,
+                      bool buffering_allowed) override;
+
+        void RequestKeyFrame() override;
+
+        void SendBufferedRtcpFeedbacks();
+
+    private:
+        std::weak_ptr<NackSender> nack_sender_;
+        std::weak_ptr<KeyFrameRequestSender> key_frame_request_sender_;
+
+        bool request_key_frame_;
+        std::vector<uint16_t> buffered_nack_list_;
+    };
 
 private:
     void OnReceivedPacket(const RtpPacketReceived& packet);

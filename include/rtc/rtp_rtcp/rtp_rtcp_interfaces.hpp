@@ -2,6 +2,9 @@
 #define _RTC_RTP_RTCP_RTP_RTCP_INTERFACES_H_
 
 #include "base/defines.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
+
+#include <vector>
 
 namespace naivertc {
 
@@ -9,26 +12,27 @@ namespace naivertc {
 class RTC_CPP_EXPORT RtpSentStatisticsObserver {
 public:
     virtual ~RtpSentStatisticsObserver() = default;
-    virtual void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, const RtpSentCounters& rtx_sent_counters) = 0;
+    virtual void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, 
+                                        const RtpSentCounters& rtx_sent_counters) = 0;
     virtual void RtpSentBitRateUpdated(const BitRate bit_rate) = 0;
 };
 
 // NackSender
 class NackSender {
 public:
-    virtual ~NackSender() {}
+    virtual ~NackSender() = default;
     // If |buffering_allowed|, other feedback messages (e.g. key frame requests)
     // may be added to the same outgoing feedback message. In that case, it's up
     // to the user of the interface to ensure that when all buffer-able messages
     // have been added, the feedback message is triggered.
-    virtual void SendNack(const std::vector<uint16_t>& sequence_numbers,
+    virtual void SendNack(std::vector<uint16_t> nack_list,
                           bool buffering_allowed) = 0;
 };
 
 // KeyFrameRequestSender
 class KeyFrameRequestSender {
 public:
-    virtual ~KeyFrameRequestSender() {}
+    virtual ~KeyFrameRequestSender() = default;
     virtual void RequestKeyFrame() = 0;
 };
     
