@@ -96,13 +96,6 @@ struct RTC_CPP_EXPORT RtpSentCounters final {
     RtpPacketCounter fec;
 };
 
-class RTC_CPP_EXPORT RtpSentStatisticsObserver {
-public:
-    virtual ~RtpSentStatisticsObserver() = default;
-    virtual void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, const RtpSentCounters& rtx_sent_counters) = 0;
-    virtual void RtpSentBitRateUpdated(const BitRate bit_rate) = 0;
-};
-
 } // namespace naivertc
 
 #endif

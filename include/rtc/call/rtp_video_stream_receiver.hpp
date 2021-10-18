@@ -62,7 +62,6 @@ private:
     std::unique_ptr<NackModule> nack_module_;
 
     std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;
-    
 };
     
 } // namespace naivertc

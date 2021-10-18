@@ -349,6 +349,7 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp_sender.hpp
     include/rtc/rtp_rtcp/rtp_sender_video.hpp
     include/rtc/rtp_rtcp/rtp_video_header.hpp
+    include/rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp
 
      # rtc -> rtp_rtcp -> rtp -> packet
     include/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp

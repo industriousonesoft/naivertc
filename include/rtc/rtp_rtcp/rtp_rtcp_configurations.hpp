@@ -6,6 +6,7 @@
 #include "rtc/transports/transport.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 
 #include <optional>
 #include <vector>
