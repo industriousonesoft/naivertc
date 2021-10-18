@@ -43,7 +43,7 @@ std::optional<sdp::Media> MediaTrack::SDPBuilder::Build(const Configuration& con
         if (AddCodecs(config, audio) && AddSsrcs(config, audio)) {
             media.emplace(std::move(audio));
         }
-    }else if (config.kind() == MediaTrack::Kind::VIDEO) {
+    } else if (config.kind() == MediaTrack::Kind::VIDEO) {
         auto video = sdp::Media(sdp::MediaEntry::Kind::VIDEO,
                                 config.mid(),
                                 kDefaultTransportPortocols, 
@@ -74,7 +74,7 @@ bool MediaTrack::SDPBuilder::AddCodecs(const Configuration& config, sdp::Media& 
             if (config.rtx_enabled) {
                 associated_payload_types.push_back(payload_type);
             }
-        }else {
+        } else {
             PLOG_WARNING << "No more payload type for video codec:" << cp.codec;
             error_occured = true;
             return;
@@ -96,14 +96,14 @@ bool MediaTrack::SDPBuilder::AddCodecs(const Configuration& config, sdp::Media& 
             if (config.rtx_enabled) {
                 associated_payload_types.push_back(payload_type);
             }
-        }else {
+        } else {
             PLOG_WARNING << "No more payload type for RED codec";
             return false;
         }
         // Codec: ULP_FEC
         if (auto payload_type = NextPayloadType(config.kind())) {
             media.AddCodec(payload_type.value(), "ulpfec", clock_rate);
-        }else {
+        } else {
             PLOG_WARNING << "No more payload type for ULP_FEC codec";
             return false;
         }
@@ -113,7 +113,7 @@ bool MediaTrack::SDPBuilder::AddCodecs(const Configuration& config, sdp::Media& 
         // Codec: FLEX_FEC
         if (auto payload_type = NextPayloadType(config.kind())) {
             media.AddCodec(payload_type.value(), "flexfec", clock_rate);
-        }else {
+        } else {
             PLOG_WARNING << "No more payload type for ULP_FEC codec";
             return false;
         }
@@ -128,7 +128,7 @@ bool MediaTrack::SDPBuilder::AddCodecs(const Configuration& config, sdp::Media& 
             if (auto payload_type = NextPayloadType(config.kind())) {
                 // TODO: Add rtx-time attribute if necessary
                 media.AddCodec(payload_type.value(), "rtx", clock_rate, std::nullopt, "apt=" + std::to_string(apt));
-            }else {
+            } else {
                 PLOG_WARNING << "No more payload type for RTX codec";
                 return false;
             }
@@ -198,19 +198,19 @@ std::optional<int> MediaTrack::SDPBuilder::NextPayloadType(Kind kind) {
         static int payload_type = kAudioPayloadTypeLowerRangeValue;
         if (payload_type + 1 <= kAudioPayloadTypeUpperRangeValue) {
             return payload_type++;
-        }else {
+        } else {
             PLOG_WARNING << "No more payload type available for Audio codec";
             return std::nullopt;
         }
-    }else if (kind == Kind::VIDEO) {
+    } else if (kind == Kind::VIDEO) {
         static int payload_type = kVideoPayloadTypeLowerRangeValue;
         if (payload_type + 1 <= kVideoPayloadTypeUpperRangeValue) {
             return payload_type++;
-        }else {
+        } else {
             PLOG_WARNING << "No more payload type available for Video codec";
             return std::nullopt;
         }
-    }else {
+    } else {
         return std::nullopt;
     }
 }

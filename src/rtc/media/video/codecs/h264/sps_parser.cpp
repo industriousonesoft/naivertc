@@ -57,30 +57,30 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(BitReader& bit_rea
         profile_idc == 86 || profile_idc == 118 || profile_idc == 128 ||
         profile_idc == 138 || profile_idc == 139 || profile_idc == 134) {
         // chroma_format_idc: ue(v)
-        if(!bit_reader.ReadExpGolomb(chroma_format_idc)) {
+        if (!bit_reader.ReadExpGolomb(chroma_format_idc)) {
             return std::nullopt;
         }
         if (chroma_format_idc == 3) {
             // separate_colour_plane_flag: u(1)
-            if(!bit_reader.ReadBits(1, sps_state.separate_colour_plane_flag)) {
+            if (!bit_reader.ReadBits(1, sps_state.separate_colour_plane_flag)) {
                 return std::nullopt;
             }
         }
         // bit_depth_luma_minus8: ue(v)
-        if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+        if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
             return std::nullopt;
         }
         // bit_depth_chroma_minus8: ue(v)
-        if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+        if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
             return std::nullopt;
         }
         // qpprime_y_zero_transform_bypass_flag: u(1)
-        if(!bit_reader.ConsumeBits(1)) {
+        if (!bit_reader.ConsumeBits(1)) {
             return std::nullopt;
         }
         // seq_scaling_matrix_present_flag: u(1)
         uint32_t seq_scaling_matrix_present_flag;
-        if(!bit_reader.ReadBits(1, seq_scaling_matrix_present_flag)) {
+        if (!bit_reader.ReadBits(1, seq_scaling_matrix_present_flag)) {
             return std::nullopt;
         }
         if (seq_scaling_matrix_present_flag) {
@@ -91,7 +91,7 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(BitReader& bit_rea
             for (int i = 0; i < scaling_list_count; ++i) {
                 // seq_scaling_list_present_flag[i]  : u(1)
                 uint32_t seq_scaling_list_present_flags;
-                if(!bit_reader.ReadBits(1, seq_scaling_list_present_flags)) {
+                if (!bit_reader.ReadBits(1, seq_scaling_list_present_flags)) {
                     return std::nullopt;
                 }
                 if (seq_scaling_list_present_flags != 0) {
@@ -102,13 +102,13 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(BitReader& bit_rea
                         if (next_scale != 0) {
                             int32_t delta_scale;
                             // delta_scale: se(v)
-                            if(!bit_reader.ReadSignedExpGolomb(delta_scale)) {
+                            if (!bit_reader.ReadSignedExpGolomb(delta_scale)) {
                                 return std::nullopt;
                             }
-                            if(delta_scale >= kScalingDeltaMin &&
+                            if (delta_scale >= kScalingDeltaMin &&
                                delta_scale <= kScaldingDeltaMax) {
                                 next_scale = (last_scale + delta_scale + 256) % 256;
-                            }else {
+                            } else {
                                 return std::nullopt;
                             }
                             
@@ -136,7 +136,7 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(BitReader& bit_rea
     sps_state.log2_max_frame_num = log2_max_frame_num_minus4 + 4;
 
     // pic_order_cnt_type: ue(v)
-    if(!bit_reader.ReadExpGolomb(sps_state.pic_order_cnt_type)) {
+    if (!bit_reader.ReadExpGolomb(sps_state.pic_order_cnt_type)) {
         return std::nullopt;
     }
     if (sps_state.pic_order_cnt_type == 0) {
@@ -149,35 +149,35 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(BitReader& bit_rea
         sps_state.log2_max_pic_order_cnt_lsb = log2_max_pic_order_cnt_lsb_minus4 + 4;
     } else if (sps_state.pic_order_cnt_type == 1) {
         // delta_pic_order_always_zero_flag: u(1)
-        if(!bit_reader.ReadBits(1, sps_state.delta_pic_order_always_zero_flag)) {
+        if (!bit_reader.ReadBits(1, sps_state.delta_pic_order_always_zero_flag)) {
             return std::nullopt;
         }
         // offset_for_non_ref_pic: se(v)
-        if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+        if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
             return std::nullopt;
         }
         // offset_for_top_to_bottom_field: se(v)
-        if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+        if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
             return std::nullopt;
         }
         // num_ref_frames_in_pic_order_cnt_cycle: ue(v)
         uint32_t num_ref_frames_in_pic_order_cnt_cycle;
-        if(!bit_reader.ReadExpGolomb(num_ref_frames_in_pic_order_cnt_cycle)) {
+        if (!bit_reader.ReadExpGolomb(num_ref_frames_in_pic_order_cnt_cycle)) {
             return std::nullopt;
         }
         for (size_t i = 0; i < num_ref_frames_in_pic_order_cnt_cycle; ++i) {
             // offset_for_ref_frame[i]: se(v)
-            if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+            if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
                 return std::nullopt;
             }
         }
     }
     // max_num_ref_frames: ue(v)
-    if(!bit_reader.ReadExpGolomb(sps_state.max_num_ref_frames)) {
+    if (!bit_reader.ReadExpGolomb(sps_state.max_num_ref_frames)) {
         return std::nullopt;
     }
     // gaps_in_frame_num_value_allowed_flag: u(1)
-    if(!bit_reader.ConsumeBits(1)) {
+    if (!bit_reader.ConsumeBits(1)) {
         return std::nullopt;
     }
     //
@@ -188,26 +188,26 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(BitReader& bit_rea
     //
     // pic_width_in_mbs_minus1: ue(v)
     uint32_t pic_width_in_mbs_minus1;
-    if(!bit_reader.ReadExpGolomb(pic_width_in_mbs_minus1)) {
+    if (!bit_reader.ReadExpGolomb(pic_width_in_mbs_minus1)) {
         return std::nullopt;
     }
     // pic_height_in_map_units_minus1: ue(v)
     uint32_t pic_height_in_map_units_minus1;
-    if(!bit_reader.ReadExpGolomb(pic_height_in_map_units_minus1)) {
+    if (!bit_reader.ReadExpGolomb(pic_height_in_map_units_minus1)) {
         return std::nullopt;
     }
     // frame_mbs_only_flag: u(1)
-    if(!bit_reader.ReadBits(1, sps_state.frame_mbs_only_flag)) {
+    if (!bit_reader.ReadBits(1, sps_state.frame_mbs_only_flag)) {
         return std::nullopt;
     }
     if (!sps_state.frame_mbs_only_flag) {
         // mb_adaptive_frame_field_flag: u(1)
-        if(!bit_reader.ConsumeBits(1)) {
+        if (!bit_reader.ConsumeBits(1)) {
             return std::nullopt;
         }
     }
     // direct_8x8_inference_flag: u(1)
-    if(!bit_reader.ConsumeBits(1)) {
+    if (!bit_reader.ConsumeBits(1)) {
         return std::nullopt;
     }
     //
@@ -219,26 +219,26 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(BitReader& bit_rea
     uint32_t frame_crop_right_offset = 0;
     uint32_t frame_crop_top_offset = 0;
     uint32_t frame_crop_bottom_offset = 0;
-    if(!bit_reader.ReadBits(1, frame_cropping_flag)) {
+    if (!bit_reader.ReadBits(1, frame_cropping_flag)) {
         return std::nullopt;
     }
     if (frame_cropping_flag) {
         // frame_crop_{left, right, top, bottom}_offset: ue(v)
-        if(!bit_reader.ReadExpGolomb(frame_crop_left_offset)) {
+        if (!bit_reader.ReadExpGolomb(frame_crop_left_offset)) {
             return std::nullopt;
         }
-        if(!bit_reader.ReadExpGolomb(frame_crop_right_offset)) {
+        if (!bit_reader.ReadExpGolomb(frame_crop_right_offset)) {
             return std::nullopt;
         }
-        if(!bit_reader.ReadExpGolomb(frame_crop_top_offset)) {
+        if (!bit_reader.ReadExpGolomb(frame_crop_top_offset)) {
             return std::nullopt;
         }
-        if(!bit_reader.ReadExpGolomb(frame_crop_bottom_offset)) {
+        if (!bit_reader.ReadExpGolomb(frame_crop_bottom_offset)) {
             return std::nullopt;
         }
     }
     // vui_parameters_present_flag: u(1)
-    if(!bit_reader.ReadBits(1, sps_state.vui_params_present)) {
+    if (!bit_reader.ReadBits(1, sps_state.vui_params_present)) {
         return std::nullopt;
     }
 

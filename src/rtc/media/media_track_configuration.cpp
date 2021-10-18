@@ -22,19 +22,19 @@ bool MediaTrack::Configuration::AddCodec(CodecParams cp) {
         if (cp.codec == Codec::OPUS) {
             media_codecs_.push_back(std::move(cp));
             return true;
-        }else {
+        } else {
             PLOG_WARNING << "Unsupported audio codec: " << cp.codec;
             return false;
         }
-    }else if (kind_ == MediaTrack::Kind::VIDEO) {
+    } else if (kind_ == MediaTrack::Kind::VIDEO) {
         if (cp.codec == Codec::H264) {
             media_codecs_.push_back(std::move(cp));
             return true;
-        }else {
+        } else {
             PLOG_WARNING << "Unsupported video codec: " << cp.codec;
             return false;
         }
-    }else {
+    } else {
         PLOG_WARNING << "Failed to add codec: " << cp.codec 
                      << "to an unknown kind media track.";
         return false;
@@ -49,7 +49,7 @@ void MediaTrack::Configuration::RemoveCodec(Codec codec, std::optional<std::stri
     for (auto it = media_codecs_.begin(); it != media_codecs_.end();) {
         if (it->codec == codec && it->profile == profile) {
             it = media_codecs_.erase(it);
-        }else {
+        } else {
             ++it;
         }
     }
@@ -69,7 +69,7 @@ void MediaTrack::Configuration::RemoveFeedback(RtcpFeedback fb) {
     for (auto it = rtcp_feedbacks_.begin(); it != rtcp_feedbacks_.end();) {
         if (*it == fb) {
             it = rtcp_feedbacks_.erase(it);
-        }else {
+        } else {
             ++it;
         }
     }

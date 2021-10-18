@@ -40,9 +40,9 @@ uint8_t NalUnit_FU_A::unit_type() const {
 NalUnit_FU_A::FragmentType NalUnit_FU_A::fragment_type() const {
     if (is_start()) {
         return FragmentType::START;
-    }else if (is_end()) {
+    } else if (is_end()) {
         return FragmentType::END;
-    }else {
+    } else {
         return FragmentType::MIDDLE;
     }
 }
@@ -73,10 +73,10 @@ void NalUnit_FU_A::set_fragment_type(FragmentType type) {
     if (type == FragmentType::START) {
         set_start(true);
         set_end(false);
-    }else if (type == FragmentType::END) {
+    } else if (type == FragmentType::END) {
         set_start(false);
         set_end(true);
-    }else {
+    } else {
         set_start(false);
         set_end(false);
     }

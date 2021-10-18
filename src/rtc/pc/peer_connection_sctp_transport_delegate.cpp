@@ -104,18 +104,18 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                         this->OnIncomingDataChannel(data_channel);
                     });
                     data_channel->OnIncomingMessage(std::move(message));
-                }else {
+                } else {
                     PLOG_WARNING << "Failed to response the data channel created by remote peer, since it's stream id [" << stream_id
                                  << "] is not corresponding to the remote role.";
                     sctp_transport_->CloseStream(stream_id);
                     return;
                 }
-            }else {
+            } else {
                 PLOG_WARNING << "No data channel found to handle non-opening incoming message with stream id: " << stream_id;
                 sctp_transport_->CloseStream(stream_id);
                 return;
             }
-        }else {
+        } else {
             data_channel->OnIncomingMessage(std::move(message));
         }
     });
@@ -164,7 +164,7 @@ void PeerConnection::OnIncomingDataChannel(std::shared_ptr<DataChannel> data_cha
     signal_task_queue_->Async([this, data_channel=std::move(data_channel)](){
         if (data_channel_callback_) {
             data_channel_callback_(std::move(data_channel));
-        }else {
+        } else {
             pending_data_channels_.push_back(std::move(data_channel));
         }
     });

@@ -93,7 +93,7 @@ bool RtpSenderVideo::SendVideo(int payload_type,
 
         if (codec_type_ == video::CodecType::H264) {
             dynamic_cast<RtpH264Packetizer*>(this->rtp_packetizer_.get())->Packetize(payload, limits, h264::PacketizationMode::NON_INTERLEAVED);
-        }else {
+        } else {
             PLOG_WARNING << "Unsupported codec type.";
             return false;
         }
@@ -116,13 +116,13 @@ bool RtpSenderVideo::SendVideo(int payload_type,
             if (num_of_packets == 1) {
                 packet = std::move(single_packet);
                 expected_payload_capacity = limits.max_payload_size - limits.single_packet_reduction_size;
-            }else if (i == 0) {
+            } else if (i == 0) {
                 packet = std::move(first_packet);
                 expected_payload_capacity = limits.max_payload_size - limits.first_packet_reduction_size;
-            }else if (i == num_of_packets - 1) {
+            } else if (i == num_of_packets - 1) {
                 packet = std::move(last_packet);
                 expected_payload_capacity = limits.max_payload_size - limits.last_packet_reduction_size;
-            }else {
+            } else {
                 // There are more than one middle packet, so we need to create a new one instead of std::move
                 packet = std::make_shared<RtpPacketToSend>(*middle_packet);
                 expected_payload_capacity = limits.max_payload_size;

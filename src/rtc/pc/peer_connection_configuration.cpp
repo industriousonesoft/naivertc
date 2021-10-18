@@ -33,21 +33,21 @@ IceServer::IceServer(const std::string& url_string) {
     relay_type_ = RelayType::TURN_UDP;
     if (scheme == "stun" || scheme == "STUN") {
         type_ = Type::STUN;
-    }else if (scheme == "turn" || scheme == "TURN") {
+    } else if (scheme == "turn" || scheme == "TURN") {
         type_ = Type::TURN;
-    }else if (scheme == "turns" || scheme == "TURNS") {
+    } else if (scheme == "turns" || scheme == "TURNS") {
         type_ = Type::TURN;
         relay_type_ = RelayType::TURN_TLS;
-    }else {
+    } else {
         throw std::invalid_argument("Unknown Ice Server protocol: " + scheme);
     }
 
     if (auto &query = components[15]) {
         if (query->find("transport=udp") != std::string::npos) {
             relay_type_ = RelayType::TURN_UDP;
-        }else if (query->find("transport=tcp") != std::string::npos) {
+        } else if (query->find("transport=tcp") != std::string::npos) {
             relay_type_ = RelayType::TURN_TCP;
-        }else if (query->find("transport=tls") != std::string::npos) {
+        } else if (query->find("transport=tls") != std::string::npos) {
             relay_type_ = RelayType::TURN_TLS;
         }
     }

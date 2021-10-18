@@ -70,7 +70,7 @@ IceTransport::Description IceTransport::Description::Parse(std::string sdp, sdp:
 
             if (key == "ice-ufrag") {
                 ice_ufrag.emplace(std::move(value));
-            }else if (key == "ice-pwd") {
+            } else if (key == "ice-pwd") {
                 ice_pwd.emplace(std::move(value));
             }
             if (ice_ufrag.has_value() && ice_pwd.has_value()) {

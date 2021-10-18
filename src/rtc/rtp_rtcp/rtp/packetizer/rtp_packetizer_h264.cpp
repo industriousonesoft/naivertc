@@ -57,9 +57,9 @@ bool RtpH264Packetizer::NextPacket(RtpPacketToSend* rtp_packet) {
     PacketUnit packet = packet_units_.front();
     if (packet.first_fragment && packet.last_fragment) {
         NextSinglePacket(rtp_packet);
-    }else if (packet.aggregated) {
+    } else if (packet.aggregated) {
         NextStapAPacket(rtp_packet);
-    }else {
+    } else {
         NextFuAPacket(rtp_packet);
     } 
     // Mark the last packet
@@ -92,14 +92,14 @@ bool RtpH264Packetizer::GeneratePackets(const PayloadSizeLimits& limits, h264::P
                 return false;
             }
             ++i;
-        }else if (packetization_mode == h264::PacketizationMode::NON_INTERLEAVED) {
+        } else if (packetization_mode == h264::PacketizationMode::NON_INTERLEAVED) {
             int fragment_size = input_fragments_[i].size();
             int single_packet_capacity = limits.max_payload_size;
             if (input_fragments_.size() == 1) {
                 single_packet_capacity -= limits.single_packet_reduction_size;
-            }else if (i == 0) {
+            } else if (i == 0) {
                 single_packet_capacity -= limits.first_packet_reduction_size;
-            }else if (i + 1 == input_fragments_.size()) {
+            } else if (i + 1 == input_fragments_.size()) {
                 single_packet_capacity -= limits.last_packet_reduction_size;
             }
 
@@ -108,7 +108,7 @@ bool RtpH264Packetizer::GeneratePackets(const PayloadSizeLimits& limits, h264::P
                     return false;
                 }
                 ++i;
-            }else {
+            } else {
                 i = PacketizeStapA(i, limits);
             }
         }
@@ -120,9 +120,9 @@ bool RtpH264Packetizer::PacketizeSingleNalu(size_t fragment_index, const Payload
     size_t payload_size_left = limits.max_payload_size;
     if (input_fragments_.size() == 1) {
         payload_size_left -= limits.single_packet_reduction_size;
-    }else if (fragment_index == 0) {
+    } else if (fragment_index == 0) {
         payload_size_left -= limits.first_packet_reduction_size;
-    }else if (fragment_index + 1 == input_fragments_.size()) {
+    } else if (fragment_index + 1 == input_fragments_.size()) {
         payload_size_left -= limits.last_packet_reduction_size;
     }
 
@@ -147,9 +147,9 @@ bool RtpH264Packetizer::PacketizeFuA(size_t fragment_index, const PayloadSizeLim
     if (input_fragments_.size() != 1) {
         if (fragment_index == input_fragments_.size() - 1) {
             new_limits.single_packet_reduction_size = limits.last_packet_reduction_size;
-        }else if (fragment_index == 0) {
+        } else if (fragment_index == 0) {
             new_limits.single_packet_reduction_size = limits.first_packet_reduction_size;
-        }else {
+        } else {
             new_limits.single_packet_reduction_size = 0;
         }
     }
@@ -183,7 +183,7 @@ size_t RtpH264Packetizer::PacketizeStapA(size_t fragment_index, const PayloadSiz
     size_t payload_size = limits.max_payload_size;
     if (input_fragments_.size() == 1) {
         payload_size -= limits.single_packet_reduction_size;
-    }else if (fragment_index == 0) {
+    } else if (fragment_index == 0) {
         payload_size -= limits.first_packet_reduction_size;
     }
     size_t aggregated_fragments_count = 0;

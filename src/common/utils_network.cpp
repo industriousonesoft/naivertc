@@ -33,9 +33,9 @@ std::optional<ResolveResult> Resolve(std::string_view hostname, std::string_view
     // Family
     if (family_type == FamilyType::IP_V4) {
         hints.ai_family = AF_INET;
-    }else if (family_type == FamilyType::IP_V6) {
+    } else if (family_type == FamilyType::IP_V6) {
         hints.ai_family = AF_INET6;
-    }else {
+    } else {
         hints.ai_family = AF_UNSPEC;
     }
     
@@ -43,7 +43,7 @@ std::optional<ResolveResult> Resolve(std::string_view hostname, std::string_view
     if (protocol_type == ProtocolType::UDP) {
         hints.ai_socktype = SOCK_DGRAM;
         hints.ai_protocol = IPPROTO_UDP;
-    }else if (protocol_type == ProtocolType::TCP) {
+    } else if (protocol_type == ProtocolType::TCP) {
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
     }

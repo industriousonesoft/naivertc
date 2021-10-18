@@ -32,9 +32,9 @@ DataChannel::DataChannel(const Init& init_config, uint16_t stream_id)
     control_message_reliability_.ordered = true;
     if (config_.max_rtx_count.has_value()) {
         control_message_reliability_.max_rtx_count = config_.max_rtx_count.value();
-    }else if (config_.max_rtx_ms.has_value()) {
+    } else if (config_.max_rtx_ms.has_value()) {
         control_message_reliability_.max_rtx_ms = config_.max_rtx_ms.value();
-    }else {
+    } else {
         // TODO: How to set a suitable reliability for control message?
         control_message_reliability_.max_rtx_count = 5;
         control_message_reliability_.max_rtx_ms = std::nullopt;
@@ -76,11 +76,11 @@ void DataChannel::HintStreamId(sdp::Role role) {
             if (stream_id_ % 2 == 1) {
                 stream_id_ -= 1;
             }
-        }else if (role == sdp::Role::PASSIVE) {
+        } else if (role == sdp::Role::PASSIVE) {
             if (stream_id_ % 2 == 0) {
                 stream_id_ += 1;
             }
-        }else {
+        } else {
             // This is ok
         }
     });

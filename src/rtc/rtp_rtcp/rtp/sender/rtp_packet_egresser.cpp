@@ -80,7 +80,7 @@ void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
             // TODO: To generate FEC(ULP or FLEX) packet packetized in RED or sent by new ssrc stream
             if (packet->red_protection_need()) {
                 this->fec_generator_->PushMediaPacket(packet);
-            }else {
+            } else {
                 this->fec_generator_->PushMediaPacket(packet);
             }
             
@@ -145,7 +145,7 @@ void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
             worker_queue_->Async([this, now_ms, packet](){
                 this->UpdateSentStatistics(now_ms, *packet.get());
             });
-        }else {
+        } else {
             // TODO: We should clear the FEC packets if send failed?
         }
     });
@@ -218,7 +218,7 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, const RtpPack
     if (packet_type == RtpPacketType::FEC) {
         sent_counters.fec += packet_counter;
     // Retransmittion packet
-    }else if (packet_type == RtpPacketType::RETRANSMISSION) {
+    } else if (packet_type == RtpPacketType::RETRANSMISSION) {
         sent_counters.retransmitted += packet_counter;
     }
     sent_counters.transmitted += packet_counter;

@@ -82,7 +82,7 @@ bool MediaEntry::ParseSDPLine(std::string_view line) {
         auto [key, value] = utils::string::parse_pair(attr);
         return ParseSDPAttributeField(key, value);    
     // Connection
-    }else if (utils::string::match_prefix(line, "c=")) {
+    } else if (utils::string::match_prefix(line, "c=")) {
         // Ignore
         return true;
     }
@@ -93,10 +93,10 @@ bool MediaEntry::ParseSDPAttributeField(std::string_view key, std::string_view v
     if (key == "mid") {
         mid_ = value;
         return true;
-    }else if (value == "bundle-only") {
+    } else if (value == "bundle-only") {
         // Added already
         return true;
-    }else {
+    } else {
         return Entry::ParseSDPAttributeField(key, value);
     }
 }
@@ -104,11 +104,11 @@ bool MediaEntry::ParseSDPAttributeField(std::string_view key, std::string_view v
 MediaEntry::Kind MediaEntry::ToKind(const std::string_view kind_string) {
     if (kind_string == "application" || kind_string == "APPLICATION") {
         return Kind::APPLICATION;
-    }else if (kind_string == "audio" || kind_string == "AUDIO") {
+    } else if (kind_string == "audio" || kind_string == "AUDIO") {
         return Kind::AUDIO;
-    }else if (kind_string == "video" || kind_string == "VIDEO") {
+    } else if (kind_string == "video" || kind_string == "VIDEO") {
         return Kind::VIDEO;
-    }else {
+    } else {
         throw std::invalid_argument("Unknown entry kind" + std::string(kind_string));
     }
 }

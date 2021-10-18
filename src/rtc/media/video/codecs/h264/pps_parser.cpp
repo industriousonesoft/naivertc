@@ -49,40 +49,40 @@ bool PpsParser::ParsePpsIdsInternal(BitReader& bit_reader, uint32_t* pps_id, uin
 
 std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reader) {
     PpsState pps;
-    if(!ParsePpsIdsInternal(bit_reader, &pps.id, &pps.sps_id)) {
+    if (!ParsePpsIdsInternal(bit_reader, &pps.id, &pps.sps_id)) {
         return std::nullopt;
     }
     uint32_t bits_tmp;
     uint32_t golomb_ignored;
     // entropy_coding_mode_flag: u(1)
     uint32_t entropy_coding_mode_flag;
-    if(!bit_reader.ReadBits(1, entropy_coding_mode_flag)) {
+    if (!bit_reader.ReadBits(1, entropy_coding_mode_flag)) {
         return std::nullopt;
     }
     pps.entropy_coding_mode_flag = entropy_coding_mode_flag != 0;
     // bottom_field_pic_order_in_frame_present_flag: u(1)
     uint32_t bottom_field_pic_order_in_frame_present_flag;
-    if(!bit_reader.ReadBits(1, bottom_field_pic_order_in_frame_present_flag)) {
+    if (!bit_reader.ReadBits(1, bottom_field_pic_order_in_frame_present_flag)) {
         return std::nullopt;
     }
     pps.bottom_field_pic_order_in_frame_present_flag = bottom_field_pic_order_in_frame_present_flag != 0;
 
     // num_slice_groups_minus1: ue(v)
     uint32_t num_slice_groups_minus1;
-    if(!bit_reader.ReadExpGolomb(num_slice_groups_minus1)) {
+    if (!bit_reader.ReadExpGolomb(num_slice_groups_minus1)) {
         return std::nullopt;
     }
 
     if (num_slice_groups_minus1 > 0) {
         uint32_t slice_group_map_type;
         // slice_group_map_type: ue(v)
-        if(!bit_reader.ReadExpGolomb(slice_group_map_type)) {
+        if (!bit_reader.ReadExpGolomb(slice_group_map_type)) {
             return std::nullopt;
         }
         if (slice_group_map_type == 0) {
             for (uint32_t i_group = 0; i_group <= num_slice_groups_minus1; ++i_group) {
                 // run_length_minus1[iGroup]: ue(v)
-                if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+                if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
                     return std::nullopt;
                 }
             }
@@ -93,28 +93,28 @@ std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reade
             for (uint32_t i_group = 0; i_group <= num_slice_groups_minus1;
                 ++i_group) {
                 // top_left[iGroup]: ue(v)
-                if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+                if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
                     return std::nullopt;
                 }
                 // bottom_right[iGroup]: ue(v)
-                if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+                if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
                     return std::nullopt;
                 }
             }
         } else if (slice_group_map_type == 3 || slice_group_map_type == 4 ||
                 slice_group_map_type == 5) {
             // slice_group_change_direction_flag: u(1)
-            if(!bit_reader.ReadBits(1, bits_tmp)) {
+            if (!bit_reader.ReadBits(1, bits_tmp)) {
                 return std::nullopt;
             }
             // slice_group_change_rate_minus1: ue(v)
-            if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+            if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
                 return std::nullopt;
             }
         } else if (slice_group_map_type == 6) {
             // pic_size_in_map_units_minus1: ue(v)
             uint32_t pic_size_in_map_units_minus1;
-            if(!bit_reader.ReadExpGolomb(pic_size_in_map_units_minus1)) {
+            if (!bit_reader.ReadExpGolomb(pic_size_in_map_units_minus1)) {
                 return std::nullopt;
             }
             uint32_t slice_group_id_bits = 0;
@@ -130,7 +130,7 @@ std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reade
             for (uint32_t i = 0; i <= pic_size_in_map_units_minus1; i++) {
                 // slice_group_id[i]: u(v)
                 // Represented by ceil(log2(num_slice_groups_minus1 + 1)) bits.
-                if(!bit_reader.ReadBits(slice_group_id_bits, bits_tmp)) {
+                if (!bit_reader.ReadBits(slice_group_id_bits, bits_tmp)) {
                     return std::nullopt;
                 }
             }
@@ -138,29 +138,29 @@ std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reade
     }
     
     // num_ref_idx_l0_default_active_minus1: ue(v)
-    if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+    if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
         return std::nullopt;
     }
     
     // num_ref_idx_l1_default_active_minus1: ue(v)
-    if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+    if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
         return std::nullopt;
     }
     
     // weighted_pred_flag: u(1)
     uint32_t weighted_pred_flag;
-    if(!bit_reader.ReadBits(1, weighted_pred_flag)) {
+    if (!bit_reader.ReadBits(1, weighted_pred_flag)) {
         return std::nullopt;
     }
     
     pps.weighted_pred_flag = weighted_pred_flag != 0;
     // weighted_bipred_idc: u(2)
-    if(!bit_reader.ReadBits(2, pps.weighted_bipred_idc)) {
+    if (!bit_reader.ReadBits(2, pps.weighted_bipred_idc)) {
         return std::nullopt;
     }
     
     // pic_init_qp_minus26: se(v)
-    if(!bit_reader.ReadSignedExpGolomb(pps.pic_init_qp_minus26)) {
+    if (!bit_reader.ReadSignedExpGolomb(pps.pic_init_qp_minus26)) {
         return std::nullopt;
     }
     
@@ -171,22 +171,22 @@ std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reade
     }
     
     // pic_init_qs_minus26: se(v)
-    if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+    if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
         return std::nullopt;
     }
     
     // chroma_qp_index_offset: se(v)
-    if(!bit_reader.ReadExpGolomb(golomb_ignored)) {
+    if (!bit_reader.ReadExpGolomb(golomb_ignored)) {
         return std::nullopt;
     }
     // deblocking_filter_control_present_flag: u(1)
     // constrained_intra_pred_flag: u(1)
-    if(!bit_reader.ReadBits(2, bits_tmp)) {
+    if (!bit_reader.ReadBits(2, bits_tmp)) {
         return std::nullopt;
     }
     
     // redundant_pic_cnt_present_flag: u(1)
-    if(!bit_reader.ReadBits(1, pps.redundant_pic_cnt_present_flag)) {
+    if (!bit_reader.ReadBits(1, pps.redundant_pic_cnt_present_flag)) {
         return std::nullopt;
     }
     

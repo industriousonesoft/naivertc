@@ -42,7 +42,7 @@ bool MediaTrack::ReconfigLocalDescription(const Configuration& config) {
             PLOG_WARNING << "Failed to reconfig as the incomming kind=" << config.kind()
                          << " is different from media track kind=" << kind_;
             return false;
-        }else if (config.mid() != mid_) {
+        } else if (config.mid() != mid_) {
             PLOG_WARNING << "Failed to reconfig as the incomming mid=" << config.mid()
                          << " is different from local media mid=" << mid_;
             return false;
@@ -69,7 +69,7 @@ bool MediaTrack::OnRemoteDescription(sdp::Media description) {
             PLOG_WARNING << "Failed to set remote description as remote media kind=" << remote_description.kind()
                          << " is different from local kind=" << local_description_->kind() ;
             return false;
-        }else if (local_description_->mid() != remote_description.mid()) {
+        } else if (local_description_->mid() != remote_description.mid()) {
             PLOG_WARNING << "Failed to set remote description as remote media mid=" << remote_description.mid()
                          << " is different from local media mid=" << local_description_->mid();
             return false;

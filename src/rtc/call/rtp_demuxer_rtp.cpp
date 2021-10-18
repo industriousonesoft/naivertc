@@ -33,9 +33,9 @@ bool RtpDemuxer::DeliverRtpPacket(CopyOnWriteBuffer in_packet) const {
     // TODO: Deliver RTP packet by RRID or RSID
     if (auto sink = sink_by_mid_.at(rtp_mid_extension->value()).lock()) {
         sink->OnRtpPacket(std::move(received_packet));
-    }else if (auto sink = sink_by_ssrc_.at(received_packet.ssrc()).lock()) {
+    } else if (auto sink = sink_by_ssrc_.at(received_packet.ssrc()).lock()) {
         sink->OnRtpPacket(std::move(received_packet));
-    }else {
+    } else {
         PLOG_WARNING << "No sink found for RTP packet, ssrc=" << received_packet.ssrc();
     }
 

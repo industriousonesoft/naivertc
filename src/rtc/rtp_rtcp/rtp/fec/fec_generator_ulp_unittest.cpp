@@ -68,7 +68,7 @@ TEST_F(UlpfecGeneratorTest, NoEmptyFecWithSeqNumGaps) {
         // The packet is not the last one in frame
         if (!p.marker) {
             EXPECT_TRUE(fec_packets.empty());
-        }else {
+        } else {
             EXPECT_FALSE(fec_packets.empty());
         }
     }

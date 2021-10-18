@@ -87,9 +87,9 @@ bool SessionEntry::ParseSDPAttributeField(std::string_view key, std::string_view
     if (key == "group") {
         return true;
     // a=msid-semantic: WMS
-    }else if (key == "msid-semantic") {
+    } else if (key == "msid-semantic") {
         return true;
-    }else {
+    } else {
         return Entry::ParseSDPAttributeField(key, value);
     }
 }

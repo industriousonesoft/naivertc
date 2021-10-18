@@ -46,7 +46,7 @@ bool RtpPacketSequencer::AssignSequenceNumber(std::shared_ptr<RtpPacketToSend> p
         return true;
     }
 
-    if(packet->ssrc() == rtx_ssrc_) {
+    if (packet->ssrc() == rtx_ssrc_) {
         packet->set_sequence_number(rtx_sequence_num_++);
         return true;
     }
@@ -79,7 +79,7 @@ void RtpPacketSequencer::UpdateLastPacketState(std::shared_ptr<const RtpPacketTo
     if (packet->is_red()) {
         assert(packet->payload_size() >= kRedForFecHeaderLength);
         last_payload_type_ = packet->payload().data()[0];
-    }else {
+    } else {
         last_payload_type_ = packet->payload_type();
     }
     // Save timestamps to generate timestamp field and extensions for the padding
@@ -107,7 +107,7 @@ bool RtpPacketSequencer::PopulatePaddingFields(std::shared_ptr<RtpPacketToSend> 
         packet->set_capture_time_ms(last_capture_time_ms_);
         packet->set_payload_type(last_payload_type_);
         return true;
-    }else if (packet->ssrc() == rtx_ssrc_) {
+    } else if (packet->ssrc() == rtx_ssrc_) {
         if (packet->payload_size() > 0) {
             // This is payload padding packet, don't update timestamp fields/
             return true;

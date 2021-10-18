@@ -33,7 +33,7 @@ int DtlsSrtpTransport::SendRtpPacket(CopyOnWriteBuffer packet, const PacketOptio
     return task_queue_->Sync<int>([this, packet=std::move(packet), &options]() mutable {
         if (!packet.empty() && EncryptPacket(packet)) {
             return Outgoing(std::move(packet), options);
-        }else {
+        } else {
             return -1;
         }
     });
@@ -56,14 +56,14 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
         if (srtp_err_status_t err = srtp_protect_rtcp(srtp_out_, packet.data(), &protectd_data_size)) {
             if (err == srtp_err_status_replay_fail) {
                 throw std::runtime_error("Outgoing SRTCP packet is a replay");
-            }else {
+            } else {
                 throw std::runtime_error("SRTCP protect error, status=" +
                                             std::to_string(static_cast<int>(err)));
             }
         }
         PLOG_VERBOSE << "Protected SRTCP packet, size=" << protectd_data_size;
     // Rtp packet
-    }else if (IsRtpPacket(packet)) {
+    } else if (IsRtpPacket(packet)) {
         // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
         // into the location in memory immediately following the RTP packet.
         size_t reserve_packet_size = protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */;
@@ -72,13 +72,13 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
         if (srtp_err_status_t err = srtp_protect(srtp_out_, packet.data(), &protectd_data_size)) {
             if (err == srtp_err_status_replay_fail) {
                 throw std::runtime_error("Outgoing SRTP packet is a replay");
-            }else {
+            } else {
                 throw std::runtime_error("SRTP protect error, status=" +
                                             std::to_string(static_cast<int>(err)));
             }
         }
         PLOG_VERBOSE << "Protected SRTP packet, size=" << protectd_data_size;
-    }else {
+    } else {
         PLOG_WARNING << "Sending packet is neither a RTP packet nor a RTCP packet, ignoring.";
         return false;
     }
@@ -118,7 +118,7 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
         if (first_byte >= 20 && first_byte <= 63) {
             DtlsTransport::Incoming(std::move(in_packet));
         // RTP/RTCP packet
-        }else if (first_byte >= 128 && first_byte <= 191) {
+        } else if (first_byte >= 128 && first_byte <= 191) {
             // RTCP packet
             if (IsRtcpPacket(in_packet)) {
                 PLOG_VERBOSE << "Incoming SRTCP packet, size: " << packet_size;
@@ -126,9 +126,9 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
                 if (srtp_err_status_t err = srtp_unprotect_rtcp(srtp_in_, static_cast<void *>(in_packet.data()), &unprotected_data_size)) {
                     if (err == srtp_err_status_replay_fail) {
                         PLOG_VERBOSE << "Incoming SRTCP packet is a replay.";
-                    }else if (err == srtp_err_status_auth_fail) {
+                    } else if (err == srtp_err_status_auth_fail) {
                         PLOG_VERBOSE << "Incoming SRTCP packet failed authentication check.";
-                    }else {
+                    } else {
                         PLOG_VERBOSE << "SRTCP unprotect error, status: " << err;
                     }
                     return;
@@ -141,15 +141,15 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
                     rtp_packet_recv_callback_(std::move(in_packet), true /* RTCP */);
                 }
             // RTP packet
-            }else if (IsRtpPacket(in_packet)) {
+            } else if (IsRtpPacket(in_packet)) {
                 PLOG_VERBOSE << "Incoming SRTP packet, size: " << packet_size;
                 int unprotected_data_size = int(packet_size);
                 if (srtp_err_status_t err = srtp_unprotect(srtp_in_, static_cast<void *>(in_packet.data()), &unprotected_data_size)) {
                     if (err == srtp_err_status_replay_fail) {
                         PLOG_VERBOSE << "Incoming SRTP packet is a replay.";
-                    }else if (err == srtp_err_status_auth_fail) {
+                    } else if (err == srtp_err_status_auth_fail) {
                         PLOG_VERBOSE << "Incoming SRTP packet failed authentication check.";
-                    }else {
+                    } else {
                         PLOG_VERBOSE << "SRTCP unprotect error, status: " << err;
                     }
                     return;
@@ -162,10 +162,10 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
                     rtp_packet_recv_callback_(std::move(in_packet), false);
                 }
                 
-            }else {
+            } else {
                 PLOG_WARNING << "Incoming packet is neither a RTP packet nor a RTCP packet, ignoring.";
             }
-        }else {
+        } else {
             PLOG_WARNING << "Incoming packet is neither a RTP/RTCP packet nor a DTLS packet, ignoring.";
         }
     });

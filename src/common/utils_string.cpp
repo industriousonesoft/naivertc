@@ -28,7 +28,7 @@ std::pair<std::string_view, std::string_view> parse_pair(std::string_view attr) 
     if (size_t separator = attr.find(':'); separator != std::string::npos) {
         key = attr.substr(0, separator);
         value = attr.substr(separator+1);
-    }else {
+    } else {
         key = "";
         value = attr;
     }

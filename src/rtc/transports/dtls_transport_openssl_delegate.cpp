@@ -91,7 +91,7 @@ void DtlsTransport::InitOpenSSL(const Configuration& config) {
 
         if (is_client()) {
             SSL_set_connect_state(ssl_);
-        }else {
+        } else {
             SSL_set_accept_state(ssl_);
         }
 
@@ -165,7 +165,7 @@ bool DtlsTransport::TryToHandshake() {
         PLOG_INFO << "DTLS handshake finished.";
         
         return true;
-    }else {
+    } else {
         return false;
     }
 }
@@ -180,7 +180,7 @@ bool DtlsTransport::IsHandshakeTimeout() {
     int ret = DTLSv1_handle_timeout(ssl_);
     if (ret < 0) {
         return true;
-    }else if (ret > 0) {
+    } else if (ret > 0) {
         LOG_VERBOSE << "Openssl did DTLS retransmit";
     }
 
@@ -195,7 +195,7 @@ bool DtlsTransport::IsHandshakeTimeout() {
         // so this allow for 5 retansmissions and faild after roughly 30s.
         if (duration_ms > std::chrono::milliseconds(30000)) {
             return true;
-        }else {
+        } else {
             LOG_VERBOSE << "OpenSSL DTLS retransmit timeout is " << duration_ms.count() << "ms";
         }
     }
@@ -225,7 +225,7 @@ bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
     if (ret <= 0) {
         PLOG_ERROR << "Failed to export keying material: " << openssl::error_string(ERR_get_error());
         return false;
-    }else {
+    } else {
         return true;
     }
 }
@@ -239,7 +239,7 @@ openssl_bool DtlsTransport::CertificateCallback(int preverify_ok, X509_STORE_CTX
         X509* crt = X509_STORE_CTX_get_current_cert(ctx);
         std::string fingerprint = Certificate::MakeFingerprint(crt);
         return transport->HandleVerify(fingerprint) ? openssl_true /* true */ : openssl_false /* false */;
-    }else {
+    } else {
         return openssl_false;
     }
 }
@@ -265,33 +265,33 @@ void DtlsTransport::InfoCallback(const SSL* ssl, int where, int ret) {
     if (where & SSL_CB_LOOP) {
         PLOG_INFO << "SSL loop state changed: " << SSL_alert_desc_string_long(ret);
     // Callback has been called to indicate error exit of a handshake function.
-    }else if (where & SSL_CB_EXIT) {
+    } else if (where & SSL_CB_EXIT) {
         PLOG_INFO << "Exit error: " << SSL_alert_desc_string_long(ret);
     // Callback has been called during read operation.
-    }else if (where & SSL_CB_READ) {
+    } else if (where & SSL_CB_READ) {
         PLOG_INFO << "SSL read";
     // Callback has been called during write operation.
-    }else if (where & SSL_CB_WRITE) {
+    } else if (where & SSL_CB_WRITE) {
         PLOG_INFO << "SSL write";
-    }else if (where & SSL_CB_READ_ALERT) {
+    } else if (where & SSL_CB_READ_ALERT) {
         PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
-    }else if (where & SSL_CB_WRITE_ALERT) {
+    } else if (where & SSL_CB_WRITE_ALERT) {
         PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
-    }else if (where & SSL_CB_ACCEPT_LOOP) {
+    } else if (where & SSL_CB_ACCEPT_LOOP) {
         PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
-    }else if (where & SSL_CB_ACCEPT_EXIT) {
+    } else if (where & SSL_CB_ACCEPT_EXIT) {
         PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
-    }else if (where & SSL_CB_CONNECT_LOOP) {
+    } else if (where & SSL_CB_CONNECT_LOOP) {
         PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
-    }else if (where & SSL_CB_CONNECT_EXIT) {
+    } else if (where & SSL_CB_CONNECT_EXIT) {
         PLOG_ERROR << "SSL alert: " << SSL_alert_desc_string_long(ret);
     // Callback has been called because a new handshake is started.
-    }else if (where & SSL_CB_HANDSHAKE_START) {
+    } else if (where & SSL_CB_HANDSHAKE_START) {
         PLOG_INFO << "SSL Handshake start";
     // Callback has been called because a handshake is finished.
-    }else if (where & SSL_CB_HANDSHAKE_DONE) {
+    } else if (where & SSL_CB_HANDSHAKE_DONE) {
         PLOG_INFO << "SSL handshake done";
-    }else {
+    } else {
         if (where & SSL_CB_ALERT) {
             if (ret != 256) {
                 PLOG_ERROR << "DTLS alert: " << SSL_alert_desc_string_long(ret);
@@ -311,7 +311,7 @@ openssl_bool DtlsTransport::BioMethodNew(BIO* bio) {
 openssl_bool DtlsTransport::BioMethodFree(BIO* bio) {
     if (!bio) {
         return openssl_false;
-    }else {
+    } else {
         BIO_set_data(bio, NULL);
         return openssl_true;
     }

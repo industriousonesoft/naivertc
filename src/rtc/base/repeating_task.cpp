@@ -28,7 +28,7 @@ void RepeatingTask::Start(TimeDelta delay) {
         this->is_stoped = false;
         if (delay.IsZero()) {
             this->ExecuteTask();
-        }else {
+        } else {
             this->ScheduleTaskAfter(delay);
         }
     });

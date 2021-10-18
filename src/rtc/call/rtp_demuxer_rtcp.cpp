@@ -95,25 +95,25 @@ bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
             ssrcs.insert(rtp_fb->packet_sender_ssrc);
             ssrcs.insert(rtp_fb->media_source_ssrc);
         // RTCP payload-specific packet (pt = 206) 
-        }else if (rtcp_header->payload_type == 206) {
+        } else if (rtcp_header->payload_type == 206) {
             auto ps_fb = reinterpret_cast<rtcp::PSFeedback*>(rtcp_header);
             ssrcs.insert(ps_fb->packet_sender_ssrc);
             ssrcs.insert(ps_fb->media_source_ssrc);
         // RTCP sender report (pt = 200)
-        }else if (rtcp_header->payload_type == 200) {
+        } else if (rtcp_header->payload_type == 200) {
             auto rtcp_sr = reinterpret_cast<rtcp::SenderReport*>(rtcp_header);
             ssrcs.insert(rtcp_sr->packet_sender_ssrc);
             for (uint8_t i = 0; i < rtcp_sr->report_count(); i++) {
                 ssrcs.insert(rtcp_sr->GetReportBlock(i)->source_ssrc);
             }
          // RTCP receiver report (pt = 200)
-        }else if (rtcp_header->payload_type == 201) {
+        } else if (rtcp_header->payload_type == 201) {
             auto rtcp_rr = reinterpret_cast<rtcp::ReceiverReport*>(rtcp_header);
             ssrcs.insert(rtcp_rr->packet_sender_ssrc);
             for (uint8_t i = 0; i < rtcp_rr->report_count(); i++) {
                 ssrcs.insert(rtcp_rr->GetReportBlock(i)->source_ssrc);
             }
-        }else {
+        } else {
             // TODO: Support more RTCP packet
             PLOG_WARNING << "Unsupport RTCP packet, paylaod type=" << rtcp_header->payload_type;
         }

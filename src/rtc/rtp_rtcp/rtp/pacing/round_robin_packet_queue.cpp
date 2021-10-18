@@ -62,7 +62,7 @@ void RoundRobinPacketQueue::Push(int priority,
                                  std::shared_ptr<RtpPacketToSend> packet) {
     if (packet_count_ == 0) {
 
-    }else {
+    } else {
 
     }
 }

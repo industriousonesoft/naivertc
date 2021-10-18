@@ -186,7 +186,7 @@ std::vector<uint16_t> NackModuleImpl::NackListToSend(NackFilterType type, uint16
                     PLOG_WARNING << "Sequence number " << it->second.seq_num
                                  << " remove from NACK list due to max retries.";
                     it = nack_list_.erase(it);
-                }else {
+                } else {
                     ++it;
                 }
                 continue;

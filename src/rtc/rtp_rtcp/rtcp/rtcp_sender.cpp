@@ -88,7 +88,7 @@ void RtcpSender::SetLastRtpTime(uint32_t rtp_timestamp,
         this->last_rtp_timestamp_ = rtp_timestamp;
         if (!capture_time.has_value()) {
             last_frame_capture_time_ = this->clock_->CurrentTime();
-        }else {
+        } else {
             last_frame_capture_time_ = capture_time;
         }
     });

@@ -40,9 +40,9 @@ uint8_t NalUnitFragmentA::unit_type() const {
 NalUnitFragmentA::FragmentType NalUnitFragmentA::fragment_type() const {
     if (is_start()) {
         return FragmentType::START;
-    }else if (is_end()) {
+    } else if (is_end()) {
         return FragmentType::END;
-    }else {
+    } else {
         return FragmentType::MIDDLE;
     }
 }
@@ -73,10 +73,10 @@ void NalUnitFragmentA::set_fragment_type(FragmentType type) {
     if (type == FragmentType::START) {
         set_start(true);
         set_end(false);
-    }else if (type == FragmentType::END) {
+    } else if (type == FragmentType::END) {
         set_start(false);
         set_end(true);
-    }else {
+    } else {
         set_start(false);
         set_end(false);
     }
@@ -104,9 +104,9 @@ NalUnitFragmentA::FragmentsFrom(std::shared_ptr<NalUnit> nalu, uint16_t max_frag
         FragmentType fragment_type;
         if (offset == 0) {
             fragment_type = FragmentType::START;
-        }else if (offset + max_fragment_size < payload.size()) {
+        } else if (offset + max_fragment_size < payload.size()) {
             fragment_type = FragmentType::MIDDLE;
-        }else {
+        } else {
             if (offset + max_fragment_size > payload.size()) {
                 max_fragment_size = payload.size() - offset;
             }

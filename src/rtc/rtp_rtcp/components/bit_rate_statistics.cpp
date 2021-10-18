@@ -65,7 +65,7 @@ void BitRateStatistics::Update(int64_t bytes, int64_t now_ms) {
     if (std::numeric_limits<int64_t>::max() > total_accumulated_bytes_ + bytes) {
         total_accumulated_bytes_ += bytes;
         last_bucket.is_overflow = false;
-    }else {
+    } else {
         is_overflow_ = true;
         last_bucket.is_overflow = true;
     }
@@ -81,16 +81,16 @@ std::optional<BitRate> BitRateStatistics::Rate(int64_t now_ms) {
     if (begin_timestamp_ms_ != kInvalidTimestamp && !is_overflow_) {
         if (begin_timestamp_ms_ >= now_ms) {
             return std::nullopt;
-        }else if (now_ms - begin_timestamp_ms_ >= current_window_size_ms_) {
+        } else if (now_ms - begin_timestamp_ms_ >= current_window_size_ms_) {
             active_window_size_ms = current_window_size_ms_;
-        }else {
+        } else {
             active_window_size_ms = now_ms - begin_timestamp_ms_ + kSingleBucketWindowSizeMs;
             // Only one single samples and not full window size are not enough for valid estimate.
             if (total_num_samples_ == 1 && active_window_size_ms < current_window_size_ms_) {
                 return std::nullopt;
             } 
         }
-    }else {
+    } else {
         // No sample in buckets or the accumulator has overflowed.
         return std::nullopt;
     }

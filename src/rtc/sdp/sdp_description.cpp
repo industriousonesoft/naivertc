@@ -68,7 +68,7 @@ void Description::HintRole(Role role) {
     if (type_ == Type::ANSWER && role == Role::ACT_PASS) {
         // ActPass is illegal for an answer, so reset to Passive
         role_ = Role::PASSIVE;
-    }else {
+    } else {
         role_ = role;
     }
 }
@@ -160,7 +160,7 @@ void Description::RemoveMedia(const std::string_view mid) {
         auto media = std::shared_ptr<Media>(*it);
         if (media->mid() == mid) {
             it = medias_.erase(it);
-        }else {
+        } else {
             it++;
         }
     }

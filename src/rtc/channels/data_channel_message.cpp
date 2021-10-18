@@ -105,9 +105,9 @@ void DataChannel::OnIncomingMessage(SctpMessage message) {
                 const auto& payload = message.payload();
                 if (IsOpenMessage(payload)) {
                     ProcessOpenMessage(message);
-                }else if (IsAckMessage(payload)) {
+                } else if (IsAckMessage(payload)) {
                     TriggerOpen();
-                }else if (IsCloseMessage(payload)) {
+                } else if (IsCloseMessage(payload)) {
                     // The close message will be processted in-order
                     pending_incoming_messages_.push(std::move(message));
                     ProcessPendingIncomingMessages();
@@ -136,7 +136,7 @@ void DataChannel::Send(const std::string text) {
         if (auto transport = sctp_transport_.lock()) {
             CopyOnWriteBuffer payload(reinterpret_cast<const uint8_t*>(text.c_str()), text.length());
             Send(SctpMessageToSend(SctpMessage::Type::STRING, stream_id_, std::move(payload), user_message_reliability_));
-        }else {
+        } else {
             PLOG_WARNING << "The data channel is not ready to send data.";
         }
     });
@@ -146,7 +146,7 @@ void DataChannel::Send(const std::string text) {
 void DataChannel::ProcessOpenMessage(const SctpMessage& message) {
     if (config_.negotiated) {
         PLOG_WARNING << "The open messages for a user-negotiated DataChannel received, ignoring";
-    }else {
+    } else {
         try {
             // Negotiating with remote data channel
             ParseOpenMessage(message.payload(), config_);
@@ -168,14 +168,14 @@ void DataChannel::ProcessPendingIncomingMessages() {
             if (binary_message_received_callback_) {
                 binary_message_received_callback_(message.payload().data(), message.payload().size());
             }
-        }else if (message.type() == SctpMessage::Type::STRING) {
+        } else if (message.type() == SctpMessage::Type::STRING) {
             std::string text = std::string(message.payload().cbegin(), message.payload().cend());
             if (text_message_received_callback_) {
                 text_message_received_callback_(text);
-            }else {
+            } else {
                 PLOG_INFO << "Receive text: " << text;
             }
-        }else {
+        } else {
             // Close message from remote peer
             if (message.type() == SctpMessage::Type::CONTROL && IsCloseMessage(message.payload())) {
                 RemoteClose();

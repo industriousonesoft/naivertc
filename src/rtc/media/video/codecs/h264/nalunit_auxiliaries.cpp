@@ -16,7 +16,7 @@ std::vector<NaluIndex> NalUnit::FindNaluIndices(const uint8_t* buffer, size_t si
     for (size_t i = 0; i < end;) {
         if (buffer[i + 2] > 1) {
             i += 3;
-        }else if (buffer[i + 2] == 1) {
+        } else if (buffer[i + 2] == 1) {
             // Found a start sequence, now check if it was a 3 or 4 byte one.
             if (buffer[i + 1] == 0 && buffer[i] == 0) {
                 NaluIndex index = {i, i + 3, 0};
@@ -34,7 +34,7 @@ std::vector<NaluIndex> NalUnit::FindNaluIndices(const uint8_t* buffer, size_t si
                 indices.push_back(index);
             }
             i += 3;
-        }else {
+        } else {
             ++i;
         }
     }
@@ -60,7 +60,7 @@ std::vector<uint8_t> NalUnit::RetrieveRbspFromEbsp(const uint8_t* ebsp_buffer, s
             rbsp_buffer.push_back(ebsp_buffer[i++]);
             // Skip the emulation byte.
             i++;
-        }else {
+        } else {
             // Single RBSP byte.
             rbsp_buffer.push_back(ebsp_buffer[i++]);
         }

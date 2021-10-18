@@ -65,7 +65,7 @@ void UlpfecGenerator::PushMediaPacket(std::shared_ptr<RtpPacketToSend> media_pac
     // Set the minimum media packets to protect
     if (this->CurrentParams().fec_rate > kHighProtectionThreshold) {
         this->min_num_media_packets_ = kMinMediaPackets;
-    }else {
+    } else {
         this->min_num_media_packets_ = 1;
     }
 
@@ -81,7 +81,7 @@ void UlpfecGenerator::PushMediaPacket(std::shared_ptr<RtpPacketToSend> media_pac
         // Keep a reference of the last media packet, so we can copy the RTP
         // header from it when creating newly RED+FEC packets later.
         this->last_protected_media_packet_ = std::move(media_packet);
-    }else {
+    } else {
         // TODO: How to handle packets not added into media packtets??
     }
 
@@ -177,7 +177,7 @@ bool UlpfecGenerator::MinimumMediaPacketsReached() const {
     size_t num_media_packets = media_packets_.size();
     if (average_num_packets_per_frame < kMinMediaPacketsAdaptationThreshold) {
         return num_media_packets >= min_num_media_packets_;
-    }else {
+    } else {
         return num_media_packets >= min_num_media_packets_ + 1;
     }
 }

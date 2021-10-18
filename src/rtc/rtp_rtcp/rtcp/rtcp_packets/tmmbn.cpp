@@ -85,7 +85,7 @@ bool Tmmbn::PackInto(uint8_t* buffer,
     const size_t index_end = *index + PacketSize();
 
     RtcpPacket::PackCommonHeader(kFeedbackMessageType, kPacketType, PacketSizeWithoutCommonHeader(), buffer, index);
-    if(0 != RtpFeedback::media_ssrc()) {
+    if (0 != RtpFeedback::media_ssrc()) {
         return false;
     }
     RtpFeedback::PackCommonFeedbackInto(buffer + *index, index_end - *index);

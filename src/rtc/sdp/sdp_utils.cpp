@@ -52,7 +52,7 @@ std::optional<std::string> ParseFingerprintAttribute(std::string_view value) {
         std::string fingerprint{value.substr(7)};
         utils::string::trim_begin(fingerprint);
         return std::make_optional<std::string>(fingerprint);
-    }else {
+    } else {
         return std::nullopt;
     }
 }
@@ -71,7 +71,7 @@ bool IsSHA256Fingerprint(const std::string_view fingerprint) {
             if (fingerprint[i] != ':') {
                 return false;
             }
-        }else {
+        } else {
             if (!std::isxdigit(fingerprint[i])) {
                 return false;
             }

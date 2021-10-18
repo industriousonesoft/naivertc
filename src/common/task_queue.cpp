@@ -49,7 +49,7 @@ TaskQueue::~TaskQueue() {
 void TaskQueue::Sync(std::function<void()> handler) const {
     if (is_in_current_queue()) {
         handler();
-    }else {
+    } else {
         boost::unique_lock<boost::mutex> lock(mutex_);
         boost::asio::dispatch(strand_, [this, handler = std::move(handler)](){
             handler();
@@ -62,7 +62,7 @@ void TaskQueue::Sync(std::function<void()> handler) const {
 void TaskQueue::Async(std::function<void()> handler) const {
     if (is_in_current_queue()) {
         handler();
-    }else {
+    } else {
         boost::asio::post(strand_, std::move(handler));
     }
 }
@@ -70,7 +70,7 @@ void TaskQueue::Async(std::function<void()> handler) const {
 void TaskQueue::Dispatch(std::function<void()> handler) const {
     if (is_in_current_queue()) {
         handler();
-    }else {
+    } else {
         boost::asio::dispatch(strand_, std::move(handler));
     }
 }

@@ -72,7 +72,7 @@ const std::string Candidate::mid() const {
 }
 
 void Candidate::HintMid(std::string mid) {
-    if(!mid.empty())
+    if (!mid.empty())
         mid_.emplace(std::move(mid));
 }
 
@@ -89,7 +89,7 @@ Candidate::operator std::string() const {
     oss << foundation_ << sp << component_id_ << sp << transport_type_str_ << sp << priority_ << sp;
     if (isResolved()) {
         oss << address_ << sp << port_;
-    }else {
+    } else {
         oss << hostname_ << sp << server_port_;
     }
 
@@ -139,7 +139,7 @@ bool Candidate::Resolve(ResolveMode mode) {
     utils::network::ProtocolType protocol_type = utils::network::ProtocolType::UNKNOWN;
     if (transport_type_ == TransportType::UDP) {
         protocol_type = utils::network::ProtocolType::UDP;
-    }else if (transport_type_ != TransportType::UNKNOWN) {
+    } else if (transport_type_ != TransportType::UNKNOWN) {
         protocol_type = utils::network::ProtocolType::TCP;
     }
 
@@ -150,7 +150,7 @@ bool Candidate::Resolve(ResolveMode mode) {
         address_ = std::move(resolve_result.value().address);
         port_ = resolve_result.value().port;
         return true;
-    }else {
+    } else {
         return false;
     }
 }
@@ -209,7 +209,7 @@ void Candidate::Parse(std::string candidate) {
     auto it = candidate_type_map.find(type_str_);
     if (it != candidate_type_map.end()) {
         type_ = it->second;
-    }else {
+    } else {
         type_ = Type::UNKNOWN;
     }
 
@@ -222,19 +222,19 @@ void Candidate::Parse(std::string candidate) {
     if (transport_type_str_ == "UDP" || transport_type_str_ == "udp") {
         transport_type_ = TransportType::UDP;
     // 如果传输协议是TCP，则进一步检测具体的TCP映射类型
-    }else if (transport_type_str_ == "TCP" || transport_type_str_ == "tcp") {
+    } else if (transport_type_str_ == "TCP" || transport_type_str_ == "tcp") {
         std::string tcp_type_indicator, tcp_type_string;
         if (iss >> tcp_type_indicator >> tcp_type_string && tcp_type_indicator == "tcptype") {
             auto it = tcp_trans_type_map.find(tcp_type_string);
             if (it != tcp_trans_type_map.end()) {
                 transport_type_ = it->second;
-            }else {
+            } else {
                 transport_type_ = TransportType::TCP_UNKNOWN;
             }
-        }else {
+        } else {
             transport_type_ = TransportType::TCP_UNKNOWN;
         }
-    }else {
+    } else {
         transport_type_ = TransportType::UNKNOWN;
     }
 }

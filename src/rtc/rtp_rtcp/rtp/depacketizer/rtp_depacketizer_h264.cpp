@@ -71,7 +71,7 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
     if (nal_type == uint8_t(h264::NaluType::FU_A)) {
         // Fragmented NAL units (FU-A)
         return DepacketizeFuANalu(std::move(rtp_payload));
-    }else {
+    } else {
         // We handle STAP-A and single NALU in same way here.
         // The jitter buffer will depacketize the STAP-A into NAL units later.
         return DepacketizeStapAOrSingleNalu(std::move(rtp_payload));
@@ -117,7 +117,7 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
                 depacketized_payload.video_header.frame_width = sps->width;
                 depacketized_payload.video_header.frame_height = sps->height;
                 nalu_info.sps_id = sps->id;
-            }else {
+            } else {
                 PLOG_WARNING << "Failed to parse SPS id from SPS slice.";
             }
             depacketized_payload.video_header.frame_type = video::FrameType::KEY;
@@ -130,7 +130,7 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
             if (PpsParser::ParsePpsIds(nalu_payload, nalu_payload_size, &pps_id, &sps_id)) {
                 nalu_info.pps_id = pps_id;
                 nalu_info.sps_id = sps_id;
-            }else {
+            } else {
                 PLOG_WARNING << "Failed to parse PPS id and SPS id from PPS slice.";
             }
             h264_video_codec_header.has_pps = true;
@@ -144,7 +144,7 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
             std::optional<uint32_t> pps_id = PpsParser::ParsePpsIdFromSlice(nalu_payload, payload_size);
             if (pps_id.has_value()) {
                 nalu_info.pps_id = pps_id.value();
-            }else {
+            } else {
                 PLOG_WARNING << "Failed to parse PPS from slice of type=" << nalu_info.type;
             }
             break;
@@ -170,7 +170,7 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
             PLOG_WARNING << "Received packet containing more than "
                          << h264::kMaxNaluNumPerPacket
                          << " NAL units. Will not keep track sps and pps ids for all of them.";
-        }else {
+        } else {
             h264_video_codec_header.nalus.push_back(std::move(nalu_info));
         }
         return true;
@@ -200,7 +200,7 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
                 return std::nullopt;
             }
         }
-    }else {
+    } else {
         h264_video_codec_header.packetization_type = h264::PacketizationType::SIGNLE;
         // The NAL unit type of the original data for fragmented packet
         h264_video_codec_header.packet_nalu_type = nal_type;
@@ -231,14 +231,14 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
                                                                          rtp_payload.size() - 2 * kNalHeaderSize);
         if (pps_id.has_value()) {
             nalu_info.pps_id = pps_id.value();
-        }else {
+        } else {
             PLOG_WARNING << "Failed to parse PPS from first fragment of FU-A NAL unit with original type="
                          << static_cast<int>(nalu_info.type);
         }
         uint8_t original_nal_header = fnri | original_nal_type;
         depacketized_payload.video_payload = CopyOnWriteBuffer(rtp_payload.data() + kNalHeaderSize, rtp_payload.size() - kNalHeaderSize);
         depacketized_payload.video_payload.data()[0] = original_nal_header;
-    }else {
+    } else {
         depacketized_payload.video_payload = CopyOnWriteBuffer(rtp_payload.data() + kFuAHeaderSize, rtp_payload.size() - kFuAHeaderSize);
     }
 

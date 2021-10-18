@@ -51,7 +51,7 @@ int Transport::ForwardOutgoingPacket(CopyOnWriteBuffer packet, const PacketOptio
         try {
             if (auto lower = lower_.lock()) {
                 return lower->Send(std::move(packet), options);
-            }else {
+            } else {
                 return -1;
             }
         }catch (std::exception& e) {

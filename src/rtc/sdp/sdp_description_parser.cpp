@@ -31,7 +31,7 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
                 Application app(MediaEntry::Parse(mline, std::to_string(++index)));
                 description.SetApplication(std::move(app));
                 curr_entry = description.application();
-            }else {
+            } else {
                 Media media(MediaEntry::Parse(mline, std::to_string(++index)), Direction::INACTIVE);
                 const std::string mid = media.mid();
                 description.AddMedia(std::move(media));
@@ -48,31 +48,31 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
                 // Update ICE and DTLS settings 
                 if (key == "ice-ufrag" && curr_entry->ice_ufrag()) {
                     description.session_entry_.set_ice_ufrag(curr_entry->ice_ufrag().value());
-                }else if (key == "ice-pwd" && curr_entry->ice_pwd()) {
+                } else if (key == "ice-pwd" && curr_entry->ice_pwd()) {
                     description.session_entry_.set_ice_pwd(curr_entry->ice_pwd().value());
-                }else if (key == "setup" && curr_entry->role()) {
+                } else if (key == "setup" && curr_entry->role()) {
                     description.HintRole(curr_entry->role().value());
-                }else if (key == "fingerprint" && curr_entry->fingerprint()) {
+                } else if (key == "fingerprint" && curr_entry->fingerprint()) {
                     description.session_entry_.set_fingerprint(curr_entry->fingerprint().value());
                 }
             }
             // session-level
             else if (description.session_entry_.ParseSDPAttributeField(key, value)) {
                 // Do nothing
-            }else if (curr_entry && curr_entry->ParseSDPLine(line)) {
+            } else if (curr_entry && curr_entry->ParseSDPLine(line)) {
                 // Do nothing
-            }else if (description.session_entry_.ParseSDPLine(line)){
+            } else if (description.session_entry_.ParseSDPLine(line)){
                 // Do nothing
-            }else {
+            } else {
                 PLOG_WARNING << "Unknown attribute: [" << key << ":" << value << "]";
             }
-        }else  {
+        } else  {
             // media-level takes precedence
             if (curr_entry && curr_entry->ParseSDPLine(line)) {
                 // Do nothing
-            }else if (description.session_entry_.ParseSDPLine(line)){
+            } else if (description.session_entry_.ParseSDPLine(line)){
                 // Do nothing
-            }else {
+            } else {
                 PLOG_WARNING << "Unknown filed: " << line;
             }
         }

@@ -34,7 +34,7 @@ void RtcpModule::ScheduleRtcpSendEvaluation(TimeDelta delay) {
         work_queue_.Async([this](){
             this->MaybeSendRtcp();
         });
-    }else {
+    } else {
         Timestamp execution_time = clock_->CurrentTime() + delay;
         work_queue_.AsyncAfter(delay.seconds(), [this, execution_time](){
             this->MaybeSendRtcpAtOrAfterTimestamp(execution_time);

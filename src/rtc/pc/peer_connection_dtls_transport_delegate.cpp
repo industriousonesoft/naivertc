@@ -30,7 +30,7 @@ void PeerConnection::InitDtlsTransport() {
             dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1, std::placeholders::_2));
             dtls_transport_ = dtls_srtp_transport;
         // DTLS only
-        }else {
+        } else {
             dtls_transport_ = std::make_shared<DtlsTransport>(std::move(dtls_init_config), lower, network_task_queue_);
         }
 
@@ -59,7 +59,7 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
             // DataChannel enabled
             if (auto remote_sdp = this->remote_sdp_; remote_sdp && remote_sdp->HasApplication()) {
                 this->InitSctpTransport();
-            }else {
+            } else {
                 this->UpdateConnectionState(ConnectionState::CONNECTED);
             }
             this->OpenMediaTracks();

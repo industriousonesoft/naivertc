@@ -130,7 +130,7 @@ bool RtcpReceiver::ParseSenderReport(const rtcp::CommonHeader& rtcp_block) {
         remote_sender_packet_count_ = sender_report.sender_packet_count();
         remote_sender_octet_count_ = sender_report.sender_octet_count();
         remote_sender_reports_count_++;
-    }else {
+    } else {
         // We only store one send report from one source,
         // but we will store all the receive blocks
     }

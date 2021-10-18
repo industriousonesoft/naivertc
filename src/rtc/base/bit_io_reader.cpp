@@ -61,7 +61,7 @@ bool BitReader::ReadSignedExpGolomb(int32_t& value) {
     // See https://www.jianshu.com/p/a31621affd40
     if ((unsigned_val & 1) == 0) {
         value = -static_cast<int32_t>(unsigned_val / 2);
-    }else {
+    } else {
         value = (unsigned_val + 1) / 2;
     }
     return true;

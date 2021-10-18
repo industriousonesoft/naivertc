@@ -205,7 +205,7 @@ void FecEncoder::GenerateFecPayload(const PacketList& media_packets, size_t num_
                     if (media_packet_protected_size > 0) {
                         memcpy(&fec_packet_data[fec_header_size], &media_packet_data[media_header_size], media_packet_protected_size);
                     }
-                }else {
+                } else {
                     XorHeader(media_packet_protected_size, media_packets_it->get(), fec_packet);
                     XorPayload(media_header_size, 
                                fec_header_size, 

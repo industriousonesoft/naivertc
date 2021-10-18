@@ -111,31 +111,31 @@ bool Entry::ParseSDPAttributeField(std::string_view key, std::string_view value)
         auto fingerprint = ParseFingerprintAttribute(value);
         if (fingerprint.has_value()) {
             set_fingerprint(std::move(fingerprint.value()));
-        }else {
+        } else {
             PLOG_WARNING << "Failed to parse fingerprint format: " << value;
         }
         return true;
-    }else if (key == "ice-ufrag") {
+    } else if (key == "ice-ufrag") {
         ice_ufrag_.emplace(value);
         return true;
-    }else if (key == "ice-pwd") {
+    } else if (key == "ice-pwd") {
         ice_pwd_.emplace(value);
         return true;
-    }else if (key == "ice-options" && value == "trickle") {
+    } else if (key == "ice-options" && value == "trickle") {
         // Default setting
         return true;
-    }else if (key == "candidate") {
+    } else if (key == "candidate") {
         // TODO：add candidate from sdp
         return true;
-    }else if (key == "end-of-candidate") {
+    } else if (key == "end-of-candidate") {
         // TODO：add candidate from sdp
         return true;
-    }else if (key == "setup") {
+    } else if (key == "setup") {
         if (value == "active") {
             role_.emplace(Role::ACTIVE);
-        }else if (value == "passive") {
+        } else if (value == "passive") {
             role_.emplace(Role::PASSIVE);
-        }else {
+        } else {
             role_.emplace(Role::ACT_PASS);
         }
         return true;

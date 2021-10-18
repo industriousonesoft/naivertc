@@ -14,7 +14,7 @@ void RtpDemuxer::AddSink(uint32_t ssrc, std::weak_ptr<RtpPacketSink> sink) {
     if (inserted) {
         PLOG_INFO << "Added sink=" << sink.lock()
                   << " bunding with SSRC=" << ssrc;
-    }else if (it->second.lock() != sink.lock()) {
+    } else if (it->second.lock() != sink.lock()) {
         PLOG_INFO << "Update sink=" << sink.lock()
                   << " binding with SSRC=" << ssrc;
     }
@@ -31,7 +31,7 @@ void RtpDemuxer::AddSink(std::string mid, std::weak_ptr<RtpPacketSink> sink) {
     if (inserted) {
         PLOG_INFO << "Added sink=" << sink.lock()
                   << " bunding with mid=" << mid;
-    }else if (it->second.lock() != sink.lock()) {
+    } else if (it->second.lock() != sink.lock()) {
         PLOG_INFO << "Update sink=" << sink.lock()
                   << " binding with mid=" << mid;
     }
@@ -44,7 +44,7 @@ void RtpDemuxer::RemoveSink(std::string mid) {
 void RtpDemuxer::OnRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
     if (is_rtcp) {
         DeliverRtcpPacket(std::move(in_packet));
-    }else {
+    } else {
         DeliverRtpPacket(std::move(in_packet));
     }
 }

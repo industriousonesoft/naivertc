@@ -26,7 +26,7 @@ Bye::Bye() = default;
 Bye::~Bye() = default;
 
 bool Bye::Parse(const CommonHeader& packet) {
-    if(packet.type() != kPacketType) {
+    if (packet.type() != kPacketType) {
         return false;
     }
 

@@ -52,10 +52,10 @@ bool RtpToNtpEstimator::UpdateMeasurements(uint32_t ntp_secs, uint32_t ntp_frac,
         double old_rtp_timstamp = measurements_.front().unwrapped_rtp_timestamp;
         if (ntp_time_ms <= old_ntp_ms || ntp_time_ms > old_ntp_ms + kMaxAllowedRtcpNtpIntervalMs) {
             invalid_sample = true;
-        }else if (unwrapped_rtp_timestamp <= old_rtp_timstamp) {
+        } else if (unwrapped_rtp_timestamp <= old_rtp_timstamp) {
             PLOG_WARNING << "Newer RTP timestamp is smaller than the older one, dropping";
             invalid_sample = true;
-        }else if (unwrapped_rtp_timestamp - old_rtp_timstamp > kMaxAllowedRtcpTimestampIntervalMs) {
+        } else if (unwrapped_rtp_timestamp - old_rtp_timstamp > kMaxAllowedRtcpTimestampIntervalMs) {
             PLOG_WARNING << "Newer RTP timestamp is jump too far into the future, dropping";
             invalid_sample = true;
         }

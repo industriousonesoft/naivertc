@@ -79,7 +79,7 @@ void RtpPacket::set_has_padding(bool has_padding) {
     has_padding_ = has_padding;
     if (has_padding) {
         WriteAt(0, data()[0] | 0x20);
-    }else {
+    } else {
         WriteAt(0, data()[0] & ~0x20);
     }
 }
@@ -88,7 +88,7 @@ void RtpPacket::set_marker(bool marker) {
     marker_ = marker;
     if (marker_) {
         WriteAt(1, data()[1] | 0x80);
-    }else {
+    } else {
         WriteAt(1, data()[1] & 0x7F);
     }
 }
@@ -131,7 +131,7 @@ bool RtpPacket::SetPadding(uint8_t padding_size) {
         WriteAt(padding_end - 1, padding_size_);
         // Reset padding bit
         set_has_padding(true);
-    }else {
+    } else {
         // Clear padding bit
         set_has_padding(false);
     }
@@ -248,7 +248,7 @@ bool RtpPacket::RemoveExtension(ExtensionType type) {
     for (const auto& ext : extension_entries_) {
         if (ext.id == id_to_remove) {
             found_extension = true;
-        }else {
+        } else {
             auto extension_data = new_packet->AllocateRawExtension(ext.id, ext.size);
             if (extension_data.size() != ext.size) {
                 PLOG_WARNING << "Failed to allocate extension id=" << ext.id
@@ -372,7 +372,7 @@ ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
         // Check if same size is used.
         if (extension_entry->size == size) {
             return ArrayView<uint8_t>(WriteAt(extension_entry->offset), extension_entry->size);
-        }else {
+        } else {
             PLOG_WARNING << "Length mismatch for extension id " << id
                          << ": expected "
                          << static_cast<int>(extension_entry->size)
@@ -501,15 +501,15 @@ void RtpPacket::PromoteToTwoByteHeaderExtension() {
     size_t num_csrc = data()[0] & 0x0F;
     size_t extensions_offset = kFixedHeaderSize + (num_csrc * 4) + 4;
 
-    if(extension_entries_.size() == 0){
+    if (extension_entries_.size() == 0){
         return;
     }
-    if(payload_size_ > 0) {
+    if (payload_size_ > 0) {
         PLOG_WARNING << "Can't resize extension fields after payload was set.";
         return;
     }
     // Not one-byte header extensions
-    if(kOneByteExtensionProfileId != ByteReader<uint16_t>::ReadBigEndian(data() + extensions_offset - 4)) {
+    if (kOneByteExtensionProfileId != ByteReader<uint16_t>::ReadBigEndian(data() + extensions_offset - 4)) {
         return;
     }
     // Rewrite data.
@@ -589,7 +589,7 @@ bool RtpPacket::ParseInternal(const uint8_t* buffer, size_t size) {
        if (profile_id != kOneByteExtensionProfileId &&
             (profile_id & kTwoByteExtensionProfileIdAppBitsFilter) != kTwoByteExtensionProfileId) {
             PLOG_WARNING << "Unsupported RTP extension: " << profile_id;
-        }else {
+        } else {
             size_t extension_header_length = profile_id == kOneByteExtensionProfileId ? kOneByteExtensionHeaderSize : kTwoByteExtensionHeaderSize;
             constexpr uint8_t kPaddingByte = 0;
             constexpr uint8_t kPaddingId = 0;
@@ -667,7 +667,7 @@ bool RtpPacket::ParseInternal(const uint8_t* buffer, size_t size) {
             PLOG_WARNING << "Padding was set, but padding size is zero.";
             return false;
         }
-    }else {
+    } else {
         padding_size_ = 0;
     }
 

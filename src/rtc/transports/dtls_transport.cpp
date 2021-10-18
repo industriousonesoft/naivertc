@@ -80,7 +80,7 @@ int DtlsTransport::Send(CopyOnWriteBuffer packet, const PacketOptions& options) 
         if (openssl::check(this->ssl_, ret)) {
             PLOG_VERBOSE << "Send size=" << ret;
             return ret;
-        }else {
+        } else {
             PLOG_VERBOSE << "Failed to send size=" << ret;
             return -1;
         }
@@ -103,14 +103,14 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
                 if (this->TryToHandshake()) {
                     // DTLS Connected
                     this->UpdateState(State::CONNECTED);
-                }else {
+                } else {
                     if (this->IsHandshakeTimeout()) {
                         this->UpdateState(State::FAILED);
                     }
                     return;
                 }
             // Do SSL reading after connected
-            }else if (this->state_ != State::CONNECTED) {
+            } else if (this->state_ != State::CONNECTED) {
                 PLOG_VERBOSE << "DTLS is not connected yet.";
                 return;
             }
@@ -140,7 +140,7 @@ int DtlsTransport::HandleDtlsWrite(const char* in_data, int in_size) {
         auto bytes = reinterpret_cast<const uint8_t*>(in_data);
         if (this->state_ != State::CONNECTED) {
             return this->Outgoing(CopyOnWriteBuffer(bytes, in_size), this->handshake_packet_options_);
-        }else {
+        } else {
             return this->Outgoing(CopyOnWriteBuffer(bytes, in_size), this->user_packet_options_);
         }
     });

@@ -40,8 +40,8 @@ bool AbsoluteSendTime::PackInto(uint8_t* buffer, size_t buffer_size) const {
 }
 
 bool AbsoluteSendTime::PackInto(uint8_t* buffer, size_t buffer_size, uint32_t time_24bits) {
-    if(buffer_size != kValueSizeBytes) return false;
-    if(time_24bits > 0x00FFFFFF) return false;
+    if (buffer_size != kValueSizeBytes) return false;
+    if (time_24bits > 0x00FFFFFF) return false;
     ByteWriter<uint32_t, 3>::WriteBigEndian(buffer, time_24bits);
     return true;
 }
@@ -118,7 +118,7 @@ size_t AbsoluteCaptureTime::size() const {
 }
 
 bool AbsoluteCaptureTime::PackInto(uint8_t* data, size_t size) const {
-    if(size != this->size()) 
+    if (size != this->size()) 
         return false;
 
     ByteWriter<uint64_t>::WriteBigEndian(data, absolute_capture_timestamp_);
@@ -191,8 +191,8 @@ bool TransmissionTimeOffset::PackInto(uint8_t* buffer, size_t buffer_size) const
 }
 
 bool TransmissionTimeOffset::PackInto(uint8_t* buffer, size_t buffer_size, int32_t rtp_time_24bits) {
-    if(buffer_size != kValueSizeBytes) return false;
-    if(rtp_time_24bits > 0x00ffffff) return false;
+    if (buffer_size != kValueSizeBytes) return false;
+    if (rtp_time_24bits > 0x00ffffff) return false;
     ByteWriter<int32_t, 3>::WriteBigEndian(buffer, rtp_time_24bits);
     return true;
 }
@@ -224,7 +224,7 @@ bool TransportSequenceNumber::PackInto(uint8_t* buffer, size_t buffer_size) cons
 }
 
 bool TransportSequenceNumber::PackInto(uint8_t* buffer, size_t buffer_size, uint16_t transport_sequence_number) {
-    if(buffer_size != kValueSizeBytes) return false;
+    if (buffer_size != kValueSizeBytes) return false;
     ByteWriter<uint16_t>::WriteBigEndian(buffer, transport_sequence_number);
     return true;
 }
@@ -260,10 +260,10 @@ bool PlayoutDelayLimits::PackInto(uint8_t* buffer, size_t buffer_size) const {
 } 
 
 bool PlayoutDelayLimits::PackInto(uint8_t* buffer, size_t buffer_size, int min_ms, int max_ms) {
-    if(buffer_size != kValueSizeBytes) return false;
-    if(0 > min_ms) return false;
-    if(min_ms > max_ms) return false;
-    if(max_ms > kMaxMs) return false;
+    if (buffer_size != kValueSizeBytes) return false;
+    if (0 > min_ms) return false;
+    if (min_ms > max_ms) return false;
+    if (max_ms > kMaxMs) return false;
     // Convert MS to value to be sent on extension header.
     uint32_t min_delay = min_ms / kGranularityMs;
     uint32_t max_delay = max_ms / kGranularityMs;
@@ -286,7 +286,7 @@ bool BaseRtpString::Parse(const uint8_t* buffer, size_t buffer_size) {
     // If there is a \0 character in the middle of the |data|, treat it as end
     // of the string. Well-formed string extensions shouldn't contain it.
     value_.assign(cstr, strnlen(cstr, buffer_size));
-    if(value_.empty()) {
+    if (value_.empty()) {
         return false;
     }
     return true;
@@ -300,7 +300,7 @@ bool BaseRtpString::PackInto(uint8_t* buffer, size_t buffer_size, const std::str
     if (value.size() > kMaxValueSizeBytes) {
         return false;
     }
-    if(value.empty() || buffer_size != value.size())
+    if (value.empty() || buffer_size != value.size())
         return false;
     memcpy(buffer, value.data(), value.size());
     return true;

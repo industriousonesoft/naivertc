@@ -165,10 +165,10 @@ const CopyOnWriteBuffer DataChannel::CreateOpenMessage(const DataChannel::Init& 
     if (init_config.max_rtx_count.has_value()) {
         channel_type = uint8_t(message::ChannelType::PARTIAL_RELIABLE_REXMIT);
         reliability_parameter = uint32_t(init_config.max_rtx_count.value());
-    }else if (init_config.max_rtx_ms.has_value()) {
+    } else if (init_config.max_rtx_ms.has_value()) {
         channel_type = uint8_t(message::ChannelType::PARTIAL_RELIABLE_TIMED);
         reliability_parameter = uint32_t(init_config.max_rtx_ms.value());
-    }else {
+    } else {
         channel_type = uint8_t(message::ChannelType::RELIABLE);
         reliability_parameter = 0;
     }

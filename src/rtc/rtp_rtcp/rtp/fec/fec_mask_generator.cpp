@@ -31,7 +31,7 @@ bool FecPacketMaskGenerator::GeneratePacketMasks(FecMaskType fec_mask_type,
         // where k = num_media_packets, n=total#packets, (n-k)=num_fec_packets.
         ArrayView<const uint8_t> masks = LookUpPacketMasks(num_media_packets, num_fec_packets);
         memcpy(packet_masks, masks.data(), masks.size());
-    }else {
+    } else {
         const size_t num_mask_bytes = PacketMaskSize(num_media_packets);
         GenerateUnequalProtectionMasks(num_media_packets, 
                                        num_fec_packets, 
@@ -49,7 +49,7 @@ void FecPacketMaskGenerator::PickFixedMaskTable(FecMaskType fec_mask_type, size_
     // the size of packet mask bursty table.
     if (fec_mask_type != FecMaskType::RANDOM && num_media_packets <= kPacketMaskBurstyTable[0] /* table size*/) {
         fixed_mask_table_ = kPacketMaskBurstyTable;
-    }else {
+    } else {
         // Otherwise the random table is returned.
         fixed_mask_table_ = kPacketMaskRandomTable;
     }
@@ -138,7 +138,7 @@ void FecPacketMaskGenerator::GenerateRemainingProtectionMasks(size_t num_media_p
                 packet_masks[i * num_mask_bytes] |= 0x80; // 1 << 7
             }
         }
-    }else if (mode == UEPMode::NO_OVERLAP) {
+    } else if (mode == UEPMode::NO_OVERLAP) {
         // FIXME: 此处为什么是减去num_fec_for_imp_packets而非num_for_imp_packets？？
         const size_t num_media_packets_remaining = num_media_packets - num_fec_for_imp_packets;
 
@@ -150,7 +150,7 @@ void FecPacketMaskGenerator::GenerateRemainingProtectionMasks(size_t num_media_p
 
         ShiftFitSubMask(num_mask_bytes, num_sub_mask_bytes, num_fec_for_imp_packets, end_row, packet_sub_masks.data(), packet_masks);
         
-    }else {
+    } else {
         RTC_NOTREACHED();
     }
 
@@ -174,7 +174,7 @@ void FecPacketMaskGenerator::FitSubMasks(size_t num_mask_stride,
     // In the same stride
     if (num_mask_stride == num_sub_mask_stride) {
         memcpy(packet_masks, sub_packet_masks, num_row * num_sub_mask_stride);
-    }else {
+    } else {
         // Transform 1-D array to 2-D array in a stride
         for (size_t row = 0; row < num_row; ++row) {
             size_t dst_col_begin = num_mask_stride * row;

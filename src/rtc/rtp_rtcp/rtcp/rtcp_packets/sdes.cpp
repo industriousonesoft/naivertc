@@ -129,7 +129,7 @@ bool Sdes::Parse(const CommonHeader& packet) {
         if (cname_found) {
             packet_size += CalculateChunkSize(chunks_tmp[i]);
             ++i;
-        }else {
+        } else {
             // RFC stats CNAME item is mandatory, but same time it allows chunk without items.
             // So while parsing, ignore all chunks without cname, but do not fail the parse.
             PLOG_WARNING << "CNAME not found for ssrc " << chunks_tmp[i].ssrc;

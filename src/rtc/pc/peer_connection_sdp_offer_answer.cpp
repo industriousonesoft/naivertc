@@ -22,7 +22,7 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
             if (this->local_sdp_.has_value()) {
                 auto local_sdp = this->local_sdp_.value();
                 on_success(local_sdp);
-            }else {
+            } else {
                 throw std::runtime_error("Failed to create local offer sdp.");
             }
         }catch(const std::exception& exp) {
@@ -41,7 +41,7 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
             if (this->local_sdp_.has_value()) {
                 auto local_sdp = this->local_sdp_.value();
                 on_success(local_sdp);
-            }else {
+            } else {
                 throw std::runtime_error("Failed to create local answer sdp.");
             }
         }catch(const std::exception& exp) {
@@ -108,7 +108,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     if (type == sdp::Type::UNSPEC) {
         if (signaling_state_ == SignalingState::HAVE_REMOTE_OFFER) {
             type = sdp::Type::ANSWER;
-        }else {
+        } else {
             type = sdp::Type::OFFER;
         }
     }
@@ -271,7 +271,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 
                 local_sdp.SetApplication(std::move(local_app));
 
-            }else {
+            } else {
                 auto reciprocated = remote_app->ReciprocatedSDP();
                 reciprocated.HintSctpPort(local_sctp_port);
                 reciprocated.set_max_message_size(local_max_message_size);
@@ -300,7 +300,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
                     OnNegotiatedMediaTrack(local_track);
 
                 // The local media track was not owned any more.
-                }else {
+                } else {
                     auto reciprocated = remote_media.ReciprocatedSDP();
                     // Unowned media track means inactive.
                     reciprocated.set_direction(sdp::Direction::INACTIVE);
@@ -309,7 +309,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
 
                     local_sdp.AddMedia(std::move(reciprocated));
                 }
-            }else {
+            } else {
                 auto reciprocated = remote_media.ReciprocatedSDP();
 
                 PLOG_DEBUG << "Reciprocating media in local description, mid=" << reciprocated.mid()
@@ -411,7 +411,7 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
                     local_track->OnRemoteDescription(remote_media);
                     OnNegotiatedMediaTrack(local_track);
                 }
-            }else {
+            } else {
                 auto reciprocated = remote_media.ReciprocatedSDP();
 
                 PLOG_DEBUG << "Reciprocating media in local description, mid=" << reciprocated.mid()
@@ -457,9 +457,9 @@ void PeerConnection::ProcessRemoteCandidate(sdp::Candidate candidate) {
     if (candidate.isResolved()) {
         ice_transport_->AddRemoteCandidate(candidate);
     // We might need a lookup
-    }else if (candidate.Resolve(sdp::Candidate::ResolveMode::LOOK_UP)) {
+    } else if (candidate.Resolve(sdp::Candidate::ResolveMode::LOOK_UP)) {
         ice_transport_->AddRemoteCandidate(candidate);
-    }else {
+    } else {
         throw std::runtime_error("Failed to resolve remote candidate");
     }
 
@@ -530,7 +530,7 @@ void PeerConnection::OnIncomingMediaTrack(std::shared_ptr<MediaTrack> media_trac
         media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
         if (media_track_callback_) {
             media_track_callback_(std::move(media_track));
-        }else {
+        } else {
             pending_media_tracks_.push_back(std::move(media_track));
         }
     }

@@ -78,7 +78,7 @@ std::unique_ptr<FecGenerator> RtpMediaSender::MaybeCreateFecGenerator(const RtpR
 
         return std::make_unique<FlexfecGenerator>();
 
-    }else if (rtp_config.ulpfec.red_payload_type >= 0 && 
+    } else if (rtp_config.ulpfec.red_payload_type >= 0 && 
               rtp_config.ulpfec.ulpfec_payload_type >= 0) {
         // Payload tyeps without picture ID (contained in VP8/VP9, not in H264) cannnot determine
         // that a stream is complete without retransmitting FEC, so using UlpFEC + NACK for H264 

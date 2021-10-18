@@ -41,7 +41,7 @@ RtpVideoFrameAssembler::InsertResult RtpVideoFrameAssembler::InsertPacket(std::u
         first_seq_num_ = seq_num;
         first_packet_received_ = true;
     // `seq_num` is newer than `first_seq_num_`
-    }else if (seq_num_utils::AheadOf(first_seq_num_, seq_num)) {
+    } else if (seq_num_utils::AheadOf(first_seq_num_, seq_num)) {
         // If we have explicitly cleared past this packet then it's old,
         // don't insert it, just ignore it silently.
         if (is_cleared_to_first_seq_num_) {
@@ -288,7 +288,7 @@ bool RtpVideoFrameAssembler::IsContinuous(uint16_t seq_num) {
     // No packets are ahead of the current packet, so it is continuous.
     if (curr_packet->video_header.is_first_packet_in_frame) {
         return true;
-    }else {
+    } else {
         size_t prev_index = index > 0 ? index - 1 : packet_buffer_.size() - 1;
         const auto& prev_packet = packet_buffer_[prev_index];
 
@@ -335,7 +335,7 @@ void RtpVideoFrameAssembler::UpdateMissingPackets(uint16_t seq_num, size_t windo
         while (seq_num_utils::AheadOf(seq_num, ++*newest_inserted_seq_num_)) {
             missing_packets_.insert(*newest_inserted_seq_num_);
         }
-    }else {
+    } else {
         missing_packets_.erase(seq_num);
     }
 }
@@ -362,7 +362,7 @@ bool RtpVideoFrameAssembler::ExpandPacketBufferIfNecessary(uint16_t seq_num) {
                     new_size = std::min(max_packet_buffer_size_, 2 * new_size);
                     no_more_space_to_expand = false;
                 // No more space to expand
-                }else {
+                } else {
                     no_more_space_to_expand = true;
                 }
                 break;

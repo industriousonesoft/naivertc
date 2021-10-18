@@ -105,7 +105,7 @@ const uint8_t& CopyOnWriteBuffer::at(size_t index) const {
 std::vector<uint8_t>::iterator CopyOnWriteBuffer::begin() {
     if (!buffer_) {
         buffer_ = std::make_shared<BinaryBuffer>();
-    }else {
+    } else {
         CloneIfNecessary(capacity());
     }
     return buffer_->begin();
@@ -114,7 +114,7 @@ std::vector<uint8_t>::iterator CopyOnWriteBuffer::begin() {
 std::vector<uint8_t>::iterator CopyOnWriteBuffer::end() {
     if (!buffer_) {
         buffer_ = std::make_shared<BinaryBuffer>();
-    }else {
+    } else {
         CloneIfNecessary(capacity());
     }
     return buffer_->end();
@@ -135,7 +135,7 @@ std::vector<uint8_t>::const_iterator CopyOnWriteBuffer::cend() const {
 std::vector<uint8_t>::reverse_iterator CopyOnWriteBuffer::rbegin() {
     if (!buffer_) {
         buffer_ = std::make_shared<BinaryBuffer>();
-    }else {
+    } else {
         CloneIfNecessary(capacity());
     }
     return buffer_->rbegin();
@@ -144,7 +144,7 @@ std::vector<uint8_t>::reverse_iterator CopyOnWriteBuffer::rbegin() {
 std::vector<uint8_t>::reverse_iterator CopyOnWriteBuffer::rend() {
     if (!buffer_) {
         buffer_ = std::make_shared<BinaryBuffer>();
-    }else {
+    } else {
         CloneIfNecessary(capacity());
     }
     return buffer_->rend();
@@ -196,7 +196,7 @@ void CopyOnWriteBuffer::Clear() {
     }
     if (buffer_.use_count() == 1) {
         buffer_->clear();
-    }else {
+    } else {
         size_t capacity = buffer_->capacity();
         buffer_ = std::make_shared<BinaryBuffer>(0);
         buffer_->reserve(capacity);
@@ -208,14 +208,14 @@ void CopyOnWriteBuffer::Swap(CopyOnWriteBuffer& other) {
         buffer_ = std::move(other.buffer_);
         other.buffer_ = nullptr;
         return;
-    }else {
+    } else {
         CloneIfNecessary(buffer_->capacity());
     }
 
     if (other.buffer_ == nullptr) {
         other.buffer_ = std::move(buffer_);
         buffer_ = nullptr;
-    }else {
+    } else {
         buffer_->swap(*other.buffer_.get());
     }
 }
@@ -225,7 +225,7 @@ void CopyOnWriteBuffer::EnsureCapacity(size_t new_capacity) {
         buffer_ = std::make_shared<BinaryBuffer>();
         buffer_->reserve(new_capacity);
         return;
-    }else if (new_capacity <= capacity()) {
+    } else if (new_capacity <= capacity()) {
         return;
     }
     CloneIfNecessary(new_capacity);

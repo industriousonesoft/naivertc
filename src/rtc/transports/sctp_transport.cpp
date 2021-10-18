@@ -186,7 +186,7 @@ bool SctpTransport::FlushPendingMessage() {
 			if (message.available_payload_size() == 0) {
 				partial_outgoing_packet_.reset();
 				return true;
-			}else {
+			} else {
 				return false;
 			}
 		}
@@ -241,18 +241,18 @@ bool SctpTransport::TrySend(SctpMessageToSend& message) {
 		spa.sendv_flags |= SCTP_SEND_PRINFO_VALID;
 		spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_RTX;
 		spa.sendv_prinfo.pr_value = uint32_t(reliability.max_rtx_count.value());
-	}else if (reliability.max_rtx_ms.has_value()) {
+	} else if (reliability.max_rtx_ms.has_value()) {
 		spa.sendv_flags |= SCTP_SEND_PRINFO_VALID;
 		spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_RTX;
 		spa.sendv_prinfo.pr_value = uint32_t(reliability.max_rtx_ms.value());
-	}else {
+	} else {
 		spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_NONE;
 	}
 
 	int sent_ret;
 	if (available_payload_size != 0) {
 		sent_ret = usrsctp_sendv(socket_, message.available_payload_data(), available_payload_size, nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
-	}else {
+	} else {
 		const char zero = 0;
 		sent_ret = usrsctp_sendv(socket_, &zero, 1, nullptr, 0, &spa, sizeof(spa), SCTP_SENDV_SPA, 0);
 	}
@@ -262,10 +262,10 @@ bool SctpTransport::TrySend(SctpMessageToSend& message) {
 			PLOG_WARNING << "SCTP sending blocked.";
 			ready_to_send_ = false;
 			return false;
-		}else if (errno == EAGAIN) {
+		} else if (errno == EAGAIN) {
 			PLOG_WARNING << "SCTP sending not possible, try it again.";
 			return false;
-		}else {
+		} else {
 			PLOG_ERROR << "SCTP sending failed, errno: " << errno;
 			throw std::runtime_error("Faild to send SCTP message, errno: " + std::to_string(errno));
 		}
@@ -306,7 +306,7 @@ void SctpTransport::DoRecv() {
 			if (len < 0) {
 				if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ECONNRESET) {
 					break;
-				}else {
+				} else {
 					throw std::runtime_error("SCTP recv failed. errno: " + std::to_string(errno));
 				}
 			}
@@ -323,7 +323,7 @@ void SctpTransport::DoRecv() {
 					ProcessNotification(notification, notification_data_fragments_.size());
 					notification_data_fragments_.clear();
 				}
-			}else {
+			} else {
 				message_data_fragments_.insert(message_data_fragments_.end(), buffer_, buffer_ + len);
 				if (flags & MSG_EOR) {
 					if (info_type != SCTP_RECVV_RCVINFO) {
@@ -367,7 +367,7 @@ void SctpTransport::ResetStream(uint16_t stream_id) {
 	if (usrsctp_setsockopt(socket_, IPPROTO_SCTP, SCTP_RESET_STREAMS, &srs, len) != 0) {
 		if (errno == EINVAL) {
 			PLOG_DEBUG << "SCTP stream: " << stream_id << " already reset.";
-		}else {
+		} else {
 			PLOG_WARNING << "SCTP reset stream " << stream_id << " failed, errno: " << std::to_string(errno);
 		}
 	}
@@ -389,11 +389,11 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 		if (assoc_change.sac_state == SCTP_COMM_UP) {
 			PLOG_INFO << "SCTP connected.";
 			UpdateState(State::CONNECTED);
-		}else {
+		} else {
 			if (State() == State::CONNECTING) {
 				PLOG_ERROR << "SCTP connection failed.";
 				UpdateState(State::FAILED);
-			}else {
+			} else {
 				PLOG_INFO << "SCTP disconnected.";
 				UpdateState(State::DISCONNECTED);
 			}
@@ -483,7 +483,7 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, uint16_t st
 			bytes_recv_ += message_data.size();
 			SctpMessage sctp_message(SctpMessage::Type::STRING, stream_id, message_data);
 			ForwardReceivedSctpMessage(std::move(sctp_message));
-		}else {
+		} else {
 			bytes_recv_ += message_data.size();
 			string_data_fragments_.insert(string_data_fragments_.end(), message_data.begin(), message_data.end());
 			SctpMessage sctp_message(SctpMessage::Type::STRING, stream_id, string_data_fragments_);
@@ -506,7 +506,7 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, uint16_t st
 			bytes_recv_ += message_data.size();
 			SctpMessage sctp_message(SctpMessage::Type::BINARY, stream_id, message_data);
 			ForwardReceivedSctpMessage(std::move(sctp_message));
-		}else {
+		} else {
 			bytes_recv_ += message_data.size();
 			binary_data_fragments_.insert(binary_data_fragments_.end(), message_data.begin(), message_data.end());
 			SctpMessage sctp_message(SctpMessage::Type::BINARY, stream_id, binary_data_fragments_);

@@ -36,7 +36,7 @@ bool Application::ParseSDPLine(std::string_view line) {
         std::string_view attr = line.substr(2);
         auto [key, value] = utils::string::parse_pair(attr);
         return ParseSDPAttributeField(key, value);
-    }else {
+    } else {
         return MediaEntry::ParseSDPLine(line);
     }
 }
@@ -45,10 +45,10 @@ bool Application::ParseSDPAttributeField(std::string_view key, std::string_view 
     if (key == "sctp-port") {
         sctp_port_ = utils::string::to_integer<uint16_t>(value);
         return true;
-    }else if (key == "max-message-size") {
+    } else if (key == "max-message-size") {
         max_message_size_ = utils::string::to_integer<size_t>(value);
         return true;
-    }else {
+    } else {
         return MediaEntry::ParseSDPAttributeField(key, value);
     }
 }

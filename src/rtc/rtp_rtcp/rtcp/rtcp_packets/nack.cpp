@@ -65,7 +65,7 @@ void Nack::PackFciItems() {
             if (shift <= 15) {
                 item.bitmask |= (1 << shift);
                 ++it;
-            }else {
+            } else {
                 break;
             }
         }

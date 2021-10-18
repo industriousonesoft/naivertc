@@ -12,13 +12,13 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Configura
             if (!media_track) {
                 media_track = std::make_shared<MediaTrack>(config);
                 this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
-            }else {
+            } else {
                 media_track->ReconfigLocalDescription(config);
             }
             // Renegotiation is needed for the new or updated media track
             negotiation_needed_ = true;
             return media_track;
-        }else {
+        } else {
             PLOG_WARNING << "Failed to add a unknown kind media track.";
             return nullptr;
         }
@@ -35,7 +35,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
                 if (stream_id > kMaxSctpStreamId) {
                     throw std::invalid_argument("Invalid DataChannel stream id.");
                 }
-            }else {
+            } else {
                 // RFC 5763: The answerer MUST use either a setup attibute value of setup:active or setup:passive.
                 // and, setup::active is RECOMMENDED. See https://tools.ietf.org/html/rfc5763#section-5
                 // Thus, we assume passive role if we are the offerer.

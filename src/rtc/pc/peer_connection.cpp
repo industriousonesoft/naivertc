@@ -20,9 +20,9 @@ PeerConnection::PeerConnection(const RtcConfiguration& config)
         // Min MTU for IPv4
         if (mtu < 576) {
             throw std::invalid_argument("Invalid MTU value: " + std::to_string(*mtu));
-        }else if (mtu > 1500) {
+        } else if (mtu > 1500) {
             PLOG_WARNING << "MTU set to: " << *mtu;
-        }else {
+        } else {
             PLOG_VERBOSE << "MTU set to: " << *mtu;
         }
     }

@@ -298,7 +298,7 @@ int SctpTransport::on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8
 		// NOTE: the result MUST BE 0(success) or -1(failure), 
 		// returning a positive number which is greater than zero will result multiple sctp upcall to do flush for more data.
         return transport->HandleSctpWrite(in_data, in_size, tos, set_df) == true ? 0 : -1;
-    }else {
+    } else {
         return -1;
     }
 }

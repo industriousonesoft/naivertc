@@ -67,9 +67,9 @@ bool Media::IsFecSsrc(uint32_t ssrc) const {
 Media::SsrcEntry* Media::AddSsrc(SsrcEntry entry) {
     if (entry.kind == SsrcEntry::Kind::RTX) {
         rtx_ssrcs_.emplace_back(entry.ssrc);
-    }else if (entry.kind == SsrcEntry::Kind::FEC) {
+    } else if (entry.kind == SsrcEntry::Kind::FEC) {
         fec_ssrcs_.emplace_back(entry.ssrc);
-    }else {
+    } else {
         media_ssrcs_.emplace_back(entry.ssrc);
     }
     return &(ssrc_entries_.emplace(entry.ssrc, std::move(entry)).first->second);
@@ -88,11 +88,11 @@ void Media::RemoveSsrc(uint32_t ssrc) {
     auto it = std::find(media_ssrcs_.begin(), media_ssrcs_.end(), ssrc);
     if (it != media_ssrcs_.end()) {
         media_ssrcs_.erase(it);
-    }else {
+    } else {
         it = std::find(rtx_ssrcs_.begin(), rtx_ssrcs_.end(), ssrc);
         if (it != rtx_ssrcs_.end()) {
             rtx_ssrcs_.erase(it);
-        }else {
+        } else {
             it = std::find(fec_ssrcs_.begin(), fec_ssrcs_.end(), ssrc);
             if (it != fec_ssrcs_.end()) {
                 fec_ssrcs_.erase(it);
@@ -122,9 +122,9 @@ const Media::SsrcEntry* Media::ssrc(uint32_t ssrc) const {
 Media::SsrcEntry::Kind Media::ssrc_kind(uint32_t ssrc) const {
     if (IsRtxSsrc(ssrc)) {
         return Media::SsrcEntry::Kind::RTX;
-    }else if (IsFecSsrc(ssrc)) {
+    } else if (IsFecSsrc(ssrc)) {
         return Media::SsrcEntry::Kind::FEC;
-    }else {
+    } else {
         return Media::SsrcEntry::Kind::MEDIA;
     }
 }
@@ -250,10 +250,10 @@ bool Media::ParseSDPLine(std::string_view line) {
         
     // 'b=AS', is used to negotiate the maximum bandwidth
     // eg: b=AS:80
-    }else if (utils::string::match_prefix(line, "b=AS")) {
+    } else if (utils::string::match_prefix(line, "b=AS")) {
         bandwidth_max_value_ = utils::string::to_integer<int>(line.substr(line.find(':') + 1));
         return true;
-    }else {
+    } else {
         return MediaEntry::ParseSDPLine(line);
     }
 }
@@ -263,13 +263,13 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
     if (value == "sendonly") {
         direction_ = Direction::SEND_ONLY;
         return true;
-    }else if (value == "recvonly") {
+    } else if (value == "recvonly") {
         direction_ = Direction::RECV_ONLY;
         return true;
-    }else if (value == "sendrecv") {
+    } else if (value == "sendrecv") {
         direction_ = Direction::SEND_RECV;
         return true;
-    }else if (value == "inactive") {
+    } else if (value == "inactive") {
         direction_ = Direction::INACTIVE;
         return true;
     }
@@ -280,7 +280,7 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
             auto it = rtp_maps_.find(rtp_map->payload_type);
             if (it == rtp_maps_.end()) {
                 it = rtp_maps_.insert(std::make_pair(rtp_map->payload_type, rtp_map.value())).first;
-            }else {
+            } else {
                 it->second.payload_type = rtp_map->payload_type;
                 it->second.codec = rtp_map->codec;
                 it->second.clock_rate = rtp_map->clock_rate;
@@ -289,7 +289,7 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
                 }
             }
             return true;
-        }else {
+        } else {
             return false;
         }
     }
@@ -317,10 +317,10 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
         }
         it->second.fmt_profiles.emplace_back(value.substr(sp + 1));
         return true;
-    }else if (value == "rtcp-mux") {
+    } else if (value == "rtcp-mux") {
         // Added by default
         return true;
-    }else if (key == "rtcp") {
+    } else if (key == "rtcp") {
         // Added by default
         return true;
     }
@@ -341,9 +341,9 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
         auto associated_ssrc = utils::string::to_integer<uint32_t>(ssrc_id_str.substr(sp + 1));
         if (semantics == "FID") {
             rtx_ssrcs_.emplace_back(associated_ssrc);
-        }else if (semantics == "FEC") {
+        } else if (semantics == "FEC") {
             fec_ssrcs_.emplace_back(associated_ssrc);
-        }else {
+        } else {
             // TODO: How to handle SIM(simulcate) streams?
             media_ssrcs_.emplace_back(media_ssrc);
         }
@@ -356,9 +356,9 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
         if (it == ssrc_entries_.end()) {
             if (IsRtxSsrc(ssrc)) {
                 it = ssrc_entries_.emplace(ssrc, SsrcEntry(ssrc, SsrcEntry::Kind::RTX)).first;
-            }else if (IsFecSsrc(ssrc)) {
+            } else if (IsFecSsrc(ssrc)) {
                 it = ssrc_entries_.emplace(ssrc, SsrcEntry(ssrc, SsrcEntry::Kind::FEC)).first;
-            }else {
+            } else {
                 it = ssrc_entries_.emplace(ssrc, SsrcEntry(ssrc, SsrcEntry::Kind::MEDIA)).first;
                 // In case of no 'ssrc-group'
                 if (!IsMediaSsrc(ssrc)) {
@@ -380,7 +380,7 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
                 auto track_id = msid_str.substr(track_id_pos + 1);
                 it->second.msid = msid;
                 it->second.track_id = track_id;
-            }else {
+            } else {
                 it->second.msid = msid_str;
             }
         }
@@ -450,7 +450,7 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
             // a=ssrc
             // Media ssrc entry
             oss << GenerateSsrcEntrySDPLines(ssrc_entries_.at(ssrc), eol);
-        }else {
+        } else {
             // a=ssrc-group:FID
             if (associated_rtx_ssrc) {
                 oss << "a=ssrc-group:FID" << sp << ssrc << sp << associated_rtx_ssrc.value() << eol;
@@ -492,7 +492,7 @@ std::string Media::GenerateSsrcEntrySDPLines(const SsrcEntry& entry, const std::
     if (entry.cname.has_value()) {
         oss << "a=ssrc:" << entry.ssrc << sp 
             << "cname:" << entry.cname.value() << eol;;
-    }else {
+    } else {
         oss << "a=ssrc:" << entry.ssrc << eol;;
     }
 
@@ -536,7 +536,7 @@ std::optional<Media::RtpMap> Media::ParseRtpMap(const std::string_view& attr_val
     std::optional<std::string> codec_params;
     if (spl == std::string::npos) {
         clock_rate = utils::string::to_integer<int>(line);
-    }else {
+    } else {
         clock_rate = utils::string::to_integer<int>(line.substr(0, spl));
         codec_params.emplace(line.substr(spl + 1));
     }

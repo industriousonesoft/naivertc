@@ -114,7 +114,7 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
     // H264
     if (video_header.codec_type == video::CodecType::H264) {
 
-    }else {
+    } else {
 
     }
 
