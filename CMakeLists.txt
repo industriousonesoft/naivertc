@@ -124,14 +124,18 @@ set(LIB_SOURCES
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_configuration.cpp
     src/rtc/media/media_track_sdp_builder.cpp
+
+    # rtc -> media -> video
     src/rtc/media/video/encoded_frame.cpp
+    src/rtc/media/video/video_receive_stream.cpp
+
+    # rtc -> media -> video -> codecs -> h264
     src/rtc/media/video/codecs/h264/nalunit.cpp
     src/rtc/media/video/codecs/h264/nalunit_fragment.cpp
     src/rtc/media/video/codecs/h264/nalunit_auxiliaries.cpp
     src/rtc/media/video/codecs/h264/pps_parser.cpp
     src/rtc/media/video/codecs/h264/sps_parser.cpp
     src/rtc/media/video/codecs/h264/sps_pps_tracker.cpp
-    src/rtc/media/video/video_receive_stream.cpp
 
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
@@ -325,15 +329,20 @@ set(LIB_HEADERS
 
     # rtc -> media
     include/rtc/media/media_track.hpp
+
+    # rtc -> media -> video
     include/rtc/media/video/common.hpp
     include/rtc/media/video/encoded_frame.hpp
+    include/rtc/media/video/video_receive_stream.hpp
+
+    # rtc -> media -> video -> codecs -> h264
     include/rtc/media/video/codecs/h264/common.hpp
     include/rtc/media/video/codecs/h264/nalunit.hpp
     include/rtc/media/video/codecs/h264/nalunit_fragment.hpp
     include/rtc/media/video/codecs/h264/pps_parser.hpp
     include/rtc/media/video/codecs/h264/sps_parser.hpp
     include/rtc/media/video/codecs/h264/sps_pps_tracker.hpp
-    include/rtc/media/video/video_receive_stream.hpp
+    include/rtc/media/video/codecs/h264/sprop_parameter_parser.hpp
 
     # rtp -> rtp_rtcp -> components
     include/rtc/rtp_rtcp/components/bit_rate_statistics.hpp

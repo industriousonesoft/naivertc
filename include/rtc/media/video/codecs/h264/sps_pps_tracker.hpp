@@ -1,5 +1,5 @@
-#ifndef _RTC_RTP_RTCP_RTP_RECEIVER_H264_SPS_PPS_TRACKER_H_
-#define _RTC_RTP_RTCP_RTP_RECEIVER_H264_SPS_PPS_TRACKER_H_
+#ifndef _RTC_MEDIA_VIDEO_CODECS_H264_SPS_PPS_TRACKER_H_
+#define _RTC_MEDIA_VIDEO_CODECS_H264_SPS_PPS_TRACKER_H_
 
 #include "base/defines.hpp"
 #include "common/array_view.hpp"
