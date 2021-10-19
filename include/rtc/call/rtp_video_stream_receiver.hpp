@@ -9,7 +9,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/nack_module.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/rtcp_module.hpp"
-#include "rtc/rtp_rtcp/rtp/receiver/h264_sps_pps_tracker.hpp"
+#include "rtc/media/video/codecs/h264/sps_pps_tracker.hpp"
 
 #include <memory>
 #include <map>
@@ -91,7 +91,7 @@ private:
     std::shared_ptr<RtcpFeedbackBuffer> rtcp_feedback_buffer_;
     std::unique_ptr<NackModule> nack_module_;
 
-    H264SpsPpsTracker h264_sps_pps_tracker_;
+    h264::SpsPpsTracker h264_sps_pps_tracker_;
 
     std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;
 };

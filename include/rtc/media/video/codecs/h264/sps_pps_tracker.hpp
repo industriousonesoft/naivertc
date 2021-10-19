@@ -12,8 +12,9 @@
 #include <vector>
 
 namespace naivertc {
+namespace h264 {
 
-class RTC_CPP_EXPORT H264SpsPpsTracker {
+class RTC_CPP_EXPORT SpsPpsTracker {
 public:
     enum class PacketAction { INSERT, DROP, REQUEST_KEY_FRAME };
     struct FixedBitstream {
@@ -21,12 +22,14 @@ public:
         CopyOnWriteBuffer bitstream;
     };
 public:
-    H264SpsPpsTracker();
-    ~H264SpsPpsTracker();
+    SpsPpsTracker();
+    ~SpsPpsTracker();
 
-    FixedBitstream CopyAndFixBitstream(ArrayView<const uint8_t> bitstream, 
-                                       RtpVideoHeader& video_header, 
-                                       h264::PacketizationInfo& h264_header);
+    FixedBitstream CopyAndFixBitstream(bool is_first_packet_in_frame,
+                                       uint16_t& fixed_frame_width,
+                                       uint16_t& fixed_frame_height,
+                                       h264::PacketizationInfo& h264_header,
+                                       ArrayView<const uint8_t> bitstream);
     void InsertSpsPpsNalus(const std::vector<uint8_t>& sps,
                            const std::vector<uint8_t>& pps);
 private:    
@@ -48,8 +51,8 @@ private:
         ~SpsInfo();
 
         size_t size = 0;
-        int width = -1;
-        int height = -1;
+        uint16_t width = -1;
+        uint16_t height = -1;
         std::unique_ptr<uint8_t[]> data;
     };
 
@@ -57,6 +60,7 @@ private:
     std::map<uint32_t, SpsInfo> sps_data_;
 };
 
+} // namespace h264
 } // namespace naivertc
 
 #endif
