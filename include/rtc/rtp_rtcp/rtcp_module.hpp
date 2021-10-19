@@ -7,15 +7,25 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_sender.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 
 namespace naivertc {
 
 class RTC_CPP_EXPORT RtcpModule : public RtcpReceiver::Observer,
-                                  public RtpSentStatisticsObserver {
+                                  public RtpSentStatisticsObserver,
+                                  public NackSender,
+                                  public KeyFrameRequestSender {
 public:
     RtcpModule(const RtcpConfiguration& config, 
-                   std::shared_ptr<TaskQueue> task_queue);
+               std::shared_ptr<TaskQueue> task_queue);
     ~RtcpModule();
+
+    // NackSender override methods
+    void SendNack(std::vector<uint16_t> nack_list,
+                  bool buffering_allowed) override;
+
+    // KeyFrameRequestSender override methods
+    void RequestKeyFrame() override;
 
 private:
     // RtpSentStatistics Observer

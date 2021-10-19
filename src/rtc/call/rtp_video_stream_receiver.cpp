@@ -7,16 +7,30 @@
 
 namespace naivertc {
 
+std::shared_ptr<RtcpModule> CreateRtcpModule(const RtpVideoStreamReceiver::Configuration& stream_config,
+                                             std::shared_ptr<Clock> clock,
+                                             std::shared_ptr<TaskQueue> task_queue) {
+    RtcpConfiguration rtcp_config;
+    rtcp_config.audio = false;
+    rtcp_config.local_media_ssrc = stream_config.local_ssrc;
+    rtcp_config.remote_ssrc = stream_config.remote_ssrc;
+    return std::make_shared<RtcpModule>(rtcp_config, task_queue);
+}
+
+// RtpVideoStreamReceiver
 RtpVideoStreamReceiver::RtpVideoStreamReceiver(Configuration config,
                                                std::shared_ptr<Clock> clock,
                                                std::shared_ptr<TaskQueue> task_queue) 
     : config_(std::move(config)), 
       task_queue_(std::move(task_queue)),
+      rtcp_module_(CreateRtcpModule(config_, clock, task_queue)),
+      rtcp_feedback_buffer_(std::make_shared<RtcpFeedbackBuffer>(rtcp_module_, rtcp_module_)),
       nack_module_(config.nack_enabled ? std::make_unique<NackModule>(clock, 
-                                                                      kDefaultSendNackDelayMs, 
-                                                                      kDefaultUpdateInterval, 
-                                                                      task_queue_) 
-                                       : nullptr) {}
+                                                                      task_queue_, 
+                                                                      rtcp_feedback_buffer_, 
+                                                                      rtcp_feedback_buffer_)
+                                       : nullptr) {
+}
 
 RtpVideoStreamReceiver::~RtpVideoStreamReceiver() {}
 
@@ -78,7 +92,8 @@ void RtpVideoStreamReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
     OnDepacketizedPayload(std::move(*depacketized_payload), packet);
 }
 
-void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, const RtpPacketReceived& rtp_packet) {
+void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, 
+                                                   const RtpPacketReceived& rtp_packet) {
     auto assembling_packet = std::make_unique<RtpVideoFrameAssembler::Packet>(depacketized_payload.video_header,
                                                                               depacketized_payload.video_codec_header,
                                                                               rtp_packet.sequence_number(),
@@ -107,7 +122,7 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
 
     if (depacketized_payload.video_payload.empty()) {
         HandleEmptyPacket(rtp_packet.sequence_number());
-        // TODO: Send buffered RTCP feedback.
+        rtcp_feedback_buffer_->SendBufferedRtcpFeedbacks();
         return;
     }
 
@@ -117,7 +132,6 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
     } else {
 
     }
-
 
 }
 

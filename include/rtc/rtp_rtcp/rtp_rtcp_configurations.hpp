@@ -56,6 +56,8 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
     std::optional<uint32_t> rtx_send_ssrc = std::nullopt;
     std::optional<uint32_t> fec_ssrc = std::nullopt;
 
+    uint32_t remote_ssrc = 0;
+
     std::shared_ptr<Clock> clock;
 };
         

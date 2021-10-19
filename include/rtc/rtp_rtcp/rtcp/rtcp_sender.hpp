@@ -52,10 +52,9 @@ public:
 
     ~RtcpSender();
 
-    uint32_t ssrc() const;
-    void set_ssrc(uint32_t ssrc);
-
-    void set_remote_ssrc(uint32_t ssrc);
+    uint32_t local_ssrc() const;
+    uint32_t remote_ssrc() const;
+ 
     void set_cname(std::string cname);
     void set_max_rtp_packet_size(size_t max_packet_size);
     void set_csrcs(const std::vector<uint32_t>& csrcs);
@@ -168,7 +167,9 @@ private:
 
 private:
     const bool audio_;
-    uint32_t ssrc_;
+    uint32_t local_ssrc_;
+    // SSRC that we receive on our RTP channel
+    uint32_t remote_ssrc_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<TaskQueue> task_queue_;  
 
@@ -185,8 +186,6 @@ private:
     std::optional<Timestamp> last_frame_capture_time_;
     std::optional<Timestamp> next_time_to_send_rtcp_;
     
-    // SSRC that we receive on our RTP channel
-    uint32_t remote_ssrc_ = 0;
     std::string cname_;
 
     // REMB

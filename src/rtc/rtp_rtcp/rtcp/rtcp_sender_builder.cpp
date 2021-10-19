@@ -198,7 +198,7 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
               << " rtp_timestamp: " << rtp_timestamp;
 
     rtcp::SenderReport sr;
-    sr.set_sender_ssrc(ssrc_);
+    sr.set_sender_ssrc(local_ssrc_);
     sr.set_ntp(clock_->ConvertTimestampToNtpTime(ctx.now_));
     sr.set_rtp_timestamp(rtp_timestamp);
     sr.set_sender_packet_count(ctx.feedback_state_.packets_sent);
@@ -209,14 +209,14 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
 
 void RtcpSender::BuildRR(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::ReceiverReport rr;
-    rr.set_sender_ssrc(ssrc_);
+    rr.set_sender_ssrc(local_ssrc_);
     rr.SetReportBlocks(CreateReportBlocks(ctx.feedback_state_));
     sender.AppendPacket(rr);
 }
 
 void RtcpSender::BuildSDES(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::Sdes sdes;
-    sdes.AddCName(ssrc_, cname_);
+    sdes.AddCName(local_ssrc_, cname_);
     sender.AppendPacket(sdes);
 }
 
@@ -230,7 +230,7 @@ void RtcpSender::BuildPLI(const RtcpContext& ctx, PacketSender& sender) {
 
 void RtcpSender::BuildREMB(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::Remb remb;
-    remb.set_sender_ssrc(ssrc_);
+    remb.set_sender_ssrc(local_ssrc_);
     remb.set_bitrate_bps(remb_bitrate_);
     remb.set_ssrcs(remb_ssrcs_);
     sender.AppendPacket(remb);
@@ -245,14 +245,14 @@ void RtcpSender::BuildTMMBN(const RtcpContext& ctx, PacketSender& sender) {
 }
 
 void RtcpSender::BuildLossNotification(const RtcpContext& ctx, PacketSender& sender) {
-    loss_notification_.set_sender_ssrc(ssrc_);
+    loss_notification_.set_sender_ssrc(local_ssrc_);
     loss_notification_.set_media_ssrc(remote_ssrc_);
     sender.AppendPacket(loss_notification_);
 }
 
 void RtcpSender::BuildNACK(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::Nack nack;
-    nack.set_sender_ssrc(ssrc_);
+    nack.set_sender_ssrc(local_ssrc_);
     nack.set_media_ssrc(remote_ssrc_);
     nack.set_packet_ids(ctx.nack_list_);
 
@@ -265,7 +265,7 @@ void RtcpSender::BuildNACK(const RtcpContext& ctx, PacketSender& sender) {
 
 void RtcpSender::BuildBYE(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::Bye bye;
-    bye.set_sender_ssrc(ssrc_);
+    bye.set_sender_ssrc(local_ssrc_);
     bye.set_csrcs(csrcs_);
     sender.AppendPacket(bye);
 }

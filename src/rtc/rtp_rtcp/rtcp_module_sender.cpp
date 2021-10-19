@@ -4,6 +4,17 @@
 
 namespace naivertc {
 
+void RtcpModule::SendNack(std::vector<uint16_t> nack_list,
+                          bool buffering_allowed) {
+    assert(buffering_allowed == true);
+    rtcp_sender_.SendRtcp(GetFeedbackState(), RtcpPacketType::NACK, std::move(nack_list));
+}
+
+void RtcpModule::RequestKeyFrame() {
+    rtcp_sender_.SendRtcp(GetFeedbackState(), RtcpPacketType::PLI);
+}
+
+// Private methods
 const RtcpSender::FeedbackState& RtcpModule::GetFeedbackState() {
     assert(work_queue_.is_in_current_queue());
     uint32_t received_ntp_secs = 0;

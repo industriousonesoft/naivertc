@@ -12,7 +12,8 @@ constexpr int32_t kDefaultAudioReportIntervalMs = 5000; // 5s
 RtcpSender::RtcpSender(const RtcpConfiguration& config,
                        std::shared_ptr<TaskQueue> task_queue) 
     : audio_(config.audio),
-      ssrc_(config.local_media_ssrc),
+      local_ssrc_(config.local_media_ssrc),
+      remote_ssrc_(config.remote_ssrc),
       clock_(config.clock),
       task_queue_(task_queue),
       report_interval_(config.rtcp_report_interval_ms > 0 ? TimeDelta::Millis(config.rtcp_report_interval_ms) 
@@ -29,21 +30,15 @@ RtcpSender::RtcpSender(const RtcpConfiguration& config,
 
 RtcpSender::~RtcpSender() {}
 
-uint32_t RtcpSender::ssrc() const {
+uint32_t RtcpSender::local_ssrc() const {
     return task_queue_->Sync<uint32_t>([this](){
-        return this->ssrc_;
+        return this->local_ssrc_;
     });
 }
 
-void RtcpSender::set_ssrc(uint32_t ssrc) {
-    task_queue_->Async([this, ssrc](){
-        this->ssrc_ = ssrc;
-    });
-}
-
-void RtcpSender::set_remote_ssrc(uint32_t ssrc) {
-    task_queue_->Async([this, ssrc](){
-        this->remote_ssrc_ = ssrc;
+uint32_t RtcpSender::remote_ssrc() const {
+    return task_queue_->Sync<uint32_t>([this](){
+        return this->remote_ssrc_;
     });
 }
 

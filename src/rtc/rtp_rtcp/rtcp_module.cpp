@@ -16,9 +16,7 @@ RtcpModule::RtcpModule(const RtcpConfiguration& config,
     // TODO: RTT PeriodicUpdate
 }
 
-RtcpModule::~RtcpModule() {
-
-}
+RtcpModule::~RtcpModule() {}
 
 // Private methods
 // RtpSentStatisticsObserver

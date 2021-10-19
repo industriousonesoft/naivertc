@@ -28,6 +28,7 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config,
     : clock_(config.clock),
       observer_(observer),
       receiver_only_(false),
+      remote_ssrc_(config.remote_ssrc),
       task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtcpReceiver.task.queue")) {
     // Registered ssrcs
     registered_ssrcs_[kLocalMediaSsrcIndex] = config.local_media_ssrc;
@@ -41,22 +42,9 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config,
 
 RtcpReceiver::~RtcpReceiver() {}
 
-void RtcpReceiver::set_local_media_ssrc(uint32_t ssrc) {
-    task_queue_->Async([this, ssrc](){
-        registered_ssrcs_[kLocalMediaSsrcIndex] = ssrc;
-    });
-}
-
 uint32_t RtcpReceiver::local_media_ssrc() const {
     return task_queue_->Sync<uint32_t>([this](){
         return registered_ssrcs_.at(kLocalMediaSsrcIndex);
-    });
-}
-
-void RtcpReceiver::set_remote_ssrc(uint32_t ssrc) {
-    task_queue_->Async([this, ssrc](){
-        last_received_sr_ntp_.Reset();
-        remote_ssrc_ = ssrc;
     });
 }
 

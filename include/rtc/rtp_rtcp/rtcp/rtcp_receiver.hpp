@@ -64,10 +64,7 @@ public:
                  std::shared_ptr<TaskQueue> task_queue);
     ~RtcpReceiver();
 
-    void set_local_media_ssrc(uint32_t ssrc);
     uint32_t local_media_ssrc() const;
-
-    void set_remote_ssrc(uint32_t ssrc);
     uint32_t remote_ssrc() const;
 
     void IncomingPacket(const uint8_t* packet, size_t packet_size) {
@@ -102,14 +99,13 @@ private:
     std::shared_ptr<Clock> clock_;
     Observer* const observer_;
     bool receiver_only_;
+    uint32_t remote_ssrc_;
     std::shared_ptr<TaskQueue> task_queue_;
 
     std::map<int, uint32_t> registered_ssrcs_;
     std::map<uint32_t, ReportBlockData> received_report_blocks_;
     // Round-Trip Time per remote sender ssrc
     std::map<uint32_t, RttStats> rtts_;
-
-    uint32_t remote_ssrc_ = 0;
 
     // Received sender report.
     NtpTime remote_sender_ntp_time_;
