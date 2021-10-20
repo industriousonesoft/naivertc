@@ -86,8 +86,8 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
     depacketized_payload.video_payload = rtp_payload;
     depacketized_payload.video_header.frame_width = 0;
     depacketized_payload.video_header.frame_height = 0;
-    depacketized_payload.video_header.codec_type = video::CodecType::H264;
-    depacketized_payload.video_header.frame_type = video::FrameType::DELTA;
+    depacketized_payload.video_header.codec_type = VideoCodecType::H264;
+    depacketized_payload.video_header.frame_type = VideoFrameType::DELTA;
     depacketized_payload.video_header.is_first_packet_in_frame = true;
     auto& h264_video_codec_header = depacketized_payload.video_codec_header.emplace<h264::PacketizationInfo>();
 
@@ -120,7 +120,7 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
             } else {
                 PLOG_WARNING << "Failed to parse SPS id from SPS slice.";
             }
-            depacketized_payload.video_header.frame_type = video::FrameType::KEY;
+            depacketized_payload.video_header.frame_type = VideoFrameType::KEY;
             h264_video_codec_header.has_sps = true;
             break;
         }
@@ -137,7 +137,7 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
             break;
         }
         case h264::NaluType::IDR:
-            depacketized_payload.video_header.frame_type = video::FrameType::KEY;
+            depacketized_payload.video_header.frame_type = VideoFrameType::KEY;
             h264_video_codec_header.has_idr = true;
             // fallthrough
         case h264::NaluType::SLICE: {
@@ -244,11 +244,11 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
 
     bool is_idr = original_nal_type == h264::NaluType::IDR;
     // Frame type
-    depacketized_payload.video_header.frame_type = is_idr ? video::FrameType::KEY 
-                                                           : video::FrameType::DELTA;
+    depacketized_payload.video_header.frame_type = is_idr ? VideoFrameType::KEY 
+                                                           : VideoFrameType::DELTA;
     depacketized_payload.video_header.frame_width = 0;
     depacketized_payload.video_header.frame_height = 0;
-    depacketized_payload.video_header.codec_type = video::CodecType::H264;
+    depacketized_payload.video_header.codec_type = VideoCodecType::H264;
     depacketized_payload.video_header.is_first_packet_in_frame = is_first_fragment;
     // H264 packetization info
     auto& h264_video_codec_header = depacketized_payload.video_codec_header.emplace<h264::PacketizationInfo>();

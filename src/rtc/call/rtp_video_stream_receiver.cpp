@@ -123,7 +123,7 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
     }
 
     if (nack_module_) {
-        const bool is_keyframe = video_header.is_first_packet_in_frame && video_header.frame_type == video::FrameType::KEY;
+        const bool is_keyframe = video_header.is_first_packet_in_frame && video_header.frame_type == VideoFrameType::KEY;
         // TODO: Pack int packet info
         size_t nacks_sent = nack_module_->InsertPacket(rtp_packet.sequence_number(), is_keyframe, rtp_packet.is_recovered());
     }
@@ -135,7 +135,7 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
     }
 
     // H264
-    if (video_header.codec_type == video::CodecType::H264) {
+    if (video_header.codec_type == VideoCodecType::H264) {
         auto h264_header = std::get<h264::PacketizationInfo>(packet->video_codec_header);
         h264::SpsPpsTracker::FixedBitstream fixed = h264_sps_pps_tracker_.CopyAndFixBitstream(video_header.is_first_packet_in_frame, 
                                                                                               video_header.frame_width, 

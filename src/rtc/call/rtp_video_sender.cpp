@@ -5,7 +5,7 @@
 namespace naivertc {
 
 RtpVideoSender::RtpVideoSender(const RtpRtcpConfig& rtp_rtcp_config,
-                               video::CodecType codec_type,
+                               VideoCodecType codec_type,
                                std::shared_ptr<Clock> clock,
                                std::shared_ptr<Transport> send_transport,
                                std::shared_ptr<TaskQueue> task_queue) 

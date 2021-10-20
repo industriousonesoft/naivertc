@@ -41,8 +41,8 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, SingleNalu) {
     ASSERT_TRUE(parsed.has_value());
 
     EXPECT_EQ(parsed->video_payload, rtp_payload);
-    EXPECT_EQ(parsed->video_header.frame_type, video::FrameType::KEY);
-    EXPECT_EQ(parsed->video_header.codec_type, video::CodecType::H264);
+    EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::KEY);
+    EXPECT_EQ(parsed->video_header.codec_type, VideoCodecType::H264);
     EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
     const h264::PacketizationInfo& h264 = std::get<h264::PacketizationInfo>(parsed->video_codec_header);
     EXPECT_EQ(h264.packetization_type, h264::PacketizationType::SIGNLE);
@@ -63,8 +63,8 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, SingleNaluSpsWithResolution) {
     ASSERT_TRUE(parsed);
 
     EXPECT_EQ(parsed->video_payload, rtp_payload);
-    EXPECT_EQ(parsed->video_header.frame_type, video::FrameType::KEY);
-    EXPECT_EQ(parsed->video_header.codec_type, video::CodecType::H264);
+    EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::KEY);
+    EXPECT_EQ(parsed->video_header.codec_type, VideoCodecType::H264);
     EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
     EXPECT_EQ(parsed->video_header.frame_width, 1280u);
     EXPECT_EQ(parsed->video_header.frame_height, 720u);
@@ -99,8 +99,8 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, StapAKey) {
     ASSERT_TRUE(parsed);
 
     EXPECT_EQ(parsed->video_payload, rtp_payload);
-    EXPECT_EQ(parsed->video_header.frame_type, video::FrameType::KEY);
-    EXPECT_EQ(parsed->video_header.codec_type, video::CodecType::H264);
+    EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::KEY);
+    EXPECT_EQ(parsed->video_header.codec_type, VideoCodecType::H264);
     EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
     const auto& h264 = std::get<h264::PacketizationInfo>(parsed->video_codec_header);
     EXPECT_EQ(h264.packetization_type, h264::PacketizationType::STAP_A);
@@ -156,8 +156,8 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, StapANaluSpsWithResolution) {
     ASSERT_TRUE(parsed);
 
     EXPECT_EQ(parsed->video_payload, rtp_payload);
-    EXPECT_EQ(parsed->video_header.frame_type, video::FrameType::KEY);
-    EXPECT_EQ(parsed->video_header.codec_type, video::CodecType::H264);
+    EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::KEY);
+    EXPECT_EQ(parsed->video_header.codec_type, VideoCodecType::H264);
     EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
     EXPECT_EQ(parsed->video_header.frame_width, 1280u);
     EXPECT_EQ(parsed->video_header.frame_height, 720u);
@@ -198,8 +198,8 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, StapADelta) {
     EXPECT_EQ(parsed->video_payload.size(), rtp_payload.size());
     EXPECT_EQ(parsed->video_payload.cdata(), rtp_payload.cdata());
 
-    EXPECT_EQ(parsed->video_header.frame_type, video::FrameType::DELTA);
-    EXPECT_EQ(parsed->video_header.codec_type, video::CodecType::H264);
+    EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::DELTA);
+    EXPECT_EQ(parsed->video_header.codec_type, VideoCodecType::H264);
     EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
     const h264::PacketizationInfo& h264 = std::get<h264::PacketizationInfo>(parsed->video_codec_header);
     EXPECT_EQ(h264.packetization_type, h264::PacketizationType::STAP_A);
@@ -240,8 +240,8 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, FuA) {
     EXPECT_THAT(ArrayView(parsed1->video_payload.cdata(),
                           parsed1->video_payload.size()),
                 ElementsAreArray(kExpected1));
-    EXPECT_EQ(parsed1->video_header.frame_type, video::FrameType::KEY);
-    EXPECT_EQ(parsed1->video_header.codec_type, video::CodecType::H264);
+    EXPECT_EQ(parsed1->video_header.frame_type, VideoFrameType::KEY);
+    EXPECT_EQ(parsed1->video_header.codec_type, VideoCodecType::H264);
     EXPECT_TRUE(parsed1->video_header.is_first_packet_in_frame);
     {
         const auto& h264 = std::get<h264::PacketizationInfo>(parsed1->video_codec_header);
@@ -260,7 +260,7 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, FuA) {
                           parsed2->video_payload.size()),
                 ElementsAreArray(kExpected2));
     EXPECT_FALSE(parsed2->video_header.is_first_packet_in_frame);
-    EXPECT_EQ(parsed2->video_header.codec_type, video::CodecType::H264);
+    EXPECT_EQ(parsed2->video_header.codec_type, VideoCodecType::H264);
     {
         const auto& h264 = std::get<h264::PacketizationInfo>(parsed2->video_codec_header);
         EXPECT_EQ(h264.packetization_type, h264::PacketizationType::FU_A);
@@ -274,7 +274,7 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, FuA) {
                           parsed3->video_payload.size()),
                 ElementsAreArray(kExpected3));
     EXPECT_FALSE(parsed3->video_header.is_first_packet_in_frame);
-    EXPECT_EQ(parsed3->video_header.codec_type, video::CodecType::H264);
+    EXPECT_EQ(parsed3->video_header.codec_type, VideoCodecType::H264);
     {
         const auto& h264 = std::get<h264::PacketizationInfo>(parsed3->video_codec_header);
         EXPECT_EQ(h264.packetization_type, h264::PacketizationType::FU_A);
@@ -330,7 +330,7 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, SeiPacket) {
     ASSERT_TRUE(parsed);
     const auto& h264 =
         std::get<h264::PacketizationInfo>(parsed->video_codec_header);
-    EXPECT_EQ(parsed->video_header.frame_type, video::FrameType::DELTA);
+    EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::DELTA);
     EXPECT_EQ(h264.packetization_type, h264::PacketizationType::SIGNLE);
     EXPECT_EQ(h264.packet_nalu_type, kSei);
     ASSERT_EQ(h264.nalus.size(), 1u);

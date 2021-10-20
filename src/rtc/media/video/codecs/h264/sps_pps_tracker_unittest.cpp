@@ -41,7 +41,7 @@ void ExpectSpsPpsIdr(h264::PacketizationInfo& h264_header,
 class H264VideoHeader {
 public:
     H264VideoHeader() {
-        video_header.codec_type = video::CodecType::H264;
+        video_header.codec_type = VideoCodecType::H264;
     }
 
     RtpVideoHeader video_header;

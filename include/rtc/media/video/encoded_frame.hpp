@@ -21,8 +21,8 @@ public:
     bool retransmission_allowed() const { return retransmission_allowed_; }
     void set_retransmission_allowed(bool retransmission_allowed) { retransmission_allowed_ = retransmission_allowed; }
 
-    video::FrameType frame_type() const { return frame_type_; }
-    void set_frame_type(video::FrameType type) { frame_type_ = type; }
+    VideoFrameType frame_type() const { return frame_type_; }
+    void set_frame_type(VideoFrameType type) { frame_type_ = type; }
 
 private:
     uint32_t timestamp_ = 0;
@@ -30,7 +30,7 @@ private:
     // Retransmission is allowed as default state
     bool retransmission_allowed_ = true;
 
-    video::FrameType frame_type_ = video::FrameType::EMPTTY;
+    VideoFrameType frame_type_ = VideoFrameType::EMPTTY;
 };
     
 } // namespace naivertc

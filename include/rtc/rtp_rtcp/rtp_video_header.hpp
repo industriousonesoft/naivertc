@@ -16,10 +16,10 @@ public:
     uint16_t frame_width = 0;
     uint16_t frame_height = 0;
     
-    video::FrameType frame_type = video::FrameType::EMPTTY;
-    video::CodecType codec_type = video::CodecType::GENERIC;
+    VideoFrameType frame_type = VideoFrameType::EMPTTY;
+    VideoCodecType codec_type = VideoCodecType::GENERIC;
 
-    video::PlayoutDelay playout_delay;
+    VideoPlayoutDelay playout_delay;
 
     bool is_first_packet_in_frame = false;
     bool is_last_packet_in_frame = false;

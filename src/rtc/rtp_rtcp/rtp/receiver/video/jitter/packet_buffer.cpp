@@ -153,7 +153,7 @@ PacketBuffer::AssembledPackets PacketBuffer::TryToAssembleFrames(uint16_t seq_nu
             int index_in_frame = index;
 
             // Identify H264 keyframes by means of SPS, PPS, and IDR.
-            bool is_h264 = packet_buffer_[index]->video_header.codec_type == ::naivertc::video::CodecType::H264;
+            bool is_h264 = packet_buffer_[index]->video_header.codec_type == ::naivertc::VideoCodecType::H264;
             bool is_h264_keyframe = false;
             bool has_h264_sps_in_frame = false;
             bool has_h264_pps_in_frame = false;
@@ -236,7 +236,7 @@ PacketBuffer::AssembledPackets PacketBuffer::TryToAssembleFrames(uint16_t seq_nu
                 // packet in the frame that determines if the frame is a key frame or delta frame.
                 const size_t first_packet_index = start_seq_num % packet_buffer_.size();
                 if (is_h264_keyframe) {
-                    packet_buffer_[first_packet_index]->video_header.frame_type = ::naivertc::video::FrameType::KEY;
+                    packet_buffer_[first_packet_index]->video_header.frame_type = VideoFrameType::KEY;
                     if (idr_width > 0 && idr_height > 0) {
                         // IDR frame was finalized and we have the correct resolution for
                         // IDR; update first packet to have same resolution as IDR.
@@ -244,7 +244,7 @@ PacketBuffer::AssembledPackets PacketBuffer::TryToAssembleFrames(uint16_t seq_nu
                         packet_buffer_[first_packet_index]->video_header.frame_height = idr_height;
                     }
                 } else {
-                    packet_buffer_[first_packet_index]->video_header.frame_type = ::naivertc::video::FrameType::DELTA;
+                    packet_buffer_[first_packet_index]->video_header.frame_type = VideoFrameType::DELTA;
                 }
 
                 // If this is not a keyframe, make sure there are no gaps in the packet
