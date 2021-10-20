@@ -24,8 +24,8 @@ using ::testing::Matches;
 using ::testing::Pointee;
 using ::testing::SizeIs;
 
-using Packet = video::jitter::PacketBuffer::Packet;
-using InsertResult = video::jitter::PacketBuffer::InsertResult;
+using Packet = rtc::video::jitter::PacketBuffer::Packet;
+using InsertResult = rtc::video::jitter::PacketBuffer::InsertResult;
 
 constexpr int kStartSize = 16;
 constexpr int kMaxSize = 64;
@@ -110,7 +110,7 @@ protected:
         return packet_buffer_.InsertPacket(std::move(packet));
     }
 
-    video::jitter::PacketBuffer packet_buffer_;
+    rtc::video::jitter::PacketBuffer packet_buffer_;
 };
 
 TEST_F(Video_Jitter_PacketBufferTest, InsertOnePacket) {

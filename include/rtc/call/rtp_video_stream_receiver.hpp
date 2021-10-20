@@ -85,7 +85,7 @@ private:
     void OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, 
                                const RtpPacketReceived& packet);
 
-    void OnInsertdPacket(video::jitter::PacketBuffer::InsertResult result);
+    void OnInsertdPacket(rtc::video::jitter::PacketBuffer::InsertResult result);
 private:
     const Configuration config_;
     std::shared_ptr<TaskQueue> task_queue_;
@@ -94,7 +94,7 @@ private:
     std::unique_ptr<NackModule> nack_module_;
 
     h264::SpsPpsTracker h264_sps_pps_tracker_;
-    video::jitter::PacketBuffer frame_assembler_;
+    rtc::video::jitter::PacketBuffer frame_assembler_;
 
     std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;
 };

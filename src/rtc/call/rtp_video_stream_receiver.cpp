@@ -102,7 +102,7 @@ void RtpVideoStreamReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
 
 void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, 
                                                    const RtpPacketReceived& rtp_packet) {
-    auto packet = std::make_unique<video::jitter::PacketBuffer::Packet>(depacketized_payload.video_header,
+    auto packet = std::make_unique<rtc::video::jitter::PacketBuffer::Packet>(depacketized_payload.video_header,
                                                                               depacketized_payload.video_codec_header,
                                                                               rtp_packet.sequence_number(),
                                                                               rtp_packet.timestamp());
@@ -163,7 +163,7 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
     OnInsertdPacket(frame_assembler_.InsertPacket(std::move(packet)));
 }
 
-void RtpVideoStreamReceiver::OnInsertdPacket(video::jitter::PacketBuffer::InsertResult result) {
+void RtpVideoStreamReceiver::OnInsertdPacket(rtc::video::jitter::PacketBuffer::InsertResult result) {
 
 }
 

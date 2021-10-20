@@ -1,5 +1,5 @@
-#ifndef _RTC_RTP_RTCP_RTP_RTP_VIDEO_FRAME_ASSEMBLER_H_
-#define _RTC_RTP_RTCP_RTP_RTP_VIDEO_FRAME_ASSEMBLER_H_
+#ifndef _RTC_RTP_RTCP_RTP_RECEIVER_VIDEO_JITTER_PACKET_BUFFER_H_
+#define _RTC_RTP_RTCP_RTP_RECEIVER_VIDEO_JITTER_PACKET_BUFFER_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
@@ -12,6 +12,7 @@
 #include <set>
 
 namespace naivertc {
+namespace rtc {
 namespace video {
 namespace jitter {
     
@@ -97,6 +98,7 @@ private:
     
 } // namespace jitter
 } // namespace video
+} // namespace rtc
 } // namespace naivertc
 
 

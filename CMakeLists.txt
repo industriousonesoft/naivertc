@@ -170,7 +170,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.cpp
     src/rtc/rtp_rtcp/rtp/receiver/nack_module.cpp
 
-    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> jitter
+    # rtc -> rtp_rtcp -> rtp -> receiver -> video
+    src/rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
@@ -385,7 +386,8 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.hpp
     include/rtc/rtp_rtcp/rtp/receiver/nack_module.hpp
 
-    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> jitter
+    # rtc -> rtp_rtcp -> rtp -> receiver -> video
+    include/rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp
     include/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.hpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
