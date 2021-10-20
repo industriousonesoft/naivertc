@@ -12,18 +12,18 @@
 namespace naivertc {
 
 using RtpVideoCodecHeader = std::variant<std::monostate,
-                                                    h264::PacketizationInfo>;
+                                         h264::PacketizationInfo>;
 
 class RTC_CPP_EXPORT RtpDepacketizer {
 public:
-    struct DepacketizedPayload {
+    struct Packet {
         RtpVideoHeader video_header;
         RtpVideoCodecHeader video_codec_header;
         CopyOnWriteBuffer video_payload;
     };
 public:
     virtual ~RtpDepacketizer() = default;
-    virtual std::optional<DepacketizedPayload> Depacketize(CopyOnWriteBuffer rtp_payload) = 0;
+    virtual std::optional<Packet> Depacketize(CopyOnWriteBuffer rtp_payload) = 0;
 };
     
 } // namespace naivertc

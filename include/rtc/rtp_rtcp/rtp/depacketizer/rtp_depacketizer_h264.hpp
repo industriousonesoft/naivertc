@@ -13,11 +13,11 @@ class RTC_CPP_EXPORT RtpH264Depacketizer : public RtpDepacketizer {
 public:
     ~RtpH264Depacketizer() override = default;
 
-    std::optional<DepacketizedPayload> Depacketize(CopyOnWriteBuffer rtp_payload) override;
+    std::optional<Packet> Depacketize(CopyOnWriteBuffer rtp_payload) override;
 
 private:
-    std::optional<DepacketizedPayload> DepacketizeStapAOrSingleNalu(CopyOnWriteBuffer rtp_payload);
-    std::optional<DepacketizedPayload> DepacketizeFuANalu(CopyOnWriteBuffer rtp_payload);
+    std::optional<Packet> DepacketizeStapAOrSingleNalu(CopyOnWriteBuffer rtp_payload);
+    std::optional<Packet> DepacketizeFuANalu(CopyOnWriteBuffer rtp_payload);
 };
 
 } // namespace naivertc

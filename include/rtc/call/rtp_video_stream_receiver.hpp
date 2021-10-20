@@ -82,8 +82,8 @@ private:
     void HandleEmptyPacket(uint16_t seq_num);
     void HandleRedPacket(const RtpPacketReceived& packet);
 
-    void OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, 
-                               const RtpPacketReceived& packet);
+    void OnDepacketizedPacket(RtpDepacketizer::Packet depacketized_packet, 
+                              const RtpPacketReceived& rtp_packet);
 
     void OnInsertdPacket(rtc::video::jitter::PacketBuffer::InsertResult result);
 private:

@@ -37,7 +37,7 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, SingleNalu) {
     CopyOnWriteBuffer rtp_payload(packet);
 
     RtpH264Depacketizer depacketizer;
-    std::optional<RtpH264Depacketizer::DepacketizedPayload> parsed = depacketizer.Depacketize(rtp_payload);
+    std::optional<RtpH264Depacketizer::Packet> parsed = depacketizer.Depacketize(rtp_payload);
     ASSERT_TRUE(parsed.has_value());
 
     EXPECT_EQ(parsed->video_payload, rtp_payload);
@@ -59,7 +59,7 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, SingleNaluSpsWithResolution) {
     CopyOnWriteBuffer rtp_payload(packet);
 
     RtpH264Depacketizer depacketizer;
-    std::optional<RtpH264Depacketizer::DepacketizedPayload> parsed = depacketizer.Depacketize(rtp_payload);
+    std::optional<RtpH264Depacketizer::Packet> parsed = depacketizer.Depacketize(rtp_payload);
     ASSERT_TRUE(parsed);
 
     EXPECT_EQ(parsed->video_payload, rtp_payload);
@@ -95,7 +95,7 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, StapAKey) {
     CopyOnWriteBuffer rtp_payload(packet);
 
     RtpH264Depacketizer depacketizer;
-    std::optional<RtpH264Depacketizer::DepacketizedPayload> parsed = depacketizer.Depacketize(rtp_payload);
+    std::optional<RtpH264Depacketizer::Packet> parsed = depacketizer.Depacketize(rtp_payload);
     ASSERT_TRUE(parsed);
 
     EXPECT_EQ(parsed->video_payload, rtp_payload);
@@ -152,7 +152,7 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, StapANaluSpsWithResolution) {
     CopyOnWriteBuffer rtp_payload(packet);
 
     RtpH264Depacketizer depacketizer;
-    std::optional<RtpH264Depacketizer::DepacketizedPayload> parsed = depacketizer.Depacketize(rtp_payload);
+    std::optional<RtpH264Depacketizer::Packet> parsed = depacketizer.Depacketize(rtp_payload);
     ASSERT_TRUE(parsed);
 
     EXPECT_EQ(parsed->video_payload, rtp_payload);
@@ -192,7 +192,7 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, StapADelta) {
     CopyOnWriteBuffer rtp_payload(packet);
 
     RtpH264Depacketizer depacketizer;
-    std::optional<RtpH264Depacketizer::DepacketizedPayload> parsed = depacketizer.Depacketize(rtp_payload);
+    std::optional<RtpH264Depacketizer::Packet> parsed = depacketizer.Depacketize(rtp_payload);
     ASSERT_TRUE(parsed);
 
     EXPECT_EQ(parsed->video_payload.size(), rtp_payload.size());
@@ -233,7 +233,7 @@ TEST(RTP_RTCP_RtpH264DepacketizerTest, FuA) {
     const uint8_t kExpected3[] = {0x03};
 
     RtpH264Depacketizer depacketizer;
-    std::optional<RtpH264Depacketizer::DepacketizedPayload> parsed1 = depacketizer.Depacketize(CopyOnWriteBuffer(packet1));
+    std::optional<RtpH264Depacketizer::Packet> parsed1 = depacketizer.Depacketize(CopyOnWriteBuffer(packet1));
     ASSERT_TRUE(parsed1);
     // We expect that the first packet is one byte shorter since the FU-A header
     // has been replaced by the original nal header.

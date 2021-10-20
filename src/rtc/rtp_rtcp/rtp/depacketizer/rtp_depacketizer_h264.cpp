@@ -62,7 +62,7 @@ std::optional<std::vector<h264::NaluIndex>> ParseNaluIndicesPerStapAPacket(const
 
 } // namespace
 
-std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacketize(CopyOnWriteBuffer rtp_payload) {
+std::optional<RtpDepacketizer::Packet> RtpH264Depacketizer::Depacketize(CopyOnWriteBuffer rtp_payload) {
     if (rtp_payload.size() == 0) {
         PLOG_WARNING << "Failed to depacketize empty paylaod.";
         return std::nullopt;
@@ -79,10 +79,10 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
 }
 
 // Private methods
-std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::DepacketizeStapAOrSingleNalu(CopyOnWriteBuffer rtp_payload) {
+std::optional<RtpDepacketizer::Packet> RtpH264Depacketizer::DepacketizeStapAOrSingleNalu(CopyOnWriteBuffer rtp_payload) {
     const uint8_t* const payload_data = rtp_payload.cdata();
     size_t payload_size = rtp_payload.size();
-    DepacketizedPayload depacketized_payload;
+    Packet depacketized_payload;
     depacketized_payload.video_payload = rtp_payload;
     depacketized_payload.video_header.frame_width = 0;
     depacketized_payload.video_header.frame_height = 0;
@@ -211,12 +211,12 @@ std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::Depacke
     return depacketized_payload;
 }
 
-std::optional<RtpDepacketizer::DepacketizedPayload> RtpH264Depacketizer::DepacketizeFuANalu(CopyOnWriteBuffer rtp_payload) {
+std::optional<RtpDepacketizer::Packet> RtpH264Depacketizer::DepacketizeFuANalu(CopyOnWriteBuffer rtp_payload) {
     if (rtp_payload.size() < kFuAHeaderSize) {
         PLOG_WARNING << "FU-A NAL units is truncted.";
         return std::nullopt;
     }
-    DepacketizedPayload depacketized_payload;
+    Packet depacketized_payload;
     const uint8_t* rtp_payload_data = rtp_payload.cdata();
     uint8_t fnri = rtp_payload_data[0] & (kFBit | kNriMask);
     uint8_t original_nal_type = rtp_payload_data[1] & kTypeMask;

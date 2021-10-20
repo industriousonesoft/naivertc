@@ -91,19 +91,19 @@ void RtpVideoStreamReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
                      << packet.payload_type();
         return;
     }
-    std::optional<RtpDepacketizer::DepacketizedPayload> depacketized_payload = type_it->second->Depacketize(packet.PayloadBuffer());
-    if (!depacketized_payload) {
+    std::optional<RtpDepacketizer::Packet> depacketized_packet = type_it->second->Depacketize(packet.PayloadBuffer());
+    if (!depacketized_packet) {
         PLOG_WARNING << "Failed to depacketize RTP payload.";
         return;
     }
 
-    OnDepacketizedPayload(std::move(*depacketized_payload), packet);
+    OnDepacketizedPacket(std::move(*depacketized_packet), packet);
 }
 
-void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, 
+void RtpVideoStreamReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized_packet, 
                                                    const RtpPacketReceived& rtp_packet) {
-    auto packet = std::make_unique<rtc::video::jitter::PacketBuffer::Packet>(depacketized_payload.video_header,
-                                                                              depacketized_payload.video_codec_header,
+    auto packet = std::make_unique<rtc::video::jitter::PacketBuffer::Packet>(depacketized_packet.video_header,
+                                                                              depacketized_packet.video_codec_header,
                                                                               rtp_packet.sequence_number(),
                                                                               rtp_packet.timestamp());
     RtpVideoHeader& video_header = packet->video_header;
@@ -128,7 +128,7 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
         size_t nacks_sent = nack_module_->InsertPacket(rtp_packet.sequence_number(), is_keyframe, rtp_packet.is_recovered());
     }
 
-    if (depacketized_payload.video_payload.empty()) {
+    if (depacketized_packet.video_payload.empty()) {
         HandleEmptyPacket(rtp_packet.sequence_number());
         rtcp_feedback_buffer_->SendBufferedRtcpFeedbacks();
         return;
@@ -141,7 +141,7 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
                                                                                               video_header.frame_width, 
                                                                                               video_header.frame_height, 
                                                                                               h264_header,
-                                                                                              depacketized_payload.video_payload);
+                                                                                              depacketized_packet.video_payload);
         switch (fixed.action) {
         case h264::SpsPpsTracker::PacketAction::REQUEST_KEY_FRAME:
             rtcp_feedback_buffer_->RequestKeyFrame();
@@ -152,11 +152,11 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
             PLOG_WARNING << "Packet truncated, droping.";
             return;
         case h264::SpsPpsTracker::PacketAction::INSERT:
-            packet->video_payload = std::move(depacketized_payload.video_payload);
+            packet->video_payload = std::move(depacketized_packet.video_payload);
             break;
         }
     } else {
-        packet->video_payload = std::move(depacketized_payload.video_payload);
+        packet->video_payload = std::move(depacketized_packet.video_payload);
     }
 
     rtcp_feedback_buffer_->SendBufferedRtcpFeedbacks();
