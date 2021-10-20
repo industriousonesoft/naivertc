@@ -24,8 +24,8 @@ using ::testing::Matches;
 using ::testing::Pointee;
 using ::testing::SizeIs;
 
-using Packet = RtpVideoFrameAssembler::Packet;
-using InsertResult = RtpVideoFrameAssembler::InsertResult;
+using Packet = rtp::video_frame::Assembler::Packet;
+using InsertResult = rtp::video_frame::Assembler::InsertResult;
 
 constexpr int kStartSize = 16;
 constexpr int kMaxSize = 64;
@@ -110,7 +110,7 @@ protected:
         return frame_assembler_.InsertPacket(std::move(packet));
     }
 
-    RtpVideoFrameAssembler frame_assembler_;
+    rtp::video_frame::Assembler frame_assembler_;
 };
 
 TEST_F(RTP_RTCP_PacketAssemblerTest, InsertOnePacket) {

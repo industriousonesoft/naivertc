@@ -6,6 +6,11 @@
 #include <plog/Log.h>
 
 namespace naivertc {
+namespace {
+
+// TODO: Change kPacketBufferStartSize back to 32 in M63 see: crbug.com/752886
+constexpr int kPacketBufferStartSize = 512;
+constexpr int kPacketBufferMaxSize = 2048;
 
 std::shared_ptr<RtcpModule> CreateRtcpModule(const RtpVideoStreamReceiver::Configuration& stream_config,
                                              std::shared_ptr<Clock> clock,
@@ -16,6 +21,8 @@ std::shared_ptr<RtcpModule> CreateRtcpModule(const RtpVideoStreamReceiver::Confi
     rtcp_config.remote_ssrc = stream_config.remote_ssrc;
     return std::make_shared<RtcpModule>(rtcp_config, task_queue);
 }
+
+} // namespace
 
 // RtpVideoStreamReceiver
 RtpVideoStreamReceiver::RtpVideoStreamReceiver(Configuration config,
@@ -29,7 +36,8 @@ RtpVideoStreamReceiver::RtpVideoStreamReceiver(Configuration config,
                                                                       task_queue_, 
                                                                       rtcp_feedback_buffer_, 
                                                                       rtcp_feedback_buffer_)
-                                       : nullptr) {
+                                       : nullptr),
+      frame_assembler_(kPacketBufferStartSize, kPacketBufferMaxSize) {
 }
 
 RtpVideoStreamReceiver::~RtpVideoStreamReceiver() {}
@@ -94,11 +102,11 @@ void RtpVideoStreamReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
 
 void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, 
                                                    const RtpPacketReceived& rtp_packet) {
-    auto assembling_packet = std::make_unique<RtpVideoFrameAssembler::Packet>(depacketized_payload.video_header,
+    auto packet = std::make_unique<rtp::video_frame::Assembler::Packet>(depacketized_payload.video_header,
                                                                               depacketized_payload.video_codec_header,
                                                                               rtp_packet.sequence_number(),
                                                                               rtp_packet.timestamp());
-    RtpVideoHeader& video_header = assembling_packet->video_header;
+    RtpVideoHeader& video_header = packet->video_header;
     video_header.is_last_packet_in_frame |= rtp_packet.marker();
 
     // TODO: Collect packet info
@@ -128,15 +136,44 @@ void RtpVideoStreamReceiver::OnDepacketizedPayload(RtpDepacketizer::Depacketized
 
     // H264
     if (video_header.codec_type == video::CodecType::H264) {
-
+        auto h264_header = std::get<h264::PacketizationInfo>(packet->video_codec_header);
+        h264::SpsPpsTracker::FixedBitstream fixed = h264_sps_pps_tracker_.CopyAndFixBitstream(video_header.is_first_packet_in_frame, 
+                                                                                              video_header.frame_width, 
+                                                                                              video_header.frame_height, 
+                                                                                              h264_header,
+                                                                                              depacketized_payload.video_payload);
+        switch (fixed.action) {
+        case h264::SpsPpsTracker::PacketAction::REQUEST_KEY_FRAME:
+            rtcp_feedback_buffer_->RequestKeyFrame();
+            rtcp_feedback_buffer_->SendBufferedRtcpFeedbacks();
+            PLOG_WARNING << "IDR as the first packet in frame without SPS and PPS, droping.";
+            return;
+        case h264::SpsPpsTracker::PacketAction::DROP:
+            PLOG_WARNING << "Packet truncated, droping.";
+            return;
+        case h264::SpsPpsTracker::PacketAction::INSERT:
+            packet->video_payload = std::move(depacketized_payload.video_payload);
+            break;
+        }
     } else {
-
+        packet->video_payload = std::move(depacketized_payload.video_payload);
     }
+
+    rtcp_feedback_buffer_->SendBufferedRtcpFeedbacks();
+    OnInsertdPacket(frame_assembler_.InsertPacket(std::move(packet)));
+}
+
+void RtpVideoStreamReceiver::OnInsertdPacket(rtp::video_frame::Assembler::InsertResult result) {
 
 }
 
 void RtpVideoStreamReceiver::HandleEmptyPacket(uint16_t seq_num) {
-    
+    // TODO: OnCompleteFrames
+
+    OnInsertdPacket(frame_assembler_.InsertPadding(seq_num));
+    if (nack_module_) {
+        nack_module_->InsertPacket(seq_num, false /* is_keyframe */, false /* is_recovered */);
+    }
 }
 
 void RtpVideoStreamReceiver::HandleRedPacket(const RtpPacketReceived& packet) {
