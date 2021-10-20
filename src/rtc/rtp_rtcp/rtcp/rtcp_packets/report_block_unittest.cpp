@@ -17,7 +17,7 @@ constexpr uint32_t kJitter = 0x4F6D73A2;
 constexpr uint32_t kLastSrNtpTimestamp = 0x01FF3467;
 constexpr uint32_t kDelaySinceLastSr = 0x89D67F50;
 
-TEST(RtcpReportBlockTest, ParseMatchPack) {
+TEST(RTP_RTCP_RtcpReportBlockTest, ParseMatchPack) {
     ReportBlock rb;
     rb.set_media_ssrc(kRemoteSsrc);
     rb.set_fraction_lost(kFractionLost);

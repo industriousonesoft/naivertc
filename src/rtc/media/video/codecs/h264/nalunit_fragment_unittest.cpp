@@ -28,7 +28,7 @@ constexpr size_t kPacketSize = sizeof(kPacket);
 
 } // namespace
 
-TEST(H264NaluFragmentTest, Create) {
+TEST(H264_NaluFragmentTest, Create) {
     NalUnitFragmentA nalu_fragment_a(NalUnitFragmentA::FragmentType::START, false, 0x03, 0x0F, &kFragmentPacket[2], kFragmentPacketSize-2);
 
     EXPECT_FALSE(nalu_fragment_a.forbidden_bit());
@@ -43,7 +43,7 @@ TEST(H264NaluFragmentTest, Create) {
 
 }
 
-TEST(H264NaluFragmentTest, ParseFromNalUnit) {
+TEST(H264_NaluFragmentTest, ParseFromNalUnit) {
     const size_t kMaxFragmentSize = 12;
     auto nalu = std::make_shared<NalUnit>(kPacket, kPacketSize);
 

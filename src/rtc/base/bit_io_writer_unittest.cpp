@@ -6,7 +6,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(BitWriterTest, SetOffsetValues) {
+TEST(Base_BitWriterTest, SetOffsetValues) {
     uint8_t bytes[4] = {0};
     BitWriter bit_writer(bytes, 4);
 
@@ -36,7 +36,7 @@ TEST(BitWriterTest, SetOffsetValues) {
     EXPECT_FALSE(bit_writer.Seek(4, 1));
 }
 
-TEST(BitWriterTest, SymmetricGolomb) {
+TEST(Base_BitWriterTest, SymmetricGolomb) {
     char test_string[] = "hello,world";
     uint8_t bytes[64] = {0};
     size_t w_byte_offset, w_bit_offset;

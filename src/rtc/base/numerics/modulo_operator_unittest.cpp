@@ -8,7 +8,7 @@ namespace naivertc {
 namespace test {
 constexpr unsigned long kUnsignedLongMaxValue = std::numeric_limits<unsigned long>::max();
 
-TEST(ModOperatorTest, Add) {
+TEST(Base_ModOperatorTest, Add) {
     const int D = 100;
     ASSERT_EQ(1u, Add<D>(0, 1));
     ASSERT_EQ(0u, Add<D>(0, D));
@@ -25,7 +25,7 @@ TEST(ModOperatorTest, Add) {
     }
 }
 
-TEST(ModOperatorTest, AddLarge) {
+TEST(Base_ModOperatorTest, AddLarge) {
     const unsigned long D = kUnsignedLongMaxValue - 10ul;
     unsigned long l = D - 1ul;             
     ASSERT_EQ(D - 2ul, Add<D>(l, l));
@@ -33,7 +33,7 @@ TEST(ModOperatorTest, AddLarge) {
     ASSERT_EQ(10ul, Add<D>(0ul, kUnsignedLongMaxValue));
 }
 
-TEST(ModOperatorTest, Subtract) {
+TEST(Base_ModOperatorTest, Subtract) {
     const int D = 100;
     ASSERT_EQ(99u, Subtract<D>(0, 1));
     ASSERT_EQ(0u, Subtract<D>(0, D));
@@ -49,7 +49,7 @@ TEST(ModOperatorTest, Subtract) {
     }
 }
 
-TEST(ModOperatorTest, SubtractLarge) {
+TEST(Base_ModOperatorTest, SubtractLarge) {
     const unsigned long D = kUnsignedLongMaxValue - 10ul;
     unsigned long l = D - 1ul;
     ASSERT_EQ(0ul, Subtract<D>(l, l));
@@ -57,7 +57,7 @@ TEST(ModOperatorTest, SubtractLarge) {
     ASSERT_EQ(D - 10ul, Subtract<D>(0ul, kUnsignedLongMaxValue));
 }
 
-TEST(ModOperatorTest, ForwardDiff) {
+TEST(Base_ModOperatorTest, ForwardDiff) {
     ASSERT_EQ(0u, ForwardDiff(4711u, 4711u));
 
     uint8_t x = 0;
@@ -76,7 +76,7 @@ TEST(ModOperatorTest, ForwardDiff) {
     }
 }
 
-TEST(ModOperatorTest, ForwardDiffWithDivisor) {
+TEST(Base_ModOperatorTest, ForwardDiffWithDivisor) {
     ASSERT_EQ(122, (ForwardDiff<uint8_t, 123>(0, 122)));
     ASSERT_EQ(0, (ForwardDiff<uint8_t, 123>(122, 122)));
     ASSERT_EQ(122, (ForwardDiff<uint8_t, 123>(1, 0)));
@@ -84,7 +84,7 @@ TEST(ModOperatorTest, ForwardDiffWithDivisor) {
     ASSERT_EQ(1, (ForwardDiff<uint8_t, 123>(122, 0)));
 }
 
-TEST(ModOperatorTest, ReverseDiff) {
+TEST(Base_ModOperatorTest, ReverseDiff) {
     ASSERT_EQ(0u, ReverseDiff(4711u, 4711u));
 
     uint8_t x = 0;
@@ -103,7 +103,7 @@ TEST(ModOperatorTest, ReverseDiff) {
     }
 }
 
-TEST(ModOperatorTest, ReverseDiffWithDivisor) {
+TEST(Base_ModOperatorTest, ReverseDiffWithDivisor) {
     ASSERT_EQ(1, (ReverseDiff<uint8_t, 123>(0, 122)));
     ASSERT_EQ(0, (ReverseDiff<uint8_t, 123>(122, 122)));
     ASSERT_EQ(1, (ReverseDiff<uint8_t, 123>(1, 0)));
@@ -111,7 +111,7 @@ TEST(ModOperatorTest, ReverseDiffWithDivisor) {
     ASSERT_EQ(122, (ReverseDiff<uint8_t, 123>(122, 0)));
 }
 
-TEST(ModOperatorTest, MinDiff) {
+TEST(Base_ModOperatorTest, MinDiff) {
     for (uint16_t i = 0; i < 256; ++i) {
         ASSERT_EQ(0, MinDiff<uint8_t>(i, i));
         ASSERT_EQ(1, MinDiff<uint8_t>(i - 1, i));
@@ -125,7 +125,7 @@ TEST(ModOperatorTest, MinDiff) {
         ASSERT_EQ(128 - i, MinDiff<uint8_t>(0, 128 + i));
 }
 
-TEST(ModOperatorTest, MinDiffWitDivisor) {
+TEST(Base_ModOperatorTest, MinDiffWitDivisor) {
     ASSERT_EQ(5u, (MinDiff<uint8_t, 11>(0, 5)));
     ASSERT_EQ(5u, (MinDiff<uint8_t, 11>(0, 6)));
     ASSERT_EQ(5u, (MinDiff<uint8_t, 11>(5, 0)));

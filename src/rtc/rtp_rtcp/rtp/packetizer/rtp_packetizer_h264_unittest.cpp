@@ -60,15 +60,15 @@ std::vector<RtpPacketToSend> FetchAllPackets(RtpH264Packetizer* packetizer) {
     return result;
 }
 
-class RtpH264PacketizerTest : public ::testing::TestWithParam<h264::PacketizationMode> {};
+class RTP_RTCP_RtpH264PacketizerTest : public ::testing::TestWithParam<h264::PacketizationMode> {};
 
 INSTANTIATE_TEST_SUITE_P(
     PacketizationMode,
-    RtpH264PacketizerTest,
+    RTP_RTCP_RtpH264PacketizerTest,
     ::testing::Values(h264::PacketizationMode::SINGLE_NAL_UNIT,
                       h264::PacketizationMode::NON_INTERLEAVED));
 
-TEST_P(RtpH264PacketizerTest, SingleNalu) {
+TEST_P(RTP_RTCP_RtpH264PacketizerTest, SingleNalu) {
     const uint8_t frame[] = {0, 0, 1, uint8_t(h264::NaluType::IDR), 0xFF};
 
     RtpPacketizer::PayloadSizeLimits limits;
@@ -82,7 +82,7 @@ TEST_P(RtpH264PacketizerTest, SingleNalu) {
     EXPECT_THAT(packets[0].payload(), ::testing::ElementsAre(uint8_t(h264::NaluType::IDR), 0xFF));
 }
 
-TEST_P(RtpH264PacketizerTest, SingleNaluTwoPackets) {
+TEST_P(RTP_RTCP_RtpH264PacketizerTest, SingleNaluTwoPackets) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = kMaxPayloadSize;
 
@@ -101,7 +101,7 @@ TEST_P(RtpH264PacketizerTest, SingleNaluTwoPackets) {
     EXPECT_THAT(packets[1].payload(), testing::ElementsAreArray(nalus[1]));
 }
 
-TEST_P(RtpH264PacketizerTest, SingleNaluFirstPacketReductionAppliesOnlyToFirstFragment) {
+TEST_P(RTP_RTCP_RtpH264PacketizerTest, SingleNaluFirstPacketReductionAppliesOnlyToFirstFragment) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 200;
     limits.first_packet_reduction_size = 5;
@@ -120,7 +120,7 @@ TEST_P(RtpH264PacketizerTest, SingleNaluFirstPacketReductionAppliesOnlyToFirstFr
     EXPECT_THAT(packets[2].payload(), ::testing::ElementsAreArray(nalus[2]));
 }
 
-TEST_P(RtpH264PacketizerTest, SingleNaluLastPacketReductionAppliesOnlyToLastFragment) {
+TEST_P(RTP_RTCP_RtpH264PacketizerTest, SingleNaluLastPacketReductionAppliesOnlyToLastFragment) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 200;
     limits.last_packet_reduction_size = 5;
@@ -139,7 +139,7 @@ TEST_P(RtpH264PacketizerTest, SingleNaluLastPacketReductionAppliesOnlyToLastFrag
     EXPECT_THAT(packets[2].payload(), ::testing::ElementsAreArray(nalus[2]));
 }
 
-TEST_P(RtpH264PacketizerTest, SingleNaluFirstAndLastPacketReductionSumsForSinglePacket) {
+TEST_P(RTP_RTCP_RtpH264PacketizerTest, SingleNaluFirstAndLastPacketReductionSumsForSinglePacket) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 200;
     limits.first_packet_reduction_size = 20;
@@ -155,7 +155,7 @@ TEST_P(RtpH264PacketizerTest, SingleNaluFirstAndLastPacketReductionSumsForSingle
 }
 
 // Aggregation tests.
-TEST(RtpH264PacketizerTest, StapA) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, StapA) {
     BinaryBuffer nalus[] = {GenerateNalUnit(/*size=*/2),
                             GenerateNalUnit(/*size=*/2),
                             GenerateNalUnit(/*size=*/0x123)};
@@ -195,7 +195,7 @@ TEST(RtpH264PacketizerTest, StapA) {
     EXPECT_THAT(fragment_payload, ::testing::ElementsAreArray(nalus[2]));
 }
 
-TEST(RtpH264PacketizerTest, SingleNalUnitModeHasNoStapA) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, SingleNalUnitModeHasNoStapA) {
     // This is the same setup as for the StapA test.
     BinaryBuffer nalus[] = {GenerateNalUnit(/*size=*/2),
                             GenerateNalUnit(/*size=*/2),
@@ -214,7 +214,7 @@ TEST(RtpH264PacketizerTest, SingleNalUnitModeHasNoStapA) {
     EXPECT_EQ(packets[2].payload_size(), 0x123u);
 }
 
-TEST(RtpH264PacketizerTest, StapARespectsFirstPacketReduction) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, StapARespectsFirstPacketReduction) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1000;
     limits.first_packet_reduction_size = 100;
@@ -237,7 +237,7 @@ TEST(RtpH264PacketizerTest, StapARespectsFirstPacketReduction) {
                                                              0, 2, nalus[2][0], nalus[2][1]));
 }
 
-TEST(RtpH264PacketizerTest, StapARespectsLastPacketReduction) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, StapARespectsLastPacketReduction) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1000;
     limits.last_packet_reduction_size = 100;
@@ -261,7 +261,7 @@ TEST(RtpH264PacketizerTest, StapARespectsLastPacketReduction) {
     EXPECT_THAT(packets[1].payload(), ::testing::ElementsAreArray(nalus[2]));
 }
 
-TEST(RtpH264PacketizerTest, TooSmallForStapAHeaders) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, TooSmallForStapAHeaders) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1000;
     const size_t kLastFragmentSize = limits.max_payload_size - 3 * kLengthFieldLength - 4;
@@ -285,7 +285,7 @@ TEST(RtpH264PacketizerTest, TooSmallForStapAHeaders) {
 }
 
 // Fragmentation + aggregation.
-TEST(RtpH264PacketizerTest, MixedStapAFUA) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, MixedStapAFUA) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 100;
     const size_t kFuaPayloadSize = 70;
@@ -326,7 +326,7 @@ TEST(RtpH264PacketizerTest, MixedStapAFUA) {
                 ::testing::ElementsAreArray(nalus[2]));
 }
 
-TEST(RtpH264PacketizerTest, LastFragmentFitsInSingleButNotLastPacket) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, LastFragmentFitsInSingleButNotLastPacket) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1178;
     limits.first_packet_reduction_size = 0;
@@ -383,13 +383,13 @@ std::vector<int> TestFua(size_t frame_payload_size,
 }
 
 // Fragmentation tests.
-TEST(RtpH264PacketizerTest, FUAOddSize) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, FUAOddSize) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1200;
     EXPECT_THAT(TestFua(1200, limits), ::testing::ElementsAre(600, 600));
 }
 
-TEST(RtpH264PacketizerTest, FUAWithFirstPacketReduction) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, FUAWithFirstPacketReduction) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1200;
     limits.first_packet_reduction_size = 4;
@@ -397,7 +397,7 @@ TEST(RtpH264PacketizerTest, FUAWithFirstPacketReduction) {
     EXPECT_THAT(TestFua(1198, limits), ::testing::ElementsAre(597, 601));
 }
 
-TEST(RtpH264PacketizerTest, FUAWithLastPacketReduction) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, FUAWithLastPacketReduction) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1200;
     limits.last_packet_reduction_size = 4;
@@ -405,27 +405,27 @@ TEST(RtpH264PacketizerTest, FUAWithLastPacketReduction) {
     EXPECT_THAT(TestFua(1198, limits), ::testing::ElementsAre(601, 597));
 }
 
-TEST(RtpH264PacketizerTest, FUAWithSinglePacketReduction) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, FUAWithSinglePacketReduction) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1199;
     limits.single_packet_reduction_size = 200;
     EXPECT_THAT(TestFua(1000, limits), ::testing::ElementsAre(500, 500));
 }
 
-TEST(RtpH264PacketizerTest, FUAEvenSize) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, FUAEvenSize) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1200;
     EXPECT_THAT(TestFua(1201, limits), ::testing::ElementsAre(600, 601));
 }
 
-TEST(RtpH264PacketizerTest, FUARounding) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, FUARounding) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1448;
     EXPECT_THAT(TestFua(10123, limits),
                 ::testing::ElementsAre(1265, 1265, 1265, 1265, 1265, 1266, 1266, 1266));
 }
 
-TEST(RtpH264PacketizerTest, FUABig) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, FUABig) {
     RtpPacketizer::PayloadSizeLimits limits;
     limits.max_payload_size = 1200;
     // Generate 10 full sized packets, leave room for FU-A headers.
@@ -433,7 +433,7 @@ TEST(RtpH264PacketizerTest, FUABig) {
                 ::testing::ElementsAre(1198, 1198, 1198, 1198, 1198, 1198, 1198, 1198, 1198, 1198));
 }
 
-TEST(RtpH264PacketizerTest, RejectsOverlongDataInPacketizationMode0) {
+TEST(RTP_RTCP_RTP_RTCP_RtpH264PacketizerTest, RejectsOverlongDataInPacketizationMode0) {
     RtpPacketizer::PayloadSizeLimits limits;
     BinaryBuffer nalus[] = {GenerateNalUnit(kMaxPayloadSize + 1)};
     BinaryBuffer frame = CreateFrame(nalus);

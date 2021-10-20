@@ -15,7 +15,7 @@ constexpr uint32_t kCsrc2 = 0x33343536;
 }  // namespace
 
 
-TEST(RtcpPacketByeTest, CreateAndParseWithoutReason) {
+TEST(RTP_RTCP_RtcpPacketByeTest, CreateAndParseWithoutReason) {
     Bye bye;
     bye.set_sender_ssrc(kSenderSsrc);
 
@@ -30,7 +30,7 @@ TEST(RtcpPacketByeTest, CreateAndParseWithoutReason) {
     EXPECT_TRUE(parsed_bye.reason().empty());
 }
 
-TEST(RtcpPacketByeTest, CreateAndParseWithCsrcs) {
+TEST(RTP_RTCP_RtcpPacketByeTest, CreateAndParseWithCsrcs) {
     Bye bye;
     bye.set_sender_ssrc(kSenderSsrc);
     EXPECT_TRUE(bye.set_csrcs({kCsrc1, kCsrc2}));
@@ -47,7 +47,7 @@ TEST(RtcpPacketByeTest, CreateAndParseWithCsrcs) {
     EXPECT_TRUE(parsed_bye.reason().empty());
 }
 
-TEST(RtcpPacketByeTest, CreateAndParseWithCsrcsAndAReason) {
+TEST(RTP_RTCP_RtcpPacketByeTest, CreateAndParseWithCsrcsAndAReason) {
     Bye bye;
     const std::string kReason = "Some Reason";
 
@@ -66,7 +66,7 @@ TEST(RtcpPacketByeTest, CreateAndParseWithCsrcsAndAReason) {
     EXPECT_EQ(kReason, parsed_bye.reason());
 }
 
-TEST(RtcpPacketByeTest, CreateWithTooManyCsrcs) {
+TEST(RTP_RTCP_RtcpPacketByeTest, CreateWithTooManyCsrcs) {
     Bye bye;
     bye.set_sender_ssrc(kSenderSsrc);
     const int kMaxCsrcs = (1 << 5) - 2;  // 5 bit len, first item is sender SSRC.
@@ -74,7 +74,7 @@ TEST(RtcpPacketByeTest, CreateWithTooManyCsrcs) {
     EXPECT_FALSE(bye.set_csrcs(std::vector<uint32_t>(kMaxCsrcs + 1, kCsrc1)));
 }
 
-TEST(RtcpPacketByeTest, CreateAndParseWithAReason) {
+TEST(RTP_RTCP_RtcpPacketByeTest, CreateAndParseWithAReason) {
     Bye bye;
     const std::string kReason = "Some Random Reason";
 
@@ -93,7 +93,7 @@ TEST(RtcpPacketByeTest, CreateAndParseWithAReason) {
 }
 
 
-TEST(RtcpPacketByeTest, CreateAndParseWithReasons) {
+TEST(RTP_RTCP_RtcpPacketByeTest, CreateAndParseWithReasons) {
     // Test that packet creation/parsing behave with reasons of different length
     // both when it require padding and when it does not.
     for (size_t reminder = 0; reminder < 4; ++reminder) {
@@ -112,7 +112,7 @@ TEST(RtcpPacketByeTest, CreateAndParseWithReasons) {
     }
 }
 
-TEST(RtcpPacketByeTest, ParseEmptyPacket) {
+TEST(RTP_RTCP_RtcpPacketByeTest, ParseEmptyPacket) {
     uint8_t kEmptyPacket[] = {0x80, Bye::kPacketType, 0, 0};
     
     CommonHeader common_header;
@@ -125,7 +125,7 @@ TEST(RtcpPacketByeTest, ParseEmptyPacket) {
     EXPECT_TRUE(parsed_bye.reason().empty());
 }
 
-TEST(RtcpPacketByeTest, ParseFailOnInvalidSrcCount) {
+TEST(RTP_RTCP_RtcpPacketByeTest, ParseFailOnInvalidSrcCount) {
     Bye bye;
     bye.set_sender_ssrc(kSenderSsrc);
 
@@ -138,7 +138,7 @@ TEST(RtcpPacketByeTest, ParseFailOnInvalidSrcCount) {
 
 }
 
-TEST(RtcpPacketByeTest, ParseFailOnInvalidReasonLength) {
+TEST(RTP_RTCP_RtcpPacketByeTest, ParseFailOnInvalidReasonLength) {
     Bye bye;
     bye.set_sender_ssrc(kSenderSsrc);
     bye.set_reason("18 characters long");

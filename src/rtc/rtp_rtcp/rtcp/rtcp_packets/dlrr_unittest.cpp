@@ -17,12 +17,12 @@ const uint8_t kBlock[] = {0x05, 0x00, 0x00, 0x03, 0x12, 0x34, 0x56, 0x78,
 const size_t kBlockSize = sizeof(kBlock);
 }  // namespace
 
-TEST(RtcpPacketDlrrTest, Empty) {
+TEST(RTP_RTCP_RtcpPacketDlrrTest, Empty) {
     Dlrr dlrr;
     EXPECT_EQ(0u, dlrr.BlockSize());
 }
 
-TEST(RtcpPacketDlrrTest, Pack) {
+TEST(RTP_RTCP_RtcpPacketDlrrTest, Pack) {
     Dlrr dlrr;
     dlrr.AddDlrrItem(ReceiveTimeInfo(kSsrc, kLastRR, kDelay));
 
@@ -33,7 +33,7 @@ TEST(RtcpPacketDlrrTest, Pack) {
     EXPECT_EQ(0, memcmp(buffer, kBlock, kBlockSize));
 }
 
-TEST(RtcpPacketDlrrTest, Parse) {
+TEST(RTP_RTCP_RtcpPacketDlrrTest, Parse) {
     Dlrr dlrr;
     uint16_t block_size = ByteReader<uint16_t>::ReadBigEndian(&kBlock[2]);
     EXPECT_TRUE(dlrr.Parse(kBlock, block_size));
@@ -45,7 +45,7 @@ TEST(RtcpPacketDlrrTest, Parse) {
     EXPECT_EQ(kDelay, block.delay_since_last_rr);
 }
 
-TEST(RtcpPacketDlrrTest, ParseFailsOnBadSize) {
+TEST(RTP_RTCP_RtcpPacketDlrrTest, ParseFailsOnBadSize) {
     const size_t kBigBufferSize = 0x100;  // More than enough.
     uint8_t buffer[kBigBufferSize];
     buffer[0] = Dlrr::kBlockType;
@@ -59,7 +59,7 @@ TEST(RtcpPacketDlrrTest, ParseFailsOnBadSize) {
     }
 }
 
-TEST(RtcpPacketDlrrTest, CreateAndParseManySubBlocks) {
+TEST(RTP_RTCP_RtcpPacketDlrrTest, CreateAndParseManySubBlocks) {
     const size_t kBufferSize = 0x1000;  // More than enough.
     const size_t kManyDlrrItems = 50;
     uint8_t buffer[kBufferSize];

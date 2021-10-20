@@ -20,7 +20,7 @@ constexpr uint8_t kPacket[] = {0x84, 206,  0x00, 0x04, 0x12, 0x34, 0x56,
 constexpr size_t kPacketSize = sizeof(kPacket);
 } // namespace
 
-TEST(RtcpFirTest, Parse) {
+TEST(RTP_RTCP_RtcpFirTest, Parse) {
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(kPacket, kPacketSize));
     EXPECT_EQ(Fir::kPacketType, common_header.type());
@@ -35,7 +35,7 @@ TEST(RtcpFirTest, Parse) {
     EXPECT_EQ(kSeqNr, fir.requests()[0].seq_nr);
 }
 
-TEST(RtcpFirTest, Create) {
+TEST(RTP_RTCP_RtcpFirTest, Create) {
     Fir fir;
     fir.set_sender_ssrc(kSenderSsrc);
     fir.AddRequest(kRemoteSsrc, kSeqNr);

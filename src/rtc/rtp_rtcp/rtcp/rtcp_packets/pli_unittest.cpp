@@ -18,7 +18,7 @@ const uint8_t kPacket[] = {0x81, 206,  0x00, 0x02,
                            0x23, 0x45, 0x67, 0x89};
 }  // namespace
 
-TEST(RtcpPliTest, Parse) {
+TEST(RTP_RTCP_RtcpPliTest, Parse) {
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(kPacket, sizeof(kPacket)));
     EXPECT_EQ(Pli::kPacketType, common_header.type());
@@ -32,7 +32,7 @@ TEST(RtcpPliTest, Parse) {
     EXPECT_EQ(sizeof(kPacket), pli.PacketSize());
 }
 
-TEST(RtcpPliTest, Create) {
+TEST(RTP_RTCP_RtcpPliTest, Create) {
     Pli pli;
     pli.set_sender_ssrc(kSenderSsrc);
     pli.set_media_ssrc(kRemoteSsrc);

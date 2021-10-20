@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(IceServerTest, CreateFromStunURL) {
+TEST(PC_IceServerTest, CreateFromStunURL) {
     const std::string url = "stun:stun.l.google.com:19302";
     IceServer ice_server(url);
 
@@ -14,7 +14,7 @@ TEST(IceServerTest, CreateFromStunURL) {
     EXPECT_EQ(ice_server.type(), IceServer::Type::STUN);
 }
 
-TEST(IceServerTest, CreateFromTurnURL) {
+TEST(PC_IceServerTest, CreateFromTurnURL) {
     const std::string url = "turn:192.158.29.39:3478?transport=udp";
     IceServer ice_server(url);
 

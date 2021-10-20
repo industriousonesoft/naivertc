@@ -30,14 +30,14 @@ void EnsureBuffersDontShareData(const CopyOnWriteBuffer& buf1,
 }
 } // namespace 
 
-TEST(CopyOnWriteBufferTest, TestCreateEmptyData) {
+TEST(Base_CopyOnWriteBufferTest, TestCreateEmptyData) {
     CopyOnWriteBuffer buf(static_cast<const uint8_t*>(nullptr), size_t(0));
     EXPECT_EQ(buf.size(), 0u);
     EXPECT_EQ(buf.capacity(), 0u);
     EXPECT_EQ(buf.cdata(), nullptr);
 }
 
-TEST(CopyOnWriteBufferTest, TestMoveConstruct) {
+TEST(Base_CopyOnWriteBufferTest, TestMoveConstruct) {
     CopyOnWriteBuffer buf1(kTestData, 3, 10);
     size_t buf1_size = buf1.size();
     size_t buf1_capacity = buf1.capacity();
@@ -52,7 +52,7 @@ TEST(CopyOnWriteBufferTest, TestMoveConstruct) {
     EXPECT_EQ(buf2.cdata(), buf1_data);
 }
 
-TEST(CopyOnWriteBufferTest, TestMoveAssign) {
+TEST(Base_CopyOnWriteBufferTest, TestMoveAssign) {
     CopyOnWriteBuffer buf1(kTestData, 3, 10);
     size_t buf1_size = buf1.size();
     size_t buf1_capacity = buf1.capacity();
@@ -68,7 +68,7 @@ TEST(CopyOnWriteBufferTest, TestMoveAssign) {
     EXPECT_EQ(buf2.cdata(), buf1_data);
 }
 
-TEST(CopyOnWriteBufferTest, SetEmptyData) {
+TEST(Base_CopyOnWriteBufferTest, SetEmptyData) {
     CopyOnWriteBuffer buf(10);
 
     buf.Assign<uint8_t>(nullptr, size_t(0));
@@ -76,7 +76,7 @@ TEST(CopyOnWriteBufferTest, SetEmptyData) {
     EXPECT_EQ(0u, buf.size());
 }
 
-TEST(CopyOnWriteBufferTest, SetDataNoMoreThanCapacityDoesntCauseReallocation) {
+TEST(Base_CopyOnWriteBufferTest, SetDataNoMoreThanCapacityDoesntCauseReallocation) {
     CopyOnWriteBuffer buf1(3, 10);
     const uint8_t* const original_allocation = buf1.cdata();
 
@@ -90,7 +90,7 @@ TEST(CopyOnWriteBufferTest, SetDataNoMoreThanCapacityDoesntCauseReallocation) {
     EXPECT_EQ(buf1, buf2);
 }
 
-TEST(CopyOnWriteBufferTest, SetSizeCloneContent) {
+TEST(Base_CopyOnWriteBufferTest, SetSizeCloneContent) {
     CopyOnWriteBuffer buf1(kTestData, 3, 10);
     CopyOnWriteBuffer buf2(buf1);
 
@@ -100,7 +100,7 @@ TEST(CopyOnWriteBufferTest, SetSizeCloneContent) {
     EXPECT_EQ(0, memcmp(buf2.cdata(), kTestData, 3));
 }
 
-TEST(CopyOnWriteBufferTest, SetSizeMayIncreaseCapacity) {
+TEST(Base_CopyOnWriteBufferTest, SetSizeMayIncreaseCapacity) {
     CopyOnWriteBuffer buf(kTestData, 3, 10);
 
     buf.Resize(16);
@@ -109,7 +109,7 @@ TEST(CopyOnWriteBufferTest, SetSizeMayIncreaseCapacity) {
     EXPECT_EQ(16u, buf.capacity());
 }
 
-TEST(CopyOnWriteBufferTest, SetSizeDoesntDecreaseCapacity) {
+TEST(Base_CopyOnWriteBufferTest, SetSizeDoesntDecreaseCapacity) {
     CopyOnWriteBuffer buf1(kTestData, 5, 10);
     CopyOnWriteBuffer buf2(buf1);
 
@@ -119,7 +119,7 @@ TEST(CopyOnWriteBufferTest, SetSizeDoesntDecreaseCapacity) {
     EXPECT_EQ(10u, buf2.capacity());
 }
 
-TEST(CopyOnWriteBufferTest, ClearDoesntChangeOriginal) {
+TEST(Base_CopyOnWriteBufferTest, ClearDoesntChangeOriginal) {
     CopyOnWriteBuffer buf1(kTestData, 3, 10);
     const uint8_t* const original_allocation = buf1.cdata();
     CopyOnWriteBuffer buf2(buf1);
@@ -133,7 +133,7 @@ TEST(CopyOnWriteBufferTest, ClearDoesntChangeOriginal) {
     EXPECT_EQ(0u, buf2.size());
 }
 
-TEST(CopyOnWriteBufferTest, ClearDoesntChangeCapacity) {
+TEST(Base_CopyOnWriteBufferTest, ClearDoesntChangeCapacity) {
     CopyOnWriteBuffer buf1(kTestData, 3, 10);
     CopyOnWriteBuffer buf2(buf1);
 
@@ -143,13 +143,13 @@ TEST(CopyOnWriteBufferTest, ClearDoesntChangeCapacity) {
     EXPECT_EQ(10u, buf2.capacity());
 }
 
-TEST(CopyOnWriteBufferTest, DataAccessorDoesntCloneData) {
+TEST(Base_CopyOnWriteBufferTest, DataAccessorDoesntCloneData) {
     CopyOnWriteBuffer buf1(kTestData, 3, 10);
     CopyOnWriteBuffer buf2(buf1);
     EXPECT_EQ(buf1.cdata(), buf2.cdata());
 }
 
-TEST(CopyOnWriteBufferTest, MutableDataClonesDataWhenShared) {
+TEST(Base_CopyOnWriteBufferTest, MutableDataClonesDataWhenShared) {
     CopyOnWriteBuffer buf1(kTestData, 3, 10);
     CopyOnWriteBuffer buf2(buf1);
     const uint8_t* cdata = buf1.cdata();
@@ -162,7 +162,7 @@ TEST(CopyOnWriteBufferTest, MutableDataClonesDataWhenShared) {
     EXPECT_EQ(data2, cdata);
 }
 
-TEST(CopyOnWriteBufferTest, WritingCopiesData) {
+TEST(Base_CopyOnWriteBufferTest, WritingCopiesData) {
     CopyOnWriteBuffer buf1(kTestData, 10, 10);
     CopyOnWriteBuffer buf2(buf1);
     EXPECT_EQ(buf1, buf2);
@@ -172,7 +172,7 @@ TEST(CopyOnWriteBufferTest, WritingCopiesData) {
     EXPECT_NE(buf1, buf2);
 }
 
-TEST(CopyOnWriteBufferTest, AssignDataClonesDataWhenShared) {
+TEST(Base_CopyOnWriteBufferTest, AssignDataClonesDataWhenShared) {
     CopyOnWriteBuffer buf1(kTestData, 10, 10);
     CopyOnWriteBuffer buf2(buf1);
     EXPECT_EQ(buf1, buf2);
@@ -182,7 +182,7 @@ TEST(CopyOnWriteBufferTest, AssignDataClonesDataWhenShared) {
     EXPECT_EQ(0, memcmp(buf2.cdata(), kTestData2, 5));
 }
 
-TEST(CopyOnWriteBufferTest, AppendDataClonesDataWhenShared) {
+TEST(Base_CopyOnWriteBufferTest, AppendDataClonesDataWhenShared) {
     CopyOnWriteBuffer buf1(kTestData, 10, 10);
     CopyOnWriteBuffer buf2(buf1);
     EXPECT_EQ(buf1, buf2);
@@ -192,7 +192,7 @@ TEST(CopyOnWriteBufferTest, AppendDataClonesDataWhenShared) {
     EXPECT_EQ(0, memcmp(buf2.cdata() + 10, kTestData2, 5));
 }
 
-TEST(CopyOnWriteBufferTest, InsertDataClonesDataWhenShared) {
+TEST(Base_CopyOnWriteBufferTest, InsertDataClonesDataWhenShared) {
     CopyOnWriteBuffer buf1(kTestData, 10, 10);
     CopyOnWriteBuffer buf2(buf1);
     EXPECT_EQ(buf1, buf2);
@@ -203,7 +203,7 @@ TEST(CopyOnWriteBufferTest, InsertDataClonesDataWhenShared) {
     EXPECT_EQ(0, memcmp(buf2.cdata() + 5, kTestData, 10));
 }
 
-TEST(CopyOnWriteBufferTest, SwapDataClonesDataWhenShared) {
+TEST(Base_CopyOnWriteBufferTest, SwapDataClonesDataWhenShared) {
     CopyOnWriteBuffer buf1(kTestData, 10, 10);
     CopyOnWriteBuffer buf2;
     buf1.Swap(buf2);

@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(TimestampTest, ConstExpr) {
+TEST(Base_TimestampTest, ConstExpr) {
     constexpr int64_t kValue = 12345;
     constexpr Timestamp kMaxValue = Timestamp::MaxValue();
     static_assert(kMaxValue.IsInfinite(), "");
@@ -26,14 +26,14 @@ TEST(TimestampTest, ConstExpr) {
     EXPECT_EQ(kTimestampUs.us(), kValue);
 }
 
-TEST(TimestampTest, GetBackSameValues) {
+TEST(Base_TimestampTest, GetBackSameValues) {
     const int64_t kValue = 499;
     EXPECT_EQ(Timestamp::Millis(kValue).ms(), kValue);
     EXPECT_EQ(Timestamp::Micros(kValue).us(), kValue);
     EXPECT_EQ(Timestamp::Seconds(kValue).seconds(), kValue);
 }
 
-TEST(TimestampTest, GetDifferentPrefix) {
+TEST(Base_TimestampTest, GetDifferentPrefix) {
     const int64_t kValue = 3000000;
     EXPECT_EQ(Timestamp::Micros(kValue).seconds(), kValue / 1000000);
     EXPECT_EQ(Timestamp::Millis(kValue).seconds(), kValue / 1000);
@@ -45,7 +45,7 @@ TEST(TimestampTest, GetDifferentPrefix) {
 }
 
 
-TEST(TimestampTest, IdentityChecks) {
+TEST(Base_TimestampTest, IdentityChecks) {
     const int64_t kValue = 3000;
 
     EXPECT_TRUE(Timestamp::MaxValue().IsInfinite());
@@ -63,7 +63,7 @@ TEST(TimestampTest, IdentityChecks) {
     EXPECT_FALSE(Timestamp::MaxValue().IsMin());
 }
 
-TEST(TimestampTest, ConvertsToAndFromDouble) {
+TEST(Base_TimestampTest, ConvertsToAndFromDouble) {
     const int64_t kMicros = 17017;
     const double kMicrosDouble = kMicros;
     const double kMillisDouble = kMicros * 1e-3;
@@ -96,7 +96,7 @@ TEST(TimestampTest, ConvertsToAndFromDouble) {
     EXPECT_TRUE(Timestamp::Micros(kMinValue).IsMin());
 }
 
-TEST(UnitConversionTest, TimestampAndTimeDeltaMath) {
+TEST(Base_UnitConversionTest, TimestampAndTimeDeltaMath) {
     const int64_t kValueA = 267;
     const int64_t kValueB = 450;
     const Timestamp time_a = Timestamp::Millis(kValueA);
@@ -115,7 +115,7 @@ TEST(UnitConversionTest, TimestampAndTimeDeltaMath) {
     EXPECT_EQ(mutable_time, time_a);
 }
 
-TEST(UnitConversionTest, InfinityOperations) {
+TEST(Base_UnitConversionTest, InfinityOperations) {
     const int64_t kValue = 267;
     const Timestamp finite_time = Timestamp::Millis(kValue);
     const TimeDelta finite_delta = TimeDelta::Millis(kValue);

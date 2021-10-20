@@ -103,7 +103,7 @@ void GenerateFakeSps(uint16_t width,
     h264::NalUnit::WriteRbsp(rbsp, byte_count, out_buffer);
 }
 
-TEST(H264SpsParserTest, TestSampleSPSHdLandscape) {
+TEST(H264_SpsParserTest, TestSampleSPSHdLandscape) {
     // SPS for a 1280x720 camera capture from ffmpeg on osx. Contains
     // emulation bytes but no cropping.
     const uint8_t buffer[] = {0x7A, 0x00, 0x1F, 0xBC, 0xD9, 0x40, 0x50, 0x05,
@@ -115,7 +115,7 @@ TEST(H264SpsParserTest, TestSampleSPSHdLandscape) {
     EXPECT_EQ(720u, sps->height);
 }
 
-TEST(H264SpsParserTest, TestSampleSPSWeirdResolution) {
+TEST(H264_SpsParserTest, TestSampleSPSWeirdResolution) {
     // SPS for a 200x400 camera capture from ffmpeg on osx. Horizontal and
     // veritcal crop (neither dimension is divisible by 16).
     const uint8_t buffer[] = {0x7A, 0x00, 0x0D, 0xBC, 0xD9, 0x43, 0x43, 0x3E,
@@ -127,7 +127,7 @@ TEST(H264SpsParserTest, TestSampleSPSWeirdResolution) {
     EXPECT_EQ(400u, sps->height);
 }
 
-TEST(H264SpsParserTest, TestSyntheticSPSQvgaLandscape) {
+TEST(H264_SpsParserTest, TestSyntheticSPSQvgaLandscape) {
     std::vector<uint8_t> buffer;
     GenerateFakeSps(320u, 180u, 1, 0, 0, buffer);
     std::optional<SpsParser::SpsState> sps = SpsParser::ParseSps(buffer.data(), buffer.size());
@@ -137,7 +137,7 @@ TEST(H264SpsParserTest, TestSyntheticSPSQvgaLandscape) {
     EXPECT_EQ(1u, sps->id);
 }
 
-TEST(H264SpsParserTest, TestLog2MaxFrameNumMinus4) {
+TEST(H264_SpsParserTest, TestLog2MaxFrameNumMinus4) {
     std::vector<uint8_t> buffer;
     GenerateFakeSps(320u, 180u, 1, 0, 0, buffer);
     std::optional<SpsParser::SpsState> sps = SpsParser::ParseSps(buffer.data(), buffer.size());
@@ -160,7 +160,7 @@ TEST(H264SpsParserTest, TestLog2MaxFrameNumMinus4) {
     EXPECT_FALSE(sps.has_value());
 }
 
-TEST(H264SpsParserTest, TestLog2MaxPicOrderCntMinus4) {
+TEST(H264_SpsParserTest, TestLog2MaxPicOrderCntMinus4) {
     std::vector<uint8_t> buffer;
     GenerateFakeSps(320u, 180u, 1, 0, 0, buffer);
     std::optional<SpsParser::SpsState> sps = SpsParser::ParseSps(buffer.data(), buffer.size());

@@ -27,7 +27,7 @@ const uint8_t kPacket[] = {0x81, 201,  0x00, 0x07, 0x12, 0x34, 0x56, 0x78,
                            0x44, 0x45, 0x46, 0x47, 0x55, 0x56, 0x57, 0x58};
 } // namespace
 
-TEST(RtcpReceiverReportTest, ParseWithOneReportBlock) {
+TEST(RTP_RTCP_RtcpReceiverReportTest, ParseWithOneReportBlock) {
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(kPacket, sizeof(kPacket)));
     EXPECT_EQ(201, common_header.type());
@@ -49,7 +49,7 @@ TEST(RtcpReceiverReportTest, ParseWithOneReportBlock) {
     
 }
 
-TEST(RtcpReceiverReportTest, CreateWithOneReportBlock) {
+TEST(RTP_RTCP_RtcpReceiverReportTest, CreateWithOneReportBlock) {
     ReceiverReport rr;
     rr.set_sender_ssrc(kSenderSsrc);
     ReportBlock rb;

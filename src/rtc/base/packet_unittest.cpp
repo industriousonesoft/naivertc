@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(PacketTest, BuildPacket) {
+TEST(Base_PacketTest, BuildPacket) {
     const uint8_t bytes[] = {0x20, 0x30, 0x40, 0x50, 0x60};
     Packet packet(bytes, 5);
 

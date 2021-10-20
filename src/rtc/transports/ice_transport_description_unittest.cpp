@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(IceTransportDescriptionTest, Constructor) {
+TEST(SDP_IceTransportDescriptionTest, Constructor) {
     IceTransport::Description sdp(sdp::Type::OFFER, sdp::Role::ACT_PASS, "5gAx", "UaOtA7vsDocYINrXSTPWph");
 
     EXPECT_EQ(sdp.type(), sdp::Type::OFFER);
@@ -16,7 +16,7 @@ TEST(IceTransportDescriptionTest, Constructor) {
     EXPECT_EQ(sdp.ice_pwd().value(), "UaOtA7vsDocYINrXSTPWph");
 }
 
-TEST(IceTransportDescriptionTest, GenerateSDP) {
+TEST(SDP_IceTransportDescriptionTest, GenerateSDP) {
     IceTransport::Description sdp(sdp::Type::OFFER, sdp::Role::ACT_PASS, "5gAx", "UaOtA7vsDocYINrXSTPWph");
 
     const std::string expected_sdp_string = 
@@ -32,7 +32,7 @@ a=ice-pwd:UaOtA7vsDocYINrXSTPWph
 
 }
 
-TEST(IceTransportDescriptionTest, ParseSDP) {
+TEST(SDP_IceTransportDescriptionTest, ParseSDP) {
     const std::string sdp_string = 
 R"(m=application 0 ICE/SDP
 c=IN IP4 0.0.0.0

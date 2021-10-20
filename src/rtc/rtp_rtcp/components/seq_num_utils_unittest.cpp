@@ -7,7 +7,7 @@ using namespace naivertc::seq_num_utils;
 namespace naivertc {
 namespace test {
 
-TEST(SeqNumUtilsTest, AheadOrAt) {
+TEST(RTP_RTCP_SeqNumUtilsTest, AheadOrAt) {
     uint8_t x = 0;
     uint8_t y = 0;
     ASSERT_TRUE(AheadOrAt(x, y));
@@ -33,7 +33,7 @@ TEST(SeqNumUtilsTest, AheadOrAt) {
     ASSERT_FALSE(AheadOrAt<uint16_t>(y, x));
 }
 
-TEST(SeqNumUtilsTest, AheadOrAtWithDivisor) {
+TEST(RTP_RTCP_SeqNumUtilsTest, AheadOrAtWithDivisor) {
     ASSERT_TRUE((AheadOrAt<uint8_t, 11>(5, 0)));
     ASSERT_FALSE((AheadOrAt<uint8_t, 11>(6, 0)));
     ASSERT_FALSE((AheadOrAt<uint8_t, 11>(0, 5)));
@@ -55,7 +55,7 @@ TEST(SeqNumUtilsTest, AheadOrAtWithDivisor) {
     }
 }
 
-TEST(SeqNumUtilsTest, AheadOf) {
+TEST(RTP_RTCP_SeqNumUtilsTest, AheadOf) {
     uint8_t x = 0;
     uint8_t y = 0;
     ASSERT_FALSE(AheadOf(x, y));
@@ -92,7 +92,7 @@ TEST(SeqNumUtilsTest, AheadOf) {
     ASSERT_FALSE(AheadOf<uint16_t>(y, x));
 }
 
-TEST(SeqNumUtilsTest, AheadOfWithDivisor) {
+TEST(RTP_RTCP_SeqNumUtilsTest, AheadOfWithDivisor) {
     ASSERT_TRUE((AheadOf<uint8_t, 11>(5, 0)));
     ASSERT_FALSE((AheadOf<uint8_t, 11>(6, 0)));
     ASSERT_FALSE((AheadOf<uint8_t, 11>(0, 5)));
@@ -114,7 +114,7 @@ TEST(SeqNumUtilsTest, AheadOfWithDivisor) {
     }
 }
 
-TEST(SeqNumUtilsTest, ForwardDiffWithDivisor) {
+TEST(RTP_RTCP_SeqNumUtilsTest, ForwardDiffWithDivisor) {
     const uint8_t kDivisor = 211;
 
     for (uint8_t i = 0; i < kDivisor - 1; ++i) {
@@ -129,7 +129,7 @@ TEST(SeqNumUtilsTest, ForwardDiffWithDivisor) {
     }
 }
 
-TEST(SeqNumUtilsTest, ReverseDiffWithDivisor) {
+TEST(RTP_RTCP_SeqNumUtilsTest, ReverseDiffWithDivisor) {
     const uint8_t kDivisor = 241;
 
     for (uint8_t i = 0; i < kDivisor - 1; ++i) {
@@ -144,7 +144,7 @@ TEST(SeqNumUtilsTest, ReverseDiffWithDivisor) {
     }
 }
 
-TEST(SeqNumUtilsTest, Comparator) {
+TEST(RTP_RTCP_SeqNumUtilsTest, Comparator) {
     std::set<uint8_t, AscendingComp<uint8_t>> seq_nums_asc;
     std::set<uint8_t, DescendingComp<uint8_t>> seq_nums_desc;
 
@@ -169,7 +169,7 @@ TEST(SeqNumUtilsTest, Comparator) {
     }
 }
 
-TEST(SeqNumUtilsTest, ComparatorWithDivisor) {
+TEST(RTP_RTCP_SeqNumUtilsTest, ComparatorWithDivisor) {
     const uint8_t D = 223;
 
     std::set<uint8_t, AscendingComp<uint8_t, D>> seq_nums_asc;

@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(ClockTest, NtpTime) {
+TEST(Base_ClockTest, NtpTime) {
     auto clock = Clock::GetRealTimeClock();
 
     EXPECT_NE(clock, nullptr);

@@ -42,7 +42,7 @@ std::unique_ptr<FecPacket> WriteHeader(const uint8_t* packet_mask, size_t packet
     
 } // namespace
 
-TEST(UlpfecHeaderWriterTest, FinalizeSmallHeader) {
+TEST(FEC_UlpfecHeaderWriterTest, FinalizeSmallHeader) {
     const size_t packet_mask_size = kUlpfecPacketMaskSizeLBitClear;
     auto packet_mask = GeneratePacketMask(packet_mask_size, 0xabcd);
     FecPacket written_packet;
@@ -64,7 +64,7 @@ TEST(UlpfecHeaderWriterTest, FinalizeSmallHeader) {
 }
 
 
-TEST(UlpfecHeaderWriterTest, FinalizeLargeHeader) {
+TEST(FEC_UlpfecHeaderWriterTest, FinalizeLargeHeader) {
     const size_t packet_mask_size = kUlpfecPacketMaskSizeLBitSet;
     auto packet_mask = GeneratePacketMask(packet_mask_size, 0xabcd);
 
@@ -86,7 +86,7 @@ TEST(UlpfecHeaderWriterTest, FinalizeLargeHeader) {
     EXPECT_EQ(0, memcmp(packet_data + kUlpfecPacketMaskOffset, packet_mask.get(), packet_mask_size));
 }
 
-TEST(UlpfecHeaderWriterTest, CalculateSmallHeaderSize) {
+TEST(FEC_UlpfecHeaderWriterTest, CalculateSmallHeaderSize) {
     const size_t packet_mask_size = kUlpfecPacketMaskSizeLBitClear;
     auto packet_mask = GeneratePacketMask(packet_mask_size, 0xabcd);
 
@@ -97,7 +97,7 @@ TEST(UlpfecHeaderWriterTest, CalculateSmallHeaderSize) {
     EXPECT_EQ(kUlpfecHeaderSizeLBitClear, writer.FecHeaderSize(min_packet_mask_size));
 }
 
-TEST(UlpfecHeaderWriterTest, CalculateLargeHeaderSize) {
+TEST(FEC_UlpfecHeaderWriterTest, CalculateLargeHeaderSize) {
     const size_t packet_mask_size = kUlpfecPacketMaskSizeLBitSet;
     auto packet_mask = GeneratePacketMask(packet_mask_size, 0xabcd);
 

@@ -80,9 +80,9 @@ void PrintTo(const InsertResult& result, std::ostream& os) {
     }
 }
 
-class PacketAssemblerTest : public ::testing::Test {
+class RTP_RTCP_PacketAssemblerTest : public ::testing::Test {
 protected:
-    PacketAssemblerTest() : frame_assembler_(kStartSize, kMaxSize) {}
+    RTP_RTCP_PacketAssemblerTest() : frame_assembler_(kStartSize, kMaxSize) {}
 
     uint16_t Rand() { return utils::random::generate_random<uint16_t>(); }
 
@@ -113,12 +113,12 @@ protected:
     RtpVideoFrameAssembler frame_assembler_;
 };
 
-TEST_F(PacketAssemblerTest, InsertOnePacket) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, InsertOnePacket) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast).assembled_packets, SizeIs(1));
 }
 
-TEST_F(PacketAssemblerTest, InsertMultiplePackets) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, InsertMultiplePackets) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast).assembled_packets, SizeIs(1));
     EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kFirst, kLast).assembled_packets, SizeIs(1));
@@ -126,26 +126,26 @@ TEST_F(PacketAssemblerTest, InsertMultiplePackets) {
     EXPECT_THAT(Insert(seq_num + 3, kKeyFrame, kFirst, kLast).assembled_packets, SizeIs(1));
 }
 
-TEST_F(PacketAssemblerTest, InsertDuplicatePacket) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, InsertDuplicatePacket) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
     EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kNotFirst, kLast).assembled_packets, SizeIs(2));
 }
 
-TEST_F(PacketAssemblerTest, SeqNumWrapOneFrame) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, SeqNumWrapOneFrame) {
     Insert(0xFFFF, kKeyFrame, kFirst, kNotLast);
     auto ret = Insert(0x00, kKeyFrame, kNotFirst, kLast);
     EXPECT_THAT(ret.assembled_packets, SizeIs(2));
     EXPECT_THAT(ret, StartSeqNumsAre(0xFFFF));
 }
 
-TEST_F(PacketAssemblerTest, SeqNumWrapTwoFrames) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, SeqNumWrapTwoFrames) {
     EXPECT_THAT(Insert(0xFFFF, kKeyFrame, kFirst, kLast), StartSeqNumsAre(0xFFFF));
     EXPECT_THAT(Insert(0x0, kKeyFrame, kFirst, kLast), StartSeqNumsAre(0x0));
 }
 
-TEST_F(PacketAssemblerTest, InsertOldPackets) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, InsertOldPackets) {
     EXPECT_THAT(Insert(100, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
     EXPECT_EQ(Insert(102, kDeltaFrame, kFirst, kLast).assembled_packets.size(), 1u);
     EXPECT_EQ(Insert(101, kKeyFrame, kNotFirst, kLast).assembled_packets.size(), 2u);
@@ -159,7 +159,7 @@ TEST_F(PacketAssemblerTest, InsertOldPackets) {
     EXPECT_THAT(Insert(103, kDeltaFrame, kFirst, kLast).assembled_packets, SizeIs(1));
 }
 
-TEST_F(PacketAssemblerTest, FrameSize) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, FrameSize) {
     const uint16_t seq_num = Rand();
     uint8_t data1[5] = {};
     uint8_t data2[5] = {};
@@ -175,7 +175,7 @@ TEST_F(PacketAssemblerTest, FrameSize) {
     EXPECT_THAT(packets, SizeIs(4));
 }
 
-TEST_F(PacketAssemblerTest, ExpandBuffer) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, ExpandBuffer) {
     const uint16_t seq_num = Rand();
 
     Insert(seq_num, kKeyFrame, kFirst, kNotLast);
@@ -187,7 +187,7 @@ TEST_F(PacketAssemblerTest, ExpandBuffer) {
     EXPECT_FALSE(Insert(seq_num + kStartSize, kKeyFrame, kNotFirst, kLast).keyframe_requested);
 }
 
-TEST_F(PacketAssemblerTest, SingleFrameExpandsBuffer) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, SingleFrameExpandsBuffer) {
     const uint16_t seq_num = Rand();
 
     Insert(seq_num, kKeyFrame, kFirst, kNotLast);
@@ -196,7 +196,7 @@ TEST_F(PacketAssemblerTest, SingleFrameExpandsBuffer) {
     EXPECT_THAT(Insert(seq_num + kStartSize, kKeyFrame, kNotFirst, kLast), StartSeqNumsAre(seq_num));
 }
 
-TEST_F(PacketAssemblerTest, ExpandBufferOverflow) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, ExpandBufferOverflow) {
     const uint16_t seq_num = Rand();
 
     EXPECT_FALSE(Insert(seq_num, kKeyFrame, kFirst, kNotLast).keyframe_requested);
@@ -209,31 +209,31 @@ TEST_F(PacketAssemblerTest, ExpandBufferOverflow) {
 }
 
 
-TEST_F(PacketAssemblerTest, OnePacketOneFrame) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, OnePacketOneFrame) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast), StartSeqNumsAre(seq_num));
 }
 
-TEST_F(PacketAssemblerTest, TwoPacketsTwoFrames) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, TwoPacketsTwoFrames) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast), StartSeqNumsAre(seq_num));
     EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kFirst, kLast), StartSeqNumsAre(seq_num + 1));
 }
 
-TEST_F(PacketAssemblerTest, TwoPacketsOneFrames) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, TwoPacketsOneFrames) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
     EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kNotFirst, kLast), StartSeqNumsAre(seq_num));
 }
 
-TEST_F(PacketAssemblerTest, ThreePacketReorderingOneFrame) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, ThreePacketReorderingOneFrame) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
     EXPECT_THAT(Insert(seq_num + 2, kKeyFrame, kNotFirst, kLast).assembled_packets, IsEmpty());
     EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kNotFirst, kNotLast), StartSeqNumsAre(seq_num));
 }
 
-TEST_F(PacketAssemblerTest, Frames) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, Frames) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast), 
                 StartSeqNumsAre(seq_num));
@@ -245,7 +245,7 @@ TEST_F(PacketAssemblerTest, Frames) {
                 StartSeqNumsAre(seq_num + 3));
 }
 
-TEST_F(PacketAssemblerTest, ClearSinglePacket) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, ClearSinglePacket) {
     const uint16_t seq_num = Rand();
 
     for (int i = 0; i < kMaxSize; ++i)
@@ -255,7 +255,7 @@ TEST_F(PacketAssemblerTest, ClearSinglePacket) {
     EXPECT_FALSE(Insert(seq_num + kMaxSize, kDeltaFrame, kFirst, kLast).keyframe_requested);
 }
 
-TEST_F(PacketAssemblerTest, ClearFullBuffer) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, ClearFullBuffer) {
     for (int i = 0; i < kMaxSize; ++i)
         Insert(i, kDeltaFrame, kFirst, kLast);
 
@@ -265,7 +265,7 @@ TEST_F(PacketAssemblerTest, ClearFullBuffer) {
         EXPECT_FALSE(Insert(i, kDeltaFrame, kFirst, kLast).keyframe_requested);
 }
 
-TEST_F(PacketAssemblerTest, DontClearNewerPacket) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, DontClearNewerPacket) {
     EXPECT_THAT(Insert(0, kKeyFrame, kFirst, kLast), StartSeqNumsAre(0));
     frame_assembler_.ClearTo(0);
     EXPECT_THAT(Insert(2 * kStartSize, kKeyFrame, kFirst, kLast),
@@ -277,7 +277,7 @@ TEST_F(PacketAssemblerTest, DontClearNewerPacket) {
                 StartSeqNumsAre(3 * kStartSize + 1));
 }
 
-TEST_F(PacketAssemblerTest, OneIncompleteFrame) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, OneIncompleteFrame) {
     const uint16_t seq_num = Rand();
 
     EXPECT_THAT(Insert(seq_num, kDeltaFrame, kFirst, kNotLast).assembled_packets,
@@ -288,7 +288,7 @@ TEST_F(PacketAssemblerTest, OneIncompleteFrame) {
                 IsEmpty());
 }
 
-TEST_F(PacketAssemblerTest, TwoIncompleteFramesFullBuffer) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, TwoIncompleteFramesFullBuffer) {
     const uint16_t seq_num = Rand();
 
     for (int i = 1; i < kMaxSize - 1; ++i)
@@ -299,7 +299,7 @@ TEST_F(PacketAssemblerTest, TwoIncompleteFramesFullBuffer) {
                 IsEmpty());
 }
 
-TEST_F(PacketAssemblerTest, FramesReordered) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, FramesReordered) {
     const uint16_t seq_num = Rand();
 
     EXPECT_THAT(Insert(seq_num + 1, kDeltaFrame, kFirst, kLast),
@@ -312,7 +312,7 @@ TEST_F(PacketAssemblerTest, FramesReordered) {
                 StartSeqNumsAre(seq_num + 2));
 }
 
-TEST_F(PacketAssemblerTest, InsertPacketAfterSequenceNumberWrapAround) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, InsertPacketAfterSequenceNumberWrapAround) {
     uint16_t kFirstSeqNum = 0;
     uint32_t kTimestampDelta = 100;
     uint32_t timestamp = 10000;
@@ -340,7 +340,7 @@ TEST_F(PacketAssemblerTest, InsertPacketAfterSequenceNumberWrapAround) {
     EXPECT_THAT(packets, SizeIs(7));
 }
 
-TEST_F(PacketAssemblerTest, FreeSlotsOnFrameCreation) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, FreeSlotsOnFrameCreation) {
     const uint16_t seq_num = Rand();
 
     Insert(seq_num, kKeyFrame, kFirst, kNotLast);
@@ -356,7 +356,7 @@ TEST_F(PacketAssemblerTest, FreeSlotsOnFrameCreation) {
                 StartSeqNumsAre(seq_num + 3));
 }
 
-TEST_F(PacketAssemblerTest, Clear) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, Clear) {
     const uint16_t seq_num = Rand();
 
     Insert(seq_num, kKeyFrame, kFirst, kNotLast);
@@ -372,7 +372,7 @@ TEST_F(PacketAssemblerTest, Clear) {
                 StartSeqNumsAre(seq_num + kStartSize));
 }
 
-TEST_F(PacketAssemblerTest, FramesAfterClear) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, FramesAfterClear) {
     Insert(9025, kDeltaFrame, kFirst, kLast);
     Insert(9024, kKeyFrame, kFirst, kLast);
     frame_assembler_.ClearTo(9025);
@@ -380,19 +380,19 @@ TEST_F(PacketAssemblerTest, FramesAfterClear) {
     EXPECT_THAT(Insert(9026, kDeltaFrame, kFirst, kLast).assembled_packets, SizeIs(1));
 }
 
-TEST_F(PacketAssemblerTest, SameFrameDifferentTimestamps) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, SameFrameDifferentTimestamps) {
     Insert(0, kKeyFrame, kFirst, kNotLast, {}, 1000);
     EXPECT_THAT(Insert(1, kKeyFrame, kNotFirst, kLast, {}, 1001).assembled_packets,
                 IsEmpty());
 }
 
-TEST_F(PacketAssemblerTest, ContinuousSeqNumDoubleMarkerBit) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, ContinuousSeqNumDoubleMarkerBit) {
     Insert(2, kKeyFrame, kNotFirst, kNotLast);
     Insert(1, kKeyFrame, kFirst, kLast);
     EXPECT_THAT(Insert(3, kKeyFrame, kNotFirst, kLast).assembled_packets, IsEmpty());
 }
 
-TEST_F(PacketAssemblerTest, TooManyNalusInPacket) {
+TEST_F(RTP_RTCP_PacketAssemblerTest, TooManyNalusInPacket) {
     auto packet = std::make_unique<Packet>();
     packet->video_header.codec_type = video::CodecType::H264;
     packet->timestamp = 1;
@@ -410,10 +410,10 @@ TEST_F(PacketAssemblerTest, TooManyNalusInPacket) {
 // SPS/PPS/IDR and the keyframes we create as part of the test do contain
 // SPS/PPS/IDR. If |sps_pps_idr_is_keyframe| is false, we only require and
 // create keyframes containing only IDR.
-class PacketAssemblerH264Test : public PacketAssemblerTest {
+class PacketAssemblerH264Test : public RTP_RTCP_PacketAssemblerTest {
 protected:
     explicit PacketAssemblerH264Test(bool sps_pps_idr_is_keyframe)
-        : PacketAssemblerTest() {
+        : RTP_RTCP_PacketAssemblerTest() {
         frame_assembler_.set_sps_pps_idr_is_h264_keyframe(sps_pps_idr_is_keyframe);
     }
 
@@ -461,18 +461,18 @@ protected:
 
 // This fixture is used to test the general behaviour of the packet buffer
 // in both configurations.
-class PacketAssemblerH264ParameterizedTest
+class RTP_RTCP_PacketAssemblerH264ParameterizedTest
     : public ::testing::WithParamInterface<bool>,
       public PacketAssemblerH264Test {
 protected:
-    PacketAssemblerH264ParameterizedTest() : PacketAssemblerH264Test(GetParam()) {}
+    RTP_RTCP_PacketAssemblerH264ParameterizedTest() : PacketAssemblerH264Test(GetParam()) {}
 };
 
 INSTANTIATE_TEST_SUITE_P(SpsPpsIdrIsKeyframe,
-                         PacketAssemblerH264ParameterizedTest,
+                         RTP_RTCP_PacketAssemblerH264ParameterizedTest,
                          ::testing::Bool());
 
-TEST_P(PacketAssemblerH264ParameterizedTest, DontRemoveMissingPacketOnClearTo) {
+TEST_P(RTP_RTCP_PacketAssemblerH264ParameterizedTest, DontRemoveMissingPacketOnClearTo) {
     InsertH264(0, kKeyFrame, kFirst, kLast, 0);
     InsertH264(2, kDeltaFrame, kFirst, kNotLast, 2);
     frame_assembler_.ClearTo(0);
@@ -481,7 +481,7 @@ TEST_P(PacketAssemblerH264ParameterizedTest, DontRemoveMissingPacketOnClearTo) {
                 IsEmpty());
 }
 
-TEST_P(PacketAssemblerH264ParameterizedTest, GetBitstreamOneFrameFullBuffer) {
+TEST_P(RTP_RTCP_PacketAssemblerH264ParameterizedTest, GetBitstreamOneFrameFullBuffer) {
     uint8_t data_arr[kStartSize][1];
     uint8_t expected[kStartSize];
 
@@ -503,7 +503,7 @@ TEST_P(PacketAssemblerH264ParameterizedTest, GetBitstreamOneFrameFullBuffer) {
     }
 }
 
-TEST_P(PacketAssemblerH264ParameterizedTest, GetBitstreamBufferPadding) {
+TEST_P(RTP_RTCP_PacketAssemblerH264ParameterizedTest, GetBitstreamBufferPadding) {
     uint16_t seq_num = Rand();
     CopyOnWriteBuffer data = "some plain old data";
 
@@ -524,7 +524,7 @@ TEST_P(PacketAssemblerH264ParameterizedTest, GetBitstreamBufferPadding) {
     EXPECT_EQ(frames[0]->video_payload, data);
 }
 
-TEST_P(PacketAssemblerH264ParameterizedTest, FrameResolution) {
+TEST_P(RTP_RTCP_PacketAssemblerH264ParameterizedTest, FrameResolution) {
     uint16_t seq_num = 100;
     uint8_t data[] = "some plain old data";
     uint32_t width = 640;
@@ -538,7 +538,7 @@ TEST_P(PacketAssemblerH264ParameterizedTest, FrameResolution) {
     EXPECT_EQ(packets[0]->video_header.frame_height, height);
 }
 
-TEST_P(PacketAssemblerH264ParameterizedTest, OneFrameFillBuffer) {
+TEST_P(RTP_RTCP_PacketAssemblerH264ParameterizedTest, OneFrameFillBuffer) {
     InsertH264(0, kKeyFrame, kFirst, kNotLast, 1000);
     for (int i = 1; i < kStartSize - 1; ++i)
         InsertH264(i, kKeyFrame, kNotFirst, kNotLast, 1000);
@@ -546,7 +546,7 @@ TEST_P(PacketAssemblerH264ParameterizedTest, OneFrameFillBuffer) {
                 StartSeqNumsAre(0));
 }
 
-TEST_P(PacketAssemblerH264ParameterizedTest, CreateFramesAfterFilledBuffer) {
+TEST_P(RTP_RTCP_PacketAssemblerH264ParameterizedTest, CreateFramesAfterFilledBuffer) {
     EXPECT_THAT(InsertH264(kStartSize - 2, kKeyFrame, kFirst, kLast, 0).assembled_packets,
                 SizeIs(1));
 
@@ -561,13 +561,13 @@ TEST_P(PacketAssemblerH264ParameterizedTest, CreateFramesAfterFilledBuffer) {
                 StartSeqNumsAre(kStartSize - 1, kStartSize));
 }
 
-TEST_P(PacketAssemblerH264ParameterizedTest, OneFrameMaxSeqNum) {
+TEST_P(RTP_RTCP_PacketAssemblerH264ParameterizedTest, OneFrameMaxSeqNum) {
     InsertH264(65534, kKeyFrame, kFirst, kNotLast, 1000);
     EXPECT_THAT(InsertH264(65535, kKeyFrame, kNotFirst, kLast, 1000),
                 StartSeqNumsAre(65534));
 }
 
-TEST_P(PacketAssemblerH264ParameterizedTest, ClearMissingPacketsOnKeyframe) {
+TEST_P(RTP_RTCP_PacketAssemblerH264ParameterizedTest, ClearMissingPacketsOnKeyframe) {
     EXPECT_THAT(InsertH264(0, kKeyFrame, kFirst, kLast, 1000), StartSeqNumsAre(0));
     EXPECT_THAT(InsertH264(2, kKeyFrame, kFirst, kLast, 3000).assembled_packets, SizeIs(1));
     EXPECT_THAT(InsertH264(3, kDeltaFrame, kFirst, kNotLast, 4000).assembled_packets, SizeIs(0));
@@ -579,7 +579,7 @@ TEST_P(PacketAssemblerH264ParameterizedTest, ClearMissingPacketsOnKeyframe) {
                 StartSeqNumsAre(kStartSize + 1));
 }
 
-TEST_P(PacketAssemblerH264ParameterizedTest, FindFramesOnPadding) {
+TEST_P(RTP_RTCP_PacketAssemblerH264ParameterizedTest, FindFramesOnPadding) {
     EXPECT_THAT(InsertH264(0, kKeyFrame, kFirst, kLast, 1000), StartSeqNumsAre(0));
     EXPECT_THAT(InsertH264(2, kDeltaFrame, kFirst, kLast, 1000).assembled_packets,
                 IsEmpty());
@@ -604,14 +604,14 @@ protected:
     }
 };
 
-class PacketAssemblerH264IdrIsKeyframeTest
+class RTP_RTCP_PacketAssemblerH264IdrIsKeyframeTest
     : public PacketAssemblerH264XIsKeyframeTest {
 protected:
-    PacketAssemblerH264IdrIsKeyframeTest()
+    RTP_RTCP_PacketAssemblerH264IdrIsKeyframeTest()
         : PacketAssemblerH264XIsKeyframeTest(false) {}
 };
 
-TEST_F(PacketAssemblerH264IdrIsKeyframeTest, IdrIsKeyframe) {
+TEST_F(RTP_RTCP_PacketAssemblerH264IdrIsKeyframeTest, IdrIsKeyframe) {
     auto packet = CreatePacket();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(1);
@@ -621,7 +621,7 @@ TEST_F(PacketAssemblerH264IdrIsKeyframeTest, IdrIsKeyframe) {
                 ElementsAre(KeyFrame()));
 }
 
-TEST_F(PacketAssemblerH264IdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
+TEST_F(RTP_RTCP_PacketAssemblerH264IdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
     auto packet = CreatePacket();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(3);
@@ -636,14 +636,14 @@ TEST_F(PacketAssemblerH264IdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
                 ElementsAre(KeyFrame()));
 }
 
-class PacketAssemblerH264SpsPpsIdrIsKeyframeTest
+class RTP_RTCP_PacketAssemblerH264SpsPpsIdrIsKeyframeTest
     : public PacketAssemblerH264XIsKeyframeTest {
  protected:
-  PacketAssemblerH264SpsPpsIdrIsKeyframeTest()
+  RTP_RTCP_PacketAssemblerH264SpsPpsIdrIsKeyframeTest()
       : PacketAssemblerH264XIsKeyframeTest(true) {}
 };
 
-TEST_F(PacketAssemblerH264SpsPpsIdrIsKeyframeTest, IdrIsNotKeyframe) {
+TEST_F(RTP_RTCP_PacketAssemblerH264SpsPpsIdrIsKeyframeTest, IdrIsNotKeyframe) {
     auto packet = CreatePacket();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(1);
@@ -656,7 +656,7 @@ TEST_F(PacketAssemblerH264SpsPpsIdrIsKeyframeTest, IdrIsNotKeyframe) {
                 ElementsAre(DeltaFrame()));
 }
 
-TEST_F(PacketAssemblerH264SpsPpsIdrIsKeyframeTest, SpsPpsIsNotKeyframe) {
+TEST_F(RTP_RTCP_PacketAssemblerH264SpsPpsIdrIsKeyframeTest, SpsPpsIsNotKeyframe) {
     auto packet = CreatePacket();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(2);
@@ -670,7 +670,7 @@ TEST_F(PacketAssemblerH264SpsPpsIdrIsKeyframeTest, SpsPpsIsNotKeyframe) {
                 ElementsAre(DeltaFrame()));
 }
 
-TEST_F(PacketAssemblerH264SpsPpsIdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
+TEST_F(RTP_RTCP_PacketAssemblerH264SpsPpsIdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
     auto packet = CreatePacket();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(3);

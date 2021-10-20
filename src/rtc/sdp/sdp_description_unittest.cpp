@@ -7,7 +7,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(DescriptionTest, BuildAnOffer) {
+TEST(SDP_DescriptionTest, BuildAnOffer) {
     auto builder = sdp::Description::Builder(sdp::Type::OFFER)
                     .set_role(sdp::Role::ACT_PASS)
                     .set_ice_ufrag("KTqE")
@@ -125,7 +125,7 @@ TEST(DescriptionTest, BuildAnOffer) {
     EXPECT_EQ(video_rtx_ssrc_entry->track_id.value(), "ead4b4e9-b650-4ed5-86f8-6f5f5806346d");
 }
 
-TEST(DescriptionTest, ParseAnOffer) {
+TEST(SDP_DescriptionTest, ParseAnOffer) {
     const std::string remote_sdp_string = R"(v=0
     o=- 9054970245222891759 2 IN IP4 127.0.0.1
     s=-

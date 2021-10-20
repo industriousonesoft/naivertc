@@ -47,7 +47,7 @@ constexpr TestUnit TestUnitAddKilo(TestUnit value, int add_kilo) {
 
 namespace test {
 
-TEST(UnitBaseTest, ConstExpr) {
+TEST(Base_UnitBaseTest, ConstExpr) {
     constexpr int64_t kValue = -12345;
     constexpr TestUnit kTestUnitZero = TestUnit::Zero();
     constexpr TestUnit kTestUnitMaxValue = TestUnit::MaxValue();
@@ -68,7 +68,7 @@ TEST(UnitBaseTest, ConstExpr) {
     static_assert(TestUnitAddKilo(kTestUnitValue, 2).ToValue() == kValue + 2000, "");
 }
 
-TEST(UnitBaseTest, GetBackSameValues) {
+TEST(Base_UnitBaseTest, GetBackSameValues) {
     const int64_t kValue = 499;
     for (int sign = -1; sign <= 1; ++sign) {
         int64_t value = kValue * sign;
@@ -78,13 +78,13 @@ TEST(UnitBaseTest, GetBackSameValues) {
     EXPECT_EQ(TestUnit::Zero().ToValue<int64_t>(), 0);
 }
 
-TEST(UnitBaseTest, GetDifferentPrefix) {
+TEST(Base_UnitBaseTest, GetDifferentPrefix) {
     const int64_t kValue = 3000000;
     EXPECT_EQ(TestUnit::FromValue(kValue).ToKilo(), kValue / 1000);
     EXPECT_EQ(TestUnit::FromKilo(kValue).ToValue<int64_t>(), kValue * 1000);
 }
 
-TEST(UnitBaseTest, ConvertsToAndFromDouble) {
+TEST(Base_UnitBaseTest, ConvertsToAndFromDouble) {
     const int64_t kValue = 17017;
     const double kMilliDouble = kValue * 1e3;
     const double kValueDouble = kValue;
@@ -114,7 +114,7 @@ TEST(UnitBaseTest, ConvertsToAndFromDouble) {
     EXPECT_TRUE(TestUnit::FromValue(kMinValue).IsMin());
 }
 
-TEST(UnitBaseTest, InfinityOperations) {
+TEST(Base_UnitBaseTest, InfinityOperations) {
   const int64_t kValue = 267;
   const TestUnit finite = TestUnit::FromKilo(kValue);
   EXPECT_TRUE((TestUnit::MaxValue() + finite).IsMax());

@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(RtcpNackStatsTest, Requests) {
+TEST(RTP_RTCP_RtcpNackStatsTest, Requests) {
     RtcpNackStats stats;
     EXPECT_EQ(0U, stats.unique_requests());
     EXPECT_EQ(0U, stats.requests());
@@ -28,7 +28,7 @@ TEST(RtcpNackStatsTest, Requests) {
     EXPECT_EQ(6U, stats.requests());
 }
 
-TEST(RtcpNackStatsTest, RequestsWithWrap) {
+TEST(RTP_RTCP_RtcpNackStatsTest, RequestsWithWrap) {
     RtcpNackStats stats;
     stats.ReportRequest(65534);
     EXPECT_EQ(1U, stats.unique_requests());

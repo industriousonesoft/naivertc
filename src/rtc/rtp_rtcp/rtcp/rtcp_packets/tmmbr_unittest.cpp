@@ -19,7 +19,7 @@ constexpr uint8_t kPacket[] = {0x83, 205,  0x00, 0x04, 0x12, 0x34, 0x56,
 constexpr size_t kPacketSize = sizeof(kPacket);
 }  // namespace
 
-TEST(RtcpPacketTmmbrTest, Create) {
+TEST(RTP_RTCP_RtcpPacketTmmbrTest, Create) {
     Tmmbr tmmbr;
     tmmbr.set_sender_ssrc(kSenderSsrc);
     tmmbr.AddTmmbr(TmmbItem(kRemoteSsrc, kBitrateBps, kOverhead));
@@ -28,7 +28,7 @@ TEST(RtcpPacketTmmbrTest, Create) {
     EXPECT_THAT(packet, testing::ElementsAreArray(kPacket));
 }
 
-TEST(RtcpPacketTmmbrTest, Parse) {
+TEST(RTP_RTCP_RtcpPacketTmmbrTest, Parse) {
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(kPacket, kPacketSize));
     
@@ -41,7 +41,7 @@ TEST(RtcpPacketTmmbrTest, Parse) {
     EXPECT_EQ(kOverhead, parsed.requests().front().packet_overhead());
 }
 
-TEST(RtcpPacketTmmbrTest, CreateAndParseWithTwoEntries) {
+TEST(RTP_RTCP_RtcpPacketTmmbrTest, CreateAndParseWithTwoEntries) {
     Tmmbr tmmbr;
     tmmbr.set_sender_ssrc(kSenderSsrc);
     tmmbr.AddTmmbr(TmmbItem(kRemoteSsrc, kBitrateBps, kOverhead));
@@ -61,7 +61,7 @@ TEST(RtcpPacketTmmbrTest, CreateAndParseWithTwoEntries) {
     EXPECT_EQ(kRemoteSsrc + 1, parsed.requests()[1].ssrc());
 }
 
-TEST(RtcpPacketTmmbrTest, ParseFailsWithoutItems) {
+TEST(RTP_RTCP_RtcpPacketTmmbrTest, ParseFailsWithoutItems) {
     const uint8_t kZeroItemsPacket[] = {0x83, 205,  0x00, 0x02, 0x12, 0x34,
                                         0x56, 0x78, 0x00, 0x00, 0x00, 0x00};
 
@@ -72,7 +72,7 @@ TEST(RtcpPacketTmmbrTest, ParseFailsWithoutItems) {
     EXPECT_FALSE(parsed.Parse(common_header));
 }
 
-TEST(RtcpPacketTmmbrTest, ParseFailsOnUnAlignedPacket) {
+TEST(RTP_RTCP_RtcpPacketTmmbrTest, ParseFailsOnUnAlignedPacket) {
     const uint8_t kUnalignedPacket[] = {
         0x83, 205,  0x00, 0x05, 0x12, 0x34, 0x56, 0x78, 0x00, 0x00, 0x00, 0x00,
         0x23, 0x45, 0x67, 0x89, 0x0a, 0x61, 0x61, 0xfe, 0x34, 0x56, 0x78, 0x9a};

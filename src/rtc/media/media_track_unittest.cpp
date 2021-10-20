@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(MediaTrackConfigTest, CreateMediaTrackConfig) {
+TEST(Media_TrackConfigTest, CreateMediaTrackConfig) {
     MediaTrack::Configuration config(MediaTrack::Kind::VIDEO, "1");
     config.direction = MediaTrack::Direction::SEND_ONLY;
     config.rtx_enabled = true;
@@ -26,7 +26,7 @@ TEST(MediaTrackConfigTest, CreateMediaTrackConfig) {
     
 }
 
-TEST(MediaTrackConfigTest, CreateVideoMediaSDPWithUlpFEC) {
+TEST(Media_TrackConfigTest, CreateVideoMediaSDPWithUlpFEC) {
     MediaTrack::Configuration config(MediaTrack::Kind::VIDEO, "1");
     config.direction = MediaTrack::Direction::SEND_ONLY;
     config.rtx_enabled = true;
@@ -49,7 +49,7 @@ TEST(MediaTrackConfigTest, CreateVideoMediaSDPWithUlpFEC) {
     EXPECT_EQ(description->fec_ssrcs().size(), 0);
 }
 
-TEST(MediaTrackConfigTest, CreateVideoMediaSDPWithFlexFEC) {
+TEST(Media_TrackConfigTest, CreateVideoMediaSDPWithFlexFEC) {
     MediaTrack::Configuration config(MediaTrack::Kind::VIDEO, "1");
     config.direction = MediaTrack::Direction::SEND_ONLY;
     config.rtx_enabled = true;
@@ -69,7 +69,7 @@ TEST(MediaTrackConfigTest, CreateVideoMediaSDPWithFlexFEC) {
     EXPECT_EQ(description->fec_ssrcs().size(), 1);
 }
 
-TEST(MediaTrackConfigTest, CreateAudioMediaSDP) {
+TEST(Media_TrackConfigTest, CreateAudioMediaSDP) {
     MediaTrack::Configuration config(MediaTrack::Kind::AUDIO, "1");
     config.direction = MediaTrack::Direction::SEND_ONLY;
     config.cname = "audio-stream";

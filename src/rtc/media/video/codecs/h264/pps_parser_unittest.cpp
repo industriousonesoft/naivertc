@@ -125,10 +125,10 @@ void WritePps(const PpsParser::PpsState& pps,
     h264::NalUnit::WriteRbsp(data, byte_offset, out_buffer);
 }
 
-class PpsParserTest : public ::testing::Test {
+class H264_PpsParserTest : public ::testing::Test {
 public:
-    PpsParserTest() {}
-    ~PpsParserTest() override {}
+    H264_PpsParserTest() {}
+    ~H264_PpsParserTest() override {}
 
     void RunTest() {
         VerifyParsing(generated_pps_, 0, 1, 0);
@@ -184,11 +184,11 @@ private:
     std::optional<PpsParser::PpsState> parsed_pps_;
 };
 
-TEST_F(PpsParserTest, ZeroPps) {
+TEST_F(H264_PpsParserTest, ZeroPps) {
     RunTest();
 }
 
-TEST_F(PpsParserTest, MaxPps) {
+TEST_F(H264_PpsParserTest, MaxPps) {
     generated_pps_.bottom_field_pic_order_in_frame_present_flag = true;
     generated_pps_.pic_init_qp_minus26 = 25;
     generated_pps_.redundant_pic_cnt_present_flag = 1;  // 1 bit value.
@@ -203,7 +203,7 @@ TEST_F(PpsParserTest, MaxPps) {
     RunTest();
 }
 
-TEST_F(PpsParserTest, PpsIdFromSlice) {
+TEST_F(H264_PpsParserTest, PpsIdFromSlice) {
     // 0xb7, 0x40,
     // 1011 0111 0100 0000
     // 1 - 011 - 011

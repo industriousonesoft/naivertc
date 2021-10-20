@@ -18,7 +18,7 @@ const uint8_t kNameTag = 2;
 const uint8_t kEmailTag = 3;
 } // namespace
 
-TEST(RtcpSdesTest, CreateAndParseWithoutChunks) {
+TEST(RTP_RTCP_RtcpSdesTest, CreateAndParseWithoutChunks) {
     Sdes sdes;
     BinaryBuffer packet = sdes.Build();
     
@@ -30,7 +30,7 @@ TEST(RtcpSdesTest, CreateAndParseWithoutChunks) {
     EXPECT_EQ(0u, parsed.chunks().size());
 }
 
-TEST(RtcpSdesTest, CreateAndParseWithOneChunk) {
+TEST(RTP_RTCP_RtcpSdesTest, CreateAndParseWithOneChunk) {
     const std::string cname = "alice@host";
 
     Sdes sdes;
@@ -52,7 +52,7 @@ TEST(RtcpSdesTest, CreateAndParseWithOneChunk) {
 
 }
 
-TEST(RtcpSdesTest, CreateAndParseMultipleChunks) {
+TEST(RTP_RTCP_RtcpSdesTest, CreateAndParseMultipleChunks) {
     Sdes sdes;
     EXPECT_TRUE(sdes.AddCName(kSenderSsrc + 0, "a"));
     EXPECT_TRUE(sdes.AddCName(kSenderSsrc + 1, "ab"));
@@ -74,7 +74,7 @@ TEST(RtcpSdesTest, CreateAndParseMultipleChunks) {
     
 }
 
-TEST(RtcpSdesTest, CreateWithToManyChunks) {
+TEST(RTP_RTCP_RtcpSdesTest, CreateWithToManyChunks) {
     const size_t kMaxChunks = (1 << 5) - 1; // 0xFFu
     Sdes sdes;
     
@@ -86,7 +86,7 @@ TEST(RtcpSdesTest, CreateWithToManyChunks) {
     EXPECT_FALSE(sdes.AddCName(kSenderSsrc + kMaxChunks, "foo"));
 }
 
-TEST(RtcpSdesTest, ParseSkipNonCNameField) {
+TEST(RTP_RTCP_RtcpSdesTest, ParseSkipNonCNameField) {
     const uint8_t kName[] = "abc";
     const uint8_t kCName[] = "de";
     const uint8_t kValidPacket[] = {

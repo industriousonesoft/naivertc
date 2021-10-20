@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(BitRateTest, ConstExpr) {
+TEST(Base_BitRateTest, ConstExpr) {
     constexpr int64_t kValue = 12345;
     constexpr BitRate kBitRateZero = BitRate::Zero();
     constexpr BitRate kBitRateInf = BitRate::Infinity();
@@ -21,18 +21,18 @@ TEST(BitRateTest, ConstExpr) {
     static_assert(kBitRateKbps.kbps_or(0) == kValue, "");
 }
 
-TEST(BitRateTest, GetBackSameValues) {
+TEST(Base_BitRateTest, GetBackSameValues) {
     const int64_t kValue = 123 * 8;
     EXPECT_EQ(BitRate::BitsPerSec(kValue).bps(), kValue);
     EXPECT_EQ(BitRate::KilobitsPerSec(kValue).kbps(), kValue);
 }
 
-TEST(BitRateTest, GetDifferentPrefix) {
+TEST(Base_BitRateTest, GetDifferentPrefix) {
     const int64_t kValue = 123 * 8000;
     EXPECT_EQ(BitRate::BitsPerSec(kValue).kbps(), kValue / 1000);
 }
 
-TEST(BitRateTest, IdentityChecks) {
+TEST(Base_BitRateTest, IdentityChecks) {
     const int64_t kValue = 3000;
     EXPECT_TRUE(BitRate::Zero().IsZero());
     EXPECT_FALSE(BitRate::BitsPerSec(kValue).IsZero());
@@ -46,7 +46,7 @@ TEST(BitRateTest, IdentityChecks) {
     EXPECT_TRUE(BitRate::Zero().IsFinite());
 }
 
-TEST(BitRateTest, ComparisonOperators) {
+TEST(Base_BitRateTest, ComparisonOperators) {
     const int64_t kSmall = 450;
     const int64_t kLarge = 451;
     const BitRate small = BitRate::BitsPerSec(kSmall);
@@ -66,7 +66,7 @@ TEST(BitRateTest, ComparisonOperators) {
     EXPECT_GT(BitRate::Infinity(), large);
 }
 
-TEST(BitRateTest, ConvertsToAndFromDouble) {
+TEST(Base_BitRateTest, ConvertsToAndFromDouble) {
     const int64_t kValue = 128;
     const double kDoubleValue = static_cast<double>(kValue);
     const double kDoubleKbps = kValue * 1e-3;
@@ -84,7 +84,7 @@ TEST(BitRateTest, ConvertsToAndFromDouble) {
     EXPECT_TRUE(BitRate::KilobitsPerSec(kInfinity).IsInfinite());
 }
 
-TEST(BitRateTest, Clamping) {
+TEST(Base_BitRateTest, Clamping) {
     const BitRate upper = BitRate::KilobitsPerSec(800);
     const BitRate lower = BitRate::KilobitsPerSec(100);
     const BitRate under = BitRate::KilobitsPerSec(100);

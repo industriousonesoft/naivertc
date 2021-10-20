@@ -9,7 +9,7 @@ using namespace naivertc::rtcp;
 namespace naivertc {
 namespace test {
 
-TEST(RtcpPacketLossNotificationTest, SetWithIllegalValuesFails) {
+TEST(RTP_RTCP_RtcpPacketLossNotificationTest, SetWithIllegalValuesFails) {
     constexpr uint16_t kLastDecoded = 0x3c7b;
     constexpr uint16_t kLastReceived = kLastDecoded + 0x7fff + 1;
     constexpr bool kDecodabilityFlag = true;
@@ -17,7 +17,7 @@ TEST(RtcpPacketLossNotificationTest, SetWithIllegalValuesFails) {
     EXPECT_FALSE(loss_notification.Set(kLastDecoded, kLastReceived, kDecodabilityFlag));
 }
 
-TEST(RtcpPacketLossNotificationTest, SetWithLegalValuesSucceeds) {
+TEST(RTP_RTCP_RtcpPacketLossNotificationTest, SetWithLegalValuesSucceeds) {
     constexpr uint16_t kLastDecoded = 0x3c7b;
     constexpr uint16_t kLastReceived = kLastDecoded + 0x7fff;
     constexpr bool kDecodabilityFlag = true;
@@ -25,7 +25,7 @@ TEST(RtcpPacketLossNotificationTest, SetWithLegalValuesSucceeds) {
     EXPECT_TRUE(loss_notification.Set(kLastDecoded, kLastReceived, kDecodabilityFlag));
 }
 
-TEST(RtcpPacketLossNotificationTest, CreateProducesExpectedWireFormat) {
+TEST(RTP_RTCP_RtcpPacketLossNotificationTest, CreateProducesExpectedWireFormat) {
     // Note that (0x6542 >> 1) is used just to make the pattern in kPacket
     // more apparent; there's nothing truly special about the value,
     // it's only an implementation detail that last-received is represented
@@ -49,7 +49,7 @@ TEST(RtcpPacketLossNotificationTest, CreateProducesExpectedWireFormat) {
     EXPECT_THAT(packet, testing::ElementsAreArray(kPacket));
 }
 
-TEST(RtcpPacketLossNotificationTest, ParseLegalLossNotificationMessagesCorrectly) {
+TEST(RTP_RTCP_RtcpPacketLossNotificationTest, ParseLegalLossNotificationMessagesCorrectly) {
      // Note that (0x6542 >> 1) is used just to make the pattern in kPacket
     // more apparent; there's nothing truly special about the value,
     // it's only an implementation detail that last-received is represented

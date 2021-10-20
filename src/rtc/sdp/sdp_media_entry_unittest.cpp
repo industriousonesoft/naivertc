@@ -10,7 +10,7 @@ namespace naivertc {
 namespace test {
 
 // Application entry
-TEST(SDPEntryTest, CreateApplicationEntry) {
+TEST(SDP_SDPEntryTest, CreateApplicationEntry) {
     sdp::Application app("data");
 
     EXPECT_EQ(app.mid(), "data");
@@ -18,7 +18,7 @@ TEST(SDPEntryTest, CreateApplicationEntry) {
 }
 
 // Video entry
-TEST(SDPEntryTest, CreateVideoEntry) {
+TEST(SDP_SDPEntryTest, CreateVideoEntry) {
     sdp::Media video(sdp::MediaEntry::Kind::VIDEO, "video", "UDP/TLS/RTP/SAVPF", sdp::Direction::SEND_ONLY);
 
     EXPECT_EQ(video.mid(), "video");
@@ -27,7 +27,7 @@ TEST(SDPEntryTest, CreateVideoEntry) {
 }
 
 // Audio entry
-TEST(SDPEntryTest, CreateAudioEntry) {
+TEST(SDP_SDPEntryTest, CreateAudioEntry) {
     sdp::Media audio(sdp::MediaEntry::Kind::AUDIO, "audio", "UDP/TLS/RTP/SAVPF", sdp::Direction::RECV_ONLY);
 
     EXPECT_EQ(audio.mid(), "audio");

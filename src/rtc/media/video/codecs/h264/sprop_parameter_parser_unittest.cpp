@@ -7,12 +7,12 @@
 namespace naivertc {
 namespace test {
 
-class H264SpropParameterParserTest : public ::testing::Test {
+class H264_SpropParameterParserTest : public ::testing::Test {
 public:
     h264::SpropParameterParser h264_sprop;
 };
 
-TEST_F(H264SpropParameterParserTest, Base64DecodeSprop) {
+TEST_F(H264_SpropParameterParserTest, Base64DecodeSprop) {
     // Example sprop string from https://tools.ietf.org/html/rfc3984 .
     EXPECT_TRUE(h264_sprop.Parse("Z0IACpZTBYmI,aMljiA=="));
     static const std::vector<uint8_t> raw_sps{0x67, 0x42, 0x00, 0x0A, 0x96,
@@ -22,7 +22,8 @@ TEST_F(H264SpropParameterParserTest, Base64DecodeSprop) {
     EXPECT_EQ(raw_pps, h264_sprop.pps_nalu());
 }
 
-TEST_F(H264SpropParameterParserTest, InvalidData) {
+TEST_F(H264_SpropParameterParserTest, InvalidData) {
+    // GTEST_SKIP();
     EXPECT_FALSE(h264_sprop.Parse(","));
     EXPECT_FALSE(h264_sprop.Parse(""));
     EXPECT_FALSE(h264_sprop.Parse(",iA=="));

@@ -7,7 +7,7 @@ namespace test {
 
 using namespace naivertc::rtcp;
 
-TEST(RtcpCommonHeaderTest, TooSmallBuffer) {
+TEST(RTP_RTCP_RtcpCommonHeaderTest, TooSmallBuffer) {
     const uint8_t buffer[] = {0x80, 0x00, 0x00, 0x00};
     CommonHeader header;
     EXPECT_FALSE(header.Parse(buffer, 0));
@@ -17,7 +17,7 @@ TEST(RtcpCommonHeaderTest, TooSmallBuffer) {
     EXPECT_TRUE(header.Parse(buffer, 4));
 }
 
-TEST(RtcpCommonHeaderTest, Version) {
+TEST(RTP_RTCP_RtcpCommonHeaderTest, Version) {
     uint8_t buffer[] = {0x00, 0x00, 0x00, 0x00};
     size_t buffer_size = 4;
     CommonHeader header;
@@ -32,7 +32,7 @@ TEST(RtcpCommonHeaderTest, Version) {
     EXPECT_FALSE(header.Parse(buffer, buffer_size));
 }
 
-TEST(RtcpCommonHeaderTest, PacketSize) {
+TEST(RTP_RTCP_RtcpCommonHeaderTest, PacketSize) {
     uint8_t buffer[] = {0x80, 0x00, 0x00, 0x02, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     size_t buffer_size = 12;
@@ -44,7 +44,7 @@ TEST(RtcpCommonHeaderTest, PacketSize) {
     EXPECT_EQ(buffer_size, header.packet_size());
 }
 
-TEST(RtcpCommonHeaderTest, PaddingAndPayloadSize) {
+TEST(RTP_RTCP_RtcpCommonHeaderTest, PaddingAndPayloadSize) {
     // Set v = 2, p = 1, but leave fmt, pt as 0.
     uint8_t buffer[] = {0xa0, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -82,7 +82,7 @@ TEST(RtcpCommonHeaderTest, PaddingAndPayloadSize) {
     EXPECT_EQ(header.packet_size(), buffer_size);
 }
 
-TEST(RtcpCommonHeaderTest, FormatAndPayloadType) {
+TEST(RTP_RTCP_RtcpCommonHeaderTest, FormatAndPayloadType) {
     const uint8_t buffer[] = {0x9e, 0xab, 0x00, 0x00};
     size_t buffer_size = 4;
     CommonHeader header;

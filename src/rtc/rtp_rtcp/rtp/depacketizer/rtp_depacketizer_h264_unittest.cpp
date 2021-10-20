@@ -32,7 +32,7 @@ enum NalDefs { kFBit = 0x80, kNriMask = 0x60, kTypeMask = 0x1F };
 // Bit masks for FU (A and B) headers.
 enum FuDefs { kSBit = 0x80, kEBit = 0x40, kRBit = 0x20 };
 
-TEST(RtpH264DepacketizerTest, SingleNalu) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, SingleNalu) {
     uint8_t packet[2] = {0x05, 0xFF};  // F=0, NRI=0, Type=5 (IDR).
     CopyOnWriteBuffer rtp_payload(packet);
 
@@ -52,7 +52,7 @@ TEST(RtpH264DepacketizerTest, SingleNalu) {
     EXPECT_FALSE(h264.has_sps);
 }
 
-TEST(RtpH264DepacketizerTest, SingleNaluSpsWithResolution) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, SingleNaluSpsWithResolution) {
     uint8_t packet[] = {kSps, 0x7A, 0x00, 0x1F, 0xBC, 0xD9, 0x40, 0x50,
                         0x05, 0xBA, 0x10, 0x00, 0x00, 0x03, 0x00, 0xC0,
                         0x00, 0x00, 0x03, 0x2A, 0xE0, 0xF1, 0x83, 0x25};
@@ -75,7 +75,7 @@ TEST(RtpH264DepacketizerTest, SingleNaluSpsWithResolution) {
     EXPECT_FALSE(h264.has_idr);
 }
 
-TEST(RtpH264DepacketizerTest, StapAKey) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, StapAKey) {
     // clang-format off
     const h264::NaluInfo kExpectedNalus[] = { {h264::NaluType::SPS, 0, -1},
                                               {h264::NaluType::PPS, 1, 2},
@@ -121,7 +121,7 @@ TEST(RtpH264DepacketizerTest, StapAKey) {
     }
 }
 
-TEST(RtpH264DepacketizerTest, ParsePpsIdFromSlice) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, ParsePpsIdFromSlice) {
     uint8_t packet[] = {0x85, 0xB8};
     // 1 000010110 1 1 1 000
     BitReader slice_reader(packet, 2);
@@ -141,7 +141,7 @@ TEST(RtpH264DepacketizerTest, ParsePpsIdFromSlice) {
     }
 }
 
-TEST(RtpH264DepacketizerTest, StapANaluSpsWithResolution) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, StapANaluSpsWithResolution) {
     uint8_t packet[] = {kStapA,  // F=0, NRI=0, Type=24.
                                 // Length (2 bytes), nal header, payload.
                         0x00, 0x19, kSps, 0x7A, 0x00, 0x1F, 0xBC, 0xD9, 0x40,
@@ -168,7 +168,7 @@ TEST(RtpH264DepacketizerTest, StapANaluSpsWithResolution) {
     EXPECT_TRUE(h264.has_idr);
 }
 
-TEST(RtpH264DepacketizerTest, EmptyStapARejected) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, EmptyStapARejected) {
     uint8_t lone_empty_packet[] = {kStapA, 0x00, 0x00};
     uint8_t leading_empty_packet[] = {kStapA, 0x00, 0x00, 0x00, 0x04,
                                         kIdr, 0xFF, 0x00, 0x11};
@@ -184,7 +184,7 @@ TEST(RtpH264DepacketizerTest, EmptyStapARejected) {
     EXPECT_FALSE(depacketizer.Depacketize(CopyOnWriteBuffer(trailing_empty_packet)));
 }
 
-TEST(RtpH264DepacketizerTest, StapADelta) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, StapADelta) {
     uint8_t packet[16] = {kStapA,  // F=0, NRI=0, Type=24.
                                     // Length, nal header, payload.
                             0, 0x02, kSlice, 0xFF, 0, 0x03, kSlice, 0xFF, 0x00, 0,
@@ -207,7 +207,7 @@ TEST(RtpH264DepacketizerTest, StapADelta) {
     EXPECT_EQ(h264.packet_nalu_type, kSlice);
 }
 
-TEST(RtpH264DepacketizerTest, FuA) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, FuA) {
     // clang-format off
     uint8_t packet1[] = {
         kFuA,          // F=0, NRI=0, Type=28.
@@ -284,43 +284,43 @@ TEST(RtpH264DepacketizerTest, FuA) {
     }
 }
 
-TEST(RtpH264DepacketizerTest, EmptyPayload) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, EmptyPayload) {
     CopyOnWriteBuffer empty;
     RtpH264Depacketizer depacketizer;
     EXPECT_FALSE(depacketizer.Depacketize(empty));
 }
 
-TEST(RtpH264DepacketizerTest, TruncatedFuaNalu) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, TruncatedFuaNalu) {
     const uint8_t kPayload[] = {0x9c};
     RtpH264Depacketizer depacketizer;
     EXPECT_FALSE(depacketizer.Depacketize(CopyOnWriteBuffer(kPayload)));
 }
 
-TEST(RtpH264DepacketizerTest, TruncatedSingleStapANalu) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, TruncatedSingleStapANalu) {
     const uint8_t kPayload[] = {0xd8, 0x27};
     RtpH264Depacketizer depacketizer;
     EXPECT_FALSE(depacketizer.Depacketize(CopyOnWriteBuffer(kPayload)));
 }
 
-TEST(RtpH264DepacketizerTest, StapAPacketWithTruncatedNalUnits) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, StapAPacketWithTruncatedNalUnits) {
     const uint8_t kPayload[] = {0x58, 0xCB, 0xED, 0xDF};
     RtpH264Depacketizer depacketizer;
     EXPECT_FALSE(depacketizer.Depacketize(CopyOnWriteBuffer(kPayload)));
 }
 
-TEST(RtpH264DepacketizerTest, TruncationJustAfterSingleStapANalu) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, TruncationJustAfterSingleStapANalu) {
     const uint8_t kPayload[] = {0x38, 0x27, 0x27};
     RtpH264Depacketizer depacketizer;
     EXPECT_FALSE(depacketizer.Depacketize(CopyOnWriteBuffer(kPayload)));
 }
 
-TEST(RtpH264DepacketizerTest, ShortSpsPacket) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, ShortSpsPacket) {
     const uint8_t kPayload[] = {0x27, 0x80, 0x00};
     RtpH264Depacketizer depacketizer;
     EXPECT_TRUE(depacketizer.Depacketize(CopyOnWriteBuffer(kPayload)));
 }
 
-TEST(RtpH264DepacketizerTest, SeiPacket) {
+TEST(RTP_RTCP_RtpH264DepacketizerTest, SeiPacket) {
     const uint8_t kPayload[] = {
         kSei,                   // F=0, NRI=0, Type=6.
         0x03, 0x03, 0x03, 0x03  // Payload.

@@ -52,7 +52,7 @@ constexpr uint8_t kPayload[] = {
 constexpr size_t kPayloadSize = sizeof(kPayload);
 }
 
-TEST(RtpPacketTest, BuildPacket) {
+TEST(RTP_RTCP_RtpPacketTest, BuildPacket) {
     auto rtp_packet = RtpPacket::Create();
     EXPECT_NE(rtp_packet, nullptr);
     EXPECT_EQ(rtp_packet->capacity(), 1500);
@@ -82,7 +82,7 @@ TEST(RtpPacketTest, BuildPacket) {
     EXPECT_THAT(rtp_packet->payload(), testing::ElementsAreArray(kPayload, kPayloadSize));
 }
 
-TEST(RtpPacketTest, Parse) {
+TEST(RTP_RTCP_RtpPacketTest, Parse) {
     auto rtp_packet = RtpPacket::Create();
     EXPECT_NE(rtp_packet, nullptr);
     EXPECT_EQ(rtp_packet->capacity(), 1500);
@@ -100,7 +100,7 @@ TEST(RtpPacketTest, Parse) {
     EXPECT_EQ(rtp_packet->payload_size(), kPayloadSize);
 }
 
-TEST(RtpPacketTest, TwiceSet) {
+TEST(RTP_RTCP_RtpPacketTest, TwiceSet) {
     auto rtp_packet = RtpPacket::Create();
 
     rtp_packet->set_marker(true);

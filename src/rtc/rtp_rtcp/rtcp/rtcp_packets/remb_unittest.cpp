@@ -22,7 +22,7 @@ const uint8_t kPacket[] = {0x8f, 206,  0x00, 0x07, 0x12, 0x34, 0x56, 0x78,
 const size_t kPacketLength = sizeof(kPacket);
 } // namespace
 
-TEST(RtcpRembTest, Create) {
+TEST(RTP_RTCP_RtcpRembTest, Create) {
     Remb remb;
     remb.set_sender_ssrc(kSenderSsrc);
     remb.set_ssrcs(std::vector<uint32_t>(std::begin(kRemoteSsrcs), std::end(kRemoteSsrcs)));
@@ -36,7 +36,7 @@ TEST(RtcpRembTest, Create) {
     EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
 }
 
-TEST(RtcpRembTest, Parse) {
+TEST(RTP_RTCP_RtcpRembTest, Parse) {
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(kPacket, kPacketLength));
 
@@ -51,7 +51,7 @@ TEST(RtcpRembTest, Parse) {
     EXPECT_THAT(remb.ssrcs(), testing::ElementsAreArray(kRemoteSsrcs));
 }
 
-TEST(RtcpRembTest, ParseFailsWhenUniqueIdentifierIsNotRemb) {
+TEST(RTP_RTCP_RtcpRembTest, ParseFailsWhenUniqueIdentifierIsNotRemb) {
     uint8_t packet[kPacketLength];
     memcpy(packet, kPacket, kPacketLength);
     packet[15] = 'A'; // Swap 'B' -> 'A' in the 'REMB' unique identifier

@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace test {
 
-class WeakPtrManagerTest : public testing::Test {
+class Common_WeakPtrManagerTest : public testing::Test {
 public:
     void SetUp() override {
         WeakPtrManager::SharedInstance()->Register(this);
@@ -16,7 +16,7 @@ public:
     };
 };
 
-TEST_F(WeakPtrManagerTest, Lock) {
+TEST_F(Common_WeakPtrManagerTest, Lock) {
     auto ret = WeakPtrManager::SharedInstance()->Lock(this);
     EXPECT_EQ(ret.has_value(), true);
 }

@@ -13,14 +13,14 @@ constexpr uint32_t kTimestampOffset = 567;
 constexpr int64_t kRemoteToLocalClockOffsetMs = kLocalClockInitialTimeMs - kRemoteClockInitialTimeMs;
 } // namespace
 
-class RemoteNtpTimeEstimatorTest : public ::testing::Test {
+class RTP_RTCP_RemoteNtpTimeEstimatorTest : public ::testing::Test {
 protected:
-    RemoteNtpTimeEstimatorTest()
+    RTP_RTCP_RemoteNtpTimeEstimatorTest()
         : local_clock_(std::make_shared<SimulatedClock>(kLocalClockInitialTimeMs * 1000)),
           remote_clock_(std::make_shared<SimulatedClock>(kRemoteClockInitialTimeMs * 1000)),
           estimator_(new RemoteNtpTimeEstimator(local_clock_)) {}
 
-    ~RemoteNtpTimeEstimatorTest() override = default;
+    ~RTP_RTCP_RemoteNtpTimeEstimatorTest() override = default;
 
     void AdvanceTimeMilliseconds(int64_t ms) {
         local_clock_->AdvanceTimeMilliseconds(ms);
@@ -70,7 +70,7 @@ protected:
     std::unique_ptr<RemoteNtpTimeEstimator> estimator_;
 };
 
-TEST_F(RemoteNtpTimeEstimatorTest, Estimate) {
+TEST_F(RTP_RTCP_RemoteNtpTimeEstimatorTest, Estimate) {
     // Failed without valid NTP.
     UpdateRtcpTimestamp(kTestRtt, 0, 0, 0, false);
 
@@ -97,7 +97,7 @@ TEST_F(RemoteNtpTimeEstimatorTest, Estimate) {
     EXPECT_EQ(kRemoteToLocalClockOffsetMs, estimator_->EstimatedOffsetInMs());
 }
 
-TEST_F(RemoteNtpTimeEstimatorTest, AveragesErrorsOut) {
+TEST_F(RTP_RTCP_RemoteNtpTimeEstimatorTest, AveragesErrorsOut) {
     // Remote peer sends first 10 RTCP SR without errors.
     for (int i = 0; i < 10; ++i) {
         AdvanceTimeMilliseconds(1000);

@@ -5,36 +5,36 @@
 namespace naivertc {
 namespace test {
 
-TEST(SeqNumUnwrapper, PreserveStartValue) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, PreserveStartValue) {
     SeqNumUnwrapper<uint8_t> unwrapper;
     EXPECT_EQ(123, unwrapper.Unwrap(123));
 }
 
-TEST(SeqNumUnwrapper, ForwardWrap) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, ForwardWrap) {
     SeqNumUnwrapper<uint8_t> unwrapper;
     EXPECT_EQ(255, unwrapper.Unwrap(255));
     EXPECT_EQ(256, unwrapper.Unwrap(0));
 }
 
-TEST(SeqNumUnwrapper, ForwardWrapWithDivisor) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, ForwardWrapWithDivisor) {
     SeqNumUnwrapper<uint8_t, 33> unwrapper;
     EXPECT_EQ(30, unwrapper.Unwrap(30));
     EXPECT_EQ(36, unwrapper.Unwrap(3));
 }
 
-TEST(SeqNumUnwrapper, BackWardWrap) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, BackWardWrap) {
     SeqNumUnwrapper<uint8_t> unwrapper;
     EXPECT_EQ(0, unwrapper.Unwrap(0));
     EXPECT_EQ(-2, unwrapper.Unwrap(254));
 }
 
-TEST(SeqNumUnwrapper, BackWardWrapWithDivisor) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, BackWardWrapWithDivisor) {
     SeqNumUnwrapper<uint8_t, 33> unwrapper;
     EXPECT_EQ(0, unwrapper.Unwrap(0));
     EXPECT_EQ(-2, unwrapper.Unwrap(31));
 }
 
-TEST(SeqNumUnwrapper, Unwrap) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, Unwrap) {
     SeqNumUnwrapper<uint16_t> unwrapper;
     const uint16_t kMax = std::numeric_limits<uint16_t>::max();
     const uint16_t kMaxDist = kMax / 2 + 1;
@@ -51,7 +51,7 @@ TEST(SeqNumUnwrapper, Unwrap) {
     EXPECT_EQ(0, unwrapper.Unwrap(0));
     }
 
-    TEST(SeqNumUnwrapper, UnwrapOddDivisor) {
+    TEST(RTP_RTCP_SeqNumUnwrapperTest, UnwrapOddDivisor) {
     SeqNumUnwrapper<uint8_t, 11> unwrapper;
 
     EXPECT_EQ(10, unwrapper.Unwrap(10));
@@ -66,7 +66,7 @@ TEST(SeqNumUnwrapper, Unwrap) {
     EXPECT_EQ(0, unwrapper.Unwrap(0));
 }
 
-TEST(SeqNumUnwrapper, ManyForwardWraps) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, ManyForwardWraps) {
     const int kLargeNumber = 4711;
     const int kMaxStep = kLargeNumber / 2;
     const int kNumWraps = 100;
@@ -81,7 +81,7 @@ TEST(SeqNumUnwrapper, ManyForwardWraps) {
     }
 }
 
-TEST(SeqNumUnwrapper, ManyBackwardWraps) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, ManyBackwardWraps) {
     const int kLargeNumber = 4711;
     const int kMaxStep = kLargeNumber / 2;
     const int kNumWraps = 100;
@@ -96,28 +96,28 @@ TEST(SeqNumUnwrapper, ManyBackwardWraps) {
     }
 }
 
-TEST(SeqNumUnwrapper, UnwrapForward) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, UnwrapForward) {
     SeqNumUnwrapper<uint8_t> unwrapper;
     EXPECT_EQ(255, unwrapper.Unwrap(255));
     EXPECT_EQ(256, unwrapper.UnwrapForward(0));
     EXPECT_EQ(511, unwrapper.UnwrapForward(255));
 }
 
-TEST(SeqNumUnwrapper, UnwrapForwardWithDivisor) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, UnwrapForwardWithDivisor) {
     SeqNumUnwrapper<uint8_t, 33> unwrapper;
     EXPECT_EQ(30, unwrapper.UnwrapForward(30));
     EXPECT_EQ(36, unwrapper.UnwrapForward(3));
     EXPECT_EQ(63, unwrapper.UnwrapForward(30));
 }
 
-TEST(SeqNumUnwrapper, UnwrapBackwards) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, UnwrapBackwards) {
     SeqNumUnwrapper<uint8_t> unwrapper;
     EXPECT_EQ(0, unwrapper.UnwrapBackwards(0));
     EXPECT_EQ(-2, unwrapper.UnwrapBackwards(254));
     EXPECT_EQ(-256, unwrapper.UnwrapBackwards(0));
 }
 
-TEST(SeqNumUnwrapper, UnwrapBackwardsWithDivisor) {
+TEST(RTP_RTCP_SeqNumUnwrapperTest, UnwrapBackwardsWithDivisor) {
     SeqNumUnwrapper<uint8_t, 33> unwrapper;
     EXPECT_EQ(0, unwrapper.Unwrap(0));
     EXPECT_EQ(-2, unwrapper.UnwrapBackwards(31));

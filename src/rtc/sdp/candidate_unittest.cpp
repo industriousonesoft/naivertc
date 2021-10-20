@@ -9,7 +9,7 @@ using namespace testing;
 namespace naivertc {
 namespace test {
 
-TEST(CandidateTest, CreateFromSDPLine) {
+TEST(SDP_CandidateTest, CreateFromSDPLine) {
     const std::string sdp = "a=candidate:2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     sdp::Candidate candidate(sdp);
@@ -25,7 +25,7 @@ TEST(CandidateTest, CreateFromSDPLine) {
 
 }
 
-TEST(CandidateTest, BuildFromCandidateSDP) {
+TEST(SDP_CandidateTest, BuildFromCandidateSDP) {
     const std::string sdp = "candidate:2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     sdp::Candidate candidate(sdp);
@@ -40,7 +40,7 @@ TEST(CandidateTest, BuildFromCandidateSDP) {
     EXPECT_EQ(candidate.isResolved(), false);
 }
 
-TEST(CandidateTest, ToString) {
+TEST(SDP_CandidateTest, ToString) {
     const std::string sdp = "candidate:2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     sdp::Candidate candidate(sdp);
@@ -50,7 +50,7 @@ TEST(CandidateTest, ToString) {
     EXPECT_EQ(str, sdp);
 }
 
-TEST(CandidateTest, BuildSDPLine) {
+TEST(SDP_CandidateTest, BuildSDPLine) {
     const std::string sdp = "a=candidate:2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     sdp::Candidate candidate(sdp);

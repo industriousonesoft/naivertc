@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace test {
 
-TEST(SequenceNumberUnwrapper, Limits) {
+TEST(RTP_RTCP_SequenceNumberUnwrapperTest, Limits) {
     SequenceNumberUnwrapper unwrapper;
 
     EXPECT_EQ(0, unwrapper.Unwrap(0));
@@ -24,7 +24,7 @@ TEST(SequenceNumberUnwrapper, Limits) {
     EXPECT_EQ(0xFFFF, unwrapper.Unwrap(0xFFFF));
 }
 
-TEST(SequenceNumberUnwrapper, ForwardWraps) {
+TEST(RTP_RTCP_SequenceNumberUnwrapperTest, ForwardWraps) {
     int64_t seq = 0;
     SequenceNumberUnwrapper unwrapper;
 
@@ -43,7 +43,7 @@ TEST(SequenceNumberUnwrapper, ForwardWraps) {
     }
 }
 
-TEST(SequenceNumberUnwrapper, BackwardWraps) {
+TEST(RTP_RTCP_SequenceNumberUnwrapperTest, BackwardWraps) {
     SequenceNumberUnwrapper unwrapper;
 
     const int kMaxDecrease = 0x8000 - 1;
@@ -64,7 +64,7 @@ TEST(SequenceNumberUnwrapper, BackwardWraps) {
     }
 }
 
-TEST(TimestampUnwrapper, Limits) {
+TEST(RTP_RTCP_TimestampUnwrapperTest, Limits) {
     TimestampUnwrapper unwrapper;
 
     EXPECT_EQ(0, unwrapper.Unwrap(0));
@@ -84,7 +84,7 @@ TEST(TimestampUnwrapper, Limits) {
     EXPECT_EQ(0xFFFFFFFF, unwrapper.Unwrap(0xFFFFFFFF));
 }
 
-TEST(TimestampUnwrapper, ForwardWraps) {
+TEST(RTP_RTCP_TimestampUnwrapperTest, ForwardWraps) {
     int64_t ts = 0;
     TimestampUnwrapper unwrapper;
 
@@ -98,7 +98,7 @@ TEST(TimestampUnwrapper, ForwardWraps) {
     }
 }
 
-TEST(TimestampUnwrapper, BackwardWraps) {
+TEST(RTP_RTCP_TimestampUnwrapper, BackwardWraps) {
     TimestampUnwrapper unwrapper;
 
     const int64_t kMaxDecrease = 0x80000000 - 1;
