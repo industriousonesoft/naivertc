@@ -14,7 +14,7 @@ public:
     SpropParameterParser() = default;
     ~SpropParameterParser() = default;
 
-    bool Parser(const std::string& sprop);
+    bool Parse(const std::string& sprop);
     const std::vector<uint8_t>& sps_nalu() { return sps_; }
     const std::vector<uint8_t>& pps_nalu() { return pps_; }
 

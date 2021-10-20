@@ -46,6 +46,7 @@ set(LIB_SOURCES
     src/common/utils_network.cpp
     src/common/logger.cpp
     src/common/weak_ptr_manager.cpp
+
     # signaling
     src/signaling/base/base_channel.cpp
     src/signaling/base/websocket.cpp
@@ -136,6 +137,7 @@ set(LIB_SOURCES
     src/rtc/media/video/codecs/h264/pps_parser.cpp
     src/rtc/media/video/codecs/h264/sps_parser.cpp
     src/rtc/media/video/codecs/h264/sps_pps_tracker.cpp
+    src/rtc/media/video/codecs/h264/sprop_parameter_parser.cpp
 
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
@@ -252,6 +254,7 @@ set(LIB_HEADERS
     include/common/weak_ptr_manager.hpp
     include/common/numeric_range_checker.hpp
     include/common/array_view.hpp
+
     # signaling
     include/signaling/base/base_channel.hpp
     include/signaling/common/url_parts.hpp
@@ -524,6 +527,7 @@ set(TEST_SOURCES
     src/rtc/media/video/codecs/h264/pps_parser_unittest.cpp
     src/rtc/media/video/codecs/h264/sps_parser_unittest.cpp
     src/rtc/media/video/codecs/h264/sps_pps_tracker_unittest.cpp
+    src/rtc/media/video/codecs/h264/sprop_parameter_parser_unittest.cpp
 
     # rtc -> base
     src/rtc/base/packet_unittest.cpp
