@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.hpp"
 #include "rtc/media/video/codecs/h264/common.hpp"
 
 #include <plog/Log.h>
@@ -6,12 +6,12 @@
 #include <variant>
 
 namespace naivertc {
-namespace rtp {
-namespace video_frame {
+namespace video {
+namespace jitter {
 
 constexpr size_t kMaxMissingPacketCount = 1000;
 
-Assembler::Packet::Packet(RtpVideoHeader video_header, 
+PacketBuffer::Packet::Packet(RtpVideoHeader video_header, 
                                        RtpVideoCodecHeader video_codec_header,
                                        uint16_t seq_num, 
                                        uint32_t timestamp) 
@@ -21,7 +21,7 @@ Assembler::Packet::Packet(RtpVideoHeader video_header,
       timestamp(timestamp) {}
 
 
-Assembler::Assembler(size_t initial_buffer_size, 
+PacketBuffer::PacketBuffer(size_t initial_buffer_size, 
                                                size_t max_buffer_size) 
     : max_packet_buffer_size_(max_buffer_size),
       packet_buffer_(initial_buffer_size),
@@ -30,11 +30,11 @@ Assembler::Assembler(size_t initial_buffer_size,
       is_cleared_to_first_seq_num_(false),
       sps_pps_idr_is_h264_keyframe_(true) {}
 
-Assembler::~Assembler() {
+PacketBuffer::~PacketBuffer() {
     Clear();
 }
 
-Assembler::InsertResult Assembler::InsertPacket(std::unique_ptr<Packet> packet) {
+PacketBuffer::InsertResult PacketBuffer::InsertPacket(std::unique_ptr<Packet> packet) {
     InsertResult ret;
     uint16_t seq_num = packet->seq_num;
     size_t index = seq_num % packet_buffer_.size();
@@ -81,14 +81,14 @@ Assembler::InsertResult Assembler::InsertPacket(std::unique_ptr<Packet> packet) 
     return ret;
 }
 
-Assembler::InsertResult Assembler::InsertPadding(uint16_t seq_num) {
+PacketBuffer::InsertResult PacketBuffer::InsertPadding(uint16_t seq_num) {
     InsertResult ret;
     UpdateMissingPackets(seq_num, kMaxMissingPacketCount);
     ret.assembled_packets = TryToAssembleFrames(seq_num + 1);
     return ret;
 }
 
-void Assembler::Clear() {
+void PacketBuffer::Clear() {
     for (auto& packet : packet_buffer_) {
         packet.reset();
     }
@@ -98,7 +98,7 @@ void Assembler::Clear() {
     missing_packets_.clear();
 }
 
-void Assembler::ClearTo(uint16_t seq_num) {
+void PacketBuffer::ClearTo(uint16_t seq_num) {
     // We have already cleared past this sequence number, no need to do anything.
     if (is_cleared_to_first_seq_num_ && seq_num_utils::AheadOf<uint16_t>(first_seq_num_, seq_num)) {
         return;
@@ -135,7 +135,7 @@ void Assembler::ClearTo(uint16_t seq_num) {
 }
 
 // Private methods
-Assembler::AssembledPackets Assembler::TryToAssembleFrames(uint16_t seq_num) {
+PacketBuffer::AssembledPackets PacketBuffer::TryToAssembleFrames(uint16_t seq_num) {
     AssembledPackets assembled_packets;
     for (size_t i = 0; i < packet_buffer_.size(); i++) {
         // The current sequence number is not continuous with previous one.
@@ -272,7 +272,7 @@ Assembler::AssembledPackets Assembler::TryToAssembleFrames(uint16_t seq_num) {
 }
 
 // To check the current sequence number is continuous with the previous one.
-bool Assembler::IsContinuous(uint16_t seq_num) {
+bool PacketBuffer::IsContinuous(uint16_t seq_num) {
     size_t index = seq_num % packet_buffer_.size();
     const auto& curr_packet = packet_buffer_[index];
 
@@ -315,7 +315,7 @@ bool Assembler::IsContinuous(uint16_t seq_num) {
     }
 }
 
-void Assembler::UpdateMissingPackets(uint16_t seq_num, size_t window_size) {
+void PacketBuffer::UpdateMissingPackets(uint16_t seq_num, size_t window_size) {
     if (!newest_inserted_seq_num_) {
         newest_inserted_seq_num_ = seq_num;
     }
@@ -342,7 +342,7 @@ void Assembler::UpdateMissingPackets(uint16_t seq_num, size_t window_size) {
     }
 }
 
-bool Assembler::ExpandPacketBufferIfNecessary(uint16_t seq_num) {
+bool PacketBuffer::ExpandPacketBufferIfNecessary(uint16_t seq_num) {
     // No conflict
     if (packet_buffer_[seq_num % packet_buffer_.size()] == nullptr) {
         return true;
@@ -381,7 +381,7 @@ bool Assembler::ExpandPacketBufferIfNecessary(uint16_t seq_num) {
     return !no_more_space_to_expand;
 }
 
-void Assembler::ExpandPacketBuffer(size_t new_size) {
+void PacketBuffer::ExpandPacketBuffer(size_t new_size) {
     if (packet_buffer_.size() == max_packet_buffer_size_) {
         PLOG_WARNING << "Failed to expand packet buffer as it is already at max size=" 
                      << max_packet_buffer_size_;
@@ -398,6 +398,6 @@ void Assembler::ExpandPacketBuffer(size_t new_size) {
     PLOG_INFO << "Packet buffer expanded to " << new_size;
 }
     
-} // namespace video_frame
-} // namespace rtp
+} // namespace jitter
+} // namespace video
 } // namespace naivertc

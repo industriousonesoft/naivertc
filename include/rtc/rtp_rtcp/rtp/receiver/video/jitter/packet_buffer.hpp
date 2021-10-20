@@ -12,11 +12,11 @@
 #include <set>
 
 namespace naivertc {
-namespace rtp {
-namespace video_frame {
+namespace video {
+namespace jitter {
     
 // This class is not thread-safety, the caller MUST provide that.
-class RTC_CPP_EXPORT Assembler {
+class RTC_CPP_EXPORT PacketBuffer {
 public:
     struct Packet {
         Packet(RtpVideoHeader video_header,
@@ -61,8 +61,8 @@ public:
     };
 public:
     // `initial_buffer_size` and `max_buffer_size` must always be a power of two
-    Assembler(size_t initial_buffer_size, size_t max_buffer_size);
-    ~Assembler();
+    PacketBuffer(size_t initial_buffer_size, size_t max_buffer_size);
+    ~PacketBuffer();
 
     bool sps_pps_idr_is_h264_keyframe() const { return sps_pps_idr_is_h264_keyframe_; }
     void set_sps_pps_idr_is_h264_keyframe(bool flag) { sps_pps_idr_is_h264_keyframe_ = flag; }
@@ -95,8 +95,8 @@ private:
 
 };
     
-} // namespace video_frame
-} // namespace rtp
+} // namespace jitter
+} // namespace video
 } // namespace naivertc
 
 

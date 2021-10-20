@@ -5,7 +5,7 @@
 #include "common/task_queue.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp"
-#include "rtc/rtp_rtcp/rtp/receiver/rtp_video_frame_assembler.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/nack_module.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/rtcp_module.hpp"
@@ -85,7 +85,7 @@ private:
     void OnDepacketizedPayload(RtpDepacketizer::DepacketizedPayload depacketized_payload, 
                                const RtpPacketReceived& packet);
 
-    void OnInsertdPacket(rtp::video_frame::Assembler::InsertResult result);
+    void OnInsertdPacket(video::jitter::PacketBuffer::InsertResult result);
 private:
     const Configuration config_;
     std::shared_ptr<TaskQueue> task_queue_;
@@ -94,7 +94,7 @@ private:
     std::unique_ptr<NackModule> nack_module_;
 
     h264::SpsPpsTracker h264_sps_pps_tracker_;
-    rtp::video_frame::Assembler frame_assembler_;
+    video::jitter::PacketBuffer frame_assembler_;
 
     std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;
 };
