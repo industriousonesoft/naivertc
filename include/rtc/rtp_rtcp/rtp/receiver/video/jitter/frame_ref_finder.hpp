@@ -24,7 +24,9 @@ public:
     void OnFrameRefFound(FrameRefFoundCallback callback);
 
 protected:
-    FrameRefFoundCallback frame_ref_found_callback_;
+    FrameRefFinder();
+protected:
+    FrameRefFoundCallback frame_ref_found_callback_ = nullptr;
 };
     
 } // namespace jitter

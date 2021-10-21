@@ -27,6 +27,7 @@ public:
 
     void AddReference(int64_t picture_id) { referred_picture_ids_.push_back(picture_id); }
     size_t NumOfReferences() const { return referred_picture_ids_.size(); }
+    void ForEachReference(std::function<void(int64_t picture_id)>) const;
 
 private:
     // Used to describe order and dependencies between frames.

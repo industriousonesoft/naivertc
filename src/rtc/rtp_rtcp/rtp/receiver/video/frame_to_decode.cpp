@@ -14,6 +14,13 @@ FrameToDecode::FrameToDecode(VideoFrameType frame_type,
       last_packet_seq_num_(last_packet_seq_num) {}
 
 FrameToDecode::~FrameToDecode() {}
+
+void FrameToDecode::ForEachReference(std::function<void(int64_t picture_id)> callback) const {
+    if (!callback) return;
+    for (int64_t picture_id : referred_picture_ids_) {
+        callback(picture_id);
+    }
+}
     
 } // namespace video
 } // namespace rtc

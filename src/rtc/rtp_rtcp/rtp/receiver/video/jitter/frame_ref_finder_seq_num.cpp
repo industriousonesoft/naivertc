@@ -15,7 +15,7 @@ constexpr size_t kMaxStashedFrames = 100;
     
 } // namespace
 
-SeqNumFrameRefFinder::SeqNumFrameRefFinder() {}
+SeqNumFrameRefFinder::SeqNumFrameRefFinder() : FrameRefFinder() {}
 
 SeqNumFrameRefFinder::~SeqNumFrameRefFinder() {}
 
@@ -83,8 +83,8 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
 
     // Find the last sequence number (picture id) of the last frame for the keyframe
     // that this frame indirectly references.
-    auto next_gop_picture_id_it = gop_infos_.upper_bound(frame.last_packet_seq_num());
-    if (next_gop_picture_id_it == gop_infos_.begin()) {
+    auto next_gop_info_it = gop_infos_.upper_bound(frame.last_packet_seq_num());
+    if (next_gop_info_it == gop_infos_.begin()) {
         PLOG_WARNING << "Generic frame with packet range ["
                      << frame.first_packet_seq_num() << ", "
                      << frame.last_packet_seq_num()
@@ -92,33 +92,37 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
         return FrameDecision::DROPED;
     }
 
-    auto curr_gop_picture_id_it = next_gop_picture_id_it--;
+    auto curr_gop_info_it = --next_gop_info_it;
+
     // The frame is not continuous with the last frame in the GOP, stashing it.
-    if (frame.frame_type() == VideoFrameType::DELTA && 
-        frame.first_packet_seq_num() - 1 != curr_gop_picture_id_it->second.last_picture_id_with_padding_gop) {
+    if (frame.frame_type() == VideoFrameType::DELTA) {
+        uint16_t prev_seq_num = static_cast<uint16_t>((frame.first_packet_seq_num() - 1));
+        // Check if the frame is continuous with the previous frame in the GOP.
+        if (prev_seq_num != curr_gop_info_it->second.last_picture_id_with_padding_gop) {
             return FrameDecision::STASHED;
+        }
     }
 
-    assert(seq_num_utils::AheadOrAt<uint16_t>(frame.last_packet_seq_num(), curr_gop_picture_id_it->first));
+    // Using the sequence number of the last packet of frame as picture id.
+    uint16_t curr_frame_picture_id = frame.last_packet_seq_num();
+    assert(seq_num_utils::AheadOrAt<uint16_t>(curr_frame_picture_id, curr_gop_info_it->first));
 
-    PictureId last_picture_id_gop = curr_gop_picture_id_it->second.last_picture_id_gop;
+    PictureId last_picture_id_gop = curr_gop_info_it->second.last_picture_id_gop;
     // the keyframe has no reference frames, but the delta frame has.
     if (frame.frame_type() == VideoFrameType::DELTA) {
         frame.AddReference(seq_num_unwrapper_.Unwrap(last_picture_id_gop));
     }
 
-    // Using the sequence number of the last packet of frame as picture id.
-    uint16_t curr_picture_id = frame.last_packet_seq_num();
     // Check if the current frame is newest in the GOP.
-    if (seq_num_utils::AheadOf<uint16_t>(curr_picture_id, last_picture_id_gop)) {
-        curr_gop_picture_id_it->second.last_picture_id_gop = curr_picture_id;
-        curr_gop_picture_id_it->second.last_picture_id_with_padding_gop = curr_picture_id;
+    if (seq_num_utils::AheadOf<uint16_t>(curr_frame_picture_id, last_picture_id_gop)) {
+        curr_gop_info_it->second.last_picture_id_gop = curr_frame_picture_id;
+        curr_gop_info_it->second.last_picture_id_with_padding_gop = curr_frame_picture_id;
     }
-
-    UpdateGopInfo(curr_picture_id);
+    
+    UpdateGopInfo(curr_frame_picture_id);
     // Using unwrapped sequence number to make sure the frame is unique.
-    frame.set_id(seq_num_unwrapper_.Unwrap(curr_picture_id));
-
+    frame.set_id(seq_num_unwrapper_.Unwrap(curr_frame_picture_id));
+    
     return FrameDecision::HAND_OFF;
 }
 
@@ -129,7 +133,7 @@ void SeqNumFrameRefFinder::UpdateGopInfo(uint16_t seq_num) {
         return;
     }
 
-    auto curr_gop_picture_id_it = next_gop_picture_id_it--;
+    auto curr_gop_picture_id_it = --next_gop_picture_id_it;
 
     // Find the next continuous sequence number
     PictureId next_picture_id_with_padding = curr_gop_picture_id_it->second.last_picture_id_with_padding_gop + 1;
@@ -143,7 +147,7 @@ void SeqNumFrameRefFinder::UpdateGopInfo(uint16_t seq_num) {
         ++next_picture_id_with_padding;
         padding_picture_id_it = stashed_padding_.erase(padding_picture_id_it);
     }
-
+    
     // In the case where the stream has been continuous without any new
     // keyframes for a while, there is a risk that new frames will appear
     // to be older than the keyframe they belong to due to wrapping sequence
@@ -166,7 +170,6 @@ void SeqNumFrameRefFinder::RetryStashedFrames() {
             // Not found yet, move to next frame.
             if (decision == FrameDecision::STASHED) {
                 ++frame_it;
-                break;
             }else {
                 if (decision == FrameDecision::HAND_OFF) {
                     ref_found = true;
@@ -178,7 +181,7 @@ void SeqNumFrameRefFinder::RetryStashedFrames() {
                 frame_it = stashed_frames_.erase(frame_it);
             }
         }
-    } while (ref_found);
+    } while (ref_found /* If we have found a referred frame, try it again.*/);
 }
     
 } // namespace jitter

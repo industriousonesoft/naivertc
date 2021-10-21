@@ -20,6 +20,7 @@ std::unique_ptr<FrameRefFinder> FrameRefFinder::Create(VideoCodecType codec_type
     return ref_finder;
 }
 
+FrameRefFinder::FrameRefFinder() : frame_ref_found_callback_(nullptr) {}
 FrameRefFinder::~FrameRefFinder() = default;
 
 void FrameRefFinder::OnFrameRefFound(FrameRefFoundCallback callback) {
