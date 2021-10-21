@@ -4,7 +4,7 @@
 
 namespace naivertc {
 
-constexpr size_t kMaxPacketWindowSize = 10000;
+constexpr size_t kMaxPacketAge = 10000;
 constexpr size_t kMaxNackPacketCount = 1000;
 constexpr int kDefaultRttMs = 100;
 constexpr int kMaxNackRetries = 10;
@@ -76,7 +76,7 @@ NackModuleImpl::InsertResult NackModuleImpl::InsertPacket(uint16_t seq_num, bool
         keyframe_list_.insert(seq_num);
     }
     // Remove old ones so we don't accumulate keyframes.
-    auto it = keyframe_list_.lower_bound(seq_num - kMaxPacketWindowSize);
+    auto it = keyframe_list_.lower_bound(seq_num - kMaxPacketAge);
     if (it != keyframe_list_.begin()) {
         keyframe_list_.erase(keyframe_list_.begin(), it);
     }
@@ -85,7 +85,7 @@ NackModuleImpl::InsertResult NackModuleImpl::InsertPacket(uint16_t seq_num, bool
     if (is_recovered) {
         recovered_list_.insert(seq_num);
         // Remove old ones so we don't accumulate recovered packets.
-        auto it = recovered_list_.lower_bound(seq_num - kMaxPacketWindowSize);
+        auto it = recovered_list_.lower_bound(seq_num - kMaxPacketAge);
         if (it != recovered_list_.begin()) {
             recovered_list_.erase(recovered_list_.begin(), it);
         }
@@ -116,7 +116,7 @@ std::vector<uint16_t> NackModuleImpl::NackListOnRttPassed() {
 
 // Private methods
 bool NackModuleImpl::AddPacketsToNack(uint16_t seq_num_start, uint16_t seq_num_end) {
-    auto it = nack_list_.lower_bound(seq_num_end - kMaxPacketWindowSize);
+    auto it = nack_list_.lower_bound(seq_num_end - kMaxPacketAge);
     nack_list_.erase(nack_list_.begin(), it);
 
     uint16_t num_new_nacks = ForwardDiff(seq_num_start, seq_num_end);
