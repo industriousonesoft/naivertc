@@ -25,53 +25,51 @@ using ::testing::Pointee;
 using ::testing::SizeIs;
 
 using Packet = rtc::video::jitter::PacketBuffer::Packet;
+using Frame = rtc::video::jitter::PacketBuffer::Frame;
 using InsertResult = rtc::video::jitter::PacketBuffer::InsertResult;
 
 constexpr int kStartSize = 16;
 constexpr int kMaxSize = 64;
 
-std::vector<uint16_t> StartSeqNums(ArrayView<const std::unique_ptr<Packet>> packets) {
+std::vector<uint16_t> StartSeqNums(ArrayView<const std::unique_ptr<Frame>> frames) {
     std::vector<uint16_t> result;
-    bool frame_boundary = true;
-    for (const auto& packet : packets) {
-        EXPECT_EQ(frame_boundary, packet->is_first_packet_in_frame());
-        if (packet->is_first_packet_in_frame()) {
-            result.push_back(packet->seq_num);
-        }
-        frame_boundary = packet->is_last_packet_in_frame();
+    for (const auto& frame : frames) {
+        result.push_back(frame->seq_num_start);
     }
-    EXPECT_TRUE(frame_boundary);
     return result;
 }
 
+size_t NumPackets(ArrayView<const std::unique_ptr<Frame>> frames) {
+    size_t num_packets = 0;
+    for (const auto& frame : frames) {
+        num_packets += frame->num_packets;
+    }
+    return num_packets;
+}
+
 MATCHER_P(StartSeqNumsAre, seq_num, "") {
-    return Matches(ElementsAre(seq_num))(StartSeqNums(arg.assembled_packets));
+    return Matches(ElementsAre(seq_num))(StartSeqNums(arg.assembled_frames));
 }
 
 MATCHER_P2(StartSeqNumsAre, seq_num1, seq_num2, "") {
-  return Matches(ElementsAre(seq_num1, seq_num2))(StartSeqNums(arg.assembled_packets));
+  return Matches(ElementsAre(seq_num1, seq_num2))(StartSeqNums(arg.assembled_frames));
 }
 
 MATCHER(KeyFrame, "") {
-  return arg->is_first_packet_in_frame() &&
-         arg->video_header.frame_type == VideoFrameType::KEY;
+  return arg->frame_type == VideoFrameType::KEY;
 }
 
 MATCHER(DeltaFrame, "") {
-  return arg->is_first_packet_in_frame() &&
-         arg->video_header.frame_type == VideoFrameType::DELTA;
+  return arg->frame_type == VideoFrameType::DELTA;
 }
 
 void PrintTo(const InsertResult& result, std::ostream& os) {
     os << "frames: { ";
-    for (const auto& packet : result.assembled_packets) {
-        if (packet->is_first_packet_in_frame() &&
-            packet->is_last_packet_in_frame()) {
-            os << "{sn: " << packet->seq_num << " }";
-        } else if (packet->is_first_packet_in_frame()) {
-            os << "{sn: [" << packet->seq_num << "-";
-        } else if (packet->is_last_packet_in_frame()) {
-            os << packet->seq_num << "] }, ";
+    for (const auto& frame : result.assembled_frames) {
+        if (frame->seq_num_start == frame->seq_num_end) {
+            os << "{sn: " << frame->seq_num_start << " }";
+        } else {
+            os << "{sn: [" << frame->seq_num_start << "-" << frame->seq_num_end << "] }, ";
         }
     }
     os << " }";
@@ -80,9 +78,9 @@ void PrintTo(const InsertResult& result, std::ostream& os) {
     }
 }
 
-class Video_Jitter_PacketBufferTest : public ::testing::Test {
+class PacketBufferTest : public ::testing::Test {
 protected:
-    Video_Jitter_PacketBufferTest() : packet_buffer_(kStartSize, kMaxSize) {}
+    PacketBufferTest() : packet_buffer_(kStartSize, kMaxSize) {}
 
     uint16_t Rand() { return utils::random::generate_random<uint16_t>(); }
 
@@ -113,53 +111,58 @@ protected:
     rtc::video::jitter::PacketBuffer packet_buffer_;
 };
 
-TEST_F(Video_Jitter_PacketBufferTest, InsertOnePacket) {
+TEST_F(PacketBufferTest, InsertOnePacket) {
     const uint16_t seq_num = Rand();
-    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast).assembled_packets, SizeIs(1));
+    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast).assembled_frames, SizeIs(1));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, InsertMultiplePackets) {
+TEST_F(PacketBufferTest, InsertMultiplePackets) {
     const uint16_t seq_num = Rand();
-    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast).assembled_packets, SizeIs(1));
-    EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kFirst, kLast).assembled_packets, SizeIs(1));
-    EXPECT_THAT(Insert(seq_num + 2, kKeyFrame, kFirst, kLast).assembled_packets, SizeIs(1));
-    EXPECT_THAT(Insert(seq_num + 3, kKeyFrame, kFirst, kLast).assembled_packets, SizeIs(1));
+    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast).assembled_frames, SizeIs(1));
+    EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kFirst, kLast).assembled_frames, SizeIs(1));
+    EXPECT_THAT(Insert(seq_num + 2, kKeyFrame, kFirst, kLast).assembled_frames, SizeIs(1));
+    EXPECT_THAT(Insert(seq_num + 3, kKeyFrame, kFirst, kLast).assembled_frames, SizeIs(1));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, InsertDuplicatePacket) {
+TEST_F(PacketBufferTest, InsertDuplicatePacket) {
     const uint16_t seq_num = Rand();
-    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
-    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
-    EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kNotFirst, kLast).assembled_packets, SizeIs(2));
+    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_frames, IsEmpty());
+    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_frames, IsEmpty());
+    auto frames = Insert(seq_num + 1, kKeyFrame, kNotFirst, kLast).assembled_frames;
+    EXPECT_THAT(frames, SizeIs(1));
+    EXPECT_EQ(NumPackets(frames), 2);
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, SeqNumWrapOneFrame) {
+TEST_F(PacketBufferTest, SeqNumWrapOneFrame) {
     Insert(0xFFFF, kKeyFrame, kFirst, kNotLast);
     auto ret = Insert(0x00, kKeyFrame, kNotFirst, kLast);
-    EXPECT_THAT(ret.assembled_packets, SizeIs(2));
+    EXPECT_THAT(ret.assembled_frames, SizeIs(1));
+    EXPECT_EQ(NumPackets(ret.assembled_frames), 2);
     EXPECT_THAT(ret, StartSeqNumsAre(0xFFFF));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, SeqNumWrapTwoFrames) {
+TEST_F(PacketBufferTest, SeqNumWrapTwoFrames) {
     EXPECT_THAT(Insert(0xFFFF, kKeyFrame, kFirst, kLast), StartSeqNumsAre(0xFFFF));
     EXPECT_THAT(Insert(0x0, kKeyFrame, kFirst, kLast), StartSeqNumsAre(0x0));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, InsertOldPackets) {
-    EXPECT_THAT(Insert(100, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
-    EXPECT_EQ(Insert(102, kDeltaFrame, kFirst, kLast).assembled_packets.size(), 1u);
-    EXPECT_EQ(Insert(101, kKeyFrame, kNotFirst, kLast).assembled_packets.size(), 2u);
+TEST_F(PacketBufferTest, InsertOldPackets) {
+    EXPECT_THAT(Insert(100, kKeyFrame, kFirst, kNotLast).assembled_frames, IsEmpty());
+    EXPECT_THAT(Insert(102, kDeltaFrame, kFirst, kLast).assembled_frames, SizeIs(1));
+    auto frames = Insert(101, kKeyFrame, kNotFirst, kLast).assembled_frames;
+    EXPECT_THAT(frames, SizeIs(1));
+    EXPECT_EQ(NumPackets(frames), 2);
 
-    EXPECT_THAT(Insert(100, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
-    EXPECT_THAT(Insert(100, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
-    EXPECT_THAT(Insert(102, kDeltaFrame, kFirst, kLast).assembled_packets, SizeIs(1));
+    EXPECT_THAT(Insert(100, kKeyFrame, kFirst, kNotLast).assembled_frames, IsEmpty());
+    EXPECT_THAT(Insert(100, kKeyFrame, kFirst, kNotLast).assembled_frames, IsEmpty());
+    EXPECT_THAT(Insert(102, kDeltaFrame, kFirst, kLast).assembled_frames, SizeIs(1));
 
     packet_buffer_.ClearTo(102);
-    EXPECT_THAT(Insert(102, kDeltaFrame, kFirst, kLast).assembled_packets, IsEmpty());
-    EXPECT_THAT(Insert(103, kDeltaFrame, kFirst, kLast).assembled_packets, SizeIs(1));
+    EXPECT_THAT(Insert(102, kDeltaFrame, kFirst, kLast).assembled_frames, IsEmpty());
+    EXPECT_THAT(Insert(103, kDeltaFrame, kFirst, kLast).assembled_frames, SizeIs(1));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, FrameSize) {
+TEST_F(PacketBufferTest, FrameSize) {
     const uint16_t seq_num = Rand();
     uint8_t data1[5] = {};
     uint8_t data2[5] = {};
@@ -169,13 +172,14 @@ TEST_F(Video_Jitter_PacketBufferTest, FrameSize) {
     Insert(seq_num, kKeyFrame, kFirst, kNotLast, data1);
     Insert(seq_num + 1, kKeyFrame, kNotFirst, kNotLast, data2);
     Insert(seq_num + 2, kKeyFrame, kNotFirst, kNotLast, data3);
-    auto packets = Insert(seq_num + 3, kKeyFrame, kNotFirst, kLast, data4).assembled_packets;
+    auto frames = Insert(seq_num + 3, kKeyFrame, kNotFirst, kLast, data4).assembled_frames;
     // Expect one frame of 4 packets.
-    EXPECT_THAT(StartSeqNums(packets), ElementsAre(seq_num));
-    EXPECT_THAT(packets, SizeIs(4));
+    EXPECT_THAT(StartSeqNums(frames), ElementsAre(seq_num));
+    EXPECT_THAT(frames, SizeIs(1));
+    EXPECT_EQ(NumPackets(frames), 4);
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, ExpandBuffer) {
+TEST_F(PacketBufferTest, ExpandBuffer) {
     const uint16_t seq_num = Rand();
 
     Insert(seq_num, kKeyFrame, kFirst, kNotLast);
@@ -187,7 +191,7 @@ TEST_F(Video_Jitter_PacketBufferTest, ExpandBuffer) {
     EXPECT_FALSE(Insert(seq_num + kStartSize, kKeyFrame, kNotFirst, kLast).keyframe_requested);
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, SingleFrameExpandsBuffer) {
+TEST_F(PacketBufferTest, SingleFrameExpandsBuffer) {
     const uint16_t seq_num = Rand();
 
     Insert(seq_num, kKeyFrame, kFirst, kNotLast);
@@ -196,7 +200,7 @@ TEST_F(Video_Jitter_PacketBufferTest, SingleFrameExpandsBuffer) {
     EXPECT_THAT(Insert(seq_num + kStartSize, kKeyFrame, kNotFirst, kLast), StartSeqNumsAre(seq_num));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, ExpandBufferOverflow) {
+TEST_F(PacketBufferTest, ExpandBufferOverflow) {
     const uint16_t seq_num = Rand();
 
     EXPECT_FALSE(Insert(seq_num, kKeyFrame, kFirst, kNotLast).keyframe_requested);
@@ -209,31 +213,31 @@ TEST_F(Video_Jitter_PacketBufferTest, ExpandBufferOverflow) {
 }
 
 
-TEST_F(Video_Jitter_PacketBufferTest, OnePacketOneFrame) {
+TEST_F(PacketBufferTest, OnePacketOneFrame) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast), StartSeqNumsAre(seq_num));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, TwoPacketsTwoFrames) {
+TEST_F(PacketBufferTest, TwoPacketsTwoFrames) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast), StartSeqNumsAre(seq_num));
     EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kFirst, kLast), StartSeqNumsAre(seq_num + 1));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, TwoPacketsOneFrames) {
+TEST_F(PacketBufferTest, TwoPacketsOneFrames) {
     const uint16_t seq_num = Rand();
-    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
+    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_frames, IsEmpty());
     EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kNotFirst, kLast), StartSeqNumsAre(seq_num));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, ThreePacketReorderingOneFrame) {
+TEST_F(PacketBufferTest, ThreePacketReorderingOneFrame) {
     const uint16_t seq_num = Rand();
-    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_packets, IsEmpty());
-    EXPECT_THAT(Insert(seq_num + 2, kKeyFrame, kNotFirst, kLast).assembled_packets, IsEmpty());
+    EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kNotLast).assembled_frames, IsEmpty());
+    EXPECT_THAT(Insert(seq_num + 2, kKeyFrame, kNotFirst, kLast).assembled_frames, IsEmpty());
     EXPECT_THAT(Insert(seq_num + 1, kKeyFrame, kNotFirst, kNotLast), StartSeqNumsAre(seq_num));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, Frames) {
+TEST_F(PacketBufferTest, Frames) {
     const uint16_t seq_num = Rand();
     EXPECT_THAT(Insert(seq_num, kKeyFrame, kFirst, kLast), 
                 StartSeqNumsAre(seq_num));
@@ -245,7 +249,7 @@ TEST_F(Video_Jitter_PacketBufferTest, Frames) {
                 StartSeqNumsAre(seq_num + 3));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, ClearSinglePacket) {
+TEST_F(PacketBufferTest, ClearSinglePacket) {
     const uint16_t seq_num = Rand();
 
     for (int i = 0; i < kMaxSize; ++i)
@@ -255,7 +259,7 @@ TEST_F(Video_Jitter_PacketBufferTest, ClearSinglePacket) {
     EXPECT_FALSE(Insert(seq_num + kMaxSize, kDeltaFrame, kFirst, kLast).keyframe_requested);
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, ClearFullBuffer) {
+TEST_F(PacketBufferTest, ClearFullBuffer) {
     for (int i = 0; i < kMaxSize; ++i)
         Insert(i, kDeltaFrame, kFirst, kLast);
 
@@ -265,41 +269,41 @@ TEST_F(Video_Jitter_PacketBufferTest, ClearFullBuffer) {
         EXPECT_FALSE(Insert(i, kDeltaFrame, kFirst, kLast).keyframe_requested);
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, DontClearNewerPacket) {
+TEST_F(PacketBufferTest, DontClearNewerPacket) {
     EXPECT_THAT(Insert(0, kKeyFrame, kFirst, kLast), StartSeqNumsAre(0));
     packet_buffer_.ClearTo(0);
     EXPECT_THAT(Insert(2 * kStartSize, kKeyFrame, kFirst, kLast),
                 StartSeqNumsAre(2 * kStartSize));
-    EXPECT_THAT(Insert(3 * kStartSize + 1, kKeyFrame, kFirst, kNotLast).assembled_packets,
+    EXPECT_THAT(Insert(3 * kStartSize + 1, kKeyFrame, kFirst, kNotLast).assembled_frames,
                 IsEmpty());
     packet_buffer_.ClearTo(2 * kStartSize);
     EXPECT_THAT(Insert(3 * kStartSize + 2, kKeyFrame, kNotFirst, kLast),
                 StartSeqNumsAre(3 * kStartSize + 1));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, OneIncompleteFrame) {
+TEST_F(PacketBufferTest, OneIncompleteFrame) {
     const uint16_t seq_num = Rand();
 
-    EXPECT_THAT(Insert(seq_num, kDeltaFrame, kFirst, kNotLast).assembled_packets,
+    EXPECT_THAT(Insert(seq_num, kDeltaFrame, kFirst, kNotLast).assembled_frames,
                 IsEmpty());
     EXPECT_THAT(Insert(seq_num + 1, kDeltaFrame, kNotFirst, kLast),
                 StartSeqNumsAre(seq_num));
-    EXPECT_THAT(Insert(seq_num - 1, kDeltaFrame, kNotFirst, kLast).assembled_packets,
+    EXPECT_THAT(Insert(seq_num - 1, kDeltaFrame, kNotFirst, kLast).assembled_frames,
                 IsEmpty());
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, TwoIncompleteFramesFullBuffer) {
+TEST_F(PacketBufferTest, TwoIncompleteFramesFullBuffer) {
     const uint16_t seq_num = Rand();
 
     for (int i = 1; i < kMaxSize - 1; ++i)
         Insert(seq_num + i, kDeltaFrame, kNotFirst, kNotLast);
-    EXPECT_THAT(Insert(seq_num, kDeltaFrame, kFirst, kNotLast).assembled_packets,
+    EXPECT_THAT(Insert(seq_num, kDeltaFrame, kFirst, kNotLast).assembled_frames,
                 IsEmpty());
-    EXPECT_THAT(Insert(seq_num - 1, kDeltaFrame, kNotFirst, kLast).assembled_packets,
+    EXPECT_THAT(Insert(seq_num - 1, kDeltaFrame, kNotFirst, kLast).assembled_frames,
                 IsEmpty());
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, FramesReordered) {
+TEST_F(PacketBufferTest, FramesReordered) {
     const uint16_t seq_num = Rand();
 
     EXPECT_THAT(Insert(seq_num + 1, kDeltaFrame, kFirst, kLast),
@@ -312,7 +316,7 @@ TEST_F(Video_Jitter_PacketBufferTest, FramesReordered) {
                 StartSeqNumsAre(seq_num + 2));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, InsertPacketAfterSequenceNumberWrapAround) {
+TEST_F(PacketBufferTest, InsertPacketAfterSequenceNumberWrapAround) {
     uint16_t kFirstSeqNum = 0;
     uint32_t kTimestampDelta = 100;
     uint32_t timestamp = 10000;
@@ -334,13 +338,14 @@ TEST_F(Video_Jitter_PacketBufferTest, InsertPacketAfterSequenceNumberWrapAround)
     for (int i = 0; i < 5; ++i) {
         Insert(seq_num++, kKeyFrame, kNotFirst, kNotLast, {}, timestamp);
     }
-    auto packets = Insert(seq_num++, kKeyFrame, kNotFirst, kLast, {}, timestamp).assembled_packets;
+    auto frames = Insert(seq_num++, kKeyFrame, kNotFirst, kLast, {}, timestamp).assembled_frames;
     // One frame of 7 packets.
-    EXPECT_THAT(StartSeqNums(packets), SizeIs(1));
-    EXPECT_THAT(packets, SizeIs(7));
+    EXPECT_THAT(StartSeqNums(frames), SizeIs(1));
+    EXPECT_THAT(frames, SizeIs(1));
+    EXPECT_THAT(NumPackets(frames), 7);
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, FreeSlotsOnFrameCreation) {
+TEST_F(PacketBufferTest, FreeSlotsOnFrameCreation) {
     const uint16_t seq_num = Rand();
 
     Insert(seq_num, kKeyFrame, kFirst, kNotLast);
@@ -356,7 +361,7 @@ TEST_F(Video_Jitter_PacketBufferTest, FreeSlotsOnFrameCreation) {
                 StartSeqNumsAre(seq_num + 3));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, Clear) {
+TEST_F(PacketBufferTest, Clear) {
     const uint16_t seq_num = Rand();
 
     Insert(seq_num, kKeyFrame, kFirst, kNotLast);
@@ -372,27 +377,27 @@ TEST_F(Video_Jitter_PacketBufferTest, Clear) {
                 StartSeqNumsAre(seq_num + kStartSize));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, FramesAfterClear) {
+TEST_F(PacketBufferTest, FramesAfterClear) {
     Insert(9025, kDeltaFrame, kFirst, kLast);
     Insert(9024, kKeyFrame, kFirst, kLast);
     packet_buffer_.ClearTo(9025);
-    EXPECT_THAT(Insert(9057, kDeltaFrame, kFirst, kLast).assembled_packets, SizeIs(1));
-    EXPECT_THAT(Insert(9026, kDeltaFrame, kFirst, kLast).assembled_packets, SizeIs(1));
+    EXPECT_THAT(Insert(9057, kDeltaFrame, kFirst, kLast).assembled_frames, SizeIs(1));
+    EXPECT_THAT(Insert(9026, kDeltaFrame, kFirst, kLast).assembled_frames, SizeIs(1));
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, SameFrameDifferentTimestamps) {
+TEST_F(PacketBufferTest, SameFrameDifferentTimestamps) {
     Insert(0, kKeyFrame, kFirst, kNotLast, {}, 1000);
-    EXPECT_THAT(Insert(1, kKeyFrame, kNotFirst, kLast, {}, 1001).assembled_packets,
+    EXPECT_THAT(Insert(1, kKeyFrame, kNotFirst, kLast, {}, 1001).assembled_frames,
                 IsEmpty());
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, ContinuousSeqNumDoubleMarkerBit) {
+TEST_F(PacketBufferTest, ContinuousSeqNumDoubleMarkerBit) {
     Insert(2, kKeyFrame, kNotFirst, kNotLast);
     Insert(1, kKeyFrame, kFirst, kLast);
-    EXPECT_THAT(Insert(3, kKeyFrame, kNotFirst, kLast).assembled_packets, IsEmpty());
+    EXPECT_THAT(Insert(3, kKeyFrame, kNotFirst, kLast).assembled_frames, IsEmpty());
 }
 
-TEST_F(Video_Jitter_PacketBufferTest, TooManyNalusInPacket) {
+TEST_F(PacketBufferTest, TooManyNalusInPacket) {
     auto packet = std::make_unique<Packet>();
     packet->video_header.codec_type = VideoCodecType::H264;
     packet->timestamp = 1;
@@ -402,7 +407,7 @@ TEST_F(Video_Jitter_PacketBufferTest, TooManyNalusInPacket) {
     packet->video_header.is_last_packet_in_frame = true;
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(h264::kMaxNaluNumPerPacket);
-    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_packets,
+    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_frames,
                 IsEmpty());
 }
 
@@ -410,10 +415,10 @@ TEST_F(Video_Jitter_PacketBufferTest, TooManyNalusInPacket) {
 // SPS/PPS/IDR and the keyframes we create as part of the test do contain
 // SPS/PPS/IDR. If |sps_pps_idr_is_keyframe| is false, we only require and
 // create keyframes containing only IDR.
-class PacketBufferH264Test : public Video_Jitter_PacketBufferTest {
+class PacketBufferH264Test : public PacketBufferTest {
 protected:
     explicit PacketBufferH264Test(bool sps_pps_idr_is_keyframe)
-        : Video_Jitter_PacketBufferTest() {
+        : PacketBufferTest() {
         packet_buffer_.set_sps_pps_idr_is_h264_keyframe(sps_pps_idr_is_keyframe);
     }
 
@@ -461,27 +466,27 @@ protected:
 
 // This fixture is used to test the general behaviour of the packet buffer
 // in both configurations.
-class Video_Jitter_PacketBufferH264ParameterizedTest
+class PacketBufferH264ParameterizedTest
     : public ::testing::WithParamInterface<bool>,
       public PacketBufferH264Test {
 protected:
-    Video_Jitter_PacketBufferH264ParameterizedTest() : PacketBufferH264Test(GetParam()) {}
+    PacketBufferH264ParameterizedTest() : PacketBufferH264Test(GetParam()) {}
 };
 
 INSTANTIATE_TEST_SUITE_P(SpsPpsIdrIsKeyframe,
-                         Video_Jitter_PacketBufferH264ParameterizedTest,
+                         PacketBufferH264ParameterizedTest,
                          ::testing::Bool());
 
-TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, DontRemoveMissingPacketOnClearTo) {
+TEST_P(PacketBufferH264ParameterizedTest, DontRemoveMissingPacketOnClearTo) {
     InsertH264(0, kKeyFrame, kFirst, kLast, 0);
     InsertH264(2, kDeltaFrame, kFirst, kNotLast, 2);
     packet_buffer_.ClearTo(0);
     // Expect no frame because of missing of packet #1
-    EXPECT_THAT(InsertH264(3, kDeltaFrame, kNotFirst, kLast, 2).assembled_packets,
+    EXPECT_THAT(InsertH264(3, kDeltaFrame, kNotFirst, kLast, 2).assembled_frames,
                 IsEmpty());
 }
 
-TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, GetBitstreamOneFrameFullBuffer) {
+TEST_P(PacketBufferH264ParameterizedTest, GetBitstreamOneFrameFullBuffer) {
     uint8_t data_arr[kStartSize][1];
     uint8_t expected[kStartSize];
 
@@ -495,21 +500,20 @@ TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, GetBitstreamOneFrameFullB
         InsertH264(i, kKeyFrame, kNotFirst, kNotLast, 1, data_arr[i]);
     }
 
-    auto packets = InsertH264(kStartSize - 1, kKeyFrame, kNotFirst, kLast, 1, data_arr[kStartSize - 1]).assembled_packets;
-    ASSERT_THAT(StartSeqNums(packets), ElementsAre(0));
-    EXPECT_THAT(packets, SizeIs(kStartSize));
-    for (size_t i = 0; i < packets.size(); ++i) {
-        EXPECT_THAT(packets[i]->video_payload, SizeIs(1)) << "Packet #" << i;
-    }
+    auto frames = InsertH264(kStartSize - 1, kKeyFrame, kNotFirst, kLast, 1, data_arr[kStartSize - 1]).assembled_frames;
+    ASSERT_THAT(frames, SizeIs(1));
+    ASSERT_THAT(StartSeqNums(frames), ElementsAre(0));
+    EXPECT_EQ(frames[0]->num_packets, kStartSize);
+    EXPECT_EQ(frames[0]->bitstream.size(), kStartSize);
 }
 
-TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, GetBitstreamBufferPadding) {
+TEST_P(PacketBufferH264ParameterizedTest, GetBitstreamBufferPadding) {
     uint16_t seq_num = Rand();
     CopyOnWriteBuffer data = "some plain old data";
 
     auto packet = std::make_unique<Packet>();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
-     h264_header.nalus.resize(1);
+    h264_header.nalus.resize(1);
     h264_header.nalus[0].type = h264::NaluType::IDR;
     h264_header.packetization_type = h264::PacketizationType::SIGNLE;
     packet->seq_num = seq_num;
@@ -517,28 +521,29 @@ TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, GetBitstreamBufferPadding
     packet->video_payload = data;
     packet->video_header.is_first_packet_in_frame = true;
     packet->video_header.is_last_packet_in_frame = true;
-    auto frames = packet_buffer_.InsertPacket(std::move(packet)).assembled_packets;
+    auto frames = packet_buffer_.InsertPacket(std::move(packet)).assembled_frames;
 
     ASSERT_THAT(frames, SizeIs(1));
-    EXPECT_EQ(frames[0]->seq_num, seq_num);
-    EXPECT_EQ(frames[0]->video_payload, data);
+    EXPECT_EQ(frames[0]->seq_num_start, seq_num);
+    EXPECT_EQ(frames[0]->seq_num_end, seq_num);
+    EXPECT_EQ(frames[0]->bitstream, data);
 }
 
-TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, FrameResolution) {
+TEST_P(PacketBufferH264ParameterizedTest, FrameResolution) {
     uint16_t seq_num = 100;
     uint8_t data[] = "some plain old data";
     uint32_t width = 640;
     uint32_t height = 360;
     uint32_t timestamp = 1000;
 
-    auto packets = InsertH264(seq_num, kKeyFrame, kFirst, kLast, timestamp, data, width, height).assembled_packets;
+    auto frames = InsertH264(seq_num, kKeyFrame, kFirst, kLast, timestamp, data, width, height).assembled_frames;
 
-    ASSERT_THAT(packets, SizeIs(1));
-    EXPECT_EQ(packets[0]->video_header.frame_width, width);
-    EXPECT_EQ(packets[0]->video_header.frame_height, height);
+    ASSERT_THAT(frames, SizeIs(1));
+    EXPECT_EQ(frames[0]->frame_width, width);
+    EXPECT_EQ(frames[0]->frame_height, height);
 }
 
-TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, OneFrameFillBuffer) {
+TEST_P(PacketBufferH264ParameterizedTest, OneFrameFillBuffer) {
     InsertH264(0, kKeyFrame, kFirst, kNotLast, 1000);
     for (int i = 1; i < kStartSize - 1; ++i)
         InsertH264(i, kKeyFrame, kNotFirst, kNotLast, 1000);
@@ -546,42 +551,45 @@ TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, OneFrameFillBuffer) {
                 StartSeqNumsAre(0));
 }
 
-TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, CreateFramesAfterFilledBuffer) {
-    EXPECT_THAT(InsertH264(kStartSize - 2, kKeyFrame, kFirst, kLast, 0).assembled_packets,
+TEST_P(PacketBufferH264ParameterizedTest, CreateFramesAfterFilledBuffer) {
+    EXPECT_THAT(InsertH264(kStartSize - 2, kKeyFrame, kFirst, kLast, 0).assembled_frames,
                 SizeIs(1));
 
     InsertH264(kStartSize, kDeltaFrame, kFirst, kNotLast, 2000);
     for (int i = 1; i < kStartSize; ++i)
         InsertH264(kStartSize + i, kDeltaFrame, kNotFirst, kNotLast, 2000);
 
-    EXPECT_THAT(InsertH264(kStartSize + kStartSize, kDeltaFrame, kNotFirst, kLast, 2000).assembled_packets,
+    EXPECT_THAT(InsertH264(kStartSize + kStartSize, kDeltaFrame, kNotFirst, kLast, 2000).assembled_frames,
                 IsEmpty());
 
     EXPECT_THAT(InsertH264(kStartSize - 1, kKeyFrame, kFirst, kLast, 1000),
                 StartSeqNumsAre(kStartSize - 1, kStartSize));
 }
 
-TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, OneFrameMaxSeqNum) {
+TEST_P(PacketBufferH264ParameterizedTest, OneFrameMaxSeqNum) {
     InsertH264(65534, kKeyFrame, kFirst, kNotLast, 1000);
     EXPECT_THAT(InsertH264(65535, kKeyFrame, kNotFirst, kLast, 1000),
                 StartSeqNumsAre(65534));
 }
 
-TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, ClearMissingPacketsOnKeyframe) {
+TEST_P(PacketBufferH264ParameterizedTest, ClearMissingPacketsOnKeyframe) {
     EXPECT_THAT(InsertH264(0, kKeyFrame, kFirst, kLast, 1000), StartSeqNumsAre(0));
-    EXPECT_THAT(InsertH264(2, kKeyFrame, kFirst, kLast, 3000).assembled_packets, SizeIs(1));
-    EXPECT_THAT(InsertH264(3, kDeltaFrame, kFirst, kNotLast, 4000).assembled_packets, SizeIs(0));
-    EXPECT_THAT(InsertH264(4, kDeltaFrame, kNotFirst, kLast, 4000).assembled_packets, SizeIs(2));
+    EXPECT_THAT(InsertH264(2, kKeyFrame, kFirst, kLast, 3000).assembled_frames, SizeIs(1));
+    EXPECT_THAT(InsertH264(3, kDeltaFrame, kFirst, kNotLast, 4000).assembled_frames, SizeIs(0));
+
+    auto frames = InsertH264(4, kDeltaFrame, kNotFirst, kLast, 4000).assembled_frames;
+    EXPECT_THAT(frames, SizeIs(1));
+    EXPECT_EQ(NumPackets(frames), 2);
 
     auto ret = InsertH264(10, kKeyFrame, kFirst, kLast, 18000);
-    EXPECT_EQ(ret.assembled_packets.size(), 1);
+    EXPECT_EQ(ret.assembled_frames.size(), 1);
     EXPECT_THAT(InsertH264(kStartSize + 1, kKeyFrame, kFirst, kLast, 18000),
                 StartSeqNumsAre(kStartSize + 1));
 }
 
-TEST_P(Video_Jitter_PacketBufferH264ParameterizedTest, FindFramesOnPadding) {
+TEST_P(PacketBufferH264ParameterizedTest, FindFramesOnPadding) {
     EXPECT_THAT(InsertH264(0, kKeyFrame, kFirst, kLast, 1000), StartSeqNumsAre(0));
-    EXPECT_THAT(InsertH264(2, kDeltaFrame, kFirst, kLast, 1000).assembled_packets,
+    EXPECT_THAT(InsertH264(2, kDeltaFrame, kFirst, kLast, 1000).assembled_frames,
                 IsEmpty());
     EXPECT_THAT(packet_buffer_.InsertPadding(1), StartSeqNumsAre(2));
 }
@@ -604,24 +612,24 @@ protected:
     }
 };
 
-class Video_Jitter_PacketBufferH264IdrIsKeyframeTest
+class PacketBufferH264IdrIsKeyframeTest
     : public PacketBufferH264XIsKeyframeTest {
 protected:
-    Video_Jitter_PacketBufferH264IdrIsKeyframeTest()
+    PacketBufferH264IdrIsKeyframeTest()
         : PacketBufferH264XIsKeyframeTest(false) {}
 };
 
-TEST_F(Video_Jitter_PacketBufferH264IdrIsKeyframeTest, IdrIsKeyframe) {
+TEST_F(PacketBufferH264IdrIsKeyframeTest, IdrIsKeyframe) {
     auto packet = CreatePacket();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(1);
     h264_header.nalus[0].type = h264::NaluType::IDR;
     h264_header.has_idr = true;
-    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_packets,
+    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_frames,
                 ElementsAre(KeyFrame()));
 }
 
-TEST_F(Video_Jitter_PacketBufferH264IdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
+TEST_F(PacketBufferH264IdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
     auto packet = CreatePacket();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(3);
@@ -632,18 +640,18 @@ TEST_F(Video_Jitter_PacketBufferH264IdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
     h264_header.has_pps = true;
     h264_header.has_idr = true;
 
-    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_packets,
+    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_frames,
                 ElementsAre(KeyFrame()));
 }
 
-class Video_Jitter_PacketBufferH264SpsPpsIdrIsKeyframeTest
+class PacketBufferH264SpsPpsIdrIsKeyframeTest
     : public PacketBufferH264XIsKeyframeTest {
  protected:
-  Video_Jitter_PacketBufferH264SpsPpsIdrIsKeyframeTest()
+  PacketBufferH264SpsPpsIdrIsKeyframeTest()
       : PacketBufferH264XIsKeyframeTest(true) {}
 };
 
-TEST_F(Video_Jitter_PacketBufferH264SpsPpsIdrIsKeyframeTest, IdrIsNotKeyframe) {
+TEST_F(PacketBufferH264SpsPpsIdrIsKeyframeTest, IdrIsNotKeyframe) {
     auto packet = CreatePacket();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(1);
@@ -652,11 +660,11 @@ TEST_F(Video_Jitter_PacketBufferH264SpsPpsIdrIsKeyframeTest, IdrIsNotKeyframe) {
     h264_header.has_pps = false;
     h264_header.has_idr = true;
 
-    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_packets,
+    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_frames,
                 ElementsAre(DeltaFrame()));
 }
 
-TEST_F(Video_Jitter_PacketBufferH264SpsPpsIdrIsKeyframeTest, SpsPpsIsNotKeyframe) {
+TEST_F(PacketBufferH264SpsPpsIdrIsKeyframeTest, SpsPpsIsNotKeyframe) {
     auto packet = CreatePacket();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(2);
@@ -666,11 +674,11 @@ TEST_F(Video_Jitter_PacketBufferH264SpsPpsIdrIsKeyframeTest, SpsPpsIsNotKeyframe
     h264_header.has_pps = true;
     h264_header.has_idr = false;
 
-    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_packets,
+    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_frames,
                 ElementsAre(DeltaFrame()));
 }
 
-TEST_F(Video_Jitter_PacketBufferH264SpsPpsIdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
+TEST_F(PacketBufferH264SpsPpsIdrIsKeyframeTest, SpsPpsIdrIsKeyframe) {
     auto packet = CreatePacket();
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
     h264_header.nalus.resize(3);
@@ -681,7 +689,7 @@ TEST_F(Video_Jitter_PacketBufferH264SpsPpsIdrIsKeyframeTest, SpsPpsIdrIsKeyframe
     h264_header.has_pps = true;
     h264_header.has_idr = true;
 
-    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_packets,
+    EXPECT_THAT(packet_buffer_.InsertPacket(std::move(packet)).assembled_frames,
                 ElementsAre(KeyFrame()));
 }
     

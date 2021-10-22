@@ -51,11 +51,22 @@ public:
         uint16_t seq_num = 0;
         uint32_t timestamp = 0;
     };
+
+    struct Frame {
+        int frame_width;
+        int frame_height;
+        VideoFrameType frame_type;
+        VideoCodecType codec_type;
+        uint16_t seq_num_start = 0;
+        uint16_t seq_num_end = 0;
+        uint32_t timestamp = 0;
+        size_t num_packets = 0;
+        CopyOnWriteBuffer bitstream;
+    };
     
-    using AssembledPackets = std::vector<std::unique_ptr<Packet>>;
+    using AssembledFrames = std::vector<std::unique_ptr<Frame>>;
     struct InsertResult {
-        // Packets of one or more complete frames
-        AssembledPackets assembled_packets;
+        AssembledFrames assembled_frames;
         // Indicates if the packet buffer was cleared, which means
         // that a key frame request should be sent.
         bool keyframe_requested = false;
@@ -80,7 +91,7 @@ private:
     void UpdateMissingPackets(uint16_t seq_num, size_t window_size);
     bool IsContinuous(uint16_t seq_num);
 
-    AssembledPackets TryToAssembleFrames(uint16_t seq_num);
+    AssembledFrames TryToAssembleFrames(uint16_t seq_num);
 
 private:
     const size_t max_packet_buffer_size_;
