@@ -53,8 +53,9 @@ void SeqNumFrameRefFinder::InsertPadding(uint16_t seq_num) {
 void SeqNumFrameRefFinder::ClearTo(uint16_t seq_num) {
     auto it = stashed_frames_.begin();
     while (it != stashed_frames_.end()) {
-        // FIXME: Why we here compared the sequence num with `first_packet_seq_num` not `last_packet_seq_num`?
-        if (seq_num_utils::AheadOf<uint16_t>(seq_num, (*it)->first_packet_seq_num())) {
+        // We will clear all the frames until the frame which's `first_packet_seq_num`
+        // is older than or equal to `seq_num`.
+        if (seq_num_utils::AheadOf<uint16_t>(seq_num, (*it)->seq_num_start())) {
             it = stashed_frames_.erase(it);
         } else {
             ++it;
@@ -66,7 +67,7 @@ void SeqNumFrameRefFinder::ClearTo(uint16_t seq_num) {
 SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video::FrameToDecode& frame) {
     // We received a keyframe,
     if (frame.frame_type() == VideoFrameType::KEY) {
-        gop_infos_.insert({frame.last_packet_seq_num(), {frame.last_packet_seq_num(), frame.last_packet_seq_num()}});
+        gop_infos_.insert({frame.seq_num_end(), {frame.seq_num_end(), frame.seq_num_end()}});
     }
 
     // We have received a frame, but not yet a keyframe,
@@ -76,18 +77,18 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
     }
 
     // Clean up old keyframes but make sure to keep info for the last keyframe.
-    auto clean_to = gop_infos_.lower_bound(frame.last_packet_seq_num() - kMaxGopInfoAge);
+    auto clean_to = gop_infos_.lower_bound(frame.seq_num_end() - kMaxGopInfoAge);
     for (auto it = gop_infos_.begin(); it != clean_to && gop_infos_.size() > 1;) {
         it = gop_infos_.erase(it);
     }
 
     // Find the last sequence number (picture id) of the last frame for the keyframe
     // that this frame indirectly references.
-    auto next_gop_info_it = gop_infos_.upper_bound(frame.last_packet_seq_num());
+    auto next_gop_info_it = gop_infos_.upper_bound(frame.seq_num_end());
     if (next_gop_info_it == gop_infos_.begin()) {
         PLOG_WARNING << "Generic frame with packet range ["
-                     << frame.first_packet_seq_num() << ", "
-                     << frame.last_packet_seq_num()
+                     << frame.seq_num_start() << ", "
+                     << frame.seq_num_end()
                      << "] has no GOP, dropping it.";
         return FrameDecision::DROPED;
     }
@@ -96,7 +97,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
 
     // The frame is not continuous with the last frame in the GOP, stashing it.
     if (frame.frame_type() == VideoFrameType::DELTA) {
-        uint16_t prev_seq_num = static_cast<uint16_t>((frame.first_packet_seq_num() - 1));
+        uint16_t prev_seq_num = static_cast<uint16_t>((frame.seq_num_start() - 1));
         // Check if the frame is continuous with the previous frame in the GOP.
         if (prev_seq_num != curr_gop_info_it->second.last_picture_id_with_padding_gop) {
             return FrameDecision::STASHED;
@@ -104,7 +105,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
     }
 
     // Using the sequence number of the last packet of frame as picture id.
-    uint16_t curr_frame_picture_id = frame.last_packet_seq_num();
+    uint16_t curr_frame_picture_id = frame.seq_num_end();
     assert(seq_num_utils::AheadOrAt<uint16_t>(curr_frame_picture_id, curr_gop_info_it->first));
 
     PictureId last_picture_id_gop = curr_gop_info_it->second.last_picture_id_gop;
