@@ -5,6 +5,8 @@
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/media/video/common.hpp"
 
+#include <set>
+
 namespace naivertc {
 namespace rtc {
 namespace video {
@@ -28,9 +30,11 @@ public:
     uint16_t seq_num_end() const { return seq_num_end_; }
     uint32_t timestamp() const { return timestamp_; }
 
-    void AddReference(int64_t picture_id) { referred_picture_ids_.push_back(picture_id); }
-    size_t NumOfReferences() const { return referred_picture_ids_.size(); }
-    void ForEachReference(std::function<void(int64_t picture_id)>) const;
+    bool is_keyframe() const { return frame_type_ == VideoFrameType::KEY && referred_picture_ids_.size() == 0; }
+
+    bool InsertReference(int64_t picture_id) { return referred_picture_ids_.insert(picture_id).second; }
+    size_t NumReferences() const { return referred_picture_ids_.size(); }
+    void ForEachReference(std::function<void(int64_t picture_id, bool* stoped)>) const;
 
 private:
     // Used to describe order and dependencies between frames.
@@ -44,7 +48,7 @@ private:
 
     CopyOnWriteBuffer bitstream_;
 
-    std::vector<int64_t> referred_picture_ids_;
+    std::set<int64_t> referred_picture_ids_;
 };
     
 } // namespace video

@@ -65,7 +65,7 @@ private:
             return;
         }
         std::set<int64_t> actual_refs;
-        frame_it->second->ForEachReference([&actual_refs](int64_t pid){
+        frame_it->second->ForEachReference([&actual_refs](int64_t pid, bool* stoped){
             actual_refs.insert(pid);
         });
         std::set<int64_t> expected_refs;

@@ -19,10 +19,14 @@ FrameToDecode::FrameToDecode(VideoFrameType frame_type,
 
 FrameToDecode::~FrameToDecode() {}
 
-void FrameToDecode::ForEachReference(std::function<void(int64_t picture_id)> callback) const {
+void FrameToDecode::ForEachReference(std::function<void(int64_t picture_id, bool* stoped)> callback) const {
     if (!callback) return;
+    bool stoped = false;
     for (int64_t picture_id : referred_picture_ids_) {
-        callback(picture_id);
+        callback(picture_id, &stoped);
+        if (stoped) {
+            break;
+        }
     }
 }
     

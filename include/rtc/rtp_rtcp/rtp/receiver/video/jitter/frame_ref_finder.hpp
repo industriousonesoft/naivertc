@@ -27,12 +27,10 @@ protected:
     FrameRefFinder(int64_t picture_id_offset);
 
     void SetPictureId(int64_t picture_id, video::FrameToDecode& frame);
-    void AddReference(int64_t picture_id, video::FrameToDecode& frame);
+    bool InsertReference(int64_t picture_id, video::FrameToDecode& frame);
 protected:
-    FrameRefFoundCallback frame_ref_found_callback_ = nullptr;
-
-private:
     const int64_t picture_id_offset_;
+    FrameRefFoundCallback frame_ref_found_callback_ = nullptr;   
 };
     
 } // namespace jitter

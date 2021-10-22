@@ -87,7 +87,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
     // that this frame indirectly references.
     auto next_gop_info_it = gop_infos_.upper_bound(frame.seq_num_end());
     if (next_gop_info_it == gop_infos_.begin()) {
-        PLOG_WARNING << "Generic frame with packet range ["
+        PLOG_WARNING << "Frame with packet range ["
                      << frame.seq_num_start() << ", "
                      << frame.seq_num_end()
                      << "] has no GOP, dropping it.";
@@ -105,14 +105,25 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
         }
     }
 
-    // Using the sequence number of the last packet of frame as picture id.
+    // Using the last sequence number as the picture id.
     uint16_t curr_frame_picture_id = frame.seq_num_end();
     assert(seq_num_utils::AheadOrAt<uint16_t>(curr_frame_picture_id, curr_gop_info_it->first));
 
     PictureId last_picture_id_gop = curr_gop_info_it->second.last_picture_id_gop;
     // the keyframe has no reference frames, but the delta frame has.
     if (frame.frame_type() == VideoFrameType::DELTA) {
-        AddReference(seq_num_unwrapper_.Unwrap(last_picture_id_gop), frame);
+        int64_t referred_picture_id = seq_num_unwrapper_.Unwrap(last_picture_id_gop);
+        bool success = InsertReference(referred_picture_id, frame);
+        // Drop the frame if having dulplicate reference frame
+        if (!success) {
+            PLOG_WARNING << "Frame with packet range ["
+                         << frame.seq_num_start() << ", "
+                         << frame.seq_num_end()
+                         << "] has duplicate reference with picture id=" 
+                         << referred_picture_id
+                         << " dropping it.";
+            return FrameDecision::DROPED;
+        }
     }
 
     // Check if the current frame is newest in the GOP.
@@ -122,6 +133,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
     }
     
     UpdateGopInfo(curr_frame_picture_id);
+
     // Using unwrapped sequence number to make sure the frame is unique.
     SetPictureId(seq_num_unwrapper_.Unwrap(curr_frame_picture_id), frame);
     

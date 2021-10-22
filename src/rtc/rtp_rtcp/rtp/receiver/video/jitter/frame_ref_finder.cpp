@@ -47,8 +47,8 @@ void FrameRefFinder::SetPictureId(int64_t picture_id, video::FrameToDecode& fram
     frame.set_id(picture_id_offset_ + picture_id);
 }
 
-void FrameRefFinder::AddReference(int64_t picture_id, video::FrameToDecode& frame) {
-    frame.AddReference(picture_id_offset_ + picture_id);
+bool FrameRefFinder::InsertReference(int64_t picture_id, video::FrameToDecode& frame) {
+    return frame.InsertReference(picture_id_offset_ + picture_id);
 }
 
 } // namespace jitter
