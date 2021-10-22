@@ -2,6 +2,7 @@
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/components/seq_num_utils.hpp"
 
 #include <plog/Log.h>
 
@@ -37,8 +38,7 @@ RtpVideoStreamReceiver::RtpVideoStreamReceiver(Configuration config,
                                                                       rtcp_feedback_buffer_, 
                                                                       rtcp_feedback_buffer_)
                                        : nullptr),
-      frame_assembler_(kPacketBufferStartSize, kPacketBufferMaxSize) {
-}
+      packet_buffer_(kPacketBufferStartSize, kPacketBufferMaxSize) {}
 
 RtpVideoStreamReceiver::~RtpVideoStreamReceiver() {}
 
@@ -160,17 +160,56 @@ void RtpVideoStreamReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depack
     }
 
     rtcp_feedback_buffer_->SendBufferedRtcpFeedbacks();
-    OnInsertdPacket(frame_assembler_.InsertPacket(std::move(packet)));
+    OnInsertedPacket(packet_buffer_.InsertPacket(std::move(packet)));
 }
 
-void RtpVideoStreamReceiver::OnInsertdPacket(rtc::video::jitter::PacketBuffer::InsertResult result) {
+void RtpVideoStreamReceiver::OnInsertedPacket(rtc::video::jitter::PacketBuffer::InsertResult result) {
+    std::vector<ArrayView<const uint8_t>> packet_payloads;
+    for (auto& frame : result.assembled_frames) {
+        auto frame_to_decode = std::make_unique<rtc::video::FrameToDecode>(frame->frame_type,
+                                                                           frame->codec_type,
+                                                                           frame->seq_num_start,
+                                                                           frame->seq_num_end,
+                                                                           frame->timestamp,
+                                                                           std::move(frame->bitstream));
+        OnAssembledFrame(std::move(frame_to_decode));
+    }
+    if (result.keyframe_requested) {
+        // TODO: Do some clean works
+        RequestKeyFrame();
+    }
+}
 
+void RtpVideoStreamReceiver::OnAssembledFrame(std::unique_ptr<rtc::video::FrameToDecode> frame) {
+    if (!has_received_frame_) {
+        // If frames arrive before a key frame, they would not be decodable.
+        // In that case, request a key frame ASAP.
+        if (frame->frame_type() == VideoFrameType::KEY) {
+            RequestKeyFrame();
+        }
+        has_received_frame_ = true;
+    }
+
+    // Switch `frame_ref_finder_` if necessary.
+    SwitchFrameRefFinderIfNecessary(*(frame.get()));
+
+    frame_ref_finder_->InsertFrame(std::move(frame));
+}
+
+void RtpVideoStreamReceiver::OnCompleteFrame(std::unique_ptr<rtc::video::FrameToDecode> frame) {
+    last_seq_num_for_pic_id_[frame->id()] = frame->seq_num_end();
+    last_completed_picture_id_ = std::max(last_completed_picture_id_, frame->id());
+}
+
+void RtpVideoStreamReceiver::RequestKeyFrame() {
+    // TODO: Send PictureLossIndication by rtcp_module
 }
 
 void RtpVideoStreamReceiver::HandleEmptyPacket(uint16_t seq_num) {
-    // TODO: OnCompleteFrames
-
-    OnInsertdPacket(frame_assembler_.InsertPadding(seq_num));
+    if (frame_ref_finder_) {
+        frame_ref_finder_->InsertPadding(seq_num);
+    }
+    OnInsertedPacket(packet_buffer_.InsertPadding(seq_num));
     if (nack_module_) {
         nack_module_->InsertPacket(seq_num, false /* is_keyframe */, false /* is_recovered */);
     }
@@ -187,6 +226,40 @@ void RtpVideoStreamReceiver::HandleRedPacket(const RtpPacketReceived& packet) {
     }
 
     // TODO: Handle RED packet using UlpFEC receiver.
+}
+
+void RtpVideoStreamReceiver::SwitchFrameRefFinderIfNecessary(const rtc::video::FrameToDecode& frame) {
+    if (curr_codec_type_) {
+        bool frame_is_newer = seq_num_utils::AheadOf<uint32_t>(frame.timestamp(), last_assembled_frame_rtp_timestamp_);
+        if (frame.codec_type() != curr_codec_type_) {
+            if (frame_is_newer) {
+                // When we reset the `frame_ref_finder_` we don't want new picture ids
+                // to overlap with old picture ids. To ensure that doesn't happen we
+                // start from the `last_completed_picture_id_` and add an offset in case
+                // of reordering.
+                curr_codec_type_ = frame.codec_type();
+                // FIXME: Why we use uint16_max as the gap value?
+                int64_t picture_id_offset = last_completed_picture_id_ + std::numeric_limits<uint16_t>::max();
+                CreateFrameRefFinder(curr_codec_type_.value(), picture_id_offset);
+            }else {
+                // Old frame from before the codec switch, discard it.
+                return;
+            }
+        }
+        if (frame_is_newer) {
+            last_assembled_frame_rtp_timestamp_ = frame.timestamp();
+        }
+    }else {
+        curr_codec_type_ = frame.codec_type();
+        last_assembled_frame_rtp_timestamp_ = frame.timestamp();
+        CreateFrameRefFinder(curr_codec_type_.value(), 0 /* picture_id_offset */);
+    }
+}
+
+void RtpVideoStreamReceiver::CreateFrameRefFinder(VideoCodecType codec_type, int64_t picture_id_offset) {
+    frame_ref_finder_.reset();
+    frame_ref_finder_ = rtc::video::jitter::FrameRefFinder::Create(codec_type, picture_id_offset);
+    frame_ref_finder_->OnFrameRefFound(std::bind(&RtpVideoStreamReceiver::OnCompleteFrame, this, std::placeholders::_1));
 }
 
 } // namespace naivertc

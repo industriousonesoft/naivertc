@@ -5,11 +5,13 @@
 #include "common/task_queue.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp"
-#include "rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/nack_module.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/rtcp_module.hpp"
 #include "rtc/media/video/codecs/h264/sps_pps_tracker.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.hpp"
+#include "rtc/media/video/common.hpp"
 
 #include <memory>
 #include <map>
@@ -85,7 +87,13 @@ private:
     void OnDepacketizedPacket(RtpDepacketizer::Packet depacketized_packet, 
                               const RtpPacketReceived& rtp_packet);
 
-    void OnInsertdPacket(rtc::video::jitter::PacketBuffer::InsertResult result);
+    void OnInsertedPacket(rtc::video::jitter::PacketBuffer::InsertResult result);
+    void OnAssembledFrame(std::unique_ptr<rtc::video::FrameToDecode> frame);
+    void OnCompleteFrame(std::unique_ptr<rtc::video::FrameToDecode> frame);
+
+    void RequestKeyFrame();
+    void SwitchFrameRefFinderIfNecessary(const rtc::video::FrameToDecode& frame);
+    void CreateFrameRefFinder(VideoCodecType codec_type, int64_t picture_id_offset);
 private:
     const Configuration config_;
     std::shared_ptr<TaskQueue> task_queue_;
@@ -94,9 +102,17 @@ private:
     std::unique_ptr<NackModule> nack_module_;
 
     h264::SpsPpsTracker h264_sps_pps_tracker_;
-    rtc::video::jitter::PacketBuffer frame_assembler_;
+    rtc::video::jitter::PacketBuffer packet_buffer_;
+    std::unique_ptr<rtc::video::jitter::FrameRefFinder> frame_ref_finder_;
 
     std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;
+
+    bool has_received_frame_ = false;
+    std::optional<VideoCodecType> curr_codec_type_ = std::nullopt;
+    uint32_t last_assembled_frame_rtp_timestamp_ = 0;
+    int64_t last_completed_picture_id_ = 0;
+
+    std::map<int64_t, uint16_t> last_seq_num_for_pic_id_;
 };
     
 } // namespace naivertc

@@ -16,7 +16,7 @@ std::unique_ptr<FrameToDecode> CreateFrame(uint16_t seq_num_start,
                                            bool is_keyframe,
                                            VideoCodecType codec_type) {
     VideoFrameType frame_type = is_keyframe ? VideoFrameType::KEY : VideoFrameType::DELTA;
-    return std::make_unique<FrameToDecode>(frame_type, codec_type, seq_num_start, seq_num_end);
+    return std::make_unique<FrameToDecode>(frame_type, codec_type, seq_num_start, seq_num_end, 0, CopyOnWriteBuffer());
 }
 } // namespace
 

@@ -14,7 +14,9 @@ public:
     FrameToDecode(VideoFrameType frame_type,
                   VideoCodecType codec_type, 
                   uint16_t seq_num_start, 
-                  uint16_t seq_num_end);
+                  uint16_t seq_num_end,
+                  uint32_t timestamp,
+                  CopyOnWriteBuffer bitstream);
     ~FrameToDecode();
 
     void set_id(int64_t id) { id_ = id; }
@@ -24,6 +26,7 @@ public:
     VideoCodecType codec_type() const { return codec_type_; }
     uint16_t seq_num_start() const { return seq_num_start_; }
     uint16_t seq_num_end() const { return seq_num_end_; }
+    uint32_t timestamp() const { return timestamp_; }
 
     void AddReference(int64_t picture_id) { referred_picture_ids_.push_back(picture_id); }
     size_t NumOfReferences() const { return referred_picture_ids_.size(); }
@@ -37,6 +40,9 @@ private:
     VideoCodecType codec_type_;
     uint16_t seq_num_start_;
     uint16_t seq_num_end_;
+    uint32_t timestamp_;
+
+    CopyOnWriteBuffer bitstream_;
 
     std::vector<int64_t> referred_picture_ids_;
 };

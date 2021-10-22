@@ -19,7 +19,7 @@ namespace jitter {
 // This class is not thread-saftey, the caller MUST provide that.
 class RTC_CPP_EXPORT SeqNumFrameRefFinder : public FrameRefFinder {
 public:
-    SeqNumFrameRefFinder();
+    SeqNumFrameRefFinder(int64_t picture_id_offset);
     ~SeqNumFrameRefFinder() override;
 
     void InsertFrame(std::unique_ptr<video::FrameToDecode> frame) override;

@@ -15,7 +15,8 @@ constexpr size_t kMaxStashedFrames = 100;
     
 } // namespace
 
-SeqNumFrameRefFinder::SeqNumFrameRefFinder() : FrameRefFinder() {}
+SeqNumFrameRefFinder::SeqNumFrameRefFinder(int64_t picture_id_offset) 
+    : FrameRefFinder(picture_id_offset) {}
 
 SeqNumFrameRefFinder::~SeqNumFrameRefFinder() {}
 
@@ -111,7 +112,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
     PictureId last_picture_id_gop = curr_gop_info_it->second.last_picture_id_gop;
     // the keyframe has no reference frames, but the delta frame has.
     if (frame.frame_type() == VideoFrameType::DELTA) {
-        frame.AddReference(seq_num_unwrapper_.Unwrap(last_picture_id_gop));
+        AddReference(seq_num_unwrapper_.Unwrap(last_picture_id_gop), frame);
     }
 
     // Check if the current frame is newest in the GOP.
@@ -122,7 +123,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
     
     UpdateGopInfo(curr_frame_picture_id);
     // Using unwrapped sequence number to make sure the frame is unique.
-    frame.set_id(seq_num_unwrapper_.Unwrap(curr_frame_picture_id));
+    SetPictureId(seq_num_unwrapper_.Unwrap(curr_frame_picture_id), frame);
     
     return FrameDecision::HAND_OFF;
 }
