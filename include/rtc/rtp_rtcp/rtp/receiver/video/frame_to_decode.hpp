@@ -18,6 +18,9 @@ public:
                   uint16_t seq_num_start, 
                   uint16_t seq_num_end,
                   uint32_t timestamp,
+                  int times_nacked,
+                  int64_t min_received_time_ms,
+                  int64_t max_received_time_ms,
                   CopyOnWriteBuffer bitstream);
     ~FrameToDecode();
 
@@ -29,6 +32,9 @@ public:
     uint16_t seq_num_start() const { return seq_num_start_; }
     uint16_t seq_num_end() const { return seq_num_end_; }
     uint32_t timestamp() const { return timestamp_; }
+    int times_nacked() const { return times_nacked_; }
+    bool delayed_by_retransmission() const { return times_nacked_ > 0; }
+    int64_t received_time_ms() const { return max_received_time_ms_; }
 
     bool is_keyframe() const { return frame_type_ == VideoFrameType::KEY && referred_picture_ids_.size() == 0; }
 
@@ -45,6 +51,9 @@ private:
     uint16_t seq_num_start_;
     uint16_t seq_num_end_;
     uint32_t timestamp_;
+    int times_nacked_;
+    int64_t min_received_time_ms_;
+    int64_t max_received_time_ms_;
 
     CopyOnWriteBuffer bitstream_;
 

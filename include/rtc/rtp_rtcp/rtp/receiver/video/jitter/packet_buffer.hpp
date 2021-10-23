@@ -2,6 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_RECEIVER_VIDEO_JITTER_PACKET_BUFFER_H_
 
 #include "base/defines.hpp"
+#include "rtc/base/units/timestamp.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp_video_header.hpp"
 #include "rtc/rtp_rtcp/components/seq_num_utils.hpp"
@@ -50,6 +51,8 @@ public:
         // Packet info
         uint16_t seq_num = 0;
         uint32_t timestamp = 0;
+        int times_nacked = -1;
+        int64_t received_time_ms = -1;
     };
 
     struct Frame {
@@ -60,6 +63,10 @@ public:
         uint16_t seq_num_start = 0;
         uint16_t seq_num_end = 0;
         uint32_t timestamp = 0;
+        int times_nacked = -1;
+        int64_t min_received_time_ms = -1;
+        int64_t max_received_time_ms = -1;
+
         size_t num_packets = 0;
         CopyOnWriteBuffer bitstream;
     };

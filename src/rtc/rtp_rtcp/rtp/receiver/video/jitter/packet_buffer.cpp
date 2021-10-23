@@ -282,11 +282,19 @@ PacketBuffer::AssembledFrames PacketBuffer::TryToAssembleFrames(uint16_t seq_num
                     frame->frame_type = packet->video_header.frame_type;
                     frame->seq_num_start = packet->seq_num;
                     frame->timestamp = packet->timestamp;
+                    frame->times_nacked = packet->times_nacked;
+                    frame->min_received_time_ms = packet->received_time_ms;
+                    frame->max_received_time_ms = packet->received_time_ms;
                 }
                 // The last packet in frame
                 if (i == seq_num) {
                     frame->seq_num_end = packet->seq_num;
                 }
+
+                frame->times_nacked = std::max(frame->times_nacked, frame->times_nacked);
+                frame->min_received_time_ms = std::min(frame->min_received_time_ms, packet->received_time_ms);
+                frame->max_received_time_ms = std::max(frame->max_received_time_ms, packet->received_time_ms);
+
                 // Append payload data
                 memcpy(write_at, packet->video_payload.data(), packet->video_payload.size());
                 write_at += packet->video_payload.size();

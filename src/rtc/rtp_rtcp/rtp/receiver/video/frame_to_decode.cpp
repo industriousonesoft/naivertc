@@ -9,12 +9,18 @@ FrameToDecode::FrameToDecode(VideoFrameType frame_type,
                              uint16_t seq_num_start, 
                              uint16_t seq_num_end,
                              uint32_t timestamp,
+                             int times_nacked,
+                             int64_t min_received_time_ms,
+                             int64_t max_received_time_ms,
                              CopyOnWriteBuffer bitstream)
     : frame_type_(frame_type),
       codec_type_(codec_type),
       seq_num_start_(seq_num_start),
       seq_num_end_(seq_num_end),
       timestamp_(timestamp),
+      times_nacked_(times_nacked),
+      min_received_time_ms_(min_received_time_ms),
+      max_received_time_ms_(max_received_time_ms),
       bitstream_(std::move(bitstream)) {}
 
 FrameToDecode::~FrameToDecode() {}

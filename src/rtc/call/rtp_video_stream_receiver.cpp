@@ -23,6 +23,18 @@ std::shared_ptr<RtcpModule> CreateRtcpModule(const RtpVideoStreamReceiver::Confi
     return std::make_shared<RtcpModule>(rtcp_config, task_queue);
 }
 
+std::unique_ptr<rtc::video::FrameToDecode> CreateFrameToDecode(const rtc::video::jitter::PacketBuffer::Frame& assembled_frame) {
+    return std::make_unique<rtc::video::FrameToDecode>(assembled_frame.frame_type,
+                                                        assembled_frame.codec_type,
+                                                        assembled_frame.seq_num_start,
+                                                        assembled_frame.seq_num_end,
+                                                        assembled_frame.timestamp,
+                                                        assembled_frame.times_nacked,
+                                                        assembled_frame.min_received_time_ms,
+                                                        assembled_frame.max_received_time_ms,
+                                                        std::move(assembled_frame.bitstream));
+}
+
 } // namespace
 
 // RtpVideoStreamReceiver
@@ -123,9 +135,14 @@ void RtpVideoStreamReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depack
     }
 
     if (nack_module_) {
-        const bool is_keyframe = video_header.is_first_packet_in_frame && video_header.frame_type == VideoFrameType::KEY;
-        // TODO: Pack int packet info
-        size_t nacks_sent = nack_module_->InsertPacket(rtp_packet.sequence_number(), is_keyframe, rtp_packet.is_recovered());
+        // Using first packet of the keyframe to indicate the keyframe is coming.
+        const bool is_keyframe = video_header.is_first_packet_in_frame && 
+                                 video_header.frame_type == VideoFrameType::KEY;
+        // Return the nacks has sent for the packet.
+        packet->times_nacked = nack_module_->InsertPacket(rtp_packet.sequence_number(), is_keyframe, rtp_packet.is_recovered());
+    }else {
+        // Indicates the NACK mechanism is disable.
+        packet->times_nacked = -1;
     }
 
     if (depacketized_packet.video_payload.empty()) {
@@ -165,13 +182,8 @@ void RtpVideoStreamReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depack
 
 void RtpVideoStreamReceiver::OnInsertedPacket(rtc::video::jitter::PacketBuffer::InsertResult result) {
     std::vector<ArrayView<const uint8_t>> packet_payloads;
-    for (auto& frame : result.assembled_frames) {
-        auto frame_to_decode = std::make_unique<rtc::video::FrameToDecode>(frame->frame_type,
-                                                                           frame->codec_type,
-                                                                           frame->seq_num_start,
-                                                                           frame->seq_num_end,
-                                                                           frame->timestamp,
-                                                                           std::move(frame->bitstream));
+    for (const auto& frame : result.assembled_frames) {
+        auto frame_to_decode = CreateFrameToDecode(*(frame.get()));
         OnAssembledFrame(std::move(frame_to_decode));
     }
     if (result.keyframe_requested) {
