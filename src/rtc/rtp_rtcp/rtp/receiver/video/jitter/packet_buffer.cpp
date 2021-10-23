@@ -45,7 +45,7 @@ PacketBuffer::InsertResult PacketBuffer::InsertPacket(std::unique_ptr<Packet> pa
         first_seq_num_ = seq_num;
         first_packet_received_ = true;
     // `seq_num` is newer than `first_seq_num_`
-    } else if (seq_num_utils::AheadOf(first_seq_num_, seq_num)) {
+    } else if (wrap_around_utils::AheadOf(first_seq_num_, seq_num)) {
         // If we have explicitly cleared past this packet then it's old,
         // don't insert it, just ignore it silently.
         if (is_cleared_to_first_seq_num_) {
@@ -102,7 +102,7 @@ void PacketBuffer::Clear() {
 
 void PacketBuffer::ClearTo(uint16_t seq_num) {
     // We have already cleared past this sequence number, no need to do anything.
-    if (is_cleared_to_first_seq_num_ && seq_num_utils::AheadOf<uint16_t>(first_seq_num_, seq_num)) {
+    if (is_cleared_to_first_seq_num_ && wrap_around_utils::AheadOf<uint16_t>(first_seq_num_, seq_num)) {
         return;
     }
 
@@ -118,7 +118,7 @@ void PacketBuffer::ClearTo(uint16_t seq_num) {
     size_t iterations = std::min(diff, packet_buffer_.size());
     for (size_t i = 0; i < iterations; ++i) {
         auto& stored = packet_buffer_[first_seq_num_ % packet_buffer_.size()];
-        if (stored != nullptr && seq_num_utils::AheadOf<uint16_t>(seq_num, stored->seq_num)) {
+        if (stored != nullptr && wrap_around_utils::AheadOf<uint16_t>(seq_num, stored->seq_num)) {
             stored = nullptr;
         }
         ++first_seq_num_;
@@ -361,7 +361,7 @@ void PacketBuffer::UpdateMissingPackets(uint16_t seq_num, size_t window_size) {
         newest_inserted_seq_num_ = seq_num;
     }
     // There is a jump between `newest_inserted_seq_num_` and `seq_num`.
-    if (seq_num_utils::AheadOf(seq_num, newest_inserted_seq_num_.value())) {
+    if (wrap_around_utils::AheadOf(seq_num, newest_inserted_seq_num_.value())) {
         // Erase the obsolete packets
         uint16_t old_seq_num = seq_num - window_size;
         auto erase_to = missing_packets_.lower_bound(old_seq_num);
@@ -369,13 +369,13 @@ void PacketBuffer::UpdateMissingPackets(uint16_t seq_num, size_t window_size) {
 
         // Guard against inserting a large amout of missing packets
         // if there is a jump in the sequence number.
-        if (seq_num_utils::AheadOf(old_seq_num, newest_inserted_seq_num_.value())) {
+        if (wrap_around_utils::AheadOf(old_seq_num, newest_inserted_seq_num_.value())) {
             newest_inserted_seq_num_ = old_seq_num;
         }
 
         // Inserting missing packets from `newest_inserted_seq_num_` to `seq_num`,
         // and resulting `newest_inserted_seq_num_` = `seq_num`.
-        while (seq_num_utils::AheadOf(seq_num, ++*newest_inserted_seq_num_)) {
+        while (wrap_around_utils::AheadOf(seq_num, ++*newest_inserted_seq_num_)) {
             missing_packets_.insert(*newest_inserted_seq_num_);
         }
     } else {

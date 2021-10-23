@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.hpp"
-#include "rtc/rtp_rtcp/components/seq_num_utils.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 
 #include <plog/Log.h>
 
@@ -56,7 +56,7 @@ int64_t FrameBuffer::InsertFrame(std::unique_ptr<video::FrameToDecode> frame) {
     if (last_decoded_frame_id && frame->id() <= *last_decoded_frame_id) {
         // This frame has a newer timestamp but an earlier frame id, this can happen
         // due to some encoder reconfiguration or picture id wrapped around.
-        if (seq_num_utils::AheadOf(frame->timestamp(), *last_decoded_frame_timestamp) 
+        if (wrap_around_utils::AheadOf(frame->timestamp(), *last_decoded_frame_timestamp) 
             && frame->is_keyframe()) {
             // In this case, we assume there has been a jump in the frame id due 
             // to some encoder reconfiguration or some other reason. Even though  

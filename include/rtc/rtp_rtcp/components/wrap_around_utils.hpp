@@ -7,7 +7,7 @@
 #include <type_traits>
 
 namespace naivertc {
-namespace seq_num_utils {
+namespace wrap_around_utils {
 
 // Check if the sequence number `a` is ahead or at sequence number `b`.
 // NOTE: Same as `IsNewer` in wrap_around_checker.hpp
@@ -63,7 +63,7 @@ struct DescendingComp {
     bool operator()(T a, T b) const { return AheadOf<T, M>(b, a); }
 };
 
-} // namespace seq_num_utils
+} // namespace wrap_around_utils
 } // namespace naivertc
 
 

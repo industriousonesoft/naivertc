@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/rtp_rtcp/components/seq_num_utils.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 
 #include <memory>
 #include <set>
@@ -69,9 +69,9 @@ private:
     uint16_t newest_seq_num_;
 
     // FIXME: Why not use AscendingComp here?
-    std::set<uint16_t, seq_num_utils::DescendingComp<uint16_t>> keyframe_list_;
-    std::set<uint16_t, seq_num_utils::DescendingComp<uint16_t>> recovered_list_;
-    std::map<uint16_t, NackInfo, seq_num_utils::DescendingComp<uint16_t>> nack_list_;
+    std::set<uint16_t, wrap_around_utils::DescendingComp<uint16_t>> keyframe_list_;
+    std::set<uint16_t, wrap_around_utils::DescendingComp<uint16_t>> recovered_list_;
+    std::map<uint16_t, NackInfo, wrap_around_utils::DescendingComp<uint16_t>> nack_list_;
 };
     
 } // namespace naivertc

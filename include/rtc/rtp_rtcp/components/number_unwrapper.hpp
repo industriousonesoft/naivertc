@@ -8,7 +8,7 @@
 #include <optional>
 
 namespace naivertc {
-// TODO: Replace with `seq_num_utils.hpp`
+// TODO: Replace with `wrap_around_utils`
 template <typename U>
 class RTC_CPP_EXPORT NumberUnwrapper {
     static_assert(!std::numeric_limits<U>::is_signed, "U must be unsigned.");

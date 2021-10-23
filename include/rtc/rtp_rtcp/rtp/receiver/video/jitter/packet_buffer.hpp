@@ -5,7 +5,7 @@
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp_video_header.hpp"
-#include "rtc/rtp_rtcp/components/seq_num_utils.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 #include "rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp"
 
 #include <vector>
@@ -110,7 +110,7 @@ private:
     bool sps_pps_idr_is_h264_keyframe_;
 
     std::optional<uint16_t> newest_inserted_seq_num_;
-    std::set<uint16_t, seq_num_utils::DescendingComp<uint16_t>> missing_packets_;
+    std::set<uint16_t, wrap_around_utils::DescendingComp<uint16_t>> missing_packets_;
 
 };
     

@@ -1,8 +1,8 @@
-#include "rtc/rtp_rtcp/components/seq_num_utils.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 
 #include <gtest/gtest.h>
 
-using namespace naivertc::seq_num_utils;
+using namespace naivertc::wrap_around_utils;
 
 namespace naivertc {
 namespace test {

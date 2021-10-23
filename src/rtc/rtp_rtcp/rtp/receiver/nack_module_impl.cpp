@@ -60,7 +60,7 @@ NackModuleImpl::InsertResult NackModuleImpl::InsertPacket(uint16_t seq_num, bool
     }
 
     // `seq_num` is newer than `newest_seq_num`
-    if (seq_num_utils::AheadOf(newest_seq_num_, seq_num)) {
+    if (wrap_around_utils::AheadOf(newest_seq_num_, seq_num)) {
         size_t nacks_sent_for_packet = 0;
         auto it = nack_list_.find(seq_num);
         if (it != nack_list_.end()) {
@@ -175,7 +175,7 @@ std::vector<uint16_t> NackModuleImpl::NackListToSend(NackFilterType type, uint16
             bool nack_on_seq_num_passed = false;
             // Nack on seq_num passed and not sent before.
             if (type == NackFilterType::SEQ_NUM && !it->second.sent_time) {
-                nack_on_seq_num_passed = seq_num_utils::AheadOrAt(seq_num, it->second.seq_num);
+                nack_on_seq_num_passed = wrap_around_utils::AheadOrAt(seq_num, it->second.seq_num);
             }
 
             if (nack_on_rtt_passed || nack_on_seq_num_passed) {

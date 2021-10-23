@@ -2,7 +2,7 @@
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
-#include "rtc/rtp_rtcp/components/seq_num_utils.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 
 #include <plog/Log.h>
 
@@ -242,7 +242,7 @@ void RtpVideoStreamReceiver::HandleRedPacket(const RtpPacketReceived& packet) {
 
 void RtpVideoStreamReceiver::SwitchFrameRefFinderIfNecessary(const rtc::video::FrameToDecode& frame) {
     if (curr_codec_type_) {
-        bool frame_is_newer = seq_num_utils::AheadOf<uint32_t>(frame.timestamp(), last_assembled_frame_rtp_timestamp_);
+        bool frame_is_newer = wrap_around_utils::AheadOf<uint32_t>(frame.timestamp(), last_assembled_frame_rtp_timestamp_);
         if (frame.codec_type() != curr_codec_type_) {
             if (frame_is_newer) {
                 // When we reset the `frame_ref_finder_` we don't want new picture ids

@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_COMPONENTS_SEQ_NUM_UNWRAPPER_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/components/seq_num_utils.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 
 #include <optional>
 
@@ -21,7 +21,7 @@ public:
         } else {
             last_unwrapped_ += ForwardDiff<T, M>(*last_value_, value);
 
-            if (!seq_num_utils::AheadOrAt<T, M>(value, *last_value_)) {
+            if (!wrap_around_utils::AheadOrAt<T, M>(value, *last_value_)) {
                 constexpr int64_t kBackwardAdjustment =  M == 0 ? int64_t{std::numeric_limits<T>::max()} + 1 : M;
                 last_unwrapped_ -= kBackwardAdjustment;
             }

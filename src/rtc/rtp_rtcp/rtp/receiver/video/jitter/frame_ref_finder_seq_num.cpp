@@ -56,7 +56,7 @@ void SeqNumFrameRefFinder::ClearTo(uint16_t seq_num) {
     while (it != stashed_frames_.end()) {
         // We will clear all the frames until the frame which's `first_packet_seq_num`
         // is older than or equal to `seq_num`.
-        if (seq_num_utils::AheadOf<uint16_t>(seq_num, (*it)->seq_num_start())) {
+        if (wrap_around_utils::AheadOf<uint16_t>(seq_num, (*it)->seq_num_start())) {
             it = stashed_frames_.erase(it);
         } else {
             ++it;
@@ -107,7 +107,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
 
     // Using the last sequence number as the picture id.
     uint16_t curr_frame_picture_id = frame.seq_num_end();
-    assert(seq_num_utils::AheadOrAt<uint16_t>(curr_frame_picture_id, curr_gop_info_it->first));
+    assert(wrap_around_utils::AheadOrAt<uint16_t>(curr_frame_picture_id, curr_gop_info_it->first));
 
     PictureId last_picture_id_gop = curr_gop_info_it->second.last_picture_id_gop;
     // the keyframe has no reference frames, but the delta frame has.
@@ -127,7 +127,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
     }
 
     // Check if the current frame is newest in the GOP.
-    if (seq_num_utils::AheadOf<uint16_t>(curr_frame_picture_id, last_picture_id_gop)) {
+    if (wrap_around_utils::AheadOf<uint16_t>(curr_frame_picture_id, last_picture_id_gop)) {
         curr_gop_info_it->second.last_picture_id_gop = curr_frame_picture_id;
         curr_gop_info_it->second.last_picture_id_with_padding_gop = curr_frame_picture_id;
     }
