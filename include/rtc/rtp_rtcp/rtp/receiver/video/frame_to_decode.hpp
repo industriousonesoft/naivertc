@@ -36,6 +36,9 @@ public:
     bool delayed_by_retransmission() const { return times_nacked_ > 0; }
     int64_t received_time_ms() const { return max_received_time_ms_; }
 
+    int64_t render_time_ms() const { return render_time_ms_; }
+    void set_render_time_ms(int64_t time_ms) { render_time_ms_ = time_ms; }
+
     bool is_keyframe() const { return frame_type_ == VideoFrameType::KEY && referred_picture_ids_.size() == 0; }
 
     bool InsertReference(int64_t picture_id) { return referred_picture_ids_.insert(picture_id).second; }
@@ -54,6 +57,7 @@ private:
     int times_nacked_;
     int64_t min_received_time_ms_;
     int64_t max_received_time_ms_;
+    int64_t render_time_ms_;
 
     CopyOnWriteBuffer bitstream_;
 

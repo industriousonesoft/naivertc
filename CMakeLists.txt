@@ -172,7 +172,7 @@ set(LIB_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video
     src/rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/decoded_frames_history.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_seq_num.cpp
@@ -391,7 +391,7 @@ set(LIB_HEADERS
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video
     include/rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp
-    include/rtc/rtp_rtcp/rtp/receiver/video/decoded_frames_history.hpp
+    include/rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.hpp
     include/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.hpp
     include/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.hpp
     include/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_seq_num.hpp
@@ -594,7 +594,7 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video -> jitter
-    src/rtc/rtp_rtcp/rtp/receiver/video/decoded_frames_history_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history_unittest.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer_unittest.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_unittest.cpp
 
