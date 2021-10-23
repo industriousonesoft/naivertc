@@ -11,7 +11,7 @@ template <typename U>
 inline bool IsNewer(U value, U prev_value) {
     static_assert(!std::numeric_limits<U>::is_signed, "U must be unsigned");
     // kBreakpoint is the half-way mark for the type U. For instance, for a
-    // uint16_t it will be 0x8000, and for a uint32_t, it will be 0x8000000.
+    // uint16_t it will be 0x8000 (2^15), and for a uint32_t, it will be 0x80000000 (2^31).
     constexpr U kBreakpoint = (std::numeric_limits<U>::max() >> 1) + 1;
     // Distinguish between elements that are exactly kBreakpoint apart.
     // If t1>t2 and |t1-t2| = kBreakpoint: IsNewer(t1,t2)=true,

@@ -172,11 +172,16 @@ set(LIB_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video
     src/rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> jitter
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_seq_num.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> timing
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/timestamp_extrapolator.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
@@ -391,11 +396,15 @@ set(LIB_HEADERS
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video
     include/rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp
+    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> jitter
     include/rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.hpp
     include/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.hpp
     include/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.hpp
     include/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_seq_num.hpp
     include/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.hpp
+
+    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> timing
+    include/rtc/rtp_rtcp/rtp/receiver/video/timing/timestamp_extrapolator.hpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp

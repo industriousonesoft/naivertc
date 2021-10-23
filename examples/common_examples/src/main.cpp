@@ -15,6 +15,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <limits>
 
 int main(int argc, const char* argv[]) {
 
@@ -29,7 +30,9 @@ int main(int argc, const char* argv[]) {
         std::cout << "main ioc exit" << std::endl;
     });
 
-    std::cout << "test start" << std::endl;
+    // std::cout << std::numeric_limits<uint32_t>::max() << " - " << ((static_cast<int64_t>(1) << 32) - 1) << std::endl;
+
+    std::cout << "test start 123" << std::endl;
 
     // TaskQueue
     // std::unique_ptr<taskqueue::Example> task_queue_example = std::make_unique<taskqueue::Example>();
@@ -66,8 +69,9 @@ int main(int argc, const char* argv[]) {
     // sdptest::ParseAnAnswer();
 
     // Random string
-    std::cout << "16 length random string: " << naivertc::utils::random::random_string(16) << std::endl;
-    std::cout << "36 length random string: " << naivertc::utils::random::random_string(36) << std::endl;
+    // std::cout << "16 length random string: " << naivertc::utils::random::random_string(16) << std::endl;
+    // std::cout << "36 length random string: " << naivertc::utils::random::random_string(36) << std::endl;
+
 
     ioc.run();
 
