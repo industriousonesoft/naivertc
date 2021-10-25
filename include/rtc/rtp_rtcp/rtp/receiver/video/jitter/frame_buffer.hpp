@@ -15,7 +15,7 @@ namespace rtc {
 namespace video {
 namespace jitter {
 
-// The class is not thread-saftey, the caller MUST privode that.
+// The class is not thread-safe, the caller MUST privode that.
 class RTC_CPP_EXPORT FrameBuffer {
 public:
     enum class ReturnReason { FOUND, TIME_OUT, STOPPED };

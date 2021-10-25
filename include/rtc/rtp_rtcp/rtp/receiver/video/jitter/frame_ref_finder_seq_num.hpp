@@ -16,7 +16,7 @@ namespace rtc {
 namespace video {
 namespace jitter {
 
-// This class is not thread-saftey, the caller MUST provide that.
+// This class is not thread-safe, the caller MUST provide that.
 class RTC_CPP_EXPORT SeqNumFrameRefFinder : public FrameRefFinder {
 public:
     SeqNumFrameRefFinder(int64_t picture_id_offset);

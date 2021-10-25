@@ -181,7 +181,9 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.cpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video -> timing
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/decode_time_filter.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/timing/timestamp_extrapolator.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/timing.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
@@ -404,7 +406,9 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.hpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video -> timing
+    include/rtc/rtp_rtcp/rtp/receiver/video/timing/decode_time_filter.hpp
     include/rtc/rtp_rtcp/rtp/receiver/video/timing/timestamp_extrapolator.hpp
+    include/rtc/rtp_rtcp/rtp/receiver/video/timing/timing.hpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     include/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp

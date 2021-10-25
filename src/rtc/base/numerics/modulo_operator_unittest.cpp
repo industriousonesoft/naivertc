@@ -76,6 +76,17 @@ TEST(Base_ModOperatorTest, ForwardDiff) {
     }
 }
 
+TEST(Base_ModOperatorTest, ForwardDiffWord32) {
+    // x < 0x0000ffff
+    uint32_t x = 0; 
+    // y > 0xffff0000
+    uint32_t y = 0xffff0001;
+    // x --> y
+    ASSERT_EQ(0xffff0001, ForwardDiff<uint32_t>(x, y));
+    // y --> x
+    ASSERT_EQ(0x0000ffff, ForwardDiff<uint32_t>(y, x));
+}
+
 TEST(Base_ModOperatorTest, ForwardDiffWithDivisor) {
     ASSERT_EQ(122, (ForwardDiff<uint8_t, 123>(0, 122)));
     ASSERT_EQ(0, (ForwardDiff<uint8_t, 123>(122, 122)));
