@@ -17,10 +17,11 @@ public:
 
     void Update(uint32_t timestamp /* in 90khz */, int64_t receive_time_ms);
     void Reset(int64_t start_time_ms);
+    int64_t ExtrapolateLocalTime(uint32_t timestamp /* in 90khz */);
 
 private:
-    void WrapAroundChecker(uint32_t timestamp_in_90khz);
-
+    int64_t Unwrap(uint32_t timestamp);
+    bool DelayChangeDetection(double error);
 private:
     double w_[2];
     double pP_[2][2];
@@ -28,7 +29,7 @@ private:
     int64_t prev_time_ms_;
     uint32_t first_timestamp_;
     int32_t num_wrap_arounds_;
-    int64_t prev_unrapped_timestamp_;
+    std::optional<int64_t> prev_unwrapped_timestamp_;
     std::optional<uint32_t> prev_wrap_timestamp_;
     bool first_after_reset_;
     uint32_t packet_count_;
