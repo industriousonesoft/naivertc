@@ -55,7 +55,7 @@ protected:
                              uint32_t ntp_frac,
                              uint32_t rtp_timestamp,
                              bool expected_result) {
-        EXPECT_EQ(expected_result, estimator_->UpdateTimestamp(rtt, ntp_secs, ntp_frac, rtp_timestamp));
+        EXPECT_EQ(expected_result, estimator_->UpdateRtcpTimestamp(rtt, ntp_secs, ntp_frac, rtp_timestamp));
     }
 
     void ReceiveRtcpSr(int64_t rtt,

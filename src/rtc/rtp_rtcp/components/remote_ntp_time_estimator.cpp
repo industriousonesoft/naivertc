@@ -16,18 +16,19 @@ RemoteNtpTimeEstimator::RemoteNtpTimeEstimator(std::shared_ptr<Clock> clock)
 
 RemoteNtpTimeEstimator::~RemoteNtpTimeEstimator() {}
 
-bool RemoteNtpTimeEstimator::UpdateTimestamp(int64_t rtt, 
-                                             uint32_t ntp_secs, 
-                                             uint32_t ntp_frac, 
-                                             uint32_t rtp_timestamp) {
+bool RemoteNtpTimeEstimator::UpdateRtcpTimestamp(int64_t rtt, 
+                                                 uint32_t ntp_secs, 
+                                                 uint32_t ntp_frac, 
+                                                 uint32_t rtp_timestamp) {
+    // No new RTCP SR since last time this function was called.
     if (!rtp_to_ntp_estimator_.UpdateMeasurements(ntp_secs, ntp_frac, rtp_timestamp)) {
         return false;
     }
-    int64_t receiver_arrival_time_ms = clock_->CurrentNtpTime().ToMs();
-    int64_t sender_send_time_ms = NtpTime(ntp_secs, ntp_frac).ToMs();
-    int64_t sender_arrival_time_ms = sender_send_time_ms + rtt / 2;
-    int64_t remote_to_local_clocks_offset = receiver_arrival_time_ms - sender_arrival_time_ms;
-    ntp_clocks_offset_estimator_.Insert(remote_to_local_clocks_offset);
+    int64_t actual_arrival_ntp_time_ms = clock_->CurrentNtpTime().ToMs();
+    int64_t actual_send_ntp_time_ms = NtpTime(ntp_secs, ntp_frac).ToMs();
+    int64_t expected_arrival_ntp_time_ms = actual_send_ntp_time_ms + rtt / 2;
+    int64_t remote_to_local_clocks_offset_ms = actual_arrival_ntp_time_ms - expected_arrival_ntp_time_ms;
+    ntp_clocks_offset_estimator_.Insert(remote_to_local_clocks_offset_ms);
     return true;
 }
 
@@ -36,8 +37,8 @@ int64_t RemoteNtpTimeEstimator::Estimate(uint32_t rtp_timestamp) {
     if (!sender_capture_ntp_ms) {
         return -1;
     }
-    int64_t remote_to_local_clocks_offset = ntp_clocks_offset_estimator_.GetFilteredValue();
-    int64_t receiver_capture_ntp_ms = sender_capture_ntp_ms.value() + remote_to_local_clocks_offset;
+    int64_t remote_to_local_clocks_offset_ms = ntp_clocks_offset_estimator_.GetFilteredValue();
+    int64_t receiver_capture_ntp_ms = sender_capture_ntp_ms.value() + remote_to_local_clocks_offset_ms;
 
     int64_t now_ms = clock_->now_ms();
     if (now_ms - last_timing_log_ms_ > kTimingLogIntervalMs) {

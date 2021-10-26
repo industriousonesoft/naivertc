@@ -12,15 +12,18 @@ namespace naivertc {
 
 // RemoteNtpTimeEstimator can be used to estimate 
 // a given RTP timestamp's NTP time in local timebase.
+// It will create a linear regression between timestamp and NTP time
+// based on SR pakcet, then the linear regression is used to estimate 
+// the RTP packet received NTP time in local timebase.
 class RTC_CPP_EXPORT RemoteNtpTimeEstimator {
 public:
     explicit RemoteNtpTimeEstimator(std::shared_ptr<Clock> clock);
     ~RemoteNtpTimeEstimator();
 
-    bool UpdateTimestamp(int64_t rtt, 
-                         uint32_t ntp_secs, 
-                         uint32_t ntp_frac, 
-                         uint32_t rtp_timestamp);
+    bool UpdateRtcpTimestamp(int64_t rtt, 
+                             uint32_t ntp_secs, 
+                             uint32_t ntp_frac, 
+                             uint32_t rtp_timestamp);
 
     // Estimates the NTP timestamp in local timebase from |rtp_timestamp|.
     // Returns the NTP timestamp in ms when success. -1 if failed.

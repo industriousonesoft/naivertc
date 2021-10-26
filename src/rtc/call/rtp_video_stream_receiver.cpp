@@ -93,7 +93,7 @@ void RtpVideoStreamReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
         int64_t time_since_rtcp_arrival = clock_->now_ntp_time_ms() - rtcp_arrival_ntp.ToMs();
         // Don't use old SRs to estimate time.
         if (time_since_rtcp_arrival <= 1 /* 1 ms */) {
-            remote_ntp_time_estimator_.UpdateTimestamp(last_rtt_ms, received_ntp_secs, received_ntp_frac, rtp_timestamp);
+            remote_ntp_time_estimator_.UpdateRtcpTimestamp(last_rtt_ms, received_ntp_secs, received_ntp_frac, rtp_timestamp);
             std::optional<int64_t> remote_to_local_clock_offset_ms = remote_ntp_time_estimator_.EstimateRemoteToLocalClockOffsetMs();
             if (remote_to_local_clock_offset_ms) {
                 PLOG_INFO << "Estimated offset in ms: " << remote_to_local_clock_offset_ms.value()

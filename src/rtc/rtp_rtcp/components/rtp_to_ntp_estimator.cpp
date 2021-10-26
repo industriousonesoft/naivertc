@@ -25,6 +25,7 @@ RtpToNtpEstimator::Measurement::Measurement(int64_t ntp_time_ms,
 
 bool RtpToNtpEstimator::Measurement::operator==(const Measurement& other) const {
     // rtp_timestamp = ntp_time_ms * frequency + offset
+    // Note: the offset value using a random instead of starting from 0 to prevent attacks.
     // TODO: Why we use || not &&?
     return (ntp_time_ms == other.ntp_time_ms) || 
            (unwrapped_rtp_timestamp == other.unwrapped_rtp_timestamp);
