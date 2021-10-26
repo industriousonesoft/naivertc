@@ -23,8 +23,8 @@ public:
 
     // Advance the simulated clock with a given number of milliseconds or
     // microseconds.
-    void AdvanceTimeMilliseconds(int64_t milliseconds);
-    void AdvanceTimeMicroseconds(int64_t microseconds);
+    void AdvanceTimeMs(int64_t time_ms);
+    void AdvanceTimeUs(int64_t time_us);
     void AdvanceTime(TimeDelta delta);
 
 private:

@@ -29,9 +29,16 @@ public:
 
     // Set the minimum time the video must be delayed on the receiver to
     // get the desired jitter buffer level.
-    void HitJitterDelayMs(int delay_ms);
+    void set_jitter_delay_ms(int delay_ms);
 
+    void set_zero_playout_delay_min_pacing(TimeDelta time_delta) { zero_playout_delay_min_pacing_ = time_delta; }
+    TimeDelta zero_playout_delay_min_pacing() const { return zero_playout_delay_min_pacing_; }
+
+    // Used to report that a frame is passed to decoding. Updates the timestamp
+    // filter which is used to map between timestamps and receiver system time.
     void IncomingTimestamp(uint32_t timestamp, int64_t receive_time_ms);
+
+    void AddDecodeTime(int32_t decode_time_ms, int64_t now_ms);
 
     // Increases or decreases the current delay to get closer to the target delay.
     // Calculates how long it has been since the previous call to thie function,
@@ -45,9 +52,21 @@ public:
     void UpdateCurrentDelay(int64_t expect_render_time_ms,
                             int64_t actual_time_ms_to_decode);
     
-    void Reset();
-
+    // Returns the current target delay which is required delay + decode time +
+    // render delay.
     int TargetDelayMs() const;
+
+    // Returns the receiver system time when the frame with timestamp
+    // |frame_timestamp| should be rendered, assuming that the system time
+    // currently is |now_ms|.
+    int64_t RenderTimeMs(uint32_t timestamp, int64_t now_ms) const;
+
+    // Returns the maximum time in ms that we can wait for a frame to become
+    // complete before we must pass it to the decoder.
+    int64_t MaxTimeWaitingToDecode(int64_t render_time_ms, int64_t now_ms);
+
+    // Reset the timing to the initial state.
+    void Reset();
 
     bool GetTiming(int* max_decode_ms,
                    int* curr_delay_ms,
@@ -57,7 +76,7 @@ public:
                    int* render_delay_ms) const;
 
 private:
-
+    int RequiredDecodeTimeMs() const;
 private:
     std::shared_ptr<Clock> clock_;
     std::unique_ptr<TimestampExtrapolator> timestamp_extrapolator_;
@@ -65,11 +84,11 @@ private:
 
     // Indicates if the low-latency renderer algorithm should be 
     // used for the case min playout delay=0 and max playout delay > 0.
-    const bool low_latency_render_enable_;
+    const bool low_latency_renderer_enabled_;
 
     // Indicates the minimum delay between frames scheduled for decoding 
     // that is used when min playout delay=0 and max playout delay>=0
-    const TimeDelta zero_playout_delay_min_pacing_;
+    TimeDelta zero_playout_delay_min_pacing_;
 
     int render_delay_ms_;
     // Best-effort playout delay range for frames from capture to render.

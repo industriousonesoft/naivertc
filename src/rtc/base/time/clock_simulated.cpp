@@ -22,12 +22,12 @@ NtpTime SimulatedClock::ConvertTimestampToNtpTime(Timestamp timestamp) {
     return NtpTime(seconds, fractions);
 }
 
-void SimulatedClock::AdvanceTimeMilliseconds(int64_t milliseconds) {
-    AdvanceTime(TimeDelta::Millis(milliseconds));
+void SimulatedClock::AdvanceTimeMs(int64_t time_ms) {
+    AdvanceTime(TimeDelta::Millis(time_ms));
 }
 
-void SimulatedClock::AdvanceTimeMicroseconds(int64_t microseconds) {
-    AdvanceTime(TimeDelta::Micros(microseconds));
+void SimulatedClock::AdvanceTimeUs(int64_t time_us) {
+    AdvanceTime(TimeDelta::Micros(time_us));
 }
 
 void SimulatedClock::AdvanceTime(TimeDelta delta) {

@@ -79,7 +79,7 @@ TEST_F(RTP_RTCP_NackModuleTest, WrappingSeqNumClearToKeyframe) {
 
     sent_nacks_.clear();
     // Filtered by timing
-    clock_->AdvanceTimeMilliseconds(100);
+    clock_->AdvanceTimeMs(100);
     // Call NackListOnRttPassed() explicitly to simulate repeating task.
     PeriodicUpdate();
     ASSERT_EQ(999u, sent_nacks_.size());
@@ -100,7 +100,7 @@ TEST_F(RTP_RTCP_NackModuleTest, WrappingSeqNumClearToKeyframe) {
     EXPECT_EQ(1003, sent_nacks_[1]);
 
     sent_nacks_.clear();
-    clock_->AdvanceTimeMilliseconds(100);
+    clock_->AdvanceTimeMs(100);
     PeriodicUpdate();
     ASSERT_EQ(999u, sent_nacks_.size());
     for (int seq_num = 3; seq_num < 501; ++seq_num)
@@ -117,7 +117,7 @@ TEST_F(RTP_RTCP_NackModuleTest, WrappingSeqNumClearToKeyframe) {
     EXPECT_EQ(1006, sent_nacks_[1]);
 
     sent_nacks_.clear();
-    clock_->AdvanceTimeMilliseconds(100);
+    clock_->AdvanceTimeMs(100);
     PeriodicUpdate();
     ASSERT_EQ(503u, sent_nacks_.size());
     for (int seq_num = 502; seq_num < 1001; ++seq_num)
@@ -138,7 +138,7 @@ TEST_F(RTP_RTCP_NackModuleTest, ResendNack) {
     EXPECT_EQ(2u, sent_nacks_[0]);
 
     UpdateRtt(1);
-    clock_->AdvanceTimeMilliseconds(1);
+    clock_->AdvanceTimeMs(1);
     PeriodicUpdate();
     EXPECT_EQ(++expected_nacks_sent, sent_nacks_.size());
 
@@ -148,19 +148,19 @@ TEST_F(RTP_RTCP_NackModuleTest, ResendNack) {
         UpdateRtt(rtt.ms());
 
         // Move to one millisecond before next allowed NACK.
-        clock_->AdvanceTimeMilliseconds(rtt.ms() - 1);
+        clock_->AdvanceTimeMs(rtt.ms() - 1);
         PeriodicUpdate();
         EXPECT_EQ(expected_nacks_sent, sent_nacks_.size());
 
         // Move to one millisecond after next allowed NACK.
         // After rather than on to avoid rounding errors.
-        clock_->AdvanceTimeMilliseconds(2);
+        clock_->AdvanceTimeMs(2);
         PeriodicUpdate();
         EXPECT_EQ(++expected_nacks_sent, sent_nacks_.size());
     }
 
     // Giving up after 10 tries. so not try to resend
-    clock_->AdvanceTimeMilliseconds(3000);
+    clock_->AdvanceTimeMs(3000);
     PeriodicUpdate();
     EXPECT_EQ(expected_nacks_sent, sent_nacks_.size());
 }
@@ -176,13 +176,13 @@ TEST_F(RTP_RTCP_NackModuleTest, ResendPacketMaxRetries) {
     int backoff_factor = 1;
     for (size_t retries = 1; retries < 10; ++retries) {
         // Exponential backoff, so that we don't reject NACK because of time.
-        clock_->AdvanceTimeMilliseconds(backoff_factor * kDefaultRttMs);
+        clock_->AdvanceTimeMs(backoff_factor * kDefaultRttMs);
         backoff_factor *= 2;
         PeriodicUpdate();
         EXPECT_EQ(retries + 1, sent_nacks_.size());
     }
 
-    clock_->AdvanceTimeMilliseconds(backoff_factor * kDefaultRttMs);
+    clock_->AdvanceTimeMs(backoff_factor * kDefaultRttMs);
     PeriodicUpdate();
     EXPECT_EQ(10u, sent_nacks_.size());
 }
@@ -223,7 +223,7 @@ TEST_F(RTP_RTCP_NackModuleTest, ClearUpTo) {
     EXPECT_EQ(99u, sent_nacks_.size());
 
     sent_nacks_.clear();
-    clock_->AdvanceTimeMilliseconds(100);
+    clock_->AdvanceTimeMs(100);
     nack_module_->ClearUpTo(50);
     PeriodicUpdate();
     ASSERT_EQ(50u, sent_nacks_.size());
@@ -238,7 +238,7 @@ TEST_F(RTP_RTCP_NackModuleTest, ClearUpToWrap) {
     EXPECT_EQ(30u, sent_nacks_.size());
 
     sent_nacks_.clear();
-    clock_->AdvanceTimeMilliseconds(100);
+    clock_->AdvanceTimeMs(100);
     nack_module_->ClearUpTo(0);
     PeriodicUpdate();
     ASSERT_EQ(15u, sent_nacks_.size());
@@ -254,11 +254,11 @@ TEST_F(RTP_RTCP_NackModuleTest, PacketNackCount) {
     sent_nacks_.clear();
     nack_module_->UpdateRtt(100);
     EXPECT_EQ(0, InsertPacket(5, false, false));
-    clock_->AdvanceTimeMilliseconds(100);
+    clock_->AdvanceTimeMs(100);
     PeriodicUpdate();
     EXPECT_EQ(4u, sent_nacks_.size());
 
-    clock_->AdvanceTimeMilliseconds(125);
+    clock_->AdvanceTimeMs(125);
     PeriodicUpdate();
 
     EXPECT_EQ(6u, sent_nacks_.size());
@@ -306,10 +306,10 @@ TEST_F(RTP_RTCP_NackModuleTest, SendNackWithDelay) {
     InsertPacket(0, false, false);
     InsertPacket(100, false, false);
     EXPECT_EQ(0u, sent_nacks_.size());
-    clock_->AdvanceTimeMilliseconds(10);
+    clock_->AdvanceTimeMs(10);
     InsertPacket(106, false, false);
     EXPECT_EQ(99u, sent_nacks_.size());
-    clock_->AdvanceTimeMilliseconds(10);
+    clock_->AdvanceTimeMs(10);
     InsertPacket(109, false, false);
     EXPECT_EQ(104u, sent_nacks_.size());
 }

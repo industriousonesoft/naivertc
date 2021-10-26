@@ -606,6 +606,9 @@ set(TEST_SOURCES
     # rtc -> rtp_rtcp -> rtp -> receiver
     src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl_unittest.cpp
 
+    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> timing
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/timing_unittest.cpp
+
     # rtc -> rtp_rtcp -> rtp -> receiver -> video -> jitter
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history_unittest.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer_unittest.cpp
