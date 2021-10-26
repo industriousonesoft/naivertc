@@ -28,7 +28,7 @@ public:
 
     // Estimates the offset, in milliseconds, between the remote clock and the
     // local one. This is equal to local NTP clock - remote NTP clock.
-    std::optional<int64_t> EstimatedOffsetInMs();
+    std::optional<int64_t> EstimateRemoteToLocalClockOffsetMs();
 
 private:
     std::shared_ptr<Clock> clock_;

@@ -18,6 +18,7 @@ public:
                   uint16_t seq_num_start, 
                   uint16_t seq_num_end,
                   uint32_t timestamp,
+                  int64_t ntp_time_ms,
                   int times_nacked,
                   int64_t min_received_time_ms,
                   int64_t max_received_time_ms,
@@ -32,6 +33,7 @@ public:
     uint16_t seq_num_start() const { return seq_num_start_; }
     uint16_t seq_num_end() const { return seq_num_end_; }
     uint32_t timestamp() const { return timestamp_; }
+    int64_t ntp_time_ms() const { return ntp_time_ms_; }
     int times_nacked() const { return times_nacked_; }
     bool delayed_by_retransmission() const { return times_nacked_ > 0; }
     int64_t received_time_ms() const { return max_received_time_ms_; }
@@ -54,6 +56,7 @@ private:
     uint16_t seq_num_start_;
     uint16_t seq_num_end_;
     uint32_t timestamp_;
+    int64_t ntp_time_ms_;
     int times_nacked_;
     int64_t min_received_time_ms_;
     int64_t max_received_time_ms_;

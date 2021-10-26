@@ -20,7 +20,7 @@ namespace naivertc {
 
 constexpr int64_t kMaxWarningLogIntervalMs = 10000;
 // Compound packet
-bool RtcpReceiver::ParseCompoundPacket(BinaryBuffer packet) {
+bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet) {
 
     rtcp::CommonHeader rtcp_block;
     for (const uint8_t* next_block = packet.begin().base(); next_block != packet.end().base(); 

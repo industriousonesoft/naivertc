@@ -20,12 +20,30 @@ public:
                std::shared_ptr<TaskQueue> task_queue);
     ~RtcpModule();
 
+    void set_rtt_ms(int64_t rtt_ms);
+    int64_t rtt_ms() const;
+
+    void IncomingPacket(const uint8_t* packet, size_t packet_size);
+    void IncomingPacket(CopyOnWriteBuffer rtcp_packet);
+
     // NackSender override methods
     void SendNack(std::vector<uint16_t> nack_list,
                   bool buffering_allowed) override;
 
     // KeyFrameRequestSender override methods
     void RequestKeyFrame() override;
+
+    int32_t RTT(uint32_t remote_ssrc,
+                int64_t* last_rtt_ms,
+                int64_t* avg_rtt_ms,
+                int64_t* min_rtt_ms,
+                int64_t* max_rtt_ms) const;
+
+    int32_t RemoteNTP(uint32_t* received_ntp_secs,
+                      uint32_t* received_ntp_frac,
+                      uint32_t* rtcp_arrival_time_secs,
+                      uint32_t* rtcp_arrival_time_frac,
+                      uint32_t* rtcp_timestamp) const;
 
 private:
     // RtpSentStatistics Observer
@@ -54,6 +72,8 @@ private:
     TaskQueue work_queue_;
 
     RtcpSender::FeedbackState feedback_state_;
+
+    int64_t rtt_ms_;
 };
     
 } // namespace naivertc

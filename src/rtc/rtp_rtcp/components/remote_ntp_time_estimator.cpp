@@ -51,7 +51,7 @@ int64_t RemoteNtpTimeEstimator::Estimate(uint32_t rtp_timestamp) {
     return receiver_capture_ntp_ms;
 }
 
-std::optional<int64_t> RemoteNtpTimeEstimator::EstimatedOffsetInMs() {
+std::optional<int64_t> RemoteNtpTimeEstimator::EstimateRemoteToLocalClockOffsetMs() {
     if (ntp_clocks_offset_estimator_.stored_sample_count() < kMinimumNumberOfSamples) {
         return std::nullopt;
     }

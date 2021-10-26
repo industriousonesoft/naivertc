@@ -54,9 +54,9 @@ uint32_t RtcpReceiver::remote_ssrc() const {
     });
 }
 
-void RtcpReceiver::IncomingPacket(BinaryBuffer packet) {
+void RtcpReceiver::IncomingPacket(CopyOnWriteBuffer packet) {
     task_queue_->Async([this, packet = std::move(packet)](){
-        if (ParseCompoundPacket(packet)) {
+        if (ParseCompoundPacket(std::move(packet))) {
             PLOG_WARNING << "Failed to parse incoming packet.";
             return;
         }
@@ -101,6 +101,17 @@ bool RtcpReceiver::NTP(uint32_t* received_ntp_secs,
             *remote_sender_reports_count = remote_sender_reports_count_;
 
         return true;
+    });
+}
+
+int32_t RtcpReceiver::RTT(uint32_t remote_ssrc,
+                          int64_t* last_rtt_ms,
+                          int64_t* avg_rtt_ms,
+                          int64_t* min_rtt_ms,
+                          int64_t* max_rtt_ms) const {
+    return task_queue_->Sync<int32_t>([&](){ 
+        // TODO: Implement this.
+        return 0;
     });
 }
 

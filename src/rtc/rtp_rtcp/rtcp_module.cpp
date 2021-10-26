@@ -9,7 +9,8 @@ RtcpModule::RtcpModule(const RtcpConfiguration& config,
       task_queue_(task_queue),
       rtcp_sender_(config, task_queue_),
       rtcp_receiver_(config, this, task_queue_),
-      work_queue_("com.RtcpModule.work.queue") {
+      work_queue_("com.RtcpModule.work.queue"),
+      rtt_ms_(0) {
 
     rtcp_sender_.OnNextSendEvaluationTimeScheduled(std::bind(&RtcpModule::ScheduleRtcpSendEvaluation, this, std::placeholders::_1));
 
@@ -17,6 +18,18 @@ RtcpModule::RtcpModule(const RtcpConfiguration& config,
 }
 
 RtcpModule::~RtcpModule() {}
+
+void RtcpModule::set_rtt_ms(int64_t rtt_ms) {
+    task_queue_->Async([this, rtt_ms](){
+        rtt_ms_ = rtt_ms;
+    });
+}
+
+int64_t RtcpModule::rtt_ms() const {
+    return task_queue_->Sync<int64_t>([this](){
+        return rtt_ms_;
+    });
+}
 
 // Private methods
 // RtpSentStatisticsObserver

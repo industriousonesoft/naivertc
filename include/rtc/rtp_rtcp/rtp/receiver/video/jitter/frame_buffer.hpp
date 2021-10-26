@@ -5,6 +5,7 @@
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/video/timing/timing.hpp"
 
 #include <optional>
 #include <map>

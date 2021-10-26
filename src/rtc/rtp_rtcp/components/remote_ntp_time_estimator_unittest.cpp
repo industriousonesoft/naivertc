@@ -86,7 +86,7 @@ TEST_F(RTP_RTCP_RemoteNtpTimeEstimatorTest, Estimate) {
     // Local peer needs at least 2 RTCP SR to calculate the capture time.
     const int64_t kNotEnoughRtcpSr = -1;
     EXPECT_EQ(kNotEnoughRtcpSr, estimator_->Estimate(rtp_timestamp));
-    EXPECT_EQ(std::nullopt, estimator_->EstimatedOffsetInMs());
+    EXPECT_EQ(std::nullopt, estimator_->EstimateRemoteToLocalClockOffsetMs());
 
     AdvanceTimeMs(800);
     // Remote sends second RTCP SR.
@@ -94,7 +94,7 @@ TEST_F(RTP_RTCP_RemoteNtpTimeEstimatorTest, Estimate) {
 
     // Local peer gets enough RTCP SR to calculate the capture time.
     EXPECT_EQ(capture_ntp_time_ms, estimator_->Estimate(rtp_timestamp));
-    EXPECT_EQ(kRemoteToLocalClockOffsetMs, estimator_->EstimatedOffsetInMs());
+    EXPECT_EQ(kRemoteToLocalClockOffsetMs, estimator_->EstimateRemoteToLocalClockOffsetMs());
 }
 
 TEST_F(RTP_RTCP_RemoteNtpTimeEstimatorTest, AveragesErrorsOut) {
@@ -109,7 +109,7 @@ TEST_F(RTP_RTCP_RemoteNtpTimeEstimatorTest, AveragesErrorsOut) {
     int64_t capture_ntp_time_ms = local_clock_->CurrentNtpTime().ToMs();
     // Local peer gets enough RTCP SR to calculate the capture time.
     EXPECT_EQ(capture_ntp_time_ms, estimator_->Estimate(rtp_timestamp));
-    EXPECT_EQ(kRemoteToLocalClockOffsetMs, estimator_->EstimatedOffsetInMs());
+    EXPECT_EQ(kRemoteToLocalClockOffsetMs, estimator_->EstimateRemoteToLocalClockOffsetMs());
 
     // Remote sends corrupted RTCP SRs
     AdvanceTimeMs(1000);
@@ -124,7 +124,7 @@ TEST_F(RTP_RTCP_RemoteNtpTimeEstimatorTest, AveragesErrorsOut) {
 
     // Errors should be averaged out.
     EXPECT_EQ(capture_ntp_time_ms, estimator_->Estimate(rtp_timestamp));
-    EXPECT_EQ(kRemoteToLocalClockOffsetMs, estimator_->EstimatedOffsetInMs());
+    EXPECT_EQ(kRemoteToLocalClockOffsetMs, estimator_->EstimateRemoteToLocalClockOffsetMs());
 }
 
 } // namespace test

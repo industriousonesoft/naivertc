@@ -20,7 +20,8 @@ std::unique_ptr<FrameToDecode> CreateFrame(uint16_t seq_num_start,
                                            codec_type, 
                                            seq_num_start, 
                                            seq_num_end, 
-                                           0, /*  timestamp */
+                                           0, /* timestamp */
+                                           0, /* ntp_time_ms */
                                            -1, /* times_nacked */
                                            -1, /* min_received_time_ms */
                                            -1, /* max_received_time_ms */

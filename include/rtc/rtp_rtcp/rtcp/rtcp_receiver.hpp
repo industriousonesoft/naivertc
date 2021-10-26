@@ -6,6 +6,7 @@
 #include "rtc/base/time/ntp_time.hpp"
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/base/units/time_delta.hpp"
+#include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtcp/report_block_data.hpp"
@@ -68,10 +69,10 @@ public:
     uint32_t remote_ssrc() const;
 
     void IncomingPacket(const uint8_t* packet, size_t packet_size) {
-        IncomingPacket(BinaryBuffer(packet, packet + packet_size));
+        IncomingPacket(CopyOnWriteBuffer(packet, packet + packet_size));
     }
 
-    void IncomingPacket(BinaryBuffer packet);
+    void IncomingPacket(CopyOnWriteBuffer packet);
 
     // Get received NTP.
     bool NTP(uint32_t* received_ntp_secs,
@@ -83,8 +84,14 @@ public:
              uint64_t* remote_sender_octet_count,
              uint64_t* remote_sender_reports_count) const;
 
+    int32_t RTT(uint32_t remote_ssrc,
+                int64_t* last_rtt_ms,
+                int64_t* avg_rtt_ms,
+                int64_t* min_rtt_ms,
+                int64_t* max_rtt_ms) const;
+
 private:
-    bool ParseCompoundPacket(BinaryBuffer packet);
+    bool ParseCompoundPacket(CopyOnWriteBuffer packet);
     bool ParseSenderReport(const rtcp::CommonHeader& rtcp_block);
     bool ParseReceiverReport(const rtcp::CommonHeader& rtcp_block);
     bool ParseSdes(const rtcp::CommonHeader& rtcp_block);
