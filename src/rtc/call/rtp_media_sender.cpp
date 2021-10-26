@@ -89,7 +89,7 @@ std::unique_ptr<FecGenerator> RtpMediaSender::MaybeCreateFecGenerator(const RtpR
         if (rtp_config.nack_enabled) {
             return nullptr;
         }
-        return std::make_unique<UlpfecGenerator>(rtp_config.ulpfec.red_payload_type, 
+        return std::make_unique<UlpFecGenerator>(rtp_config.ulpfec.red_payload_type, 
                                                  rtp_config.ulpfec.ulpfec_payload_type);
     }
 

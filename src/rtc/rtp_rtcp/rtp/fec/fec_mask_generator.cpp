@@ -44,7 +44,7 @@ bool FecPacketMaskGenerator::GeneratePacketMasks(FecMaskType fec_mask_type,
 
 // Private methods
 void FecPacketMaskGenerator::PickFixedMaskTable(FecMaskType fec_mask_type, size_t num_media_packets) {
-    assert(num_media_packets <= kUlpfecMaxMediaPackets);
+    assert(num_media_packets <= kUlpFecMaxMediaPackets);
     // The bursty table is explicitly asked and the number of media packets is not larger than 
     // the size of packet mask bursty table.
     if (fec_mask_type != FecMaskType::RANDOM && num_media_packets <= kPacketMaskBurstyTable[0] /* table size*/) {
@@ -158,11 +158,11 @@ void FecPacketMaskGenerator::GenerateRemainingProtectionMasks(size_t num_media_p
 
 size_t FecPacketMaskGenerator::PacketMaskSize(size_t num_packets) {
     // The number of packets MUST be lower than 48.
-    assert(num_packets <= kUlpfecMaxMediaPackets);
-    if (num_packets > kUlpfecMaxMediaPacketsLBitClear) {
-        return kUlpfecPacketMaskSizeLBitSet;
+    assert(num_packets <= kUlpFecMaxMediaPackets);
+    if (num_packets > kUlpFecMaxMediaPacketsLBitClear) {
+        return kUlpFecPacketMaskSizeLBitSet;
     }
-    return kUlpfecPacketMaskSizeLBitClear;
+    return kUlpFecPacketMaskSizeLBitClear;
 }
 
 void FecPacketMaskGenerator::FitSubMasks(size_t num_mask_stride, 
@@ -206,12 +206,12 @@ ArrayView<const uint8_t> FecPacketMaskGenerator::LookUpInFixedMaskTable(const ui
     const uint8_t* entry = &mask_table[1];
 
     // 0 - 16 are 2 byte wide, than changes to 6.
-    uint8_t entry_size_increment = kUlpfecPacketMaskSizeLBitClear; // 2
+    uint8_t entry_size_increment = kUlpFecPacketMaskSizeLBitClear; // 2
 
     // Hop over un-interesting array entries.
     for (size_t i = 0; i < media_packet_index; ++i) {
-        if (i == kUlpfecMaxMediaPacketsLBitClear) {
-            entry_size_increment = kUlpfecPacketMaskSizeLBitSet; // 6
+        if (i == kUlpFecMaxMediaPacketsLBitClear) {
+            entry_size_increment = kUlpFecPacketMaskSizeLBitSet; // 6
         }
         // Entry item count in the first byte 
         uint8_t entry_item_count = entry[0];
@@ -223,8 +223,8 @@ ArrayView<const uint8_t> FecPacketMaskGenerator::LookUpInFixedMaskTable(const ui
         }
     }
 
-    if (media_packet_index == kUlpfecMaxMediaPacketsLBitClear) {
-        entry_size_increment = kUlpfecPacketMaskSizeLBitSet;
+    if (media_packet_index == kUlpFecMaxMediaPacketsLBitClear) {
+        entry_size_increment = kUlpFecPacketMaskSizeLBitSet;
     }
 
     if (fec_packet_index >= entry[0]) {
@@ -245,7 +245,7 @@ ArrayView<const uint8_t> FecPacketMaskGenerator::LookUpInFixedMaskTable(const ui
 
 ArrayView<const uint8_t> FecPacketMaskGenerator::LookUpPacketMasks(size_t num_media_packets, size_t num_fec_packets) {
 
-    if (num_media_packets > kUlpfecMaxMediaPackets || num_media_packets < num_fec_packets) {
+    if (num_media_packets > kUlpFecMaxMediaPackets || num_media_packets < num_fec_packets) {
         PLOG_WARNING << "Invalid parameters, num_media_packets: " 
                      << num_media_packets << ", num_fec_packets: " 
                      << num_fec_packets << ".";

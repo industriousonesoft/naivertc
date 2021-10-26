@@ -16,7 +16,7 @@ class RTC_CPP_EXPORT FecEncoder : public FecCodec {
 public:
     // Using static Create method to make sure the FEC coder is unique, 
     // and not allowed to share with others
-    static std::unique_ptr<FecEncoder> CreateUlpfecEncoder();
+    static std::unique_ptr<FecEncoder> CreateUlpFecEncoder();
 
     using PacketList = std::list<std::shared_ptr<RtpPacket>>;
 public:
@@ -70,7 +70,7 @@ private:
     std::vector<FecPacket> generated_fec_packets_;
     size_t packet_mask_size_;
     
-    static const size_t max_packet_mask_count = kUlpfecMaxMediaPackets * kUlpfecMaxPacketMaskSize;
+    static const size_t max_packet_mask_count = kUlpFecMaxMediaPackets * kUlpFecMaxPacketMaskSize;
     uint8_t packet_masks_[max_packet_mask_count];
     uint8_t tmp_packet_masks_[max_packet_mask_count];
 };

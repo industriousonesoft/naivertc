@@ -7,10 +7,10 @@ RtpRtcpConfig::RtpRtcpConfig() = default;
 RtpRtcpConfig::RtpRtcpConfig(const RtpRtcpConfig&) = default;
 RtpRtcpConfig::~RtpRtcpConfig() = default;
 
-// Ulpfec
-RtpRtcpConfig::Ulpfec::Ulpfec() = default;
-RtpRtcpConfig::Ulpfec::Ulpfec(const Ulpfec&) = default;
-RtpRtcpConfig::Ulpfec::~Ulpfec() = default;
+// UlpFec
+RtpRtcpConfig::UlpFec::UlpFec() = default;
+RtpRtcpConfig::UlpFec::UlpFec(const UlpFec&) = default;
+RtpRtcpConfig::UlpFec::~UlpFec() = default;
 
 // Flexfec
 RtpRtcpConfig::Flexfec::Flexfec() = default;

@@ -45,8 +45,8 @@ void InsertZeroColumns(size_t num_zeros,
     
 } // namespace internal
 
-std::unique_ptr<FecEncoder> FecEncoder::CreateUlpfecEncoder() {
-    auto fec_header_writer = std::make_unique<UlpfecHeaderWriter>();
+std::unique_ptr<FecEncoder> FecEncoder::CreateUlpFecEncoder() {
+    auto fec_header_writer = std::make_unique<UlpFecHeaderWriter>();
     return std::unique_ptr<FecEncoder>(new FecEncoder(std::move(fec_header_writer)));
 }
 

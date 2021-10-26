@@ -8,13 +8,13 @@ namespace {
 constexpr size_t kFecLevel0HeaderSize = 10;
 
 // FEC Level 1 (ULP) header size in bytes (L bit is set).
-constexpr size_t kFecLevel1HeaderSizeLBitSet = 2 + kUlpfecPacketMaskSizeLBitSet;
+constexpr size_t kFecLevel1HeaderSizeLBitSet = 2 + kUlpFecPacketMaskSizeLBitSet;
 
 // FEC Level 1 (ULP) header size in bytes (L bit is cleared).
-constexpr size_t kFecLevel1HeaderSizeLBitClear = 2 + kUlpfecPacketMaskSizeLBitClear;
+constexpr size_t kFecLevel1HeaderSizeLBitClear = 2 + kUlpFecPacketMaskSizeLBitClear;
 
-size_t UlpfecHeaderSize(size_t packet_mask_size) {
-    if (packet_mask_size <= kUlpfecPacketMaskSizeLBitClear) {
+size_t UlpFecHeaderSize(size_t packet_mask_size) {
+    if (packet_mask_size <= kUlpFecPacketMaskSizeLBitClear) {
         return kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitClear;
     } else {
         return kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet;
@@ -22,17 +22,17 @@ size_t UlpfecHeaderSize(size_t packet_mask_size) {
 }
 }  // namespace
 
-UlpfecHeaderWriter::UlpfecHeaderWriter() 
-    : FecHeaderWriter(kUlpfecMaxMediaPackets, kMaxFecPackets, kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet) {}
+UlpFecHeaderWriter::UlpFecHeaderWriter() 
+    : FecHeaderWriter(kUlpFecMaxMediaPackets, kMaxFecPackets, kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet) {}
 
-UlpfecHeaderWriter::~UlpfecHeaderWriter() = default;
+UlpFecHeaderWriter::~UlpFecHeaderWriter() = default;
 
-size_t UlpfecHeaderWriter::MinPacketMaskSize(const uint8_t* packet_mask, size_t packet_mask_size) const {
+size_t UlpFecHeaderWriter::MinPacketMaskSize(const uint8_t* packet_mask, size_t packet_mask_size) const {
     return packet_mask_size;
 }
 
-size_t UlpfecHeaderWriter::FecHeaderSize(size_t packet_mask_size) const {
-    return UlpfecHeaderSize(packet_mask_size);
+size_t UlpFecHeaderWriter::FecHeaderSize(size_t packet_mask_size) const {
+    return UlpFecHeaderSize(packet_mask_size);
 }
 
 // https://datatracker.ietf.org/doc/html/rfc5109#section-7.3
@@ -54,7 +54,7 @@ size_t UlpfecHeaderWriter::FecHeaderSize(size_t packet_mask_size) const {
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //   |              mask cont. (present only when L = 1)             |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-void UlpfecHeaderWriter::FinalizeFecHeader(uint32_t /* Unused by ULPFEC */,
+void UlpFecHeaderWriter::FinalizeFecHeader(uint32_t /* Unused by ULPFEC */,
                                            uint16_t seq_num_base,
                                            const uint8_t* packet_mask_data,
                                            size_t packet_mask_size,
@@ -69,7 +69,7 @@ void UlpfecHeaderWriter::FinalizeFecHeader(uint32_t /* Unused by ULPFEC */,
     // not set, the mask is 16 bits long.  When the L bit is set, the mask
     // is then 48 bits long.
     // Set the L bit
-    if (packet_mask_size == kUlpfecPacketMaskSizeLBitSet) {
+    if (packet_mask_size == kUlpFecPacketMaskSizeLBitSet) {
         data[0] |= 0x40;
     }
     // Clear the L bit

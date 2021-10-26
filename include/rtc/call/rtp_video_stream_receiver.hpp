@@ -96,6 +96,7 @@ private:
     void RequestKeyFrame();
     void SwitchFrameRefFinderIfNecessary(const rtc::video::FrameToDecode& frame);
     void CreateFrameRefFinder(VideoCodecType codec_type, int64_t picture_id_offset);
+    
 private:
     const Configuration config_;
     std::shared_ptr<Clock> clock_;
@@ -122,8 +123,6 @@ private:
     std::optional<uint32_t> last_received_keyframe_timestamp_;
     std::optional<Timestamp> last_received_system_time_;
     std::optional<Timestamp> last_received_keyframe_system_time_;
-
-    
 
     int64_t last_packet_log_ms_;
 };

@@ -32,31 +32,31 @@ constexpr float kMinMediaPacketsAdaptationThreshold = 2.0f;
 } // namespace
 
 
-UlpfecGenerator::UlpfecGenerator(int red_payload_type, 
+UlpFecGenerator::UlpFecGenerator(int red_payload_type, 
                                  int fec_payload_type) 
     : red_payload_type_(red_payload_type),
       fec_payload_type_(fec_payload_type),
       num_protected_frames_(0),
       min_num_media_packets_(1),
       contains_key_frame_(false),
-      fec_encoder_(FecEncoder::CreateUlpfecEncoder()),
+      fec_encoder_(FecEncoder::CreateUlpFecEncoder()),
       last_protected_media_packet_(std::nullopt),
       generated_fec_packets_(nullptr) {
 }
     
-UlpfecGenerator::~UlpfecGenerator() {}
+UlpFecGenerator::~UlpFecGenerator() {}
 
-size_t UlpfecGenerator::MaxPacketOverhead() const {
+size_t UlpFecGenerator::MaxPacketOverhead() const {
     return this->fec_encoder_->MaxPacketOverhead();
 }
 
-void UlpfecGenerator::SetProtectionParameters(const FecProtectionParams& delta_params, const FecProtectionParams& key_params) {
+void UlpFecGenerator::SetProtectionParameters(const FecProtectionParams& delta_params, const FecProtectionParams& key_params) {
     assert(delta_params.fec_rate >= 0 && delta_params.fec_rate <= 255);
     assert(key_params.fec_rate >= 0 && key_params.fec_rate <= 255);
     this->pending_params_.emplace(std::make_pair(delta_params, key_params));
 }
 
-void UlpfecGenerator::PushMediaPacket(std::shared_ptr<RtpPacketToSend> media_packet) {
+void UlpFecGenerator::PushMediaPacket(std::shared_ptr<RtpPacketToSend> media_packet) {
     if (this->pending_params_.has_value()) {
         this->current_params_ = this->pending_params_.value();
         this->pending_params_.reset();
@@ -75,8 +75,8 @@ void UlpfecGenerator::PushMediaPacket(std::shared_ptr<RtpPacketToSend> media_pac
     }
     
     const bool complete_frame = media_packet->marker();
-    // Ulpfec packet masks can only protect up to 48 media packets
-    if (this->media_packets_.size() < kUlpfecMaxMediaPackets /* 48 */) {
+    // UlpFec packet masks can only protect up to 48 media packets
+    if (this->media_packets_.size() < kUlpFecMaxMediaPackets /* 48 */) {
         this->media_packets_.push_back(media_packet);
         // Keep a reference of the last media packet, so we can copy the RTP
         // header from it when creating newly RED+FEC packets later.
@@ -113,7 +113,7 @@ void UlpfecGenerator::PushMediaPacket(std::shared_ptr<RtpPacketToSend> media_pac
     }
 }
 
-std::vector<std::shared_ptr<RtpPacketToSend>> UlpfecGenerator::PopFecPackets() {
+std::vector<std::shared_ptr<RtpPacketToSend>> UlpFecGenerator::PopFecPackets() {
     std::vector<std::shared_ptr<RtpPacketToSend>> rtp_fec_packets;
     if (this->generated_fec_packets_.empty()) {
         return rtp_fec_packets;
@@ -159,12 +159,12 @@ std::vector<std::shared_ptr<RtpPacketToSend>> UlpfecGenerator::PopFecPackets() {
     return rtp_fec_packets;
 }
 
-const FecProtectionParams& UlpfecGenerator::CurrentParams() const {
+const FecProtectionParams& UlpFecGenerator::CurrentParams() const {
     return contains_key_frame_ ? this->current_params_.second : this->current_params_.first;
 }
 
 // Private methods
-bool UlpfecGenerator::MaxExcessOverheadNotReached(size_t target_fec_rate) const {
+bool UlpFecGenerator::MaxExcessOverheadNotReached(size_t target_fec_rate) const {
     assert(media_packets_.size() > 0);
     size_t num_fec_packets = fec_encoder_->NumFecPackets(media_packets_.size(), target_fec_rate);
     // Actual fec rate in Q8 [0~255]
@@ -172,7 +172,7 @@ bool UlpfecGenerator::MaxExcessOverheadNotReached(size_t target_fec_rate) const 
     return (actual_fec_rate - target_fec_rate) < kMaxExcessOverhead;
 }
 
-bool UlpfecGenerator::MinimumMediaPacketsReached() const {
+bool UlpFecGenerator::MinimumMediaPacketsReached() const {
     float average_num_packets_per_frame = static_cast<float>(media_packets_.size()) / num_protected_frames_;
     size_t num_media_packets = media_packets_.size();
     if (average_num_packets_per_frame < kMinMediaPacketsAdaptationThreshold) {
@@ -182,7 +182,7 @@ bool UlpfecGenerator::MinimumMediaPacketsReached() const {
     }
 }
 
-void UlpfecGenerator::Reset() {
+void UlpFecGenerator::Reset() {
     media_packets_.clear();
     last_protected_media_packet_.reset();
     generated_fec_packets_.Reset();

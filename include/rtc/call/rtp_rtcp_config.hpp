@@ -40,12 +40,12 @@ struct RTC_CPP_EXPORT RtpRtcpConfig {
     // NACK
     bool nack_enabled = false;
 
-    // TODO: Ulpfec and flexfex support both of two ways to send: 1) packetized in RED, 2) by a separate stream
-    // Ulpfec: RED
-    struct Ulpfec {
-        Ulpfec();
-        Ulpfec(const Ulpfec&);
-        ~Ulpfec();
+    // TODO: UlpFec and flexfex support both of two ways to send: 1) packetized in RED, 2) by a separate stream
+    // UlpFec: RED
+    struct UlpFec {
+        UlpFec();
+        UlpFec(const UlpFec&);
+        ~UlpFec();
 
         // Payload type used for ULPFEC packets.
         int ulpfec_payload_type = -1;

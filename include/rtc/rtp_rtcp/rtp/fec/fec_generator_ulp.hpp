@@ -11,11 +11,11 @@
 namespace naivertc {
 
 // NOTE: This class is not thread safe, the caller MUST provide that.
-class RTC_CPP_EXPORT UlpfecGenerator : public FecGenerator {
+class RTC_CPP_EXPORT UlpFecGenerator : public FecGenerator {
 public:
-    UlpfecGenerator(int red_payload_type, 
+    UlpFecGenerator(int red_payload_type, 
                     int fec_payload_type);
-    virtual ~UlpfecGenerator();
+    virtual ~UlpFecGenerator();
 
     FecType fec_type() const override { return FecGenerator::FecType::ULP_FEC; }
 

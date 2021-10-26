@@ -7,24 +7,24 @@
 namespace naivertc {
     
 // Packet mask size in bytes (given L bit).
-static constexpr size_t kUlpfecPacketMaskSizeLBitClear = 2;
-static constexpr size_t kUlpfecPacketMaskSizeLBitSet = 6;
+static constexpr size_t kUlpFecPacketMaskSizeLBitClear = 2;
+static constexpr size_t kUlpFecPacketMaskSizeLBitSet = 6;
 
-// Ulpfec can protect packet size in bytes (givem L bit)
-static constexpr size_t kUlpfecMaxMediaPacketsLBitClear = 2 * 8; // 16
-static constexpr size_t kUlpfecMaxMediaPacketsLBitSet = 6 * 8; // 48
+// UlpFec can protect packet size in bytes (givem L bit)
+static constexpr size_t kUlpFecMaxMediaPacketsLBitClear = 2 * 8; // 16
+static constexpr size_t kUlpFecMaxMediaPacketsLBitSet = 6 * 8; // 48
 
 // Maximum number of media packets that can be protected by these packet masks.
-static constexpr size_t kUlpfecMaxMediaPackets = kUlpfecMaxMediaPacketsLBitSet;
+static constexpr size_t kUlpFecMaxMediaPackets = kUlpFecMaxMediaPacketsLBitSet;
 
 // Maximum number of FEC packets stored inside ForwardErrorCorrection.
-static constexpr size_t kMaxFecPackets = kUlpfecMaxMediaPackets;
+static constexpr size_t kMaxFecPackets = kUlpFecMaxMediaPackets;
 
 // Convenience constants.
-static constexpr size_t kUlpfecMinPacketMaskSize = kUlpfecPacketMaskSizeLBitClear;
-static constexpr size_t kUlpfecMaxPacketMaskSize = kUlpfecPacketMaskSizeLBitSet;
+static constexpr size_t kUlpFecMinPacketMaskSize = kUlpFecPacketMaskSizeLBitClear;
+static constexpr size_t kUlpFecMaxPacketMaskSize = kUlpFecPacketMaskSizeLBitSet;
 
-// Packet code mask maximum length. kFECPacketMaskMaxSize = kUlpfecMaxMediaPackets * (kUlpfecMaxMediaPackets / 8),
+// Packet code mask maximum length. kFECPacketMaskMaxSize = kUlpFecMaxMediaPackets * (kUlpFecMaxMediaPackets / 8),
 static constexpr size_t kFECPacketMaskMaxSize = 288;
 
 // Types for the FEC packet masks. The type |kFecMaskRandom| is based on a

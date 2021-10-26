@@ -6,10 +6,10 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT UlpfecHeaderWriter : public FecHeaderWriter {
+class RTC_CPP_EXPORT UlpFecHeaderWriter : public FecHeaderWriter {
 public:
-    UlpfecHeaderWriter();
-    ~UlpfecHeaderWriter() override;
+    UlpFecHeaderWriter();
+    ~UlpFecHeaderWriter() override;
 
     size_t MinPacketMaskSize(const uint8_t* packet_mask, size_t packet_mask_size) const override;
 
