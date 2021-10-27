@@ -7,8 +7,12 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT UlpFecReceiver {
 public:
-    UlpFecReceiver();
+    explicit UlpFecReceiver(uint32_t ssrc);
     ~UlpFecReceiver();
+
+private:
+    const uint32_t ssrc_;
+    
 };
     
 } // namespace naivertc

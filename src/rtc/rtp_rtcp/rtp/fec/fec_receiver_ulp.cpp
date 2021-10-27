@@ -2,7 +2,8 @@
 
 namespace naivertc {
 
-UlpFecReceiver::UlpFecReceiver() {}
+UlpFecReceiver::UlpFecReceiver(uint32_t ssrc) 
+ : ssrc_(ssrc) {}
 
 UlpFecReceiver::~UlpFecReceiver() {}
     

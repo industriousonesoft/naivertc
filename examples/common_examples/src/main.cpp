@@ -16,6 +16,14 @@
 #include <memory>
 #include <optional>
 #include <limits>
+#include <set>
+
+template<typename T>
+struct Compare {
+    bool operator()(T a, T b) const {
+        return b > a;
+    }
+};
 
 int main(int argc, const char* argv[]) {
 
@@ -32,7 +40,15 @@ int main(int argc, const char* argv[]) {
 
     // std::cout << std::numeric_limits<uint32_t>::max() << " - " << ((static_cast<int64_t>(1) << 32) - 1) << std::endl;
 
-    std::cout << "test start 123" << std::endl;
+    std::cout << "test start" << std::endl;
+
+    // Sequence number with compare operator
+    std::cout << "Squence numbers: " << std::endl;
+    std::set<uint16_t, Compare<uint16_t>> seq_nums = {11, 666, 444, 22, 33, 555};
+    for (uint16_t val : seq_nums) {
+        std::cout << val << " - ";
+    }
+    std::cout << std::endl;
 
     // TaskQueue
     // std::unique_ptr<taskqueue::Example> task_queue_example = std::make_unique<taskqueue::Example>();

@@ -20,7 +20,7 @@ public:
 
     using PacketList = std::list<std::shared_ptr<RtpPacket>>;
 public:
-    ~FecEncoder();
+    ~FecEncoder() override;
 
     /** 
      * protection_factor: 

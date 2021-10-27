@@ -2,26 +2,7 @@
 #include "rtc/base/byte_io_writer.hpp"
 
 namespace naivertc {
-namespace {
-
-// FEC Level 0 header size in bytes.
-constexpr size_t kFecLevel0HeaderSize = 10;
-
-// FEC Level 1 (ULP) header size in bytes (L bit is set).
-constexpr size_t kFecLevel1HeaderSizeLBitSet = 2 + kUlpFecPacketMaskSizeLBitSet;
-
-// FEC Level 1 (ULP) header size in bytes (L bit is cleared).
-constexpr size_t kFecLevel1HeaderSizeLBitClear = 2 + kUlpFecPacketMaskSizeLBitClear;
-
-size_t UlpFecHeaderSize(size_t packet_mask_size) {
-    if (packet_mask_size <= kUlpFecPacketMaskSizeLBitClear) {
-        return kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitClear;
-    } else {
-        return kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet;
-    }
-}
-}  // namespace
-
+    
 UlpFecHeaderWriter::UlpFecHeaderWriter() 
     : FecHeaderWriter(kUlpFecMaxMediaPackets, kMaxFecPackets, kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet) {}
 
@@ -32,7 +13,11 @@ size_t UlpFecHeaderWriter::MinPacketMaskSize(const uint8_t* packet_mask, size_t 
 }
 
 size_t UlpFecHeaderWriter::FecHeaderSize(size_t packet_mask_size) const {
-    return UlpFecHeaderSize(packet_mask_size);
+    if (packet_mask_size <= kUlpFecPacketMaskSizeLBitClear) {
+        return kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitClear;
+    } else {
+        return kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet;
+    }
 }
 
 // https://datatracker.ietf.org/doc/html/rfc5109#section-7.3

@@ -14,14 +14,14 @@ public:
     virtual ~FecHeaderWriter();
 
     // The maximum number of media packets that can be covered by one FEC packet.
-    size_t max_media_packets() const;
+    size_t max_media_packets() const { return max_media_packets_; };
 
     // The maximum number of FEC packets that is supported, per call
     // to ForwardErrorCorrection::EncodeFec().
-    size_t max_fec_packets() const;
+    size_t max_fec_packets() const { return max_fec_packets_; };
 
     // The maximum overhead (in bytes) per packet, due to FEC headers.
-    size_t max_packet_overhead() const;
+    size_t max_packet_overhead() const { return max_packet_overhead_; };
 
     // Calculates the minimum packet mask size needed (in bytes),
     // given the discrete options of the ULPFEC masks and the bits

@@ -3,11 +3,14 @@
 #include <plog/Log.h>
 
 namespace naivertc {
+namespace {
 
 constexpr size_t kMaxPacketAge = 10000;
 constexpr size_t kMaxNackPacketCount = 1000;
 constexpr int kDefaultRttMs = 100;
 constexpr int kMaxNackRetries = 10;
+
+} // namespace
 
 // NackInfo
 NackModuleImpl::NackInfo::NackInfo() 
