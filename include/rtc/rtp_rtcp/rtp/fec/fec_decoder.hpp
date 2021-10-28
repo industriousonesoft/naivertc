@@ -21,7 +21,7 @@ public:
 
         CopyOnWriteBuffer pkt;
     };
-    using ProtectedMediaPackets = std::map<uint16_t, MediaPacket, wrap_around_utils::DescendingComp<uint16_t>>;
+    using ProtectedMediaPackets = std::map<uint16_t, MediaPacket, wrap_around_utils::OlderThan<uint16_t>>;
 
     // FecPacket
     struct FecPacket {
@@ -40,7 +40,7 @@ public:
         // List of media packets that this FEC packet protects.
         ProtectedMediaPackets protected_media_packets;
     };
-    using ReceivedFecPackets = std::map<uint16_t, FecPacket, wrap_around_utils::DescendingComp<uint16_t>>;
+    using ReceivedFecPackets = std::map<uint16_t, FecPacket, wrap_around_utils::OlderThan<uint16_t>>;
 
     // RecoveredMediaPacket 
     struct RecoveredMediaPacket : public MediaPacket {
@@ -53,7 +53,7 @@ public:
         // caller through the callback.
         bool returned;
     };
-    using RecoveredMediaPackets = std::map<uint16_t, RecoveredMediaPacket, wrap_around_utils::DescendingComp<uint16_t>>;
+    using RecoveredMediaPackets = std::map<uint16_t, RecoveredMediaPacket, wrap_around_utils::OlderThan<uint16_t>>;
     
 public:
     ~FecDecoder() override;

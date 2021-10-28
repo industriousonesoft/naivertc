@@ -45,6 +45,7 @@ void FecDecoder::Decode(uint32_t fec_ssrc, uint16_t seq_num, bool is_fec, CopyOn
     }
 
     InsertPacket(fec_ssrc, seq_num, is_fec, std::move(received_packet));
+    TryToRecover();
 }
 
 // Private methods
@@ -275,7 +276,7 @@ bool FecDecoder::FinishPacketForRecovery(RecoveredMediaPacket& recovered_packet)
     // Clear the 2nd bit.
     data[0] &= 0xbf;
 
-    // Retrieve the payload size from temporal location
+    // Retrieve `length recovery` field from temporal location
     const size_t payload_size = ByteReader<uint16_t>::ReadBigEndian(&data[2]);
     const size_t packet_size = payload_size + kRtpHeaderSize;
     if (packet_size > kIpPacketSize) {

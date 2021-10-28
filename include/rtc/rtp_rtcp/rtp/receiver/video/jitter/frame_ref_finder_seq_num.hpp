@@ -47,9 +47,9 @@ private:
         PictureId last_picture_id_with_padding_gop;
     };
     // Using the picture id of the keyframe in the GOP as the key.
-    std::map<PictureId, GopInfo, wrap_around_utils::DescendingComp<PictureId>> gop_infos_;
+    std::map<PictureId, GopInfo, wrap_around_utils::OlderThan<PictureId>> gop_infos_;
 
-    std::set<PictureId, wrap_around_utils::DescendingComp<PictureId>> stashed_padding_;
+    std::set<PictureId, wrap_around_utils::OlderThan<PictureId>> stashed_padding_;
     std::deque<std::unique_ptr<video::FrameToDecode>> stashed_frames_;
 
     SeqNumUnwrapper<uint16_t> seq_num_unwrapper_;

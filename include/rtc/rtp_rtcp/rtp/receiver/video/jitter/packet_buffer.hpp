@@ -110,7 +110,7 @@ private:
     bool sps_pps_idr_is_h264_keyframe_;
 
     std::optional<uint16_t> newest_inserted_seq_num_;
-    std::set<uint16_t, wrap_around_utils::DescendingComp<uint16_t>> missing_packets_;
+    std::set<uint16_t, wrap_around_utils::OlderThan<uint16_t>> missing_packets_;
 
 };
     

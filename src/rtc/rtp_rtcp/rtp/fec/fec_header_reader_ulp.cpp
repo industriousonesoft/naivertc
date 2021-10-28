@@ -31,7 +31,7 @@ size_t UlpFecHeaderReader::FecHeaderSize(size_t packet_mask_size) const {
 }
 
 // https://datatracker.ietf.org/doc/html/rfc5109#section-7.3
-// FEC Level 0 Header, 10 bytes.
+// FEC Level 0 Header, 10 octets.
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -41,7 +41,7 @@ size_t UlpFecHeaderReader::FecHeaderSize(size_t packet_mask_size) const {
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //   |        length recovery        |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// FEC Level 1 Header, 4 bytes (L = 0) or 8 bytes (L = 1).
+// FEC Level 1 Header, 4 octets (L = 0) or 8 octets (L = 1).
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

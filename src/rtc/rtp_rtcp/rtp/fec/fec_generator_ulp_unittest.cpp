@@ -31,13 +31,13 @@ void VerifyRtpHeader(uint16_t seq_num,
     EXPECT_EQ(fec_payload_type, data[payload_offset]);
 }
 
-class FEC_UlpFecGeneratorTest : public ::testing::Test, public naivertc::UlpFecGenerator {
+class UlpFecGeneratorTest : public ::testing::Test, public naivertc::UlpFecGenerator {
 public:
-    FEC_UlpFecGeneratorTest() 
+    UlpFecGeneratorTest() 
         : UlpFecGenerator(kRedPayloadType, kFecPayloadType) {}
 };
 
-TEST_F(FEC_UlpFecGeneratorTest, NoEmptyFecWithSeqNumGaps) {
+TEST_F(UlpFecGeneratorTest, NoEmptyFecWithSeqNumGaps) {
     struct Packet {
         size_t header_size;
         size_t payload_size;
@@ -74,7 +74,7 @@ TEST_F(FEC_UlpFecGeneratorTest, NoEmptyFecWithSeqNumGaps) {
     }
 }
 
-TEST_F(FEC_UlpFecGeneratorTest, OneFrameFec) {
+TEST_F(UlpFecGeneratorTest, OneFrameFec) {
     const size_t kNumMediaPackets = 4;
     FecProtectionParams params = {15, 3, FecMaskType::RANDOM};
     SetProtectionParameters(params, params);
@@ -101,7 +101,7 @@ TEST_F(FEC_UlpFecGeneratorTest, OneFrameFec) {
     VerifyRtpHeader(seq_num, last_timestamp, kRedPayloadType, kFecPayloadType, false, kRtpHeaderSize, fec_packets[0]->data());
 }
 
-TEST_F(FEC_UlpFecGeneratorTest, TwoFrameFec) {
+TEST_F(UlpFecGeneratorTest, TwoFrameFec) {
     const size_t kNumMediaFrames = 2;
     const size_t kNumMediaPackets = 2;
     FecProtectionParams params = {15, 3, FecMaskType::RANDOM};
@@ -131,7 +131,7 @@ TEST_F(FEC_UlpFecGeneratorTest, TwoFrameFec) {
     VerifyRtpHeader(seq_num, last_timestamp, kRedPayloadType, kFecPayloadType, false, kRtpHeaderSize, fec_packets[0]->data());
 }
 
-TEST_F(FEC_UlpFecGeneratorTest, UpdateProtectionParameters) {
+TEST_F(UlpFecGeneratorTest, UpdateProtectionParameters) {
     const FecProtectionParams kKeyFrameParams = {25, 2 /*max_fec_frames*/, FecMaskType::RANDOM};
     const FecProtectionParams kDeltaFrameParams = {25, 5/*max_fec_frames*/, FecMaskType::RANDOM};
 

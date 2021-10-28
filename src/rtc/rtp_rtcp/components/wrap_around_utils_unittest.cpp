@@ -145,8 +145,8 @@ TEST(RTP_RTCP_SeqNumUtilsTest, ReverseDiffWithDivisor) {
 }
 
 TEST(RTP_RTCP_SeqNumUtilsTest, Comparator) {
-    std::set<uint8_t, AscendingComp<uint8_t>> seq_nums_asc;
-    std::set<uint8_t, DescendingComp<uint8_t>> seq_nums_desc;
+    std::set<uint8_t, NewerThan<uint8_t>> seq_nums_asc;
+    std::set<uint8_t, OlderThan<uint8_t>> seq_nums_desc;
 
     uint8_t x = 0;
     for (int i = 0; i < 128; ++i) {
@@ -172,8 +172,8 @@ TEST(RTP_RTCP_SeqNumUtilsTest, Comparator) {
 TEST(RTP_RTCP_SeqNumUtilsTest, ComparatorWithDivisor) {
     const uint8_t D = 223;
 
-    std::set<uint8_t, AscendingComp<uint8_t, D>> seq_nums_asc;
-    std::set<uint8_t, DescendingComp<uint8_t, D>> seq_nums_desc;
+    std::set<uint8_t, NewerThan<uint8_t, D>> seq_nums_asc;
+    std::set<uint8_t, OlderThan<uint8_t, D>> seq_nums_desc;
 
     uint8_t x = 0;
     for (int i = 0; i < D / 2; ++i) {

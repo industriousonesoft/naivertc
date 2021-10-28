@@ -45,21 +45,21 @@ inline bool AheadOf(T a, T b) {
     return a != b && AheadOrAt<T, M>(a, b);
 }
 
-// Comparator used to compare sequence numbers in a continuous fashion.
+// Functor which returns true if the `a` is newer than `b`.
 //
 // WARNING! If used to sort sequence numbers of length M then the interval
 //          covered by the sequence numbers may not be larger than floor(M/2).
 template <typename T, T M = 0>
-struct AscendingComp {
+struct NewerThan {
     bool operator()(T a, T b) const { return AheadOf<T, M>(a, b); }
 };
 
-// Comparator used to compare sequence numbers in a continuous fashion.
+// Functor which returns true if the `a` is older than `b`.
 //
 // WARNING! If used to sort sequence numbers of length M then the interval
 //          covered by the sequence numbers may not be larger than floor(M/2).
 template <typename T, T M = 0>
-struct DescendingComp {
+struct OlderThan {
     bool operator()(T a, T b) const { return AheadOf<T, M>(b, a); }
 };
 

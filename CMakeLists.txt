@@ -609,6 +609,7 @@ set(TEST_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> fec
     src/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_header_reader_ulp_unittest.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_generator_ulp_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver
