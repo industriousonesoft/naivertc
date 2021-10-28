@@ -49,7 +49,7 @@ struct RTC_CPP_EXPORT FecProtectionParams {
     FecMaskType fec_mask_type = FecMaskType::RANDOM;
 };
 
-// Fec Header
+// FEC Header
 struct RTC_CPP_EXPORT FecHeader {
     // FEC header fields
     size_t fec_header_size = 0;
@@ -57,8 +57,11 @@ struct RTC_CPP_EXPORT FecHeader {
     // Relative start of FEC header.
     size_t packet_mask_offset = 0;
     size_t packet_mask_size = 0;
+    // TODO: Remove `protection length` field maybe.
+    // `protection length` field is the same thing with 
+    // `length recovery` in WebRTC implement.
     size_t protection_length = 0;
-};  
+};
     
 } // namespace naivertc
 

@@ -15,6 +15,11 @@ constexpr size_t kMaxRtpPayloadSize = kIpPacketSize - kRtpHeaderSize;
 
 } // namespace 
 
+std::unique_ptr<FecDecoder> FecDecoder::CreateUlpFecDecoder(uint32_t ssrc) {
+    auto fec_header_reader = std::make_unique<UlpFecHeaderReader>();
+    return std::unique_ptr<FecDecoder>(new FecDecoder(ssrc/* fec_ssrc */, ssrc/* protected media ssrc */, std::move(fec_header_reader)));
+}
+
 FecDecoder::FecDecoder(uint32_t fec_ssrc, 
                        uint32_t protected_media_ssrc, 
                        std::unique_ptr<FecHeaderReader> fec_header_reader) 
@@ -46,6 +51,11 @@ void FecDecoder::Decode(uint32_t fec_ssrc, uint16_t seq_num, bool is_fec, CopyOn
 
     InsertPacket(fec_ssrc, seq_num, is_fec, std::move(received_packet));
     TryToRecover();
+}
+
+void FecDecoder::Reset() {
+    recovered_media_packets_.clear();
+    received_fec_packets_.clear();
 }
 
 // Private methods
@@ -319,11 +329,6 @@ bool FecDecoder::IsOldFecPacket(const FecPacket& fec_packet) const {
     // `fec_packet` is old if its `last_protected_seq_num` is much older
     // than `last_recovered_seq_num`.
     return MinDiff(last_recovered_seq_num, last_protected_seq_num) > kOldSequenceThreshold;
-}
-
-void FecDecoder::Reset() {
-    recovered_media_packets_.clear();
-    received_fec_packets_.clear();
 }
     
 } // namespace naivertc

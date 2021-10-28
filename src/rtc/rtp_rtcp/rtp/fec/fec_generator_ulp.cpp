@@ -143,7 +143,7 @@ std::vector<std::shared_ptr<RtpPacketToSend>> UlpFecGenerator::PopFecPackets() {
         // Primary RED header with F bit unset.
         // See https://tools.ietf.org/html/rfc2198#section-3
         // RED header, 1 byte
-        payload_buffer[0] = static_cast<uint8_t>(this->fec_payload_type_);
+        payload_buffer[0] = static_cast<uint8_t>(this->fec_payload_type_) & 0x7f /* Make sure the highest bit is 0. */;
         memcpy(&payload_buffer[1], fec_packet->data(), fec_packet->size());
         total_fec_size_bytes += red_packet->size();
         red_packet->set_packet_type(RtpPacketType::FEC);

@@ -5,7 +5,7 @@
 #include "rtc/rtp_rtcp/rtp/fec/fec_codec.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_defines.hpp"
 #include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
-#include "rtc/rtp_rtcp/rtp/fec/fec_header_reader.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/fec_header_reader_ulp.hpp"
 
 #include <map>
 #include <memory>
@@ -54,12 +54,17 @@ public:
         bool returned;
     };
     using RecoveredMediaPackets = std::map<uint16_t, RecoveredMediaPacket, wrap_around_utils::OlderThan<uint16_t>>;
+
+    static std::unique_ptr<FecDecoder> CreateUlpFecDecoder(uint32_t ssrc);
     
 public:
     ~FecDecoder() override;
 
     void Decode(uint32_t fec_ssrc, uint16_t seq_num, bool is_fec, CopyOnWriteBuffer received_packet);
 
+    RecoveredMediaPackets recovered_media_packets() const { return recovered_media_packets_; }
+
+    void Reset();
 private:
     FecDecoder(uint32_t fec_ssrc, uint32_t protected_media_ssrc, std::unique_ptr<FecHeaderReader> fec_header_reader);
 
@@ -76,7 +81,7 @@ private:
     bool FinishPacketForRecovery(RecoveredMediaPacket& recovered_packet);
 
     bool IsOldFecPacket(const FecPacket& fec_packet) const;
-    void Reset();
+    
 private:
     const uint32_t fec_ssrc_;
     const uint32_t protected_media_ssrc_;
