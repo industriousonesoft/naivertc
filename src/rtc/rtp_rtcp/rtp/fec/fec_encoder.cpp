@@ -58,7 +58,7 @@ FecEncoder::FecEncoder(std::unique_ptr<FecHeaderWriter> fec_header_writer)
 
 FecEncoder::~FecEncoder() = default;
 
-ArrayView<const FecPacket> FecEncoder::Encode(const PacketList& media_packets, 
+ArrayView<const CopyOnWriteBuffer> FecEncoder::Encode(const PacketList& media_packets, 
                                               uint8_t protection_factor, 
                                               size_t num_important_packets, 
                                               bool use_unequal_protection, 
@@ -123,7 +123,7 @@ ArrayView<const FecPacket> FecEncoder::Encode(const PacketList& media_packets,
     const uint16_t seq_num_base = first_madia_packet->sequence_number();
     FinalizeFecHeaders(packet_mask_size_, num_fec_packets, media_ssrc, seq_num_base);
     
-    return ArrayView<const FecPacket>(generated_fec_packets_.data(), num_fec_packets);
+    return ArrayView<const CopyOnWriteBuffer>(generated_fec_packets_.data(), num_fec_packets);
 }
 
 size_t FecEncoder::MaxPacketOverhead() const {
@@ -163,54 +163,54 @@ size_t FecEncoder::NumFecPackets(size_t num_media_packets, uint8_t protection_fa
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void FecEncoder::GenerateFecPayload(const PacketList& media_packets, size_t num_fec_packets) {
     for (size_t row = 0; row < num_fec_packets; ++row) {
-        FecPacket* const fec_packet = &generated_fec_packets_[row];
+        CopyOnWriteBuffer& fec_packet = generated_fec_packets_[row];
         size_t pkt_mask_idx = row * packet_mask_size_;
         const size_t min_packet_mask_size = fec_header_writer_->MinPacketMaskSize(&packet_masks_[pkt_mask_idx], packet_mask_size_);
         const size_t fec_header_size = fec_header_writer_->FecHeaderSize(min_packet_mask_size);
         const size_t media_header_size = kRtpHeaderSize;
 
         size_t media_pkt_idx = 0;
-        size_t media_packet_protected_size = 0;
+        size_t media_packet_payload_size = 0;
         auto media_packets_it = media_packets.cbegin();
         uint16_t prev_seq_num = media_packets_it->get()->sequence_number();
         while (media_packets_it != media_packets.end()) {
             RtpPacket* const media_packet = media_packets_it->get();
             // Rtp header extensons + csrcs + payload data
-            media_packet_protected_size = media_packet->size() - media_header_size;
+            media_packet_payload_size = media_packet->size() - media_header_size;
 
             // The current media packet is protected by FEC packets
             if (packet_masks_[pkt_mask_idx] & (1 << (7 - media_pkt_idx))) {
-                bool is_first_protected_packet = (fec_packet->size() == 0);
-                size_t fec_packet_size = fec_header_size + media_packet_protected_size;
-                if (fec_packet_size > fec_packet->size()) {
+                bool is_first_protected_packet = (fec_packet.size() == 0);
+                size_t fec_packet_size = fec_header_size + media_packet_payload_size;
+                if (fec_packet_size > fec_packet.size()) {
                     // The prior XORs are still correct after we expand the packet size.
-                    fec_packet->resize(fec_packet_size);
+                    fec_packet.Resize(fec_packet_size);
                 }
                 
                 // Initialized the fec packet for the current row
                 // with the first protected media packet.
                 if (is_first_protected_packet) {
                     const uint8_t* media_packet_data = media_packet->data();
-                    uint8_t* fec_packet_data = fec_packet->data();
+                    uint8_t* fec_packet_data = fec_packet.data();
                     // Write fec header
                     // Write P, X, CC, M, and PT recovery fields.
                     // Note that bits 0, 1, and 16 are overwritten in FinalizeFecHeaders.
                     memcpy(&fec_packet_data[0], &media_packet_data[0], 0x02);
                     // Write length recovery field. (This is a temporary location for ULPFEC.)
-                    ByteWriter<uint16_t>::WriteBigEndian(&fec_packet_data[2], media_packet_protected_size);
+                    ByteWriter<uint16_t>::WriteBigEndian(&fec_packet_data[2], media_packet_payload_size);
                     // Write timestamp recovery field
                     memcpy(&fec_packet_data[4], &media_packet_data[4], 0x04);
 
                     // Write payload
-                    if (media_packet_protected_size > 0) {
-                        memcpy(&fec_packet_data[fec_header_size], &media_packet_data[media_header_size], media_packet_protected_size);
+                    if (media_packet_payload_size > 0) {
+                        memcpy(&fec_packet_data[fec_header_size], &media_packet_data[media_header_size], media_packet_payload_size);
                     }
                 } else {
-                    XorHeader(media_packet_protected_size, media_packets_it->get(), fec_packet);
+                    XorHeader(*media_packets_it->get(), media_packet_payload_size, fec_packet);
                     XorPayload(media_header_size, 
-                               fec_header_size, 
-                               media_packet_protected_size, 
-                               media_packets_it->get(), 
+                               media_packet_payload_size, 
+                               *media_packets_it->get(), 
+                               fec_header_size,
                                fec_packet);
                 }
             }
@@ -226,7 +226,7 @@ void FecEncoder::GenerateFecPayload(const PacketList& media_packets, size_t num_
             // Bit offset in mask byte
             media_pkt_idx %= 8;
         }
-        assert(fec_packet->size() > 0 && "Not fec packets was generated.");
+        assert(fec_packet.size() > 0 && "Not fec packets was generated.");
     }
 }
 
@@ -236,7 +236,7 @@ void FecEncoder::FinalizeFecHeaders(size_t packet_mask_size, size_t num_fec_pack
                                               seq_num_base, 
                                               &packet_masks_[row * packet_mask_size], 
                                               packet_mask_size, 
-                                              &generated_fec_packets_[row]);
+                                              generated_fec_packets_[row]);
     }
 }
 

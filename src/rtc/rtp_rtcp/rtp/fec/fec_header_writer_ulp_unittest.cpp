@@ -27,33 +27,33 @@ std::unique_ptr<uint8_t[]> GeneratePacketMask(size_t packet_mask_size, uint64_t 
     return packet_mask;
 }
 
-std::unique_ptr<FecPacket> WriteHeader(const uint8_t* packet_mask, size_t packet_mask_size) {
-    std::unique_ptr<FecPacket> written_packet(new FecPacket());
-    written_packet->resize(kMediaPacketSize);
+std::unique_ptr<CopyOnWriteBuffer> WriteHeader(const uint8_t* packet_mask, size_t packet_mask_size) {
+    std::unique_ptr<CopyOnWriteBuffer> written_packet(new CopyOnWriteBuffer());
+    written_packet->Resize(kMediaPacketSize);
     uint8_t* data = written_packet->data();
     for (size_t i = 0; i < written_packet->size(); ++i) {
         // Actual content dosen't matter
         data[i] = i;
     }
     UlpFecHeaderWriter writer;
-    writer.FinalizeFecHeader(kMediaSsrc, kMediaStartSeqNum, packet_mask, packet_mask_size, written_packet.get());
+    writer.FinalizeFecHeader(kMediaSsrc, kMediaStartSeqNum, packet_mask, packet_mask_size, *written_packet.get());
     return written_packet;
 }
     
 } // namespace
 
-TEST(FEC_UlpFecHeaderWriterTest, FinalizeSmallHeader) {
+TEST(UlpFecHeaderWriterTest, FinalizeSmallHeader) {
     const size_t packet_mask_size = kUlpFecPacketMaskSizeLBitClear;
     auto packet_mask = GeneratePacketMask(packet_mask_size, 0xabcd);
-    FecPacket written_packet;
-    written_packet.resize(kMediaPacketSize);
+    CopyOnWriteBuffer written_packet;
+    written_packet.Resize(kMediaPacketSize);
     uint8_t* data = written_packet.data();
     for (size_t i = 0; i < written_packet.size(); ++i) {
         data[i] = i;
     }
 
     UlpFecHeaderWriter writer;
-    writer.FinalizeFecHeader(kMediaSsrc, kMediaStartSeqNum, packet_mask.get(), packet_mask_size, &written_packet);
+    writer.FinalizeFecHeader(kMediaSsrc, kMediaStartSeqNum, packet_mask.get(), packet_mask_size, written_packet);
 
     const uint8_t* packet_data = written_packet.data();
     EXPECT_EQ(0x00, packet_data[0] & 0x80); // E bit
@@ -64,19 +64,19 @@ TEST(FEC_UlpFecHeaderWriterTest, FinalizeSmallHeader) {
 }
 
 
-TEST(FEC_UlpFecHeaderWriterTest, FinalizeLargeHeader) {
+TEST(UlpFecHeaderWriterTest, FinalizeLargeHeader) {
     const size_t packet_mask_size = kUlpFecPacketMaskSizeLBitSet;
     auto packet_mask = GeneratePacketMask(packet_mask_size, 0xabcd);
 
-    FecPacket written_packet;
-    written_packet.resize(kMediaPacketSize);
+    CopyOnWriteBuffer written_packet;
+    written_packet.Resize(kMediaPacketSize);
     uint8_t* data = written_packet.data();
     for (size_t i = 0; i < written_packet.size(); ++i) {
         data[i] = i;
     }
 
     UlpFecHeaderWriter writer;
-    writer.FinalizeFecHeader(kMediaSsrc, kMediaStartSeqNum, packet_mask.get(), packet_mask_size, &written_packet);
+    writer.FinalizeFecHeader(kMediaSsrc, kMediaStartSeqNum, packet_mask.get(), packet_mask_size, written_packet);
 
     const uint8_t* packet_data = written_packet.data();
     EXPECT_EQ(0x00, packet_data[0] & 0x80); // E bit
@@ -86,7 +86,7 @@ TEST(FEC_UlpFecHeaderWriterTest, FinalizeLargeHeader) {
     EXPECT_EQ(0, memcmp(packet_data + kUlpFecPacketMaskOffset, packet_mask.get(), packet_mask_size));
 }
 
-TEST(FEC_UlpFecHeaderWriterTest, CalculateSmallHeaderSize) {
+TEST(UlpFecHeaderWriterTest, CalculateSmallHeaderSize) {
     const size_t packet_mask_size = kUlpFecPacketMaskSizeLBitClear;
     auto packet_mask = GeneratePacketMask(packet_mask_size, 0xabcd);
 
@@ -97,7 +97,7 @@ TEST(FEC_UlpFecHeaderWriterTest, CalculateSmallHeaderSize) {
     EXPECT_EQ(kUlpFecHeaderSizeLBitClear, writer.FecHeaderSize(min_packet_mask_size));
 }
 
-TEST(FEC_UlpFecHeaderWriterTest, CalculateLargeHeaderSize) {
+TEST(UlpFecHeaderWriterTest, CalculateLargeHeaderSize) {
     const size_t packet_mask_size = kUlpFecPacketMaskSizeLBitSet;
     auto packet_mask = GeneratePacketMask(packet_mask_size, 0xabcd);
 

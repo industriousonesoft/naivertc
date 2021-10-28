@@ -8,13 +8,6 @@ namespace naivertc {
 
 // RFC 3550 page 44, including null termination
 constexpr size_t kRtcpCNameSize = 256;
-// We assume ethernet
-constexpr size_t kIpPacketSize = 1500;
-
-// Transport header size in bytes 
-// TODO: Update Transport overhead when transport router changed.
-// constexpr size_t kTransportOverhead = 48;  UDP/IPv6
-constexpr size_t kTransportOverhead = 28; // Assume UPD/IPv4 as a reasonable minimum.
 
 constexpr int kVideoPayloadTypeFrequency = 90000;
 // TODO(bugs.webrtc.org/6458): Remove this when all the depending projects are

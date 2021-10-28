@@ -2,6 +2,7 @@
 #define _RTC_RTP_RTCP_FEC_HEADER_WRITER_H_
 
 #include "base/defines.hpp"
+#include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_defines.hpp"
 
 #include <vector>
@@ -36,7 +37,7 @@ public:
                                    uint16_t seq_num_base,
                                    const uint8_t* packet_mask_data,
                                    size_t packet_mask_size,
-                                   FecPacket* fec_packet) const = 0;
+                                   CopyOnWriteBuffer& fec_packet) const = 0;
 
 protected:
     FecHeaderWriter(size_t max_media_packets,

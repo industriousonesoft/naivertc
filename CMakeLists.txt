@@ -430,7 +430,6 @@ set(LIB_HEADERS
     include/rtc/rtp_rtcp/rtp/fec/fec_codec.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_decoder.hpp
-    include/rtc/rtp_rtcp/rtp/fec/fec_decoder_defines.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_mask_generator.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_header_writer.hpp
     include/rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp.hpp

@@ -19,7 +19,7 @@ public:
                            uint16_t seq_num_base,
                            const uint8_t* packet_mask_data,
                            size_t packet_mask_size,
-                           FecPacket* fec_packet) const override;
+                           CopyOnWriteBuffer& fec_packet) const override;
 };
     
 } // namespace naivertc

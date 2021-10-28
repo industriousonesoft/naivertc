@@ -1,5 +1,8 @@
 #include "rtc/rtp_rtcp/rtp/fec/fec_decoder.hpp"
 #include "rtc/base/numerics/modulo_operator.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/base/byte_io_reader.hpp"
+#include "rtc/base/byte_io_writer.hpp"
 
 #include <plog/Log.h>
 
@@ -7,6 +10,8 @@ namespace naivertc {
 namespace {
     
 constexpr uint16_t kOldSequenceThreshold = 0x3fff;
+
+constexpr size_t kMaxRtpPayloadSize = kIpPacketSize - kRtpHeaderSize;
 
 } // namespace 
 
@@ -187,9 +192,12 @@ void FecDecoder::DiscardOldRecoveredPackets() {
 void FecDecoder::TryToRecover() {
     auto fec_packet_it = received_fec_packets_.begin();
     while (fec_packet_it != received_fec_packets_.end()) {
+        // The number packets that we need to recover of each FEC packet.
         int num_packets_to_recover = NumPacketsToRecover(fec_packet_it->second);
+        // We can only recover one packet with an FEC packet.
         if (num_packets_to_recover == 1) {
-            // TODO: Try to recover FEC packet.
+            RecoveredMediaPacket recovered_media_packet;
+            
         } else if (num_packets_to_recover == 0 || IsOldFecPacket(fec_packet_it->second)) {
             // Either all protected packets arrived or have beed recovered, or the FEC
             // packet is old. We can discard this FEC packet.
@@ -198,6 +206,90 @@ void FecDecoder::TryToRecover() {
             ++fec_packet_it;
         }
     }
+}
+
+std::optional<FecDecoder::RecoveredMediaPacket> FecDecoder::RecoverPacket(const FecPacket& fec_packet) {
+    auto recovered_packet = PreparePacketForRecovery(fec_packet);
+    if (!recovered_packet) {
+        return std::nullopt;
+    }
+    // The recovered packet with payload of `fec_packet` do Xor operation
+    // with the protected packet in `fec_packet` to recover itself.
+    for (const auto& [seq_num, protected_packet] : fec_packet.protected_media_packets) {
+        // This is the packet we're recovering, since we can only recovery one pakcet,
+        // in ohter words, all the packets except the recovering one are has pkt already.
+        if (protected_packet.pkt.empty()) {
+            recovered_packet->seq_num = seq_num;
+            recovered_packet->ssrc = fec_packet.protected_ssrc;
+        } else {
+            size_t length_recovery = protected_packet.pkt.size() - kRtpHeaderSize;
+            XorHeader(protected_packet.pkt, length_recovery, recovered_packet->pkt);
+            XorPayload(kRtpHeaderSize, length_recovery, protected_packet.pkt, kRtpHeaderSize, recovered_packet->pkt);
+        }
+    }
+
+    if(!FinishPacketForRecovery(recovered_packet.value())) {
+        return std::nullopt;
+    }
+    return recovered_packet;
+}
+
+std::optional<FecDecoder::RecoveredMediaPacket> FecDecoder::PreparePacketForRecovery(const FecPacket& fec_packet) {
+    size_t fec_header_size = fec_packet.fec_header.fec_header_size;
+    size_t protection_length = fec_packet.fec_header.protection_length;
+    // Sanity check packet length.
+    if (fec_packet.pkt.size() < fec_header_size + protection_length) {
+        PLOG_WARNING << "The FEC packet is truncted, it dose not contain enough room for its own header.";
+        return std::nullopt;
+    }
+
+    if (protection_length > std::min(kMaxRtpPayloadSize, kIpPacketSize - fec_header_size)) {
+        return std::nullopt;
+    }
+
+    RecoveredMediaPacket recovered_packet;
+    recovered_packet.pkt.EnsureCapacity(kIpPacketSize);
+    recovered_packet.pkt.Resize(protection_length + kRtpHeaderSize);
+    recovered_packet.returned = false;
+    recovered_packet.was_recovered = true;
+
+    // Copy bytes corresponding to minimum RTP header size.
+    // Note: the sequence number and SSRC fields will be overritten
+    // at the end of packet recovery.
+    memcpy(recovered_packet.pkt.data(), fec_packet.pkt.cdata(), kRtpHeaderSize);
+
+    // Copy remaining FEC payload
+    if (protection_length > 0) {
+        memcpy(recovered_packet.pkt.data() + kRtpHeaderSize, fec_packet.pkt.cdata() + fec_header_size, protection_length);
+    }
+
+    return recovered_packet;
+}
+
+bool FecDecoder::FinishPacketForRecovery(RecoveredMediaPacket& recovered_packet) {
+    uint8_t* data = recovered_packet.pkt.data();
+
+    // Set the RTP version (the hightest two bits) to 2.
+    // Set the 1st bit
+    data[0] |= 0x80;
+    // Clear the 2nd bit.
+    data[0] &= 0xbf;
+
+    // Retrieve the payload size from temporal location
+    const size_t payload_size = ByteReader<uint16_t>::ReadBigEndian(&data[2]);
+    const size_t packet_size = payload_size + kRtpHeaderSize;
+    if (packet_size > kIpPacketSize) {
+        PLOG_WARNING << "The recovered packet has a size larger than a typical IP packet, dropping.";
+        return false;
+    }
+
+    recovered_packet.pkt.Resize(packet_size);
+    // Recover the sequence number field
+    ByteWriter<uint16_t>::WriteBigEndian(&data[2], recovered_packet.seq_num);
+    // Recover the SSRC field.
+    ByteWriter<uint32_t>::WriteBigEndian(&data[8], recovered_packet.ssrc);
+
+    return true;
 }
 
 size_t FecDecoder::NumPacketsToRecover(const FecPacket& fec_packet) const {

@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "common/array_view.hpp"
+#include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_codec.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_header_writer.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_mask_generator.hpp"
@@ -40,7 +41,7 @@ public:
      *      The bursty type is only defined up to 12 media packets. If the number of media packets is
      *      above 12, the packet masks from the random table will be selected.
     */
-    ArrayView<const FecPacket> Encode(const PacketList& media_packets, 
+    ArrayView<const CopyOnWriteBuffer> Encode(const PacketList& media_packets, 
                                       uint8_t protection_factor, 
                                       size_t num_important_packets, 
                                       bool use_unequal_protection, 
@@ -67,7 +68,7 @@ private:
 private:
     std::unique_ptr<FecHeaderWriter> fec_header_writer_;
     std::unique_ptr<FecPacketMaskGenerator> packet_mask_generator_;
-    std::vector<FecPacket> generated_fec_packets_;
+    std::vector<CopyOnWriteBuffer> generated_fec_packets_;
     size_t packet_mask_size_;
     
     static const size_t max_packet_mask_count = kUlpFecMaxMediaPackets * kUlpFecMaxPacketMaskSize;

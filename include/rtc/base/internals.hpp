@@ -14,6 +14,14 @@ namespace naivertc {
 // See https://blog.csdn.net/dog250/article/details/88820733
 constexpr size_t kDefaultMtuSize = 1280;
 
+// We assume ethernet
+constexpr size_t kIpPacketSize = 1500;
+
+// Transport header size in bytes 
+// TODO: Update Transport overhead when transport router changed.
+// constexpr size_t kTransportOverhead = 48;  UDP/IPv6
+constexpr size_t kTransportOverhead = 28; // Assume UPD/IPv4 as a reasonable minimum.
+
 } // namespace naivertc
 
 #endif

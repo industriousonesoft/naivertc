@@ -2,6 +2,7 @@
 #define _RTC_RTP_RTCP_FEC_UPL_FEC_GENERATOR_H_
 
 #include "base/defines.hpp"
+#include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_defines.hpp"
@@ -55,7 +56,7 @@ private:
 
     std::optional<std::shared_ptr<RtpPacketToSend>> last_protected_media_packet_;
     FecEncoder::PacketList media_packets_;
-    ArrayView<const FecPacket> generated_fec_packets_;
+    ArrayView<const CopyOnWriteBuffer> generated_fec_packets_;
 
 };
     

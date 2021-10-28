@@ -69,8 +69,11 @@ private:
 
     void UpdateConveringFecPackets(const RecoveredMediaPacket& recovered_packet);
     void DiscardOldRecoveredPackets();
-    void TryToRecover();
     size_t NumPacketsToRecover(const FecPacket& fec_packet) const;
+    void TryToRecover();
+    std::optional<RecoveredMediaPacket> RecoverPacket(const FecPacket& fec_packet);
+    std::optional<RecoveredMediaPacket> PreparePacketForRecovery(const FecPacket& fec_packet);
+    bool FinishPacketForRecovery(RecoveredMediaPacket& recovered_packet);
 
     bool IsOldFecPacket(const FecPacket& fec_packet) const;
     void Reset();

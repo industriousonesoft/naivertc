@@ -43,9 +43,9 @@ void UlpFecHeaderWriter::FinalizeFecHeader(uint32_t /* Unused by ULPFEC */,
                                            uint16_t seq_num_base,
                                            const uint8_t* packet_mask_data,
                                            size_t packet_mask_size,
-                                           FecPacket* fec_packet) const {
+                                           CopyOnWriteBuffer& fec_packet) const {
     // FEC Level 0 header
-    uint8_t* data = fec_packet->data();
+    uint8_t* data = fec_packet.data();
     // The E bit is the extension flag reserved to indicate any future
     // extension to this specification. It SHALL be set to 0, and SHOULD be
     // ignored by the receiver.
@@ -70,9 +70,8 @@ void UlpFecHeaderWriter::FinalizeFecHeader(uint32_t /* Unused by ULPFEC */,
     // FEC level 1 header
     const size_t fec_header_size = FecHeaderSize(packet_mask_size);
     // Set protection length field
-    ByteWriter<uint16_t>::WriteBigEndian(&data[kFecLevel0HeaderSize], fec_packet->size() - fec_header_size);
+    ByteWriter<uint16_t>::WriteBigEndian(&data[kFecLevel0HeaderSize], fec_packet.size() - fec_header_size);
     // Copy the packet mask
-    // TODO: to truncate packet mask??
     memcpy(&data[12], packet_mask_data, packet_mask_size);
 }
     

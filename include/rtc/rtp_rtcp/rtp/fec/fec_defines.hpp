@@ -49,9 +49,6 @@ struct RTC_CPP_EXPORT FecProtectionParams {
     FecMaskType fec_mask_type = FecMaskType::RANDOM;
 };
 
-// TODO: Using CopyOnWriteBuffer instead?
-using FecPacket = std::vector<uint8_t>;
-
 // Fec Header
 struct RTC_CPP_EXPORT FecHeader {
     // FEC header fields
