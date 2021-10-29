@@ -25,6 +25,8 @@ static constexpr size_t kUlpFecMaxMediaPacketsLBitSet = 6 * 8; // 48
 static constexpr size_t kUlpFecMaxMediaPackets = kUlpFecMaxMediaPacketsLBitSet;
 
 // Maximum number of FEC packets stored inside ForwardErrorCorrection.
+// TODO: Why we need to limit the FEC packet count with a fixed number here?
+// and we can do the same thing based on a reasonable age of sequence number.
 static constexpr size_t kMaxFecPackets = kUlpFecMaxMediaPackets;
 
 // Convenience constants.

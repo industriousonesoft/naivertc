@@ -33,6 +33,11 @@ public:
 
     bool AddReceivedRedPacket(const RtpPacketReceived& rtp_packet, uint8_t ulpfec_payload_type);
 
+    PacketCounter packet_counter() const { return packet_counter_; }
+
+private:
+    void OnRecoveredPacket(const FecDecoder::RecoveredMediaPacket& recovered_packet);
+
 private:
     const uint32_t ssrc_;
     std::shared_ptr<Clock> clock_;

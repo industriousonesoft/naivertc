@@ -58,6 +58,10 @@ void FecDecoder::Reset() {
     received_fec_packets_.clear();
 }
 
+void FecDecoder::OnRecoveredPacket(PacketRecoveredCallback callback) {
+    packet_recovered_callback_ = std::move(callback);
+}
+
 // Private methods
 void FecDecoder::InsertPacket(uint32_t fec_ssrc, uint16_t seq_num, bool is_fec, CopyOnWriteBuffer received_packet) {
     // Discard old FEC packets such that the sequence numbers in `received_fec_packets_` 
@@ -85,13 +89,17 @@ void FecDecoder::InsertPacket(uint32_t fec_ssrc, uint16_t seq_num, bool is_fec, 
     } else {
         InsertMediaPacket(fec_ssrc, seq_num, std::move(received_packet));
     }
-
-    DiscardOldRecoveredPackets();
 }
 
 void FecDecoder::InsertFecPacket(uint32_t fec_ssrc, uint16_t seq_num, CopyOnWriteBuffer received_packet) {
     // The incoming FEC packet and FEC decoder belong to the same sequence number space.
     assert(fec_ssrc == fec_ssrc_);
+
+    // Drop duplicate FEC packet.
+    auto duplicated_it = received_fec_packets_.find(seq_num);
+    if (duplicated_it != received_fec_packets_.end()) {
+        return;
+    }
 
     FecPacket fec_packet;
     fec_packet.ssrc = fec_ssrc;
@@ -156,25 +164,35 @@ void FecDecoder::InsertFecPacket(uint32_t fec_ssrc, uint16_t seq_num, CopyOnWrit
             ++it_r;
         }
     }
+
+    received_fec_packets_[seq_num] = std::move(fec_packet);
+
+    DiscardOldReceivedFecPackets();
 }
 
 void FecDecoder::InsertMediaPacket(uint32_t media_ssrc, uint16_t seq_num, CopyOnWriteBuffer received_packet) {
     // The incoming media packet belong to the sequence number space protected by decoder.
     assert(media_ssrc == protected_media_ssrc_);
 
+    // Drop duplicate media packet.
+    auto duplicated_it = recovered_media_packets_.find(seq_num);
+    if (duplicated_it != recovered_media_packets_.end()) {
+        return;
+    }
+
     RecoveredMediaPacket media_packet;
     media_packet.ssrc = media_ssrc;
     media_packet.seq_num = seq_num;
     // This media packet was not recovered by FEC.
     media_packet.was_recovered = false;
-    // This media packet has already been passed on.
-    media_packet.returned = true;
     media_packet.pkt = std::move(received_packet);
 
     // Try to recover the protected packet with current media packet.
     UpdateConveringFecPackets(media_packet);
 
     recovered_media_packets_[seq_num] = std::move(media_packet);
+
+    DiscardOldRecoveredPackets();
 }
 
 void FecDecoder::UpdateConveringFecPackets(const RecoveredMediaPacket& recovered_packet) {
@@ -200,6 +218,14 @@ void FecDecoder::DiscardOldRecoveredPackets() {
     }
 }
 
+void FecDecoder::DiscardOldReceivedFecPackets() {
+    const size_t max_fec_packets = fec_header_reader_->max_fec_packets();
+    auto it = received_fec_packets_.begin();
+    while (received_fec_packets_.size() > max_fec_packets) {
+        it = received_fec_packets_.erase(it);
+    }
+}
+
 void FecDecoder::TryToRecover() {
     auto fec_packet_it = received_fec_packets_.begin();
     while (fec_packet_it != received_fec_packets_.end()) {
@@ -207,8 +233,33 @@ void FecDecoder::TryToRecover() {
         int num_packets_to_recover = NumPacketsToRecover(fec_packet_it->second);
         // We can only recover one packet with an FEC packet.
         if (num_packets_to_recover == 1) {
-            RecoveredMediaPacket recovered_media_packet;
+            auto recovered_media_packet_op = RecoverPacket(fec_packet_it->second);
+            // We can't recover using this FEC packet, drop it.
+            if (!recovered_media_packet_op) {
+                fec_packet_it = received_fec_packets_.erase(fec_packet_it);
+                continue;
+            }
+
+            // Add recovered packet to the list of recovered packets.
+            auto [it, success] = recovered_media_packets_.insert({recovered_media_packet_op->seq_num, std::move(*recovered_media_packet_op)});
+
+            // Update any FEC packets covering this recovered packet.
+            UpdateConveringFecPackets(it->second);
+            DiscardOldRecoveredPackets();
             
+            // Remove the FEC packet after recovery.
+            fec_packet_it = received_fec_packets_.erase(fec_packet_it);
+
+            // A packet has been recovered. We need to check the FEC list again, as
+            // this may allow additional packets to be recovered.
+            // Restart for first FEC packet.
+            fec_packet_it = received_fec_packets_.begin();
+
+            // Send to VCM
+            if (packet_recovered_callback_ && it->second.was_recovered) {
+                packet_recovered_callback_(it->second);
+            }
+
         } else if (num_packets_to_recover == 0 || IsOldFecPacket(fec_packet_it->second)) {
             // Either all protected packets arrived or have beed recovered, or the FEC
             // packet is old. We can discard this FEC packet.
@@ -261,7 +312,6 @@ std::optional<FecDecoder::RecoveredMediaPacket> FecDecoder::PreparePacketForReco
     RecoveredMediaPacket recovered_packet;
     recovered_packet.pkt.EnsureCapacity(kIpPacketSize);
     recovered_packet.pkt.Resize(protection_length + kRtpHeaderSize);
-    recovered_packet.returned = false;
     recovered_packet.was_recovered = true;
 
     // Copy bytes corresponding to minimum RTP header size.

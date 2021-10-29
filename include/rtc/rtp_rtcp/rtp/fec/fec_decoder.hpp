@@ -9,6 +9,7 @@
 
 #include <map>
 #include <memory>
+#include <functional>
 
 namespace naivertc {
 
@@ -48,13 +49,10 @@ public:
         // the FEC. Otherwise it was a media packet passed in
         // through the received packet list.
         bool was_recovered;
-
-        // True when the packet already has been returned to the
-        // caller through the callback.
-        bool returned;
     };
     using RecoveredMediaPackets = std::map<uint16_t, RecoveredMediaPacket, wrap_around_utils::OlderThan<uint16_t>>;
 
+    // Convenient API to create FEC decoder.
     static std::unique_ptr<FecDecoder> CreateUlpFecDecoder(uint32_t ssrc);
     
 public:
@@ -62,9 +60,11 @@ public:
 
     void Decode(uint32_t fec_ssrc, uint16_t seq_num, bool is_fec, CopyOnWriteBuffer received_packet);
 
-    RecoveredMediaPackets recovered_media_packets() const { return recovered_media_packets_; }
-
     void Reset();
+
+    using PacketRecoveredCallback = std::function<void(const RecoveredMediaPacket& recovered_packet)>;
+    void OnRecoveredPacket(PacketRecoveredCallback callback);
+
 private:
     FecDecoder(uint32_t fec_ssrc, uint32_t protected_media_ssrc, std::unique_ptr<FecHeaderReader> fec_header_reader);
 
@@ -74,6 +74,8 @@ private:
 
     void UpdateConveringFecPackets(const RecoveredMediaPacket& recovered_packet);
     void DiscardOldRecoveredPackets();
+    void DiscardOldReceivedFecPackets();
+
     size_t NumPacketsToRecover(const FecPacket& fec_packet) const;
     void TryToRecover();
     std::optional<RecoveredMediaPacket> RecoverPacket(const FecPacket& fec_packet);
@@ -89,6 +91,8 @@ private:
 
     ReceivedFecPackets received_fec_packets_;
     RecoveredMediaPackets recovered_media_packets_;
+
+    PacketRecoveredCallback packet_recovered_callback_ = nullptr;
 };
 
 } // namespace naivertc

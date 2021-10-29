@@ -10,10 +10,13 @@ constexpr uint8_t kRedHeaderSize = 1u;
 UlpFecReceiver::UlpFecReceiver(uint32_t ssrc, 
                                std::shared_ptr<Clock> clock, 
                                std::weak_ptr<RecoveredPacketReceiver> recovered_packet_receiver) 
- : ssrc_(ssrc),
-   clock_(std::move(clock)),
-   recovered_packet_receiver_(std::move(recovered_packet_receiver)),
-   fec_decoder_(FecDecoder::CreateUlpFecDecoder(ssrc_)) {}
+    : ssrc_(ssrc),
+      clock_(std::move(clock)),
+      recovered_packet_receiver_(std::move(recovered_packet_receiver)),
+      fec_decoder_(FecDecoder::CreateUlpFecDecoder(ssrc_)) {
+
+    fec_decoder_->OnRecoveredPacket(std::bind(&UlpFecReceiver::OnRecoveredPacket, this, std::placeholders::_1));
+}
 
 UlpFecReceiver::~UlpFecReceiver() {
     fec_decoder_->Reset();
@@ -97,20 +100,14 @@ bool UlpFecReceiver::AddReceivedRedPacket(const RtpPacketReceived& rtp_packet, u
         fec_decoder_->Decode(ssrc, seq_num, is_fec, std::move(encapsulated_packet));
     }
 
-    for (auto& [seq_num, recovered_packet] : fec_decoder_->recovered_media_packets()) {
-        // Already sent to the VCM and the jitter buffer.
-        if (recovered_packet.returned) {
-            continue;
-        }
-        ++packet_counter_.num_recovered_packets;
-        if (auto receiver = recovered_packet_receiver_.lock()) {
-            // Indicates the packet was sent to the VCM.
-            recovered_packet.returned = true;
-            receiver->OnRecoveredPacket(recovered_packet.pkt);
-        }
-    }
-
     return true;
+}
+
+void UlpFecReceiver::OnRecoveredPacket(const FecDecoder::RecoveredMediaPacket& recovered_packet) {
+    ++packet_counter_.num_recovered_packets;
+    if (auto receiver = recovered_packet_receiver_.lock()) {
+        receiver->OnRecoveredPacket(recovered_packet.pkt);
+    }
 }
     
 } // namespace naivertc
