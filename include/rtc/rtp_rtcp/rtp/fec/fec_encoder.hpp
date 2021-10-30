@@ -41,19 +41,23 @@ public:
      *      The bursty type is only defined up to 12 media packets. If the number of media packets is
      *      above 12, the packet masks from the random table will be selected.
     */
-    ArrayView<const CopyOnWriteBuffer> Encode(const PacketList& media_packets, 
-                                      uint8_t protection_factor, 
-                                      size_t num_important_packets, 
-                                      bool use_unequal_protection, 
-                                      FecMaskType fec_mask_type);
+    size_t Encode(const PacketList& media_packets, 
+                  uint8_t protection_factor, 
+                  size_t num_important_packets, 
+                  bool use_unequal_protection, 
+                  FecMaskType fec_mask_type,
+                  std::vector<CopyOnWriteBuffer>& generated_fec_packets);
+
+    // Gets the maximum size of FEC packets will be generated.
+    size_t MaxFecPackets() const;
 
     // Gets the maximum size of the FEC headers in bytes, which must be
     // accounted for as packet overhead.
     size_t MaxPacketOverhead() const;
 
-    // Get the number of generated FEC packets, given the number of media packets
-    // and the protection factor.
-    static size_t NumFecPackets(size_t num_media_packets, uint8_t protection_factor);
+    // Calculate the actual number of FEC packets will be generated, 
+    // given the number of media packets and the protection factor.
+    static size_t CalcNumFecPackets(size_t num_media_packets, uint8_t protection_factor);
 
 protected:
     FecEncoder(std::unique_ptr<FecHeaderWriter> fec_header_writer);
@@ -61,14 +65,21 @@ protected:
 private:
     ssize_t InsertZeroInPacketMasks(const PacketList& media_packets, size_t num_fec_packets);
 
-    void GenerateFecPayload(const PacketList& media_packets, size_t num_fec_packets);
+    void GenerateFecPayload(const PacketList& media_packets, 
+                            size_t num_fec_packets, 
+                            std::vector<CopyOnWriteBuffer>& generated_fec_packets);
 
-    void FinalizeFecHeaders(size_t packet_mask_size, size_t num_fec_packets, uint32_t media_ssrc, uint16_t seq_num_base);
+    void FinalizeFecHeaders(size_t packet_mask_size, 
+                            uint32_t media_ssrc, 
+                            uint16_t seq_num_base, 
+                            size_t num_fec_packets, 
+                            std::vector<CopyOnWriteBuffer>& generated_fec_packets);
 
 private:
     std::unique_ptr<FecHeaderWriter> fec_header_writer_;
     std::unique_ptr<FecPacketMaskGenerator> packet_mask_generator_;
     std::vector<CopyOnWriteBuffer> generated_fec_packets_;
+    size_t num_generated_fec_packets_;
     size_t packet_mask_size_;
     
     static const size_t max_packet_mask_count = kUlpFecMaxMediaPackets * kUlpFecMaxPacketMaskSize;

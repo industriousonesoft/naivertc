@@ -56,8 +56,8 @@ private:
 
     std::optional<std::shared_ptr<RtpPacketToSend>> last_protected_media_packet_;
     FecEncoder::PacketList media_packets_;
-    ArrayView<const CopyOnWriteBuffer> generated_fec_packets_;
-
+    std::vector<CopyOnWriteBuffer> generated_fec_packets_;
+    size_t num_generated_fec_packets_ = 0;
 };
     
 } // namespace naivert 
