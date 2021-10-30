@@ -9,32 +9,32 @@ namespace test {
 
 constexpr int kHistorySize = 1 << 13; // 8192;
 
-TEST(DecodedFramesHistoryTest, RequestOnEmptyHistory) {
+TEST(VCM_DecodedFramesHistoryTest, RequestOnEmptyHistory) {
     DecodedFramesHistory history(kHistorySize);
     EXPECT_EQ(history.WasDecoded(1234), false);
 }
 
-TEST(DecodedFramesHistoryTest, FindsLastDecodedFrame) {
+TEST(VCM_DecodedFramesHistoryTest, FindsLastDecodedFrame) {
     DecodedFramesHistory history(kHistorySize);
     history.InsertFrame(1234, 0);
     EXPECT_EQ(history.WasDecoded(1234), true);
 }
 
-TEST(DecodedFramesHistoryTest, FindsPreviousFrame) {
+TEST(VCM_DecodedFramesHistoryTest, FindsPreviousFrame) {
     DecodedFramesHistory history(kHistorySize);
     history.InsertFrame(1234, 0);
     history.InsertFrame(1235, 0);
     EXPECT_EQ(history.WasDecoded(1234), true);
 }
 
-TEST(DecodedFramesHistoryTest, ReportsMissingFrame) {
+TEST(VCM_DecodedFramesHistoryTest, ReportsMissingFrame) {
     DecodedFramesHistory history(kHistorySize);
     history.InsertFrame(1234, 0);
     history.InsertFrame(1236, 0);
     EXPECT_EQ(history.WasDecoded(1235), false);
 }
 
-TEST(DecodedFramesHistoryTest, ClearsHistory) {
+TEST(VCM_DecodedFramesHistoryTest, ClearsHistory) {
     DecodedFramesHistory history(kHistorySize);
     history.InsertFrame(1234, 0);
     history.Clear();
@@ -43,7 +43,7 @@ TEST(DecodedFramesHistoryTest, ClearsHistory) {
     EXPECT_EQ(history.last_decoded_frame_timestamp(), std::nullopt);
 }
 
-TEST(DecodedFramesHistory, HandlesBigJumpInPictureId) {
+TEST(VCM_DecodedFramesHistoryTest, HandlesBigJumpInPictureId) {
     DecodedFramesHistory history(kHistorySize);
     history.InsertFrame(1234, 0);
     history.InsertFrame(1235, 0);
@@ -53,7 +53,7 @@ TEST(DecodedFramesHistory, HandlesBigJumpInPictureId) {
     EXPECT_EQ(history.WasDecoded(1237), false);
 }
 
-TEST(DecodedFramesHistoryTest, ForgetsTooOldHistory) {
+TEST(VCM_DecodedFramesHistoryTest, ForgetsTooOldHistory) {
     DecodedFramesHistory history(kHistorySize);
     history.InsertFrame(1234, 0);
     history.InsertFrame(1235, 0);
@@ -63,7 +63,7 @@ TEST(DecodedFramesHistoryTest, ForgetsTooOldHistory) {
     EXPECT_EQ(history.WasDecoded(1237), false);
 }
 
-TEST(DecodedFramesHistoryTest, ReturnsLastDecodedFrameId) {
+TEST(VCM_DecodedFramesHistoryTest, ReturnsLastDecodedFrameId) {
     DecodedFramesHistory history(kHistorySize);
     EXPECT_EQ(history.last_decoded_frame_id(), std::nullopt);
     history.InsertFrame(1234, 0);
@@ -72,7 +72,7 @@ TEST(DecodedFramesHistoryTest, ReturnsLastDecodedFrameId) {
     EXPECT_EQ(history.last_decoded_frame_id(), 1235);
 }
 
-TEST(DecodedFramesHistoryTest, ReturnsLastDecodedFrameTimestamp) {
+TEST(VCM_DecodedFramesHistoryTest, ReturnsLastDecodedFrameTimestamp) {
     DecodedFramesHistory history(kHistorySize);
     EXPECT_EQ(history.last_decoded_frame_timestamp(), std::nullopt);
     history.InsertFrame(1234, 12345);
@@ -81,7 +81,7 @@ TEST(DecodedFramesHistoryTest, ReturnsLastDecodedFrameTimestamp) {
     EXPECT_EQ(history.last_decoded_frame_timestamp(), 12366u);
 }
 
-TEST(DecodedFramesHistoryTest, NegativePictureIds) {
+TEST(VCM_DecodedFramesHistoryTest, NegativePictureIds) {
     DecodedFramesHistory history(kHistorySize);
     history.InsertFrame(-1234, 12345);
     history.InsertFrame(-1233, 12366);

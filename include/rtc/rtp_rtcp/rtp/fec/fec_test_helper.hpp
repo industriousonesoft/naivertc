@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 #include "common/utils_random.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 namespace naivertc {
 namespace test {
@@ -12,7 +12,7 @@ namespace test {
 // RtpPacketGenerator
 class RTC_CPP_EXPORT RtpPacketGenerator {
 public:
-    explicit RtpPacketGenerator(uint32_t ssrc);
+    explicit RtpPacketGenerator(uint32_t ssrc, uint8_t payload_type);
     virtual ~RtpPacketGenerator();
 
     void NewFrame(size_t num_packets);
@@ -24,6 +24,7 @@ protected:
 
 private:
     uint32_t ssrc_;
+    uint8_t payload_type_;
     uint16_t seq_num_;
     uint32_t timestamp_;
 };
@@ -31,8 +32,21 @@ private:
 // UlpFecPacketGenerator
 class RTC_CPP_EXPORT UlpFecPacketGenerator : public RtpPacketGenerator {
 public:
-    explicit UlpFecPacketGenerator(uint32_t ssrc);
+    explicit UlpFecPacketGenerator(uint32_t ssrc, 
+                                   uint8_t media_payload_type, 
+                                   uint8_t fec_payload_type,
+                                   uint8_t red_payload_type);
     ~UlpFecPacketGenerator() override;
+
+    // Encapsulate the media packet as a RED packet.
+    RtpPacketReceived BuildMediaRedPacket(const RtpPacket& rtp_packet, bool is_recovered = false);
+
+    // Encapsulate the FEC packet as a RED packet.
+    RtpPacketReceived BuildUlpFecRedPacket(const CopyOnWriteBuffer& fec_packets);
+
+private:
+    uint8_t fec_payload_type_;
+    uint8_t red_payload_type_;
 };
 
 } // namespace test

@@ -145,6 +145,15 @@ public:
         Append(array, N);
     }
 
+    template <typename T,
+        // Container has data and size
+        typename std::enable_if<
+            std::is_convertible<decltype(std::declval<T>().data()), uint8_t*>::value &&
+            std::is_convertible<decltype(std::declval<T>().size()), std::size_t>::value>::type* = nullptr>
+    void Append(const T& t) {
+        Append(t.data(), t.size());
+    }
+
     void Append(std::vector<uint8_t>::const_iterator begin, 
                 std::vector<uint8_t>::const_iterator end);
 

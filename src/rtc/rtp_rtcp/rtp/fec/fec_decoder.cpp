@@ -255,7 +255,7 @@ void FecDecoder::TryToRecover() {
             // Restart for first FEC packet.
             fec_packet_it = received_fec_packets_.begin();
 
-            // Send to VCM
+            // Send the recovered media packet to VCM
             if (packet_recovered_callback_ && it->second.was_recovered) {
                 packet_recovered_callback_(it->second);
             }
@@ -319,7 +319,9 @@ std::optional<FecDecoder::RecoveredMediaPacket> FecDecoder::PreparePacketForReco
     // at the end of packet recovery.
     memcpy(recovered_packet.pkt.data(), fec_packet.pkt.cdata(), kRtpHeaderSize);
 
-    // Copy remaining FEC payload
+    // Copy remaining FEC payload to the packet to recover, and it 
+    // will do Xor with other protected packets later.
+    // In other words, if there is only one protected packet, it is recovered now. 
     if (protection_length > 0) {
         memcpy(recovered_packet.pkt.data() + kRtpHeaderSize, fec_packet.pkt.cdata() + fec_header_size, protection_length);
     }

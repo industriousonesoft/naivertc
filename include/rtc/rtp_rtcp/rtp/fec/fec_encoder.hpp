@@ -20,6 +20,7 @@ public:
     static std::unique_ptr<FecEncoder> CreateUlpFecEncoder();
 
     using PacketList = std::list<std::shared_ptr<RtpPacket>>;
+    using FecPacketList = std::vector<CopyOnWriteBuffer>;
 public:
     ~FecEncoder() override;
 
@@ -46,7 +47,7 @@ public:
                   size_t num_important_packets, 
                   bool use_unequal_protection, 
                   FecMaskType fec_mask_type,
-                  std::vector<CopyOnWriteBuffer>& generated_fec_packets);
+                  FecPacketList& generated_fec_packets);
 
     // Gets the maximum size of FEC packets will be generated.
     size_t MaxFecPackets() const;
@@ -78,8 +79,6 @@ private:
 private:
     std::unique_ptr<FecHeaderWriter> fec_header_writer_;
     std::unique_ptr<FecPacketMaskGenerator> packet_mask_generator_;
-    std::vector<CopyOnWriteBuffer> generated_fec_packets_;
-    size_t num_generated_fec_packets_;
     size_t packet_mask_size_;
     
     static const size_t max_packet_mask_count = kUlpFecMaxMediaPackets * kUlpFecMaxPacketMaskSize;

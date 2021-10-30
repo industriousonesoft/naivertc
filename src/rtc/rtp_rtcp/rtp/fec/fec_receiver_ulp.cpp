@@ -38,10 +38,10 @@ bool UlpFecReceiver::AddReceivedRedPacket(const RtpPacketReceived& rtp_packet, u
     }
 
     // Parse RED header (the first octet of payload data).
-    // The highest bit is used as RED end marker, 0 means the last 
-    // RED header block. 
     ArrayView<const uint8_t> red_payload = rtp_packet.payload();
-    bool red_marker_bit = red_payload.data()[0] & 0x80;
+    // The highest bit is used as RED end marker, 0 means this is the last 
+    // RED header block, 1 means there are more than one blocks. 
+    bool is_last_red_block = (red_payload.data()[0] & 0x80) == 0;
     // The payload type of the encapsulated packet by RED.
     uint8_t encapsulated_payload_type = rtp_packet.payload().data()[0] & 0x7f;
     bool is_fec = encapsulated_payload_type == ulpfec_payload_type;
@@ -51,7 +51,7 @@ bool UlpFecReceiver::AddReceivedRedPacket(const RtpPacketReceived& rtp_packet, u
 
     // Check if there are more than one RED header blocks.
     // We only support one block in a RED packet for FEC.
-    if (red_marker_bit == 0) {
+    if (!is_last_red_block) {
         PLOG_WARNING << "More than one block in received RED packet is not supported.";
         return false;
     }

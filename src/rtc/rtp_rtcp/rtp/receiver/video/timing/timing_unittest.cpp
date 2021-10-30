@@ -13,9 +13,9 @@ constexpr int kDelayMaxChangeMsPerS = 100;
 
 }  // namespace
 
-class ReceiverTimingTest : public ::testing::Test {
+class VCM_ReceiverTimingTest : public ::testing::Test {
 public:
-    ReceiverTimingTest() 
+    VCM_ReceiverTimingTest() 
         : clock_(std::make_shared<SimulatedClock>(0)),
           timing_(clock_) {};
 protected:
@@ -23,7 +23,7 @@ protected:
     rtc::video::Timing timing_;
 };
 
-TEST_F(ReceiverTimingTest, JitterDelay) {
+TEST_F(VCM_ReceiverTimingTest, JitterDelay) {
     timing_.Reset();
 
     uint32_t timestamp = 0;
@@ -101,7 +101,7 @@ TEST_F(ReceiverTimingTest, JitterDelay) {
     timing_.UpdateCurrentDelay(timestamp);
 }
 
-TEST_F(ReceiverTimingTest, TimestampWrapAround) {
+TEST_F(VCM_ReceiverTimingTest, TimestampWrapAround) {
     timing_.Reset();
     // Provoke a wrap-around. The fifth frame will have wrapped at 25 fps.
     uint32_t timestamp = 0xFFFFFFFFu - 3 * 90000 / kFps;
@@ -114,7 +114,7 @@ TEST_F(ReceiverTimingTest, TimestampWrapAround) {
     }
 }
 
-TEST_F(ReceiverTimingTest, MaxTimeWaitingToDecodeIsZeroForZeroRenderTime) {
+TEST_F(VCM_ReceiverTimingTest, MaxTimeWaitingToDecodeIsZeroForZeroRenderTime) {
     // This is the default path when the RTP playout delay header extension is set
     // to min==0.
     constexpr int64_t kTimeDeltaMs = 1000.0 / 60.0;
@@ -135,7 +135,7 @@ TEST_F(ReceiverTimingTest, MaxTimeWaitingToDecodeIsZeroForZeroRenderTime) {
     EXPECT_LT(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 0);
 }
 
-TEST_F(ReceiverTimingTest, MaxTimeWaitingToDecodeZeroDelayPacingExperiment) {
+TEST_F(VCM_ReceiverTimingTest, MaxTimeWaitingToDecodeZeroDelayPacingExperiment) {
     // The minimum pacing is enabled by a field trial and active if the RTP
     // playout delay header extension is set to min==0.
     constexpr int64_t kMinPacingMs = 3;
@@ -165,7 +165,7 @@ TEST_F(ReceiverTimingTest, MaxTimeWaitingToDecodeZeroDelayPacingExperiment) {
     EXPECT_EQ(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 5 * kMinPacingMs - kTwoMs);
 }
 
-TEST_F(ReceiverTimingTest, DefaultMaxTimeWaitingToDecodeUnaffectedByPacingExperiment) {
+TEST_F(VCM_ReceiverTimingTest, DefaultMaxTimeWaitingToDecodeUnaffectedByPacingExperiment) {
     // The minimum pacing is enabled by a field trial but should not have any
     // effect if render_time_ms is greater than 0;
     constexpr int64_t kTimeDeltaMs = 1000.0 / 60.0;

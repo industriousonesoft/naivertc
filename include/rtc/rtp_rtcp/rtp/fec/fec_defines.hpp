@@ -61,7 +61,7 @@ struct RTC_CPP_EXPORT FecHeader {
     size_t packet_mask_size = 0;
     // TODO: Remove `protection length` field maybe.
     // `protection length` field is the same thing with 
-    // `length recovery` in WebRTC implement.
+    // `length recovery` in WebRTC ULP_FEC implement.
     size_t protection_length = 0;
 };
     

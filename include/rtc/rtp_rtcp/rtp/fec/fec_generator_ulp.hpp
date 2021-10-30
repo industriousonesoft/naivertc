@@ -56,8 +56,8 @@ private:
 
     std::optional<std::shared_ptr<RtpPacketToSend>> last_protected_media_packet_;
     FecEncoder::PacketList media_packets_;
-    std::vector<CopyOnWriteBuffer> generated_fec_packets_;
-    size_t num_generated_fec_packets_ = 0;
+    FecEncoder::FecPacketList generated_fec_packets_;
+    size_t num_generated_fec_packets_;
 };
     
 } // namespace naivert 

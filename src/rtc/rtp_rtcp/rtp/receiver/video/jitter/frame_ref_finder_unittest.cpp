@@ -102,12 +102,12 @@ protected:
 };
 
 // H264
-class H264FrameRefFinderTest : public FrameRefFinderTest {
+class VCM_H264FrameRefFinderTest : public FrameRefFinderTest {
 protected:
-    H264FrameRefFinderTest() : FrameRefFinderTest(VideoCodecType::H264) {}
+    VCM_H264FrameRefFinderTest() : FrameRefFinderTest(VideoCodecType::H264) {}
 };
 
-TEST_F(H264FrameRefFinderTest, H264KeyFrameReferences) {
+TEST_F(VCM_H264FrameRefFinderTest, H264KeyFrameReferences) {
     uint16_t seq_num = Rand();
     InsertH264(seq_num, seq_num, true);
 
@@ -115,7 +115,7 @@ TEST_F(H264FrameRefFinderTest, H264KeyFrameReferences) {
     CheckReferencesH264(seq_num);
 }
 
-TEST_F(H264FrameRefFinderTest, H264SequenceNumberWrap) {
+TEST_F(VCM_H264FrameRefFinderTest, H264SequenceNumberWrap) {
     uint16_t seq_num = 0xFFFF;
 
     InsertH264(seq_num - 1, seq_num - 1, true);
@@ -130,7 +130,7 @@ TEST_F(H264FrameRefFinderTest, H264SequenceNumberWrap) {
     CheckReferencesH264(seq_num + 2, seq_num + 1);
 }
 
-TEST_F(H264FrameRefFinderTest, H264Frames) {
+TEST_F(VCM_H264FrameRefFinderTest, H264Frames) {
     uint16_t seq_num = Rand();
 
     InsertH264(seq_num, seq_num, true);
@@ -145,7 +145,7 @@ TEST_F(H264FrameRefFinderTest, H264Frames) {
     CheckReferencesH264(seq_num + 3, seq_num + 2);
 }
 
-TEST_F(H264FrameRefFinderTest, H264Reordering) {
+TEST_F(VCM_H264FrameRefFinderTest, H264Reordering) {
     uint16_t seq_num = 0;//Rand();
 
     InsertH264(seq_num, seq_num, true);
@@ -166,7 +166,7 @@ TEST_F(H264FrameRefFinderTest, H264Reordering) {
     CheckReferencesH264(seq_num + 6, seq_num + 5);
 }
 
-TEST_F(H264FrameRefFinderTest, H264SequenceNumberWrapMulti) {
+TEST_F(VCM_H264FrameRefFinderTest, H264SequenceNumberWrapMulti) {
     uint16_t seq_num = 0xFFFF;
 
     InsertH264(seq_num - 3, seq_num - 2, true);

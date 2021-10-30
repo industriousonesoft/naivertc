@@ -62,7 +62,7 @@ size_t FecEncoder::Encode(const PacketList& media_packets,
                           size_t num_important_packets, 
                           bool use_unequal_protection, 
                           FecMaskType fec_mask_type,
-                          std::vector<CopyOnWriteBuffer>& generated_fec_packets) {
+                          FecPacketList& generated_fec_packets) {
    
     const size_t num_media_packets = media_packets.size();
     if (num_media_packets == 0) {
@@ -80,6 +80,7 @@ size_t FecEncoder::Encode(const PacketList& media_packets,
         return 0;
     }
     
+    // Sanity check for media packets
     for (const auto& media_packet : media_packets) {
         if (media_packet->size() < kRtpHeaderSize) {
             PLOG_WARNING << "Media packet size " << media_packet->size()
