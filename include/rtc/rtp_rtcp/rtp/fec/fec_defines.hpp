@@ -29,6 +29,11 @@ static constexpr size_t kUlpFecMaxMediaPackets = kUlpFecMaxMediaPacketsLBitSet;
 // and we can do the same thing based on a reasonable age of sequence number.
 static constexpr size_t kMaxFecPackets = kUlpFecMaxMediaPackets;
 
+// Maximum number of media packets tracked by FEC decoder.
+// Maintain a sufficiently larger tracking window than |kMaxMediaPackets|
+// to account for packet reordering in pacer/ network.
+constexpr size_t kMaxTrackedMediaPackets = 4 * kUlpFecMaxMediaPackets; // 192
+
 // Convenience constants.
 static constexpr size_t kUlpFecMinPacketMaskSize = kUlpFecPacketMaskSizeLBitClear;
 static constexpr size_t kUlpFecMaxPacketMaskSize = kUlpFecPacketMaskSizeLBitSet;

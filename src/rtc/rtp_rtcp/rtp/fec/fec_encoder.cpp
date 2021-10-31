@@ -57,19 +57,18 @@ FecEncoder::FecEncoder(std::unique_ptr<FecHeaderWriter> fec_header_writer)
 
 FecEncoder::~FecEncoder() = default;
 
-size_t FecEncoder::Encode(const PacketList& media_packets, 
-                          uint8_t protection_factor, 
-                          size_t num_important_packets, 
-                          bool use_unequal_protection, 
-                          FecMaskType fec_mask_type,
-                          FecPacketList& generated_fec_packets) {
-   
+std::pair<size_t, bool> FecEncoder::Encode(const PacketList& media_packets, 
+                                           uint8_t protection_factor, 
+                                           size_t num_important_packets, 
+                                           bool use_unequal_protection, 
+                                           FecMaskType fec_mask_type,
+                                           FecPacketList& generated_fec_packets) {
     const size_t num_media_packets = media_packets.size();
     if (num_media_packets == 0) {
-        return 0;
+        return {0, false};
     }
     if (num_important_packets > num_media_packets) {
-        return 0;
+        return {0, false};
     }
 
     const size_t max_media_packets = fec_header_writer_->max_media_packets();
@@ -77,7 +76,7 @@ size_t FecEncoder::Encode(const PacketList& media_packets,
         PLOG_WARNING << "Can not protect " << num_media_packets
                      << " media packets per frame greater than "
                      << max_media_packets << ".";
-        return 0;
+        return {0, false};
     }
     
     // Sanity check for media packets
@@ -85,7 +84,7 @@ size_t FecEncoder::Encode(const PacketList& media_packets,
         if (media_packet->size() < kRtpHeaderSize) {
             PLOG_WARNING << "Media packet size " << media_packet->size()
                          << " is smaller than RTP fixed header size.";
-            return 0;
+            return {0, false};
         }
 
         // Ensure the FEC packets will fit in a typical MTU
@@ -99,7 +98,7 @@ size_t FecEncoder::Encode(const PacketList& media_packets,
     // Prepare generated FEC packets
     size_t num_fec_packets = CalcNumFecPackets(num_media_packets, protection_factor);
     if (num_fec_packets == 0) {
-        return 0;
+        return {0, true};
     }
  
     packet_mask_size_ = FecPacketMaskGenerator::PacketMaskSize(num_fec_packets);
@@ -113,7 +112,7 @@ size_t FecEncoder::Encode(const PacketList& media_packets,
     size_t num_mask_bits = InsertZeroInPacketMasks(media_packets, num_fec_packets);
     if (num_mask_bits < 0) {
         PLOG_INFO << "Due to sequence number gap, cannot protect media packets with a single block of FEC packets";
-        return 0;
+        return {0, false};
     }
     // One mask bit to a media packet
     packet_mask_size_ = FecPacketMaskGenerator::PacketMaskSize(num_mask_bits);
@@ -125,7 +124,7 @@ size_t FecEncoder::Encode(const PacketList& media_packets,
     const uint16_t seq_num_base = first_madia_packet->sequence_number();
     FinalizeFecHeaders(packet_mask_size_, media_ssrc, seq_num_base, num_fec_packets, generated_fec_packets);
     
-    return num_fec_packets;
+    return {num_fec_packets, true};
 }
 
 size_t FecEncoder::MaxFecPackets() const {

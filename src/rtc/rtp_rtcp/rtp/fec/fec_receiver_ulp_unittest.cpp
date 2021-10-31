@@ -40,10 +40,9 @@ protected:
           fec_receiver_(std::make_unique<UlpFecReceiver>(kMediaSsrc, clock_, &recovered_packet_receiver_)),
           fec_encoder_(FecEncoder::CreateUlpFecEncoder()),
           generated_fec_packets_(fec_encoder_->MaxFecPackets()),
-          num_generated_fec_packets_(0),
           packet_generator_(kMediaSsrc, kVp8PayloadType, kFecPayloadType, kRedPayloadType) {}
 
-    void EncoderFec(const FecEncoder::PacketList& media_packets, size_t num_fec_packet);
+    size_t EncoderFec(const FecEncoder::PacketList& media_packets, size_t num_fec_packet);
 
     void PacketizeFrame(size_t num_media_packets, FecEncoder::PacketList& media_packets);
 
@@ -62,26 +61,26 @@ protected:
     std::unique_ptr<UlpFecReceiver> fec_receiver_;
     std::unique_ptr<FecEncoder> fec_encoder_;
     FecEncoder::FecPacketList generated_fec_packets_;
-    size_t num_generated_fec_packets_;
     UlpFecPacketGenerator packet_generator_;
 };
 
 // Implements
-void UlpFecReceiverTest::EncoderFec(const FecEncoder::PacketList& media_packets, 
-                                    size_t num_fec_packets) {
+size_t UlpFecReceiverTest::EncoderFec(const FecEncoder::PacketList& media_packets, 
+                                      size_t num_fec_packets) {
     const uint8_t protection_factor = num_fec_packets * 255 / media_packets.size();
     // Unequal protection is turned off, and the number of important
     // packets is thus irrelevant.
     constexpr int kNumImportantPackets = 0;
     constexpr bool kUseUnequalProtection = false;
     constexpr FecMaskType kFecMaskType = FecMaskType::BURSTY;
-    num_generated_fec_packets_ = fec_encoder_->Encode(media_packets,
-                                                      protection_factor,
-                                                      kNumImportantPackets,
-                                                      kUseUnequalProtection,
-                                                      kFecMaskType,
-                                                      generated_fec_packets_);
-    ASSERT_EQ(num_generated_fec_packets_, num_fec_packets);
+    auto [num_generated_fec_packets, success] = fec_encoder_->Encode(media_packets,
+                                                                     protection_factor,
+                                                                     kNumImportantPackets,
+                                                                     kUseUnequalProtection,
+                                                                     kFecMaskType,
+                                                                     generated_fec_packets_);
+    EXPECT_TRUE(success);
+    return num_generated_fec_packets;
 }
 
 void UlpFecReceiverTest::PacketizeFrame(size_t num_media_packets, FecEncoder::PacketList& media_packets) {
@@ -118,8 +117,7 @@ void UlpFecReceiverTest::InjectGarbageData(size_t offset, T data) {
     FecEncoder::PacketList media_packets;
     PacketizeFrame(kNumMediaPackets, media_packets);
     // Encode to FEC packets.
-    EncoderFec(media_packets, kNumFecPackets);
-    EXPECT_EQ(kNumFecPackets, num_generated_fec_packets_);
+    EXPECT_EQ(kNumFecPackets, EncoderFec(media_packets, kNumFecPackets));
 
     // Insert garbage bytes
     auto fec_it = generated_fec_packets_.begin();
@@ -156,8 +154,7 @@ TEST_F(UlpFecReceiverTest, TwoMediaOneFec) {
     FecEncoder::PacketList media_packets;
     PacketizeFrame(kNumMediaPackets, media_packets);
     // Encode to FEC packets.
-    EncoderFec(media_packets, kNumFecPackets);
-    EXPECT_EQ(kNumFecPackets, num_generated_fec_packets_);
+    EXPECT_EQ(kNumFecPackets, EncoderFec(media_packets, kNumFecPackets));
 
     // Try to recovery.
     auto fec_packet_counter = fec_receiver_->packet_counter();
@@ -198,8 +195,7 @@ TEST_F(UlpFecReceiverTest, TwoMediaOneFecNotUsesRecoveredPackets) {
     FecEncoder::PacketList media_packets;
     PacketizeFrame(kNumMediaPackets, media_packets);
     // Encode to FEC packets.
-    EncoderFec(media_packets, kNumFecPackets);
-    EXPECT_EQ(kNumFecPackets, num_generated_fec_packets_);
+    EXPECT_EQ(kNumFecPackets, EncoderFec(media_packets, kNumFecPackets));
 
     // Try to recovery
     auto fec_packet_counter = fec_receiver_->packet_counter();
@@ -257,8 +253,7 @@ TEST_F(UlpFecReceiverTest, TwoMediaTwoFec) {
         0xc0, 0x00
     // The first FEC packet only protect the first media packet,
     // and the second FEC packet protect both two media packet.
-    EncoderFec(media_packets, kNumFecPackets);
-    EXPECT_EQ(kNumFecPackets, num_generated_fec_packets_);
+    EXPECT_EQ(kNumFecPackets, EncoderFec(media_packets, kNumFecPackets));
 
     // Try to recovery both media packets.
     auto fec_packet_counter = fec_receiver_->packet_counter();
@@ -298,8 +293,7 @@ TEST_F(UlpFecReceiverTest, TwoFramesOneFec) {
     PacketizeFrame(1, media_packets);
     EXPECT_EQ(2u, media_packets.size());
     // Encode to FEC packets.
-    EncoderFec(media_packets, kNumFecPackets);
-    EXPECT_EQ(kNumFecPackets, num_generated_fec_packets_);
+    EXPECT_EQ(kNumFecPackets, EncoderFec(media_packets, kNumFecPackets));
 
     // Try to recovery
     auto fec_packet_counter = fec_receiver_->packet_counter();
@@ -341,8 +335,7 @@ TEST_F(UlpFecReceiverTest, TwoFramesThreePacketOneFec) {
     PacketizeFrame(2, media_packets);
     EXPECT_EQ(3u, media_packets.size());
     // Encode to FEC packets.
-    EncoderFec(media_packets, kNumFecPackets);
-    EXPECT_EQ(kNumFecPackets, num_generated_fec_packets_);
+    EXPECT_EQ(kNumFecPackets, EncoderFec(media_packets, kNumFecPackets));
 
     // Try to recovery
     auto fec_packet_counter = fec_receiver_->packet_counter();
@@ -384,6 +377,214 @@ TEST_F(UlpFecReceiverTest, TwoFramesThreePacketOneFec) {
     EXPECT_EQ(1u, fec_packet_counter.num_received_fec_packets);
     EXPECT_EQ(1u, fec_packet_counter.num_recovered_packets);
 
+}
+
+TEST_F(UlpFecReceiverTest, MaxFramesOneFec) {
+    const size_t kNumFecPackets = 1;
+    const size_t kNumMediaPackets = 48; // L bit set, mask size = 2 + 4
+    // Generate media packets.
+    FecEncoder::PacketList media_packets;
+    for (size_t i = 0; i < kNumMediaPackets; ++i) {
+        PacketizeFrame(1, media_packets);
+    }
+    EXPECT_EQ(kNumMediaPackets, media_packets.size());
+
+    // Encode to FEC packets.
+    EXPECT_EQ(kNumFecPackets, EncoderFec(media_packets, kNumFecPackets));
+
+    // Try to recover.
+    auto media_it = media_packets.begin();
+    auto& dropped_media_packet = **media_it;
+    // Drop first packet.
+    ++media_it;
+    for (; media_it != media_packets.end(); ++media_it) {
+        VerifyRecoveredMediaPacket(**media_it, 1);
+        BuildAndAddRedMediaPacket(**media_it);
+    }
+
+    // Add FEC packet to recover the dropped media packet.
+    VerifyRecoveredMediaPacket(dropped_media_packet, 1);
+    BuildAndAddRedFecPacket(*generated_fec_packets_.begin());
+}
+
+TEST_F(UlpFecReceiverTest, TooManyFrames) {
+    const size_t kNumFecPackets = 1;
+    // The max number of media packets can be protected by FEC is 48.
+    const size_t kNumMediaPackets = 49;
+    // Generate media packets.
+    FecEncoder::PacketList media_packets;
+    for (size_t i = 0; i < kNumMediaPackets; ++i) {
+        PacketizeFrame(1, media_packets);
+    }
+    EXPECT_EQ(kNumMediaPackets, media_packets.size());
+
+    const uint8_t protection_factor = kNumFecPackets * 255 / media_packets.size();
+    // Unequal protection is turned off, and the number of important
+    // packets is thus irrelevant.
+    constexpr int kNumImportantPackets = 0;
+    constexpr bool kUseUnequalProtection = false;
+    constexpr FecMaskType kFecMaskType = FecMaskType::BURSTY;
+    auto [num_fec_packets, success]  = fec_encoder_->Encode(media_packets,
+                                                            protection_factor,
+                                                            kNumImportantPackets,
+                                                            kUseUnequalProtection,
+                                                            kFecMaskType,
+                                                            generated_fec_packets_);
+    EXPECT_EQ(0, num_fec_packets);
+    EXPECT_FALSE(success);
+}
+
+TEST_F(UlpFecReceiverTest, PacketNotDroppedTooEarly) {
+    // 1 frame with 2 media packets and one FEC packet. One media packet missing.
+    // Delay the FEC packet.
+    const size_t kNumFecPacketsBatch1 = 1;
+    const size_t kNumMediaPacketsBatch1 = 2;
+    // Generate media packets.
+    FecEncoder::PacketList media_packets_batch1;
+    PacketizeFrame(kNumMediaPacketsBatch1, media_packets_batch1);
+
+    // Encode to FEC packets.
+    EXPECT_EQ(kNumFecPacketsBatch1, EncoderFec(media_packets_batch1, kNumFecPacketsBatch1));
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+    BuildAndAddRedMediaPacket(**media_packets_batch1.begin());
+
+    auto fec_packet_counter = fec_receiver_->packet_counter();
+    EXPECT_EQ(1u, fec_packet_counter.num_received_packets);
+    EXPECT_EQ(0u, fec_packet_counter.num_received_fec_packets);
+    EXPECT_EQ(0u, fec_packet_counter.num_recovered_packets);
+
+    auto& delayed_fec_packet = *generated_fec_packets_.begin();
+
+    // Fill the FEC decoder. No packets should be dropped.
+    const size_t kNumMediaPacketsBatch2 = 191;
+    FecEncoder::PacketList media_packets_batch2;
+    for (size_t i = 0; i < kNumMediaPacketsBatch2; ++i) {
+        PacketizeFrame(1, media_packets_batch2);
+    }
+    EXPECT_EQ(kNumMediaPacketsBatch2, media_packets_batch2.size());
+
+    // Add media packet to FEC receiver.
+    for (auto it = media_packets_batch2.begin(); it != media_packets_batch2.end(); ++it) {
+        EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+        BuildAndAddRedMediaPacket(**it);
+    }
+
+    fec_packet_counter = fec_receiver_->packet_counter();
+    EXPECT_EQ(192u, fec_packet_counter.num_received_packets);
+    EXPECT_EQ(0u, fec_packet_counter.num_received_fec_packets);
+    EXPECT_EQ(0u, fec_packet_counter.num_recovered_packets);
+
+    // Add the delayed FEC packet to recover the missing media packet.
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+    BuildAndAddRedFecPacket(delayed_fec_packet);
+
+    fec_packet_counter = fec_receiver_->packet_counter();
+    EXPECT_EQ(193u, fec_packet_counter.num_received_packets);
+    EXPECT_EQ(1u, fec_packet_counter.num_received_fec_packets);
+    EXPECT_EQ(1u, fec_packet_counter.num_recovered_packets);
+
+}
+
+TEST_F(UlpFecReceiverTest, PacketDroppedWhenTooOld) {
+    // 1 frame with 2 media packets and one FEC packet. One media packet missing.
+    // Delay the FEC packet.
+    const size_t kNumFecPacketsBatch1 = 1;
+    const size_t kNumMediaPacketsBatch1 = 2;
+    // Generate media packets.
+    FecEncoder::PacketList media_packets_batch1;
+    PacketizeFrame(kNumMediaPacketsBatch1, media_packets_batch1);
+
+    // Encode to FEC packets.
+    EXPECT_EQ(kNumFecPacketsBatch1, EncoderFec(media_packets_batch1, kNumFecPacketsBatch1));
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+    BuildAndAddRedMediaPacket(**media_packets_batch1.begin());
+
+    auto fec_packet_counter = fec_receiver_->packet_counter();
+    EXPECT_EQ(1u, fec_packet_counter.num_received_packets);
+    EXPECT_EQ(0u, fec_packet_counter.num_received_fec_packets);
+    EXPECT_EQ(0u, fec_packet_counter.num_recovered_packets);
+
+    auto& delayed_fec_packet = *generated_fec_packets_.begin();
+
+    // Fill the FEC decoder. No packets should be dropped.
+    const size_t kNumMediaPacketsBatch2 = kMaxTrackedMediaPackets; // 192
+    FecEncoder::PacketList media_packets_batch2;
+    for (size_t i = 0; i < kNumMediaPacketsBatch2; ++i) {
+        PacketizeFrame(1, media_packets_batch2);
+    }
+    EXPECT_EQ(kNumMediaPacketsBatch2, media_packets_batch2.size());
+
+    // Add media packet to FEC receiver.
+    for (auto it = media_packets_batch2.begin(); it != media_packets_batch2.end(); ++it) {
+        EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+        BuildAndAddRedMediaPacket(**it);
+    }
+
+    fec_packet_counter = fec_receiver_->packet_counter();
+    EXPECT_EQ(193u, fec_packet_counter.num_received_packets);
+    EXPECT_EQ(0u, fec_packet_counter.num_received_fec_packets);
+    EXPECT_EQ(0u, fec_packet_counter.num_recovered_packets);
+
+    // Add the delayed FEC packet. No packet should be reconstructed since the
+    // first media packet of that frame has been dropped due to being too old.
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(0);
+    BuildAndAddRedFecPacket(delayed_fec_packet);
+
+    fec_packet_counter = fec_receiver_->packet_counter();
+    EXPECT_EQ(194u, fec_packet_counter.num_received_packets);
+    EXPECT_EQ(1u, fec_packet_counter.num_received_fec_packets);
+    EXPECT_EQ(0u, fec_packet_counter.num_recovered_packets);
+}
+
+TEST_F(UlpFecReceiverTest, OldFecPacketDropped) {
+    // 49 frames with 2 media packets and one FEC packet. 
+    // All media packets missing.
+    const size_t kNumMediaPackets = (kUlpFecMaxMediaPackets /* 48 */ + 1) * 2;
+    FecEncoder::PacketList media_packets;
+    for (size_t i = 0; i < kNumMediaPackets / 2; ++i) {
+        FecEncoder::PacketList frame_media_packets;
+        // Generate media packets.
+        PacketizeFrame(2, frame_media_packets);
+        // Encode one FEC packet.
+        EncoderFec(frame_media_packets, 1);
+        for (auto it = generated_fec_packets_.begin(); it != generated_fec_packets_.end(); ++it) {
+            // Only FEC packtes inserted, no media packets recoverable at this time.
+            EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(0);
+            BuildAndAddRedFecPacket(*it);
+        }
+        media_packets.insert(media_packets.end(), frame_media_packets.begin(), frame_media_packets.end());
+    }
+
+    // Insert the oldest media packet. The corresponding FEC packet is too old
+    // and should have been dropped. Only the media packet we inserted will be
+    // returned.
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+    BuildAndAddRedMediaPacket(**media_packets.begin());
+    
+}
+
+TEST_F(UlpFecReceiverTest, MediaWithPadding) {
+    const size_t kNumFecPacket = 1;
+    FecEncoder::PacketList media_packets;
+    PacketizeFrame(2, media_packets);
+
+    // Append 4 bytes of padding to the first media packet.
+    auto first_media_packet = **media_packets.begin();
+    first_media_packet.SetPadding(4);
+
+    // Generate one FEC packet.
+    EncoderFec(media_packets, kNumFecPacket);
+
+    // Received the first media packet.
+    auto media_it = media_packets.begin();
+    VerifyRecoveredMediaPacket(**media_it, 1);
+    BuildAndAddRedMediaPacket(**media_it);
+
+    // Missing the second media packet.
+    ++media_it;
+    // Received FEC packet to recover the missing media packet.
+    VerifyRecoveredMediaPacket(**media_it, 1);
+    BuildAndAddRedFecPacket(*generated_fec_packets_.begin());
 }
 
 } // namespace test

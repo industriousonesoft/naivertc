@@ -6,12 +6,12 @@ namespace {
 constexpr size_t kRedForFecHeaderLength = 1;
 
 // This controls the maximum amount of excess overhead (actual - target)
-// allowed in order to trigger EncodeFec(), before |params_.max_fec_frames|
+// allowed in order to trigger Encode(), before |params_.max_fec_frames|
 // is reached. Overhead here is defined as relative to number of media packets.
 constexpr int kMaxExcessOverhead = 50;  // Q8.
 
 // This is the minimum number of media packets required (above some protection
-// level) in order to trigger EncodeFec(), before |params_.max_fec_frames| is
+// level) in order to trigger Encode(), before |params_.max_fec_frames| is
 // reached.
 constexpr size_t kMinMediaPackets = 4;
 
@@ -103,13 +103,13 @@ void UlpFecGenerator::PushMediaPacket(std::shared_ptr<RtpPacketToSend> media_pac
         // We are not using Unequal Protection feature of the parity erasure code.
         constexpr int kNumImportantPackets = 0;
         constexpr bool kUseUnequalProtection = false;
-        num_generated_fec_packets_ = fec_encoder_->Encode(media_packets_, 
-                                                          curr_params.fec_rate, 
-                                                          kNumImportantPackets, 
-                                                          kUseUnequalProtection, 
-                                                          curr_params.fec_mask_type,
-                                                          generated_fec_packets_);
-        if (num_generated_fec_packets_ == 0) {
+        auto [num_generated_fec_packets_, success] = fec_encoder_->Encode(media_packets_, 
+                                                                          curr_params.fec_rate, 
+                                                                          kNumImportantPackets, 
+                                                                          kUseUnequalProtection, 
+                                                                          curr_params.fec_mask_type,
+                                                                          generated_fec_packets_);
+        if (num_generated_fec_packets_ == 0 || !success) {
             Reset();
         }
     }else {

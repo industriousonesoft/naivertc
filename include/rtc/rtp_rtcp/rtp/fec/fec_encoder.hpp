@@ -42,12 +42,12 @@ public:
      *      The bursty type is only defined up to 12 media packets. If the number of media packets is
      *      above 12, the packet masks from the random table will be selected.
     */
-    size_t Encode(const PacketList& media_packets, 
-                  uint8_t protection_factor, 
-                  size_t num_important_packets, 
-                  bool use_unequal_protection, 
-                  FecMaskType fec_mask_type,
-                  FecPacketList& generated_fec_packets);
+    std::pair<size_t, bool> Encode(const PacketList& media_packets, 
+                                   uint8_t protection_factor, 
+                                   size_t num_important_packets, 
+                                   bool use_unequal_protection, 
+                                   FecMaskType fec_mask_type,
+                                   FecPacketList& generated_fec_packets);
 
     // Gets the maximum size of FEC packets will be generated.
     size_t MaxFecPackets() const;

@@ -8,11 +8,6 @@
 namespace naivertc {
 namespace {
     
-// Maximum number of media packets tracked by FEC decoder.
-// Maintain a sufficiently larger tracking window than |kMaxMediaPackets|
-// to account for packet reordering in pacer/ network.
-constexpr size_t kMaxTrackedMediaPackets = 4 * kUlpFecMaxMediaPackets;
-
 constexpr size_t kPacketMaskOffset = kFecLevel0HeaderSize + 2;
     
 } // namespace
