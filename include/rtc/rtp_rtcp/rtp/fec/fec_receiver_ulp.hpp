@@ -31,7 +31,7 @@ public:
                    RecoveredPacketReceiver* const recovered_packet_receiver);
     ~UlpFecReceiver();
 
-    bool AddReceivedRedPacket(const RtpPacketReceived& rtp_packet, uint8_t ulpfec_payload_type);
+    bool OnRedPacket(const RtpPacketReceived& rtp_packet, uint8_t ulpfec_payload_type);
 
     PacketCounter packet_counter() const { return packet_counter_; }
 

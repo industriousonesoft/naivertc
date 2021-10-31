@@ -57,6 +57,7 @@ RtpVideoStreamReceiver::RtpVideoStreamReceiver(Configuration config,
                                        : nullptr),
       packet_buffer_(kPacketBufferStartSize, kPacketBufferMaxSize),
       remote_ntp_time_estimator_(clock_),
+      ulp_fec_receiver_(config_.remote_ssrc, clock_, this),
       last_packet_log_ms_(-1) {}
 
 RtpVideoStreamReceiver::~RtpVideoStreamReceiver() {}
@@ -108,26 +109,6 @@ void RtpVideoStreamReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
 void RtpVideoStreamReceiver::OnRtpPacket(RtpPacketReceived in_packet) {
     task_queue_->Async([this, in_packet=std::move(in_packet)](){
         this->OnReceivedPacket(std::move(in_packet));
-    });
-}
-
-// TODO: Using RtpPacketReceived as parameters for thread-safety
-void RtpVideoStreamReceiver::OnRecoveredPacket(const uint8_t* packet, size_t packet_size) {
-    task_queue_->Async([this, packet, packet_size](){
-        RtpPacketReceived recovered_packet;
-        if (!recovered_packet.Parse(packet, packet_size)) {
-            PLOG_WARNING << "Failed to parse recovered packet as RTP packet.";
-            return;
-        }
-        if (recovered_packet.payload_type() == config_.red_payload_type) {
-            PLOG_WARNING << "Discarding recovered packet with RED encapsulation.";
-            return;
-        }
-
-        // TODO: Identify header extensions of RTP packet.
-        recovered_packet.set_payload_type_frequency(kVideoPayloadTypeFrequency);
-
-        this->OnReceivedPacket(std::move(recovered_packet));
     });
 }
 
@@ -282,8 +263,10 @@ void RtpVideoStreamReceiver::HandleRedPacket(const RtpPacketReceived& packet) {
             // avoid NACKing it.
             HandleEmptyPacket(packet.sequence_number());
         }
-
-        // TODO: Handle RED packet using UlpFEC receiver.
+        if (!ulp_fec_receiver_.OnRedPacket(packet, config_.ulpfec_payload_type)) {
+            PLOG_WARNING << "Failed to parse RED packet.";
+            return;
+        }
     }
 }
 
@@ -337,6 +320,23 @@ void RtpVideoStreamReceiver::CreateFrameRefFinder(VideoCodecType codec_type, int
     frame_ref_finder_.reset();
     frame_ref_finder_ = rtc::video::jitter::FrameRefFinder::Create(codec_type, picture_id_offset);
     frame_ref_finder_->OnFrameRefFound(std::bind(&RtpVideoStreamReceiver::OnCompleteFrame, this, std::placeholders::_1));
+}
+
+void RtpVideoStreamReceiver::OnRecoveredPacket(CopyOnWriteBuffer recovered_packet) {
+    RtpPacketReceived received_packet;
+    if (!received_packet.Parse(std::move(recovered_packet))) {
+        PLOG_WARNING << "Failed to parse recovered packet as RTP packet.";
+        return;
+    }
+    if (received_packet.payload_type() == config_.red_payload_type) {
+        PLOG_WARNING << "Discarding recovered packet with RED encapsulation.";
+        return;
+    }
+
+    // TODO: To identify extensions.
+    received_packet.set_payload_type_frequency(kVideoPayloadTypeFrequency);
+
+    OnReceivedPacket(std::move(received_packet));
 }
 
 } // namespace naivertc

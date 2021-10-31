@@ -13,6 +13,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.hpp"
 #include "rtc/media/video/common.hpp"
 #include "rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/fec_receiver_ulp.hpp"
 
 #include <memory>
 #include <map>
@@ -24,7 +25,7 @@ namespace naivertc {
 class RtpPacketReceived;
 class CopyOnWriteBuffer;
 
-class RTC_CPP_EXPORT RtpVideoStreamReceiver {
+class RTC_CPP_EXPORT RtpVideoStreamReceiver : public RecoveredPacketReceiver {
 public:
     struct Configuration {
         // Sender SSRC used for sending RTCP (such as receiver reports).
@@ -49,13 +50,10 @@ public:
     RtpVideoStreamReceiver(Configuration config,
                            std::shared_ptr<Clock> clock,
                            std::shared_ptr<TaskQueue> task_queue);
-    ~RtpVideoStreamReceiver();
+    ~RtpVideoStreamReceiver() override;
 
     void OnRtcpPacket(CopyOnWriteBuffer in_packet);
     void OnRtpPacket(RtpPacketReceived in_packet);
-
-    // Packet recovered by FlexFEX or UlpFEC
-    void OnRecoveredPacket(const uint8_t* packet, size_t packet_size);
 
 private:
     class RtcpFeedbackBuffer : public NackSender,
@@ -96,6 +94,9 @@ private:
     void RequestKeyFrame();
     void SwitchFrameRefFinderIfNecessary(const rtc::video::FrameToDecode& frame);
     void CreateFrameRefFinder(VideoCodecType codec_type, int64_t picture_id_offset);
+
+    // Implements RecoveredPacketReceiver.
+    void OnRecoveredPacket(CopyOnWriteBuffer packet) override;
     
 private:
     const Configuration config_;
@@ -109,6 +110,7 @@ private:
     rtc::video::jitter::PacketBuffer packet_buffer_;
     std::unique_ptr<rtc::video::jitter::FrameRefFinder> frame_ref_finder_;
     RemoteNtpTimeEstimator remote_ntp_time_estimator_;
+    UlpFecReceiver ulp_fec_receiver_;
 
     std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;
 

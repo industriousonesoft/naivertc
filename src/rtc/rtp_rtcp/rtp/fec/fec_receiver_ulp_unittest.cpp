@@ -93,12 +93,12 @@ void UlpFecReceiverTest::PacketizeFrame(size_t num_media_packets, FecEncoder::Pa
 
 void UlpFecReceiverTest::BuildAndAddRedMediaPacket(const RtpPacket& rtp_packet, bool is_recovered) {
     RtpPacketReceived red_packet = packet_generator_.BuildMediaRedPacket(rtp_packet, is_recovered);
-    EXPECT_TRUE(fec_receiver_->AddReceivedRedPacket(red_packet, kFecPayloadType));
+    EXPECT_TRUE(fec_receiver_->OnRedPacket(red_packet, kFecPayloadType));
 } 
 
 void UlpFecReceiverTest::BuildAndAddRedFecPacket(const CopyOnWriteBuffer& fec_packets) {
     RtpPacketReceived red_packet = packet_generator_.BuildUlpFecRedPacket(fec_packets);
-    EXPECT_TRUE(fec_receiver_->AddReceivedRedPacket(red_packet, kFecPayloadType));
+    EXPECT_TRUE(fec_receiver_->OnRedPacket(red_packet, kFecPayloadType));
 }
 
 void UlpFecReceiverTest::VerifyRecoveredMediaPacket(const RtpPacket& packet, size_t call_times) {

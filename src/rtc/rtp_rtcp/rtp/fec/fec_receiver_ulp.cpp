@@ -22,7 +22,7 @@ UlpFecReceiver::~UlpFecReceiver() {
     fec_decoder_->Reset();
 }
 
-bool UlpFecReceiver::AddReceivedRedPacket(const RtpPacketReceived& rtp_packet, uint8_t ulpfec_payload_type) {
+bool UlpFecReceiver::OnRedPacket(const RtpPacketReceived& rtp_packet, uint8_t ulpfec_payload_type) {
     if (rtp_packet.ssrc() != ssrc_) {
         PLOG_WARNING << "Received RED packet with different SSRC than expected, dropping.";
         return false;
