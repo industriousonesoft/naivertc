@@ -25,7 +25,8 @@ namespace naivertc {
 class RtpPacketReceived;
 class CopyOnWriteBuffer;
 
-class RTC_CPP_EXPORT RtpVideoStreamReceiver : public RecoveredPacketReceiver {
+class RTC_CPP_EXPORT RtpVideoStreamReceiver : public RecoveredPacketReceiver,
+                                              public std::enable_shared_from_this<RtpVideoStreamReceiver> {
 public:
     struct Configuration {
         // Sender SSRC used for sending RTCP (such as receiver reports).
