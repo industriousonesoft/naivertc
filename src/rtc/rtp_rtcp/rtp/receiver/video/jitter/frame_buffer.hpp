@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
+#include "common/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/timing/timing.hpp"
@@ -21,10 +22,17 @@ class RTC_CPP_EXPORT FrameBuffer {
 public:
     enum class ReturnReason { FOUND, TIME_OUT, STOPPED };
 public:
-    FrameBuffer(std::shared_ptr<Clock> clock);
+    FrameBuffer(std::shared_ptr<Clock> clock, 
+                std::shared_ptr<Timing> timing);
     ~FrameBuffer();
 
     int64_t InsertFrame(std::unique_ptr<video::FrameToDecode> frame);
+
+    using NextFrameCallback = std::function<void(std::unique_ptr<video::FrameToDecode>, ReturnReason)>;
+    void NextFrame(int64_t max_wait_time_ms, 
+                   bool keyframe_required, 
+                   std::shared_ptr<TaskQueue> task_queue, 
+                   NextFrameCallback callback);
 
     void Clear();
 
@@ -58,17 +66,24 @@ private:
     bool UpdateFrameInfo(FrameInfo& frame_info);
 
     void PropagateContinuity(const FrameInfo& frame_info);
+
+    int64_t FindNextFrame(int64_t now_ms);
+    video::FrameToDecode* GetNextFrame();
+
+    bool CheckRenderTiming(const video::FrameToDecode& frame, int64_t now_ms);
 private:
     std::shared_ptr<Clock> clock_;
+    std::shared_ptr<Timing> timing_;
+    bool keyframe_required_;
+    DecodedFramesHistory decoded_frames_history_;
+    int64_t latest_next_frame_time_ms_;
+    int64_t last_log_non_decoded_ms_;
 
     std::optional<int64_t> last_continuous_frame_id_ = std::nullopt;
 
     FrameMap frame_buffer_;
-    std::vector<FrameMap::iterator> frame_to_decode_;
+    std::vector<FrameMap::iterator> frames_to_decode_;
 
-    DecodedFramesHistory decoded_frames_history_;
-
-    int64_t last_log_non_decoded_ms_;
 };
     
 } // namespace jitter

@@ -23,6 +23,7 @@ FrameToDecode::FrameToDecode(VideoFrameType frame_type,
       times_nacked_(times_nacked),
       min_received_time_ms_(min_received_time_ms),
       max_received_time_ms_(max_received_time_ms),
+      render_time_ms_(-1),
       bitstream_(std::move(bitstream)) {}
 
 FrameToDecode::~FrameToDecode() {}

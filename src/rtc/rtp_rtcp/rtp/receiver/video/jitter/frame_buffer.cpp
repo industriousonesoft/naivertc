@@ -18,13 +18,24 @@ constexpr size_t kMaxFramesBuffered = 800;
 constexpr int kMaxFramesHistory = 1 << 13; // 8192
 
 constexpr int64_t kLogNonDecodedIntervalMs = 5000;
+
+// The time it's allowed for a frame to be late to its rendering prediction and
+// still be rendered.
+constexpr int kMaxAllowedFrameDelayMs = 5;
+
+// The max target delay in ms for a frame to be rendered.
+constexpr int64_t kMaxVideoDelayMs = 10000; // 10s
     
 } // namespace
 
 
-FrameBuffer::FrameBuffer(std::shared_ptr<Clock> clock)
+FrameBuffer::FrameBuffer(std::shared_ptr<Clock> clock, 
+                         std::shared_ptr<Timing> timing)
     : clock_(std::move(clock)),
+      timing_(std::move(timing)),
+      keyframe_required_(false),
       decoded_frames_history_(kMaxFramesHistory),
+      latest_next_frame_time_ms_(-1),
       last_log_non_decoded_ms_(-kLogNonDecodedIntervalMs) {}
 
 FrameBuffer::~FrameBuffer() {}
@@ -130,6 +141,15 @@ int64_t FrameBuffer::InsertFrame(std::unique_ptr<video::FrameToDecode> frame) {
     return last_continuous_frame_id;
 }
 
+void FrameBuffer::NextFrame(int64_t max_wait_time_ms, 
+                            bool keyframe_required, 
+                            std::shared_ptr<TaskQueue> task_queue, 
+                            NextFrameCallback callback) {
+    latest_next_frame_time_ms_ = clock_->now_ms() + max_wait_time_ms;
+    keyframe_required_ = keyframe_required;
+    // TODO: Determing whether assiging the `task_queue` here or not?
+}
+
 void FrameBuffer::Clear() {
     unsigned int dropped_frames = std::count_if(frame_buffer_.begin(), frame_buffer_.end(), 
                                                 [](const std::pair<const int64_t, FrameInfo>& frame){
@@ -140,7 +160,7 @@ void FrameBuffer::Clear() {
     }
     frame_buffer_.clear();
     last_continuous_frame_id_.reset();
-    frame_to_decode_.clear();
+    frames_to_decode_.clear();
     decoded_frames_history_.Clear();
 }
 
@@ -262,7 +282,113 @@ void FrameBuffer::PropagateContinuity(const FrameInfo& frame_info) {
                 }
             }
         }
+    } // end of while
+}
+
+int64_t FrameBuffer::FindNextFrame(int64_t now_ms) {
+    int64_t max_wait_ms = latest_next_frame_time_ms_ - now_ms;
+    int64_t wait_ms = max_wait_ms;
+    frames_to_decode_.clear();
+
+    for (auto frame_it = frame_buffer_.begin(); 
+        frame_it != frame_buffer_.end() && frame_it->first <= last_continuous_frame_id_; 
+        ++frame_it) {
+
+        // Filter the frames is not continuous or decodable.
+        if (!frame_it->second.continuous || frame_it->second.num_missing_decodable > 0) {
+            continue;
+        }
+
+        video::FrameToDecode* frame = frame_it->second.frame.get();
+
+        // Filter the delta frames if the key frame is required now.
+        if (keyframe_required_ && !frame->is_keyframe()) {
+            continue;
+        }
+
+        auto last_decoded_frame_timestamp = decoded_frames_history_.last_decoded_frame_timestamp();
+        // TODO: Consider removing this check as it may make a stream undecodable 
+        // after a very long delay (multiple wrap arounds) between frames.
+        if (last_decoded_frame_timestamp && 
+            wrap_around_utils::AheadOf(*last_decoded_frame_timestamp, frame->timestamp())) {
+            continue;
+        }
+        
+        // TODO: Support spatial layer, and gather all remaining frames for the same super frame.
+
+        // Found a next decodable frame.
+        frames_to_decode_.push_back(frame_it);
+
+        // Set render time if necessary.
+        if (-1 == frame->render_time_ms()) {
+            frame->set_render_time_ms(timing_->RenderTimeMs(frame->timestamp(), now_ms));
+        }
+        // The max time in ms to wait before decoding the current frame.
+        wait_ms = timing_->MaxTimeWaitingToDecode(frame->render_time_ms(), now_ms);
+
+        // This will cause the frame buffer to prefer high frame rate rather
+        // than high resolution in the case of the decoder not decoding fast
+        // enough and the stream has multiple spatial and temporal layers.
+        if (wait_ms < -kMaxAllowedFrameDelayMs) {
+            continue;
+        }
+
+        // It's time to decode the found frames.
+        break;
+    } // end of for
+
+    // Limits the wait time in the range: [0, max_wait_ms]
+    wait_ms = std::min<int64_t>(wait_ms, max_wait_ms);
+    wait_ms = std::max<int64_t>(wait_ms, 0);
+
+    return wait_ms;
+}
+
+video::FrameToDecode* FrameBuffer::GetNextFrame() {
+    if (frames_to_decode_.empty()) {
+        return nullptr;
     }
+    int64_t now_ms = clock_->now_ms();
+    bool delayed_by_retransmission = false;
+    video::FrameToDecode* first_frame = frames_to_decode_[0]->second.frame.get();
+    int64_t render_time_ms = first_frame->render_time_ms();
+    int64_t receiver_time_ms = first_frame->received_time_ms();
+    // Gracefully handle bad RTP timestamps and render time.
+    if (!CheckRenderTiming(*first_frame, now_ms)) {
+        // TODO: Reset timing.
+    }
+
+    return nullptr;
+
+}
+
+bool FrameBuffer::CheckRenderTiming(const video::FrameToDecode& frame, int64_t now_ms) {
+    int64_t render_time_ms = frame.render_time_ms();
+    // Zero render time means render immediately.
+    if (render_time_ms == 0) {
+        return true;
+    }
+    if (render_time_ms < 0) {
+        return false;
+    }
+
+    // Delay before the frame to be rendered.
+    int64_t delay_ms = abs(render_time_ms - now_ms);
+    if (delay_ms > kMaxVideoDelayMs) {
+        PLOG_WARNING << "A frame about to be decoded is out of the configured"
+                     << " delay bounds (" << delay_ms << " > " << kMaxVideoDelayMs
+                     << "). Resetting the video jitter buffer.";
+        return false;
+    }
+    int target_delay_ms = timing_->TargetDelayMs();
+    if (target_delay_ms > kMaxVideoDelayMs) {
+        PLOG_WARNING << "The video target delay=" << target_delay_ms 
+                     << " has grown larger than the max video delay="
+                     << kMaxVideoDelayMs << " ms.";
+        return false;
+    }
+
+    return true;
 }
     
 } // namespace jitter

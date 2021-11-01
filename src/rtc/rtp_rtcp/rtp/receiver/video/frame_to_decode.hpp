@@ -23,7 +23,7 @@ public:
                   int64_t min_received_time_ms,
                   int64_t max_received_time_ms,
                   CopyOnWriteBuffer bitstream);
-    ~FrameToDecode();
+    virtual ~FrameToDecode();
 
     void set_id(int64_t id) { id_ = id; }
     int64_t id() const { return id_; }
