@@ -46,6 +46,14 @@ public:
 
         bool nack_enabled = false;
     };
+
+    // CompleteFrameReceiver
+    class CompleteFrameReceiver {
+    public:
+        virtual ~CompleteFrameReceiver() = default;
+        virtual void OnCompleteFrame(std::unique_ptr<rtc::video::FrameToDecode> frame) = 0;
+    };
+
 public:
     RtpVideoStreamReceiver(Configuration config,
                            std::shared_ptr<Clock> clock,
