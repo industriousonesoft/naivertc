@@ -107,5 +107,56 @@
         "__memory": "cpp",
         "__functional_base_03": "cpp",
         "__functional_03": "cpp"
-    }
+    },
+    //todo-tree settings
+    "todo-tree.regex.regex": "((//|#|<!--|;|/\\*|^)\\s*($TAGS):|^\\s*- \\[ \\])",
+    "todo-tree.general.tags": [
+        "TODO",
+        "FIXME",
+        "TAG",
+        "DONE",
+        "NOTE"
+    ],
+    "todo-tree.regex.regexCaseSensitive": false,
+    // "todo-tree.regex.enableMultiLine": true,
+    "todo-tree.highlights.defaultHighlight": {
+        "foreground": "white",
+        "background": "yellow",
+        "icon": "check",
+        "rulerColour": "yellow",
+        "type": "tag",
+        "iconColour": "yellow"
+    },
+    "todo-tree.highlights.customHighlight": {
+        "TODO": {
+            "background": "#f90",
+            "rulerColour": "#f90",
+            "iconColour": "#f90"
+        },
+        "FIXME": {
+            "background": "red",
+            "icon": "beaker",
+            "rulerColour": "red",
+            "iconColour": "red",
+        },
+        "TAG": {
+            "background": "blue",
+            "icon": "tag",
+            "rulerColour": "blue",
+            "iconColour": "blue",
+            "rulerLane": "full"
+        },
+        "DONE": {
+            "background": "green",
+            "icon": "issue-closed",
+            "rulerColour": "green",
+            "iconColour": "green",
+        },
+        "NOTE": {
+            "background": "green",
+            "icon": "note",
+            "rulerColour": "green",
+            "iconColour ": "green"
+        }
+    },
 }
