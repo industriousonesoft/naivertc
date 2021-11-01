@@ -1,5 +1,5 @@
-#include "rtc/rtp_rtcp/rtp/fec/fec_header_writer_ulp.hpp"
-#include "rtc/rtp_rtcp/rtp/fec/fec_header_reader_ulp.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/ulp/fec_header_writer_ulp.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/ulp/fec_header_reader_ulp.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_defines.hpp"
 #include "common/utils_random.hpp"
 #include "rtc/base/byte_io_reader.hpp"

@@ -1,6 +1,6 @@
 #include "rtc/call/rtp_media_sender.hpp"
-#include "rtc/rtp_rtcp/rtp/fec/fec_generator_flex.hpp"
-#include "rtc/rtp_rtcp/rtp/fec/fec_generator_ulp.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/flex/fec_generator_flex.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/ulp/fec_generator_ulp.hpp"
 
 #include <plog/Log.h>
 

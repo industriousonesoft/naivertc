@@ -44,10 +44,12 @@ std::unique_ptr<rtc::video::FrameToDecode> CreateFrameToDecode(const rtc::video:
 // RtpVideoStreamReceiver
 RtpVideoStreamReceiver::RtpVideoStreamReceiver(Configuration config,
                                                std::shared_ptr<Clock> clock,
-                                               std::shared_ptr<TaskQueue> task_queue) 
+                                               std::shared_ptr<TaskQueue> task_queue,
+                                               std::weak_ptr<CompleteFrameReceiver> complete_frame_receiver) 
     : config_(std::move(config)),
-      clock_(clock),
+      clock_(std::move(clock)),
       task_queue_(std::move(task_queue)),
+      complete_frame_receiver_(std::move(complete_frame_receiver)),
       rtcp_module_(CreateRtcpModule(config_, clock_, task_queue)),
       rtcp_feedback_buffer_(std::make_shared<RtcpFeedbackBuffer>(rtcp_module_, rtcp_module_)),
       nack_module_(config.nack_enabled ? std::make_unique<NackModule>(clock_, 
@@ -239,6 +241,9 @@ void RtpVideoStreamReceiver::OnAssembledFrame(std::unique_ptr<rtc::video::FrameT
 void RtpVideoStreamReceiver::OnCompleteFrame(std::unique_ptr<rtc::video::FrameToDecode> frame) {
     last_seq_num_for_pic_id_[frame->id()] = frame->seq_num_end();
     last_completed_picture_id_ = std::max(last_completed_picture_id_, frame->id());
+    if (auto receiver = complete_frame_receiver_.lock()) {
+        receiver->OnCompleteFrame(std::move(frame));
+    }
 }
 
 void RtpVideoStreamReceiver::RequestKeyFrame() {

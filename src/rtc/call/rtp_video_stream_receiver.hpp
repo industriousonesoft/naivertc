@@ -13,7 +13,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.hpp"
 #include "rtc/media/video/common.hpp"
 #include "rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp"
-#include "rtc/rtp_rtcp/rtp/fec/fec_receiver_ulp.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/ulp/fec_receiver_ulp.hpp"
 
 #include <memory>
 #include <map>
@@ -58,7 +58,8 @@ public:
 public:
     RtpVideoStreamReceiver(Configuration config,
                            std::shared_ptr<Clock> clock,
-                           std::shared_ptr<TaskQueue> task_queue);
+                           std::shared_ptr<TaskQueue> task_queue,
+                           std::weak_ptr<CompleteFrameReceiver> complete_frame_receiver);
     ~RtpVideoStreamReceiver() override;
 
     void OnRtcpPacket(CopyOnWriteBuffer in_packet);
@@ -111,6 +112,7 @@ private:
     const Configuration config_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<TaskQueue> task_queue_;
+    std::weak_ptr<CompleteFrameReceiver> complete_frame_receiver_;
     std::shared_ptr<RtcpModule> rtcp_module_;
     std::shared_ptr<RtcpFeedbackBuffer> rtcp_feedback_buffer_;
     std::unique_ptr<NackModule> nack_module_;
