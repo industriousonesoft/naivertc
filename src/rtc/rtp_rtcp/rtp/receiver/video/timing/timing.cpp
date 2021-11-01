@@ -123,19 +123,15 @@ int Timing::TargetDelayMs() const {
     return std::max(min_playout_delay_ms_, jitter_delay_ms_ + RequiredDecodeTimeMs() + render_delay_ms_);
 }
 
-bool Timing::GetTiming(int* max_decode_ms,
-                       int* curr_delay_ms,
-                       int* target_delay_ms,
-                       int* jitter_delay_ms,
-                       int* min_playout_delay_ms,
-                       int* render_delay_ms) const {
-    *max_decode_ms = RequiredDecodeTimeMs();
-    *curr_delay_ms = curr_delay_ms_;
-    *target_delay_ms = TargetDelayMs();
-    *jitter_delay_ms = jitter_delay_ms_;
-    *min_playout_delay_ms = min_playout_delay_ms_;
-    *render_delay_ms = render_delay_ms_;
-    return (num_decoded_frames_ > 0);
+std::pair<Timing::TimingInfo, bool> Timing::GetTimingInfo() const {
+    TimingInfo info;
+    info.max_decode_ms = RequiredDecodeTimeMs();
+    info.curr_delay_ms = curr_delay_ms_;
+    info.target_delay_ms = TargetDelayMs();
+    info.jitter_delay_ms = jitter_delay_ms_;
+    info.min_playout_delay_ms = min_playout_delay_ms_;
+    info.render_delay_ms = render_delay_ms_;
+    return {std::move(info), (num_decoded_frames_ > 0)};
 }
 
 int64_t Timing::RenderTimeMs(uint32_t timestamp, int64_t now_ms) const {

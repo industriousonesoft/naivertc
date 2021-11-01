@@ -15,8 +15,17 @@ namespace video {
 // The class is not thread-safe, the caller MUST privode that.
 class RTC_CPP_EXPORT Timing {
 public:
+    struct TimingInfo {
+        int max_decode_ms = -1;
+        int curr_delay_ms = -1;
+        int target_delay_ms = -1;
+        int jitter_delay_ms = -1;
+        int min_playout_delay_ms = -1;
+        int render_delay_ms = -1;
+    };
+public:
     explicit Timing(std::shared_ptr<Clock> clock);
-    ~Timing();
+    virtual ~Timing();
 
     int min_playout_delay_ms() const { return min_playout_delay_ms_; }
     void set_min_playout_delay_ms(int delay_ms) { min_playout_delay_ms_ = delay_ms; }
@@ -59,21 +68,18 @@ public:
     // Returns the receiver system time when the frame with timestamp
     // |frame_timestamp| should be rendered, assuming that the system time
     // currently is |now_ms|.
-    int64_t RenderTimeMs(uint32_t timestamp, int64_t now_ms) const;
+    virtual int64_t RenderTimeMs(uint32_t timestamp, int64_t now_ms) const;
 
     // Returns the maximum time in ms that we can wait for a frame to become
     // complete before we must pass it to the decoder.
-    int64_t MaxTimeWaitingToDecode(int64_t render_time_ms, int64_t now_ms);
+    virtual int64_t MaxTimeWaitingToDecode(int64_t render_time_ms, int64_t now_ms);
+
+    // Return current timing information. Returns true if the first frame has been
+    // decoded, false otherwise.
+    virtual std::pair<TimingInfo, bool> GetTimingInfo() const;
 
     // Reset the timing to the initial state.
     void Reset();
-
-    bool GetTiming(int* max_decode_ms,
-                   int* curr_delay_ms,
-                   int* target_delay_ms,
-                   int* jitter_delay_ms,
-                   int* min_playout_delay_ms,
-                   int* render_delay_ms) const;
 
 private:
     int RequiredDecodeTimeMs() const;
