@@ -7,6 +7,10 @@ namespace jitter {
 namespace {
 
 constexpr int64_t kMaxRttMs = 3000; // 3s
+
+constexpr uint8_t kMaxSampleCount = 35;
+constexpr double kJumpStandardDeviation = 2.5;
+constexpr double kDriftStandardDeviation = 3.5;
     
 } // namespac 
 
@@ -18,11 +22,7 @@ RttFilter::RttFilter()
       max_rtt_(0),
       jump_count_(0),
       drift_count_(0),
-      filt_fact_count_(1),
-      filt_fact_max_(35),
-      jump_std_devs_(2.5),
-      drift_std_devs_(3.5),
-      detect_threshold_(kMaxDriftJumpCount) {}
+      sample_count_(1) {}
 
 RttFilter& RttFilter::operator=(const RttFilter& rhs) {
     if (this != &rhs) {
@@ -32,7 +32,7 @@ RttFilter& RttFilter::operator=(const RttFilter& rhs) {
         max_rtt_ = rhs.max_rtt_;
         jump_count_ = rhs.jump_count_;
         drift_count_ = rhs.drift_count_;
-        filt_fact_count_ = rhs.filt_fact_count_;
+        sample_count_ = rhs.sample_count_;
         memcpy(jump_buffer_, rhs.jump_buffer_, sizeof(rhs.jump_buffer_));
         memcpy(drift_buffer_, rhs.drift_buffer_, sizeof(rhs.drift_buffer_));
     }
@@ -54,15 +54,15 @@ void RttFilter::AddRtt(int64_t rtt_ms) {
     }
 
     double filt_factor = 0;
-    if (filt_fact_count_ > 1) {
-        filt_factor = static_cast<double>(filt_fact_count_ - 1) / filt_fact_count_;
+    if (sample_count_ > 1) {
+        filt_factor = static_cast<double>(sample_count_ - 1) / sample_count_;
     }
-    ++filt_fact_count_;
+    ++sample_count_;
     // Prevent `filt_factor` from going above.
-    if (filt_fact_count_ > filt_fact_max_) {
-        // (filt_fact_max_ - 1) / filt_fact_max_
-        // e.g., filt_fact_max_ = 50 => filt_factor = (50 - 1) / 50 = 0.98;
-        filt_fact_count_ = filt_fact_max_;
+    if (sample_count_ > kMaxSampleCount) {
+        // (kMaxSampleCount - 1) / kMaxSampleCount
+        // e.g., kMaxSampleCount = 50 => filt_factor = (50 - 1) / 50 = 0.98;
+        sample_count_ = kMaxSampleCount;
     }
     double old_avg_rtt = avg_rtt_;
     double old_var_rtt = var_rtt_;
@@ -86,10 +86,10 @@ void RttFilter::Reset() {
     max_rtt_ = 0;
     jump_count_ = 0;
     drift_count_ = 0;
-    filt_fact_count_ = 1;
-    // NOTE: Do not use `memset` to set value except zero.
-    // memset是按字节赋值的，切勿用于非单字节（char, uint8_t)类型数组的赋值或多字节数组赋值非0值.
-    // e.g., int a[2]; memset(a, 3, sizeof(a)) => 
+    sample_count_ = 1;
+    // NOTE: memset是按字节赋值的，切勿用于非单字节（char, uint8_t)类型数组的赋值或多字节数组赋值非0值.
+    // `memset` will set value byte by byte, the value to set will be truncated as uint8_t.
+    // e.g., int a[2]; memset(a, 0x1203, sizeof(a)) => 
     // expected: 0x00000003, 0x00000003
     // actual: 0x03030303, 0x03030303
     memset(jump_buffer_, 0, sizeof(jump_buffer_));
@@ -106,7 +106,7 @@ bool RttFilter::JumpDetection(int64_t rtt_ms, int64_t avg_rtt, int64_t var_rtt) 
     double diff_from_avg = avg_rtt - rtt_ms;
     // There has a big diff between `rtt_ms` and `avg_rtt`, which means
     // a jump may happens.
-    if (fabs(diff_from_avg) > jump_std_devs_ * sqrt(var_rtt)) {
+    if (fabs(diff_from_avg) > kJumpStandardDeviation * sqrt(var_rtt)) {
         int diff_sign = (diff_from_avg >= 0) ? 1 : -1;
         int jump_count_sign = (jump_count_ >= 0) ? 1 : -1;
         
@@ -117,7 +117,7 @@ bool RttFilter::JumpDetection(int64_t rtt_ms, int64_t avg_rtt, int64_t var_rtt) 
             jump_count_ = 0;
         }
         // Accumulate the jump count in a same direction.
-        if (abs(jump_count_) < kMaxDriftJumpCount) {
+        if (abs(jump_count_) < kDetectThreshold) {
             // Update the buffer used for the short time statistics.
             // The sign of the diff is used for updating the counter
             // since we want to use the same buffer for keeping track
@@ -126,10 +126,10 @@ bool RttFilter::JumpDetection(int64_t rtt_ms, int64_t avg_rtt, int64_t var_rtt) 
             jump_count_ += diff_sign;
         }
         // Detected an RTT jump.
-        if (abs(jump_count_) >= detect_threshold_) {
+        if (abs(jump_count_) >= kDetectThreshold) {
             UpdateRtts(jump_buffer_, abs(jump_count_));
             // Short rtt filter.
-            filt_fact_count_ = detect_threshold_ + 1;
+            sample_count_ = kDetectThreshold + 1;
             jump_count_ = 0;
         } else {
             return false;
@@ -143,18 +143,18 @@ bool RttFilter::JumpDetection(int64_t rtt_ms, int64_t avg_rtt, int64_t var_rtt) 
 bool RttFilter::DriftDetection(int64_t rtt_ms, int64_t avg_rtt, int64_t var_rtt, int64_t max_rtt) {
     // There has a big diff between `max_rtt` and `avg_rtt`, which means
     // a drift may happens.
-    if (max_rtt - avg_rtt > drift_std_devs_ * sqrt(var_rtt)) {
+    if (max_rtt - avg_rtt > kDriftStandardDeviation * sqrt(var_rtt)) {
         // Accumulate the drift count.
-        if (drift_count_ < kMaxDriftJumpCount) {
+        if (drift_count_ < kDetectThreshold) {
             // Update the buffer used for the short time statistics.
             drift_buffer_[drift_count_] = rtt_ms;
             ++drift_count_;
         }
         // Detected an RTT drift.
-        if (drift_count_ >= detect_threshold_) {
+        if (drift_count_ >= kDetectThreshold) {
             UpdateRtts(drift_buffer_, drift_count_);
             // Short rtt filter.
-            filt_fact_count_ = detect_threshold_ + 1;
+            sample_count_ = kDetectThreshold + 1;
             drift_count_ = 0;
         }
     } else {

@@ -8,6 +8,8 @@ namespace rtc {
 namespace video {
 namespace jitter {
 
+// RttFilter stores a periodic rtt valus to detect if a rtt jump or drift happens or not,
+// and calculates the current rtt.
 class RTC_CPP_EXPORT RttFilter {
 public:
     RttFilter();
@@ -34,18 +36,14 @@ private:
     int64_t max_rtt_;
     int8_t jump_count_;
     int8_t drift_count_;
-    uint8_t filt_fact_count_;
-    const uint8_t filt_fact_max_;
-    const double jump_std_devs_;
-    const double drift_std_devs_;
-    const int8_t detect_threshold_;
+    uint8_t sample_count_;
 
     // The size of the drift and jump memory buffers
     // and thus also the detection threshold for these
     // detectors in number of samples.
-    static const size_t kMaxDriftJumpCount = 5;
-    int64_t jump_buffer_[kMaxDriftJumpCount] = {0};
-    int64_t drift_buffer_[kMaxDriftJumpCount] = {0};
+    static const size_t kDetectThreshold = 5;
+    int64_t jump_buffer_[kDetectThreshold] = {0};
+    int64_t drift_buffer_[kDetectThreshold] = {0};
 };
     
 } // namespace jitter
