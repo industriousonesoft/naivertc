@@ -180,6 +180,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_seq_num.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/rtt_filter.cpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video -> timing
     src/rtc/rtp_rtcp/rtp/receiver/video/timing/decode_time_filter.cpp
@@ -411,6 +412,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_seq_num.hpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.hpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.hpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/rtt_filter.hpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video -> timing
     src/rtc/rtp_rtcp/rtp/receiver/video/timing/decode_time_filter.hpp
