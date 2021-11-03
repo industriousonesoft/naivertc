@@ -1,6 +1,6 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/rtt_filter.hpp"
 
-namespace naivert {
+namespace naivertc {
 namespace rtc {
 namespace video {
 namespace jitter {
@@ -12,7 +12,7 @@ constexpr uint8_t kMaxSampleCount = 35;
 constexpr double kJumpStandardDeviation = 2.5;
 constexpr double kDriftStandardDeviation = 3.5;
     
-} // namespac 
+} // namespace 
 
 
 RttFilter::RttFilter() 
@@ -182,4 +182,4 @@ void RttFilter::UpdateRtts(int64_t* buf, uint8_t count) {
 } // namespace jitter
 } // namespace video
 } // namespace rtc
-} // namespace naivert
+} // namespace naivertc
