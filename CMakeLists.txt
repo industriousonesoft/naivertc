@@ -309,7 +309,7 @@ set(LIB_HEADERS
     src/rtc/base/numerics/moving_median_filter.hpp
     src/rtc/base/numerics/percentile_filter.hpp
     src/rtc/base/numerics/modulo_operator.hpp
-    src/rtc/base/numerics/running_statistics.hpp
+    src/rtc/base/numerics/variance_cumulator.hpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.hpp
@@ -375,6 +375,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp
     src/rtc/rtp_rtcp/components/wrap_around_utils.hpp
     src/rtc/rtp_rtcp/components/seq_num_unwrapper.hpp
+    src/rtc/rtp_rtcp/components/rolling_accumulator.hpp
 
     # rtc -> rtp_rtcp
     src/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
@@ -586,7 +587,7 @@ set(TEST_SOURCES
     src/rtc/base/numerics/percentile_filter_unittest.cpp
     src/rtc/base/numerics/moving_median_filter_unittest.cpp
     src/rtc/base/numerics/modulo_operator_unittest.cpp
-    src/rtc/base/numerics/running_statistics_unittest.cpp
+    src/rtc/base/numerics/variance_cumulator_unittest.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp
@@ -604,6 +605,7 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/wrap_around_utils_unittest.cpp
     src/rtc/rtp_rtcp/components/seq_num_unwrapper_unittest.cpp
+    src/rtc/rtp_rtcp/components/rolling_accumulator_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packets
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_unittest.cpp

@@ -1,4 +1,4 @@
-#include "rtc/base/numerics/running_statistics.hpp"
+#include "rtc/base/numerics/variance_cumulator.hpp"
 #include "common/utils_random.hpp"
 
 #include <gtest/gtest.h>
@@ -7,23 +7,23 @@ namespace naivertc {
 namespace test {
 namespace {
 
-RunningStatistics<double> CreateStatsFilledWithIntsFrom1ToN(int n) {
+VarianceCumulator<double> CreateStatsFilledWithIntsFrom1ToN(int n) {
     std::vector<double> samples;
     for (int i = 1; i <= n; ++i) {
         samples.push_back(i);
     }
     utils::random::shuffle<double>(samples);
-    RunningStatistics<double> stats;
+    VarianceCumulator<double> stats;
     for (double s : samples) {
         stats.AddSample(s);
     }
     return stats;
 }
 
-RunningStatistics<double> CreateStatsFromRandom(int n, double begin, double end) {
+VarianceCumulator<double> CreateStatsFromRandom(int n, double begin, double end) {
     std::mt19937 gen{std::random_device()()};
     std::uniform_real_distribution<> dis(begin, end);
-    RunningStatistics<double> stats;
+    VarianceCumulator<double> stats;
     for (int i = 0; i <= n; ++i) {
         stats.AddSample(dis(gen));
     }
@@ -32,11 +32,11 @@ RunningStatistics<double> CreateStatsFromRandom(int n, double begin, double end)
     
 } // namespace
 
-class RunningStatisticsTest : public ::testing::TestWithParam<int> {};
+class VarianceCumulatorTest : public ::testing::TestWithParam<int> {};
 
 constexpr int kCountForMerge = 5;
 
-TEST(RunningStatisticsTest, FullSimpleTest) {
+TEST(VarianceCumulatorTest, FullSimpleTest) {
     auto stats = CreateStatsFilledWithIntsFrom1ToN(100);
 
     EXPECT_DOUBLE_EQ(*stats.min(), 1.0);
@@ -44,8 +44,8 @@ TEST(RunningStatisticsTest, FullSimpleTest) {
     ASSERT_NEAR(*stats.mean(), 50.5, 1e-10 /* abs_error */);
 }
 
-TEST(RunningStatisticsTest, VarianceAndDeviation) {
-    RunningStatistics<int> stats;
+TEST(VarianceCumulatorTest, VarianceAndDeviation) {
+    VarianceCumulator<int> stats;
     stats.AddSample(2);
     stats.AddSample(2);
     stats.AddSample(-1);
@@ -56,8 +56,8 @@ TEST(RunningStatisticsTest, VarianceAndDeviation) {
     EXPECT_DOUBLE_EQ(*stats.StandardDeviation(), sqrt(4.5));
 }
 
-TEST(RunningStatisticsTest, RemoveSample) {
-    RunningStatistics<int> stats;
+TEST(VarianceCumulatorTest, RemoveSample) {
+    VarianceCumulator<int> stats;
     stats.AddSample(2);
     stats.AddSample(2);
     stats.AddSample(-1);
@@ -74,8 +74,8 @@ TEST(RunningStatisticsTest, RemoveSample) {
     }
 }
 
-TEST(RunningStatisticsTest, RemoveSampleSequence) {
-    RunningStatistics<int> stats;
+TEST(VarianceCumulatorTest, RemoveSampleSequence) {
+    VarianceCumulator<int> stats;
     stats.AddSample(2);
     stats.AddSample(2);
     stats.AddSample(-1);
@@ -95,36 +95,36 @@ TEST(RunningStatisticsTest, RemoveSampleSequence) {
     EXPECT_NEAR(*stats.StandardDeviation(), sqrt(4.5), 1e-4);
 }
 
-TEST(RunningStatisticsTest, VarianceFromRandom) {
+TEST(VarianceCumulatorTest, VarianceFromRandom) {
     auto stats = CreateStatsFromRandom(1e6, 0, 1);
     EXPECT_NEAR(*stats.Variance(), 1.0/12, 1e-3);
 }
 
-TEST(RunningStatisticsTest, NumericStabilityForVariance) {
+TEST(VarianceCumulatorTest, NumericStabilityForVariance) {
     auto stats = CreateStatsFromRandom(1e6, 1e9, 1e9 + 1);
     EXPECT_NEAR(*stats.Variance(), 1.0/12, 1e-3);
 }
 
-TEST(RunningStatisticsTest, MinRemainsUnchagedAfterRemove) {
-    RunningStatistics<int> stats;
+TEST(VarianceCumulatorTest, MinRemainsUnchagedAfterRemove) {
+    VarianceCumulator<int> stats;
     stats.AddSample(1);
     stats.AddSample(2);
     stats.RemoveSample(1);
     EXPECT_EQ(stats.min(), 1);
 }
     
-TEST(RunningStatisticsTest, MaxRemainsUnchagedAfterRemove) {
-    RunningStatistics<int> stats;
+TEST(VarianceCumulatorTest, MaxRemainsUnchagedAfterRemove) {
+    VarianceCumulator<int> stats;
     stats.AddSample(1);
     stats.AddSample(2);
     stats.RemoveSample(2);
     EXPECT_EQ(stats.max(), 2);
 }
 
-TEST_P(RunningStatisticsTest, MergeStatistics) {
+TEST_P(VarianceCumulatorTest, MergeStatistics) {
     int samples[kCountForMerge] = {2, 2, -1, 5, 10};
 
-    RunningStatistics<int> stats0, stats1;
+    VarianceCumulator<int> stats0, stats1;
     for (int i = 0; i < GetParam(); ++i) {
         stats0.AddSample(samples[i]);
     }
@@ -141,8 +141,8 @@ TEST_P(RunningStatisticsTest, MergeStatistics) {
     EXPECT_DOUBLE_EQ(*stats0.StandardDeviation(), sqrt(13.84));
 }
 
-INSTANTIATE_TEST_SUITE_P(RunningStatisticsTests,
-                         RunningStatisticsTest,
+INSTANTIATE_TEST_SUITE_P(VarianceCumulatorTests,
+                         VarianceCumulatorTest,
                          ::testing::Range(0, kCountForMerge + 1));
  
 } // namespace test
