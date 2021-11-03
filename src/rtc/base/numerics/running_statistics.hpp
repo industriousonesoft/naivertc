@@ -32,8 +32,8 @@ class RTC_CPP_EXPORT RunningStatistics {
 public:
     RunningStatistics() 
         : count_(0),
-          min_(InfinityOrMaxValue),
-          max_(MinusInfinityOrMinValue),
+          min_(InfinityOrMaxValue<T>()),
+          max_(MinusInfinityOrMinValue<T>()),
           mean_(0.0),
           cumulated_variance_(0.0) {}
 
@@ -80,11 +80,11 @@ public:
 
     int64_t sample_count() const { return count_; }
 
-    std::optional<T> min() const { return count_ > 0 ? min_ : std::nullopt; }
-    std::optional<T> max() const { return count_ > 0 ? max_ : std::nullopt; }
-    std::optional<double> mean() const { return count_ > 0 ? mean_ : std::nullopt; }
-    std::optional<double> Variance() const { return count_ > 0 ? cumulated_variance_ / count_ : std::nullopt; }
-    std::optional<double> StandardDeviation() const { return count_ > 0 ? sqrt(*Variance()) : std::nullopt; }
+    std::optional<T> min() const { return count_ > 0 ? std::optional<T>(min_) : std::nullopt; }
+    std::optional<T> max() const { return count_ > 0 ? std::optional<T>(max_) : std::nullopt; }
+    std::optional<double> mean() const { return count_ > 0 ? std::optional<double>(mean_) : std::nullopt; }
+    std::optional<double> Variance() const { return count_ > 0 ? std::optional<double>(cumulated_variance_ / count_) : std::nullopt; }
+    std::optional<double> StandardDeviation() const { return count_ > 0 ? std::optional<double>(sqrt(*Variance())) : std::nullopt; }
 
 private:
     int64_t count_;
