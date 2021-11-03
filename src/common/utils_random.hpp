@@ -13,31 +13,50 @@ namespace random {
 
 template <
     typename T, 
-    typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type
->
+    typename std::enable_if<std::is_floating_point<T>::value, T>::type* = nullptr>
 RTC_CPP_EXPORT T generate_random() {
-    auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
-    std::default_random_engine generator(seed);
-    std::uniform_int_distribution<T> uniform;
-    return uniform(generator);
-};
-
-template<typename T> 
-RTC_CPP_EXPORT void shuffle(std::vector<T> list){
-    auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
-    std::shuffle(list.begin(), list.end(), std::default_random_engine(seed));
+    std::mt19937 gen{std::random_device()()};
+    std::uniform_real_distribution<T> dis;
+    return dis(gen);
 };
 
 template <
     typename T, 
-    typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type
->
+    typename std::enable_if<std::is_integral<T>::value, T>::type* = nullptr>
+RTC_CPP_EXPORT T generate_random() {
+    // auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
+    // std::default_random_engine generator(seed);
+    std::mt19937 gen{std::random_device()()};
+    std::uniform_int_distribution<T> dis;
+    return dis(gen);
+};
+
+template <
+    typename T, 
+    typename std::enable_if<std::is_floating_point<T>::value, T>::type* = nullptr>
 RTC_CPP_EXPORT T random(T lhs, T rhs) {
     assert(lhs <= rhs);
-    auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
-    std::default_random_engine generator(seed);
-    std::uniform_int_distribution<T> uniform(lhs, rhs);
-    return uniform(generator);
+    std::mt19937 gen{std::random_device()()};
+    std::uniform_real_distribution<T> dis(lhs, rhs);
+    return dis(gen);
+};
+
+template <
+    typename T, 
+    typename std::enable_if<std::is_integral<T>::value, T>::type* = nullptr>
+RTC_CPP_EXPORT T random(T lhs, T rhs) {
+    assert(lhs <= rhs);
+    std::mt19937 gen{std::random_device()()};
+    std::uniform_int_distribution<T> dis(lhs, rhs);
+    return dis(gen);
+};
+
+template<typename T> 
+RTC_CPP_EXPORT void shuffle(std::vector<T> list){
+    // auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
+    // std::default_random_engine gen(seed);
+    std::mt19937 gen{std::random_device()()};
+    std::shuffle(list.begin(), list.end(), gen);
 };
 
 // Random string
