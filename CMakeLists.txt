@@ -309,7 +309,7 @@ set(LIB_HEADERS
     src/rtc/base/numerics/moving_median_filter.hpp
     src/rtc/base/numerics/percentile_filter.hpp
     src/rtc/base/numerics/modulo_operator.hpp
-    src/rtc/base/numerics/variance_cumulator.hpp
+    src/rtc/base/numerics/running_statistics.hpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.hpp
@@ -587,7 +587,7 @@ set(TEST_SOURCES
     src/rtc/base/numerics/percentile_filter_unittest.cpp
     src/rtc/base/numerics/moving_median_filter_unittest.cpp
     src/rtc/base/numerics/modulo_operator_unittest.cpp
-    src/rtc/base/numerics/variance_cumulator_unittest.cpp
+    src/rtc/base/numerics/running_statistics_unittest.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp

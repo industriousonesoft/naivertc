@@ -29,18 +29,22 @@ T MinusInfinityOrMinValue() {
 // See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
 template<typename T,
          typename std::enable_if<std::is_convertible<T, double>::value, T>::type* = nullptr>
-class RTC_CPP_EXPORT VarianceCumulator {
+class RTC_CPP_EXPORT RunningStatistics {
 public:
-    VarianceCumulator() 
+    RunningStatistics() 
         : count_(0),
-          min_(InfinityOrMaxValue<T>()),
-          max_(MinusInfinityOrMinValue<T>()),
+          min_(T()),
+          max_(T()),
           mean_(0.0),
           cumulated_variance_(0.0) {}
 
     void AddSample(T sample) {
-        max_ = std::max(max_, sample);
-        min_ = std::min(min_, sample);
+        if (count_ == 0 || sample > max_) {
+            max_ = sample;
+        }
+        if (count_ == 0 || sample < min_) {
+            min_ = sample;
+        }
         ++count_;
         // Welford's incremental update.
         const double delta = sample - mean_;
@@ -61,7 +65,7 @@ public:
     }
 
     // Merge other stats, as if samples were added one by one.
-    void Merge(const VarianceCumulator<T>& other) {
+    void Merge(const RunningStatistics<T>& other) {
         if (other.count_ <= 0) {
             return;
         }
@@ -70,7 +74,7 @@ public:
         const int64_t merged_count = count_ + other.count_;
         const double merged_mean = (mean_ * count_ + other.mean_ * other.count_) / merged_count;
         // Calculate new `cumulated_variance_`: from sum((x_i - mean_)²) to sum((x_i - new_mean)²).
-        auto cumulated_variance_delta = [merged_mean](const VarianceCumulator& stats) {
+        auto cumulated_variance_delta = [merged_mean](const RunningStatistics& stats) {
             const double mean_delta = merged_mean - stats.mean_;
             return stats.count_ * (mean_delta * mean_delta);
         };
@@ -78,6 +82,14 @@ public:
                               other.cumulated_variance_ + cumulated_variance_delta(other);
         mean_ = merged_mean;
         count_ = merged_count;
+    }
+
+    void Reset() {
+        count_ = 0;
+        min_ = T();
+        max_ = T();
+        mean_ = 0.0;
+        cumulated_variance_ = 0.0;
     }
 
     int64_t sample_count() const { return count_; }
