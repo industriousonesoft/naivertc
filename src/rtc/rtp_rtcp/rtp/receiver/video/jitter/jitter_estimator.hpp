@@ -7,6 +7,7 @@
 #include "rtc/base/time/clock.hpp"
 
 #include <memory>
+#include <optional>
 
 namespace naivertc {
 namespace rtc {
@@ -23,6 +24,9 @@ public:
                         bool incomplete_frame = false);
 
     void Reset();
+
+    int GetJitterEstimate(double rttMultiplier,
+                          std::optional<double> rttMultAddCapMs);
 private:
     // Calculate difference in delay between a sample and the expected delay estimated
     // by the Kalman filter.
@@ -30,9 +34,14 @@ private:
 
     // Estimates the random jitter by calculating the variance of the sample
     // distance from the line given by theta.
-    void EstimateRandomJitter(double d_dT, bool incomplete_frame);
+    void EstimateRandomJitter(double d_dT, bool incomplete_frame = false);
 
     double EstimatedFrameRate() const;
+
+    void KalmanEstimateChannel(int64_t frame_delay_ms, int32_t frame_size_delta);
+
+    double CalcNoiseThreshold() const;
+    double CalcJitterEstimate() const;
 
 protected:
     // Estimated line parameters (slope, offset);
@@ -46,7 +55,7 @@ private:
     // ψ psai
     const double psi_;
     const uint32_t sample_count_max_;
-    const double theta_low_;
+    const double theta_lower_bound_;
     const uint32_t nack_limit_;
     // The number of standard deviaction of delay outlier
     const int32_t num_std_dev_delay_outlier_;
