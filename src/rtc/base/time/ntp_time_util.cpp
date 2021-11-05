@@ -9,12 +9,12 @@ uint32_t SaturatedUsToCompactNtp(int64_t us) {
     constexpr int kCompactNtpInSecond = 0x10000;
     if (us <= 0)
         return 0;
-    if (us >= kMaxCompactNtp * utils::time::kNumMicrosecsPerSec / kCompactNtpInSecond)
+    if (us >= kMaxCompactNtp * kNumMicrosecsPerSec / kCompactNtpInSecond)
         return kMaxCompactNtp;
     // To convert to compact ntp need to divide by 1e6 to get seconds,
     // then multiply by 0x10000 to get the final result.
     // To avoid float operations, multiplication and division swapped.
-    return DivideRoundToNearest(us * kCompactNtpInSecond, utils::time::kNumMicrosecsPerSec);
+    return DivideRoundToNearest(us * kCompactNtpInSecond, kNumMicrosecsPerSec);
 }
 
 int64_t CompactNtpRttToMs(uint32_t compact_ntp_interval) {

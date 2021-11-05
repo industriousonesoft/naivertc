@@ -16,17 +16,26 @@ namespace jitter {
 
 class RTC_CPP_EXPORT JitterEstimator {
 public:
+    // A constant describing the delay in ms from the jitter
+    // buffer to the delay on the receiving side which is not
+    // accounted for by the jitter buffer nor the decoding
+    // delay estimate.
+    static const uint32_t kOperatingSystemJitterMs = 10;
+public:
     explicit JitterEstimator(std::shared_ptr<Clock> clock);
     ~JitterEstimator();
 
     void UpdateEstimate(int64_t frame_delay_ms, 
                         uint32_t frame_size, 
-                        bool incomplete_frame = false);
+                        bool incomplete_frame = false);\
+
+    void UpdateRtt(int64_t rtt_ms);
+
+    int GetJitterEstimate(double rtt_multiplier,
+                          std::optional<double> rtt_mult_add_cap_ms,
+                          bool enable_reduced_delay = true);
 
     void Reset();
-
-    int GetJitterEstimate(double rttMultiplier,
-                          std::optional<double> rttMultAddCapMs);
 private:
     // Calculate difference in delay between a sample and the expected delay estimated
     // by the Kalman filter.
@@ -63,7 +72,6 @@ private:
     const double noise_std_devs_;
     const double noise_std_dev_offset_;
     const double time_deviation_upper_bound_;
-    const bool enable_reduced_delay_;
 
     // Estimate covariance
     double theta_cov_[2][2];
@@ -83,7 +91,7 @@ private:
     double avg_noise_;
     uint32_t sample_count_;
     // The filtered sum of jitter estimates
-    double filtered_sum_of_jitter_estimates_;
+    double filtered_sum_of_jitter_estimates_ms_;
 
     uint32_t startup_count_;
     // Timestamp in ms when the latest nack was seen.

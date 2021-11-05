@@ -6,8 +6,6 @@
 #include <stdint.h>
 
 namespace naivertc {
-namespace utils {
-namespace time {
 
 static constexpr int64_t kNumMillisecsPerSec = INT64_C(1000);
 static constexpr int64_t kNumMicrosecsPerSec = INT64_C(1000000);
@@ -16,6 +14,9 @@ static constexpr int64_t kNumNanosecsPerSec = INT64_C(1000000000);
 static constexpr int64_t kNumMicrosecsPerMillisec = kNumMicrosecsPerSec / kNumMillisecsPerSec;
 static constexpr int64_t kNumNanosecsPerMillisec = kNumNanosecsPerSec / kNumMillisecsPerSec;
 static constexpr int64_t kNumNanosecsPerMicrosec = kNumNanosecsPerSec / kNumMicrosecsPerSec;
+
+namespace utils {
+namespace time {
 
 // Returns the current time in milliseconds in 32 bits.
 RTC_CPP_EXPORT uint32_t Time32InMillis();

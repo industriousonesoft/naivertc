@@ -1,4 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.hpp"
+#include "common/utils_numeric.hpp"
 
 #include <plog/Log.h>
 
@@ -28,7 +29,6 @@ JitterEstimator::JitterEstimator(std::shared_ptr<Clock> clock)
       noise_std_devs_(2.33),
       noise_std_dev_offset_(30.0),
       time_deviation_upper_bound_(kDefaultMaxTimestampDeviationInSigmas),
-      enable_reduced_delay_(true),
       // TODO: Use an estimator with limit base on time rather than number of samples.
       frame_delta_us_accumulator_(30 /* 30 us */),
       clock_(std::move(clock)) {}
@@ -54,7 +54,7 @@ void JitterEstimator::Reset() {
     prev_frame_size_ = 0;
     avg_noise_ = 0.0;
     sample_count_ = 1;
-    filtered_sum_of_jitter_estimates_ = 0.0;
+    filtered_sum_of_jitter_estimates_ms_ = 0.0;
     latest_nack_timestamp_ = 0;
     nack_count_ = 0;
     frame_size_sum_ = 0;
@@ -95,7 +95,7 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
     }
 
     // Update max frame size estimate.
-    max_frame_size_ = std::max(phi_ * max_frame_size_, static_cast<double>(frame_size));
+    max_frame_size_ = std::max(psi_ * max_frame_size_, static_cast<double>(frame_size));
 
     if (prev_frame_size_ == 0) {
         prev_frame_size_ = frame_size;
@@ -139,19 +139,61 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
 
     // Post process the total estimated jitter.
     if (startup_count_ >= kStartupDelaySamples) {
-        filtered_sum_of_jitter_estimates_ = CalcJitterEstimate();
-        prev_estimate_ = filtered_sum_of_jitter_estimates_;
+        filtered_sum_of_jitter_estimates_ms_ = CalcJitterEstimate();
+        prev_estimate_ = filtered_sum_of_jitter_estimates_ms_;
     } else {
         ++startup_count_;
     }
 }
 
-int JitterEstimator::GetJitterEstimate(double rttMultiplier,
-                                       std::optional<double> rttMultAddCapMs) {
-    // double jitter_ms = CalcJitterEstimate() + OPERATING_SYSTEM_JITTER;      
-    // prev_estimate_ = jitter_ms;
+int JitterEstimator::GetJitterEstimate(double rtt_multiplier,
+                                       std::optional<double> rtt_mult_add_cap_ms,
+                                       bool enable_reduced_delay) {
+    
+    double jitter_ms = CalcJitterEstimate() + kOperatingSystemJitterMs;      
+    prev_estimate_ = jitter_ms;
+    int64_t now_us = clock_->now_us();
 
-    return 0;                         
+    if (now_us - latest_nack_timestamp_ > kNackCountTimeoutMs * 1000) {
+        nack_count_ = 0;
+    }
+
+    if (filtered_sum_of_jitter_estimates_ms_ > jitter_ms) {
+        jitter_ms = filtered_sum_of_jitter_estimates_ms_;
+    }
+
+    if (nack_count_ >= nack_limit_) {
+        if (rtt_mult_add_cap_ms.has_value()) {
+            jitter_ms += std::min(rtt_filter_.RttMs() * rtt_multiplier, rtt_mult_add_cap_ms.value());
+        } else {
+            jitter_ms += rtt_filter_.RttMs() * rtt_multiplier;
+        }
+    }
+
+    if (enable_reduced_delay) {
+        static const double kJitterScaleLowThreshold = 5.0;
+        static const double kJitterScaleHighThreshold = 10.0;
+        double estimated_fps = EstimatedFrameRate();
+        // Ignore jitter for very low fps streams.
+        if (estimated_fps < kJitterScaleLowThreshold) {
+            if (estimated_fps == 0.0) {
+                return utils::numeric::checked_static_cast<int>(std::max(0.0, jitter_ms) + 0.5);         
+            }
+            return 0.0;
+        }
+
+        // Semi-low frame rate, scale by factor linearly interpolated from 0.0
+        // at kJitterScaleLowThreshold to 1.0 at kJitterScaleHighThreshold.
+        if (estimated_fps < kJitterScaleHighThreshold) {
+            jitter_ms = (1.0 / (kJitterScaleHighThreshold - kJitterScaleLowThreshold)) * (estimated_fps - kJitterScaleLowThreshold) * jitter_ms;
+        }
+    }
+
+    return static_cast<int>(std::max(0.0, jitter_ms) + 0.5);                    
+}
+
+void JitterEstimator::UpdateRtt(int64_t rtt_ms) {
+    rtt_filter_.AddRtt(rtt_ms);
 }
 
 // Private methods
@@ -177,6 +219,10 @@ void JitterEstimator::EstimateRandomJitter(double d_dT, bool incomplete_frame) {
 
     double filt_factor = static_cast<double>(sample_count_ - 1) / static_cast<double>(sample_count_);
     ++sample_count_;
+
+    if (sample_count_ > sample_count_max_) {
+        sample_count_ = sample_count_max_;
+    }
 
     double estimated_fps = EstimatedFrameRate();
     // In order to avoid a low frame rate stream to react slower to change,
@@ -295,8 +341,6 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
         return;
     }
     
-    // 噪音标准差
-    double std_dev_noise = sqrt(var_noise_);
     // sigma表示噪音标准差`std_dev_noise`的指数平均滤波，对应测量噪声协方差R.
     // FIXME:  What is the theory of converting standard deviation to covariance? and What does the paremeter 300 mean?
     double sigma = (300.0 * exp(-fabs(static_cast<double>(frame_size_delta)) / (1e0 * max_frame_size_)) + 1) * sqrt(var_noise_);
@@ -343,9 +387,9 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
                         kalman_gain[1] * frame_size_delta * theta_cov_01;
 
     // Covariance matrix, must be positive semi-definite.
-    assert((theta_cov_[0][0] + theta_cov_[1][1] >= 0) &&
-            (theta_cov_[0][0] * theta_cov_[1][1] - theta_cov_[0][1] * theta_cov_[1][0] >= 0) &&
-            (theta_cov_[0][0] >= 0));
+    assert(theta_cov_[0][0] + theta_cov_[1][1] >= 0);
+    assert(theta_cov_[0][0] * theta_cov_[1][1] - theta_cov_[0][1] * theta_cov_[1][0] >= 0);
+    assert(theta_cov_[0][0] >= 0);
 }
 
 double JitterEstimator::CalcNoiseThreshold() const {

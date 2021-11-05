@@ -634,6 +634,7 @@ set(TEST_SOURCES
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer_unittest.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_unittest.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtcp 
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp
