@@ -1,5 +1,4 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.hpp"
-#include "common/utils_numeric.hpp"
 
 #include <plog/Log.h>
 
@@ -12,7 +11,7 @@ namespace {
 static constexpr uint32_t kStartupDelaySamples = 30;
 static constexpr int64_t kFsAccuStartupSamples = 5;
 static constexpr double kMaxEstimatedFrameRate = 200.0;
-static constexpr int64_t kNackCountTimeoutMs = 60000;
+static constexpr int64_t kNackCountTimeoutUs = 60'000'000; // 60s; 1 minute
 static constexpr double kDefaultMaxTimestampDeviationInSigmas = 3.5;
 static constexpr double kJumpStdDevForDetectingKeyFrame = 2.0;
 
@@ -26,8 +25,8 @@ JitterEstimator::JitterEstimator(std::shared_ptr<Clock> clock)
       nack_limit_(3),
       num_std_dev_delay_outlier_(15),
       num_std_dev_frame_size_outlier_(3),
-      noise_std_devs_(2.33),
-      noise_std_dev_offset_(30.0),
+      noise_std_devs_(2.33),  // Less than 1% change (loop up in normal distribution table)...
+      noise_std_dev_offset_(30.0), // ...of getting 30 ms freeses.
       time_deviation_upper_bound_(kDefaultMaxTimestampDeviationInSigmas),
       // TODO: Use an estimator with limit base on time rather than number of samples.
       frame_delta_us_accumulator_(30 /* 30 us */),
@@ -55,7 +54,7 @@ void JitterEstimator::Reset() {
     avg_noise_ = 0.0;
     sample_count_ = 1;
     filtered_sum_of_jitter_estimates_ms_ = 0.0;
-    latest_nack_timestamp_ = 0;
+    latest_nack_time_us_ = 0;
     nack_count_ = 0;
     frame_size_sum_ = 0;
     frame_count_ = 0;
@@ -81,7 +80,7 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
     }
 
     if (!incomplete_frame || frame_size > avg_frame_size_) {
-        // Moving average
+        // Weighted Moving Average, `phi_` is a fixed value.
         double new_avg_frame_size = phi_ * avg_frame_size_ + (1 - phi_) * frame_size;
         // Only update the average frame size if this frame wasn't a key frame.
         if (frame_size < avg_frame_size_ + kJumpStdDevForDetectingKeyFrame * sqrt(var_frame_size_)) {
@@ -149,51 +148,70 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
 int JitterEstimator::GetJitterEstimate(double rtt_multiplier,
                                        std::optional<double> rtt_mult_add_cap_ms,
                                        bool enable_reduced_delay) {
-    
-    double jitter_ms = CalcJitterEstimate() + kOperatingSystemJitterMs;      
-    prev_estimate_ = jitter_ms;
-    int64_t now_us = clock_->now_us();
+    // The current jitter = estimated jitter + operating system jitter.
+    double curr_jitter_ms = CalcJitterEstimate() + kOperatingSystemJitterMs;    
+    // Update the previous jitter 
+    prev_estimate_ = curr_jitter_ms;
 
-    if (now_us - latest_nack_timestamp_ > kNackCountTimeoutMs * 1000) {
+    // If there is no nack happened during the past one minute, we reset the `nack_count_`.
+    int64_t now_us = clock_->now_us();
+    if (now_us - latest_nack_time_us_ > kNackCountTimeoutUs /* 60s */) {
         nack_count_ = 0;
     }
 
-    if (filtered_sum_of_jitter_estimates_ms_ > jitter_ms) {
-        jitter_ms = filtered_sum_of_jitter_estimates_ms_;
+    // `filtered_sum_of_jitter_estimates_ms_` has a high prioirty as it's more accurate.
+    if (filtered_sum_of_jitter_estimates_ms_ > curr_jitter_ms) {
+        curr_jitter_ms = filtered_sum_of_jitter_estimates_ms_;
     }
 
+    // FIXME: How to understan this condition?
+    // If there is more than 3 nack happened so far, we need to take the rtt into account.
     if (nack_count_ >= nack_limit_) {
         if (rtt_mult_add_cap_ms.has_value()) {
-            jitter_ms += std::min(rtt_filter_.RttMs() * rtt_multiplier, rtt_mult_add_cap_ms.value());
+            curr_jitter_ms += std::min(rtt_filter_.RttMs() * rtt_multiplier, rtt_mult_add_cap_ms.value());
         } else {
-            jitter_ms += rtt_filter_.RttMs() * rtt_multiplier;
+            curr_jitter_ms += rtt_filter_.RttMs() * rtt_multiplier;
         }
     }
 
     if (enable_reduced_delay) {
         static const double kJitterScaleLowThreshold = 5.0;
         static const double kJitterScaleHighThreshold = 10.0;
+
         double estimated_fps = EstimatedFrameRate();
         // Ignore jitter for very low fps streams.
         if (estimated_fps < kJitterScaleLowThreshold) {
+            // FIXME: Why we need to do a different process when the estimated frame rate is zero?
+            // DONE: the zero frame rate means there is no frames received so far, and the jitter
+            // is estimated based on the initial values.
             if (estimated_fps == 0.0) {
-                return utils::numeric::checked_static_cast<int>(std::max(0.0, jitter_ms) + 0.5);         
+                return static_cast<int>(std::max(0.0, curr_jitter_ms) + 0.5);         
             }
             return 0.0;
         }
 
-        // Semi-low frame rate, scale by factor linearly interpolated from 0.0
+        // If the `estimated_fps` is in the range: [kJitterScaleLowThreshold, kJitterScaleHighThreshold), 
+        // we assume it's a Semi-low frame rate. 
+        // Scaling the Semi-low frame rate by factor linearly interpolated from 0.0
         // at kJitterScaleLowThreshold to 1.0 at kJitterScaleHighThreshold.
+        // FIXME: What's the theory about this scale operation?
         if (estimated_fps < kJitterScaleHighThreshold) {
-            jitter_ms = (1.0 / (kJitterScaleHighThreshold - kJitterScaleLowThreshold)) * (estimated_fps - kJitterScaleLowThreshold) * jitter_ms;
+            // scale_factor: [0.0, 1.0) => [kJitterScaleLowThreshold, kJitterScaleHighThreshold)
+            double scale_factor = 1.0 * (estimated_fps - kJitterScaleLowThreshold) / (kJitterScaleHighThreshold - kJitterScaleLowThreshold);
+            curr_jitter_ms = scale_factor * curr_jitter_ms;
         }
     }
 
-    return static_cast<int>(std::max(0.0, jitter_ms) + 0.5);                    
+    return static_cast<int>(std::max(0.0, curr_jitter_ms) + 0.5 /* Round up: to increase an figure to the next highest whole number */);                    
 }
 
 void JitterEstimator::UpdateRtt(int64_t rtt_ms) {
     rtt_filter_.AddRtt(rtt_ms);
+}
+
+void JitterEstimator::FrameNacked() {
+    ++nack_count_;
+    latest_nack_time_us_ = clock_->now_us();
 }
 
 // Private methods
@@ -208,36 +226,45 @@ double JitterEstimator::DeviationFromExpectedDelay(int64_t frame_delay_ms, int32
 void JitterEstimator::EstimateRandomJitter(double d_dT, bool incomplete_frame) {
     uint64_t now_us = clock_->now_us();
     if (last_update_time_us_ != -1) {
-        // Delta from last frame.
+        // Record the time in us elapsed since the last frame, and it will be 
+        // used to estimate the frame rate later.
         frame_delta_us_accumulator_.AddSample(now_us - last_update_time_us_);
     }
     last_update_time_us_ = now_us;
 
+    // the initial value of `sample_count_` is 1.
     if (sample_count_ == 0) {
+        assert(false && "the sample count is never gonna be zero.")
         return;
     }
 
+    // The factor for Moving Average, range: [0, 1), and it's initiated linearly.
     double filt_factor = static_cast<double>(sample_count_ - 1) / static_cast<double>(sample_count_);
     ++sample_count_;
-
+    // FIXME: Why we need to limit `sample_count_`?
     if (sample_count_ > sample_count_max_) {
         sample_count_ = sample_count_max_;
     }
 
     double estimated_fps = EstimatedFrameRate();
-    // In order to avoid a low frame rate stream to react slower to change,
-    // scale the filt_factor weight relative a 30 fps stream.
+    // In order to avoid a low frame rate stream changing the `filt_factor` slowly,
+    // scaling the `filt_factor` exponentially relative a 30 fps stream.
     if (estimated_fps > 0.0) {
         double rate_scale = 30.0 / estimated_fps;
         // At startup, there can be a lot of noise in the fps estimate.
         // Interpolate rate_scale linearly, from 1.0 at sample #1, to 30.0 / fps
         // at sample #kStartupDelaySamples.
         if (sample_count_ < kStartupDelaySamples) {
-            rate_scale = (sample_count_ * rate_scale + (kStartupDelaySamples - sample_count_)) / kStartupDelaySamples;
+            // rate_scale = (scaled_samples + rest_of_startup_delay_samples) / startup_delay_samples
+            // Reduce the `rate_scale` effect on `filt_factor` at the startup period, since the fps was estimated in low accuracy so far.
+            rate_scale = ((sample_count_ * rate_scale) + (kStartupDelaySamples - sample_count_)) / kStartupDelaySamples;
         }
+        // FIXME: Why do we scale the `filt_factor` exponentially, not linearly?
         filt_factor = pow(filt_factor, rate_scale);
     }
-    // 1 level Exponential Smoothing
+
+    // 1 level Exponential Moving Average
+    // d_dT: the delay deviation
     double new_avg_noise = filt_factor * avg_noise_ + (1 - filt_factor) * d_dT;
     double new_var_noise = filt_factor * var_noise_ + (1 - filt_factor) * pow(d_dT - avg_noise_, 2);
     if (!incomplete_frame || new_var_noise > var_noise_) {
@@ -252,12 +279,12 @@ void JitterEstimator::EstimateRandomJitter(double d_dT, bool incomplete_frame) {
 }
 
 double JitterEstimator::EstimatedFrameRate() const {
-    if (frame_delta_us_accumulator_.ComputeMean() == 0) {
+    if (frame_delta_us_accumulator_.ComputeMean() <= 0.0) {
         return 0;
     }
     // Estimate the FPS based on mean of accumulated frame deltas.
     double estimated_fps = 1000000.0 / frame_delta_us_accumulator_.ComputeMean();
-    assert(estimated_fps >= 0);
+    assert(estimated_fps > 0);
 
     if (estimated_fps > kMaxEstimatedFrameRate) {
         estimated_fps = kMaxEstimatedFrameRate;
@@ -286,28 +313,37 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
     //                     C(i)
     // 解析：C(i)表示第i帧的传输速率，C(i)的帧间差值相较于L(i)小很多，因此可以假设 C(i) = C(i-1)，进而从公式2.2.1推导出公式2.2.2.
     // 公式2.3: d(i) = dL(i)/C(i) + m(i) + v(i)
-    // 解析：将w(i)换另外一种表达方式：w(i) = m(i) + v(i)，其中m(i)表示到第i帧时的期望值（mean），换言之当传输第i帧时，通道既非过载和空载时，
-    // m(i) = 0；v(i)表示第i帧的偏移量，即与期望值的差值(variance)。
-    // 至此，我们得到了我们的观测方程：d(i) = dL(i)/C(i) + m(i) + v(i)，其中d(i)和dL(i)可以通过计算获得，通过估算C(i)和m(i)才检测传输是否过载。
+    // 解析：将w(i)换另外一种表达方式：w(i) = m(i) + v(i)，其中m(i)表示网络排队延时，当通道超载时均值呈增长趋势，当通道空载时均值呈下降趋势，
+    // 其他情况均值为0。v(i)表示测量噪音，属于高斯白噪音，比如dL(i)（使用滑动平均计算的帧相关数据）中的计算误差。
+    // 至此，我们得到了我们的观测方程：d(i) = dL(i)/C(i) + m(i) + v(i)，其中d(i)和dL(i)可以通过计算获得，通过估算C(i)和m(i)来检测传输是否过载。
     // 任何具有自适应的滤波器都可以用于估算这两个参数，比如Kalman filter. 以下使用卡尔曼滤波器建模：
 
     // 状态方程建模：
     // 矩阵1：theta_bar(i) = [1/C(i), m(i)]^T
-    // 解析：将需要估算的两个参数C(i)和m(i)用一个二维矩阵表示
+    // 解析：theta_bar(i)表示第i帧的状态：包括当时的传输速率C(i)和排队延时m(i)。
     // 矩阵2：h_bar(i) = [dL(i), 1]^T
-    // 状态方程：theta_bar(i+1) = theta_bar(i) + u_bar(i), 
+    // 状态方程：theta_bar(i) = theta_bar(i-1) + u_bar(i-1), 
     // 解析：用于表示某一帧传输时的网络状态，其中u_bar(i)表示过程噪音，是一个高斯白噪音矩阵，P(u)~(0,Q)，期望值为0，协方差矩阵为Q.
-    // 带入观察方程可得：
-    // d(i) = dL(i)/C(i) + m(i) + v(i) = [dL(i), 1] * [1/C(i), m(i)]^T + v(i) = h_bar(i)^T * theta_bar(i) + v(i)
+    // 带入观测方程可得：
+    // d(i) = dL(i)/C(i) + m(i) + v(i) 
+    //      = [dL(i), 1] * [1/C(i), m(i)]^T + v(i) 
+    //      = h_bar(i)^T * theta_bar(i) + v(i)
+
+    // 结合Kalman filter中公式：
+    // 状态方程：x(i) = A*x(i-1) + B*u(i-1) + w(i-1) 
+    // 解析：x(i)表示某一个状态值，可由前一个状态值x(i-1)乘以系数A，加上促使状态从i-1到i的输入B*u(i-1)，再加上过程转变过程中的噪音w(i-1)，
+    // 比如：x(i)表示车子的位置状态，x(i-1)则是上一个位置，系数A表示加速度，匀速则为1。B*u(i-1)表示给一个推动的助力，w(i-1)则表示运动过程中的
+    // 摩擦力以及风力带来的助力或阻力。
+    // 推导：我们可以把数据在网络中的传输类比传送带传输，即不需要外力就会发生状态变化，因此B*u(i-1)恒等于0，可推导出满足Kalman filer为：
+    // theta_bar(i) = theta_bar(i-1) + u_bar(i-1)
 
     // TODO: 弄清楚具体的推导过程？
     // 结合以上方程和卡尔曼的五个公式（https://blog.csdn.net/wccsu1994/article/details/84643221）,推导出WebRTC中的公式为：
-    // 先验期望：theta^-(i) = theta^(i-1)
-    // 先验估计误差的协方差：theta_cov-(i) = theta_cov-(i-1) + Q(i)
-    // 卡尔曼增益：K = theta_cov-(i)*H^T / H*theta_cov-(i)*H^T+R，其中
-    // R表示测量噪声协方差。滤波器实际实现时，一般可以观测得到，属于已知条件。
-    // 后验期望：theta^(i) = theta-(k) + K*(d(i)-H*theta^-(i))
-    // 后验协方差：theta_cov(i)=(I - K*H)*theta_cov-(i)
+    // 先验估计值：theta^-(i) = theta^(i-1)
+    // 先验估计值的协方差：theta_cov-(i) = theta_cov-(i-1) + Q(i)，其中Q(i) = E{u_bar(i) * u_bar(i)^T}，表示过程噪音u_bar(i)的协方差矩阵(对角矩阵)，由于过程噪音无法测量和量化，故一般使用固定值, 
+    // 卡尔曼增益：K = theta_cov-(i)*H^T / H*theta_cov-(i)*H^T+R，其中R表示测量噪声协方差。滤波器实际实现时，一般可以观测得到，属于已知条件。
+    // 后验估计值：theta^(i) = theta-(k) + K*(d(i)-H*theta^-(i))
+    // 后验估计值的协方差：theta_cov(i)=(1 - K*H)*theta_cov-(i)
 
     // M: 协方差矩阵：theta_cov(i)，即theta_bar(i)：[1/C(i), m(i)]^T的协方差矩阵，是一个2x2的矩阵，对角线为方差，两边为协方差。
     // h: 测量矩阵：[dL(i), 1] = h_bar(i)^T
@@ -323,13 +359,15 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
     // Kalman Filtering
 
     // Prediction
-    // M = M + Q = theta_cov(i-1) + Q(i)
+    // 计算先验估计值的协方差
+    // M = M + Q => theta_cov(i) = theta_cov(i-1) + Q(i)
     theta_cov_[0][0] += Q_cov_[0][0];
     theta_cov_[0][1] += Q_cov_[0][1];
     theta_cov_[1][0] += Q_cov_[1][0];
     theta_cov_[1][1] += Q_cov_[1][1];
 
     // Kalman gain
+    // 计算卡尔曼增益
     // Mh = M*h^T = M*[dL(i)  1]^T = [c00, c01] * [dL(i)] = [c00*dL(i) + c01, c01*dL(i) + c11]
     //                               [c01, c11]   [  1  ]
     Mh[0] = theta_cov_[0][0] * frame_size_delta + theta_cov_[0][1];
@@ -342,7 +380,7 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
     }
     
     // sigma表示噪音标准差`std_dev_noise`的指数平均滤波，对应测量噪声协方差R.
-    // FIXME:  What is the theory of converting standard deviation to covariance? and What does the paremeter 300 mean?
+    // FIXME: What is the theory of converting standard deviation to covariance? and What does the paremeter 300 mean?
     double sigma = (300.0 * exp(-fabs(static_cast<double>(frame_size_delta)) / (1e0 * max_frame_size_)) + 1) * sqrt(var_noise_);
     if (sigma < 1.0) {
         sigma = 1.0;
@@ -362,8 +400,9 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
     kalman_gain[1] = Mh[1] / hMh_sigma;
 
     // Correction
-    // theta = theta + K*(dT - h*theta)
-    // 实际观测和预测观测的偏差: measure_res = dT - h*theta = dT - [dL(i), 1]*[1/C(i), m(i)] = dT - (dL(i)/C(i) + m(i)) = dT - d(i)
+    // 计算后验估计值
+    // theta^(i) = theta-(k) + K*(d(i) - H*theta^-(i))，其中d(i)表示测量值，H*theta^-(i)表示先验估计值
+    // 实际观测和预测观测的偏差: measure_res = dT - h*theta^-(i) = dT - [dL(i), 1]*[1/C(i), m(i)] = dT - (dL(i)/C(i) + m(i))
     measure_res = frame_delay_ms - (frame_size_delta * theta_[0] + theta_[1]);
     // 1/C(i)
     theta_[0] += kalman_gain[0] * measure_res;
@@ -373,7 +412,8 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
         theta_[0] = theta_lower_bound_;
     }
 
-    // M = (I - K*h)*M = theta_cov(i)=(I - K*H)*theta_cov-(i)
+    // 计算后验估计值的协方差
+    // M = (1 - K*H)*M => theta_cov(i) = (1 - K*H)*theta_cov-(i)
     theta_cov_00 = theta_cov_[0][0];
     theta_cov_01 = theta_cov_[0][1]; 
 
@@ -393,6 +433,7 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
 }
 
 double JitterEstimator::CalcNoiseThreshold() const {
+    // FIXME: How to understand this formula.
     double noise_threshold = noise_std_devs_ * sqrt(var_noise_) - noise_std_dev_offset_;
     if (noise_threshold < 1.0) {
         noise_threshold = 1.0;
@@ -401,8 +442,8 @@ double JitterEstimator::CalcNoiseThreshold() const {
 }
 
 double JitterEstimator::CalcJitterEstimate() const {
+    // d(i) = dL(i)/C(i) + w(i)
     double estimate = theta_[0] * (max_frame_size_ - avg_frame_size_) + CalcNoiseThreshold();
-
     // A very low estimate (or negative) is neglected.
     if (estimate < 1.0) {
         if (prev_estimate_ <= 0.01) {

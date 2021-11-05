@@ -40,7 +40,7 @@ private:
 };
 
 // 5 fps, disable jitter delay altogether.
-TEST_F(JitterEstimatorTest, TestLowRate) {
+TEST_F(JitterEstimatorTest, TestLowFrameRate) {
     SampleGenerator gen(10);
     int fps = 5;
     int64_t frame_delta_us = kNumMicrosecsPerSec / fps;
@@ -49,6 +49,20 @@ TEST_F(JitterEstimatorTest, TestLowRate) {
         fake_clock_->AdvanceTimeUs(frame_delta_us);
         if (i > 2) {
             EXPECT_EQ(jitter_estimator_->GetJitterEstimate(0, std::nullopt), 0);
+        }
+        gen.Advance();
+    }
+}
+
+TEST_F(JitterEstimatorTest, TestLowFrameRateDisabled) {
+    SampleGenerator gen(10);
+    int fps = 5;
+    int64_t frame_delta_us = kNumMicrosecsPerSec / fps;
+    for (int i = 0; i < 60; ++i) {
+        jitter_estimator_->UpdateEstimate(gen.Delay(), gen.FrameSize());
+        fake_clock_->AdvanceTimeUs(frame_delta_us);
+        if (i > 2) {
+            EXPECT_GT(jitter_estimator_->GetJitterEstimate(0, std::nullopt, false), 0);
         }
         gen.Advance();
     }

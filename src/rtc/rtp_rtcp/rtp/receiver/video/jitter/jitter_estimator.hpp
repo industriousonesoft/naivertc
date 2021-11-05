@@ -31,6 +31,9 @@ public:
 
     void UpdateRtt(int64_t rtt_ms);
 
+    // Updates the nack counter.
+    void FrameNacked();
+
     int GetJitterEstimate(double rtt_multiplier,
                           std::optional<double> rtt_mult_add_cap_ms,
                           bool enable_reduced_delay = true);
@@ -94,8 +97,8 @@ private:
     double filtered_sum_of_jitter_estimates_ms_;
 
     uint32_t startup_count_;
-    // Timestamp in ms when the latest nack was seen.
-    int64_t latest_nack_timestamp_;
+    // Time in us when the latest nack was seen.
+    int64_t latest_nack_time_us_;
     // Keeps track of the number of nacks received,
     // but never goes above `nack_limit_`
     uint32_t nack_count_;
