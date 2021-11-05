@@ -10,7 +10,7 @@
 #include <optional>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace jitter {
 
@@ -109,7 +109,7 @@ private:
     
 } // namespace jitter
 } // namespace video
-} // namespace rtc
+} // namespace rtp 
 } // namespace naivert 
 
 

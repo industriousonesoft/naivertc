@@ -7,7 +7,7 @@
 #include <queue>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace jitter {
 namespace {
@@ -393,5 +393,5 @@ bool FrameBuffer::CheckRenderTiming(const video::FrameToDecode& frame, int64_t n
     
 } // namespace jitter
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc

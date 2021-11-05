@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace naivertc::rtc::video::jitter;
+using namespace naivertc::rtp::video::jitter;
 
 namespace naivertc {
 namespace test {

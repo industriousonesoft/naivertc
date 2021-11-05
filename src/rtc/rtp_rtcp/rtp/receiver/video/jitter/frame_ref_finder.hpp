@@ -5,7 +5,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp"
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace jitter {
 
@@ -35,7 +35,7 @@ protected:
     
 } // namespace jitter
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc
 
 #endif

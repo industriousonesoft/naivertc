@@ -4,7 +4,7 @@
 #include <limits>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace {
 
@@ -183,5 +183,5 @@ bool TimestampExtrapolator::DelayChangeDetection(double error) {
 }
     
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivert 

@@ -163,5 +163,5 @@ size_t CalculateRegisteredExtensionSize(ArrayView<const ExtensionSize> extension
     return size + 3 - (size + 3) % 4;
 }
     
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc

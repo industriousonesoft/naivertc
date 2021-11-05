@@ -75,7 +75,7 @@ struct RTC_CPP_EXPORT ExtensionSize {
 size_t CalculateRegisteredExtensionSize(ArrayView<const ExtensionSize> extensions, 
                                         std::shared_ptr<const ExtensionManager> registered_extensions);
     
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc
 
 

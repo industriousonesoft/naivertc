@@ -25,9 +25,9 @@ std::shared_ptr<RtcpModule> CreateRtcpModule(const RtpVideoStreamReceiver::Confi
     return std::make_shared<RtcpModule>(rtcp_config, task_queue);
 }
 
-std::unique_ptr<rtc::video::FrameToDecode> CreateFrameToDecode(const rtc::video::jitter::PacketBuffer::Frame& assembled_frame, 
+std::unique_ptr<rtp::video::FrameToDecode> CreateFrameToDecode(const rtp::video::jitter::PacketBuffer::Frame& assembled_frame, 
                                                                int64_t estimated_ntp_time_ms) {
-    return std::make_unique<rtc::video::FrameToDecode>(assembled_frame.frame_type,
+    return std::make_unique<rtp::video::FrameToDecode>(assembled_frame.frame_type,
                                                         assembled_frame.codec_type,
                                                         assembled_frame.seq_num_start,
                                                         assembled_frame.seq_num_end,
@@ -142,7 +142,7 @@ void RtpVideoStreamReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
 
 void RtpVideoStreamReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized_packet, 
                                                    const RtpPacketReceived& rtp_packet) {
-    auto packet = std::make_unique<rtc::video::jitter::PacketBuffer::Packet>(depacketized_packet.video_header,
+    auto packet = std::make_unique<rtp::video::jitter::PacketBuffer::Packet>(depacketized_packet.video_header,
                                                                               depacketized_packet.video_codec_header,
                                                                               rtp_packet.sequence_number(),
                                                                               rtp_packet.timestamp());
@@ -208,7 +208,7 @@ void RtpVideoStreamReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depack
     OnInsertedPacket(packet_buffer_.InsertPacket(std::move(packet)));
 }
 
-void RtpVideoStreamReceiver::OnInsertedPacket(rtc::video::jitter::PacketBuffer::InsertResult result) {
+void RtpVideoStreamReceiver::OnInsertedPacket(rtp::video::jitter::PacketBuffer::InsertResult result) {
     std::vector<ArrayView<const uint8_t>> packet_payloads;
     for (const auto& frame : result.assembled_frames) {
         auto frame_to_decode = CreateFrameToDecode(*(frame.get()), remote_ntp_time_estimator_.Estimate(frame->timestamp));
@@ -222,7 +222,7 @@ void RtpVideoStreamReceiver::OnInsertedPacket(rtc::video::jitter::PacketBuffer::
     }
 }
 
-void RtpVideoStreamReceiver::OnAssembledFrame(std::unique_ptr<rtc::video::FrameToDecode> frame) {
+void RtpVideoStreamReceiver::OnAssembledFrame(std::unique_ptr<rtp::video::FrameToDecode> frame) {
     if (!has_received_frame_) {
         // If frames arrive before a key frame, they would not be decodable.
         // In that case, request a key frame ASAP.
@@ -238,7 +238,7 @@ void RtpVideoStreamReceiver::OnAssembledFrame(std::unique_ptr<rtc::video::FrameT
     frame_ref_finder_->InsertFrame(std::move(frame));
 }
 
-void RtpVideoStreamReceiver::OnCompleteFrame(std::unique_ptr<rtc::video::FrameToDecode> frame) {
+void RtpVideoStreamReceiver::OnCompleteFrame(std::unique_ptr<rtp::video::FrameToDecode> frame) {
     last_seq_num_for_pic_id_[frame->id()] = frame->seq_num_end();
     last_completed_picture_id_ = std::max(last_completed_picture_id_, frame->id());
     if (auto receiver = complete_frame_receiver_.lock()) {
@@ -293,7 +293,7 @@ void RtpVideoStreamReceiver::UpdatePacketReceiveTimestamps(const RtpPacketReceiv
     }
 }
 
-void RtpVideoStreamReceiver::SwitchFrameRefFinderIfNecessary(const rtc::video::FrameToDecode& frame) {
+void RtpVideoStreamReceiver::SwitchFrameRefFinderIfNecessary(const rtp::video::FrameToDecode& frame) {
     if (curr_codec_type_) {
         bool frame_is_newer = wrap_around_utils::AheadOf<uint32_t>(frame.timestamp(), last_assembled_frame_rtp_timestamp_);
         if (frame.codec_type() != curr_codec_type_) {
@@ -323,7 +323,7 @@ void RtpVideoStreamReceiver::SwitchFrameRefFinderIfNecessary(const rtc::video::F
 
 void RtpVideoStreamReceiver::CreateFrameRefFinder(VideoCodecType codec_type, int64_t picture_id_offset) {
     frame_ref_finder_.reset();
-    frame_ref_finder_ = rtc::video::jitter::FrameRefFinder::Create(codec_type, picture_id_offset);
+    frame_ref_finder_ = rtp::video::jitter::FrameRefFinder::Create(codec_type, picture_id_offset);
     frame_ref_finder_->OnFrameRefFound(std::bind(&RtpVideoStreamReceiver::OnCompleteFrame, this, std::placeholders::_1));
 }
 

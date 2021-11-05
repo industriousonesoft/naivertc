@@ -2,7 +2,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_seq_num.hpp"
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace jitter {
 
@@ -53,5 +53,5 @@ bool FrameRefFinder::InsertReference(int64_t picture_id, video::FrameToDecode& f
 
 } // namespace jitter
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc

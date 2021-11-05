@@ -2,7 +2,7 @@
 #include "rtc/base/numerics/modulo_operator.hpp"
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace {
 
@@ -177,5 +177,5 @@ int Timing::RequiredDecodeTimeMs() const {
 }
 
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc

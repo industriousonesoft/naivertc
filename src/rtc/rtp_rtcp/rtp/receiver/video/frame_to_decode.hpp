@@ -8,7 +8,7 @@
 #include <set>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 
 class RTC_CPP_EXPORT FrameToDecode {
@@ -68,7 +68,7 @@ private:
 };
     
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc
 
 

@@ -52,7 +52,7 @@ public:
     class CompleteFrameReceiver {
     public:
         virtual ~CompleteFrameReceiver() = default;
-        virtual void OnCompleteFrame(std::unique_ptr<rtc::video::FrameToDecode> frame) = 0;
+        virtual void OnCompleteFrame(std::unique_ptr<rtp::video::FrameToDecode> frame) = 0;
     };
 
 public:
@@ -93,16 +93,16 @@ private:
     void OnReceivedPacket(const RtpPacketReceived& packet);
     void OnDepacketizedPacket(RtpDepacketizer::Packet depacketized_packet, 
                               const RtpPacketReceived& rtp_packet);
-    void OnInsertedPacket(rtc::video::jitter::PacketBuffer::InsertResult result);
-    void OnAssembledFrame(std::unique_ptr<rtc::video::FrameToDecode> frame);
-    void OnCompleteFrame(std::unique_ptr<rtc::video::FrameToDecode> frame);
+    void OnInsertedPacket(rtp::video::jitter::PacketBuffer::InsertResult result);
+    void OnAssembledFrame(std::unique_ptr<rtp::video::FrameToDecode> frame);
+    void OnCompleteFrame(std::unique_ptr<rtp::video::FrameToDecode> frame);
 
     void HandleEmptyPacket(uint16_t seq_num);
     void HandleRedPacket(const RtpPacketReceived& packet);
     void UpdatePacketReceiveTimestamps(const RtpPacketReceived& packet, bool is_keyframe);
 
     void RequestKeyFrame();
-    void SwitchFrameRefFinderIfNecessary(const rtc::video::FrameToDecode& frame);
+    void SwitchFrameRefFinderIfNecessary(const rtp::video::FrameToDecode& frame);
     void CreateFrameRefFinder(VideoCodecType codec_type, int64_t picture_id_offset);
 
     // Implements RecoveredPacketReceiver.
@@ -118,8 +118,8 @@ private:
     std::unique_ptr<NackModule> nack_module_;
 
     h264::SpsPpsTracker h264_sps_pps_tracker_;
-    rtc::video::jitter::PacketBuffer packet_buffer_;
-    std::unique_ptr<rtc::video::jitter::FrameRefFinder> frame_ref_finder_;
+    rtp::video::jitter::PacketBuffer packet_buffer_;
+    std::unique_ptr<rtp::video::jitter::FrameRefFinder> frame_ref_finder_;
     RemoteNtpTimeEstimator remote_ntp_time_estimator_;
     UlpFecReceiver ulp_fec_receiver_;
 

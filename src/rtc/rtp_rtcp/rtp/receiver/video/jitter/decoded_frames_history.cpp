@@ -5,7 +5,7 @@
 #include <plog/Log.h>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 
 DecodedFramesHistory::DecodedFramesHistory(size_t window_size) 
@@ -84,5 +84,5 @@ int DecodedFramesHistory::FrameIdToIndex(int64_t frame_id) const {
 }
 
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivert 

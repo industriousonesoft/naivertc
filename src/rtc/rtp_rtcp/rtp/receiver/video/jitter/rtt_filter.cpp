@@ -1,7 +1,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/rtt_filter.hpp"
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace jitter {
 namespace {
@@ -181,5 +181,5 @@ void RttFilter::UpdateRtts(int64_t* buf, uint8_t count) {
     
 } // namespace jitter
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc

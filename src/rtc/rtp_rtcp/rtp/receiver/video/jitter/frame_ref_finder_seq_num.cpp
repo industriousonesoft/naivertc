@@ -3,7 +3,7 @@
 #include <plog/Log.h>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace jitter {
 namespace {
@@ -200,5 +200,5 @@ void SeqNumFrameRefFinder::RetryStashedFrames() {
     
 } // namespace jitter
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc

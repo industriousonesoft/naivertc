@@ -8,7 +8,7 @@
 #include <optional>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 
 class RTC_CPP_EXPORT DecodedFramesHistory {
@@ -35,7 +35,7 @@ private:
 };
 
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivert 
 
 #endif

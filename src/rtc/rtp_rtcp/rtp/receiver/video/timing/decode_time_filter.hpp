@@ -7,7 +7,7 @@
 #include <queue>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace {
 
@@ -51,7 +51,7 @@ private:
 };
     
 } // namespace video    
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc
 
 

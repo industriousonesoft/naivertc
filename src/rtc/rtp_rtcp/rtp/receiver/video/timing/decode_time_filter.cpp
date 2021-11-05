@@ -1,7 +1,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/timing/decode_time_filter.hpp"
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 
 // Sample
@@ -49,5 +49,5 @@ void DecodeTimeFilter::Reset() {
 }
 
 } // namespace video    
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc

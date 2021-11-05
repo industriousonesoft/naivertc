@@ -6,7 +6,7 @@
 #include <optional>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 
 // This class is not thread-safety, the caller MUST provide that.
@@ -38,7 +38,7 @@ private:
 };
     
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivert 
 
 

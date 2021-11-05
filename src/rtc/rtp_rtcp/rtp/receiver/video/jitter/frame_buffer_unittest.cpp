@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace naivertc::rtc::video;
+using namespace naivertc::rtp::video;
 
 namespace naivertc {
 namespace test {

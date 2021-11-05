@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace jitter {
 
@@ -48,7 +48,7 @@ private:
     
 } // namespace jitter
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc
 
 

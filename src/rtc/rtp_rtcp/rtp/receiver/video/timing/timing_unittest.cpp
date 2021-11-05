@@ -20,7 +20,7 @@ public:
           timing_(clock_) {};
 protected:
     std::shared_ptr<SimulatedClock> clock_;
-    rtc::video::Timing timing_;
+    rtp::video::Timing timing_;
 };
 
 TEST_F(VCM_ReceiverTimingTest, JitterDelay) {

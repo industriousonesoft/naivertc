@@ -4,7 +4,7 @@
 #include <plog/Log.h>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace jitter {
 namespace {
@@ -419,5 +419,5 @@ double JitterEstimator::CalcJitterEstimate() const {
     
 } // namespace jitter
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivert 

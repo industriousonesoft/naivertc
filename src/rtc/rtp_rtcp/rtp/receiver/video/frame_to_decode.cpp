@@ -1,7 +1,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp"
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 
 FrameToDecode::FrameToDecode(VideoFrameType frame_type,
@@ -40,5 +40,5 @@ void FrameToDecode::ForEachReference(std::function<void(int64_t picture_id, bool
 }
     
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc 

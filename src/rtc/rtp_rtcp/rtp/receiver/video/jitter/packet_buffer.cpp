@@ -6,7 +6,7 @@
 #include <variant>
 
 namespace naivertc {
-namespace rtc {
+namespace rtp {
 namespace video {
 namespace jitter {
 
@@ -441,5 +441,5 @@ void PacketBuffer::ExpandPacketBuffer(size_t new_size) {
     
 } // namespace jitter
 } // namespace video
-} // namespace rtc
+} // namespace rtp
 } // namespace naivertc
