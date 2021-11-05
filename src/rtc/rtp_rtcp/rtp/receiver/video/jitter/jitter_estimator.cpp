@@ -30,7 +30,10 @@ JitterEstimator::JitterEstimator(std::shared_ptr<Clock> clock)
       time_deviation_upper_bound_(kDefaultMaxTimestampDeviationInSigmas),
       // TODO: Use an estimator with limit base on time rather than number of samples.
       frame_delta_us_accumulator_(30 /* 30 us */),
-      clock_(std::move(clock)) {}
+      clock_(std::move(clock)) {
+    // Reset to the intial values.
+    Reset();
+}
 
 JitterEstimator::~JitterEstimator() {}
 
@@ -49,7 +52,7 @@ void JitterEstimator::Reset() {
     max_frame_size_ = 500;
     var_frame_size_ = 100;
     last_update_time_us_ = -1;
-    prev_estimate_ = -1.0;
+    prev_estimated_jitter_ms_ = -1.0;
     prev_frame_size_ = 0;
     avg_noise_ = 0.0;
     sample_count_ = 1;
@@ -139,7 +142,7 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
     // Post process the total estimated jitter.
     if (startup_count_ >= kStartupDelaySamples) {
         filtered_sum_of_jitter_estimates_ms_ = CalcJitterEstimate();
-        prev_estimate_ = filtered_sum_of_jitter_estimates_ms_;
+        prev_estimated_jitter_ms_ = filtered_sum_of_jitter_estimates_ms_;
     } else {
         ++startup_count_;
     }
@@ -151,7 +154,7 @@ int JitterEstimator::GetJitterEstimate(double rtt_multiplier,
     // The current jitter = estimated jitter + operating system jitter.
     double curr_jitter_ms = CalcJitterEstimate() + kOperatingSystemJitterMs;    
     // Update the previous jitter 
-    prev_estimate_ = curr_jitter_ms;
+    prev_estimated_jitter_ms_ = curr_jitter_ms;
 
     // If there is no nack happened during the past one minute, we reset the `nack_count_`.
     int64_t now_us = clock_->now_us();
@@ -234,7 +237,7 @@ void JitterEstimator::EstimateRandomJitter(double d_dT, bool incomplete_frame) {
 
     // the initial value of `sample_count_` is 1.
     if (sample_count_ == 0) {
-        assert(false && "the sample count is never gonna be zero.")
+        assert(false && "the sample count is never gonna be zero.");
         return;
     }
 
@@ -443,19 +446,19 @@ double JitterEstimator::CalcNoiseThreshold() const {
 
 double JitterEstimator::CalcJitterEstimate() const {
     // d(i) = dL(i)/C(i) + w(i)
-    double estimate = theta_[0] * (max_frame_size_ - avg_frame_size_) + CalcNoiseThreshold();
+    double estimated_jitter_ms = theta_[0] * (max_frame_size_ - avg_frame_size_) + CalcNoiseThreshold();
     // A very low estimate (or negative) is neglected.
-    if (estimate < 1.0) {
-        if (prev_estimate_ <= 0.01) {
-            estimate = 1.0;
+    if (estimated_jitter_ms < 1.0) {
+        if (prev_estimated_jitter_ms_ <= 0.01) {
+            estimated_jitter_ms = 1.0;
         } else {
-            estimate = prev_estimate_;
+            estimated_jitter_ms = prev_estimated_jitter_ms_;
         }
     }
 
     // Sanity check
-    estimate = std::max(estimate, 10000.0);
-    return estimate;
+    estimated_jitter_ms = std::max(estimated_jitter_ms, 10000.0);
+    return estimated_jitter_ms;
 }
     
 } // namespace jitter

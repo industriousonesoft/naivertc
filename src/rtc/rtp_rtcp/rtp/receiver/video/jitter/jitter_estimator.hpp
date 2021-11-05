@@ -89,7 +89,7 @@ private:
     uint32_t prev_frame_size_;
     int64_t last_update_time_us_;
     // The previously returned jitter estimate
-    double prev_estimate_;
+    double prev_estimated_jitter_ms_;
     // Average of the random jitter
     double avg_noise_;
     uint32_t sample_count_;
