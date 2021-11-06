@@ -9,7 +9,7 @@ namespace jitter {
 namespace {
 
 static constexpr uint32_t kStartupDelaySamples = 30;
-static constexpr int64_t kFsAccuStartupSamples = 5;
+static constexpr int64_t kFrameSizeAccuStartupSamples = 5;
 static constexpr double kMaxEstimatedFrameRate = 200.0;
 static constexpr int64_t kNackCountTimeoutUs = 60'000'000; // 60s; 1 minute
 static constexpr double kDefaultMaxTimestampDeviationInSigmas = 3.5;
@@ -37,6 +37,28 @@ JitterEstimator::JitterEstimator(std::shared_ptr<Clock> clock)
 
 JitterEstimator::~JitterEstimator() {}
 
+JitterEstimator& JitterEstimator::operator=(const JitterEstimator& rhs) {
+    if (this != &rhs) {
+        memcpy(theta_cov_, rhs.theta_cov_, sizeof(theta_cov_));
+        memcpy(Q_cov_, rhs.Q_cov_, sizeof(Q_cov_));
+        avg_frame_size_ = rhs.avg_frame_size_;
+        var_frame_size_ = rhs.var_frame_size_;
+        max_frame_size_ = rhs.max_frame_size_;
+        frame_size_sum_ = rhs.frame_size_sum_;
+        last_update_time_us_ = rhs.last_update_time_us_;
+        prev_estimated_jitter_ms_ = rhs.prev_estimated_jitter_ms_;
+        prev_frame_size_ = rhs.prev_frame_size_;
+        avg_noise_ = rhs.avg_noise_;
+        sample_count_ = rhs.sample_count_;
+        filtered_sum_of_estimated_jitter_ms_ = rhs.filtered_sum_of_estimated_jitter_ms_;
+        latest_nack_time_us_ = rhs.latest_nack_time_us_;
+        nack_count_ = rhs.nack_count_;
+        rtt_filter_ = rhs.rtt_filter_;
+        clock_ = rhs.clock_;
+    }
+    return *this;
+}
+
 void JitterEstimator::Reset() {
     theta_[0] = 1 / (512e3 / 8);
     theta_[1] = 0;
@@ -55,13 +77,11 @@ void JitterEstimator::Reset() {
     prev_estimated_jitter_ms_ = -1.0;
     prev_frame_size_ = 0;
     avg_noise_ = 0.0;
-    sample_count_ = 1;
-    filtered_sum_of_jitter_estimates_ms_ = 0.0;
+    sample_count_ = 0;
+    filtered_sum_of_estimated_jitter_ms_ = 0.0;
     latest_nack_time_us_ = 0;
     nack_count_ = 0;
     frame_size_sum_ = 0;
-    frame_count_ = 0;
-    startup_count_ = 0;
 
     rtt_filter_.Reset();
     frame_delta_us_accumulator_.Reset();
@@ -73,14 +93,16 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
     if (frame_size == 0) {
         return;
     }
-    int frame_size_delta = frame_size - prev_frame_size_;
-    if (frame_count_ < kFsAccuStartupSamples) {
+    
+    if (sample_count_ < kFrameSizeAccuStartupSamples) {
         frame_size_sum_ += frame_size;
-        ++frame_count_;
-    } else if (frame_count_ == kFsAccuStartupSamples) {
-        avg_frame_size_ = static_cast<double>(frame_size_sum_) / static_cast<double>(frame_count_);
-        ++frame_count_;
+    } else if (sample_count_ == kFrameSizeAccuStartupSamples) {
+        avg_frame_size_ = static_cast<double>(frame_size_sum_) / static_cast<double>(sample_count_);
     }
+    // A flag indicating if we need to post process the total estimated jitter.
+    bool post_process_jitter = sample_count_ >= kStartupDelaySamples ? true : false;
+
+    ++sample_count_;
 
     if (!incomplete_frame || frame_size > avg_frame_size_) {
         // Weighted Moving Average, `phi_` is a fixed value.
@@ -112,39 +134,43 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
     // Limits `frame_delay_ms` in the rang [-max_time_deviation_ms, max_time_deviation_ms].
     frame_delay_ms = std::max(std::min(frame_delay_ms, max_time_deviation_ms), -max_time_deviation_ms);
 
-    double estimated_delay_deviation = DeviationFromExpectedDelay(frame_delay_ms, frame_size_delta);
+    int frame_size_delta = frame_size - prev_frame_size_;
+
+    double delay_deviation_ms = DeviationFromExpectedDelay(frame_delay_ms, frame_size_delta);
     // Only update the Kalman filter:
     // 1). The sample is not considered an extreme outlier,
     // 2). The sample an extreme outlier from a deley point of view, and the frame size also
     //     is large then the deviation.
     // FIXME: How to understand the second condition?
     
-    if (fabs(estimated_delay_deviation) < num_std_dev_delay_outlier_ * std_dev_noise || 
+    if (fabs(delay_deviation_ms) < num_std_dev_delay_outlier_ * std_dev_noise || 
         frame_size > avg_frame_size_ + num_std_dev_frame_size_outlier_ * sqrt(var_frame_size_)) {
         // Update the variance of the deviation from the line given by the Kalman filter.
-        EstimateRandomJitter(estimated_delay_deviation, incomplete_frame);
+        if (!EstimateRandomJitter(delay_deviation_ms, sample_count_, incomplete_frame)) {
+            return;
+        }
 
         // Prevent updating with frames which have been congested by a large frame,
         // and therefore arrives almost at the same time as that frame.
         // This can occur when we receive a large frame (key frame), and thus `frame_size_delta`
         // will be a negetive number . This removes all frame samples which arrives after a key frame.
-        if ((!incomplete_frame || estimated_delay_deviation >= 0.0) &&
+        if ((!incomplete_frame || delay_deviation_ms >= 0.0) &&
             static_cast<double>(frame_size_delta) > -0.25 * max_frame_size_) {
             // Update the Kalman filter with the new data.
             KalmanEstimateChannel(frame_delay_ms, frame_size_delta);
         }
     } else {
-        int num_std_dev = estimated_delay_deviation > 0 ? num_std_dev_delay_outlier_ : -num_std_dev_delay_outlier_;
+        int num_std_dev = delay_deviation_ms > 0 ? num_std_dev_delay_outlier_ : -num_std_dev_delay_outlier_;
         double delay_deviation_outlier = num_std_dev * std_dev_noise;
-        EstimateRandomJitter(delay_deviation_outlier, incomplete_frame);
+        if (!EstimateRandomJitter(delay_deviation_outlier, sample_count_, incomplete_frame)) {
+            return;
+        }
     }
 
     // Post process the total estimated jitter.
-    if (startup_count_ >= kStartupDelaySamples) {
-        filtered_sum_of_jitter_estimates_ms_ = CalcJitterEstimate();
-        prev_estimated_jitter_ms_ = filtered_sum_of_jitter_estimates_ms_;
-    } else {
-        ++startup_count_;
+    if (post_process_jitter) {
+        filtered_sum_of_estimated_jitter_ms_ = CalcJitterEstimate();
+        prev_estimated_jitter_ms_ = filtered_sum_of_estimated_jitter_ms_;
     }
 }
 
@@ -162,12 +188,12 @@ int JitterEstimator::GetJitterEstimate(double rtt_multiplier,
         nack_count_ = 0;
     }
 
-    // `filtered_sum_of_jitter_estimates_ms_` has a high prioirty as it's more accurate.
-    if (filtered_sum_of_jitter_estimates_ms_ > curr_jitter_ms) {
-        curr_jitter_ms = filtered_sum_of_jitter_estimates_ms_;
+    // `filtered_sum_of_estimated_jitter_ms_` has a high prioirty as it's more accurate.
+    if (filtered_sum_of_estimated_jitter_ms_ > curr_jitter_ms) {
+        curr_jitter_ms = filtered_sum_of_estimated_jitter_ms_;
     }
 
-    // FIXME: How to understan this condition?
+    // FIXME: How to understand this condition?
     // If there is more than 3 nack happened so far, we need to take the rtt into account.
     if (nack_count_ >= nack_limit_) {
         if (rtt_mult_add_cap_ms.has_value()) {
@@ -226,7 +252,12 @@ double JitterEstimator::DeviationFromExpectedDelay(int64_t frame_delay_ms, int32
     return frame_delay_ms - estimated_delay_ms;
 }
 
-void JitterEstimator::EstimateRandomJitter(double d_dT, bool incomplete_frame) {
+bool JitterEstimator::EstimateRandomJitter(double delay_deviation_ms, uint32_t sample_count, bool incomplete_frame) {
+    if (sample_count == 0) {
+        PLOG_WARNING << "Failed to estimate jitter without samples.";
+        return false;
+    }
+
     uint64_t now_us = clock_->now_us();
     if (last_update_time_us_ != -1) {
         // Record the time in us elapsed since the last frame, and it will be 
@@ -235,18 +266,12 @@ void JitterEstimator::EstimateRandomJitter(double d_dT, bool incomplete_frame) {
     }
     last_update_time_us_ = now_us;
 
-    // the initial value of `sample_count_` is 1.
-    if (sample_count_ == 0) {
-        assert(false && "the sample count is never gonna be zero.");
-        return;
-    }
-
     // The factor for Moving Average, range: [0, 1), and it's initiated linearly.
-    double filt_factor = static_cast<double>(sample_count_ - 1) / static_cast<double>(sample_count_);
-    ++sample_count_;
-    // FIXME: Why we need to limit `sample_count_`?
-    if (sample_count_ > sample_count_max_) {
-        sample_count_ = sample_count_max_;
+    double filt_factor = static_cast<double>(sample_count - 1) / static_cast<double>(sample_count);
+   
+    // FIXME: Why we need to limit `sample_count`?
+    if (sample_count > sample_count_max_) {
+        sample_count = sample_count_max_;
     }
 
     double estimated_fps = EstimatedFrameRate();
@@ -257,19 +282,19 @@ void JitterEstimator::EstimateRandomJitter(double d_dT, bool incomplete_frame) {
         // At startup, there can be a lot of noise in the fps estimate.
         // Interpolate rate_scale linearly, from 1.0 at sample #1, to 30.0 / fps
         // at sample #kStartupDelaySamples.
-        if (sample_count_ < kStartupDelaySamples) {
+        if (sample_count < kStartupDelaySamples) {
             // rate_scale = (scaled_samples + rest_of_startup_delay_samples) / startup_delay_samples
             // Reduce the `rate_scale` effect on `filt_factor` at the startup period, since the fps was estimated in low accuracy so far.
-            rate_scale = ((sample_count_ * rate_scale) + (kStartupDelaySamples - sample_count_)) / kStartupDelaySamples;
+            rate_scale = ((sample_count * rate_scale) + (kStartupDelaySamples - sample_count)) / kStartupDelaySamples;
         }
         // FIXME: Why do we scale the `filt_factor` exponentially, not linearly?
         filt_factor = pow(filt_factor, rate_scale);
     }
 
     // 1 level Exponential Moving Average
-    // d_dT: the delay deviation
-    double new_avg_noise = filt_factor * avg_noise_ + (1 - filt_factor) * d_dT;
-    double new_var_noise = filt_factor * var_noise_ + (1 - filt_factor) * pow(d_dT - avg_noise_, 2);
+    // d_dT: the deviation of delay.
+    double new_avg_noise = filt_factor * avg_noise_ + (1 - filt_factor) * delay_deviation_ms;
+    double new_var_noise = filt_factor * var_noise_ + (1 - filt_factor) * pow(delay_deviation_ms - avg_noise_, 2);
     if (!incomplete_frame || new_var_noise > var_noise_) {
         avg_noise_ = new_avg_noise;
         var_noise_ = new_var_noise;
@@ -279,6 +304,8 @@ void JitterEstimator::EstimateRandomJitter(double d_dT, bool incomplete_frame) {
     if (var_noise_ < 1.0) {
         var_noise_ = 1.0;
     }
+
+    return true;
 }
 
 double JitterEstimator::EstimatedFrameRate() const {
@@ -322,7 +349,7 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
     // 任何具有自适应的滤波器都可以用于估算这两个参数，比如Kalman filter. 以下使用卡尔曼滤波器建模：
 
     // 状态方程建模：
-    // 矩阵1：theta_bar(i) = [1/C(i), m(i)]^T
+    // 矩阵1：theta_bar(i) = [1/C(i), m(i)]^T
     // 解析：theta_bar(i)表示第i帧的状态：包括当时的传输速率C(i)和排队延时m(i)。
     // 矩阵2：h_bar(i) = [dL(i), 1]^T
     // 状态方程：theta_bar(i) = theta_bar(i-1) + u_bar(i-1), 

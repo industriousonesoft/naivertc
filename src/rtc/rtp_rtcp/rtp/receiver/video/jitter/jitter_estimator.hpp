@@ -24,6 +24,7 @@ public:
 public:
     explicit JitterEstimator(std::shared_ptr<Clock> clock);
     ~JitterEstimator();
+    JitterEstimator& operator=(const JitterEstimator& rhs);
 
     void UpdateEstimate(int64_t frame_delay_ms, 
                         uint32_t frame_size, 
@@ -46,7 +47,7 @@ private:
 
     // Estimates the random jitter by calculating the variance of the sample
     // distance from the line given by theta.
-    void EstimateRandomJitter(double d_dT, bool incomplete_frame = false);
+    bool EstimateRandomJitter(double delay_deviation_ms, uint32_t sample_count, bool incomplete_frame = false);
 
     double EstimatedFrameRate() const;
 
@@ -83,8 +84,7 @@ private:
     double avg_frame_size_;
     double var_frame_size_;
     double max_frame_size_;
-    
-    uint32_t frame_count_;
+
     uint32_t frame_size_sum_;
     uint32_t prev_frame_size_;
     int64_t last_update_time_us_;
@@ -94,9 +94,8 @@ private:
     double avg_noise_;
     uint32_t sample_count_;
     // The filtered sum of jitter estimates
-    double filtered_sum_of_jitter_estimates_ms_;
+    double filtered_sum_of_estimated_jitter_ms_;
 
-    uint32_t startup_count_;
     // Time in us when the latest nack was seen.
     int64_t latest_nack_time_us_;
     // Keeps track of the number of nacks received,
