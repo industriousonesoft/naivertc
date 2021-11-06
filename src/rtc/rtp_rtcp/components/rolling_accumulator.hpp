@@ -14,9 +14,9 @@ template<typename T,
         typename std::enable_if<std::is_convertible<T, double>::value, T>::type* = nullptr>
 class RTC_CPP_EXPORT RollingAccumulator {
 public:
-    explicit RollingAccumulator(size_t max_count) 
-        : samples_(max_count) {
-        assert(max_count > 0);
+    explicit RollingAccumulator(size_t window_size) 
+        : samples_(window_size) {
+        assert(window_size > 0);
         Reset();
     }
     ~RollingAccumulator() = default;

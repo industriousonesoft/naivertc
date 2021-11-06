@@ -54,17 +54,18 @@ set(LIB_SOURCES
 
     # rtc
     # rtc -> base
+    src/rtc/base/repeating_task.cpp
+    src/rtc/base/copy_on_write_buffer.cpp
+    src/rtc/base/bit_io.cpp
+    src/rtc/base/bit_io_reader.cpp
+    src/rtc/base/bit_io_writer.cpp
     src/rtc/base/packet.cpp
     src/rtc/base/time/ntp_time.cpp
     src/rtc/base/time/ntp_time_util.cpp
     src/rtc/base/time/clock.cpp
     src/rtc/base/time/clock_real_time.cpp
     src/rtc/base/time/clock_simulated.cpp
-    src/rtc/base/repeating_task.cpp
-    src/rtc/base/copy_on_write_buffer.cpp
-    src/rtc/base/bit_io.cpp
-    src/rtc/base/bit_io_reader.cpp
-    src/rtc/base/bit_io_writer.cpp
+    src/rtc/base/numerics/histogram_percentile_counter.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.cpp
@@ -310,6 +311,7 @@ set(LIB_HEADERS
     src/rtc/base/numerics/percentile_filter.hpp
     src/rtc/base/numerics/modulo_operator.hpp
     src/rtc/base/numerics/running_statistics.hpp
+    src/rtc/base/numerics/histogram_percentile_counter.hpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.hpp
@@ -588,6 +590,7 @@ set(TEST_SOURCES
     src/rtc/base/numerics/moving_median_filter_unittest.cpp
     src/rtc/base/numerics/modulo_operator_unittest.cpp
     src/rtc/base/numerics/running_statistics_unittest.cpp
+    src/rtc/base/numerics/histogram_percentile_counter_unittest.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp

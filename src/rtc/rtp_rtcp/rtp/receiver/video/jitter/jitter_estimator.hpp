@@ -16,19 +16,42 @@ namespace jitter {
 
 class RTC_CPP_EXPORT JitterEstimator {
 public:
+    struct HyperParameters {
+        // The filter factor used to calculate the average and variance of frame size.
+        double filter_factor_of_frame_size = 0.97;
+        // The weight used to estimate the max frame size.
+        double weight_of_max_frame_size = 0.9999;
+        // The max filter factor used to estimate the random jitter.
+        double max_filter_factor_of_random_jitter = 0.9975; // (400 - 1) / 400
+        // The min bandwidth required of transport channel.
+        uint32_t min_bandwidth_bytes_per_second = 1000; // 1kb/s = 1000 bytes/s
+        // If nack > nack_limit, we will add rrt into jitter estimate.
+        uint32_t nack_limit = 3;
+        // The number of standard deviaction of delay outlier
+        int32_t num_std_dev_delay_outlier = 15;
+        // The number of standard deviaction of frame size outlier
+        int32_t num_std_dev_frame_size_outlier = 3;
+        // The two parameters below used to estimate the threshold of noise linearly.
+        double noise_std_devs = 2.33;
+        double noise_std_dev_offset = 30.0;
+        // The upper bound used to calculate the max time deviation based on noise. 
+        double time_deviation_upper_bound = 3.5;
+    };
+public:
     // A constant describing the delay in ms from the jitter
     // buffer to the delay on the receiving side which is not
     // accounted for by the jitter buffer nor the decoding
     // delay estimate.
     static const uint32_t kOperatingSystemJitterMs = 10;
 public:
-    explicit JitterEstimator(std::shared_ptr<Clock> clock);
+    explicit JitterEstimator(const HyperParameters& hyper_params, 
+                             std::shared_ptr<Clock> clock);
     ~JitterEstimator();
     JitterEstimator& operator=(const JitterEstimator& rhs);
 
     void UpdateEstimate(int64_t frame_delay_ms, 
-                        uint32_t frame_size, 
-                        bool incomplete_frame = false);\
+                        uint32_t frame_size,
+                        bool incomplete_frame = false);
 
     void UpdateRtt(int64_t rtt_ms);
 
@@ -47,7 +70,7 @@ private:
 
     // Estimates the random jitter by calculating the variance of the sample
     // distance from the line given by theta.
-    bool EstimateRandomJitter(double delay_deviation_ms, uint32_t sample_count, bool incomplete_frame = false);
+    void EstimateRandomJitter(double delay_deviation_ms, bool incomplete_frame = false);
 
     double EstimatedFrameRate() const;
 
@@ -67,7 +90,8 @@ private:
     const double phi_;
     // ψ psai
     const double psi_;
-    const uint32_t sample_count_max_;
+    // The max number of samples to estimate the random jitter.
+    const double max_alpha_;
     const double theta_lower_bound_;
     const uint32_t nack_limit_;
     // The number of standard deviaction of delay outlier
@@ -94,7 +118,7 @@ private:
     double avg_noise_;
     uint32_t sample_count_;
     // The filtered sum of jitter estimates
-    double filtered_sum_of_estimated_jitter_ms_;
+    double filtered_estimated_jitter_ms_;
 
     // Time in us when the latest nack was seen.
     int64_t latest_nack_time_us_;

@@ -8,28 +8,30 @@ namespace video {
 namespace jitter {
 namespace {
 
+// TODO: Add parameters below in `Hyperparameters`
 static constexpr uint32_t kStartupDelaySamples = 30;
 static constexpr int64_t kFrameSizeAccuStartupSamples = 5;
 static constexpr double kMaxEstimatedFrameRate = 200.0;
 static constexpr int64_t kNackCountTimeoutUs = 60'000'000; // 60s; 1 minute
-static constexpr double kDefaultMaxTimestampDeviationInSigmas = 3.5;
+// static constexpr double kDefaultMaxTimeDeviationInSigmas = 3.5;
 static constexpr double kJumpStdDevForDetectingKeyFrame = 2.0;
 
 }  // namespace
 
-JitterEstimator::JitterEstimator(std::shared_ptr<Clock> clock) 
-    : phi_(0.97),
-      psi_(0.9999),
-      sample_count_max_(400),
-      theta_lower_bound_(0.000001),
-      nack_limit_(3),
-      num_std_dev_delay_outlier_(15),
-      num_std_dev_frame_size_outlier_(3),
-      noise_std_devs_(2.33),  // Less than 1% change (loop up in normal distribution table)...
-      noise_std_dev_offset_(30.0), // ...of getting 30 ms freeses.
-      time_deviation_upper_bound_(kDefaultMaxTimestampDeviationInSigmas),
+JitterEstimator::JitterEstimator(const HyperParameters& hyper_params, 
+                                 std::shared_ptr<Clock> clock) 
+    : phi_(hyper_params.filter_factor_of_frame_size),
+      psi_(hyper_params.weight_of_max_frame_size),
+      max_alpha_(hyper_params.max_filter_factor_of_random_jitter),
+      theta_lower_bound_(1 / static_cast<double>(hyper_params.min_bandwidth_bytes_per_second * 1000)),
+      nack_limit_(hyper_params.nack_limit),
+      num_std_dev_delay_outlier_(hyper_params.num_std_dev_delay_outlier),
+      num_std_dev_frame_size_outlier_(hyper_params.num_std_dev_frame_size_outlier),
+      noise_std_devs_(hyper_params.noise_std_devs),  // Less than 1% change (loop up in normal distribution table)...
+      noise_std_dev_offset_(hyper_params.noise_std_dev_offset), // ...of getting 30 ms freeses.
+      time_deviation_upper_bound_(hyper_params.time_deviation_upper_bound),
       // TODO: Use an estimator with limit base on time rather than number of samples.
-      frame_delta_us_accumulator_(30 /* 30 us */),
+      frame_delta_us_accumulator_(30 /* window_size: 30 us */),
       clock_(std::move(clock)) {
     // Reset to the intial values.
     Reset();
@@ -50,7 +52,7 @@ JitterEstimator& JitterEstimator::operator=(const JitterEstimator& rhs) {
         prev_frame_size_ = rhs.prev_frame_size_;
         avg_noise_ = rhs.avg_noise_;
         sample_count_ = rhs.sample_count_;
-        filtered_sum_of_estimated_jitter_ms_ = rhs.filtered_sum_of_estimated_jitter_ms_;
+        filtered_estimated_jitter_ms_ = rhs.filtered_estimated_jitter_ms_;
         latest_nack_time_us_ = rhs.latest_nack_time_us_;
         nack_count_ = rhs.nack_count_;
         rtt_filter_ = rhs.rtt_filter_;
@@ -78,7 +80,7 @@ void JitterEstimator::Reset() {
     prev_frame_size_ = 0;
     avg_noise_ = 0.0;
     sample_count_ = 0;
-    filtered_sum_of_estimated_jitter_ms_ = 0.0;
+    filtered_estimated_jitter_ms_ = 0.0;
     latest_nack_time_us_ = 0;
     nack_count_ = 0;
     frame_size_sum_ = 0;
@@ -93,7 +95,7 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
     if (frame_size == 0) {
         return;
     }
-    
+    // Calculate the average of frame size using the first 5 samples.
     if (sample_count_ < kFrameSizeAccuStartupSamples) {
         frame_size_sum_ += frame_size;
     } else if (sample_count_ == kFrameSizeAccuStartupSamples) {
@@ -119,6 +121,7 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
     }
 
     // Update max frame size estimate.
+    // FIXME: What's the purpose of weighting `psi_`?
     max_frame_size_ = std::max(psi_ * max_frame_size_, static_cast<double>(frame_size));
 
     if (prev_frame_size_ == 0) {
@@ -137,18 +140,15 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
     int frame_size_delta = frame_size - prev_frame_size_;
 
     double delay_deviation_ms = DeviationFromExpectedDelay(frame_delay_ms, frame_size_delta);
+    uint32_t frame_size_deviation = frame_size - avg_frame_size_;
     // Only update the Kalman filter:
     // 1). The sample is not considered an extreme outlier,
     // 2). The sample an extreme outlier from a deley point of view, and the frame size also
     //     is large then the deviation.
-    // FIXME: How to understand the second condition?
-    
     if (fabs(delay_deviation_ms) < num_std_dev_delay_outlier_ * std_dev_noise || 
-        frame_size > avg_frame_size_ + num_std_dev_frame_size_outlier_ * sqrt(var_frame_size_)) {
+        frame_size_deviation > num_std_dev_frame_size_outlier_ * sqrt(var_frame_size_)) {
         // Update the variance of the deviation from the line given by the Kalman filter.
-        if (!EstimateRandomJitter(delay_deviation_ms, sample_count_, incomplete_frame)) {
-            return;
-        }
+        EstimateRandomJitter(delay_deviation_ms, incomplete_frame);
 
         // Prevent updating with frames which have been congested by a large frame,
         // and therefore arrives almost at the same time as that frame.
@@ -162,15 +162,13 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
     } else {
         int num_std_dev = delay_deviation_ms > 0 ? num_std_dev_delay_outlier_ : -num_std_dev_delay_outlier_;
         double delay_deviation_outlier = num_std_dev * std_dev_noise;
-        if (!EstimateRandomJitter(delay_deviation_outlier, sample_count_, incomplete_frame)) {
-            return;
-        }
+        EstimateRandomJitter(delay_deviation_outlier, incomplete_frame);
     }
 
     // Post process the total estimated jitter.
     if (post_process_jitter) {
-        filtered_sum_of_estimated_jitter_ms_ = CalcJitterEstimate();
-        prev_estimated_jitter_ms_ = filtered_sum_of_estimated_jitter_ms_;
+        filtered_estimated_jitter_ms_ = CalcJitterEstimate();
+        prev_estimated_jitter_ms_ = filtered_estimated_jitter_ms_;
     }
 }
 
@@ -188,9 +186,9 @@ int JitterEstimator::GetJitterEstimate(double rtt_multiplier,
         nack_count_ = 0;
     }
 
-    // `filtered_sum_of_estimated_jitter_ms_` has a high prioirty as it's more accurate.
-    if (filtered_sum_of_estimated_jitter_ms_ > curr_jitter_ms) {
-        curr_jitter_ms = filtered_sum_of_estimated_jitter_ms_;
+    // `filtered_estimated_jitter_ms_` has a high prioirty as it's more accurate.
+    if (filtered_estimated_jitter_ms_ > curr_jitter_ms) {
+        curr_jitter_ms = filtered_estimated_jitter_ms_;
     }
 
     // FIXME: How to understand this condition?
@@ -252,10 +250,9 @@ double JitterEstimator::DeviationFromExpectedDelay(int64_t frame_delay_ms, int32
     return frame_delay_ms - estimated_delay_ms;
 }
 
-bool JitterEstimator::EstimateRandomJitter(double delay_deviation_ms, uint32_t sample_count, bool incomplete_frame) {
-    if (sample_count == 0) {
-        PLOG_WARNING << "Failed to estimate jitter without samples.";
-        return false;
+void JitterEstimator::EstimateRandomJitter(double delay_deviation_ms, bool incomplete_frame) {
+    if(sample_count_ == 0) {
+        return;
     }
 
     uint64_t now_us = clock_->now_us();
@@ -267,34 +264,34 @@ bool JitterEstimator::EstimateRandomJitter(double delay_deviation_ms, uint32_t s
     last_update_time_us_ = now_us;
 
     // The factor for Moving Average, range: [0, 1), and it's initiated linearly.
-    double filt_factor = static_cast<double>(sample_count - 1) / static_cast<double>(sample_count);
-   
-    // FIXME: Why we need to limit `sample_count`?
-    if (sample_count > sample_count_max_) {
-        sample_count = sample_count_max_;
+    // 过滤因子alpha呈线性增长，且曲线波动从大到小，最后趋于平缓，类似：0, 0.5, 0.66, 0.8, 0.833, 0.85, ~, 0.9975 ((400-1)/400)
+    double alpha = static_cast<double>(sample_count_ - 1) / static_cast<double>(sample_count_);
+    // Limit the max value of alpha (0.9975)
+    if (alpha > max_alpha_) {
+        alpha = max_alpha_;
     }
 
     double estimated_fps = EstimatedFrameRate();
-    // In order to avoid a low frame rate stream changing the `filt_factor` slowly,
-    // scaling the `filt_factor` exponentially relative a 30 fps stream.
+    // In order to avoid a low frame rate stream changing the `alpha` slowly,
+    // scaling the `alpha` exponentially relative a 30 fps stream.
     if (estimated_fps > 0.0) {
         double rate_scale = 30.0 / estimated_fps;
         // At startup, there can be a lot of noise in the fps estimate.
         // Interpolate rate_scale linearly, from 1.0 at sample #1, to 30.0 / fps
         // at sample #kStartupDelaySamples.
-        if (sample_count < kStartupDelaySamples) {
+        if (sample_count_ < kStartupDelaySamples) {
             // rate_scale = (scaled_samples + rest_of_startup_delay_samples) / startup_delay_samples
-            // Reduce the `rate_scale` effect on `filt_factor` at the startup period, since the fps was estimated in low accuracy so far.
-            rate_scale = ((sample_count * rate_scale) + (kStartupDelaySamples - sample_count)) / kStartupDelaySamples;
+            // Reduce the `rate_scale` effect on `alpha` at the startup period, since the fps was estimated in low accuracy so far.
+            rate_scale = ((sample_count_ * rate_scale) + (kStartupDelaySamples - sample_count_)) / kStartupDelaySamples;
         }
-        // FIXME: Why do we scale the `filt_factor` exponentially, not linearly?
-        filt_factor = pow(filt_factor, rate_scale);
+        // FIXME: Why do we scale the `alpha` exponentially, not linearly?
+        alpha = pow(alpha, rate_scale);
     }
 
     // 1 level Exponential Moving Average
     // d_dT: the deviation of delay.
-    double new_avg_noise = filt_factor * avg_noise_ + (1 - filt_factor) * delay_deviation_ms;
-    double new_var_noise = filt_factor * var_noise_ + (1 - filt_factor) * pow(delay_deviation_ms - avg_noise_, 2);
+    double new_avg_noise = alpha * avg_noise_ + (1 - alpha) * delay_deviation_ms;
+    double new_var_noise = alpha * var_noise_ + (1 - alpha) * pow(delay_deviation_ms - avg_noise_, 2);
     if (!incomplete_frame || new_var_noise > var_noise_) {
         avg_noise_ = new_avg_noise;
         var_noise_ = new_var_noise;
@@ -305,7 +302,6 @@ bool JitterEstimator::EstimateRandomJitter(double delay_deviation_ms, uint32_t s
         var_noise_ = 1.0;
     }
 
-    return true;
 }
 
 double JitterEstimator::EstimatedFrameRate() const {
