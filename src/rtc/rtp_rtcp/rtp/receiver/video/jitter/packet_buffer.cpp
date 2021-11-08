@@ -16,11 +16,13 @@ constexpr size_t kMaxMissingPacketCount = 1000;
 PacketBuffer::Packet::Packet(RtpVideoHeader video_header, 
                              RtpVideoCodecHeader video_codec_header,
                              uint16_t seq_num, 
-                             uint32_t timestamp) 
+                             uint32_t timestamp,
+                             int64_t received_time_ms) 
     : video_header(std::move(video_header)),
       video_codec_header(std::move(video_codec_header)),
       seq_num(seq_num),
-      timestamp(timestamp) {}
+      timestamp(timestamp),
+      received_time_ms(received_time_ms) {}
 
 // PacketBuffer
 PacketBuffer::PacketBuffer(size_t initial_buffer_size, 

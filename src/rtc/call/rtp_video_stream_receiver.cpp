@@ -145,11 +145,10 @@ void RtpVideoStreamReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depack
     auto packet = std::make_unique<rtp::video::jitter::PacketBuffer::Packet>(depacketized_packet.video_header,
                                                                               depacketized_packet.video_codec_header,
                                                                               rtp_packet.sequence_number(),
-                                                                              rtp_packet.timestamp());
+                                                                              rtp_packet.timestamp(),
+                                                                              clock_->now_ms() /* received_time_ms */);
     RtpVideoHeader& video_header = packet->video_header;
     video_header.is_last_packet_in_frame |= rtp_packet.marker();
-
-    // TODO: Collect packet info
 
     if (auto extension = rtp_packet.GetExtension<rtp::PlayoutDelayLimits>()) {
         video_header.playout_delay.min_ms = extension->min_ms();

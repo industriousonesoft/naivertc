@@ -24,7 +24,8 @@ public:
         Packet(RtpVideoHeader video_header,
                RtpVideoCodecHeader video_codec_header,
                uint16_t seq_num,
-               uint32_t timestamp);
+               uint32_t timestamp,
+               int64_t received_time_ms);
         Packet() = default;
         Packet(const Packet&) = delete;
         Packet(Packet&&) = delete;
@@ -51,8 +52,8 @@ public:
         // Packet info
         uint16_t seq_num = 0;
         uint32_t timestamp = 0;
-        int times_nacked = -1;
         int64_t received_time_ms = -1;
+        int times_nacked = -1;
     };
 
     struct Frame {

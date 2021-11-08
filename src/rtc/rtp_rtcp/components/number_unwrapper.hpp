@@ -2,13 +2,13 @@
 #define _RTC_RTP_RTCP_COMPONENTS_NUMBER_UNWRAPPER_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/components/wrap_around_checker.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 
 #include <limits>
 #include <optional>
 
+// NOTE: This class was deprecated, please use `wrap_around_utils` instead.
 namespace naivertc {
-// TODO: Replace with `wrap_around_utils`
 template <typename U>
 class RTC_CPP_EXPORT NumberUnwrapper {
     static_assert(!std::numeric_limits<U>::is_signed, "U must be unsigned.");
@@ -32,7 +32,7 @@ int64_t NumberUnwrapper<U>::Unwrap(U value, bool update_last) {
         constexpr int64_t kMaxPlusOne = static_cast<int64_t>(std::numeric_limits<U>::max()) + 1;
         U cropped_last = static_cast<U>(*last_value_);
         int64_t delta = value - cropped_last;
-        if (IsNewer(value, cropped_last)) {
+        if (wrap_around_utils::AheadOf<U>(value, cropped_last)) {
             // Forward wrap-around
             if (delta < 0) {
                 delta += kMaxPlusOne;

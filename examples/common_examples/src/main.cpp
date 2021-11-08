@@ -4,6 +4,7 @@
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/transports/sctp_message.hpp"
 #include "common/utils_random.hpp"
+#include "rtc/base/numerics/modulo_operator.hpp"
 
 // naivertc
 #include <common/logger.hpp>
@@ -38,9 +39,7 @@ int main(int argc, const char* argv[]) {
         std::cout << "main ioc exit" << std::endl;
     });
 
-    // std::cout << std::numeric_limits<uint32_t>::max() << " - " << ((static_cast<int64_t>(1) << 32) - 1) << std::endl;
-
-    std::cout << "test start" << std::endl;
+    std::cout << std::numeric_limits<uint32_t>::max() << " - " << ((static_cast<int64_t>(1) << 32) - 1) << std::endl;
 
     // Sequence number with compare operator
     std::cout << "Squence numbers: " << std::endl;

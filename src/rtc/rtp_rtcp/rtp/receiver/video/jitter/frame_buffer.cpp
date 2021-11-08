@@ -33,8 +33,9 @@ FrameBuffer::FrameBuffer(std::shared_ptr<Clock> clock,
                          std::shared_ptr<Timing> timing)
     : clock_(std::move(clock)),
       timing_(std::move(timing)),
-      keyframe_required_(false),
       decoded_frames_history_(kMaxFramesHistory),
+      jitter_estimator_({/* Default HyperParameters */}, clock_),
+      keyframe_required_(false),
       latest_next_frame_time_ms_(-1),
       last_log_non_decoded_ms_(-kLogNonDecodedIntervalMs) {}
 
@@ -355,11 +356,12 @@ video::FrameToDecode* FrameBuffer::GetNextFrame() {
     int64_t receiver_time_ms = first_frame->received_time_ms();
     // Gracefully handle bad RTP timestamps and render time.
     if (!CheckRenderTiming(*first_frame, now_ms)) {
-        // TODO: Reset timing.
+        jitter_estimator_.Reset();
+        timing_->Reset();
+        render_time_ms = timing_->RenderTimeMs(first_frame->timestamp(), now_ms);
     }
 
     return nullptr;
-
 }
 
 bool FrameBuffer::CheckRenderTiming(const video::FrameToDecode& frame, int64_t now_ms) {

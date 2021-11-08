@@ -195,6 +195,104 @@ TEST(RTP_RTCP_SeqNumUtilsTest, ComparatorWithDivisor) {
         x = Add<D>(x, 1);
     }
 }
+
+TEST(WrapAroundCheckerTest, IsNewerSequenceNumberEqual) {
+    EXPECT_FALSE(AheadOf<uint16_t>(0x0001, 0x0001));
+}
+
+TEST(WrapAroundCheckerTest, IsNewerSequenceNumberNoWrap) {
+    EXPECT_TRUE(AheadOf<uint16_t>(0xFFFF, 0xFFFE));
+    EXPECT_TRUE(AheadOf<uint16_t>(0x0001, 0x0000));
+    EXPECT_TRUE(AheadOf<uint16_t>(0x0100, 0x00FF));
+}
+
+TEST(WrapAroundCheckerTest, IsNewerSequenceNumberForwardWrap) {
+    EXPECT_TRUE(AheadOf<uint16_t>(0x0000, 0xFFFF));
+    EXPECT_TRUE(AheadOf<uint16_t>(0x0000, 0xFF00));
+    EXPECT_TRUE(AheadOf<uint16_t>(0x00FF, 0xFFFF));
+    EXPECT_TRUE(AheadOf<uint16_t>(0x00FF, 0xFF00));
+}
+
+TEST(WrapAroundCheckerTest, IsNewerSequenceNumberBackwardWrap) {
+    EXPECT_FALSE(AheadOf<uint16_t>(0xFFFF, 0x0000));
+    EXPECT_FALSE(AheadOf<uint16_t>(0xFF00, 0x0000));
+    EXPECT_FALSE(AheadOf<uint16_t>(0xFFFF, 0x00FF));
+    EXPECT_FALSE(AheadOf<uint16_t>(0xFF00, 0x00FF));
+}
+
+TEST(WrapAroundCheckerTest, IsNewerSequenceNumberHalfWayApart) {
+    EXPECT_TRUE(AheadOf<uint16_t>(0x8000, 0x0000));
+    EXPECT_FALSE(AheadOf<uint16_t>(0x0000, 0x8000));
+}
+
+TEST(WrapAroundCheckerTest, IsNewerTimestampEqual) {
+    EXPECT_FALSE(AheadOf<uint32_t>(0x00000001, 0x000000001));
+}
+
+TEST(WrapAroundCheckerTest, IsNewerTimestampNoWrap) {
+    EXPECT_TRUE(AheadOf<uint32_t>(0xFFFFFFFF, 0xFFFFFFFE));
+    EXPECT_TRUE(AheadOf<uint32_t>(0x00000001, 0x00000000));
+    EXPECT_TRUE(AheadOf<uint32_t>(0x00010000, 0x0000FFFF));
+}
+
+TEST(WrapAroundCheckerTest, IsNewerTimestampForwardWrap) {
+    EXPECT_TRUE(AheadOf<uint32_t>(0x00000000, 0xFFFFFFFF));
+    EXPECT_TRUE(AheadOf<uint32_t>(0x00000000, 0xFFFF0000));
+    EXPECT_TRUE(AheadOf<uint32_t>(0x0000FFFF, 0xFFFFFFFF));
+    EXPECT_TRUE(AheadOf<uint32_t>(0x0000FFFF, 0xFFFF0000));
+}
+
+TEST(WrapAroundCheckerTest, IsNewerTimestampBackwardWrap) {
+    EXPECT_FALSE(AheadOf<uint32_t>(0xFFFFFFFF, 0x00000000));
+    EXPECT_FALSE(AheadOf<uint32_t>(0xFFFF0000, 0x00000000));
+    EXPECT_FALSE(AheadOf<uint32_t>(0xFFFFFFFF, 0x0000FFFF));
+    EXPECT_FALSE(AheadOf<uint32_t>(0xFFFF0000, 0x0000FFFF));
+}
+
+TEST(WrapAroundCheckerTest, IsNewerTimestampHalfWayApart) {
+    EXPECT_TRUE(AheadOf<uint32_t>(0x80000000, 0x00000000));
+    EXPECT_FALSE(AheadOf<uint32_t>(0x00000000, 0x80000000));
+}
+
+TEST(WrapAroundCheckerTest, LatestSequenceNumberNoWrap) {
+    EXPECT_EQ(0xFFFFu, Latest<uint16_t>(0xFFFF, 0xFFFE));
+    EXPECT_EQ(0x0001u, Latest<uint16_t>(0x0001, 0x0000));
+    EXPECT_EQ(0x0100u, Latest<uint16_t>(0x0100, 0x00FF));
+
+    EXPECT_EQ(0xFFFFu, Latest<uint16_t>(0xFFFE, 0xFFFF));
+    EXPECT_EQ(0x0001u, Latest<uint16_t>(0x0000, 0x0001));
+    EXPECT_EQ(0x0100u, Latest<uint16_t>(0x00FF, 0x0100));
+}
+
+TEST(WrapAroundCheckerTest, LatestSequenceNumberWrap) {
+    EXPECT_EQ(0x0000u, Latest<uint16_t>(0x0000, 0xFFFF));
+    EXPECT_EQ(0x0000u, Latest<uint16_t>(0x0000, 0xFF00));
+    EXPECT_EQ(0x00FFu, Latest<uint16_t>(0x00FF, 0xFFFF));
+    EXPECT_EQ(0x00FFu, Latest<uint16_t>(0x00FF, 0xFF00));
+
+    EXPECT_EQ(0x0000u, Latest<uint16_t>(0xFFFF, 0x0000));
+    EXPECT_EQ(0x0000u, Latest<uint16_t>(0xFF00, 0x0000));
+    EXPECT_EQ(0x00FFu, Latest<uint16_t>(0xFFFF, 0x00FF));
+    EXPECT_EQ(0x00FFu, Latest<uint16_t>(0xFF00, 0x00FF));
+}
+
+TEST(WrapAroundCheckerTest, LatestTimestampNoWrap) {
+    EXPECT_EQ(0xFFFFFFFFu, Latest<uint32_t>(0xFFFFFFFF, 0xFFFFFFFE));
+    EXPECT_EQ(0x00000001u, Latest<uint32_t>(0x00000001, 0x00000000));
+    EXPECT_EQ(0x00010000u, Latest<uint32_t>(0x00010000, 0x0000FFFF));
+}
+
+TEST(WrapAroundCheckerTest, LatestTimestampWrap) {
+    EXPECT_EQ(0x00000000u, Latest<uint32_t>(0x00000000, 0xFFFFFFFF));
+    EXPECT_EQ(0x00000000u, Latest<uint32_t>(0x00000000, 0xFFFF0000));
+    EXPECT_EQ(0x0000FFFFu, Latest<uint32_t>(0x0000FFFF, 0xFFFFFFFF));
+    EXPECT_EQ(0x0000FFFFu, Latest<uint32_t>(0x0000FFFF, 0xFFFF0000));
+
+    EXPECT_EQ(0x00000000u, Latest<uint32_t>(0xFFFFFFFF, 0x00000000));
+    EXPECT_EQ(0x00000000u, Latest<uint32_t>(0xFFFF0000, 0x00000000));
+    EXPECT_EQ(0x0000FFFFu, Latest<uint32_t>(0xFFFFFFFF, 0x0000FFFF));
+    EXPECT_EQ(0x0000FFFFu, Latest<uint32_t>(0xFFFF0000, 0x0000FFFF));
+}
     
 } // namespace test
 } // namespace naivertc

@@ -9,16 +9,16 @@
 namespace naivertc {
 namespace wrap_around_utils {
 
-// Check if the sequence number `a` is ahead or at sequence number `b`.
-// NOTE: Same as `IsNewer` in wrap_around_checker.hpp
+// Check if th number `a` is ahead or at number `b`.
 template <typename T, T M>
 inline typename std::enable_if<(M > 0), bool>::type AheadOrAt(T a, T b) {
     static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
-    // If `M` is an even number and the two sequence numbers are at max distance
-    // from each other, then the sequence number with the highest value is
+    // If `M` is an even number and the two numbers are at max distance
+    // from each other, then the number with the highest value is
     // considered to be ahead.
     const T max_dist = M / 2;
-    if (!(M & 1) && MinDiff<T, M>(a, b) == max_dist) {
+    const bool is_even = (M & 1) == 0;
+    if (is_even && MinDiff<T, M>(a, b) == max_dist) {
         return b < a;
     }
     return ForwardDiff<T, M>(b, a) <= max_dist;
@@ -27,10 +27,12 @@ inline typename std::enable_if<(M > 0), bool>::type AheadOrAt(T a, T b) {
 template <typename T, T M>
 inline typename std::enable_if<(M == 0), bool>::type AheadOrAt(T a, T b) {
     static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
-    const T maxDist = std::numeric_limits<T>::max() / 2 + T(1);
-    if (a - b == maxDist)
+    // `max_dist` is the half-way mark (the half count of all count that the tyep U can represent) for the type U. 
+    // For instance, for a uint16_t it will be 0x8000 (2^15), and for a uint32_t, it will be 0x80000000 (2^31).
+    const T max_dist = (std::numeric_limits<T>::max() / 2) + T(1);
+    if (a - b == max_dist)
         return b < a;
-    return ForwardDiff(b, a) < maxDist;
+    return ForwardDiff(b, a) < max_dist;
 }
 
 template <typename T>
@@ -38,17 +40,24 @@ inline bool AheadOrAt(T a, T b) {
     return AheadOrAt<T, 0>(a, b);
 }
 
-// Check if the sequence number `a` is ahead of sequence number `b`.
+// Check if the number `a` is ahead of number `b`.
 template <typename T, T M = 0>
 inline bool AheadOf(T a, T b) {
     static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
     return a != b && AheadOrAt<T, M>(a, b);
 }
 
+// Return the latest one.
+template <typename T, T M = 0>
+inline T Latest(T a, T b) {
+    static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
+    return AheadOf<T, M>(a, b) ? a : b;
+}
+
 // Functor which returns true if the `a` is newer than `b`.
 //
-// WARNING! If used to sort sequence numbers of length M then the interval
-//          covered by the sequence numbers may not be larger than floor(M/2).
+// WARNING! If used to sort numbers of length M then the interval
+//          covered by the numbers may not be larger than floor(M/2).
 template <typename T, T M = 0>
 struct NewerThan {
     bool operator()(T a, T b) const { return AheadOf<T, M>(a, b); }
@@ -56,8 +65,8 @@ struct NewerThan {
 
 // Functor which returns true if the `a` is older than `b`.
 //
-// WARNING! If used to sort sequence numbers of length M then the interval
-//          covered by the sequence numbers may not be larger than floor(M/2).
+// WARNING! If used to sort numbers of length M then the interval
+//          covered by the numbers may not be larger than floor(M/2).
 template <typename T, T M = 0>
 struct OlderThan {
     bool operator()(T a, T b) const { return AheadOf<T, M>(b, a); }

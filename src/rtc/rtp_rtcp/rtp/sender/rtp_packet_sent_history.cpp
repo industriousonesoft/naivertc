@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
-#include "rtc/rtp_rtcp/components/wrap_around_checker.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 
 #include <plog/Log.h>
 
@@ -460,7 +460,7 @@ int RtpPacketSentHistory::GetPacketIndex(uint16_t sequence_number) const {
     int packet_index = sequence_number - first_seq;
     constexpr int kSeqNumSpan = std::numeric_limits<uint16_t>::max() + 1;
 
-    if (IsNewerSequenceNumber(sequence_number, first_seq)) {
+    if (wrap_around_utils::AheadOf<uint16_t>(sequence_number, first_seq)) {
         if (sequence_number < first_seq) {
             // Forward wrap.
             packet_index += kSeqNumSpan;

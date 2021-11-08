@@ -5,8 +5,9 @@
 #include "rtc/base/time/clock.hpp"
 #include "common/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp"
-#include "rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/timing/timing.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.hpp"
+#include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.hpp"
 
 #include <optional>
 #include <map>
@@ -74,8 +75,9 @@ private:
 private:
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<Timing> timing_;
-    bool keyframe_required_;
     DecodedFramesHistory decoded_frames_history_;
+    JitterEstimator jitter_estimator_;
+    bool keyframe_required_;
     int64_t latest_next_frame_time_ms_;
     int64_t last_log_non_decoded_ms_;
 

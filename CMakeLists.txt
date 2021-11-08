@@ -187,6 +187,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/receiver/video/timing/decode_time_filter.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/timing/timestamp_extrapolator.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/timing/timing.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/inter_frame_delay.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
@@ -372,7 +373,7 @@ set(LIB_HEADERS
 
     # rtp -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.hpp
-    src/rtc/rtp_rtcp/components/wrap_around_checker.hpp
+    # src/rtc/rtp_rtcp/components/wrap_around_checker.hpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.hpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp
     src/rtc/rtp_rtcp/components/wrap_around_utils.hpp
@@ -422,6 +423,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtp/receiver/video/timing/decode_time_filter.hpp
     src/rtc/rtp_rtcp/rtp/receiver/video/timing/timestamp_extrapolator.hpp
     src/rtc/rtp_rtcp/rtp/receiver/video/timing/timing.hpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/inter_frame_delay.hpp
 
     # rtc -> rtp_rtcp -> rtp -> packetizer
     src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp
@@ -602,7 +604,7 @@ set(TEST_SOURCES
 
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics_unittest.cpp
-    src/rtc/rtp_rtcp/components/wrap_around_checker_unittest.cpp
+    # src/rtc/rtp_rtcp/components/wrap_around_checker_unittest.cpp
     src/rtc/rtp_rtcp/components/number_unwrapper_unittest.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator_unittest.cpp
