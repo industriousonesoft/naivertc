@@ -377,7 +377,8 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.hpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp
     src/rtc/rtp_rtcp/components/wrap_around_utils.hpp
-    src/rtc/rtp_rtcp/components/seq_num_unwrapper.hpp
+    src/rtc/rtp_rtcp/components/num_unwrapper.hpp
+    src/rtc/rtp_rtcp/components/num_unwrapper_zero_modulo.hpp
     src/rtc/rtp_rtcp/components/rolling_accumulator.hpp
 
     # rtc -> rtp_rtcp
@@ -605,11 +606,11 @@ set(TEST_SOURCES
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics_unittest.cpp
     # src/rtc/rtp_rtcp/components/wrap_around_checker_unittest.cpp
-    src/rtc/rtp_rtcp/components/number_unwrapper_unittest.cpp
+    src/rtc/rtp_rtcp/components/num_unwrapper_zero_modulo_unittest.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/wrap_around_utils_unittest.cpp
-    src/rtc/rtp_rtcp/components/seq_num_unwrapper_unittest.cpp
+    src/rtc/rtp_rtcp/components/num_unwrapper_unittest.cpp
     src/rtc/rtp_rtcp/components/rolling_accumulator_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packets

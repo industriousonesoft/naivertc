@@ -7,6 +7,7 @@
 
 namespace naivertc {
 
+// NOTE: This class was deprecated, please use `wrap_around_utils` instead.
 template <typename U>
 inline bool IsNewer(U value, U prev_value) {
     static_assert(!std::numeric_limits<U>::is_signed, "U must be unsigned");

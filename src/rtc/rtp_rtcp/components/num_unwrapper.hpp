@@ -9,15 +9,12 @@
 namespace naivertc {
 
 template <typename T, T M = 0>
-class RTC_CPP_EXPORT SeqNumUnwrapper {
+class RTC_CPP_EXPORT NumberUnwrapper {
 static_assert(
       std::is_unsigned<T>::value &&
-          std::numeric_limits<T>::max() < std::numeric_limits<int64_t>::max(),
+      std::numeric_limits<T>::max() < std::numeric_limits<int64_t>::max(),
       "Type unwrapped must be an unsigned integer smaller than int64_t.");
 public:
-    int64_t last_unwrapped_value() const { return last_unwrapped_; }
-    void set_last_unwrapped_value(int64_t value) { last_unwrapped_ = value; }
-
     int64_t Unwrap(T value, bool disallow_negative = true) {
         if (!last_value_) {
             last_unwrapped_ = {value};
@@ -25,8 +22,6 @@ public:
             T last_value = *last_value_;
             // Forward
             if (wrap_around_utils::AheadOrAt<T, M>(value, last_value)) {
-                // constexpr int64_t kBackwardAdjustment = M == 0 ? int64_t{std::numeric_limits<T>::max()} + 1 : M;
-                // last_unwrapped_ -= kBackwardAdjustment;
                 last_unwrapped_ += ForwardDiff<T, M>(last_value, value);
             // Backward
             } else {
@@ -69,18 +64,24 @@ public:
 
 private:
     T last_wrapped_value() const {
+        // FIXME: Not working if allowing to wrap backwards past 0, using `last_value_` instead.
+        assert(last_unwrapped_ >= 0);
         // if M == 0, M = 1 + the max value of type T.
-        // The bytes exceed the max value of type T is the count of wrap around,
-        // and the bytes of type T is the last value.
-        // FIXME: Why this not always works, i.e; it's falied to past the unit test `ManyBackwardWraps`? 
-        return M == 0 ? static_cast<T>(last_unwrapped_) : static_cast<T>(last_unwrapped_) % M;
+        if (M == 0) {
+            // The higher bytes exceed the max value of type T is the count of wrap around,
+            // and the rest lower bytes of type T is the last value. 
+            return static_cast<T>(last_unwrapped_);
+        } else {
+            T num_wrap_around = (last_unwrapped_ / M);
+            return static_cast<T>(last_unwrapped_ - num_wrap_around * M);
+        }
     }
 
 private:
     int64_t last_unwrapped_ = 0;
     std::optional<T> last_value_;
 };
-    
+
 } // namespace naivertc
 
 

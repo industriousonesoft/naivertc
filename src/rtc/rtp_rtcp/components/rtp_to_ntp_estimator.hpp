@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/time/ntp_time.hpp"
-#include "rtc/rtp_rtcp/components/number_unwrapper.hpp"
+#include "rtc/rtp_rtcp/components/num_unwrapper_zero_modulo.hpp"
 
 #include <list>
 #include <optional>

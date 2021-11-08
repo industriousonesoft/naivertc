@@ -1,7 +1,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.hpp"
 #include "common/array_view.hpp"
 #include "common/utils_random.hpp"
-#include "rtc/rtp_rtcp/components/seq_num_unwrapper.hpp"
+#include "rtc/rtp_rtcp/components/num_unwrapper.hpp"
 #include "rtc/media/video/codecs/h264/common.hpp"
 
 #include <gtest/gtest.h>
@@ -323,7 +323,7 @@ TEST_F(VCM_PacketBufferTest, InsertPacketAfterSequenceNumberWrapAround) {
     uint16_t seq_num = kFirstSeqNum;
 
     // Loop until seq_num wraps around.
-    SeqNumUnwrapper<uint16_t> unwrapper;
+    NumberUnwrapper<uint16_t> unwrapper;
     while (unwrapper.Unwrap(seq_num) < std::numeric_limits<uint16_t>::max()) {
         Insert(seq_num++, kKeyFrame, kFirst, kNotLast, {}, timestamp);
         for (int i = 0; i < 5; ++i) {

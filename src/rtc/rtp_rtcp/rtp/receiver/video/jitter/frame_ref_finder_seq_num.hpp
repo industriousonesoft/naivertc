@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.hpp"
 #include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
-#include "rtc/rtp_rtcp/components/seq_num_unwrapper.hpp"
+#include "rtc/rtp_rtcp/components/num_unwrapper.hpp"
 
 #include <map>
 #include <set>
@@ -52,7 +52,7 @@ private:
     std::set<PictureId, wrap_around_utils::OlderThan<PictureId>> stashed_padding_;
     std::deque<std::unique_ptr<video::FrameToDecode>> stashed_frames_;
 
-    SeqNumUnwrapper<uint16_t> seq_num_unwrapper_;
+    NumberUnwrapper<uint16_t> seq_num_unwrapper_;
 };
     
 } // namespace jitter
