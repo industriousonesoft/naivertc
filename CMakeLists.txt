@@ -180,6 +180,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_seq_num.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer_continuity.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer_decodability.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.cpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/rtt_filter.cpp
 
@@ -412,6 +414,7 @@ set(LIB_HEADERS
     # rtc -> rtp_rtcp -> rtp -> receiver -> video
     src/rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp
     # rtc -> rtp_rtcp -> rtp -> receiver -> video -> jitter
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_defines.hpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.hpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.hpp
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.hpp

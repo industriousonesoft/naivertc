@@ -43,6 +43,8 @@ public:
 
     bool is_keyframe() const { return frame_type_ == VideoFrameType::KEY && referred_picture_ids_.size() == 0; }
 
+    size_t size() { return bitstream_.size(); }
+
     bool InsertReference(int64_t picture_id) { return referred_picture_ids_.insert(picture_id).second; }
     size_t NumReferences() const { return referred_picture_ids_.size(); }
     void ForEachReference(std::function<void(int64_t picture_id, bool* stoped)>) const;

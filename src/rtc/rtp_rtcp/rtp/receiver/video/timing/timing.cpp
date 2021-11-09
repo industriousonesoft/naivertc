@@ -98,15 +98,16 @@ void Timing::UpdateCurrentDelay(uint32_t timestamp) {
     
 }
 
-void Timing::UpdateCurrentDelay(int64_t expect_render_time_ms,
+void Timing::UpdateCurrentDelay(int64_t expected_render_time_ms,
                                 int64_t actual_time_ms_to_decode) {
     uint32_t target_delay_ms = TargetDelayMs();
     // The time consumed by video decoder.
     int decode_time_ms = RequiredDecodeTimeMs();
     // The time expected to start to decode.
-    int64_t expect_time_ms_to_decode = expect_render_time_ms - decode_time_ms - render_delay_ms_;
+    int64_t expected_time_ms_to_decode = expected_render_time_ms - decode_time_ms - render_delay_ms_;
 
-    int64_t decode_delayed_ms = actual_time_ms_to_decode - expect_time_ms_to_decode;
+    int64_t decode_delayed_ms = actual_time_ms_to_decode - expected_time_ms_to_decode;
+    // No delay to decode.
     if (decode_delayed_ms < 0) {
         return;
     }

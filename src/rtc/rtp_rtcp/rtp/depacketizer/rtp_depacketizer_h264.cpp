@@ -211,6 +211,33 @@ std::optional<RtpDepacketizer::Packet> RtpH264Depacketizer::DepacketizeStapAOrSi
     return depacketized_payload;
 }
 
+// Fragment payload into packets (FU-A)
+// e.g.: RTP payload format for FU-A
+// 0                   1                   2                   3
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// | FU indicator  |   FU header   |                               |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+// |                                                               |
+// |                         FU payload                            |
+// |                                                               |
+// |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |                               :...OPTIONAL RTP padding        |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+// FU indicator, RFC 6184, Section 5.3
+// +---------------+
+// |0|1|2|3|4|5|6|7|
+// +-+-+-+-+-+-+-+-+
+// |F|NRI|  Type   |
+// +---------------+
+
+// FU header, RFC 6184, Section 5.8
+// +---------------+
+// |0|1|2|3|4|5|6|7|
+// +-+-+-+-+-+-+-+-+
+// |S|E|R|  Type   |
+// +---------------+
 std::optional<RtpDepacketizer::Packet> RtpH264Depacketizer::DepacketizeFuANalu(CopyOnWriteBuffer rtp_payload) {
     if (rtp_payload.size() < kFuAHeaderSize) {
         PLOG_WARNING << "FU-A NAL units is truncted.";
