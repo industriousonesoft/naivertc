@@ -163,9 +163,9 @@ int64_t TimestampExtrapolator::Unwrap(uint32_t timestamp) {
     }
     prev_wrap_timestamp_ = timestamp;
 
+    constexpr int64_t kModuloValue = int64_t{std::numeric_limits<uint32_t>::max() + 1};
     // Unwrap the timestamp from `uint32_t` to `int64_t`
-    return static_cast<int64_t>(timestamp) + 
-           num_wrap_arounds_ * ((static_cast<int64_t>(1) << 32) - 1) /* the max value of uint32 */;
+    return static_cast<int64_t>(timestamp) + num_wrap_arounds_ * kModuloValue;
 }
 
 bool TimestampExtrapolator::DelayChangeDetection(double error) {

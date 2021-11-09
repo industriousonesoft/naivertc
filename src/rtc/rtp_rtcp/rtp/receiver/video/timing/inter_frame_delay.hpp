@@ -19,8 +19,15 @@ public:
     std::pair<int64_t, bool> CalculateDelay(uint32_t timestamp, int64_t recv_time_ms);
 
 private:
-    int64_t prev_frame_recv_time_ms_;
-    uint32_t prev_frame_timestamp_;
+    // Investigates if the timestamp clock has overflowd since the last timestamp
+    // and keep track of the number of wrap arounds since last.
+    void CheckForWrapArounds(uint32_t timestamp);
+
+private:
+    int64_t prev_recv_time_ms_;
+    uint32_t prev_timestamp_;
+    int32_t num_wrap_around_;
+    int64_t diff_timestamp_;
 };
     
 } // namespace video
