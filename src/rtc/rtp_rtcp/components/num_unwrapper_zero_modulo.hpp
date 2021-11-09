@@ -30,12 +30,15 @@ int64_t NumberUnwrapper<U>::Unwrap(U value, bool update_last) {
     if (!last_unwrapped_value_) {
         unwrapped = value;
     }else {
-        // Last wrapped value
+        // The higher bytes exceed the max value of type U is the count of wrap around,
+        // and the rest lower bytes of type U is the last value.
+        // Last wrapped value 
         U last_value = static_cast<U>(*last_unwrapped_value_);
         
         // Forward
         if (wrap_around_utils::AheadOrAt<U>(value, last_value)) {
             unwrapped = *last_unwrapped_value_ + ForwardDiff<U>(last_value, value);
+        // Backward
         }else {
             unwrapped = *last_unwrapped_value_ - ReverseDiff<U>(last_value, value);
             // Don't wrap backwards past 0.

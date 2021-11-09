@@ -42,7 +42,7 @@ bool RtpToNtpEstimator::UpdateMeasurements(uint32_t ntp_secs, uint32_t ntp_frac,
         return false;
     }
     int64_t ntp_time_ms = ntp_time.ToMs();
-    int64_t unwrapped_rtp_timestamp = unwrapper_.Unwrap(rtp_timestamp);
+    int64_t unwrapped_rtp_timestamp = timestamp_unwrapper_.Unwrap(rtp_timestamp);
     Measurement new_measurement(ntp_time_ms, unwrapped_rtp_timestamp);
     if (Contains(new_measurement)) {
         return false;
@@ -89,8 +89,8 @@ std::optional<int64_t> RtpToNtpEstimator::Estimate(int64_t rtp_timestamp) const 
     if (!params_ || params_->frequency_khz == 0.0) {
         return std::nullopt;
     }
-    // Unwrappe rtp timestamp (uin32_t) to int64 
-    int64_t unwrapped_rtp_timestamp = unwrapper_.Unwrap(rtp_timestamp);
+    // Unwrap rtp timestamp (uin32_t) to int64 
+    int64_t unwrapped_rtp_timestamp = timestamp_unwrapper_.Unwrap(rtp_timestamp);
     // leaner regression: ntp_timestamp_ms = rtp_timestamp / frequency + offset_ms
     double ntp_timestamp_ms = static_cast<double>(unwrapped_rtp_timestamp) / params_->frequency_khz + params_->offset_ms + 0.5f;
 

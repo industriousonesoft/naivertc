@@ -75,18 +75,25 @@ TEST(ZeroModuloNumberUnwrapperTest, TimestampLimits) {
     TimestampUnwrapper unwrapper;
 
     EXPECT_EQ(0, unwrapper.Unwrap(0));
+    // Forward
     EXPECT_EQ(0x80000000, unwrapper.Unwrap(0x80000000));
+    // Backward
     // Delta is exactly 0x80000000 but current is lower than input, wrap
     // backwards.
     EXPECT_EQ(0, unwrapper.Unwrap(0));
-
+    // Forward
     EXPECT_EQ(0x80000000, unwrapper.Unwrap(0x80000000));
+    // Forward
     EXPECT_EQ(0xFFFFFFFF, unwrapper.Unwrap(0xFFFFFFFF));
+    // Forward
     EXPECT_EQ(0x100000000, unwrapper.Unwrap(0x00000000));
+    // Backward
     EXPECT_EQ(0xFFFFFFFF, unwrapper.Unwrap(0xFFFFFFFF));
+    // Backward
     EXPECT_EQ(0x80000000, unwrapper.Unwrap(0x80000000));
+    // Backward
     EXPECT_EQ(0, unwrapper.Unwrap(0));
-
+    // Backward
     // Don't allow negative values.
     EXPECT_EQ(0xFFFFFFFF, unwrapper.Unwrap(0xFFFFFFFF));
 }

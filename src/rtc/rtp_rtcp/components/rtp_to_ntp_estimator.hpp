@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/time/ntp_time.hpp"
-#include "rtc/rtp_rtcp/components/num_unwrapper_zero_modulo.hpp"
+#include "rtc/rtp_rtcp/components/num_unwrapper.hpp"
 
 #include <list>
 #include <optional>
@@ -52,7 +52,7 @@ private:
     int consecutive_invalid_samples_;
     std::list<Measurement> measurements_;
     std::optional<Parameters> params_;
-    mutable TimestampUnwrapper unwrapper_;
+    mutable NumberUnwrapper<uint32_t> timestamp_unwrapper_;
 };
 
 } // namespace naivertc
