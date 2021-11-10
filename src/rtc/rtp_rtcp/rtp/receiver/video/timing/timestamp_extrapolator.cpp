@@ -143,23 +143,9 @@ int64_t TimestampExtrapolator::ExtrapolateLocalTime(uint32_t timestamp) {
 // Private methods
 int64_t TimestampExtrapolator::Unwrap(uint32_t timestamp) {
     if (prev_wrap_timestamp_) {
-        if (timestamp < *prev_wrap_timestamp_) {
-            // This difference of the smaller one subtract the bigger one will probably 
-            // be less than -2^31 if we have had a wrap around (e.g. timestamp = 1, _previousTimestamp = 2^32 - 1).
-            // Since it is casted to a Word32, then the highest bit used as sign bit, it should be positive.
-            if (static_cast<int32_t>(timestamp - *prev_wrap_timestamp_) > 0) {
-                // Forward wrap around
-                num_wrap_arounds_++;
-            }
-        } else {
-            // This difference of the smaller one subtract the bigger will probably 
-            // be less than -2^31 if we have had a backward wrap around.
-            // Since it is casted to a Word32, it should be positive.
-            if (static_cast<int32_t>(*prev_wrap_timestamp_ - timestamp) > 0) {
-                // Backward wrap around
-                num_wrap_arounds_--;
-            }
-        }
+        // Detects if the timestamp clock has overflowd since the last timestamp
+        // and keep track of the number of wrap arounds since last.
+        num_wrap_arounds_ += wrap_around_utils::DetectWrapAround<uint32_t>(*prev_wrap_timestamp_, timestamp);
     }
     prev_wrap_timestamp_ = timestamp;
 

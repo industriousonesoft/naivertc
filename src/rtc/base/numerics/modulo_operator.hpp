@@ -105,6 +105,8 @@ inline typename std::enable_if<(M > 0), T>::type ReverseDiff(T a, T b) {
 template <typename T, T M>
 inline typename std::enable_if<(M == 0), T>::type ReverseDiff(T a, T b) {
     static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
+    // Subtraction of two unsigned integer:
+    // A - B = A + (B complement) = A +（~B+1) = A + (2^n-1-B+1) = A + (2^n-B)
     return a - b;
 }
 

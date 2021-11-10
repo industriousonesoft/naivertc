@@ -1,4 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/timing/inter_frame_delay.hpp"
+#include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 
 namespace naivertc {
 namespace rtp {
@@ -24,7 +25,9 @@ std::pair<int64_t, bool> InterFrameDelay::CalculateDelay(uint32_t timestamp, int
     }
 
     int32_t prev_num_wrap_around = num_wrap_around_;
-    CheckForWrapArounds(timestamp);
+    // Detects if the timestamp clock has overflowd since the last timestamp
+    // and keep track of the number of wrap arounds since last.
+    num_wrap_around_ += wrap_around_utils::DetectWrapAround<uint32_t>(prev_timestamp_, timestamp);
 
     // This will be -1 for backward wrap arounds and +1 for forward wrap arounds.
     int32_t wrap_arounds_since_prev = num_wrap_around_ - prev_num_wrap_around;
@@ -57,30 +60,6 @@ std::pair<int64_t, bool> InterFrameDelay::CalculateDelay(uint32_t timestamp, int
     prev_recv_time_ms_ = recv_time_ms;
 
     return {delay, true};
-}
-
-// Private methods
-void InterFrameDelay::CheckForWrapArounds(uint32_t timestamp) {
-    if (timestamp < prev_timestamp_) {
-        // This difference will probably be less than -2^31 if we have had a forward wrap
-        // around (e.g. timestamp = 1, _prevTimestamp = 2^32 - 1). 
-        // Since it is cast to a int32_t, it should be positive.
-        // A - B = A + (B的补码) = A +（~B+1) = A + (2^n-1-B+1) = A + (2^n-B) = A - B + 2^n
-        // ForwardDiff: prev_timestamp_ -> timestamp
-        if (static_cast<int32_t>(timestamp - prev_timestamp_) > 0) {
-            // Forward wrap around
-            ++num_wrap_around_;
-        }
-    } else {
-        // This difference will probably be less than -2^31 if we have had a
-        // backward wrap around. 
-        // Since it is cast to a int32_t, it should be positive.
-        // ReverseDiff: timestamp <- prev_timestamp_
-        if (static_cast<int32_t>(prev_timestamp_ - timestamp) > 0) {
-            // Backward wrap around
-            --num_wrap_around_;
-        }
-    }
 }
 
 } // namespace video

@@ -9,7 +9,8 @@ namespace naivertc {
 
 // NOTE: This class was deprecated, please use `wrap_around_utils` instead.
 template <typename U>
-inline bool IsNewer(U value, U prev_value) {
+[[deprecated("Use wrap_around_utils instead")]]
+RTC_CPP_EXPORT inline bool IsNewer(U value, U prev_value) {
     static_assert(!std::numeric_limits<U>::is_signed, "U must be unsigned");
     // kBreakpoint is the half-way mark for the type U. For instance, for a
     // uint16_t it will be 0x8000 (2^15), and for a uint32_t, it will be 0x80000000 (2^31).
@@ -25,21 +26,25 @@ inline bool IsNewer(U value, U prev_value) {
             static_cast<U>(value - prev_value) < kBreakpoint;
 }
 
-inline bool IsNewerSequenceNumber(uint16_t sequence_number,
+[[deprecated("Use wrap_around_utils instead")]]
+RTC_CPP_EXPORT inline bool IsNewerSequenceNumber(uint16_t sequence_number,
                                   uint16_t prev_sequence_number) {
     return IsNewer(sequence_number, prev_sequence_number);
 }
 
-inline bool IsNewerTimestamp(uint32_t timestamp, uint32_t prev_timestamp) {
+[[deprecated("Use wrap_around_utils instead")]]
+RTC_CPP_EXPORT inline bool IsNewerTimestamp(uint32_t timestamp, uint32_t prev_timestamp) {
     return IsNewer(timestamp, prev_timestamp);
 }
 
-inline uint16_t LatestSequenceNumber(uint16_t sequence_number1,
+[[deprecated("Use wrap_around_utils instead")]]
+RTC_CPP_EXPORT inline uint16_t LatestSequenceNumber(uint16_t sequence_number1,
                                      uint16_t sequence_number2) {
     return IsNewerSequenceNumber(sequence_number1, sequence_number2) ? sequence_number1 : sequence_number2;
 }
 
-inline uint32_t LatestTimestamp(uint32_t timestamp1, uint32_t timestamp2) {
+[[deprecated("Use wrap_around_utils instead")]]
+RTC_CPP_EXPORT inline uint32_t LatestTimestamp(uint32_t timestamp1, uint32_t timestamp2) {
     return IsNewerTimestamp(timestamp1, timestamp2) ? timestamp1 : timestamp2;
 }
     

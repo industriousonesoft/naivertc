@@ -120,15 +120,15 @@ bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) {
         // Key frame has no reference.
         return frame.NumReferences() == 0;
     } else {
-        bool is_valid = true;
-        frame.ForEachReference([&is_valid, &frame](int64_t ref_picture_id, bool* stoped) {
-            // The frame id a the B frame, droping it.
+        bool has_invalid_ref = false;
+        frame.ForEachReference([&has_invalid_ref, &frame](int64_t ref_picture_id, bool* stoped) {
+            // The referred frame of this frame is behind itself, e.g the B frame.
             if (ref_picture_id >= frame.id()) {
-                is_valid = false;
+                has_invalid_ref = true;
                 *stoped = true;
             }
         });
-        return is_valid;
+        return !has_invalid_ref;
     }
 }
 
