@@ -11,21 +11,21 @@ using namespace naivertc::rtp::video;
 namespace naivertc {
 namespace test {
 namespace {
-std::unique_ptr<FrameToDecode> CreateFrame(uint16_t seq_num_start, 
-                                           uint16_t seq_num_end,
-                                           bool is_keyframe,
-                                           VideoCodecType codec_type) {
+FrameToDecode CreateFrame(uint16_t seq_num_start, 
+                          uint16_t seq_num_end,
+                          bool is_keyframe,
+                          VideoCodecType codec_type) {
     VideoFrameType frame_type = is_keyframe ? VideoFrameType::KEY : VideoFrameType::DELTA;
-    return std::make_unique<FrameToDecode>(frame_type, 
-                                           codec_type, 
-                                           seq_num_start, 
-                                           seq_num_end, 
-                                           0, /* timestamp */
-                                           0, /* ntp_time_ms */
-                                           -1, /* times_nacked */
-                                           -1, /* min_received_time_ms */
-                                           -1, /* max_received_time_ms */
-                                           CopyOnWriteBuffer());
+    return FrameToDecode(CopyOnWriteBuffer(1),
+                         frame_type, 
+                         codec_type, 
+                         seq_num_start, 
+                         seq_num_end, 
+                         0, /* timestamp */
+                         0, /* ntp_time_ms */
+                         -1, /* times_nacked */
+                         -1, /* min_received_time_ms */
+                         -1 /* max_received_time_ms */);
 }
 } // namespace
 
@@ -33,7 +33,7 @@ class FrameRefFinderTest : public ::testing::Test {
 protected:
     FrameRefFinderTest(VideoCodecType codec_type) 
         : frame_ref_finder_(jitter::FrameRefFinder::Create(codec_type)) {
-        frame_ref_finder_->OnFrameRefFound([this](std::unique_ptr<FrameToDecode> frame){
+        frame_ref_finder_->OnFrameRefFound([this](FrameToDecode frame){
             OnFrameRefFound(std::move(frame));
         });
     }
@@ -42,7 +42,7 @@ protected:
 
     void InsertH264(uint16_t seq_num_start, uint16_t seq_num_end, bool is_keyframe) {
         auto frame = CreateFrame(seq_num_start, seq_num_end, is_keyframe, VideoCodecType::H264);
-        EXPECT_NE(frame, nullptr);
+        EXPECT_NE(frame.cdata(), nullptr);
         frame_ref_finder_->InsertFrame(std::move(frame));
     }
 
@@ -50,8 +50,8 @@ protected:
         frame_ref_finder_->InsertPadding(seq_num);
     }
 
-    void OnFrameRefFound(std::unique_ptr<FrameToDecode> frame) {
-        int64_t pid = frame->id();
+    void OnFrameRefFound(FrameToDecode frame) {
+        int64_t pid = frame.id();
         auto frame_it = referred_frames_.find(pid);
         if (frame_it != referred_frames_.end()) {
             ADD_FAILURE() << "Already received frame with pid=" << pid;
@@ -74,7 +74,7 @@ private:
             return;
         }
         std::set<int64_t> actual_refs;
-        frame_it->second->ForEachReference([&actual_refs](int64_t pid, bool* stoped){
+        frame_it->second.ForEachReference([&actual_refs](int64_t pid, bool* stoped){
             actual_refs.insert(pid);
         });
         std::set<int64_t> expected_refs;
@@ -98,7 +98,7 @@ protected:
             return p1 < p2;
         }
     };
-    std::map<int64_t, std::unique_ptr<FrameToDecode>> referred_frames_;
+    std::map<int64_t, FrameToDecode> referred_frames_;
 };
 
 // H264

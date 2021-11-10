@@ -16,11 +16,11 @@ public:
 public:
     virtual ~FrameRefFinder();
 
-    virtual void InsertFrame(std::unique_ptr<video::FrameToDecode> frame);
+    virtual void InsertFrame(video::FrameToDecode frame);
     virtual void InsertPadding(uint16_t seq_num);
     virtual void ClearTo(uint16_t seq_num);
 
-    using FrameRefFoundCallback = std::function<void(std::unique_ptr<video::FrameToDecode>)>;
+    using FrameRefFoundCallback = std::function<void(video::FrameToDecode)>;
     void OnFrameRefFound(FrameRefFoundCallback callback);
 
 protected:

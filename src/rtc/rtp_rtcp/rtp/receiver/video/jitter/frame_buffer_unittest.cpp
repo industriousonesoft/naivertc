@@ -60,7 +60,8 @@ public:
     FakeFrameToDecode(int64_t timestamp_ms,
                       int times_nacked, 
                       size_t frame_size) 
-        : FrameToDecode(VideoFrameType::DELTA,
+        : FrameToDecode(CopyOnWriteBuffer(frame_size),
+                        VideoFrameType::DELTA,
                         VideoCodecType::H264,
                         0, /* seq_num_start */
                         0, /* seq_num_end */
@@ -68,8 +69,7 @@ public:
                         timestamp_ms, /* ntp_time_ms */
                         times_nacked, /* times_nacked */
                         0, /* min_received_time_ms */
-                        0, /* max_received_time_ms */
-                        CopyOnWriteBuffer(frame_size)) {}
+                        0 /* max_received_time_ms */) {}
 
     
 };
@@ -83,21 +83,19 @@ protected:
           frame_buffer_(std::make_unique<jitter::FrameBuffer>(clock_, timing_, nullptr /* TODO: Using simulated task queue instread */)) {}
 
     template<typename... T>
-    std::unique_ptr<FrameToDecode> CreateFrame(uint16_t picture_id,
-                                               int64_t timestamp_ms,
-                                               int times_nacked,
-                                               size_t frame_size,
-                                               T... refs) {
+    FrameToDecode CreateFrame(uint16_t picture_id,
+                              int64_t timestamp_ms,
+                              int times_nacked,
+                              size_t frame_size,
+                              T... refs) {
         static_assert(sizeof...(refs) <= kMaxReferences,
                       "To many references specified for frame to decode.");
         std::array<uint16_t, sizeof...(refs)> references = {{utils::numeric::checked_static_cast<uint16_t>(refs)...}};
 
-        auto frame = std::make_unique<FakeFrameToDecode>(timestamp_ms,
-                                                         0, /* times_nacked */
-                                                         frame_size);
-        frame->set_id(picture_id);
+        FakeFrameToDecode frame(timestamp_ms,0, /* times_nacked */frame_size);
+        frame.set_id(picture_id);
         for (uint16_t ref : references) {
-            frame->InsertReference(ref);
+            frame.InsertReference(ref);
         }
         return frame;
     }

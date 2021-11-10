@@ -11,9 +11,10 @@ namespace naivertc {
 namespace rtp {
 namespace video {
 
-class RTC_CPP_EXPORT FrameToDecode {
+class RTC_CPP_EXPORT FrameToDecode : public CopyOnWriteBuffer {
 public:
-    FrameToDecode(VideoFrameType frame_type,
+    FrameToDecode(CopyOnWriteBuffer bitstream,
+                  VideoFrameType frame_type,
                   VideoCodecType codec_type, 
                   uint16_t seq_num_start, 
                   uint16_t seq_num_end,
@@ -21,8 +22,7 @@ public:
                   int64_t ntp_time_ms,
                   int times_nacked,
                   int64_t min_received_time_ms,
-                  int64_t max_received_time_ms,
-                  CopyOnWriteBuffer bitstream);
+                  int64_t max_received_time_ms);
     virtual ~FrameToDecode();
 
     void set_id(int64_t id) { id_ = id; }
@@ -43,8 +43,6 @@ public:
 
     bool is_keyframe() const { return frame_type_ == VideoFrameType::KEY && referred_picture_ids_.size() == 0; }
 
-    size_t size() { return bitstream_.size(); }
-
     bool InsertReference(int64_t picture_id) { return referred_picture_ids_.insert(picture_id).second; }
     size_t NumReferences() const { return referred_picture_ids_.size(); }
     void ForEachReference(std::function<void(int64_t picture_id, bool* stoped)>) const;
@@ -63,8 +61,6 @@ private:
     int64_t min_received_time_ms_;
     int64_t max_received_time_ms_;
     int64_t render_time_ms_;
-
-    CopyOnWriteBuffer bitstream_;
 
     std::set<int64_t> referred_picture_ids_;
 };

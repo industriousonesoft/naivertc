@@ -20,11 +20,11 @@ SeqNumFrameRefFinder::SeqNumFrameRefFinder(int64_t picture_id_offset)
 
 SeqNumFrameRefFinder::~SeqNumFrameRefFinder() {}
 
-void SeqNumFrameRefFinder::InsertFrame(std::unique_ptr<video::FrameToDecode> frame) {
-    if (frame == nullptr) {
+void SeqNumFrameRefFinder::InsertFrame(video::FrameToDecode frame) {
+    if (frame.cdata() == nullptr) {
         return;
     }
-    FrameDecision decision = FindRefForFrame(*(frame.get()));
+    FrameDecision decision = FindRefForFrame(frame);
     if (decision == FrameDecision::STASHED) {
         if (stashed_frames_.size() > kMaxStashedFrames) {
             stashed_frames_.pop_back();
@@ -56,7 +56,7 @@ void SeqNumFrameRefFinder::ClearTo(uint16_t seq_num) {
     while (it != stashed_frames_.end()) {
         // We will clear all the frames until the frame which's `first_packet_seq_num`
         // is older than or equal to `seq_num`.
-        if (wrap_around_utils::AheadOf<uint16_t>(seq_num, (*it)->seq_num_start())) {
+        if (wrap_around_utils::AheadOf<uint16_t>(seq_num, it->seq_num_start())) {
             it = stashed_frames_.erase(it);
         } else {
             ++it;
@@ -180,7 +180,7 @@ void SeqNumFrameRefFinder::RetryStashedFrames() {
     do {
         ref_found = false;
         for (auto frame_it = stashed_frames_.begin(); frame_it != stashed_frames_.end();) {
-            FrameDecision decision = FindRefForFrame(*(frame_it->get()));
+            FrameDecision decision = FindRefForFrame(*frame_it);
             // Not found yet, move to next frame.
             if (decision == FrameDecision::STASHED) {
                 ++frame_it;

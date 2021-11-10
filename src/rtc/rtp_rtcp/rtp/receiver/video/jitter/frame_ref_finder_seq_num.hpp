@@ -22,7 +22,7 @@ public:
     SeqNumFrameRefFinder(int64_t picture_id_offset);
     ~SeqNumFrameRefFinder() override;
 
-    void InsertFrame(std::unique_ptr<video::FrameToDecode> frame) override;
+    void InsertFrame(video::FrameToDecode frame) override;
     void InsertPadding(uint16_t seq_num) override;
     void ClearTo(uint16_t seq_num) override;
 
@@ -50,7 +50,7 @@ private:
     std::map<PictureId, GopInfo, wrap_around_utils::OlderThan<PictureId>> gop_infos_;
 
     std::set<PictureId, wrap_around_utils::OlderThan<PictureId>> stashed_padding_;
-    std::deque<std::unique_ptr<video::FrameToDecode>> stashed_frames_;
+    std::deque<video::FrameToDecode> stashed_frames_;
 
     NumberUnwrapper<uint16_t> seq_num_unwrapper_;
 };

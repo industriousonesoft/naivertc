@@ -25,18 +25,18 @@ std::shared_ptr<RtcpModule> CreateRtcpModule(const RtpVideoStreamReceiver::Confi
     return std::make_shared<RtcpModule>(rtcp_config, task_queue);
 }
 
-std::unique_ptr<rtp::video::FrameToDecode> CreateFrameToDecode(const rtp::video::jitter::PacketBuffer::Frame& assembled_frame, 
+rtp::video::FrameToDecode CreateFrameToDecode(const rtp::video::jitter::PacketBuffer::Frame& assembled_frame, 
                                                                int64_t estimated_ntp_time_ms) {
-    return std::make_unique<rtp::video::FrameToDecode>(assembled_frame.frame_type,
-                                                        assembled_frame.codec_type,
-                                                        assembled_frame.seq_num_start,
-                                                        assembled_frame.seq_num_end,
-                                                        assembled_frame.timestamp,
-                                                        estimated_ntp_time_ms,
-                                                        assembled_frame.times_nacked,
-                                                        assembled_frame.min_received_time_ms,
-                                                        assembled_frame.max_received_time_ms,
-                                                        std::move(assembled_frame.bitstream));
+    return rtp::video::FrameToDecode(std::move(assembled_frame.bitstream),
+                                     assembled_frame.frame_type,
+                                     assembled_frame.codec_type,
+                                     assembled_frame.seq_num_start,
+                                     assembled_frame.seq_num_end,
+                                     assembled_frame.timestamp,
+                                     estimated_ntp_time_ms,
+                                     assembled_frame.times_nacked,
+                                     assembled_frame.min_received_time_ms,
+                                     assembled_frame.max_received_time_ms);
 }
 
 } // namespace
@@ -221,25 +221,25 @@ void RtpVideoStreamReceiver::OnInsertedPacket(rtp::video::jitter::PacketBuffer::
     }
 }
 
-void RtpVideoStreamReceiver::OnAssembledFrame(std::unique_ptr<rtp::video::FrameToDecode> frame) {
+void RtpVideoStreamReceiver::OnAssembledFrame(rtp::video::FrameToDecode frame) {
     if (!has_received_frame_) {
         // If frames arrive before a key frame, they would not be decodable.
         // In that case, request a key frame ASAP.
-        if (frame->frame_type() == VideoFrameType::KEY) {
+        if (frame.frame_type() == VideoFrameType::KEY) {
             RequestKeyFrame();
         }
         has_received_frame_ = true;
     }
 
     // Switch `frame_ref_finder_` if necessary.
-    SwitchFrameRefFinderIfNecessary(*(frame.get()));
+    SwitchFrameRefFinderIfNecessary(frame);
 
     frame_ref_finder_->InsertFrame(std::move(frame));
 }
 
-void RtpVideoStreamReceiver::OnCompleteFrame(std::unique_ptr<rtp::video::FrameToDecode> frame) {
-    last_seq_num_for_pic_id_[frame->id()] = frame->seq_num_end();
-    last_completed_picture_id_ = std::max(last_completed_picture_id_, frame->id());
+void RtpVideoStreamReceiver::OnCompleteFrame(rtp::video::FrameToDecode frame) {
+    last_seq_num_for_pic_id_[frame.id()] = frame.seq_num_end();
+    last_completed_picture_id_ = std::max(last_completed_picture_id_, frame.id());
     if (auto receiver = complete_frame_receiver_.lock()) {
         receiver->OnCompleteFrame(std::move(frame));
     }

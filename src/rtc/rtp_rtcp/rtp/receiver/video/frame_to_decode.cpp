@@ -4,7 +4,8 @@ namespace naivertc {
 namespace rtp {
 namespace video {
 
-FrameToDecode::FrameToDecode(VideoFrameType frame_type,
+FrameToDecode::FrameToDecode(CopyOnWriteBuffer bitstream,
+                             VideoFrameType frame_type,
                              VideoCodecType codec_type, 
                              uint16_t seq_num_start, 
                              uint16_t seq_num_end,
@@ -12,9 +13,9 @@ FrameToDecode::FrameToDecode(VideoFrameType frame_type,
                              int64_t ntp_time_ms,
                              int times_nacked,
                              int64_t min_received_time_ms,
-                             int64_t max_received_time_ms,
-                             CopyOnWriteBuffer bitstream)
-    : frame_type_(frame_type),
+                             int64_t max_received_time_ms)
+    : CopyOnWriteBuffer(std::move(bitstream)),
+      frame_type_(frame_type),
       codec_type_(codec_type),
       seq_num_start_(seq_num_start),
       seq_num_end_(seq_num_end),
@@ -23,8 +24,7 @@ FrameToDecode::FrameToDecode(VideoFrameType frame_type,
       times_nacked_(times_nacked),
       min_received_time_ms_(min_received_time_ms),
       max_received_time_ms_(max_received_time_ms),
-      render_time_ms_(-1),
-      bitstream_(std::move(bitstream)) {}
+      render_time_ms_(-1) {}
 
 FrameToDecode::~FrameToDecode() {}
 

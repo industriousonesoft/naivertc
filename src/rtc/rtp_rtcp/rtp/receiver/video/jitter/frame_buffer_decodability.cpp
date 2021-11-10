@@ -45,7 +45,7 @@ FrameBuffer::FrameMap::iterator FrameBuffer::FindNextDecodableFrame() {
         // TODO: Consider removing this check as it may make a stream undecodable 
         // after a very long delay (multiple wrap arounds) between frames.
         if (last_decoded_frame_timestamp && 
-            wrap_around_utils::AheadOf(*last_decoded_frame_timestamp, frame_it->second.frame->timestamp())) {
+            wrap_around_utils::AheadOf(*last_decoded_frame_timestamp, frame_it->second.frame.timestamp())) {
             PLOG_WARNING << "A jump in frame timestamp was detected, this may make frame with id: " 
                          << frame_it->first 
                          << " undecodable.";
@@ -75,10 +75,10 @@ int64_t FrameBuffer::FindNextFrame(int64_t now_ms) {
             continue;
         }
 
-        video::FrameToDecode* frame = frame_it->second.frame.get();
+        auto& frame = frame_it->second.frame;
 
         // Filter the delta frames if the key frame is required now.
-        if (keyframe_required_ && !frame->is_keyframe()) {
+        if (keyframe_required_ && !frame.is_keyframe()) {
             continue;
         }
 
@@ -86,7 +86,7 @@ int64_t FrameBuffer::FindNextFrame(int64_t now_ms) {
         // TODO: Consider removing this check as it may make a stream undecodable 
         // after a very long delay (multiple wrap arounds) between frames.
         if (last_decoded_frame_timestamp && 
-            wrap_around_utils::AheadOf(*last_decoded_frame_timestamp, frame->timestamp())) {
+            wrap_around_utils::AheadOf(*last_decoded_frame_timestamp, frame.timestamp())) {
             continue;
         }
         
@@ -96,13 +96,13 @@ int64_t FrameBuffer::FindNextFrame(int64_t now_ms) {
         frames_to_decode_.push_back(frame_it);
 
         // Set render time if necessary.
-        if (-1 == frame->render_time_ms()) {
-            frame->set_render_time_ms(timing_->RenderTimeMs(frame->timestamp(), now_ms));
+        if (-1 == frame.render_time_ms()) {
+            frame.set_render_time_ms(timing_->RenderTimeMs(frame.timestamp(), now_ms));
         }
         
         // The max time in ms to wait before decoding the current frame.
         // FIXME: Dose the later frame has a smaller waiting time?
-        wait_ms = timing_->MaxTimeWaitingToDecode(frame->render_time_ms(), now_ms);
+        wait_ms = timing_->MaxTimeWaitingToDecode(frame.render_time_ms(), now_ms);
 
         // This will cause the frame buffer to prefer high frame rate rather
         // than high resolution in the case of the decoder not decoding fast
@@ -130,28 +130,28 @@ video::FrameToDecode* FrameBuffer::GetNextFrame() {
     // Consider all the frames to decode at the same time as a batch.
     size_t batch_frame_size = 0;
     bool batch_delayed_by_retransmission = false;
-    video::FrameToDecode* first_frame = frames_to_decode_[0]->second.frame.get();
-    int64_t render_time_ms = first_frame->render_time_ms();
-    int64_t batch_received_time_ms = first_frame->received_time_ms();
+    const auto& first_frame = frames_to_decode_[0]->second.frame;
+    int64_t render_time_ms = first_frame.render_time_ms();
+    int64_t batch_received_time_ms = first_frame.received_time_ms();
     // Gracefully handle invalid RTP timestamps and render time.
-    if (!ValidRenderTiming(*first_frame, now_ms)) {
+    if (!ValidRenderTiming(first_frame, now_ms)) {
         jitter_estimator_.Reset();
         timing_->Reset();
-        render_time_ms = timing_->RenderTimeMs(first_frame->timestamp(), now_ms);
+        render_time_ms = timing_->RenderTimeMs(first_frame.timestamp(), now_ms);
     }
 
     for (FrameMap::iterator& frame_it : frames_to_decode_) {
-        FrameToDecode* frame_to_decode = frame_it->second.frame.release();
-        frame_to_decode->set_render_time_ms(render_time_ms);
+        auto& frame_to_decode = frame_it->second.frame;
+        frame_to_decode.set_render_time_ms(render_time_ms);
 
-        batch_delayed_by_retransmission |= frame_to_decode->delayed_by_retransmission();
-        batch_received_time_ms = std::max(batch_received_time_ms, frame_to_decode->received_time_ms());
-        batch_frame_size += frame_to_decode->size();
+        batch_delayed_by_retransmission |= frame_to_decode.delayed_by_retransmission();
+        batch_received_time_ms = std::max(batch_received_time_ms, frame_to_decode.received_time_ms());
+        batch_frame_size += frame_to_decode.size();
 
         // Propagate the decodability to the dependent frames of this frame.
         PropagateDecodability(frame_it->second);
 
-        decoded_frames_history_.InsertFrame(frame_it->first, frame_to_decode->timestamp());
+        decoded_frames_history_.InsertFrame(frame_it->first, frame_to_decode.timestamp());
 
         // TODO: Tragger state callback with dropped frames.
         // size_t dropped_frames = NumUndecodedFrames(frames_.begin(), frame_it)
@@ -163,7 +163,7 @@ video::FrameToDecode* FrameBuffer::GetNextFrame() {
     // No nack has happened during the transport of the current GOP.
     if (!batch_delayed_by_retransmission) {
         // Calculate the delay of the current GOP from the previous GOP.
-        auto [frame_delay, success] = inter_frame_delay_.CalculateDelay(first_frame->timestamp() /* GOP send timestamp */, batch_received_time_ms);
+        auto [frame_delay, success] = inter_frame_delay_.CalculateDelay(first_frame.timestamp() /* GOP send timestamp */, batch_received_time_ms);
         if (success) {
             assert(frame_delay >= 0);
             jitter_estimator_.UpdateEstimate(frame_delay, batch_frame_size);

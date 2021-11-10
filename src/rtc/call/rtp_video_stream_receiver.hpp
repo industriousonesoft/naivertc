@@ -52,7 +52,7 @@ public:
     class CompleteFrameReceiver {
     public:
         virtual ~CompleteFrameReceiver() = default;
-        virtual void OnCompleteFrame(std::unique_ptr<rtp::video::FrameToDecode> frame) = 0;
+        virtual void OnCompleteFrame(rtp::video::FrameToDecode frame) = 0;
     };
 
 public:
@@ -94,8 +94,8 @@ private:
     void OnDepacketizedPacket(RtpDepacketizer::Packet depacketized_packet, 
                               const RtpPacketReceived& rtp_packet);
     void OnInsertedPacket(rtp::video::jitter::PacketBuffer::InsertResult result);
-    void OnAssembledFrame(std::unique_ptr<rtp::video::FrameToDecode> frame);
-    void OnCompleteFrame(std::unique_ptr<rtp::video::FrameToDecode> frame);
+    void OnAssembledFrame(rtp::video::FrameToDecode frame);
+    void OnCompleteFrame(rtp::video::FrameToDecode frame);
 
     void HandleEmptyPacket(uint16_t seq_num);
     void HandleRedPacket(const RtpPacketReceived& packet);

@@ -17,19 +17,26 @@ constexpr size_t kMaxFramesBuffered = 800;
 
 } // namespace
 
-int64_t FrameBuffer::InsertFrame(std::unique_ptr<video::FrameToDecode> frame) {
+int64_t FrameBuffer::InsertFrame(video::FrameToDecode frame) {
+    return task_queue_->Sync<int64_t>([this, frame=std::move(frame)](){
+        return InsertFrameIntrenal(std::move(frame));
+    });
+}
+
+// Private methods
+int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
 
     int64_t last_continuous_frame_id = last_continuous_frame_id_.value_or(-1);
 
-    if (!ValidReferences(*(frame.get()))) {
-        PLOG_WARNING << "Frame " << frame->id()
+    if (!ValidReferences(frame)) {
+        PLOG_WARNING << "Frame " << frame.id()
                      << " has invaild frame reference, dropping it.";
         return last_continuous_frame_id;
     }
 
     if (frames_.size() >= kMaxFramesBuffered) {
-        if (frame->is_keyframe()) {
-            PLOG_WARNING << "Inserting keyframe " << frame->id()
+        if (frame.is_keyframe()) {
+            PLOG_WARNING << "Inserting keyframe " << frame.id()
                          << " but the buffer is full, clearing buffer and inserting the frame.";
             Clear();
         } else {
@@ -42,11 +49,11 @@ int64_t FrameBuffer::InsertFrame(std::unique_ptr<video::FrameToDecode> frame) {
     auto last_decoded_frame_timestamp = decoded_frames_history_.last_decoded_frame_timestamp();
     // Test if this frame has a earlier frame id than the last decoded frame, this can happen
     // when the frame id is out of order or wrapped around.
-    if (last_decoded_frame_id && frame->id() <= *last_decoded_frame_id) {
+    if (last_decoded_frame_id && frame.id() <= *last_decoded_frame_id) {
         // This frame has a newer timestamp but an earlier frame id, this can happen
         // due to some encoder reconfiguration or picture id wrapped around.
-        if (wrap_around_utils::AheadOf(frame->timestamp(), *last_decoded_frame_timestamp) 
-            && frame->is_keyframe()) {
+        if (wrap_around_utils::AheadOf(frame.timestamp(), *last_decoded_frame_timestamp) 
+            && frame.is_keyframe()) {
             // In this case, we assume there has been a jump in the frame id due 
             // to some encoder reconfiguration or some other reason. Even though  
             // this is not according to spec we can still continue to decode from 
@@ -57,7 +64,7 @@ int64_t FrameBuffer::InsertFrame(std::unique_ptr<video::FrameToDecode> frame) {
             last_continuous_frame_id = -1;
         } else {
             // The frame is out of order, and it's not a keyframe, droping it.
-            PLOG_WARNING << "Frame " << frame->id() << " inserted after frame "
+            PLOG_WARNING << "Frame " << frame.id() << " inserted after frame "
                          << *last_decoded_frame_id
                          << " was handed off for decoding, dropping frame.";
             return last_continuous_frame_id;
@@ -69,19 +76,19 @@ int64_t FrameBuffer::InsertFrame(std::unique_ptr<video::FrameToDecode> frame) {
     // when the frame id make large jumps mid stream.
     // FIXME: I don't think this can happen, since frame id was unwrapped (taking into account wrap around).
     if (!frames_.empty() && 
-        frame->id() < frames_.begin()->first &&
-        frame->id() > frames_.rbegin()->first) {
+        frame.id() < frames_.begin()->first &&
+        frame.id() > frames_.rbegin()->first) {
         PLOG_WARNING << "A jump in frame id was detected, clearing buffer.";
         // Clear and continue to decode (start from this frame).
         Clear();
         last_continuous_frame_id = -1;
     }
 
-    auto& frame_info = frames_.emplace(frame->id(), FrameInfo()).first->second;
+    auto& frame_info = frames_.emplace(frame.id(), FrameInfo()).first->second;
     
     // Frame has inserted already, dropping it.
-    if (frame_info.frame) {
-        PLOG_WARNING << "Frame " << frame->id()
+    if (frame_info.frame.cdata() != nullptr) {
+        PLOG_WARNING << "Frame " << frame.id()
                      << " already inserted, dropping it.";
         return last_continuous_frame_id;
     }
@@ -93,8 +100,8 @@ int64_t FrameBuffer::InsertFrame(std::unique_ptr<video::FrameToDecode> frame) {
 
     // If all packets of this frame was not be retransmited, 
     // it can be used to calculate delay in Timing.
-    if (!frame->delayed_by_retransmission()) {
-        timing_->IncomingTimestamp(frame->timestamp(), frame->render_time_ms());
+    if (!frame.delayed_by_retransmission()) {
+        timing_->IncomingTimestamp(frame.timestamp(), frame.render_time_ms());
     }
 
     // TODO: Trigger the state callback
@@ -114,7 +121,6 @@ int64_t FrameBuffer::InsertFrame(std::unique_ptr<video::FrameToDecode> frame) {
     return last_continuous_frame_id;
 }
 
-// Private methods
 bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) {
     if (frame.frame_type() == VideoFrameType::KEY) {
         // Key frame has no reference.
@@ -146,7 +152,7 @@ bool FrameBuffer::UpdateFrameReferenceInfo(FrameInfo& frame_info) {
     std::vector<Dependency> not_yet_fulfilled_referred_frames;
     bool is_frame_decodable = true;
     // Find all referred frames of this frame that have not yet been fulfilled.
-    frame_info.frame->ForEachReference([&](int64_t ref_frame_id, bool* stoped) {
+    frame_info.frame.ForEachReference([&](int64_t ref_frame_id, bool* stoped) {
         // Dose `frame` depend on a frame earlier than the last decoded frame?
         if (last_decoded_frame_id && ref_frame_id <= *last_decoded_frame_id) {
             // Was that frame decoded? If not, this `frame` will never become decodable.
@@ -198,7 +204,7 @@ bool FrameBuffer::UpdateFrameReferenceInfo(FrameInfo& frame_info) {
 }
 
 void FrameBuffer::PropagateContinuity(const FrameInfo& frame_info) {
-    if (!frame_info.continuous() || frame_info.frame == nullptr) {
+    if (!frame_info.continuous() || frame_info.frame.cdata() == nullptr) {
         return;
     }
 

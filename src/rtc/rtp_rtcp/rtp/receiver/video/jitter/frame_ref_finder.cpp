@@ -26,7 +26,7 @@ FrameRefFinder::FrameRefFinder(int64_t picture_id_offset)
 
 FrameRefFinder::~FrameRefFinder() = default;
 
-void FrameRefFinder::InsertFrame(std::unique_ptr<video::FrameToDecode> frame) {
+void FrameRefFinder::InsertFrame(video::FrameToDecode frame) {
     static_assert("Implemented in derived class.");
 }
 

@@ -83,7 +83,7 @@ void FrameBuffer::set_keyframe_required(bool keyframe_required) {
 size_t FrameBuffer::NumUndecodedFrames(FrameMap::iterator begin, FrameMap::iterator end) {
     return std::count_if(begin, end, 
                          [](const std::pair<const int64_t, FrameInfo>& frame_tuple) {
-        return frame_tuple.second.frame != nullptr;
+        return frame_tuple.second.frame.cdata() != nullptr;
     });
 }
 

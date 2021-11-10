@@ -38,9 +38,9 @@ public:
 
     void UpdateRtt(int64_t rtt_ms);
 
-    int64_t InsertFrame(std::unique_ptr<video::FrameToDecode> frame);
+    int64_t InsertFrame(video::FrameToDecode frame);
 
-    using NextFrameCallback = std::function<void(std::unique_ptr<video::FrameToDecode>, ReturnReason)>;
+    using NextFrameCallback = std::function<void(video::FrameToDecode, ReturnReason)>;
     void NextFrame(int64_t max_wait_time_ms, 
                    bool keyframe_required, 
                    std::shared_ptr<TaskQueue> task_queue, 
@@ -54,7 +54,7 @@ private:
         FrameInfo(FrameInfo&&);
         ~FrameInfo();
 
-        int64_t frame_id() const { return frame != nullptr ? frame->id() : -1; }
+        int64_t frame_id() const { return frame.cdata() != nullptr ? frame.id() : -1; }
 
         // Indicate if the frame is continuous or not.
         bool continuous() const { return num_missing_continuous == 0; }
@@ -70,7 +70,7 @@ private:
         // Which other frames that have direct unfulfilled dependencies on this frame.
         std::vector<int64_t> dependent_frames;
 
-        std::unique_ptr<video::FrameToDecode> frame = nullptr;
+        video::FrameToDecode frame;
     };
     using FrameMap = std::map<int64_t, FrameInfo>;
 
@@ -78,6 +78,7 @@ private:
     size_t NumUndecodedFrames(FrameMap::iterator begin, FrameMap::iterator end);
 
     // Continuity
+    int64_t InsertFrameIntrenal(video::FrameToDecode frame);
     bool ValidReferences(const video::FrameToDecode& frame);
     bool UpdateFrameReferenceInfo(FrameInfo& frame_info);
     void PropagateContinuity(const FrameInfo& frame_info);
