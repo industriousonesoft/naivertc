@@ -17,20 +17,20 @@ constexpr int kMaxFramesHistory = 1 << 13; // 8192
     
 } // namespace
 
-
-FrameBuffer::FrameBuffer(std::shared_ptr<Clock> clock, 
+// FrameBuffer
+FrameBuffer::FrameBuffer(ProtectionMode protection_mode,
+                         std::shared_ptr<Clock> clock, 
                          std::shared_ptr<Timing> timing,
                          std::shared_ptr<TaskQueue> task_queue)
-    : clock_(std::move(clock)),
+    : protection_mode_(protection_mode),
+      clock_(std::move(clock)),
       timing_(std::move(timing)),
       task_queue_(std::move(task_queue)),
       decoded_frames_history_(kMaxFramesHistory),
       jitter_estimator_({/* Default HyperParameters */}, clock_),
       keyframe_required_(true /* Require a keyframe to start */),
       add_rtt_to_playout_delay_(true),
-      latest_render_time_ms_(-1),
-      last_log_non_decoded_ms_(-kLogNonDecodedIntervalMs),
-      protection_mode_(ProtectionMode::NACK) {
+      last_log_non_decoded_ms_(-kLogNonDecodedIntervalMs) {
     assert(clock_ != nullptr);
     assert(timing_ != nullptr);
     assert(task_queue_ != nullptr);
@@ -39,14 +39,16 @@ FrameBuffer::FrameBuffer(std::shared_ptr<Clock> clock,
 FrameBuffer::~FrameBuffer() {}
 
 void FrameBuffer::Clear() {
-    size_t dropped_frames = NumUndecodedFrames(frames_.begin(), frames_.end());
-    if (dropped_frames > 0) {
-        PLOG_WARNING << "Dropped " << dropped_frames << " frames";
-    }
-    frames_.clear();
-    last_continuous_frame_id_.reset();
-    frames_to_decode_.clear();
-    decoded_frames_history_.Clear();
+    task_queue_->Async([this](){
+        size_t dropped_frames = NumUndecodedFrames(frames_.begin(), frames_.end());
+        if (dropped_frames > 0) {
+            PLOG_WARNING << "Dropped " << dropped_frames << " frames";
+        }
+        frames_.clear();
+        last_continuous_frame_id_.reset();
+        frames_to_decode_.clear();
+        decoded_frames_history_.Clear();
+    });
 }
 
 void FrameBuffer::UpdateRtt(int64_t rtt_ms) {
@@ -61,21 +63,17 @@ ProtectionMode FrameBuffer::protection_mode() const {
     });
 }
 
-void FrameBuffer::set_protection_mode(ProtectionMode mode) {
-    task_queue_->Async([this, mode](){
-        protection_mode_ = mode; 
+void FrameBuffer::RequireKeyframe() {
+    task_queue_->Async([this](){
+        keyframe_required_ = true;
+        // Try to find a decadable keyframe.
+        FindDecodableFrames();
     });
 }
 
-bool FrameBuffer::keyframe_required() const {
-    return task_queue_->Sync<bool>([this](){
-        return keyframe_required_;
-    });
-}
-
-void FrameBuffer::set_keyframe_required(bool keyframe_required) {
-    task_queue_->Async([this, keyframe_required](){
-        keyframe_required_ = keyframe_required;
+void FrameBuffer::OnDecodableFrame(FrameReadyToDecodeCallback callback) {
+    task_queue_->Async([this, callback=std::move(callback)](){
+        frame_ready_to_decode_callback_ = std::move(callback);
     });
 }
 
@@ -85,6 +83,22 @@ size_t FrameBuffer::NumUndecodedFrames(FrameMap::iterator begin, FrameMap::itera
                          [](const std::pair<const int64_t, FrameInfo>& frame_tuple) {
         return frame_tuple.second.frame.cdata() != nullptr;
     });
+}
+
+int FrameBuffer::EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size) {
+    // Calculate the delay of the current GOP from the previous GOP.
+    auto [frame_delay, success] = inter_frame_delay_.CalculateDelay(send_timestamp, recv_time_ms);
+    if (success) {
+        assert(frame_delay >= 0);
+        jitter_estimator_.UpdateEstimate(frame_delay, frame_size);
+    }
+
+    // `rtt_mult` will be 1 if protection mode is NACK only.
+    float rtt_mult = protection_mode_ == ProtectionMode::NACK_FEC ? 0 : 1;
+    std::optional<float> rtt_mult_add_cap_ms = std::nullopt;
+    // TODO: Enable RttMultExperiment if necessary.
+
+    return jitter_estimator_.GetJitterEstimate(rtt_mult, rtt_mult_add_cap_ms);
 }
 
 } // namespace jitter

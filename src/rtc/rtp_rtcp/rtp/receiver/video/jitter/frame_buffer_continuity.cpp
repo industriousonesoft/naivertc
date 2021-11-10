@@ -25,7 +25,6 @@ int64_t FrameBuffer::InsertFrame(video::FrameToDecode frame) {
 
 // Private methods
 int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
-
     int64_t last_continuous_frame_id = last_continuous_frame_id_.value_or(-1);
 
     if (!ValidReferences(frame)) {
@@ -74,7 +73,7 @@ int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
     // Test if inserting this frame would cause the order of the frame to become
     // ambigous (covering more than half the interval of 2^16). This can happen
     // when the frame id make large jumps mid stream.
-    // FIXME: I don't think this can happen, since frame id was unwrapped (taking into account wrap around).
+    // FIXME: I don't think this can happen, since frame id has been unwrapped already.
     if (!frames_.empty() && 
         frame.id() < frames_.begin()->first &&
         frame.id() > frames_.rbegin()->first) {
@@ -114,8 +113,8 @@ int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
         PropagateContinuity(frame_info);
         // Update the last continuous frame id with this frame id.
         last_continuous_frame_id = *last_continuous_frame_id_;
-        // Detect the decodable frames.
-        FindNextDecodableFrame();
+        // Try to find the decodable frames.
+        FindDecodableFrames();
     }
 
     return last_continuous_frame_id;

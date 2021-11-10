@@ -80,7 +80,7 @@ protected:
     FrameBufferTest() 
         : clock_(std::shared_ptr<Clock>(new SimulatedClock(0))),
           timing_(std::shared_ptr<Timing>(new FakeTiming(clock_))),
-          frame_buffer_(std::make_unique<jitter::FrameBuffer>(clock_, timing_, nullptr /* TODO: Using simulated task queue instread */)) {}
+          frame_buffer_(std::make_unique<jitter::FrameBuffer>(jitter::ProtectionMode::NACK_FEC, clock_, timing_, nullptr /* TODO: Use fake queue instead */)) {}
 
     template<typename... T>
     FrameToDecode CreateFrame(uint16_t picture_id,
