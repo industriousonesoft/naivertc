@@ -15,6 +15,7 @@ static constexpr double kMaxEstimatedFrameRate = 200.0;
 static constexpr int64_t kNackCountTimeoutUs = 60'000'000; // 60s; 1 minute
 // static constexpr double kDefaultMaxTimeDeviationInSigmas = 3.5;
 static constexpr double kJumpStdDevForDetectingKeyFrame = 2.0;
+static constexpr double kMaxEstimatedJitterMs = 10000.0;
 
 }  // namespace
 
@@ -62,6 +63,7 @@ JitterEstimator& JitterEstimator::operator=(const JitterEstimator& rhs) {
 }
 
 void JitterEstimator::Reset() {
+    // 64KB/ms?
     theta_[0] = 1 / (512e3 / 8);
     theta_[1] = 0;
     var_noise_ = 4.0;
@@ -114,10 +116,7 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
             avg_frame_size_ = new_avg_frame_size;
         }
         // Update the variance anyway since we want to capture cases where we only get key frames.
-        var_frame_size_ = phi_ * var_frame_size_ + (1 - phi_) * pow(frame_size - new_avg_frame_size, 2);
-        if (var_frame_size_ > 1.0) {
-            var_frame_size_ = 1.0;
-        }
+        var_frame_size_ = std::max(phi_ * var_frame_size_ + (1 - phi_) * pow(frame_size - new_avg_frame_size, 2), 1.0);
     }
 
     // Update max frame size estimate.
@@ -160,7 +159,7 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
             KalmanEstimateChannel(frame_delay_ms, frame_size_delta);
         }
     } else {
-        int num_std_dev = delay_deviation_ms > 0 ? num_std_dev_delay_outlier_ : -num_std_dev_delay_outlier_;
+        int num_std_dev = delay_deviation_ms >= 0 ? num_std_dev_delay_outlier_ : -num_std_dev_delay_outlier_;
         double delay_deviation_outlier = num_std_dev * std_dev_noise;
         EstimateRandomJitter(delay_deviation_outlier, incomplete_frame);
     }
@@ -221,7 +220,7 @@ int JitterEstimator::GetJitterEstimate(double rtt_multiplier,
         // we assume it's a Semi-low frame rate. 
         // Scaling the Semi-low frame rate by factor linearly interpolated from 0.0
         // at kJitterScaleLowThreshold to 1.0 at kJitterScaleHighThreshold.
-        // FIXME: What's the theory about this scale operation?
+        // FIXME: What's the theory behind this scale operation?
         if (estimated_fps < kJitterScaleHighThreshold) {
             // scale_factor: [0.0, 1.0) => [kJitterScaleLowThreshold, kJitterScaleHighThreshold)
             double scale_factor = 1.0 * (estimated_fps - kJitterScaleLowThreshold) / (kJitterScaleHighThreshold - kJitterScaleLowThreshold);
@@ -243,17 +242,15 @@ void JitterEstimator::FrameNacked() {
 
 // Private methods
 double JitterEstimator::DeviationFromExpectedDelay(int64_t frame_delay_ms, int32_t frame_size_delta) {
-    // theta_[0] and theta_[1] is estimated by Kalman filter.
-    // Calculate estimated delay based on linear regression.
-    // FIXME: Do we consider the `estimated_delay_ms` as the mean of delay?
-    double estimated_delay_ms = theta_[0] * frame_size_delta + theta_[1];
-    return frame_delay_ms - estimated_delay_ms;
+    // theta_[0] = 1//C(i), theta_[1] = m(i)
+    // FIXME: frame_delay_ms = d(i) = dL(i)/C(i) + m(i) + v(i)?
+    // expected_delay_ms = dL(i)/C(i) + m(i)
+    double expected_delay_ms = theta_[0] * frame_size_delta + theta_[1];
+    return frame_delay_ms - expected_delay_ms;
 }
 
 void JitterEstimator::EstimateRandomJitter(double delay_deviation_ms, bool incomplete_frame) {
-    if(sample_count_ == 0) {
-        return;
-    }
+    assert(sample_count_ != 0);
 
     uint64_t now_us = clock_->now_us();
     if (last_update_time_us_ != -1) {
@@ -266,7 +263,7 @@ void JitterEstimator::EstimateRandomJitter(double delay_deviation_ms, bool incom
     // The factor for Moving Average, range: [0, 1), and it's initiated linearly.
     // 过滤因子alpha呈线性增长，且曲线波动从大到小，最后趋于平缓，类似：0, 0.5, 0.66, 0.8, 0.833, 0.85, ~, 0.9975 ((400-1)/400)
     double alpha = static_cast<double>(sample_count_ - 1) / static_cast<double>(sample_count_);
-    // Limit the max value of alpha (0.9975)
+    // Limit the max value of alpha (0.9975, sample_count = 400)
     if (alpha > max_alpha_) {
         alpha = max_alpha_;
     }
@@ -364,11 +361,11 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
     // theta_bar(i) = theta_bar(i-1) + u_bar(i-1)
 
     // TODO: 弄清楚具体的推导过程？
-    // 结合以上方程和卡尔曼的五个公式（https://blog.csdn.net/wccsu1994/article/details/84643221）,推导出WebRTC中的公式为：
+    // 结合以上方程和卡尔曼滤波器的五个公式（https://blog.csdn.net/wccsu1994/article/details/84643221）,推导出WebRTC中的公式为：
     // 先验估计值：theta^-(i) = theta^(i-1)
     // 先验估计值的协方差：theta_cov-(i) = theta_cov-(i-1) + Q(i)，其中Q(i) = E{u_bar(i) * u_bar(i)^T}，表示过程噪音u_bar(i)的协方差矩阵(对角矩阵)，由于过程噪音无法测量和量化，故一般使用固定值, 
     // 卡尔曼增益：K = theta_cov-(i)*H^T / H*theta_cov-(i)*H^T+R，其中R表示测量噪声协方差。滤波器实际实现时，一般可以观测得到，属于已知条件。
-    // 后验估计值：theta^(i) = theta-(k) + K*(d(i)-H*theta^-(i))
+    // 后验估计值：theta^(i) = theta-(i) + K*(d(i)-H*theta^-(i))
     // 后验估计值的协方差：theta_cov(i)=(1 - K*H)*theta_cov-(i)
 
     // M: 协方差矩阵：theta_cov(i)，即theta_bar(i)：[1/C(i), m(i)]^T的协方差矩阵，是一个2x2的矩阵，对角线为方差，两边为协方差。
@@ -427,7 +424,7 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
 
     // Correction
     // 计算后验估计值
-    // theta^(i) = theta-(k) + K*(d(i) - H*theta^-(i))，其中d(i)表示测量值，H*theta^-(i)表示先验估计值
+    // theta^(i) = theta-(i) + K*(d(i) - H*theta^-(i))，其中d(i)表示测量值，H*theta^-(i)表示先验估计值
     // 实际观测和预测观测的偏差: measure_res = dT - h*theta^-(i) = dT - [dL(i), 1]*[1/C(i), m(i)] = dT - (dL(i)/C(i) + m(i))
     measure_res = frame_delay_ms - (frame_size_delta * theta_[0] + theta_[1]);
     // 1/C(i)
@@ -459,7 +456,8 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
 }
 
 double JitterEstimator::CalcNoiseThreshold() const {
-    // FIXME: How to understand this formula.
+    // FIXME: How to understand this formula? Why is this formula not that 
+    // noise_threshold = m(i) + v(i) = theta_[0] + noise_std_devs_ * sqrt(var_noise_)
     double noise_threshold = noise_std_devs_ * sqrt(var_noise_) - noise_std_dev_offset_;
     if (noise_threshold < 1.0) {
         noise_threshold = 1.0;
@@ -468,7 +466,7 @@ double JitterEstimator::CalcNoiseThreshold() const {
 }
 
 double JitterEstimator::CalcJitterEstimate() const {
-    // d(i) = dL(i)/C(i) + w(i)
+    // d(i) = dL(i)/C(i) + w(i) (NOTE: w(i) = m(i) + v(i))
     double estimated_jitter_ms = theta_[0] * (max_frame_size_ - avg_frame_size_) + CalcNoiseThreshold();
     // A very low estimate (or negative) is neglected.
     if (estimated_jitter_ms < 1.0) {
@@ -479,8 +477,8 @@ double JitterEstimator::CalcJitterEstimate() const {
         }
     }
 
-    // Sanity check
-    estimated_jitter_ms = std::max(estimated_jitter_ms, 10000.0);
+    // Sanity check: estimated_jitter_ms < kMaxEstimatedJitterMs
+    estimated_jitter_ms = std::min(estimated_jitter_ms, kMaxEstimatedJitterMs);
     return estimated_jitter_ms;
 }
     
