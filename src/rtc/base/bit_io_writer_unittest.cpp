@@ -3,10 +3,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(Base_BitWriterTest, SetOffsetValues) {
+MY_TEST(BitWriterTest, SetOffsetValues) {
     uint8_t bytes[4] = {0};
     BitWriter bit_writer(bytes, 4);
 
@@ -36,7 +39,7 @@ TEST(Base_BitWriterTest, SetOffsetValues) {
     EXPECT_FALSE(bit_writer.Seek(4, 1));
 }
 
-TEST(Base_BitWriterTest, SymmetricGolomb) {
+MY_TEST(BitWriterTest, SymmetricGolomb) {
     char test_string[] = "hello,world";
     uint8_t bytes[64] = {0};
     size_t w_byte_offset, w_bit_offset;

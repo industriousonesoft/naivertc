@@ -3,6 +3,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 #include <cmath>
 
 using namespace naivertc::H264;
@@ -28,7 +31,7 @@ constexpr size_t kPacketSize = sizeof(kPacket);
 
 } // namespace
 
-TEST(H264_NaluFragmentTest, Create) {
+MY_TEST(NaluFragmentTest, Create) {
     NalUnit_FU_A nalu_fragment_a(NalUnit_FU_A::FragmentType::START, false, 0x03, 0x0F, &kFragmentPacket[2], kFragmentPacketSize-2);
 
     EXPECT_FALSE(nalu_fragment_a.forbidden_bit());
@@ -43,7 +46,7 @@ TEST(H264_NaluFragmentTest, Create) {
 
 }
 
-TEST(H264_NaluFragmentTest, ParseFromNalUnit) {
+MY_TEST(NaluFragmentTest, ParseFromNalUnit) {
     const size_t kMaxFragmentSize = 12;
     auto nalu = std::make_shared<NalUnit>(kPacket, kPacketSize);
 

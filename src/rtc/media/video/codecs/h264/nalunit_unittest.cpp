@@ -3,6 +3,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::h264;
 
 namespace naivertc {
@@ -18,7 +21,7 @@ constexpr size_t kPacketSize = sizeof(kPacket);
 } // namespace
 
 
-TEST(H264_NalUnitTest, Create) {
+MY_TEST(NalUnitTest, Create) {
     NalUnit nalu;
     EXPECT_EQ(1u, nalu.size());
 
@@ -34,7 +37,7 @@ TEST(H264_NalUnitTest, Create) {
     EXPECT_THAT(nalu, testing::ElementsAreArray(kPacket));
 }
 
-TEST(H264_NalUnitTest, Parse) {
+MY_TEST(NalUnitTest, Parse) {
     NalUnit nalu(kPacket, kPacketSize);
 
     EXPECT_FALSE(nalu.forbidden_bit());
@@ -45,7 +48,7 @@ TEST(H264_NalUnitTest, Parse) {
 
 }
 
-TEST(H264_NalUnitTest, FindNaluIndices) {
+MY_TEST(NalUnitTest, FindNaluIndices) {
     const uint8_t h264_encoded_buffer[] = {0, 0, 1, uint8_t(h264::NaluType::IDR), 0xFF};
 
     std::vector<NaluIndex> nalu_indices = NalUnit::FindNaluIndices(h264_encoded_buffer, 5);
@@ -55,7 +58,7 @@ TEST(H264_NalUnitTest, FindNaluIndices) {
     EXPECT_EQ(nalu_indices[0].payload_size, 2);
 }
 
-TEST(H264_NalUnitTest, RetrieveRbspFromEbsp) {
+MY_TEST(NalUnitTest, RetrieveRbspFromEbsp) {
     uint8_t ebsp_buffer_1[] = {0x00, 0x00, 0x03, 0x01};
     uint8_t ebsp_buffer_2[] = {0x00, 0x00, 0x03, 0x02};
     uint8_t ebsp_buffer_3[] = {0x00, 0x00, 0x03, 0x03};

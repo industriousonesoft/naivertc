@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 #include <string>
 
 using namespace testing;
@@ -9,7 +12,7 @@ using namespace testing;
 namespace naivertc {
 namespace test {
 
-TEST(SDP_CandidateTest, CreateFromSDPLine) {
+MY_TEST(CandidateTest, CreateFromSDPLine) {
     const std::string sdp = "a=candidate:2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     sdp::Candidate candidate(sdp);
@@ -25,7 +28,7 @@ TEST(SDP_CandidateTest, CreateFromSDPLine) {
 
 }
 
-TEST(SDP_CandidateTest, BuildFromCandidateSDP) {
+MY_TEST(CandidateTest, BuildFromCandidateSDP) {
     const std::string sdp = "candidate:2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     sdp::Candidate candidate(sdp);
@@ -40,7 +43,7 @@ TEST(SDP_CandidateTest, BuildFromCandidateSDP) {
     EXPECT_EQ(candidate.isResolved(), false);
 }
 
-TEST(SDP_CandidateTest, ToString) {
+MY_TEST(CandidateTest, ToString) {
     const std::string sdp = "candidate:2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     sdp::Candidate candidate(sdp);
@@ -50,7 +53,7 @@ TEST(SDP_CandidateTest, ToString) {
     EXPECT_EQ(str, sdp);
 }
 
-TEST(SDP_CandidateTest, BuildSDPLine) {
+MY_TEST(CandidateTest, BuildSDPLine) {
     const std::string sdp = "a=candidate:2550170968 1 udp 8265471 45.76.53.21 52823 typ relay raddr 113.246.193.40 rport 37467 generation 0 ufrag CE1b network-id 1 network-cost 10";
 
     sdp::Candidate candidate(sdp);

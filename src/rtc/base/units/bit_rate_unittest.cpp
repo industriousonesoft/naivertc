@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(Base_BitRateTest, ConstExpr) {
+MY_TEST(BitRateTest, ConstExpr) {
     constexpr int64_t kValue = 12345;
     constexpr BitRate kBitRateZero = BitRate::Zero();
     constexpr BitRate kBitRateInf = BitRate::Infinity();
@@ -21,18 +24,18 @@ TEST(Base_BitRateTest, ConstExpr) {
     static_assert(kBitRateKbps.kbps_or(0) == kValue, "");
 }
 
-TEST(Base_BitRateTest, GetBackSameValues) {
+MY_TEST(BitRateTest, GetBackSameValues) {
     const int64_t kValue = 123 * 8;
     EXPECT_EQ(BitRate::BitsPerSec(kValue).bps(), kValue);
     EXPECT_EQ(BitRate::KilobitsPerSec(kValue).kbps(), kValue);
 }
 
-TEST(Base_BitRateTest, GetDifferentPrefix) {
+MY_TEST(BitRateTest, GetDifferentPrefix) {
     const int64_t kValue = 123 * 8000;
     EXPECT_EQ(BitRate::BitsPerSec(kValue).kbps(), kValue / 1000);
 }
 
-TEST(Base_BitRateTest, IdentityChecks) {
+MY_TEST(BitRateTest, IdentityChecks) {
     const int64_t kValue = 3000;
     EXPECT_TRUE(BitRate::Zero().IsZero());
     EXPECT_FALSE(BitRate::BitsPerSec(kValue).IsZero());
@@ -46,7 +49,7 @@ TEST(Base_BitRateTest, IdentityChecks) {
     EXPECT_TRUE(BitRate::Zero().IsFinite());
 }
 
-TEST(Base_BitRateTest, ComparisonOperators) {
+MY_TEST(BitRateTest, ComparisonOperators) {
     const int64_t kSmall = 450;
     const int64_t kLarge = 451;
     const BitRate small = BitRate::BitsPerSec(kSmall);
@@ -66,7 +69,7 @@ TEST(Base_BitRateTest, ComparisonOperators) {
     EXPECT_GT(BitRate::Infinity(), large);
 }
 
-TEST(Base_BitRateTest, ConvertsToAndFromDouble) {
+MY_TEST(BitRateTest, ConvertsToAndFromDouble) {
     const int64_t kValue = 128;
     const double kDoubleValue = static_cast<double>(kValue);
     const double kDoubleKbps = kValue * 1e-3;
@@ -84,7 +87,7 @@ TEST(Base_BitRateTest, ConvertsToAndFromDouble) {
     EXPECT_TRUE(BitRate::KilobitsPerSec(kInfinity).IsInfinite());
 }
 
-TEST(Base_BitRateTest, Clamping) {
+MY_TEST(BitRateTest, Clamping) {
     const BitRate upper = BitRate::KilobitsPerSec(800);
     const BitRate lower = BitRate::KilobitsPerSec(100);
     const BitRate under = BitRate::KilobitsPerSec(100);

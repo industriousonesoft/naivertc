@@ -3,6 +3,9 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 namespace {
@@ -13,14 +16,14 @@ constexpr uint32_t kTimestampOffset = 567;
 constexpr int64_t kRemoteToLocalClockOffsetMs = kLocalClockInitialTimeMs - kRemoteClockInitialTimeMs;
 } // namespace
 
-class RTP_RTCP_RemoteNtpTimeEstimatorTest : public ::testing::Test {
+class T(RemoteNtpTimeEstimatorTest) : public ::testing::Test {
 protected:
-    RTP_RTCP_RemoteNtpTimeEstimatorTest()
+    T(RemoteNtpTimeEstimatorTest)()
         : local_clock_(std::make_shared<SimulatedClock>(kLocalClockInitialTimeMs * 1000)),
           remote_clock_(std::make_shared<SimulatedClock>(kRemoteClockInitialTimeMs * 1000)),
           estimator_(new RemoteNtpTimeEstimator(local_clock_)) {}
 
-    ~RTP_RTCP_RemoteNtpTimeEstimatorTest() override = default;
+    ~T(RemoteNtpTimeEstimatorTest)() override = default;
 
     void AdvanceTimeMs(int64_t ms) {
         local_clock_->AdvanceTimeMs(ms);
@@ -70,7 +73,7 @@ protected:
     std::unique_ptr<RemoteNtpTimeEstimator> estimator_;
 };
 
-TEST_F(RTP_RTCP_RemoteNtpTimeEstimatorTest, Estimate) {
+MY_TEST_F(RemoteNtpTimeEstimatorTest, Estimate) {
     // Failed without valid NTP.
     UpdateRtcpTimestamp(kTestRtt, 0, 0, 0, false);
 
@@ -97,7 +100,7 @@ TEST_F(RTP_RTCP_RemoteNtpTimeEstimatorTest, Estimate) {
     EXPECT_EQ(kRemoteToLocalClockOffsetMs, estimator_->EstimateRemoteToLocalClockOffsetMs());
 }
 
-TEST_F(RTP_RTCP_RemoteNtpTimeEstimatorTest, AveragesErrorsOut) {
+MY_TEST_F(RemoteNtpTimeEstimatorTest, AveragesErrorsOut) {
     // Remote peer sends first 10 RTCP SR without errors.
     for (int i = 0; i < 10; ++i) {
         AdvanceTimeMs(1000);

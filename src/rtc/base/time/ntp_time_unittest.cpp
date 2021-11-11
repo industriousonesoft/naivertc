@@ -4,6 +4,9 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
@@ -13,26 +16,26 @@ constexpr uint32_t kNtpFrac = 0x23456789;
 constexpr int64_t kOneSecQ32x32 = uint64_t{1} << 32;
 constexpr int64_t kOneMsQ32x32 = 4294967;
 
-TEST(Base_NtpTimeTest, NoValueMeansInvalid) {
+MY_TEST(NtpTimeTest, NoValueMeansInvalid) {
     NtpTime ntp;
     EXPECT_FALSE(ntp.Valid());
 }
 
-TEST(Base_NtpTimeTest, CanResetValue) {
+MY_TEST(NtpTimeTest, CanResetValue) {
     NtpTime ntp(kNtpSec, kNtpFrac);
     EXPECT_TRUE(ntp.Valid());
     ntp.Reset();
     EXPECT_FALSE(ntp.Valid());
 }
 
-TEST(Base_NtpTimeTest, CanGetWhatIsSet) {
+MY_TEST(NtpTimeTest, CanGetWhatIsSet) {
     NtpTime ntp;
     ntp.Set(kNtpSec, kNtpFrac);
     EXPECT_EQ(kNtpSec, ntp.seconds());
     EXPECT_EQ(kNtpFrac, ntp.fractions());
 }
 
-TEST(Base_NtpTimeTest, SetIsSameAs2ParameterConstructor) {
+MY_TEST(NtpTimeTest, SetIsSameAs2ParameterConstructor) {
     NtpTime ntp1(kNtpSec, kNtpFrac);
     NtpTime ntp2;
     EXPECT_NE(ntp1, ntp2);
@@ -41,14 +44,14 @@ TEST(Base_NtpTimeTest, SetIsSameAs2ParameterConstructor) {
     EXPECT_EQ(ntp1, ntp2);
 }
 
-TEST(Base_NtpTimeTest, CanExplicitlyConvertToAndFromUint64) {
+MY_TEST(NtpTimeTest, CanExplicitlyConvertToAndFromUint64) {
     uint64_t untyped_time = 0x123456789;
     NtpTime time(untyped_time);
     EXPECT_EQ(untyped_time, static_cast<uint64_t>(time));
     EXPECT_EQ(NtpTime(0x12345678, 0x90abcdef), NtpTime(0x1234567890abcdef));
 }
 
-TEST(Base_NtpTimeTest, VerifyInt64MsToQ32x32NearZero) {
+MY_TEST(NtpTimeTest, VerifyInt64MsToQ32x32NearZero) {
     // Zero
     EXPECT_EQ(Int64MsToQ32x32(0), 0);
 
@@ -65,7 +68,7 @@ TEST(Base_NtpTimeTest, VerifyInt64MsToQ32x32NearZero) {
     EXPECT_EQ(Int64MsToQ32x32(-1000), -kOneSecQ32x32);
 }
 
-TEST(Base_NtpTimeTest, VerifyInt64MsToUQ32x32NearZero) {
+MY_TEST(NtpTimeTest, VerifyInt64MsToUQ32x32NearZero) {
     // Zero
     EXPECT_EQ(Int64MsToUQ32x32(0), uint64_t{0});
 
@@ -82,7 +85,7 @@ TEST(Base_NtpTimeTest, VerifyInt64MsToUQ32x32NearZero) {
     EXPECT_EQ(Int64MsToUQ32x32(-1000), uint64_t{0});  // Clamped
 }
 
-TEST(Base_NtpTimeTest, VerifyQ32x32ToInt64MsNearZero) {
+MY_TEST(NtpTimeTest, VerifyQ32x32ToInt64MsNearZero) {
     // Zero
     EXPECT_EQ(Q32x32ToInt64Ms(0), 0);
 
@@ -99,7 +102,7 @@ TEST(Base_NtpTimeTest, VerifyQ32x32ToInt64MsNearZero) {
     EXPECT_EQ(Q32x32ToInt64Ms(-kOneSecQ32x32), -1000);
 }
 
-TEST(Base_NtpTimeTest, VerifyUQ32x32ToInt64MsNearZero) {
+MY_TEST(NtpTimeTest, VerifyUQ32x32ToInt64MsNearZero) {
     // Zero
     EXPECT_EQ(UQ32x32ToInt64Ms(0), 0);
 
@@ -110,7 +113,7 @@ TEST(Base_NtpTimeTest, VerifyUQ32x32ToInt64MsNearZero) {
     EXPECT_EQ(UQ32x32ToInt64Ms(kOneSecQ32x32), 1000);
 }
 
-TEST(Base_NtpTimeTest, VerifyInt64MsToQ32x32NearMax) {
+MY_TEST(NtpTimeTest, VerifyInt64MsToQ32x32NearMax) {
     constexpr int64_t kMaxQ32x32 = std::numeric_limits<int64_t>::max();
     constexpr int64_t kBoundaryMs = (kMaxQ32x32 >> 32) * 1000 + 999;
 
@@ -132,7 +135,7 @@ TEST(Base_NtpTimeTest, VerifyInt64MsToQ32x32NearMax) {
     EXPECT_LE(Int64MsToQ32x32(kBoundaryMs - 1000), kMaxQ32x32 - kOneSecQ32x32);
 }
 
-TEST(Base_NtpTimeTest, VerifyInt64MsToUQ32x32NearMax) {
+MY_TEST(NtpTimeTest, VerifyInt64MsToUQ32x32NearMax) {
     constexpr uint64_t kMaxUQ32x32 = std::numeric_limits<uint64_t>::max();
     constexpr int64_t kBoundaryMs = (kMaxUQ32x32 >> 32) * 1000 + 999;
 
@@ -154,7 +157,7 @@ TEST(Base_NtpTimeTest, VerifyInt64MsToUQ32x32NearMax) {
     EXPECT_LE(Int64MsToUQ32x32(kBoundaryMs - 1000), kMaxUQ32x32 - kOneSecQ32x32);
 }
 
-TEST(Base_NtpTimeTest, VerifyQ32x32ToInt64MsNearMax) {
+MY_TEST(NtpTimeTest, VerifyQ32x32ToInt64MsNearMax) {
     constexpr int64_t kMaxQ32x32 = std::numeric_limits<int64_t>::max();
     constexpr int64_t kBoundaryMs = (kMaxQ32x32 >> 32) * 1000 + 1000;
 
@@ -168,7 +171,7 @@ TEST(Base_NtpTimeTest, VerifyQ32x32ToInt64MsNearMax) {
     EXPECT_EQ(Q32x32ToInt64Ms(kMaxQ32x32 - kOneSecQ32x32), kBoundaryMs - 1000);
 }
 
-TEST(Base_NtpTimeTest, VerifyUQ32x32ToInt64MsNearMax) {
+MY_TEST(NtpTimeTest, VerifyUQ32x32ToInt64MsNearMax) {
     constexpr uint64_t kMaxUQ32x32 = std::numeric_limits<uint64_t>::max();
     constexpr int64_t kBoundaryMs = (kMaxUQ32x32 >> 32) * 1000 + 1000;
 
@@ -182,7 +185,7 @@ TEST(Base_NtpTimeTest, VerifyUQ32x32ToInt64MsNearMax) {
     EXPECT_EQ(UQ32x32ToInt64Ms(kMaxUQ32x32 - kOneSecQ32x32), kBoundaryMs - 1000);
 }
 
-TEST(Base_NtpTimeTest, VerifyInt64MsToQ32x32NearMin) {
+MY_TEST(NtpTimeTest, VerifyInt64MsToQ32x32NearMin) {
     constexpr int64_t kBoundaryQ32x32 = 0x8000000000000000;
     constexpr int64_t kBoundaryMs = -int64_t{0x80000000} * 1000;
 
@@ -203,7 +206,7 @@ TEST(Base_NtpTimeTest, VerifyInt64MsToQ32x32NearMin) {
     EXPECT_EQ(Int64MsToQ32x32(kBoundaryMs - 1000), kBoundaryQ32x32);  // Clamped
 }
 
-TEST(Base_NtpTimeTest, VerifyQ32x32ToInt64MsNearMin) {
+MY_TEST(NtpTimeTest, VerifyQ32x32ToInt64MsNearMin) {
     constexpr int64_t kBoundaryQ32x32 = 0x8000000000000000;
     constexpr int64_t kBoundaryMs = -int64_t{0x80000000} * 1000;
 
@@ -218,7 +221,7 @@ TEST(Base_NtpTimeTest, VerifyQ32x32ToInt64MsNearMin) {
                 kBoundaryMs + 1000);
 }
 
-TEST(Base_NtpTimeTest, VerifyInt64MsToQ32x32RoundTrip) {
+MY_TEST(NtpTimeTest, VerifyInt64MsToQ32x32RoundTrip) {
     constexpr int kIterations = 50000;
 
     std::mt19937 generator(123456789);
@@ -238,7 +241,7 @@ TEST(Base_NtpTimeTest, VerifyInt64MsToQ32x32RoundTrip) {
     }
 }
 
-TEST(Base_NtpTimeTest, VerifyInt64MsToUQ32x32RoundTrip) {
+MY_TEST(NtpTimeTest, VerifyInt64MsToUQ32x32RoundTrip) {
     constexpr int kIterations = 50000;
 
     std::mt19937 generator(123456789);

@@ -4,6 +4,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::rtcp;
 
 namespace naivertc {
@@ -22,7 +25,7 @@ const uint8_t kPacket[] = {0x8f, 206,  0x00, 0x07, 0x12, 0x34, 0x56, 0x78,
 const size_t kPacketLength = sizeof(kPacket);
 } // namespace
 
-TEST(RTP_RTCP_RtcpRembTest, Create) {
+MY_TEST(RtcpRembTest, Create) {
     Remb remb;
     remb.set_sender_ssrc(kSenderSsrc);
     remb.set_ssrcs(std::vector<uint32_t>(std::begin(kRemoteSsrcs), std::end(kRemoteSsrcs)));
@@ -36,7 +39,7 @@ TEST(RTP_RTCP_RtcpRembTest, Create) {
     EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
 }
 
-TEST(RTP_RTCP_RtcpRembTest, Parse) {
+MY_TEST(RtcpRembTest, Parse) {
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(kPacket, kPacketLength));
 
@@ -51,7 +54,7 @@ TEST(RTP_RTCP_RtcpRembTest, Parse) {
     EXPECT_THAT(remb.ssrcs(), testing::ElementsAreArray(kRemoteSsrcs));
 }
 
-TEST(RTP_RTCP_RtcpRembTest, ParseFailsWhenUniqueIdentifierIsNotRemb) {
+MY_TEST(RtcpRembTest, ParseFailsWhenUniqueIdentifierIsNotRemb) {
     uint8_t packet[kPacketLength];
     memcpy(packet, kPacket, kPacketLength);
     packet[15] = 'A'; // Swap 'B' -> 'A' in the 'REMB' unique identifier

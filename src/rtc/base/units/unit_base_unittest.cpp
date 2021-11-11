@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc;
 
 namespace naivertc {
@@ -47,7 +50,7 @@ constexpr TestUnit TestUnitAddKilo(TestUnit value, int add_kilo) {
 
 namespace test {
 
-TEST(Base_UnitBaseTest, ConstExpr) {
+MY_TEST(UnitBaseTest, ConstExpr) {
     constexpr int64_t kValue = -12345;
     constexpr TestUnit kTestUnitZero = TestUnit::Zero();
     constexpr TestUnit kTestUnitMaxValue = TestUnit::MaxValue();
@@ -68,7 +71,7 @@ TEST(Base_UnitBaseTest, ConstExpr) {
     static_assert(TestUnitAddKilo(kTestUnitValue, 2).ToValue() == kValue + 2000, "");
 }
 
-TEST(Base_UnitBaseTest, GetBackSameValues) {
+MY_TEST(UnitBaseTest, GetBackSameValues) {
     const int64_t kValue = 499;
     for (int sign = -1; sign <= 1; ++sign) {
         int64_t value = kValue * sign;
@@ -78,13 +81,13 @@ TEST(Base_UnitBaseTest, GetBackSameValues) {
     EXPECT_EQ(TestUnit::Zero().ToValue<int64_t>(), 0);
 }
 
-TEST(Base_UnitBaseTest, GetDifferentPrefix) {
+MY_TEST(UnitBaseTest, GetDifferentPrefix) {
     const int64_t kValue = 3000000;
     EXPECT_EQ(TestUnit::FromValue(kValue).ToKilo(), kValue / 1000);
     EXPECT_EQ(TestUnit::FromKilo(kValue).ToValue<int64_t>(), kValue * 1000);
 }
 
-TEST(Base_UnitBaseTest, ConvertsToAndFromDouble) {
+MY_TEST(UnitBaseTest, ConvertsToAndFromDouble) {
     const int64_t kValue = 17017;
     const double kMilliDouble = kValue * 1e3;
     const double kValueDouble = kValue;
@@ -114,7 +117,7 @@ TEST(Base_UnitBaseTest, ConvertsToAndFromDouble) {
     EXPECT_TRUE(TestUnit::FromValue(kMinValue).IsMin());
 }
 
-TEST(Base_UnitBaseTest, InfinityOperations) {
+MY_TEST(UnitBaseTest, InfinityOperations) {
   const int64_t kValue = 267;
   const TestUnit finite = TestUnit::FromKilo(kValue);
   EXPECT_TRUE((TestUnit::MaxValue() + finite).IsMax());

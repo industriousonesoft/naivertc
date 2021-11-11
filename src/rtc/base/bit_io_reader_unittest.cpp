@@ -3,12 +3,15 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 #include <vector>
 
 namespace naivertc {
 namespace test {
 
-TEST(Base_BitReaderTest, ConsumeBits) {
+MY_TEST(BitReaderTest, ConsumeBits) {
     const uint8_t bytes[64] = {0};
     BitReader bit_reader(bytes, 32);
     uint64_t total_bits = 32 * 8;
@@ -30,7 +33,7 @@ TEST(Base_BitReaderTest, ConsumeBits) {
     EXPECT_EQ(total_bits, bit_reader.RemainingBitCount());
 }
 
-TEST(Base_BitReaderTest, ReadByteAligned) {
+MY_TEST(BitReaderTest, ReadByteAligned) {
     const uint8_t bytes[] = {0x0A, 0xBC, 0xDE, 0xF1, 0x23, 0x45, 0x67, 0x89};
     uint8_t val8;
     uint16_t val16;
@@ -46,7 +49,7 @@ TEST(Base_BitReaderTest, ReadByteAligned) {
     EXPECT_EQ(0x23456789u, val32);
 }
 
-TEST(Base_BitReaderTest, ReadBytesOffset4) {
+MY_TEST(BitReaderTest, ReadBytesOffset4) {
     const uint8_t bytes[] = {0x0A, 0xBC, 0xDE, 0xF1, 0x23,
                             0x45, 0x67, 0x89, 0x0A};
     uint8_t val8;
@@ -65,7 +68,7 @@ TEST(Base_BitReaderTest, ReadBytesOffset4) {
     EXPECT_EQ(0x34567890u, val32);
 }
 
-TEST(Base_BitReaderTest, ReadBytesOffset3) {
+MY_TEST(BitReaderTest, ReadBytesOffset3) {
     // The pattern we'll check against is counting down from 0b1111. It looks
     // weird here because it's all offset by 3.
     // Byte pattern is:
@@ -100,7 +103,7 @@ TEST(Base_BitReaderTest, ReadBytesOffset3) {
     EXPECT_FALSE(bit_reader.ReadByte(val8));
 }
 
-TEST(Base_BitReaderTest, ReadBits) {
+MY_TEST(BitReaderTest, ReadBits) {
     // Bit values are:
     //  0b01001101,
     //  0b00110010
@@ -129,7 +132,7 @@ TEST(Base_BitReaderTest, ReadBits) {
     EXPECT_FALSE(bit_reader.ReadBits(1, val));
 }
 
-TEST(Base_BitReaderTest, ReadBits64) {
+MY_TEST(BitReaderTest, ReadBits64) {
     const uint8_t bytes[] = {0x4D, 0x32, 0xAB, 0x54, 0x00, 0xFF, 0xFE, 0x01,
                             0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89};
     BitReader bit_reader(bytes, 16);
@@ -172,7 +175,7 @@ uint64_t GolombEncoded(uint32_t val) {
     return static_cast<uint64_t>(val) << (64 - (bit_count * 2 - 1));
 }
 
-TEST(Base_BitReaderTest, GolombUint32Values) {
+MY_TEST(BitReaderTest, GolombUint32Values) {
     std::vector<uint8_t> byteBuffer;
     byteBuffer.resize(16);
     BitReader bit_reader(reinterpret_cast<const uint8_t*>(byteBuffer.data()), byteBuffer.capacity());
@@ -191,7 +194,7 @@ TEST(Base_BitReaderTest, GolombUint32Values) {
     }
 }
 
-TEST(Base_BitReaderTest, SignedGolombValues) {
+MY_TEST(BitReaderTest, SignedGolombValues) {
     uint8_t golomb_bits[] = {
         0x80,  // 1
         0x40,  // 010
@@ -210,7 +213,7 @@ TEST(Base_BitReaderTest, SignedGolombValues) {
     }
 }
 
-TEST(Base_BitReaderTest, NoGolombOverread) {
+MY_TEST(BitReaderTest, NoGolombOverread) {
     const uint8_t bytes[] = {0x00, 0xFF, 0xFF};
     // Make sure the bit bit_reader correctly enforces byte length on golomb reads.
     // If it didn't, the above bit_reader would be valid at 3 bytes.

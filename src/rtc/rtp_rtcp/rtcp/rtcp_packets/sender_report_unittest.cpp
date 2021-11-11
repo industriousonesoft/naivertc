@@ -4,6 +4,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::rtcp;
 
 namespace naivertc {
@@ -22,7 +25,7 @@ const uint8_t kPacket[] = {0x80, 200,  0x00, 0x06, 0x12, 0x34, 0x56,
                            0x45, 0x46, 0x47, 0x55, 0x56, 0x57, 0x58};
 }
 
-TEST(RTP_RTCP_RtcpSenderReportTest, CreateWithoutReportBlocks) {
+MY_TEST(RtcpSenderReportTest, CreateWithoutReportBlocks) {
     SenderReport sr;
     sr.set_sender_ssrc(kSenderSsrc);
     sr.set_ntp(kNtp);
@@ -34,7 +37,7 @@ TEST(RTP_RTCP_RtcpSenderReportTest, CreateWithoutReportBlocks) {
     EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
 }
 
-TEST(RTP_RTCP_RtcpSenderReportTest, ParseWithoutReportBlocks) {
+MY_TEST(RtcpSenderReportTest, ParseWithoutReportBlocks) {
     SenderReport parsed;
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(kPacket, sizeof(kPacket)));

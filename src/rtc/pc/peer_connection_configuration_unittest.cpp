@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(PC_IceServerTest, CreateFromStunURL) {
+MY_TEST(IceServerTest, CreateFromStunURL) {
     const std::string url = "stun:stun.l.google.com:19302";
     IceServer ice_server(url);
 
@@ -14,7 +17,7 @@ TEST(PC_IceServerTest, CreateFromStunURL) {
     EXPECT_EQ(ice_server.type(), IceServer::Type::STUN);
 }
 
-TEST(PC_IceServerTest, CreateFromTurnURL) {
+MY_TEST(IceServerTest, CreateFromTurnURL) {
     const std::string url = "turn:192.158.29.39:3478?transport=udp";
     IceServer ice_server(url);
 

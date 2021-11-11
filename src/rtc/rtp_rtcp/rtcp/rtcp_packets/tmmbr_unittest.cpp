@@ -4,6 +4,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::rtcp;
 
 namespace naivertc {
@@ -19,7 +22,7 @@ constexpr uint8_t kPacket[] = {0x83, 205,  0x00, 0x04, 0x12, 0x34, 0x56,
 constexpr size_t kPacketSize = sizeof(kPacket);
 }  // namespace
 
-TEST(RTP_RTCP_RtcpPacketTmmbrTest, Create) {
+MY_TEST(RtcpPacketTmmbrTest, Create) {
     Tmmbr tmmbr;
     tmmbr.set_sender_ssrc(kSenderSsrc);
     tmmbr.AddTmmbr(TmmbItem(kRemoteSsrc, kBitrateBps, kOverhead));
@@ -28,7 +31,7 @@ TEST(RTP_RTCP_RtcpPacketTmmbrTest, Create) {
     EXPECT_THAT(packet, testing::ElementsAreArray(kPacket));
 }
 
-TEST(RTP_RTCP_RtcpPacketTmmbrTest, Parse) {
+MY_TEST(RtcpPacketTmmbrTest, Parse) {
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(kPacket, kPacketSize));
     
@@ -41,7 +44,7 @@ TEST(RTP_RTCP_RtcpPacketTmmbrTest, Parse) {
     EXPECT_EQ(kOverhead, parsed.requests().front().packet_overhead());
 }
 
-TEST(RTP_RTCP_RtcpPacketTmmbrTest, CreateAndParseWithTwoEntries) {
+MY_TEST(RtcpPacketTmmbrTest, CreateAndParseWithTwoEntries) {
     Tmmbr tmmbr;
     tmmbr.set_sender_ssrc(kSenderSsrc);
     tmmbr.AddTmmbr(TmmbItem(kRemoteSsrc, kBitrateBps, kOverhead));
@@ -61,7 +64,7 @@ TEST(RTP_RTCP_RtcpPacketTmmbrTest, CreateAndParseWithTwoEntries) {
     EXPECT_EQ(kRemoteSsrc + 1, parsed.requests()[1].ssrc());
 }
 
-TEST(RTP_RTCP_RtcpPacketTmmbrTest, ParseFailsWithoutItems) {
+MY_TEST(RtcpPacketTmmbrTest, ParseFailsWithoutItems) {
     const uint8_t kZeroItemsPacket[] = {0x83, 205,  0x00, 0x02, 0x12, 0x34,
                                         0x56, 0x78, 0x00, 0x00, 0x00, 0x00};
 
@@ -72,7 +75,7 @@ TEST(RTP_RTCP_RtcpPacketTmmbrTest, ParseFailsWithoutItems) {
     EXPECT_FALSE(parsed.Parse(common_header));
 }
 
-TEST(RTP_RTCP_RtcpPacketTmmbrTest, ParseFailsOnUnAlignedPacket) {
+MY_TEST(RtcpPacketTmmbrTest, ParseFailsOnUnAlignedPacket) {
     const uint8_t kUnalignedPacket[] = {
         0x83, 205,  0x00, 0x05, 0x12, 0x34, 0x56, 0x78, 0x00, 0x00, 0x00, 0x00,
         0x23, 0x45, 0x67, 0x89, 0x0a, 0x61, 0x61, 0xfe, 0x34, 0x56, 0x78, 0x9a};

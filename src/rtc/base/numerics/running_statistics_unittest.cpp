@@ -3,6 +3,9 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 namespace {
@@ -32,11 +35,11 @@ RunningStatistics<double> CreateStatsFromRandom(int n, double begin, double end)
     
 } // namespace
 
-class RunningStatisticsTest : public ::testing::TestWithParam<int> {};
+class T(RunningStatisticsTest) : public ::testing::TestWithParam<int> {};
 
 constexpr int kCountForMerge = 5;
 
-TEST(RunningStatisticsTest, FullSimpleTest) {
+MY_TEST(RunningStatisticsTest, FullSimpleTest) {
     auto stats = CreateStatsFilledWithIntsFrom1ToN(100);
 
     EXPECT_DOUBLE_EQ(*stats.min(), 1.0);
@@ -44,7 +47,7 @@ TEST(RunningStatisticsTest, FullSimpleTest) {
     ASSERT_NEAR(*stats.mean(), 50.5, 1e-10 /* abs_error */);
 }
 
-TEST(RunningStatisticsTest, VarianceAndDeviation) {
+MY_TEST(RunningStatisticsTest, VarianceAndDeviation) {
     RunningStatistics<int> stats;
     stats.AddSample(2);
     stats.AddSample(2);
@@ -56,7 +59,7 @@ TEST(RunningStatisticsTest, VarianceAndDeviation) {
     EXPECT_DOUBLE_EQ(*stats.StandardDeviation(), sqrt(4.5));
 }
 
-TEST(RunningStatisticsTest, RemoveSample) {
+MY_TEST(RunningStatisticsTest, RemoveSample) {
     RunningStatistics<int> stats;
     stats.AddSample(2);
     stats.AddSample(2);
@@ -74,7 +77,7 @@ TEST(RunningStatisticsTest, RemoveSample) {
     }
 }
 
-TEST(RunningStatisticsTest, RemoveSampleSequence) {
+MY_TEST(RunningStatisticsTest, RemoveSampleSequence) {
     RunningStatistics<int> stats;
     stats.AddSample(2);
     stats.AddSample(2);
@@ -95,17 +98,17 @@ TEST(RunningStatisticsTest, RemoveSampleSequence) {
     EXPECT_NEAR(*stats.StandardDeviation(), sqrt(4.5), 1e-4);
 }
 
-TEST(RunningStatisticsTest, VarianceFromRandom) {
+MY_TEST(RunningStatisticsTest, VarianceFromRandom) {
     auto stats = CreateStatsFromRandom(1e6, 0, 1);
     EXPECT_NEAR(*stats.Variance(), 1.0/12, 1e-3);
 }
 
-TEST(RunningStatisticsTest, NumericStabilityForVariance) {
+MY_TEST(RunningStatisticsTest, NumericStabilityForVariance) {
     auto stats = CreateStatsFromRandom(1e6, 1e9, 1e9 + 1);
     EXPECT_NEAR(*stats.Variance(), 1.0/12, 1e-3);
 }
 
-TEST(RunningStatisticsTest, MinRemainsUnchagedAfterRemove) {
+MY_TEST(RunningStatisticsTest, MinRemainsUnchagedAfterRemove) {
     RunningStatistics<int> stats;
     stats.AddSample(1);
     stats.AddSample(2);
@@ -113,7 +116,7 @@ TEST(RunningStatisticsTest, MinRemainsUnchagedAfterRemove) {
     EXPECT_EQ(stats.min(), 1);
 }
     
-TEST(RunningStatisticsTest, MaxRemainsUnchagedAfterRemove) {
+MY_TEST(RunningStatisticsTest, MaxRemainsUnchagedAfterRemove) {
     RunningStatistics<int> stats;
     stats.AddSample(1);
     stats.AddSample(2);
@@ -121,7 +124,11 @@ TEST(RunningStatisticsTest, MaxRemainsUnchagedAfterRemove) {
     EXPECT_EQ(stats.max(), 2);
 }
 
-TEST_P(RunningStatisticsTest, MergeStatistics) {
+MY_INSTANTIATE_TEST_SUITE_P(RunningStatisticsTests,
+                            RunningStatisticsTest,
+                            ::testing::Range(0, kCountForMerge + 1));
+
+MY_TEST_P(RunningStatisticsTest, MergeStatistics) {
     int samples[kCountForMerge] = {2, 2, -1, 5, 10};
 
     RunningStatistics<int> stats0, stats1;
@@ -140,10 +147,6 @@ TEST_P(RunningStatisticsTest, MergeStatistics) {
     EXPECT_DOUBLE_EQ(*stats0.Variance(), 13.84);
     EXPECT_DOUBLE_EQ(*stats0.StandardDeviation(), sqrt(13.84));
 }
-
-INSTANTIATE_TEST_SUITE_P(RunningStatisticsTests,
-                         RunningStatisticsTest,
-                         ::testing::Range(0, kCountForMerge + 1));
  
 } // namespace test
 } // namespace naivertc

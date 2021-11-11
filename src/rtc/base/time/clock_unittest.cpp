@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(Base_ClockTest, NtpTime) {
+MY_TEST(ClockTest, NtpTime) {
     auto clock = Clock::GetRealTimeClock();
 
     EXPECT_NE(clock, nullptr);

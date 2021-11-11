@@ -4,6 +4,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::rtcp;
 
 namespace naivertc {
@@ -20,7 +23,7 @@ constexpr uint8_t kPacket[] = {0x84, 206,  0x00, 0x04, 0x12, 0x34, 0x56,
 constexpr size_t kPacketSize = sizeof(kPacket);
 } // namespace
 
-TEST(RTP_RTCP_RtcpFirTest, Parse) {
+MY_TEST(RtcpFirTest, Parse) {
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(kPacket, kPacketSize));
     EXPECT_EQ(Fir::kPacketType, common_header.type());
@@ -35,7 +38,7 @@ TEST(RTP_RTCP_RtcpFirTest, Parse) {
     EXPECT_EQ(kSeqNr, fir.requests()[0].seq_nr);
 }
 
-TEST(RTP_RTCP_RtcpFirTest, Create) {
+MY_TEST(RtcpFirTest, Create) {
     Fir fir;
     fir.set_sender_ssrc(kSenderSsrc);
     fir.AddRequest(kRemoteSsrc, kSeqNr);

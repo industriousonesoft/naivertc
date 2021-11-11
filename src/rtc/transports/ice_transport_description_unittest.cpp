@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(SDP_IceTransportDescriptionTest, Constructor) {
+MY_TEST(IceTransportDescriptionTest, Constructor) {
     IceTransport::Description sdp(sdp::Type::OFFER, sdp::Role::ACT_PASS, "5gAx", "UaOtA7vsDocYINrXSTPWph");
 
     EXPECT_EQ(sdp.type(), sdp::Type::OFFER);
@@ -16,7 +19,7 @@ TEST(SDP_IceTransportDescriptionTest, Constructor) {
     EXPECT_EQ(sdp.ice_pwd().value(), "UaOtA7vsDocYINrXSTPWph");
 }
 
-TEST(SDP_IceTransportDescriptionTest, GenerateSDP) {
+MY_TEST(IceTransportDescriptionTest, GenerateSDP) {
     IceTransport::Description sdp(sdp::Type::OFFER, sdp::Role::ACT_PASS, "5gAx", "UaOtA7vsDocYINrXSTPWph");
 
     const std::string expected_sdp_string = 
@@ -32,7 +35,7 @@ a=ice-pwd:UaOtA7vsDocYINrXSTPWph
 
 }
 
-TEST(SDP_IceTransportDescriptionTest, ParseSDP) {
+MY_TEST(IceTransportDescriptionTest, ParseSDP) {
     const std::string sdp_string = 
 R"(m=application 0 ICE/SDP
 c=IN IP4 0.0.0.0

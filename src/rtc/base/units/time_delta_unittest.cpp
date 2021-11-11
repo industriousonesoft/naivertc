@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(Base_TimeDeltaBaseTest, ConstExpr) {
+MY_TEST(TimeDeltaBaseTest, ConstExpr) {
     constexpr int64_t kValue = -12345;
     constexpr TimeDelta kTestUnitZero = TimeDelta::Zero();
     constexpr TimeDelta kTestUnitMaxValue = TimeDelta::MaxValue();
@@ -27,7 +30,7 @@ TEST(Base_TimeDeltaBaseTest, ConstExpr) {
     static_assert(kTimeDeltaUs.us_or(0) == kValue, "");
 }
 
-TEST(Base_TimeDeltaBaseTest, GetBackSameValues) {
+MY_TEST(TimeDeltaBaseTest, GetBackSameValues) {
     const int64_t kValue = 499;
     for (int sign = -1; sign <= 1; ++sign) {
         int64_t value = kValue * sign;
@@ -39,7 +42,7 @@ TEST(Base_TimeDeltaBaseTest, GetBackSameValues) {
     EXPECT_EQ(TimeDelta::Zero().us(), 0);
 }
 
-TEST(Base_TimeDeltaBaseTest, GetDifferentPrefix) {
+MY_TEST(TimeDeltaBaseTest, GetDifferentPrefix) {
     const int64_t kValue = 3000000;
     EXPECT_EQ(TimeDelta::Micros(kValue).seconds(), kValue / 1000000);
     EXPECT_EQ(TimeDelta::Millis(kValue).seconds(), kValue / 1000);
@@ -50,7 +53,7 @@ TEST(Base_TimeDeltaBaseTest, GetDifferentPrefix) {
     EXPECT_EQ(TimeDelta::Seconds(kValue).us(), kValue * 1000000);
 }
 
-TEST(Base_TimeDeltaBaseTest, ConvertsToAndFromDouble) {
+MY_TEST(TimeDeltaBaseTest, ConvertsToAndFromDouble) {
     const int64_t kMicros = 17017;
     const double kNanosDouble = kMicros * 1e3;
     const double kMicrosDouble = kMicros;
@@ -88,7 +91,7 @@ TEST(Base_TimeDeltaBaseTest, ConvertsToAndFromDouble) {
     EXPECT_TRUE(TimeDelta::Micros(kMinValue).IsMin());
 }
 
-TEST(Base_TimeDeltaBaseTest, InfinityOperations) {
+MY_TEST(TimeDeltaBaseTest, InfinityOperations) {
   const int64_t kValue = 267;
   const TimeDelta finite = TimeDelta::Millis(kValue);
   EXPECT_TRUE((TimeDelta::MaxValue() + finite).IsMax());

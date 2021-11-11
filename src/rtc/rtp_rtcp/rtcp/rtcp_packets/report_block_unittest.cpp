@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::rtcp;
 
 namespace naivertc {
@@ -17,7 +20,7 @@ constexpr uint32_t kJitter = 0x4F6D73A2;
 constexpr uint32_t kLastSrNtpTimestamp = 0x01FF3467;
 constexpr uint32_t kDelaySinceLastSr = 0x89D67F50;
 
-TEST(RTP_RTCP_RtcpReportBlockTest, ParseMatchPack) {
+MY_TEST(RtcpReportBlockTest, ParseMatchPack) {
     ReportBlock rb;
     rb.set_media_ssrc(kRemoteSsrc);
     rb.set_fraction_lost(kFractionLost);

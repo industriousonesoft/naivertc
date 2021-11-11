@@ -5,6 +5,9 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 1
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::rtp::video::jitter;
 
 namespace naivertc {
@@ -46,7 +49,7 @@ private:
 };
 
 // 5 fps, disable jitter delay altogether.
-TEST_F(JitterEstimatorTest, TestLowFrameRate) {
+MY_TEST_F(JitterEstimatorTest, TestLowFrameRate) {
     SampleGenerator gen(10);
     int fps = 5;
     int64_t frame_delta_us = kNumMicrosecsPerSec / fps;
@@ -60,7 +63,7 @@ TEST_F(JitterEstimatorTest, TestLowFrameRate) {
     }
 }
 
-TEST_F(JitterEstimatorTest, TestLowFrameRateDisabled) {
+MY_TEST_F(JitterEstimatorTest, TestLowFrameRateDisabled) {
     SampleGenerator gen(10);
     int fps = 5;
     int64_t frame_delta_us = kNumMicrosecsPerSec / fps;
@@ -74,7 +77,7 @@ TEST_F(JitterEstimatorTest, TestLowFrameRateDisabled) {
     }
 }
 
-TEST_F(JitterEstimatorTest, TestUpperBound) {
+MY_TEST_F(JitterEstimatorTest, TestUpperBound) {
     struct TestContext {
         TestContext() 
             : upper_bound(0.0),

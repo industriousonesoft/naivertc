@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(RTP_RTCP_RtcpNackStatsTest, Requests) {
+MY_TEST(RtcpNackStatsTest, Requests) {
     RtcpNackStats stats;
     EXPECT_EQ(0U, stats.unique_requests());
     EXPECT_EQ(0U, stats.requests());
@@ -28,7 +31,7 @@ TEST(RTP_RTCP_RtcpNackStatsTest, Requests) {
     EXPECT_EQ(6U, stats.requests());
 }
 
-TEST(RTP_RTCP_RtcpNackStatsTest, RequestsWithWrap) {
+MY_TEST(RtcpNackStatsTest, RequestsWithWrap) {
     RtcpNackStats stats;
     stats.ReportRequest(65534);
     EXPECT_EQ(1U, stats.unique_requests());

@@ -3,13 +3,16 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-class Base_ByteIOTest : public testing::Test {
+class T(ByteIOTest) : public testing::Test {
 protected:
-    Base_ByteIOTest() = default;
-    ~Base_ByteIOTest() override = default;
+    T(ByteIOTest)() = default;
+    ~T(ByteIOTest)() override = default;
 
     enum { kAlignments = sizeof(uint64_t) - 1 };
 
@@ -66,14 +69,14 @@ protected:
 
     // Test reading big endian numbers.
     // Template arguments: Type T, read method RM(buffer), B bytes of data.
-    template <typename T, T (*RM)(const uint8_t*), int B>
+    template <typename U, U (*RM)(const uint8_t*), int B>
     void TestRead(bool big_endian) {
         // Test both for values that are positive and negative (if signed)
         for (int neg = 0; neg < 2; ++neg) {
             bool negative = neg > 0;
 
             // Write test value to byte buffer, in big endian format.
-            T test_value = CreateTestValue<T>(negative, B);
+            U test_value = CreateTestValue<U>(negative, B);
             uint8_t bytes[B + kAlignments];
 
             // Make one test for each alignment.
@@ -88,14 +91,14 @@ protected:
 
     // Test writing big endian numbers.
     // Template arguments: Type T, write method WM(buffer, value), B bytes of data
-    template <typename T, void (*WM)(uint8_t*, T), int B>
+    template <typename U, void (*WM)(uint8_t*, U), int B>
     void TestWrite(bool big_endian) {
         // Test both for values that are positive and negative (if signed).
         for (int neg = 0; neg < 2; ++neg) {
             bool negative = neg > 0;
 
             // Write test value to byte buffer, in big endian format.
-            T test_value = CreateTestValue<T>(negative, B);
+            U test_value = CreateTestValue<U>(negative, B);
             uint8_t expected_bytes[B + kAlignments];
             uint8_t bytes[B + kAlignments];
 
@@ -117,110 +120,110 @@ protected:
 };
 
 // Unsigned and BigEndian
-TEST_F(Base_ByteIOTest, Test8UBitBigEndian) {
+MY_TEST_F(ByteIOTest, Test8UBitBigEndian) {
     TestRead<uint8_t, ByteReader<uint8_t>::ReadBigEndian, sizeof(uint8_t)>(true);
     TestWrite<uint8_t, ByteWriter<uint8_t>::WriteBigEndian, sizeof(uint8_t)>(true);
 }
 
-TEST_F(Base_ByteIOTest, Test16UBitBigEndian) {
+MY_TEST_F(ByteIOTest, Test16UBitBigEndian) {
     TestRead<uint16_t, ByteReader<uint16_t>::ReadBigEndian, sizeof(uint16_t)>(true);
     TestWrite<uint16_t, ByteWriter<uint16_t>::WriteBigEndian, sizeof(uint16_t)>(true);
 }
 
-TEST_F(Base_ByteIOTest, Test24UBitBigEndian) {
+MY_TEST_F(ByteIOTest, Test24UBitBigEndian) {
     TestRead<uint32_t, ByteReader<uint32_t, 3>::ReadBigEndian, 3>(true);
     TestWrite<uint32_t, ByteWriter<uint32_t, 3>::WriteBigEndian, 3>(true);
 }
 
-TEST_F(Base_ByteIOTest, Test32UBitBigEndian) {
+MY_TEST_F(ByteIOTest, Test32UBitBigEndian) {
     TestRead<uint32_t, ByteReader<uint32_t>::ReadBigEndian, sizeof(uint32_t)>(true);
     TestWrite<uint32_t, ByteWriter<uint32_t>::WriteBigEndian, sizeof(uint32_t)>(true);
 }
 
-TEST_F(Base_ByteIOTest, Test64UBitBigEndian) {
+MY_TEST_F(ByteIOTest, Test64UBitBigEndian) {
     TestRead<uint64_t, ByteReader<uint64_t>::ReadBigEndian, sizeof(uint64_t)>(true);
     TestWrite<uint64_t, ByteWriter<uint64_t>::WriteBigEndian, sizeof(uint64_t)>(true);
 }
 
 // Unsigned and LittleEndian
-TEST_F(Base_ByteIOTest, Test8UBitLittleEndian) {
+MY_TEST_F(ByteIOTest, Test8UBitLittleEndian) {
     TestRead<uint8_t, ByteReader<uint8_t>::ReadLittleEndian, sizeof(uint8_t)>(false);
     TestWrite<uint8_t, ByteWriter<uint8_t>::WriteLittleEndian, sizeof(uint8_t)>(false);
 }
 
-TEST_F(Base_ByteIOTest, Test16UBitLittleEndian) {
+MY_TEST_F(ByteIOTest, Test16UBitLittleEndian) {
     TestRead<uint16_t, ByteReader<uint16_t>::ReadLittleEndian, sizeof(uint16_t)>(false);
     TestWrite<uint16_t, ByteWriter<uint16_t>::WriteLittleEndian, sizeof(uint16_t)>(false);
 }
 
-TEST_F(Base_ByteIOTest, Test24UBitLittleEndian) {
+MY_TEST_F(ByteIOTest, Test24UBitLittleEndian) {
     TestRead<uint32_t, ByteReader<uint32_t, 3>::ReadLittleEndian, 3>(false);
     TestWrite<uint32_t, ByteWriter<uint32_t, 3>::WriteLittleEndian, 3>(false);
 }
 
-TEST_F(Base_ByteIOTest, Test32UBitLittleEndian) {
+MY_TEST_F(ByteIOTest, Test32UBitLittleEndian) {
     TestRead<uint32_t, ByteReader<uint32_t>::ReadLittleEndian, sizeof(uint32_t)>(false);
     TestWrite<uint32_t, ByteWriter<uint32_t>::WriteLittleEndian, sizeof(uint32_t)>(false);
 }
 
-TEST_F(Base_ByteIOTest, Test64UBitLittleEndian) {
+MY_TEST_F(ByteIOTest, Test64UBitLittleEndian) {
     TestRead<uint64_t, ByteReader<uint64_t>::ReadLittleEndian, sizeof(uint64_t)>(false);
     TestWrite<uint64_t, ByteWriter<uint64_t>::WriteLittleEndian, sizeof(uint64_t)>(false);
 }
 
 // Signed and BigEndian
-TEST_F(Base_ByteIOTest, Test8SBitBigEndian) {
+MY_TEST_F(ByteIOTest, Test8SBitBigEndian) {
     TestRead<int8_t, ByteReader<int8_t>::ReadBigEndian, sizeof(int8_t)>(true);
     TestWrite<int8_t, ByteWriter<int8_t>::WriteBigEndian, sizeof(int8_t)>(true);
 }
 
-TEST_F(Base_ByteIOTest, Test16SBitBigEndian) {
+MY_TEST_F(ByteIOTest, Test16SBitBigEndian) {
     TestRead<int16_t, ByteReader<int16_t>::ReadBigEndian, sizeof(int16_t)>(true);
     TestWrite<int16_t, ByteWriter<int16_t>::WriteBigEndian, sizeof(int16_t)>(true);
 }
 
-TEST_F(Base_ByteIOTest, Test24SBitBigEndian) {
+MY_TEST_F(ByteIOTest, Test24SBitBigEndian) {
     TestRead<int32_t, ByteReader<int32_t, 3>::ReadBigEndian, 3>(true);
     TestWrite<int32_t, ByteWriter<int32_t, 3>::WriteBigEndian, 3>(true);
 }
 
-TEST_F(Base_ByteIOTest, Test32SBitBigEndian) {
+MY_TEST_F(ByteIOTest, Test32SBitBigEndian) {
     TestRead<int32_t, ByteReader<int32_t>::ReadBigEndian, sizeof(int32_t)>(true);
     TestWrite<int32_t, ByteWriter<int32_t>::WriteBigEndian, sizeof(int32_t)>(true);
 }
 
-TEST_F(Base_ByteIOTest, Test64SBitBigEndian) {
+MY_TEST_F(ByteIOTest, Test64SBitBigEndian) {
     TestRead<int64_t, ByteReader<int64_t>::ReadBigEndian, sizeof(int64_t)>(true);
     TestWrite<int64_t, ByteWriter<int64_t>::WriteBigEndian, sizeof(int64_t)>(true);
 }
 
 // Signed and LittleEndian
-TEST_F(Base_ByteIOTest, Test8SBitLittleEndian) {
+MY_TEST_F(ByteIOTest, Test8SBitLittleEndian) {
     TestRead<int8_t, ByteReader<int8_t>::ReadLittleEndian, sizeof(int8_t)>(false);
     TestWrite<int8_t, ByteWriter<int8_t>::WriteLittleEndian, sizeof(int8_t)>(false);
 }
 
-TEST_F(Base_ByteIOTest, Test16SBitLittleEndian) {
+MY_TEST_F(ByteIOTest, Test16SBitLittleEndian) {
     TestRead<int16_t, ByteReader<int16_t>::ReadLittleEndian, sizeof(int16_t)>(false);
     TestWrite<int16_t, ByteWriter<int16_t>::WriteLittleEndian, sizeof(int16_t)>(false);
 }
 
-TEST_F(Base_ByteIOTest, Test24SBitLittleEndian) {
+MY_TEST_F(ByteIOTest, Test24SBitLittleEndian) {
     TestRead<int32_t, ByteReader<int32_t, 3>::ReadLittleEndian, 3>(false);
     TestWrite<int32_t, ByteWriter<int32_t, 3>::WriteLittleEndian, 3>(false);
 }
 
-TEST_F(Base_ByteIOTest, Test32SBitLittleEndian) {
+MY_TEST_F(ByteIOTest, Test32SBitLittleEndian) {
     TestRead<int32_t, ByteReader<int32_t>::ReadLittleEndian, sizeof(int32_t)>(false);
     TestWrite<int32_t, ByteWriter<int32_t>::WriteLittleEndian, sizeof(int32_t)>(false);
 }
 
-TEST_F(Base_ByteIOTest, Test64SBitLittleEndian) {
+MY_TEST_F(ByteIOTest, Test64SBitLittleEndian) {
     TestRead<int64_t, ByteReader<int64_t>::ReadLittleEndian, sizeof(int64_t)>(false);
     TestWrite<int64_t, ByteWriter<int64_t>::WriteLittleEndian, sizeof(int64_t)>(false);
 }
 
-TEST_F(Base_ByteIOTest, TestFixedByteArrayUnsignedReadBigEndian) {
+MY_TEST_F(ByteIOTest, TestFixedByteArrayUnsignedReadBigEndian) {
     uint8_t data[8] = {0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88};
     uint64_t value = ByteReader<uint64_t, 2>::ReadBigEndian(data);
     EXPECT_EQ(static_cast<uint64_t>(0xFFEE), value);
@@ -238,7 +241,7 @@ TEST_F(Base_ByteIOTest, TestFixedByteArrayUnsignedReadBigEndian) {
     EXPECT_EQ(static_cast<uint64_t>(0xFFEEDDCCBBAA9988), value);
 }
 
-TEST_F(Base_ByteIOTest, TestFixedByteArrayUnsignedReadLittleEndian) {
+MY_TEST_F(ByteIOTest, TestFixedByteArrayUnsignedReadLittleEndian) {
     uint8_t data[8] = {0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88};
     uint64_t value = ByteReader<uint64_t, 2>::ReadLittleEndian(data);
     EXPECT_EQ(static_cast<uint64_t>(0xEEFF), value);

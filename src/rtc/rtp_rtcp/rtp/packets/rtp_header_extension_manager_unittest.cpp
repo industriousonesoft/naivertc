@@ -3,11 +3,14 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::rtp;
 
 namespace naivertc {
 
-TEST(RTP_RTCP_RtpHeaderExtensionTest, RegisterByType) {
+MY_TEST(RtpHeaderExtensionTest, RegisterByType) {
     ExtensionManager mgr;
     EXPECT_FALSE(mgr.IsRegistered(TransmissionTimeOffset::kType));
 
@@ -19,7 +22,7 @@ TEST(RTP_RTCP_RtpHeaderExtensionTest, RegisterByType) {
 }
 
 
-TEST(RTP_RTCP_RtpHeaderExtensionTest, RegisterByUri) {
+MY_TEST(RtpHeaderExtensionTest, RegisterByUri) {
     ExtensionManager mgr;
 
     EXPECT_TRUE(mgr.RegisterByUri(3, TransmissionTimeOffset::kUri));
@@ -29,7 +32,7 @@ TEST(RTP_RTCP_RtpHeaderExtensionTest, RegisterByUri) {
     EXPECT_EQ(TransmissionTimeOffset::kType, mgr.GetType(3));
 }
 
-TEST(RTP_RTCP_RtpHeaderExtensionTest, RegisterWithTrait) {
+MY_TEST(RtpHeaderExtensionTest, RegisterWithTrait) {
     ExtensionManager mgr;
 
     EXPECT_TRUE(mgr.Register<TransmissionTimeOffset>(3));
@@ -39,21 +42,21 @@ TEST(RTP_RTCP_RtpHeaderExtensionTest, RegisterWithTrait) {
     EXPECT_EQ(TransmissionTimeOffset::kType, mgr.GetType(3));
 }
 
-TEST(RTP_RTCP_RtpHeaderExtensionTest, RegisterTwoByteHeaderExtensions) {
+MY_TEST(RtpHeaderExtensionTest, RegisterTwoByteHeaderExtensions) {
     ExtensionManager mgr;
     // Two-byte header extension needed for id: [15-255].
     EXPECT_TRUE(mgr.Register<TransmissionTimeOffset>(18));
     EXPECT_TRUE(mgr.Register<AbsoluteSendTime>(255));
 }
 
-TEST(RTP_RTCP_RtpHeaderExtensionTest, RegisterIllegalArg) {
+MY_TEST(RtpHeaderExtensionTest, RegisterIllegalArg) {
     ExtensionManager mgr;
     // Valid range for id: [1-255].
     EXPECT_FALSE(mgr.Register<TransmissionTimeOffset>(0));
     EXPECT_FALSE(mgr.Register<AbsoluteSendTime>(256));
 }
 
-TEST(RTP_RTCP_RtpHeaderExtensionTest, Idempotent) {
+MY_TEST(RtpHeaderExtensionTest, Idempotent) {
     ExtensionManager mgr;
 
     EXPECT_TRUE(mgr.Register<AbsoluteSendTime>(3));
@@ -63,7 +66,7 @@ TEST(RTP_RTCP_RtpHeaderExtensionTest, Idempotent) {
     mgr.Deregister(AbsoluteSendTime::kType);
 }
 
-TEST(RTP_RTCP_RtpHeaderExtensionTest, NonUniqueId) {
+MY_TEST(RtpHeaderExtensionTest, NonUniqueId) {
     ExtensionManager mgr;
     EXPECT_TRUE(mgr.Register<TransmissionTimeOffset>(3));
 
@@ -71,7 +74,7 @@ TEST(RTP_RTCP_RtpHeaderExtensionTest, NonUniqueId) {
     EXPECT_TRUE(mgr.Register<AbsoluteSendTime>(4));
 }
 
-TEST(RTP_RTCP_RtpHeaderExtensionTest, GetType) {
+MY_TEST(RtpHeaderExtensionTest, GetType) {
     ExtensionManager mgr;
     EXPECT_EQ(ExtensionManager::kInvalidType, mgr.GetType(3));
     EXPECT_TRUE(mgr.Register<TransmissionTimeOffset>(3));
@@ -79,7 +82,7 @@ TEST(RTP_RTCP_RtpHeaderExtensionTest, GetType) {
     EXPECT_EQ(TransmissionTimeOffset::kType, mgr.GetType(3));
 }
 
-TEST(RTP_RTCP_RtpHeaderExtensionTest, GetId) {
+MY_TEST(RtpHeaderExtensionTest, GetId) {
     ExtensionManager mgr;
     EXPECT_EQ(ExtensionManager::kInvalidId,
                 mgr.GetId(TransmissionTimeOffset::kType));

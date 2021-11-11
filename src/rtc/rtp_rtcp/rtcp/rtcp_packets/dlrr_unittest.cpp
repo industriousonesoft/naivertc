@@ -4,6 +4,9 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::rtcp;
 
 namespace naivertc {
@@ -17,12 +20,12 @@ const uint8_t kBlock[] = {0x05, 0x00, 0x00, 0x03, 0x12, 0x34, 0x56, 0x78,
 const size_t kBlockSize = sizeof(kBlock);
 }  // namespace
 
-TEST(RTP_RTCP_RtcpPacketDlrrTest, Empty) {
+MY_TEST(RtcpPacketDlrrTest, Empty) {
     Dlrr dlrr;
     EXPECT_EQ(0u, dlrr.BlockSize());
 }
 
-TEST(RTP_RTCP_RtcpPacketDlrrTest, Pack) {
+MY_TEST(RtcpPacketDlrrTest, Pack) {
     Dlrr dlrr;
     dlrr.AddDlrrItem(ReceiveTimeInfo(kSsrc, kLastRR, kDelay));
 
@@ -33,7 +36,7 @@ TEST(RTP_RTCP_RtcpPacketDlrrTest, Pack) {
     EXPECT_EQ(0, memcmp(buffer, kBlock, kBlockSize));
 }
 
-TEST(RTP_RTCP_RtcpPacketDlrrTest, Parse) {
+MY_TEST(RtcpPacketDlrrTest, Parse) {
     Dlrr dlrr;
     uint16_t block_size = ByteReader<uint16_t>::ReadBigEndian(&kBlock[2]);
     EXPECT_TRUE(dlrr.Parse(kBlock, block_size));
@@ -45,7 +48,7 @@ TEST(RTP_RTCP_RtcpPacketDlrrTest, Parse) {
     EXPECT_EQ(kDelay, block.delay_since_last_rr);
 }
 
-TEST(RTP_RTCP_RtcpPacketDlrrTest, ParseFailsOnBadSize) {
+MY_TEST(RtcpPacketDlrrTest, ParseFailsOnBadSize) {
     const size_t kBigBufferSize = 0x100;  // More than enough.
     uint8_t buffer[kBigBufferSize];
     buffer[0] = Dlrr::kBlockType;
@@ -59,7 +62,7 @@ TEST(RTP_RTCP_RtcpPacketDlrrTest, ParseFailsOnBadSize) {
     }
 }
 
-TEST(RTP_RTCP_RtcpPacketDlrrTest, CreateAndParseManySubBlocks) {
+MY_TEST(RtcpPacketDlrrTest, CreateAndParseManySubBlocks) {
     const size_t kBufferSize = 0x1000;  // More than enough.
     const size_t kManyDlrrItems = 50;
     uint8_t buffer[kBufferSize];

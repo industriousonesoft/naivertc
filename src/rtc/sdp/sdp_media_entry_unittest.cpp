@@ -4,13 +4,16 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 #include <string>
 
 namespace naivertc {
 namespace test {
 
 // Application entry
-TEST(SDP_SDPEntryTest, CreateApplicationEntry) {
+MY_TEST(SDPEntryTest, CreateApplicationEntry) {
     sdp::Application app("data");
 
     EXPECT_EQ(app.mid(), "data");
@@ -18,7 +21,7 @@ TEST(SDP_SDPEntryTest, CreateApplicationEntry) {
 }
 
 // Video entry
-TEST(SDP_SDPEntryTest, CreateVideoEntry) {
+MY_TEST(SDPEntryTest, CreateVideoEntry) {
     sdp::Media video(sdp::MediaEntry::Kind::VIDEO, "video", "UDP/TLS/RTP/SAVPF", sdp::Direction::SEND_ONLY);
 
     EXPECT_EQ(video.mid(), "video");
@@ -27,7 +30,7 @@ TEST(SDP_SDPEntryTest, CreateVideoEntry) {
 }
 
 // Audio entry
-TEST(SDP_SDPEntryTest, CreateAudioEntry) {
+MY_TEST(SDPEntryTest, CreateAudioEntry) {
     sdp::Media audio(sdp::MediaEntry::Kind::AUDIO, "audio", "UDP/TLS/RTP/SAVPF", sdp::Direction::RECV_ONLY);
 
     EXPECT_EQ(audio.mid(), "audio");

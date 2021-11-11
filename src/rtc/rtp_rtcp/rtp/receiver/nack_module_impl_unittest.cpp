@@ -3,12 +3,15 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-class RTP_RTCP_NackModuleTest : public ::testing::Test {
+class T(NackModuleTest) : public ::testing::Test {
 protected:
-    RTP_RTCP_NackModuleTest() 
+    T(NackModuleTest)() 
         : clock_(std::make_shared<SimulatedClock>(0)) {}
 
     void CreateNackModule(int64_t send_nack_delay_ms = 0) {
@@ -41,7 +44,7 @@ protected:
     std::unique_ptr<NackModuleImpl> nack_module_;
 };
 
-TEST_F(RTP_RTCP_NackModuleTest, NackOnePacket) {
+MY_TEST_F(NackModuleTest, NackOnePacket) {
     CreateNackModule();
     sent_nacks_.clear();
     InsertPacket(1, false, false);
@@ -50,7 +53,7 @@ TEST_F(RTP_RTCP_NackModuleTest, NackOnePacket) {
     EXPECT_EQ(2, sent_nacks_[0]);
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, WrappingSeqNumClearToKeyframe) {
+MY_TEST_F(NackModuleTest, WrappingSeqNumClearToKeyframe) {
     // Filtered by sequence number
     CreateNackModule();
     sent_nacks_.clear();
@@ -128,7 +131,7 @@ TEST_F(RTP_RTCP_NackModuleTest, WrappingSeqNumClearToKeyframe) {
     EXPECT_EQ(1006, sent_nacks_[502]);
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, ResendNack) {
+MY_TEST_F(NackModuleTest, ResendNack) {
     CreateNackModule();
     sent_nacks_.clear();
     InsertPacket(1, false, false);
@@ -165,7 +168,7 @@ TEST_F(RTP_RTCP_NackModuleTest, ResendNack) {
     EXPECT_EQ(expected_nacks_sent, sent_nacks_.size());
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, ResendPacketMaxRetries) {
+MY_TEST_F(NackModuleTest, ResendPacketMaxRetries) {
     CreateNackModule();
     sent_nacks_.clear();
     InsertPacket(1, false, false);
@@ -187,7 +190,7 @@ TEST_F(RTP_RTCP_NackModuleTest, ResendPacketMaxRetries) {
     EXPECT_EQ(10u, sent_nacks_.size());
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, TooLargeNackList) {
+MY_TEST_F(NackModuleTest, TooLargeNackList) {
     CreateNackModule();
     InsertPacket(0, false, false);
     InsertPacket(1001, false, false);
@@ -201,7 +204,7 @@ TEST_F(RTP_RTCP_NackModuleTest, TooLargeNackList) {
     EXPECT_EQ(1, keyframes_requested_);
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, TooLargeNackListWithKeyFrame) {
+MY_TEST_F(NackModuleTest, TooLargeNackListWithKeyFrame) {
     CreateNackModule();
     InsertPacket(0, false, false);
     InsertPacket(1, true, false);
@@ -216,7 +219,7 @@ TEST_F(RTP_RTCP_NackModuleTest, TooLargeNackListWithKeyFrame) {
     EXPECT_EQ(1, keyframes_requested_);
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, ClearUpTo) {
+MY_TEST_F(NackModuleTest, ClearUpTo) {
     CreateNackModule();
     InsertPacket(0, false, false);
     InsertPacket(100, false, false);
@@ -230,7 +233,7 @@ TEST_F(RTP_RTCP_NackModuleTest, ClearUpTo) {
     EXPECT_EQ(50, sent_nacks_[0]);
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, ClearUpToWrap) {
+MY_TEST_F(NackModuleTest, ClearUpToWrap) {
     CreateNackModule();
     sent_nacks_.clear();
     InsertPacket(0xfff0, false, false);
@@ -245,7 +248,7 @@ TEST_F(RTP_RTCP_NackModuleTest, ClearUpToWrap) {
     EXPECT_EQ(0, sent_nacks_[0]);
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, PacketNackCount) {
+MY_TEST_F(NackModuleTest, PacketNackCount) {
     CreateNackModule();
     EXPECT_EQ(0, InsertPacket(0, false, false));
     EXPECT_EQ(0, InsertPacket(2, false, false));
@@ -268,7 +271,7 @@ TEST_F(RTP_RTCP_NackModuleTest, PacketNackCount) {
     EXPECT_EQ(0, InsertPacket(4, false, false));
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, NackListFullAndNoOverlapWithKeyframes) {
+MY_TEST_F(NackModuleTest, NackListFullAndNoOverlapWithKeyframes) {
     CreateNackModule();
     sent_nacks_.clear();
     const int kMaxNackPackets = 1000;
@@ -285,7 +288,7 @@ TEST_F(RTP_RTCP_NackModuleTest, NackListFullAndNoOverlapWithKeyframes) {
     EXPECT_EQ(kSecondGap, sent_nacks_.size());
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, HandleFecRecoveredPacket) {
+MY_TEST_F(NackModuleTest, HandleFecRecoveredPacket) {
     CreateNackModule();
     InsertPacket(1, false, false);
     InsertPacket(4, false, true);
@@ -294,14 +297,14 @@ TEST_F(RTP_RTCP_NackModuleTest, HandleFecRecoveredPacket) {
     EXPECT_EQ(2u, sent_nacks_.size());
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, SendNackWithoutDelay) {
+MY_TEST_F(NackModuleTest, SendNackWithoutDelay) {
     CreateNackModule();
     InsertPacket(0, false, false);
     InsertPacket(100, false, false);
     EXPECT_EQ(99u, sent_nacks_.size());
 }
 
-TEST_F(RTP_RTCP_NackModuleTest, SendNackWithDelay) {
+MY_TEST_F(NackModuleTest, SendNackWithDelay) {
     CreateNackModule(10);
     InsertPacket(0, false, false);
     InsertPacket(100, false, false);

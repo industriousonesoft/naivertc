@@ -2,12 +2,14 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(Base_SystemTimeTest, SystemTimeInNanos) {
+MY_TEST(SystemTimeTest, SystemTimeInNanos) {
     int64_t time_in_ns = SystemTimeInNanos();
-
     EXPECT_GT(time_in_ns, 0);
 }
 

@@ -7,6 +7,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 namespace {
@@ -33,9 +36,9 @@ public:
 };
 
 // UlpFecReceiverTest
-class UlpFecReceiverTest : public ::testing::Test {
+class T(UlpFecReceiverTest) : public ::testing::Test {
 protected:
-    UlpFecReceiverTest() 
+    T(UlpFecReceiverTest)() 
         : clock_(std::make_shared<SimulatedClock>(0x100)),
           recovered_packet_receiver_(std::make_shared<MockRecoveredPacketReceiver>()),
           fec_receiver_(std::make_unique<UlpFecReceiver>(kMediaSsrc, clock_, recovered_packet_receiver_)),
@@ -66,7 +69,7 @@ protected:
 };
 
 // Implements
-size_t UlpFecReceiverTest::EncoderFec(const FecEncoder::PacketList& media_packets, 
+size_t T(UlpFecReceiverTest)::EncoderFec(const FecEncoder::PacketList& media_packets, 
                                       size_t num_fec_packets) {
     const uint8_t protection_factor = num_fec_packets * 255 / media_packets.size();
     // Unequal protection is turned off, and the number of important
@@ -84,7 +87,7 @@ size_t UlpFecReceiverTest::EncoderFec(const FecEncoder::PacketList& media_packet
     return num_generated_fec_packets;
 }
 
-void UlpFecReceiverTest::PacketizeFrame(size_t num_media_packets, FecEncoder::PacketList& media_packets) {
+void T(UlpFecReceiverTest)::PacketizeFrame(size_t num_media_packets, FecEncoder::PacketList& media_packets) {
     packet_generator_.NewFrame(num_media_packets);
     for (size_t i = 0; i < num_media_packets; ++i) {
         RtpPacket rtp_packet = packet_generator_.NextRtpPacket(10 /* payload_size */ , 0/* padding_size */);
@@ -92,17 +95,17 @@ void UlpFecReceiverTest::PacketizeFrame(size_t num_media_packets, FecEncoder::Pa
     }
 }
 
-void UlpFecReceiverTest::BuildAndAddRedMediaPacket(const RtpPacket& rtp_packet, bool is_recovered) {
+void T(UlpFecReceiverTest)::BuildAndAddRedMediaPacket(const RtpPacket& rtp_packet, bool is_recovered) {
     RtpPacketReceived red_packet = packet_generator_.BuildMediaRedPacket(rtp_packet, is_recovered);
     EXPECT_TRUE(fec_receiver_->OnRedPacket(red_packet, kFecPayloadType));
 } 
 
-void UlpFecReceiverTest::BuildAndAddRedFecPacket(const CopyOnWriteBuffer& fec_packets) {
+void T(UlpFecReceiverTest)::BuildAndAddRedFecPacket(const CopyOnWriteBuffer& fec_packets) {
     RtpPacketReceived red_packet = packet_generator_.BuildUlpFecRedPacket(fec_packets);
     EXPECT_TRUE(fec_receiver_->OnRedPacket(red_packet, kFecPayloadType));
 }
 
-void UlpFecReceiverTest::VerifyRecoveredMediaPacket(const RtpPacket& packet, size_t call_times) {
+void T(UlpFecReceiverTest)::VerifyRecoveredMediaPacket(const RtpPacket& packet, size_t call_times) {
     // Verify that the content of the reconstructed packet is equal to the
     // content of |packet|, and that the same content is received |times| number
     // of times in a row.
@@ -110,8 +113,8 @@ void UlpFecReceiverTest::VerifyRecoveredMediaPacket(const RtpPacket& packet, siz
     EXPECT_CALL(*recovered_packet_receiver_, OnRecoveredPacket(packet)).Times(call_times);
 }
 
-template<typename T>
-void UlpFecReceiverTest::InjectGarbageData(size_t offset, T data) {
+template<typename U>
+void T(UlpFecReceiverTest)::InjectGarbageData(size_t offset, U data) {
     const size_t kNumMediaPackets = 2u;
     const size_t kNumFecPackets = 1u;
     // Create media packets.
@@ -122,7 +125,7 @@ void UlpFecReceiverTest::InjectGarbageData(size_t offset, T data) {
 
     // Insert garbage bytes
     auto fec_it = generated_fec_packets_.begin();
-    ByteWriter<T>::WriteBigEndian(fec_it->data() + offset, data);
+    ByteWriter<U>::WriteBigEndian(fec_it->data() + offset, data);
 
     // Try to recovery
     auto fec_packet_counter = fec_receiver_->packet_counter();
@@ -148,7 +151,7 @@ void UlpFecReceiverTest::InjectGarbageData(size_t offset, T data) {
 }
 
 // Test
-TEST_F(UlpFecReceiverTest, TwoMediaOneFec) {
+MY_TEST_F(UlpFecReceiverTest, TwoMediaOneFec) {
     const size_t kNumMediaPackets = 2u;
     const size_t kNumFecPackets = 1u;
     // Create media packets.
@@ -189,7 +192,7 @@ TEST_F(UlpFecReceiverTest, TwoMediaOneFec) {
     EXPECT_EQ(first_packet_arrival_time_ms, fec_packet_counter.first_packet_arrival_time_ms);
 }
 
-TEST_F(UlpFecReceiverTest, TwoMediaOneFecNotUsesRecoveredPackets) {
+MY_TEST_F(UlpFecReceiverTest, TwoMediaOneFecNotUsesRecoveredPackets) {
     const size_t kNumMediaPackets = 2u;
     const size_t kNumFecPackets = 1u;
     // Create media packets.
@@ -230,18 +233,18 @@ TEST_F(UlpFecReceiverTest, TwoMediaOneFecNotUsesRecoveredPackets) {
     EXPECT_EQ(first_packet_arrival_time_ms, fec_packet_counter.first_packet_arrival_time_ms);
 }
 
-TEST_F(UlpFecReceiverTest, InjectGarbageFecHeaderLengthRecovery) {
+MY_TEST_F(UlpFecReceiverTest, InjectGarbageFecHeaderLengthRecovery) {
     // Byte offset 8 is the 'length recovery' field of the FEC header.
     InjectGarbageData(8, 0x4711);
 }
 
-TEST_F(UlpFecReceiverTest, InjectGarbageFecLevelHeaderProtectionLength) {
+MY_TEST_F(UlpFecReceiverTest, InjectGarbageFecLevelHeaderProtectionLength) {
     // Byte offset 10 is the 'protection length' field in the first FEC level
     // header.
     InjectGarbageData(10, 0x4711);
 }
 
-TEST_F(UlpFecReceiverTest, TwoMediaTwoFec) {
+MY_TEST_F(UlpFecReceiverTest, TwoMediaTwoFec) {
     const size_t kNumMediaPackets = 2u;
     const size_t kNumFecPackets = 2u;
     // Create media packets.
@@ -286,7 +289,7 @@ TEST_F(UlpFecReceiverTest, TwoMediaTwoFec) {
     EXPECT_EQ(first_packet_arrival_time_ms, fec_packet_counter.first_packet_arrival_time_ms);
 }
 
-TEST_F(UlpFecReceiverTest, TwoFramesOneFec) {
+MY_TEST_F(UlpFecReceiverTest, TwoFramesOneFec) {
     const size_t kNumFecPackets = 1u;
     // Create media packets.
     FecEncoder::PacketList media_packets;
@@ -328,7 +331,7 @@ TEST_F(UlpFecReceiverTest, TwoFramesOneFec) {
     EXPECT_EQ(first_packet_arrival_time_ms, fec_packet_counter.first_packet_arrival_time_ms);
 }
 
-TEST_F(UlpFecReceiverTest, TwoFramesThreePacketOneFec) {
+MY_TEST_F(UlpFecReceiverTest, TwoFramesThreePacketOneFec) {
     const size_t kNumFecPackets = 1u;
     // Create media packets.
     FecEncoder::PacketList media_packets;
@@ -380,7 +383,7 @@ TEST_F(UlpFecReceiverTest, TwoFramesThreePacketOneFec) {
 
 }
 
-TEST_F(UlpFecReceiverTest, MaxFramesOneFec) {
+MY_TEST_F(UlpFecReceiverTest, MaxFramesOneFec) {
     const size_t kNumFecPackets = 1;
     const size_t kNumMediaPackets = 48; // L bit set, mask size = 2 + 4
     // Generate media packets.
@@ -408,7 +411,7 @@ TEST_F(UlpFecReceiverTest, MaxFramesOneFec) {
     BuildAndAddRedFecPacket(*generated_fec_packets_.begin());
 }
 
-TEST_F(UlpFecReceiverTest, TooManyFrames) {
+MY_TEST_F(UlpFecReceiverTest, TooManyFrames) {
     const size_t kNumFecPackets = 1;
     // The max number of media packets can be protected by FEC is 48.
     const size_t kNumMediaPackets = 49;
@@ -435,7 +438,7 @@ TEST_F(UlpFecReceiverTest, TooManyFrames) {
     EXPECT_FALSE(success);
 }
 
-TEST_F(UlpFecReceiverTest, PacketNotDroppedTooEarly) {
+MY_TEST_F(UlpFecReceiverTest, PacketNotDroppedTooEarly) {
     // 1 frame with 2 media packets and one FEC packet. One media packet missing.
     // Delay the FEC packet.
     const size_t kNumFecPacketsBatch1 = 1;
@@ -486,7 +489,7 @@ TEST_F(UlpFecReceiverTest, PacketNotDroppedTooEarly) {
 
 }
 
-TEST_F(UlpFecReceiverTest, PacketDroppedWhenTooOld) {
+MY_TEST_F(UlpFecReceiverTest, PacketDroppedWhenTooOld) {
     // 1 frame with 2 media packets and one FEC packet. One media packet missing.
     // Delay the FEC packet.
     const size_t kNumFecPacketsBatch1 = 1;
@@ -537,7 +540,7 @@ TEST_F(UlpFecReceiverTest, PacketDroppedWhenTooOld) {
     EXPECT_EQ(0u, fec_packet_counter.num_recovered_packets);
 }
 
-TEST_F(UlpFecReceiverTest, OldFecPacketDropped) {
+MY_TEST_F(UlpFecReceiverTest, OldFecPacketDropped) {
     // 49 frames with 2 media packets and one FEC packet. 
     // All media packets missing.
     const size_t kNumMediaPackets = (kUlpFecMaxMediaPackets /* 48 */ + 1) * 2;
@@ -564,7 +567,7 @@ TEST_F(UlpFecReceiverTest, OldFecPacketDropped) {
     
 }
 
-TEST_F(UlpFecReceiverTest, MediaWithPadding) {
+MY_TEST_F(UlpFecReceiverTest, MediaWithPadding) {
     const size_t kNumFecPacket = 1;
     FecEncoder::PacketList media_packets;
     PacketizeFrame(2, media_packets);

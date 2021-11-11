@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(ZeroModuloNumberUnwrapperTest, SeqNumLimits) {
+MY_TEST(ZeroModuloNumberUnwrapperTest, SeqNumLimits) {
     SeqNumUnwrapper unwrapper;
 
     EXPECT_EQ(0, unwrapper.Unwrap(0));
@@ -31,7 +34,7 @@ TEST(ZeroModuloNumberUnwrapperTest, SeqNumLimits) {
     EXPECT_EQ(0xFFFF, unwrapper.Unwrap(0xFFFF));
 }
 
-TEST(ZeroModuloNumberUnwrapperTest, SeqNumForwardWraps) {
+MY_TEST(ZeroModuloNumberUnwrapperTest, SeqNumForwardWraps) {
     int64_t seq = 0;
     SeqNumUnwrapper unwrapper;
 
@@ -50,7 +53,7 @@ TEST(ZeroModuloNumberUnwrapperTest, SeqNumForwardWraps) {
     }
 }
 
-TEST(ZeroModuloNumberUnwrapperTest, SeqNumBackwardWraps) {
+MY_TEST(ZeroModuloNumberUnwrapperTest, SeqNumBackwardWraps) {
     SeqNumUnwrapper unwrapper;
 
     const int kMaxDecrease = 0x8000 - 1;
@@ -71,7 +74,7 @@ TEST(ZeroModuloNumberUnwrapperTest, SeqNumBackwardWraps) {
     }
 }
 
-TEST(ZeroModuloNumberUnwrapperTest, TimestampLimits) {
+MY_TEST(ZeroModuloNumberUnwrapperTest, TimestampLimits) {
     TimestampUnwrapper unwrapper;
 
     EXPECT_EQ(0, unwrapper.Unwrap(0));
@@ -98,7 +101,7 @@ TEST(ZeroModuloNumberUnwrapperTest, TimestampLimits) {
     EXPECT_EQ(0xFFFFFFFF, unwrapper.Unwrap(0xFFFFFFFF));
 }
 
-TEST(ZeroModuloNumberUnwrapperTest, TimestampForwardWraps) {
+MY_TEST(ZeroModuloNumberUnwrapperTest, TimestampForwardWraps) {
     int64_t ts = 0;
     TimestampUnwrapper unwrapper;
 
@@ -112,7 +115,7 @@ TEST(ZeroModuloNumberUnwrapperTest, TimestampForwardWraps) {
     }
 }
 
-TEST(ZeroModuloNumberUnwrapperTest, TimestampBackwardWraps) {
+MY_TEST(ZeroModuloNumberUnwrapperTest, TimestampBackwardWraps) {
     TimestampUnwrapper unwrapper;
 
     const int64_t kMaxDecrease = 0x80000000 - 1;

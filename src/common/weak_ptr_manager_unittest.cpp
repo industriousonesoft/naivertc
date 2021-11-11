@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-class Common_WeakPtrManagerTest : public testing::Test {
+class T(WeakPtrManagerTest) : public testing::Test {
 public:
     void SetUp() override {
         WeakPtrManager::SharedInstance()->Register(this);
@@ -16,7 +19,7 @@ public:
     };
 };
 
-TEST_F(Common_WeakPtrManagerTest, Lock) {
+MY_TEST_F(WeakPtrManagerTest, Lock) {
     auto ret = WeakPtrManager::SharedInstance()->Lock(this);
     EXPECT_EQ(ret.has_value(), true);
 }

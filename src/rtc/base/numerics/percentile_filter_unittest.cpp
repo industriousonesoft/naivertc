@@ -5,23 +5,25 @@
 
 #include <vector>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-class Base_PercentileFilterTest : public ::testing::TestWithParam<float> {
+class T(PercentileFilterTest) : public ::testing::TestWithParam<float> {
 public:
-    Base_PercentileFilterTest() : filter_(GetParam()) {}
+    T(PercentileFilterTest)() : filter_(GetParam()) {}
 
 protected:
     PercentileFilter<int64_t> filter_;
-
 private:
-    DISALLOW_COPY_AND_ASSIGN(Base_PercentileFilterTest);
+    DISALLOW_COPY_AND_ASSIGN(T(PercentileFilterTest));
 };
 
-INSTANTIATE_TEST_SUITE_P(Base_PercentileFilterTest, Base_PercentileFilterTest, ::testing::Values(0.0f, 0.1f, 0.5f, 0.9f, 1.0f));
+MY_INSTANTIATE_TEST_SUITE_P(PercentileFilterTest, PercentileFilterTest, ::testing::Values(0.0f, 0.1f, 0.5f, 0.9f, 1.0f));
 
-TEST(Base_PercentileFilterTest, MinFilter) {
+MY_TEST(PercentileFilterTest, MinFilter) {
     PercentileFilter<int64_t> filter(0.0f);
     filter.Insert(4);
     EXPECT_EQ(4, filter.GetPercentileValue());
@@ -29,7 +31,7 @@ TEST(Base_PercentileFilterTest, MinFilter) {
     EXPECT_EQ(3, filter.GetPercentileValue());
 }
 
-TEST(Base_PercentileFilterTest, MaxFilter) {
+MY_TEST(PercentileFilterTest, MaxFilter) {
     PercentileFilter<int64_t> filter(1.0f);
     filter.Insert(3);
     EXPECT_EQ(3, filter.GetPercentileValue());
@@ -37,7 +39,7 @@ TEST(Base_PercentileFilterTest, MaxFilter) {
     EXPECT_EQ(4, filter.GetPercentileValue());
 }
 
-TEST(Base_PercentileFilterTest, MedianFilterDouble) {
+MY_TEST(PercentileFilterTest, MedianFilterDouble) {
     PercentileFilter<double> filter(0.5f);
     filter.Insert(2.71828);
     filter.Insert(3.14159);
@@ -45,7 +47,7 @@ TEST(Base_PercentileFilterTest, MedianFilterDouble) {
     EXPECT_EQ(2.71828, filter.GetPercentileValue());
 }
 
-TEST(Base_PercentileFilterTest, MedianFilterInt) {
+MY_TEST(PercentileFilterTest, MedianFilterInt) {
     PercentileFilter<int> filter(0.5f);
     filter.Insert(INT_MIN);
     filter.Insert(1);
@@ -56,7 +58,7 @@ TEST(Base_PercentileFilterTest, MedianFilterInt) {
     EXPECT_EQ(2, filter.GetPercentileValue());
 }
 
-TEST(Base_PercentileFilterTest, MedianFilterUnsigned) {
+MY_TEST(PercentileFilterTest, MedianFilterUnsigned) {
     PercentileFilter<unsigned> filter(0.5f);
     filter.Insert(UINT_MAX);
     filter.Insert(2u);
@@ -67,7 +69,7 @@ TEST(Base_PercentileFilterTest, MedianFilterUnsigned) {
     EXPECT_EQ(1u, filter.GetPercentileValue());
 }
 
-TEST_P(Base_PercentileFilterTest, EmptyFilter) {
+MY_TEST_P(PercentileFilterTest, EmptyFilter) {
     EXPECT_EQ(0, filter_.GetPercentileValue());
     filter_.Insert(3);
     bool success = filter_.Erase(3);
@@ -75,7 +77,7 @@ TEST_P(Base_PercentileFilterTest, EmptyFilter) {
     EXPECT_EQ(0, filter_.GetPercentileValue());
 }
 
-TEST_P(Base_PercentileFilterTest, EraseNonExistingElement) {
+MY_TEST_P(PercentileFilterTest, EraseNonExistingElement) {
     bool success = filter_.Erase(3);
     EXPECT_FALSE(success);
     EXPECT_EQ(0, filter_.GetPercentileValue());
@@ -85,14 +87,14 @@ TEST_P(Base_PercentileFilterTest, EraseNonExistingElement) {
     EXPECT_EQ(4, filter_.GetPercentileValue());
 }
 
-TEST_P(Base_PercentileFilterTest, DuplicateElements) {
+MY_TEST_P(PercentileFilterTest, DuplicateElements) {
     filter_.Insert(3);
     filter_.Insert(3);
     filter_.Erase(3);
     EXPECT_EQ(3, filter_.GetPercentileValue());
 }
 
-TEST_P(Base_PercentileFilterTest, InsertAndEraseTenValuesInRandomOrder) {
+MY_TEST_P(PercentileFilterTest, InsertAndEraseTenValuesInRandomOrder) {
     std::vector<int64_t> zero_to_nine = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     // The percentile value of the ten values above.
     const int64_t expected_value = static_cast<int64_t>(GetParam() * 9);

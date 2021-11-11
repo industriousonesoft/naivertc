@@ -666,6 +666,7 @@ set(TEST_SOURCES
     src/rtc/transports/ice_transport_description_unittest.cpp
 
     testing/gtest_main.cpp
+    testing/unittest_defines.hpp
 )
 
 # EXCLUDE_FROM_ALL表示指定的target(或某个模块下的所有target)不会被加入默认编译的all target列表中，即不会自动编译，需要手动编译

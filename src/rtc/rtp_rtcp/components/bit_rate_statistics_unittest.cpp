@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
@@ -9,13 +12,14 @@ using namespace naivertc;
 
 constexpr int64_t KWindowSizeMs = 500; 
 
-class RTP_RTCP_BitRateStatisticsTest : public ::testing::Test {
+class T(BitRateStatisticsTest) : public ::testing::Test {
 protected:
-    RTP_RTCP_BitRateStatisticsTest() : stats_(KWindowSizeMs) {};
+    T(BitRateStatisticsTest)() : stats_(KWindowSizeMs) {};
+protected:
     BitRateStatistics stats_;
 };
 
-TEST_F(RTP_RTCP_BitRateStatisticsTest, TestStrictMode) {
+MY_TEST_F(BitRateStatisticsTest, TestStrictMode) {
     int64_t now_ms = 0;
     EXPECT_FALSE(stats_.Rate(now_ms).has_value());
 
@@ -65,7 +69,7 @@ TEST_F(RTP_RTCP_BitRateStatisticsTest, TestStrictMode) {
     EXPECT_EQ(stats_.num_bucket(), 0);
 }
 
-TEST_F(RTP_RTCP_BitRateStatisticsTest, IncreasingThenDecreasingBitrate) {
+MY_TEST_F(BitRateStatisticsTest, IncreasingThenDecreasingBitrate) {
     int64_t now_ms = 0;
     stats_.Reset();
     // Expecting 0 after init.
@@ -111,7 +115,7 @@ TEST_F(RTP_RTCP_BitRateStatisticsTest, IncreasingThenDecreasingBitrate) {
 }
 
 
-TEST_F(RTP_RTCP_BitRateStatisticsTest, ResetAfterSilence) {
+MY_TEST_F(BitRateStatisticsTest, ResetAfterSilence) {
     int64_t now_ms = 0;
     stats_.Reset();
     // Expecting 0 after init.
@@ -158,7 +162,7 @@ TEST_F(RTP_RTCP_BitRateStatisticsTest, ResetAfterSilence) {
     EXPECT_EQ(kExpectedBitrate, stats_.Rate(now_ms)->bps());
 }
 
-TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesChangingWindowSize) {
+MY_TEST_F(BitRateStatisticsTest, HandlesChangingWindowSize) {
     int64_t now_ms = 0;
     stats_.Reset();
 
@@ -192,7 +196,7 @@ TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesChangingWindowSize) {
     EXPECT_EQ(static_cast<uint32_t>((8000 * 3) / 2), stats_.Rate(now_ms)->bps());
 }
 
-TEST_F(RTP_RTCP_BitRateStatisticsTest, RespectsWindowSizeEdges) {
+MY_TEST_F(BitRateStatisticsTest, RespectsWindowSizeEdges) {
     int64_t now_ms = 0;
     stats_.Reset();
     // Expecting 0 after init.
@@ -223,7 +227,7 @@ TEST_F(RTP_RTCP_BitRateStatisticsTest, RespectsWindowSizeEdges) {
     EXPECT_EQ(1000 * 8u, bitrate->bps());
 }
 
-TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesZeroCounts) {
+MY_TEST_F(BitRateStatisticsTest, HandlesZeroCounts) {
     int64_t now_ms = 0;
     stats_.Reset();
     // Expecting 0 after init.
@@ -248,7 +252,7 @@ TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesZeroCounts) {
     EXPECT_EQ(0u, bitrate->bps());
 }
 
-TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesQuietPeriods) {
+MY_TEST_F(BitRateStatisticsTest, HandlesQuietPeriods) {
     int64_t now_ms = 0;
     stats_.Reset();
     // Expecting 0 after init.
@@ -274,7 +278,7 @@ TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesQuietPeriods) {
 }
 
 
-TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesBigNumbers) {
+MY_TEST_F(BitRateStatisticsTest, HandlesBigNumbers) {
     int64_t large_number = 0x100000000u;
     int64_t now_ms = 0;
     stats_.Update(large_number, now_ms++);
@@ -284,7 +288,7 @@ TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesBigNumbers) {
     EXPECT_EQ(large_number * 8000, bitrate->bps());
 }
 
-TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesTooLargeNumbers) {
+MY_TEST_F(BitRateStatisticsTest, HandlesTooLargeNumbers) {
     int64_t very_large_number = std::numeric_limits<int64_t>::max();
     int64_t now_ms = 0;
     stats_.Update(very_large_number, now_ms++);
@@ -293,7 +297,7 @@ TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesTooLargeNumbers) {
     EXPECT_FALSE(stats_.Rate(now_ms).has_value());
 }
 
-TEST_F(RTP_RTCP_BitRateStatisticsTest, HandlesSomewhatLargeNumbers) {
+MY_TEST_F(BitRateStatisticsTest, HandlesSomewhatLargeNumbers) {
     int64_t very_large_number = std::numeric_limits<int64_t>::max();
     int64_t now_ms = 0;
     stats_.Update(very_large_number / 4, now_ms++);

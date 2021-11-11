@@ -2,12 +2,15 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
 using namespace naivertc::rtcp;
 
-TEST(RTP_RTCP_RtcpCommonHeaderTest, TooSmallBuffer) {
+MY_TEST(RtcpCommonHeaderTest, TooSmallBuffer) {
     const uint8_t buffer[] = {0x80, 0x00, 0x00, 0x00};
     CommonHeader header;
     EXPECT_FALSE(header.Parse(buffer, 0));
@@ -17,7 +20,7 @@ TEST(RTP_RTCP_RtcpCommonHeaderTest, TooSmallBuffer) {
     EXPECT_TRUE(header.Parse(buffer, 4));
 }
 
-TEST(RTP_RTCP_RtcpCommonHeaderTest, Version) {
+MY_TEST(RtcpCommonHeaderTest, Version) {
     uint8_t buffer[] = {0x00, 0x00, 0x00, 0x00};
     size_t buffer_size = 4;
     CommonHeader header;
@@ -32,7 +35,7 @@ TEST(RTP_RTCP_RtcpCommonHeaderTest, Version) {
     EXPECT_FALSE(header.Parse(buffer, buffer_size));
 }
 
-TEST(RTP_RTCP_RtcpCommonHeaderTest, PacketSize) {
+MY_TEST(RtcpCommonHeaderTest, PacketSize) {
     uint8_t buffer[] = {0x80, 0x00, 0x00, 0x02, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     size_t buffer_size = 12;
@@ -44,7 +47,7 @@ TEST(RTP_RTCP_RtcpCommonHeaderTest, PacketSize) {
     EXPECT_EQ(buffer_size, header.packet_size());
 }
 
-TEST(RTP_RTCP_RtcpCommonHeaderTest, PaddingAndPayloadSize) {
+MY_TEST(RtcpCommonHeaderTest, PaddingAndPayloadSize) {
     // Set v = 2, p = 1, but leave fmt, pt as 0.
     uint8_t buffer[] = {0xa0, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -82,7 +85,7 @@ TEST(RTP_RTCP_RtcpCommonHeaderTest, PaddingAndPayloadSize) {
     EXPECT_EQ(header.packet_size(), buffer_size);
 }
 
-TEST(RTP_RTCP_RtcpCommonHeaderTest, FormatAndPayloadType) {
+MY_TEST(RtcpCommonHeaderTest, FormatAndPayloadType) {
     const uint8_t buffer[] = {0x9e, 0xab, 0x00, 0x00};
     size_t buffer_size = 4;
     CommonHeader header;

@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(Base_TimestampTest, ConstExpr) {
+MY_TEST(TimestampTest, ConstExpr) {
     constexpr int64_t kValue = 12345;
     constexpr Timestamp kMaxValue = Timestamp::MaxValue();
     static_assert(kMaxValue.IsInfinite(), "");
@@ -26,14 +29,14 @@ TEST(Base_TimestampTest, ConstExpr) {
     EXPECT_EQ(kTimestampUs.us(), kValue);
 }
 
-TEST(Base_TimestampTest, GetBackSameValues) {
+MY_TEST(TimestampTest, GetBackSameValues) {
     const int64_t kValue = 499;
     EXPECT_EQ(Timestamp::Millis(kValue).ms(), kValue);
     EXPECT_EQ(Timestamp::Micros(kValue).us(), kValue);
     EXPECT_EQ(Timestamp::Seconds(kValue).seconds(), kValue);
 }
 
-TEST(Base_TimestampTest, GetDifferentPrefix) {
+MY_TEST(TimestampTest, GetDifferentPrefix) {
     const int64_t kValue = 3000000;
     EXPECT_EQ(Timestamp::Micros(kValue).seconds(), kValue / 1000000);
     EXPECT_EQ(Timestamp::Millis(kValue).seconds(), kValue / 1000);
@@ -45,7 +48,7 @@ TEST(Base_TimestampTest, GetDifferentPrefix) {
 }
 
 
-TEST(Base_TimestampTest, IdentityChecks) {
+MY_TEST(TimestampTest, IdentityChecks) {
     const int64_t kValue = 3000;
 
     EXPECT_TRUE(Timestamp::MaxValue().IsInfinite());
@@ -63,7 +66,7 @@ TEST(Base_TimestampTest, IdentityChecks) {
     EXPECT_FALSE(Timestamp::MaxValue().IsMin());
 }
 
-TEST(Base_TimestampTest, ConvertsToAndFromDouble) {
+MY_TEST(TimestampTest, ConvertsToAndFromDouble) {
     const int64_t kMicros = 17017;
     const double kMicrosDouble = kMicros;
     const double kMillisDouble = kMicros * 1e-3;
@@ -96,7 +99,7 @@ TEST(Base_TimestampTest, ConvertsToAndFromDouble) {
     EXPECT_TRUE(Timestamp::Micros(kMinValue).IsMin());
 }
 
-TEST(Base_UnitConversionTest, TimestampAndTimeDeltaMath) {
+MY_TEST(UnitConversionTest, TimestampAndTimeDeltaMath) {
     const int64_t kValueA = 267;
     const int64_t kValueB = 450;
     const Timestamp time_a = Timestamp::Millis(kValueA);
@@ -115,7 +118,7 @@ TEST(Base_UnitConversionTest, TimestampAndTimeDeltaMath) {
     EXPECT_EQ(mutable_time, time_a);
 }
 
-TEST(Base_UnitConversionTest, InfinityOperations) {
+MY_TEST(UnitConversionTest, InfinityOperations) {
     const int64_t kValue = 267;
     const Timestamp finite_time = Timestamp::Millis(kValue);
     const TimeDelta finite_delta = TimeDelta::Millis(kValue);

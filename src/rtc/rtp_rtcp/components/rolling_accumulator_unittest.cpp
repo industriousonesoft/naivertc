@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 #include <random>
 
 namespace naivertc {
@@ -22,7 +25,7 @@ void FillStatsFromUniformDistribution(RollingAccumulator<double>& stats, int n, 
     
 } // namespace
 
-TEST(RollingAccumulatorTest, ZeroSamples) {
+MY_TEST(RollingAccumulatorTest, ZeroSamples) {
     RollingAccumulator<int> accum(10);
 
     EXPECT_EQ(0u, accum.count());
@@ -33,7 +36,7 @@ TEST(RollingAccumulatorTest, ZeroSamples) {
     EXPECT_EQ(0u, accum.ComputeMax());
 }
 
-TEST(RollingAccumulatorTest, SomeSamples) {
+MY_TEST(RollingAccumulatorTest, SomeSamples) {
     RollingAccumulator<int> accum(10);
     for (int i = 0; i < 4; ++i) {
         accum.AddSample(i);
@@ -47,7 +50,7 @@ TEST(RollingAccumulatorTest, SomeSamples) {
     EXPECT_EQ(3u, accum.ComputeMax());
 }
 
-TEST(RollingAccumulatorTest, RollingSamples) {
+MY_TEST(RollingAccumulatorTest, RollingSamples) {
     RollingAccumulator<int> accum(10);
     for (int i = 0; i < 12; ++i) {
         accum.AddSample(i);
@@ -60,7 +63,7 @@ TEST(RollingAccumulatorTest, RollingSamples) {
     EXPECT_EQ(11, accum.ComputeMax());
 }
 
-TEST(RollingAccumulatorTest, ResetSamples) {
+MY_TEST(RollingAccumulatorTest, ResetSamples) {
     RollingAccumulator<int> accum(10);
     for (int i = 0; i < 10; ++i) {
         accum.AddSample(100);
@@ -80,7 +83,7 @@ TEST(RollingAccumulatorTest, ResetSamples) {
     EXPECT_EQ(4, accum.ComputeMax());
 }
 
-TEST(RollingAccumulatorTest, RollingSamplesDouble) {
+MY_TEST(RollingAccumulatorTest, RollingSamplesDouble) {
     RollingAccumulator<double> accum(10);
     for (int i = 0; i < 23; ++i) {
         accum.AddSample(5 * i);
@@ -93,7 +96,7 @@ TEST(RollingAccumulatorTest, RollingSamplesDouble) {
     EXPECT_DOUBLE_EQ(110.0, accum.ComputeMax());
 }
 
-TEST(RollingAccumulatorTest, ComputeWeightedMeanCornerCases) {
+MY_TEST(RollingAccumulatorTest, ComputeWeightedMeanCornerCases) {
     RollingAccumulator<int> accum(10);
     EXPECT_DOUBLE_EQ(0.0, accum.ComputeWeightedMean(kLearningRate));
     EXPECT_DOUBLE_EQ(0.0, accum.ComputeWeightedMean(0.0));
@@ -107,7 +110,7 @@ TEST(RollingAccumulatorTest, ComputeWeightedMeanCornerCases) {
     EXPECT_NEAR(6.0, accum.ComputeWeightedMean(kLearningRate), 1e-1);
 }
 
-TEST(RollingAccumulatorTest, VarianceFromUniformDistribution) {
+MY_TEST(RollingAccumulatorTest, VarianceFromUniformDistribution) {
     // Check variance converge to 1/12 for [0;1) uniform distribution.
     // Acts as a sanity check for NumericStabilityForVariance test.
     RollingAccumulator<double> stats(/*max_count=*/0.5e6);
@@ -115,7 +118,7 @@ TEST(RollingAccumulatorTest, VarianceFromUniformDistribution) {
     EXPECT_NEAR(stats.ComputeVariance(), 1. / 12, 1e-3);
 }
 
-TEST(RollingAccumulatorTest, NumericStabilityForVariance) {
+MY_TEST(RollingAccumulatorTest, NumericStabilityForVariance) {
     // Same test as VarianceFromUniformDistribution,
     // except the range is shifted to [1e9;1e9+1).
     // Variance should also converge to 1/12.

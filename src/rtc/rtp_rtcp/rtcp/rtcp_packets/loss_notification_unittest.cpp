@@ -4,12 +4,15 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::rtcp;
 
 namespace naivertc {
 namespace test {
 
-TEST(RTP_RTCP_RtcpPacketLossNotificationTest, SetWithIllegalValuesFails) {
+MY_TEST(RtcpPacketLossNotificationTest, SetWithIllegalValuesFails) {
     constexpr uint16_t kLastDecoded = 0x3c7b;
     constexpr uint16_t kLastReceived = kLastDecoded + 0x7fff + 1;
     constexpr bool kDecodabilityFlag = true;
@@ -17,7 +20,7 @@ TEST(RTP_RTCP_RtcpPacketLossNotificationTest, SetWithIllegalValuesFails) {
     EXPECT_FALSE(loss_notification.Set(kLastDecoded, kLastReceived, kDecodabilityFlag));
 }
 
-TEST(RTP_RTCP_RtcpPacketLossNotificationTest, SetWithLegalValuesSucceeds) {
+MY_TEST(RtcpPacketLossNotificationTest, SetWithLegalValuesSucceeds) {
     constexpr uint16_t kLastDecoded = 0x3c7b;
     constexpr uint16_t kLastReceived = kLastDecoded + 0x7fff;
     constexpr bool kDecodabilityFlag = true;
@@ -25,7 +28,7 @@ TEST(RTP_RTCP_RtcpPacketLossNotificationTest, SetWithLegalValuesSucceeds) {
     EXPECT_TRUE(loss_notification.Set(kLastDecoded, kLastReceived, kDecodabilityFlag));
 }
 
-TEST(RTP_RTCP_RtcpPacketLossNotificationTest, CreateProducesExpectedWireFormat) {
+MY_TEST(RtcpPacketLossNotificationTest, CreateProducesExpectedWireFormat) {
     // Note that (0x6542 >> 1) is used just to make the pattern in kPacket
     // more apparent; there's nothing truly special about the value,
     // it's only an implementation detail that last-received is represented
@@ -49,7 +52,7 @@ TEST(RTP_RTCP_RtcpPacketLossNotificationTest, CreateProducesExpectedWireFormat) 
     EXPECT_THAT(packet, testing::ElementsAreArray(kPacket));
 }
 
-TEST(RTP_RTCP_RtcpPacketLossNotificationTest, ParseLegalLossNotificationMessagesCorrectly) {
+MY_TEST(RtcpPacketLossNotificationTest, ParseLegalLossNotificationMessagesCorrectly) {
      // Note that (0x6542 >> 1) is used just to make the pattern in kPacket
     // more apparent; there's nothing truly special about the value,
     // it's only an implementation detail that last-received is represented

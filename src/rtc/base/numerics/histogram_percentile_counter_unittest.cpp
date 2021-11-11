@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(HistogramPercentileCounterTest, ReturnsCorrectPercentiles) {
+MY_TEST(HistogramPercentileCounterTest, ReturnsCorrectPercentiles) {
     HistogramPercentileCounter counter(10);
     const std::vector<int> kTestValues = {1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
                                           11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
@@ -23,7 +26,7 @@ TEST(HistogramPercentileCounterTest, ReturnsCorrectPercentiles) {
     }
 }
 
-TEST(HistogramPercentileCounterTest, HandlesEmptySequence) {
+MY_TEST(HistogramPercentileCounterTest, HandlesEmptySequence) {
     HistogramPercentileCounter counter(10);
     EXPECT_FALSE(counter.GetPercentile(0.5f).has_value());
     counter.Add(1u);

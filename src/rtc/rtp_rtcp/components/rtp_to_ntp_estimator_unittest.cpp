@@ -2,6 +2,9 @@
 #include "common/utils_random.hpp"
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 namespace {
@@ -10,7 +13,7 @@ constexpr uint32_t kOneHourInNtpSec = 60 * 60;
 constexpr uint32_t kTimestampTicksPerMs = 90;
 }  // namespace
 
-TEST(RTP_RTCP_WrapAroundTests, OldRtcpWrapped_OldRtpTimestamp) {
+MY_TEST(RtpToNtpEstimatorTest, OldRtcpWrapped_OldRtpTimestamp) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 0;
     uint32_t ntp_frac = 1;
@@ -24,7 +27,7 @@ TEST(RTP_RTCP_WrapAroundTests, OldRtcpWrapped_OldRtpTimestamp) {
     EXPECT_FALSE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
 }
 
-TEST(RTP_RTCP_WrapAroundTests, OldRtcpWrapped_OldRtpTimestamp_Wraparound_Detected) {
+MY_TEST(RtpToNtpEstimatorTest, OldRtcpWrapped_OldRtpTimestamp_Wraparound_Detected) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 0;
     uint32_t ntp_frac = 1;
@@ -41,7 +44,7 @@ TEST(RTP_RTCP_WrapAroundTests, OldRtcpWrapped_OldRtpTimestamp_Wraparound_Detecte
     EXPECT_FALSE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
 }
 
-TEST(RTP_RTCP_WrapAroundTests, NewRtcpWrapped) {
+MY_TEST(RtpToNtpEstimatorTest, NewRtcpWrapped) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 0;
     uint32_t ntp_frac = 1;
@@ -59,7 +62,7 @@ TEST(RTP_RTCP_WrapAroundTests, NewRtcpWrapped) {
     EXPECT_EQ(0, timestamp_ms.value());
 }
 
-TEST(RTP_RTCP_WrapAroundTests, RtpWrapped) {
+MY_TEST(RtpToNtpEstimatorTest, RtpWrapped) {
     RtpToNtpEstimator estimator;
 
     uint32_t ntp_sec = 0;
@@ -88,7 +91,7 @@ TEST(RTP_RTCP_WrapAroundTests, RtpWrapped) {
     EXPECT_EQ(3, timestamp_ms.value());
 }
 
-TEST(RTP_RTCP_WrapAroundTests, OldRtp_RtcpsWrapped) {
+MY_TEST(RtpToNtpEstimatorTest, OldRtp_RtcpsWrapped) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 0;
     uint32_t ntp_frac = 1;
@@ -103,7 +106,7 @@ TEST(RTP_RTCP_WrapAroundTests, OldRtp_RtcpsWrapped) {
     EXPECT_FALSE(estimator.Estimate(timestamp).has_value());
 }
 
-TEST(RTP_RTCP_WrapAroundTests, OldRtp_NewRtcpWrapped) {
+MY_TEST(RtpToNtpEstimatorTest, OldRtp_NewRtcpWrapped) {
     RtpToNtpEstimator estimator;
    
     uint32_t ntp_sec = 0;
@@ -123,7 +126,7 @@ TEST(RTP_RTCP_WrapAroundTests, OldRtp_NewRtcpWrapped) {
     EXPECT_EQ(0, timestamp_ms.value());
 }
 
-TEST(RTP_RTCP_WrapAroundTests, GracefullyHandleRtpJump) {
+MY_TEST(RtpToNtpEstimatorTest, GracefullyHandleRtpJump) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 0;
     uint32_t ntp_frac = 1;
@@ -162,7 +165,7 @@ TEST(RTP_RTCP_WrapAroundTests, GracefullyHandleRtpJump) {
     EXPECT_EQ(6, timestamp_ms.value());
 }
 
-TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForZeroNtp) {
+MY_TEST(RtpToNtpEstimatorTest, FailsForZeroNtp) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 0;
     uint32_t ntp_frac = 0;
@@ -170,7 +173,7 @@ TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForZeroNtp) {
     EXPECT_FALSE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
 }
 
-TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForEqualNtp) {
+MY_TEST(RtpToNtpEstimatorTest, FailsForEqualNtp) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 0;
     uint32_t ntp_frac = 699925050;
@@ -181,7 +184,7 @@ TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForEqualNtp) {
     EXPECT_FALSE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
 }
 
-TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForOldNtp) {
+MY_TEST(RtpToNtpEstimatorTest, FailsForOldNtp) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 1;
     uint32_t ntp_frac = 699925050;
@@ -193,7 +196,7 @@ TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForOldNtp) {
     EXPECT_FALSE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
 }
 
-TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForTooNewNtp) {
+MY_TEST(RtpToNtpEstimatorTest, FailsForTooNewNtp) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 1;
     uint32_t ntp_frac = 699925050;
@@ -206,7 +209,7 @@ TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForTooNewNtp) {
     EXPECT_FALSE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
 }
 
-TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForEqualTimestamp) {
+MY_TEST(RtpToNtpEstimatorTest, FailsForEqualTimestamp) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 0;
     uint32_t ntp_frac = 2;
@@ -218,7 +221,7 @@ TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForEqualTimestamp) {
     EXPECT_FALSE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
 }
 
-TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForOldRtpTimestamp) {
+MY_TEST(RtpToNtpEstimatorTest, FailsForOldRtpTimestamp) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 0;
     uint32_t ntp_frac = 2;
@@ -231,7 +234,7 @@ TEST(RTP_RTCP_UpdateRtcpMeasurementTests, FailsForOldRtpTimestamp) {
     EXPECT_FALSE(estimator.UpdateMeasurements(ntp_sec, ntp_frac, timestamp));
 }
 
-TEST(RTP_RTCP_UpdateRtcpMeasurementTests, VerifyParameters) {
+MY_TEST(RtpToNtpEstimatorTest, VerifyParameters) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 1;
     uint32_t ntp_frac = 2;
@@ -247,7 +250,7 @@ TEST(RTP_RTCP_UpdateRtcpMeasurementTests, VerifyParameters) {
     EXPECT_NE(0.0, estimator.params()->offset_ms);
 }
 
-TEST(RTP_RTCP_RtpToNtpTests, FailsForNoParameters) {
+MY_TEST(RtpToNtpEstimatorTest, FailsForNoParameters) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 1;
     uint32_t ntp_frac = 2;
@@ -259,7 +262,7 @@ TEST(RTP_RTCP_RtpToNtpTests, FailsForNoParameters) {
     EXPECT_FALSE(estimator.Estimate(timestamp).has_value());
 }
 
-TEST(RTP_RTCP_RtpToNtpTests, AveragesErrorOut) {
+MY_TEST(RtpToNtpEstimatorTest, AveragesErrorOut) {
     RtpToNtpEstimator estimator;
     uint32_t ntp_sec = 1;
     uint32_t ntp_frac = 90000000;  // More than 1 ms.

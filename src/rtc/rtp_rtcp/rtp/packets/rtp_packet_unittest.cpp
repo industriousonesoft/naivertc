@@ -3,6 +3,9 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
@@ -52,7 +55,7 @@ constexpr uint8_t kPayload[] = {
 constexpr size_t kPayloadSize = sizeof(kPayload);
 }
 
-TEST(RTP_RTCP_RtpPacketTest, BuildPacket) {
+MY_TEST(RtpPacketTest, BuildPacket) {
     auto rtp_packet = RtpPacket::Create();
     EXPECT_NE(rtp_packet, nullptr);
     EXPECT_EQ(rtp_packet->capacity(), 1500);
@@ -82,7 +85,7 @@ TEST(RTP_RTCP_RtpPacketTest, BuildPacket) {
     EXPECT_THAT(rtp_packet->payload(), testing::ElementsAreArray(kPayload, kPayloadSize));
 }
 
-TEST(RTP_RTCP_RtpPacketTest, Parse) {
+MY_TEST(RtpPacketTest, Parse) {
     auto rtp_packet = RtpPacket::Create();
     EXPECT_NE(rtp_packet, nullptr);
     EXPECT_EQ(rtp_packet->capacity(), 1500);
@@ -100,7 +103,7 @@ TEST(RTP_RTCP_RtpPacketTest, Parse) {
     EXPECT_EQ(rtp_packet->payload_size(), kPayloadSize);
 }
 
-TEST(RTP_RTCP_RtpPacketTest, TwiceSet) {
+MY_TEST(RtpPacketTest, TwiceSet) {
     auto rtp_packet = RtpPacket::Create();
 
     rtp_packet->set_marker(true);

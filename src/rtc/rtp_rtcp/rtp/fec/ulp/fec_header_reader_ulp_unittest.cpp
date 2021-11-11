@@ -2,12 +2,15 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 #include <memory>
 
 namespace naivertc {
 namespace test {
 
-TEST(FEC_UlpFecHeaderReaderTest, ReadFecHeaderWithLBitClear) {
+MY_TEST(UlpFecHeaderReaderTest, ReadFecHeaderWithLBitClear) {
     const uint8_t packet[] = {
         // Level0
         0x00, 0x12, 0xab, 0xcd,  // L bit clear, "random" payload type and SN base
@@ -32,7 +35,7 @@ TEST(FEC_UlpFecHeaderReaderTest, ReadFecHeaderWithLBitClear) {
 }
 
 
-TEST(FEC_UlpFecHeaderReaderTest, ReadFecHeaderWithLBitSet) {
+MY_TEST(UlpFecHeaderReaderTest, ReadFecHeaderWithLBitSet) {
     const uint8_t packet[] = {
         // Leve0
         0x40, 0x12, 0xab, 0xcd,  // L bit clear, "random" payload type and SN base

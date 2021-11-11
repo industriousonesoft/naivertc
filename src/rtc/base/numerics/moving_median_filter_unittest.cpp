@@ -2,16 +2,19 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(Base_MovingMedianFilterTest, NoSamples) {
+MY_TEST(MovingMedianFilterTest, NoSamples) {
     MovingMedianFilter<int> filter(2);
     EXPECT_EQ(0, filter.GetFilteredValue());
     EXPECT_EQ(0u, filter.stored_sample_count());
 }
 
-TEST(Base_MovingMedianFilterTest, ReturnsMovingMedianWindow5) {
+MY_TEST(MovingMedianFilterTest, ReturnsMovingMedianWindow5) {
     MovingMedianFilter<int> filter(5);
     const int64_t kSamples[5] = {1, 5, 2, 3, 4};
     const int64_t kExpectedFilteredValues[5] = {1, 1, 2, 2, 3};
@@ -22,7 +25,7 @@ TEST(Base_MovingMedianFilterTest, ReturnsMovingMedianWindow5) {
     }
 }
 
-TEST(Base_MovingMedianFilterTest, ReturnsMovingMedianWindow3) {
+MY_TEST(MovingMedianFilterTest, ReturnsMovingMedianWindow3) {
     MovingMedianFilter<int> filter(3);
     const int64_t kSamples[5] = {1, 5, 2, 3, 4};
     const int64_t kExpectedFilteredValues[5] = {1, 1, 2, 3, 3};
@@ -32,7 +35,8 @@ TEST(Base_MovingMedianFilterTest, ReturnsMovingMedianWindow3) {
         EXPECT_EQ(std::min<size_t>(i + 1, 3), filter.stored_sample_count());
     }
 }
-TEST(Base_MovingMedianFilterTest, ReturnsMovingMedianWindow1) {
+
+MY_TEST(MovingMedianFilterTest, ReturnsMovingMedianWindow1) {
     MovingMedianFilter<int> filter(1);
     const int64_t kSamples[5] = {1, 5, 2, 3, 4};
     const int64_t kExpectedFilteredValues[5] = {1, 5, 2, 3, 4};

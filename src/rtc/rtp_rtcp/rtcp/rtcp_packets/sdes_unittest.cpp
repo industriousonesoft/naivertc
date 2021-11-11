@@ -4,6 +4,9 @@
 #include <gtest/gtest.h>
 #include <sstream>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 using namespace naivertc::rtcp;
 
 namespace naivertc {
@@ -18,7 +21,7 @@ const uint8_t kNameTag = 2;
 const uint8_t kEmailTag = 3;
 } // namespace
 
-TEST(RTP_RTCP_RtcpSdesTest, CreateAndParseWithoutChunks) {
+MY_TEST(RtcpSdesTest, CreateAndParseWithoutChunks) {
     Sdes sdes;
     BinaryBuffer packet = sdes.Build();
     
@@ -30,7 +33,7 @@ TEST(RTP_RTCP_RtcpSdesTest, CreateAndParseWithoutChunks) {
     EXPECT_EQ(0u, parsed.chunks().size());
 }
 
-TEST(RTP_RTCP_RtcpSdesTest, CreateAndParseWithOneChunk) {
+MY_TEST(RtcpSdesTest, CreateAndParseWithOneChunk) {
     const std::string cname = "alice@host";
 
     Sdes sdes;
@@ -52,7 +55,7 @@ TEST(RTP_RTCP_RtcpSdesTest, CreateAndParseWithOneChunk) {
 
 }
 
-TEST(RTP_RTCP_RtcpSdesTest, CreateAndParseMultipleChunks) {
+MY_TEST(RtcpSdesTest, CreateAndParseMultipleChunks) {
     Sdes sdes;
     EXPECT_TRUE(sdes.AddCName(kSenderSsrc + 0, "a"));
     EXPECT_TRUE(sdes.AddCName(kSenderSsrc + 1, "ab"));
@@ -74,7 +77,7 @@ TEST(RTP_RTCP_RtcpSdesTest, CreateAndParseMultipleChunks) {
     
 }
 
-TEST(RTP_RTCP_RtcpSdesTest, CreateWithToManyChunks) {
+MY_TEST(RtcpSdesTest, CreateWithToManyChunks) {
     const size_t kMaxChunks = (1 << 5) - 1; // 0xFFu
     Sdes sdes;
     
@@ -86,7 +89,7 @@ TEST(RTP_RTCP_RtcpSdesTest, CreateWithToManyChunks) {
     EXPECT_FALSE(sdes.AddCName(kSenderSsrc + kMaxChunks, "foo"));
 }
 
-TEST(RTP_RTCP_RtcpSdesTest, ParseSkipNonCNameField) {
+MY_TEST(RtcpSdesTest, ParseSkipNonCNameField) {
     const uint8_t kName[] = "abc";
     const uint8_t kCName[] = "de";
     const uint8_t kValidPacket[] = {

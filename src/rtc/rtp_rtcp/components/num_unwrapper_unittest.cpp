@@ -2,39 +2,42 @@
 
 #include <gtest/gtest.h>
 
+#define ENABLE_UNIT_TESTS 0
+#include "../testing/unittest_defines.hpp"
+
 namespace naivertc {
 namespace test {
 
-TEST(NumUnwrapperTest, PreserveStartValue) {
+MY_TEST(NumUnwrapperTest, PreserveStartValue) {
     NumberUnwrapper<uint8_t> unwrapper;
     EXPECT_EQ(123, unwrapper.Unwrap(123));
 }
 
-TEST(NumUnwrapperTest, ForwardWrap) {
+MY_TEST(NumUnwrapperTest, ForwardWrap) {
     NumberUnwrapper<uint8_t> unwrapper;
     EXPECT_EQ(255, unwrapper.Unwrap(255));
     EXPECT_EQ(256, unwrapper.Unwrap(0));
 }
 
-TEST(NumUnwrapperTest, ForwardWrapWithDivisor) {
+MY_TEST(NumUnwrapperTest, ForwardWrapWithDivisor) {
     NumberUnwrapper<uint8_t, 33> unwrapper;
     EXPECT_EQ(30, unwrapper.Unwrap(30));
     EXPECT_EQ(36, unwrapper.Unwrap(3));
 }
 
-TEST(NumUnwrapperTest, BackWardWrap) {
+MY_TEST(NumUnwrapperTest, BackWardWrap) {
     NumberUnwrapper<uint8_t> unwrapper;
     EXPECT_EQ(0, unwrapper.Unwrap(0));
     EXPECT_EQ(-2, unwrapper.Unwrap(254, false));
 }
 
-TEST(NumUnwrapperTest, BackWardWrapWithDivisor) {
+MY_TEST(NumUnwrapperTest, BackWardWrapWithDivisor) {
     NumberUnwrapper<uint8_t, 33> unwrapper;
     EXPECT_EQ(0, unwrapper.Unwrap(0));
     EXPECT_EQ(-2, unwrapper.Unwrap(31, false));
 }
 
-TEST(NumUnwrapperTest, Unwrap) {
+MY_TEST(NumUnwrapperTest, Unwrap) {
     NumberUnwrapper<uint16_t> unwrapper;
     const uint16_t kMax = std::numeric_limits<uint16_t>::max();
     const uint16_t kMaxDist = kMax / 2 + 1;
@@ -60,7 +63,7 @@ TEST(NumUnwrapperTest, Unwrap) {
     EXPECT_EQ(kMax, unwrapper.Unwrap(kMax));
 }
 
-TEST(NumUnwrapperTest, UnwrapOddDivisor) {
+MY_TEST(NumUnwrapperTest, UnwrapOddDivisor) {
     NumberUnwrapper<uint8_t, 11> unwrapper;
 
     EXPECT_EQ(10, unwrapper.Unwrap(10));
@@ -75,7 +78,7 @@ TEST(NumUnwrapperTest, UnwrapOddDivisor) {
     EXPECT_EQ(0, unwrapper.Unwrap(0));
 }
 
-TEST(NumUnwrapperTest, ManyForwardWraps) {
+MY_TEST(NumUnwrapperTest, ManyForwardWraps) {
     const int kLargeNumber = 4711;
     const int kMaxStep = kLargeNumber / 2;
     const int kNumWraps = 100;
@@ -90,7 +93,7 @@ TEST(NumUnwrapperTest, ManyForwardWraps) {
     }
 }
 
-TEST(NumUnwrapperTest, ManyBackwardWraps) {
+MY_TEST(NumUnwrapperTest, ManyBackwardWraps) {
     const int kLargeNumber = 4711;
     const int kMaxStep = kLargeNumber / 2;
     const int kNumWraps = 100;
@@ -105,28 +108,28 @@ TEST(NumUnwrapperTest, ManyBackwardWraps) {
     }
 }
 
-TEST(NumUnwrapperTest, UnwrapForward) {
+MY_TEST(NumUnwrapperTest, UnwrapForward) {
     NumberUnwrapper<uint8_t> unwrapper;
     EXPECT_EQ(255, unwrapper.Unwrap(255));
     EXPECT_EQ(256, unwrapper.UnwrapForward(0));
     EXPECT_EQ(511, unwrapper.UnwrapForward(255));
 }
 
-TEST(NumUnwrapperTest, UnwrapForwardWithDivisor) {
+MY_TEST(NumUnwrapperTest, UnwrapForwardWithDivisor) {
     NumberUnwrapper<uint8_t, 33> unwrapper;
     EXPECT_EQ(30, unwrapper.UnwrapForward(30));
     EXPECT_EQ(36, unwrapper.UnwrapForward(3));
     EXPECT_EQ(63, unwrapper.UnwrapForward(30));
 }
 
-TEST(NumUnwrapperTest, UnwrapBackwards) {
+MY_TEST(NumUnwrapperTest, UnwrapBackwards) {
     NumberUnwrapper<uint8_t> unwrapper;
     EXPECT_EQ(0, unwrapper.UnwrapBackwards(0));
     EXPECT_EQ(-2, unwrapper.UnwrapBackwards(254));
     EXPECT_EQ(-256, unwrapper.UnwrapBackwards(0));
 }
 
-TEST(NumUnwrapperTest, UnwrapBackwardsWithDivisor) {
+MY_TEST(NumUnwrapperTest, UnwrapBackwardsWithDivisor) {
     NumberUnwrapper<uint8_t, 33> unwrapper;
     EXPECT_EQ(0, unwrapper.Unwrap(0));
     EXPECT_EQ(-2, unwrapper.UnwrapBackwards(31));
