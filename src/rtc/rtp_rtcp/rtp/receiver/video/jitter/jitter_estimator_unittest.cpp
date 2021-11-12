@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "../testing/unittest_defines.hpp"
 
 using namespace naivertc::rtp::video::jitter;
@@ -14,9 +14,9 @@ namespace naivertc {
 namespace test {
 
 // JitterEstimatorTest
-class JitterEstimatorTest : public ::testing::Test {
+class T(JitterEstimatorTest) : public ::testing::Test {
 protected:
-    JitterEstimatorTest() 
+    T(JitterEstimatorTest)() 
         : fake_clock_(std::make_shared<SimulatedClock>(0)), 
           jitter_estimator_(std::make_unique<JitterEstimator>(JitterEstimator::HyperParameters(), fake_clock_)) {}
 

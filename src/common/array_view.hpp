@@ -1,5 +1,5 @@
-#ifndef _RTC_COMMON_ARRAY_VIEW_H_
-#define _RTC_COMMON_ARRAY_VIEW_H_
+#ifndef _COMMON_ARRAY_VIEW_H_
+#define _COMMON_ARRAY_VIEW_H_
 
 #include "base/defines.hpp"
 

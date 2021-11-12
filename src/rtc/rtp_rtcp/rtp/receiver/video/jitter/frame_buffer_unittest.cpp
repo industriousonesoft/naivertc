@@ -115,7 +115,6 @@ protected:
         return frame_buffer_->InsertFrame(CreateFrame(picture_id, timestamp_ms, times_nacked, kFrameSize));
     }
 
-
 protected:
     static const int kMaxReferences = 5;
     static const int kFps1 = 10;

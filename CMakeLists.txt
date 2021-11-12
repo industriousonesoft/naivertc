@@ -46,6 +46,9 @@ set(LIB_SOURCES
     src/common/utils_network.cpp
     src/common/logger.cpp
     src/common/weak_ptr_manager.cpp
+    src/common/event.cpp
+    src/common/event_win.cpp
+    src/common/event_posix.cpp
 
     # signaling
     src/signaling/base/base_channel.cpp
@@ -278,6 +281,7 @@ set(LIB_HEADERS
     src/common/weak_ptr_manager.hpp
     src/common/numeric_range_checker.hpp
     src/common/array_view.hpp
+    src/common/event.hpp
 
     # signaling
     src/signaling/base/base_channel.hpp
@@ -568,7 +572,8 @@ set(TEST_SOURCES
     src/base/system_time_unittest.cpp
     # common
     src/common/weak_ptr_manager_unittest.cpp
-    # src/common/task_queue_unittest.cpp
+    src/common/task_queue_unittest.cpp
+    src/common/event_unittest.cpp
 
     # rtc -> media
     src/rtc/media/media_track_unittest.cpp

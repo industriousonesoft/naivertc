@@ -18,6 +18,9 @@ static constexpr int64_t kNumNanosecsPerMicrosec = kNumNanosecsPerSec / kNumMicr
 namespace utils {
 namespace time {
 
+// Returns the current time in seconds in 64 bits.
+RTC_CPP_EXPORT int64_t TimeInSec();
+
 // Returns the current time in milliseconds in 32 bits.
 RTC_CPP_EXPORT uint32_t Time32InMillis();
 

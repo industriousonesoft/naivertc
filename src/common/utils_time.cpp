@@ -9,6 +9,11 @@ namespace naivertc {
 namespace utils {
 namespace time {
 
+// Returns the current time in milliseconds in 64 bits.
+int64_t TimeInSec() {
+    return TimeInNanos() / kNumNanosecsPerSec;
+}
+
 // Returns the current time in milliseconds in 32 bits.
 uint32_t Time32InMillis() {
     return static_cast<uint32_t>(TimeInNanos() / kNumNanosecsPerMillisec);
