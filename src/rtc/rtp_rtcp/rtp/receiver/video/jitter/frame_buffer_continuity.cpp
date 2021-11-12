@@ -83,29 +83,24 @@ int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
         last_continuous_frame_id = -1;
     }
 
-    auto& frame_info = frames_.emplace(frame.id(), FrameInfo()).first->second;
-    
+    auto [frame_it, success] = EmplaceFrameInfo(std::move(frame));
+
     // Frame has inserted already, dropping it.
-    if (frame_info.frame.cdata() != nullptr) {
-        PLOG_WARNING << "Frame " << frame.id()
-                     << " already inserted, dropping it.";
+    if (!success) {
         return last_continuous_frame_id;
     }
 
-    // Update frame reference info with incoming frame.
-    if (!UpdateFrameReferenceInfo(frame_info)) {
-        return last_continuous_frame_id;
-    }
+    auto& frame_info = frame_it->second;
 
     // If all packets of this frame was not be retransmited, 
     // it can be used to calculate delay in Timing.
     if (!frame.delayed_by_retransmission()) {
-        timing_->IncomingTimestamp(frame.timestamp(), frame.render_time_ms());
+        timing_->IncomingTimestamp(frame_info.frame.timestamp(), frame_info.frame.render_time_ms());
     }
 
-    // TODO: Trigger the state callback
-
-    frame_info.frame = std::move(frame);
+    if (auto observer = stats_observer_.lock()) {
+        observer->OnCompleteFrame(frame_info.frame.is_keyframe(), frame_info.frame.size());
+    }
 
     // The incoming frame is continuous and try to find all the decodable frames.
     if (frame_info.continuous()) {
@@ -137,11 +132,20 @@ bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) {
     }
 }
 
-bool FrameBuffer::UpdateFrameReferenceInfo(FrameInfo& frame_info) {
+std::pair<FrameBuffer::FrameMap::iterator, bool> FrameBuffer::EmplaceFrameInfo(video::FrameToDecode frame) {
+    int64_t new_frame_id = frame.id();
+    FrameMap::iterator frame_it = frames_.find(new_frame_id);
+    // Frame has inserted already, dropping it.
+    if (frame_it != frames_.end()) {
+        PLOG_WARNING << "Frame with id=" << new_frame_id
+                     << " already inserted, dropping it.";
+        return {frame_it, false};
+    }
+
     auto last_decoded_frame_id = decoded_frames_history_.last_decoded_frame_id();
-    // Invalid frame to decode.
-    if (last_decoded_frame_id && *last_decoded_frame_id >= frame_info.frame_id()) {
-        return false;
+    // The incoming frame is undecodable since the frame ahead of it was decoded.
+    if (last_decoded_frame_id && *last_decoded_frame_id >= new_frame_id) {
+        return {frame_it, false};;
     }
 
     struct Dependency {
@@ -149,16 +153,17 @@ bool FrameBuffer::UpdateFrameReferenceInfo(FrameInfo& frame_info) {
         bool continuous;
     };
     std::vector<Dependency> not_yet_fulfilled_referred_frames;
+    // Indicates the incoming frame is decodable.
     bool is_frame_decodable = true;
     // Find all referred frames of this frame that have not yet been fulfilled.
-    frame_info.frame.ForEachReference([&](int64_t ref_frame_id, bool* stoped) {
+    frame.ForEachReference([&](int64_t ref_frame_id, bool* stoped) {
         // Dose `frame` depend on a frame earlier than the last decoded frame?
         if (last_decoded_frame_id && ref_frame_id <= *last_decoded_frame_id) {
             // Was that frame decoded? If not, this `frame` will never become decodable.
             if (!decoded_frames_history_.WasDecoded(ref_frame_id)) {
                 int64_t now_ms = clock_->now_ms();
                 if (last_log_non_decoded_ms_ + kLogNonDecodedIntervalMs < now_ms) {
-                    PLOG_WARNING << "Frame " << frame_info.frame_id() 
+                    PLOG_WARNING << "Frame with id=" << new_frame_id
                                  << " depends on a non-decoded frame more previous than the"
                                  << " last decoded frame, dropping frame.";
                     last_log_non_decoded_ms_ = now_ms;
@@ -181,8 +186,11 @@ bool FrameBuffer::UpdateFrameReferenceInfo(FrameInfo& frame_info) {
     // This frame will never become decodable since
     // its referred frame was non-decodable.
     if (!is_frame_decodable) {
-        return false;
+        return {frame_it, false};
     }
+
+    frame_it = frames_.emplace(new_frame_id, FrameInfo(std::move(frame))).first;
+    auto& frame_info = frame_it->second;
 
     // The `num_missing_decodable` is the same as `num_missing_continuous` so far.
     frame_info.num_missing_continuous = not_yet_fulfilled_referred_frames.size();
@@ -193,17 +201,19 @@ bool FrameBuffer::UpdateFrameReferenceInfo(FrameInfo& frame_info) {
         if (ref_frame.continuous) {
             --frame_info.num_missing_continuous;
         }
-        // The referred frame of this frame is not continuous for now,
-        // so we keep a dependent list (as a reverse link) to propagate 
-        // continuity when the referred frame becomes continuous later.
-        frames_[ref_frame.frame_id].dependent_frames.push_back(frame_info.frame_id());
+        auto ref_frame_it = frames_.find(ref_frame.frame_id);
+        if (ref_frame_it != frames_.end()) {
+            // The referred frame of this frame is not continuous for now,
+            // so we keep a dependent list (as a reverse link) to propagate 
+            // continuity when the referred frame becomes continuous later.
+            ref_frame_it->second.dependent_frames.push_back(frame_info.frame_id());
+        }
     }
-
-    return true;
+    return {frame_it, true};
 }
 
 void FrameBuffer::PropagateContinuity(const FrameInfo& frame_info) {
-    if (!frame_info.continuous() || frame_info.frame.cdata() == nullptr) {
+    if (!frame_info.IsValid() || !frame_info.continuous()) {
         return;
     }
 

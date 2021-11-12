@@ -41,11 +41,18 @@ public:
     int64_t render_time_ms() const { return render_time_ms_; }
     void set_render_time_ms(int64_t time_ms) { render_time_ms_ = time_ms; }
 
-    bool is_keyframe() const { return frame_type_ == VideoFrameType::KEY && referred_picture_ids_.size() == 0; }
+    bool is_keyframe() const {
+        if (frame_type_ == VideoFrameType::KEY) {
+            assert(referred_frame_ids_.size() == 0);
+            return true;
+        } else {
+            return false;
+        }
+    }
 
-    bool InsertReference(int64_t picture_id) { return referred_picture_ids_.insert(picture_id).second; }
-    size_t NumReferences() const { return referred_picture_ids_.size(); }
-    void ForEachReference(std::function<void(int64_t picture_id, bool* stoped)>) const;
+    bool InsertReference(int64_t frame_id) { return referred_frame_ids_.insert(frame_id).second; }
+    size_t NumReferences() const { return referred_frame_ids_.size(); }
+    void ForEachReference(std::function<void(int64_t frame_id, bool* stoped)>) const;
 
 private:
     // Used to describe order and dependencies between frames.
@@ -62,7 +69,7 @@ private:
     int64_t max_received_time_ms_;
     int64_t render_time_ms_;
 
-    std::set<int64_t> referred_picture_ids_;
+    std::set<int64_t> referred_frame_ids_;
 };
     
 } // namespace video

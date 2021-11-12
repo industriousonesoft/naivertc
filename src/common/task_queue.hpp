@@ -12,21 +12,21 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT TaskQueue : std::enable_shared_from_this<TaskQueue> {
+class RTC_CPP_EXPORT TaskQueue {
 public:
     TaskQueue(std::string&& name = "");
-    ~TaskQueue();
+    virtual ~TaskQueue();
 
-    void Sync(std::function<void()> handler) const;
-    void Async(std::function<void()> handler) const;
-    void AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler);
+    virtual void Sync(std::function<void()> handler) const;
+    virtual void Async(std::function<void()> handler) const;
+    virtual void AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler);
 
     template<typename T>
     T Sync(std::function<T(void)> handler) const {
         T ret;
         if (is_in_current_queue()) {
             ret = handler();
-        }else {
+        } else {
             boost::unique_lock<boost::mutex> lock(mutex_);
             boost::asio::dispatch(strand_, [this, handler = std::move(handler), &ret](){
                 ret = handler();
@@ -37,7 +37,7 @@ public:
         return ret;
     }
 
-    void Dispatch(std::function<void()> handler) const;
+    virtual void Dispatch(std::function<void()> handler) const;
 
     bool is_in_current_queue() const;
 
@@ -50,7 +50,6 @@ private:
 
     mutable boost::mutex mutex_;
     mutable boost::condition_variable cond_;
-
 };
 
 }

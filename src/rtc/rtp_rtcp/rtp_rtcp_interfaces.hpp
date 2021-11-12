@@ -45,6 +45,25 @@ public:
     virtual ~RecoveredPacketReceiver() = default;
     virtual void OnRecoveredPacket(CopyOnWriteBuffer packet) = 0;
 };
+
+// VideoReceiveStatisticsObserver
+class VideoReceiveStatisticsObserver {
+public:
+    virtual ~VideoReceiveStatisticsObserver() = default;
+
+     virtual void OnCompleteFrame(bool is_keyframe,
+                                  size_t size_bytes) = 0;
+
+    virtual void OnDroppedFrames(uint32_t frames_dropped) = 0;
+
+    virtual void OnFrameBufferTimingsUpdated(int max_decode_ms,
+                                             int current_delay_ms,
+                                             int target_delay_ms,
+                                             int jitter_buffer_ms,
+                                             int min_playout_delay_ms,
+                                             int render_delay_ms) = 0;
+
+};
     
 } // namespace naivertc
 

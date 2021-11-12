@@ -28,11 +28,11 @@ FrameToDecode::FrameToDecode(CopyOnWriteBuffer bitstream,
 
 FrameToDecode::~FrameToDecode() {}
 
-void FrameToDecode::ForEachReference(std::function<void(int64_t picture_id, bool* stoped)> callback) const {
+void FrameToDecode::ForEachReference(std::function<void(int64_t frame_id, bool* stoped)> callback) const {
     if (!callback) return;
     bool stoped = false;
-    for (int64_t picture_id : referred_picture_ids_) {
-        callback(picture_id, &stoped);
+    for (int64_t frame_id : referred_frame_ids_) {
+        callback(frame_id, &stoped);
         if (stoped) {
             break;
         }

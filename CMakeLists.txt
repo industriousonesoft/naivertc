@@ -47,7 +47,7 @@ set(LIB_SOURCES
     src/common/logger.cpp
     src/common/weak_ptr_manager.cpp
     src/common/event.cpp
-    src/common/event_win.cpp
+    # src/common/event_win.cpp
     src/common/event_posix.cpp
 
     # signaling

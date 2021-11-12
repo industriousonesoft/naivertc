@@ -10,6 +10,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_defines.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 
 #include <optional>
 #include <map>
@@ -28,7 +29,8 @@ public:
     FrameBuffer(ProtectionMode protection_mode,
                 std::shared_ptr<Clock> clock, 
                 std::shared_ptr<Timing> timing,
-                std::shared_ptr<TaskQueue> task_queue);
+                std::shared_ptr<TaskQueue> task_queue,
+                std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer);
     ~FrameBuffer();
 
     ProtectionMode protection_mode() const;
@@ -46,11 +48,13 @@ public:
 
 private:
     struct FrameInfo {
-        FrameInfo();
+        FrameInfo(video::FrameToDecode frame);
         FrameInfo(FrameInfo&&);
         ~FrameInfo();
 
-        int64_t frame_id() const { return frame.cdata() != nullptr ? frame.id() : -1; }
+        int64_t frame_id() const { return IsValid() ? frame.id() : -1; }
+
+        bool IsValid() const { return frame.cdata() != nullptr; }
 
         // Indicate if the frame is continuous or not.
         bool continuous() const { return num_missing_continuous == 0; }
@@ -79,7 +83,11 @@ private:
     // Continuity
     int64_t InsertFrameIntrenal(video::FrameToDecode frame);
     bool ValidReferences(const video::FrameToDecode& frame);
-    bool UpdateFrameReferenceInfo(FrameInfo& frame_info);
+    // Returns a pair consisting of an iterator to the inserted element,
+    // or the already-existing element if no insertion happened,
+    // and a bool denoting whether the insertion took place(true if insertion
+    // happened, false if it did not).
+    std::pair<FrameMap::iterator, bool> EmplaceFrameInfo(video::FrameToDecode frame);
     void PropagateContinuity(const FrameInfo& frame_info);
 
     // Decodability
@@ -95,6 +103,8 @@ private:
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<Timing> timing_;
     std::shared_ptr<TaskQueue> task_queue_;
+    std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer_;
+
     InterFrameDelay inter_frame_delay_;
     DecodedFramesHistory decoded_frames_history_;
     JitterEstimator jitter_estimator_;
@@ -105,7 +115,6 @@ private:
     std::optional<int64_t> last_continuous_frame_id_ = std::nullopt;
 
     FrameMap frames_;
-    std::vector<FrameMap::iterator> frames_to_decode_;
 
     FrameReadyToDecodeCallback frame_ready_to_decode_callback_;
 };

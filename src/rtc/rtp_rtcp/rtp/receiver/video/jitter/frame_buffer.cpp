@@ -17,15 +17,22 @@ constexpr int kMaxFramesHistory = 1 << 13; // 8192
     
 } // namespace
 
+// FrameInfo
+FrameBuffer::FrameInfo::FrameInfo(video::FrameToDecode frame) : frame(std::move(frame)) {}
+FrameBuffer::FrameInfo::FrameInfo(FrameInfo&&) = default;
+FrameBuffer::FrameInfo::~FrameInfo() = default;
+
 // FrameBuffer
 FrameBuffer::FrameBuffer(ProtectionMode protection_mode,
                          std::shared_ptr<Clock> clock, 
                          std::shared_ptr<Timing> timing,
-                         std::shared_ptr<TaskQueue> task_queue)
+                         std::shared_ptr<TaskQueue> task_queue,
+                         std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer)
     : protection_mode_(protection_mode),
       clock_(std::move(clock)),
       timing_(std::move(timing)),
       task_queue_(std::move(task_queue)),
+      stats_observer_(std::move(stats_observer)),
       decoded_frames_history_(kMaxFramesHistory),
       jitter_estimator_({/* Default HyperParameters */}, clock_),
       keyframe_required_(true /* Require a keyframe to start */),
@@ -40,13 +47,15 @@ FrameBuffer::~FrameBuffer() {}
 
 void FrameBuffer::Clear() {
     task_queue_->Async([this](){
-        size_t dropped_frames = NumUndecodedFrames(frames_.begin(), frames_.end());
-        if (dropped_frames > 0) {
-            PLOG_WARNING << "Dropped " << dropped_frames << " frames";
+        if (auto observer = stats_observer_.lock()) {
+            size_t dropped_frames = NumUndecodedFrames(frames_.begin(), frames_.end());
+            if (dropped_frames > 0) {
+                PLOG_WARNING << "Dropped " << dropped_frames << " frames";
+                observer->OnDroppedFrames(dropped_frames);
+            }
         }
         frames_.clear();
         last_continuous_frame_id_.reset();
-        frames_to_decode_.clear();
         decoded_frames_history_.Clear();
     });
 }
@@ -81,7 +90,7 @@ void FrameBuffer::OnDecodableFrame(FrameReadyToDecodeCallback callback) {
 size_t FrameBuffer::NumUndecodedFrames(FrameMap::iterator begin, FrameMap::iterator end) {
     return std::count_if(begin, end, 
                          [](const std::pair<const int64_t, FrameInfo>& frame_tuple) {
-        return frame_tuple.second.frame.cdata() != nullptr;
+        return frame_tuple.second.IsValid();
     });
 }
 
