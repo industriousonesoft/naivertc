@@ -76,7 +76,7 @@ void FrameBuffer::RequireKeyframe() {
     task_queue_->Async([this](){
         keyframe_required_ = true;
         // Try to find a decadable keyframe.
-        FindDecodableFrames();
+        FindNextDecodableFrames();
     });
 }
 

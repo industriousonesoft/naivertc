@@ -91,8 +91,8 @@ private:
     void PropagateContinuity(const FrameInfo& frame_info);
 
     // Decodability
-    void FindDecodableFrames();
-    video::FrameToDecode* GetNextFrame();
+    void FindNextDecodableFrames();
+    void ProcessFramesToDecode(std::vector<FrameMap::iterator> frames_to_decode);
     bool IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms);
     bool PropagateDecodability(const FrameInfo& frame_info);
 

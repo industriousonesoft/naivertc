@@ -109,7 +109,7 @@ int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
         // Update the last continuous frame id with this frame id.
         last_continuous_frame_id = *last_continuous_frame_id_;
         // Try to find the decodable frames.
-        FindDecodableFrames();
+        FindNextDecodableFrames();
     }
 
     return last_continuous_frame_id;
