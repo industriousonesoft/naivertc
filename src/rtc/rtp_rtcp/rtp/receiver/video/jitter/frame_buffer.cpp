@@ -95,7 +95,7 @@ size_t FrameBuffer::NumUndecodedFrames(FrameMap::iterator begin, FrameMap::itera
 }
 
 int FrameBuffer::EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size) {
-    // Calculate the delay of the current GOP from the previous GOP.
+    // Calculate the delay of the current frame from the previous frame.
     auto [frame_delay, success] = inter_frame_delay_.CalculateDelay(send_timestamp, recv_time_ms);
     if (success) {
         assert(frame_delay >= 0);

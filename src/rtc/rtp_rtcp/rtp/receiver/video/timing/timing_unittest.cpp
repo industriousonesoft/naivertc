@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#define ENABLE_UNIT_TESTS 0
+#define ENABLE_UNIT_TESTS 1
 #include "../testing/unittest_defines.hpp"
 
 namespace naivertc {
@@ -106,14 +106,16 @@ MY_TEST_F(ReceiverTimingTest, JitterDelay) {
 
 MY_TEST_F(ReceiverTimingTest, TimestampWrapAround) {
     timing_.Reset();
+    uint32_t ts_interval = 90000 / kFps;
+    int time_interval = 1000 / kFps;
     // Provoke a wrap-around. The fifth frame will have wrapped at 25 fps.
-    uint32_t timestamp = 0xFFFFFFFFu - 3 * 90000 / kFps;
+    uint32_t timestamp = 0xFFFFFFFFu - 3 * ts_interval;
     for (int i = 0; i < 5; ++i) {
         timing_.IncomingTimestamp(timestamp, clock_->now_ms());
-        clock_->AdvanceTimeMs(1000 / kFps);
-        timestamp += 90000 / kFps;
-        EXPECT_EQ(3 * 1000 / kFps, timing_.RenderTimeMs(0xFFFFFFFFu, clock_->now_ms()));
-        EXPECT_EQ(3 * 1000 / kFps + 1, timing_.RenderTimeMs(89u /* 1 ms later in 90 kHz */, clock_->now_ms()));
+        clock_->AdvanceTimeMs(time_interval);
+        timestamp += ts_interval;
+        EXPECT_EQ(3 * time_interval, timing_.RenderTimeMs(0xFFFFFFFFu, clock_->now_ms()));
+        EXPECT_EQ(3 * time_interval + 1, timing_.RenderTimeMs(89u /* 1 ms later in 90 kHz */, clock_->now_ms()));
     }
 }
 

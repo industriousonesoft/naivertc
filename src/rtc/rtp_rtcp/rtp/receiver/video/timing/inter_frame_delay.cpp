@@ -40,11 +40,11 @@ std::pair<int64_t, bool> InterFrameDelay::CalculateDelay(uint32_t timestamp, int
         return {0, false};
     }
 
-    constexpr int64_t kModuloValue = int64_t{std::numeric_limits<uint32_t>::max() + 1};
-    int64_t unwrapped_timestamp = timestamp + wrap_arounds_since_prev * kModuloValue;
+    // The count from 0 to the max of type T.
+    constexpr int64_t kRoundTimestamp = int64_t{std::numeric_limits<uint32_t>::max() + 1};
     // Compute the compensated timestamp difference and covert it to ms and round
     // it to the closest integer.
-    diff_timestamp_ = static_cast<int64_t>((unwrapped_timestamp - prev_timestamp_) / 90.0 + 0.5);
+    diff_timestamp_ = static_cast<int64_t>((timestamp + wrap_arounds_since_prev * kRoundTimestamp - prev_timestamp_) / 90.0 + 0.5);
 
     // Frame delay is the difference of dT and dTS.
     // T1

@@ -95,7 +95,7 @@ int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
     // If all packets of this frame was not be retransmited, 
     // it can be used to calculate delay in Timing.
     if (!frame.delayed_by_retransmission()) {
-        timing_->IncomingTimestamp(frame_info.frame.timestamp(), frame_info.frame.render_time_ms());
+        timing_->IncomingTimestamp(frame_info.frame.timestamp(), frame_info.frame.received_time_ms());
     }
 
     if (auto observer = stats_observer_.lock()) {

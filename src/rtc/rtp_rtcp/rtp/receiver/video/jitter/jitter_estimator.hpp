@@ -14,6 +14,8 @@ namespace rtp {
 namespace video {
 namespace jitter {
 
+// This class is not thread-safety, the caller MUST provide that.
+// This class is used to estimate the jitter occurred during the transport of a frame.
 class RTC_CPP_EXPORT JitterEstimator {
 public:
     struct HyperParameters {

@@ -342,15 +342,15 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
     // 任何具有自适应的滤波器都可以用于估算这两个参数，比如Kalman filter. 以下使用卡尔曼滤波器建模：
 
     // 状态方程建模：
-    // 矩阵1：theta_bar(i) = [1/C(i), m(i)]^T
+    // 矩阵1：theta_bar(i) = [1/C(i), m(i)]
     // 解析：theta_bar(i)表示第i帧的状态：包括当时的传输速率C(i)和排队延时m(i)。
-    // 矩阵2：h_bar(i) = [dL(i), 1]^T
+    // 矩阵2：h_bar(i) = [dL(i), 1]
     // 状态方程：theta_bar(i) = theta_bar(i-1) + u_bar(i-1), 
     // 解析：用于表示某一帧传输时的网络状态，其中u_bar(i)表示过程噪音，是一个高斯白噪音矩阵，P(u)~(0,Q)，期望值为0，协方差矩阵为Q.
     // 带入观测方程可得：
     // d(i) = dL(i)/C(i) + m(i) + v(i) 
-    //      = [dL(i), 1] * [1/C(i), m(i)]^T + v(i) 
-    //      = h_bar(i)^T * theta_bar(i) + v(i)
+    //      = [dL(i), 1] * [1/C(i), m(i)]' + v(i) 
+    //      = h_bar(i) * theta_bar(i)' + v(i)
 
     // 结合Kalman filter中公式：
     // 状态方程：x(i) = A*x(i-1) + B*u(i-1) + w(i-1) 
@@ -363,18 +363,18 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
     // TODO: 弄清楚具体的推导过程？
     // 结合以上方程和卡尔曼滤波器的五个公式（https://blog.csdn.net/wccsu1994/article/details/84643221）,推导出WebRTC中的公式为：
     // 先验估计值：theta^-(i) = theta^(i-1)
-    // 先验估计值的协方差：theta_cov-(i) = theta_cov-(i-1) + Q(i)，其中Q(i) = E{u_bar(i) * u_bar(i)^T}，表示过程噪音u_bar(i)的协方差矩阵(对角矩阵)，由于过程噪音无法测量和量化，故一般使用固定值, 
-    // 卡尔曼增益：K = theta_cov-(i)*H^T / H*theta_cov-(i)*H^T+R，其中R表示测量噪声协方差。滤波器实际实现时，一般可以观测得到，属于已知条件。
-    // 后验估计值：theta^(i) = theta-(i) + K*(d(i)-H*theta^-(i))
+    // 先验估计值的协方差：theta_cov-(i) = theta_cov-(i-1) + Q(i)，其中Q(i) = E{u_bar(i) * u_bar(i)'}，表示过程噪音u_bar(i)的协方差矩阵(对角矩阵)，由于过程噪音无法测量和量化，故一般使用固定值, 
+    // 卡尔曼增益：K = theta_cov-(i)*H' / H*theta_cov-(i)*H'+R，其中R表示测量噪声协方差。滤波器实际实现时，一般可以观测得到，属于已知条件。
+    // 后验估计值：theta^(i) = theta^-(i) + K*(d(i)-H*theta^-(i))
     // 后验估计值的协方差：theta_cov(i)=(1 - K*H)*theta_cov-(i)
 
-    // M: 协方差矩阵：theta_cov(i)，即theta_bar(i)：[1/C(i), m(i)]^T的协方差矩阵，是一个2x2的矩阵，对角线为方差，两边为协方差。
-    // h: 测量矩阵：[dL(i), 1] = h_bar(i)^T
-    // Mh = M*h^T = theta_cov(i) * h_bar(i) = M * [dL(i), 1]^T，结果为一个1x2的矩阵
+    // M: 协方差矩阵：theta_cov(i)，即theta_bar(i)：[1/C(i), m(i)]'的协方差矩阵，是一个2x2的矩阵，对角线为方差，两边为协方差。
+    // h: 测量矩阵：[dL(i), 1] = h_bar(i)
+    // Mh = M*h' = theta_cov(i) * h_bar(i)' = M * [dL(i), 1]'，结果为一个1x2的矩阵
     double Mh[2]; 
-    // hMh_sigma = h*M*h^T + R
+    // hMh_sigma = h*M*h' + R
     double hMh_sigma;
-    // K = M*h^T / h*M*h^T + R = Mh / hMh_sigma
+    // K = M*h' / h*M*h' + R = Mh / hMh_sigma
     double kalman_gain[2];
     double measure_res;
     double theta_cov_00, theta_cov_01;
@@ -391,7 +391,7 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
 
     // Kalman gain
     // 计算卡尔曼增益
-    // Mh = M*h^T = M*[dL(i)  1]^T = [c00, c01] * [dL(i)] = [c00*dL(i) + c01, c01*dL(i) + c11]
+    // Mh = M*h' = M*[dL(i)  1]' = [c00, c01] * [dL(i)] = [c00*dL(i) + c01, c01*dL(i) + c11]
     //                               [c01, c11]   [  1  ]
     Mh[0] = theta_cov_[0][0] * frame_size_delta + theta_cov_[0][1];
     Mh[1] = theta_cov_[1][0] * frame_size_delta + theta_cov_[1][1];
@@ -409,7 +409,7 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
         sigma = 1.0;
     }
 
-    // hMh_sigma = h*M*h^T + R = h*Mh + R = [dL(i), 1] * [Mh0, Mh1] + R = dL(i) * Mh0 + Mh1 + R
+    // hMh_sigma = h*M*h' + R = h*Mh + R = [dL(i), 1] * [Mh0, Mh1] + R = dL(i) * Mh0 + Mh1 + R
     hMh_sigma = frame_size_delta * Mh[0] + Mh[1] + sigma;
 
     if ((hMh_sigma < 1e-9 && hMh_sigma >= 0) ||
@@ -418,13 +418,13 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
         return;
     }
 
-    // K = M*h^T / h*M*h^T + R = Mh / hMh_sigma
+    // K = M*h' / h*M*h' + R = Mh / hMh_sigma
     kalman_gain[0] = Mh[0] / hMh_sigma;
     kalman_gain[1] = Mh[1] / hMh_sigma;
 
     // Correction
     // 计算后验估计值
-    // theta^(i) = theta-(i) + K*(d(i) - H*theta^-(i))，其中d(i)表示测量值，H*theta^-(i)表示先验估计值
+    // theta^(i) = theta^-(i) + K*(d(i) - H*theta^-(i))，其中d(i)表示测量值，H*theta^-(i)表示先验估计值
     // 实际观测和预测观测的偏差: measure_res = dT - h*theta^-(i) = dT - [dL(i), 1]*[1/C(i), m(i)] = dT - (dL(i)/C(i) + m(i))
     measure_res = frame_delay_ms - (frame_size_delta * theta_[0] + theta_[1]);
     // 1/C(i)

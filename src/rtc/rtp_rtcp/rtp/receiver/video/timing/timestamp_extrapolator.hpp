@@ -10,6 +10,7 @@ namespace rtp {
 namespace video {
 
 // This class is not thread-safety, the caller MUST provide that.
+// This class is used to estimate the expected receive time of a frame.
 class RTC_CPP_EXPORT TimestampExtrapolator {
 public:
     explicit TimestampExtrapolator(int64_t start_time_ms);
@@ -23,14 +24,14 @@ private:
     int64_t Unwrap(uint32_t timestamp);
     bool DelayChangeDetection(double error);
 private:
-    double w_[2];
-    double pP_[2][2];
+    double theta_[2];
+    double theta_cov_[2][2];
     int64_t start_time_ms_;
     int64_t prev_time_ms_;
-    uint32_t first_timestamp_;
+    uint32_t first_unwrapped_timestamp_;
     int32_t num_wrap_arounds_;
     std::optional<int64_t> prev_unwrapped_timestamp_;
-    std::optional<uint32_t> prev_wrap_timestamp_;
+    std::optional<uint32_t> prev_timestamp_;
     bool first_after_reset_;
     uint32_t packet_count_;
     double detector_accumulator_pos_;
