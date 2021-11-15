@@ -147,21 +147,23 @@ int64_t TimestampExtrapolator::ExtrapolateLocalTime(uint32_t timestamp) {
         return -1;
     }
 
-    int64_t local_time_ms = 0;
-
     int64_t unwrapped_timestamp = Unwrap(timestamp);
 
+    int64_t local_time_ms = 0;
     if (packet_count_ == 0) {
         local_time_ms = -1;
     } else if (packet_count_ < kMinPacketCountBeforeStartUpFilter) {
+        // Calculate the receive time without noise.
         local_time_ms = prev_time_ms_ + static_cast<int64_t>(static_cast<double>(unwrapped_timestamp - *prev_unwrapped_timestamp_) / 90.0 + 0.5);
     } else {
         if (theta_[0] < 1e-3) {
             local_time_ms = start_time_ms_;
         } else {
-            // recv_time = estimated_recv_diff + start_time = (send_diff + process_noise) / 90 + start_time.
+            // recv_time = estimated_recv_diff + start_time
             double timestamp_diff = static_cast<double>(unwrapped_timestamp - first_unwrapped_timestamp_);
-            local_time_ms = static_cast<int64_t>(static_cast<double>(start_time_ms_) + (timestamp_diff - theta_[1]) / theta_[0] + 0.5);
+            local_time_ms = static_cast<int64_t>(static_cast<double>(start_time_ms_)  
+                                                 + (timestamp_diff - theta_[1] /* process noise */) / theta_[0] /* estimated sample rate */ 
+                                                 + 0.5);
         }
     }
     return local_time_ms;
@@ -176,10 +178,11 @@ int64_t TimestampExtrapolator::Unwrap(uint32_t timestamp) {
     }
     prev_timestamp_ = timestamp;
 
-    // FIXME: Why the kModuloValue is the uint32_max, not the uint32_max + 1?
-    constexpr int64_t kModuloValue = int64_t{std::numeric_limits<uint32_t>::max()};
+    constexpr int64_t kRoundTimestamp = static_cast<int64_t>(1) << 32; // int64_t{std::numeric_limits<uint32_t>::max()} + 1;
+    // NOTE: static_cast<int64_t>(1) << 32 = int64_t{std::numeric_limits<uint32_t>::max()} + 1
+    // NOTE: int64_t{std::numeric_limits<uint32_t>::max() + 1} = 0
     // Unwrap the timestamp from `uint32_t` to `int64_t`
-    return static_cast<int64_t>(timestamp + num_wrap_arounds_ * kModuloValue);
+    return static_cast<int64_t>(timestamp + num_wrap_arounds_ * kRoundTimestamp);
 }
 
 bool TimestampExtrapolator::DelayChangeDetection(double error) {

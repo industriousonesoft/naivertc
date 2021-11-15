@@ -106,8 +106,8 @@ MY_TEST_F(ReceiverTimingTest, JitterDelay) {
 
 MY_TEST_F(ReceiverTimingTest, TimestampWrapAround) {
     timing_.Reset();
-    uint32_t ts_interval = 90000 / kFps;
-    int time_interval = 1000 / kFps;
+    uint32_t ts_interval = 90'000 / kFps;
+    int time_interval = 1'000 / kFps;
     // Provoke a wrap-around. The fifth frame will have wrapped at 25 fps.
     uint32_t timestamp = 0xFFFFFFFFu - 3 * ts_interval;
     for (int i = 0; i < 5; ++i) {
@@ -116,6 +116,8 @@ MY_TEST_F(ReceiverTimingTest, TimestampWrapAround) {
         timestamp += ts_interval;
         EXPECT_EQ(3 * time_interval, timing_.RenderTimeMs(0xFFFFFFFFu, clock_->now_ms()));
         EXPECT_EQ(3 * time_interval + 1, timing_.RenderTimeMs(89u /* 1 ms later in 90 kHz */, clock_->now_ms()));
+        EXPECT_EQ(3 * time_interval + 1, timing_.RenderTimeMs(90u, clock_->now_ms()));
+        EXPECT_EQ(3 * time_interval + 2, timing_.RenderTimeMs(180u, clock_->now_ms()));
     }
 }
 

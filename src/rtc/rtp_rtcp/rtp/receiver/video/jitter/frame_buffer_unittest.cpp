@@ -18,6 +18,11 @@ using namespace naivertc::rtp::video;
 
 namespace naivertc {
 namespace test {
+constexpr int kMaxReferences = 5;
+constexpr int kFps1 = 10;
+constexpr int kFps10 = kFps1 / 10;
+constexpr int kFps20 = kFps1 / 20;
+constexpr size_t kFrameSize = 10;
 
 // VideoReceiveStatisticsObserverMock
 class VideoReceiveStatisticsObserverMock : public VideoReceiveStatisticsObserver {
@@ -192,13 +197,6 @@ protected:
     void CheckNoFrame(size_t index) {
         ASSERT_GE(index, frames_.size());
     }
-
-protected:
-    static const int kMaxReferences = 5;
-    static const int kFps1 = 10;
-    static const int kFps10 = kFps1 / 10;
-    static const int kFps20 = kFps1 / 20;
-    static const size_t kFrameSize = 10;
 
 protected:
     std::shared_ptr<SimulatedClock> clock_;

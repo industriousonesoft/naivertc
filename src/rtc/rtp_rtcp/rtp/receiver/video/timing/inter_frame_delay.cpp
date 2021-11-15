@@ -41,7 +41,7 @@ std::pair<int64_t, bool> InterFrameDelay::CalculateDelay(uint32_t timestamp, int
     }
 
     // The count from 0 to the max of type T.
-    constexpr int64_t kRoundTimestamp = int64_t{std::numeric_limits<uint32_t>::max() + 1};
+    constexpr int64_t kRoundTimestamp = static_cast<int64_t>(1) << 32; // int64_t{std::numeric_limits<uint32_t>::max()} + 1;
     // Compute the compensated timestamp difference and covert it to ms and round
     // it to the closest integer.
     diff_timestamp_ = static_cast<int64_t>((timestamp + wrap_arounds_since_prev * kRoundTimestamp - prev_timestamp_) / 90.0 + 0.5);

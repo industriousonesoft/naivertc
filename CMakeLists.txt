@@ -642,6 +642,7 @@ set(TEST_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video -> timing
     src/rtc/rtp_rtcp/rtp/receiver/video/timing/timing_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/timestamp_extrapolator_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver -> video -> jitter
     src/rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history_unittest.cpp
