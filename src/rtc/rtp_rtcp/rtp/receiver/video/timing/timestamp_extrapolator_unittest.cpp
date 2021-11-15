@@ -30,8 +30,8 @@ MY_TEST_F(TimestampExtrapolatorTest, TimestampWrapAround) {
         clock_.AdvanceTimeMs(time_interval);
         timestamp += ts_interval;
         EXPECT_EQ(3 * time_interval, extrapolator_.ExtrapolateLocalTime(0xFFFFFFFFu));
-        EXPECT_EQ(3 * time_interval + 1, extrapolator_.ExtrapolateLocalTime(89u));
-        EXPECT_EQ(3 * time_interval + 1, extrapolator_.ExtrapolateLocalTime(90u));
+        EXPECT_EQ(3 * time_interval + 1, extrapolator_.ExtrapolateLocalTime(89u) /* test round up */);
+        EXPECT_EQ(3 * time_interval + 1 /* step = 1 */, extrapolator_.ExtrapolateLocalTime(90u) /* step = 90 */);
         EXPECT_EQ(3 * time_interval + 2, extrapolator_.ExtrapolateLocalTime(180u));
     }
 }
