@@ -22,7 +22,7 @@ Timing::Timing(std::shared_ptr<Clock> clock)
       min_playout_delay_ms_(0),
       max_playout_delay_ms_(10000 /* 10s */),
       jitter_delay_ms_(0),
-      curr_delay_ms_(0),
+      curr_playout_delay_ms_(0),
       prev_timestamp_(0),
       num_decoded_frames_(0),
       earliest_next_decode_start_time_(0) {
@@ -38,7 +38,7 @@ void Timing::Reset() {
     render_delay_ms_ = kDefaultRenderDelayMs;
     min_playout_delay_ms_ = 0;
     jitter_delay_ms_ = 0;
-    curr_delay_ms_ = 0;
+    curr_playout_delay_ms_ = 0;
     prev_timestamp_ = 0;
 }
 
@@ -57,8 +57,8 @@ void Timing::set_jitter_delay_ms(int delay_ms) {
         jitter_delay_ms_ = delay_ms;
         // Set the current delay to minimum delay,
         // when in initial state.
-        if (curr_delay_ms_ == 0) {
-            curr_delay_ms_ = jitter_delay_ms_;
+        if (curr_playout_delay_ms_ == 0) {
+            curr_playout_delay_ms_ = jitter_delay_ms_;
         }
     }
 }
@@ -66,10 +66,10 @@ void Timing::set_jitter_delay_ms(int delay_ms) {
 void Timing::UpdateCurrentDelay(uint32_t timestamp) {
     int target_delay_ms = TargetDelayMs();
 
-    if (curr_delay_ms_ == 0) {
-        curr_delay_ms_ = target_delay_ms;
-    } else if (target_delay_ms != curr_delay_ms_) {
-        int64_t delay_diff_ms = static_cast<int64_t>(target_delay_ms) - curr_delay_ms_;
+    if (curr_playout_delay_ms_ == 0) {
+        curr_playout_delay_ms_ = target_delay_ms;
+    } else if (target_delay_ms != curr_playout_delay_ms_) {
+        int64_t delay_diff_ms = static_cast<int64_t>(target_delay_ms) - curr_playout_delay_ms_;
 
         // Never change the delay with more than 100ms every second. If we're
         // changing the delay in too large steps we will get noticeable freezes.
@@ -79,7 +79,6 @@ void Timing::UpdateCurrentDelay(uint32_t timestamp) {
         int64_t max_change_ms = 0;
         // Calculate the forward from previous timestamp to current timestamp,
         // and take wraparound into account.
-        // TODO: Take multiple wraparound into account, add `num_wrap_arounds` used in TimestampExtrapolator? 
         int64_t timestamp_diff = static_cast<int64_t>(ForwardDiff<uint32_t>(prev_timestamp_, timestamp));
         max_change_ms = kDelayMaxChangeMsPerS * (timestamp_diff / 90000 /* Elapsed time in seconds */);
 
@@ -92,42 +91,43 @@ void Timing::UpdateCurrentDelay(uint32_t timestamp) {
         delay_diff_ms = std::max(delay_diff_ms, -max_change_ms);
         delay_diff_ms = std::min(delay_diff_ms, max_change_ms);
 
-        curr_delay_ms_ += delay_diff_ms;
+        curr_playout_delay_ms_ += delay_diff_ms;
     }
     prev_timestamp_ = timestamp;
     
 }
 
-void Timing::UpdateCurrentDelay(int64_t expected_render_time_ms,
-                                int64_t actual_time_ms_to_decode) {
+void Timing::UpdateCurrentDelay(int64_t render_time_ms,
+                                int64_t actual_decode_time_ms) {
     uint32_t target_delay_ms = TargetDelayMs();
     // The time consumed by video decoder.
     int decode_time_ms = RequiredDecodeTimeMs();
     // The time expected to start to decode.
-    int64_t expected_time_ms_to_decode = expected_render_time_ms - decode_time_ms - render_delay_ms_;
+    int64_t expected_decode_time_ms = render_time_ms - decode_time_ms - render_delay_ms_;
 
-    int64_t decode_delayed_ms = actual_time_ms_to_decode - expected_time_ms_to_decode;
-    // No delay to decode.
-    if (decode_delayed_ms < 0) {
+    int64_t decode_delayed_time_ms = actual_decode_time_ms - expected_decode_time_ms;
+    // The frame was decoded as expected or earlier than expected.
+    if (decode_delayed_time_ms < 0) {
         return;
     }
     // Closing to the target delay, but not be greater than it.
-    if (curr_delay_ms_ + decode_delayed_ms <= target_delay_ms) {
-        curr_delay_ms_ += decode_delayed_ms;
+    if (curr_playout_delay_ms_ + decode_delayed_time_ms <= target_delay_ms) {
+        curr_playout_delay_ms_ += decode_delayed_time_ms;
     } else {
         // The upper limit of delay is `target_delay_ms`.
-        curr_delay_ms_ = target_delay_ms;
+        curr_playout_delay_ms_ = target_delay_ms;
     }
 }
 
 int Timing::TargetDelayMs() const {
-    return std::max(min_playout_delay_ms_, jitter_delay_ms_ + RequiredDecodeTimeMs() + render_delay_ms_);
+    // target_delay = jitter_delay + decode_time + render_delay
+    return std::max(min_playout_delay_ms_, jitter_delay_ms_ /* jitter of transport */ + RequiredDecodeTimeMs() + render_delay_ms_);
 }
 
 std::pair<Timing::TimingInfo, bool> Timing::GetTimingInfo() const {
     TimingInfo info;
     info.max_decode_ms = RequiredDecodeTimeMs();
-    info.curr_delay_ms = curr_delay_ms_;
+    info.curr_playout_delay_ms = curr_playout_delay_ms_;
     info.target_delay_ms = TargetDelayMs();
     info.jitter_delay_ms = jitter_delay_ms_;
     info.min_playout_delay_ms = min_playout_delay_ms_;
@@ -144,29 +144,32 @@ int64_t Timing::RenderTimeMs(uint32_t timestamp, int64_t now_ms) const {
         return 0;
     }
 
+    // Estimate the complete time (all packets of the frame have been received) of the frame by it's timestamp.
     int64_t estimated_complete_time_ms = timestamp_extrapolator_->ExtrapolateLocalTime(timestamp);
     if (estimated_complete_time_ms == -1) {
         estimated_complete_time_ms = now_ms;
     }
     // Make sure the actual delay limits in the range of `min_playout_delay_ms_` and `max_playout_delay_ms_`.
-    int actual_delay = std::max(curr_delay_ms_, min_playout_delay_ms_);
-    actual_delay = std::min(actual_delay, max_playout_delay_ms_);
+    int actual_playout_delay_ms = std::max(curr_playout_delay_ms_, min_playout_delay_ms_);
+    actual_playout_delay_ms = std::min(actual_playout_delay_ms, max_playout_delay_ms_);
 
-    return estimated_complete_time_ms + actual_delay;
+    return estimated_complete_time_ms + actual_playout_delay_ms;
 }
 
-int64_t Timing::MaxTimeWaitingToDecode(int64_t render_time_ms, int64_t now_ms) {
+int64_t Timing::MaxWaitingTimeBeforeDecode(int64_t render_time_ms, int64_t now_ms) {
     if (render_time_ms == 0 && zero_playout_delay_min_pacing_.us() > 0) {
         // `render_time_ms` == 0 indicates that the frame should be decoded
         // and rendered ASAP. However, the decoder can be choked if too many
         // frames are sent at ones. Therefore, limit the interframe delay to
         // `zero_playout_delay_min_pacing_`.
         int64_t max_wait_time_ms = now_ms >= earliest_next_decode_start_time_
-                                      ? 0
-                                      : earliest_next_decode_start_time_ - now_ms;
+                                           ? 0
+                                           : earliest_next_decode_start_time_ - now_ms;
         earliest_next_decode_start_time_ = now_ms + max_wait_time_ms + zero_playout_delay_min_pacing_.ms();
         return max_wait_time_ms;
     }
+    // actual_delay = render_time_ms - now_ms
+    // wait_time = actual_delay - decode_time - render_delay.
     return render_time_ms - now_ms - RequiredDecodeTimeMs() - render_delay_ms_;
 }
 

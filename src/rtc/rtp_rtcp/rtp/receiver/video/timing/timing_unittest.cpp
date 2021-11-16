@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "../testing/unittest_defines.hpp"
 
 namespace naivertc {
@@ -39,8 +39,9 @@ MY_TEST_F(ReceiverTimingTest, JitterDelay) {
     timing_.set_jitter_delay_ms(jitter_delay_ms);
     timing_.UpdateCurrentDelay(timestamp);
     timing_.set_render_delay_ms(0);
-    uint32_t wait_time_ms = timing_.MaxTimeWaitingToDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
-    // Since we have no decode delay we get `wait_time_ms` = RenderTime - now - renderDelay = jitter.
+    int64_t render_time_ms = timing_.RenderTimeMs(timestamp, clock_->now_ms());
+    uint32_t wait_time_ms = timing_.MaxWaitingTimeBeforeDecode(render_time_ms, clock_->now_ms());
+    // Since we have no decode delay we get `wait_time_ms` = RenderTime - now - renderDelay = (now + jitter) - now - 0 = jitter.
     EXPECT_EQ(wait_time_ms, jitter_delay_ms);
 
     jitter_delay_ms += kDelayMaxChangeMsPerS + 10;
@@ -48,14 +49,14 @@ MY_TEST_F(ReceiverTimingTest, JitterDelay) {
     clock_->AdvanceTimeMs(1000);
     timing_.set_jitter_delay_ms(jitter_delay_ms);
     timing_.UpdateCurrentDelay(timestamp);
-    wait_time_ms = timing_.MaxTimeWaitingToDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
+    wait_time_ms = timing_.MaxWaitingTimeBeforeDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
     // Since we gradually increase the delay we only get 100 ms every second.
     EXPECT_EQ(jitter_delay_ms - 10, wait_time_ms);
 
     timestamp += 90000;
     clock_->AdvanceTimeMs(1000);
     timing_.UpdateCurrentDelay(timestamp);
-    wait_time_ms = timing_.MaxTimeWaitingToDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
+    wait_time_ms = timing_.MaxWaitingTimeBeforeDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
     EXPECT_EQ(wait_time_ms, jitter_delay_ms);
 
     // Insert frames without jitter, verify that this gives the exact wait time.
@@ -67,7 +68,7 @@ MY_TEST_F(ReceiverTimingTest, JitterDelay) {
         timing_.IncomingTimestamp(timestamp, clock_->now_ms());
     }
     timing_.UpdateCurrentDelay(timestamp);
-    wait_time_ms = timing_.MaxTimeWaitingToDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
+    wait_time_ms = timing_.MaxWaitingTimeBeforeDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
     EXPECT_EQ(jitter_delay_ms, wait_time_ms);
 
     // Add decode time estimates for 1 second.
@@ -81,7 +82,7 @@ MY_TEST_F(ReceiverTimingTest, JitterDelay) {
         timing_.IncomingTimestamp(timestamp, clock_->now_ms());
     }
     timing_.UpdateCurrentDelay(timestamp);
-    wait_time_ms = timing_.MaxTimeWaitingToDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
+    wait_time_ms = timing_.MaxWaitingTimeBeforeDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
     EXPECT_EQ(jitter_delay_ms, wait_time_ms);
 
     const int kMinTotalDelayMs = 200;
@@ -91,7 +92,7 @@ MY_TEST_F(ReceiverTimingTest, JitterDelay) {
     timing_.UpdateCurrentDelay(timestamp);
     const int kRenderDelayMs = 10;
     timing_.set_render_delay_ms(kRenderDelayMs);
-    wait_time_ms = timing_.MaxTimeWaitingToDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
+    wait_time_ms = timing_.MaxWaitingTimeBeforeDecode(timing_.RenderTimeMs(timestamp, clock_->now_ms()), clock_->now_ms());
     // We should at least have kMinTotalDelayMs - kDecodeTimeMs - kRenderDelayMs to wait.
     EXPECT_EQ(kMinTotalDelayMs - kDecodeTimeMs - kRenderDelayMs, wait_time_ms);
     // The total video delay should be equal to the min total delay.
@@ -121,7 +122,7 @@ MY_TEST_F(ReceiverTimingTest, TimestampWrapAround) {
     }
 }
 
-MY_TEST_F(ReceiverTimingTest, MaxTimeWaitingToDecodeIsZeroForZeroRenderTime) {
+MY_TEST_F(ReceiverTimingTest, MaxWaitingTimeBeforeDecodeIsZeroForZeroRenderTime) {
     // This is the default path when the RTP playout delay header extension is set
     // to min==0.
     constexpr int64_t kTimeDeltaMs = 1000.0 / 60.0;
@@ -129,20 +130,20 @@ MY_TEST_F(ReceiverTimingTest, MaxTimeWaitingToDecodeIsZeroForZeroRenderTime) {
     timing_.Reset();
     for (int i = 0; i < 10; ++i) {
         clock_->AdvanceTimeMs(kTimeDeltaMs);
-        EXPECT_LT(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, clock_->now_ms()), 0);
+        EXPECT_LT(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, clock_->now_ms()), 0);
     }
     
     // Another frame submitted at the same time also returns a negative max
     // waiting time.
     int64_t now_ms = clock_->now_ms();
-    EXPECT_LT(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 0);
-    // MaxTimeWaitingToDecode should be less than zero even if there's a burst of frames.
-    EXPECT_LT(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 0);
-    EXPECT_LT(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 0);
-    EXPECT_LT(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 0);
+    EXPECT_LT(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, now_ms), 0);
+    // MaxWaitingTimeBeforeDecode should be less than zero even if there's a burst of frames.
+    EXPECT_LT(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, now_ms), 0);
+    EXPECT_LT(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, now_ms), 0);
+    EXPECT_LT(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, now_ms), 0);
 }
 
-MY_TEST_F(ReceiverTimingTest, MaxTimeWaitingToDecodeZeroDelayPacingExperiment) {
+MY_TEST_F(ReceiverTimingTest, MaxWaitingTimeBeforeDecodeZeroDelayPacingExperiment) {
     // The minimum pacing is enabled by a field trial and active if the RTP
     // playout delay header extension is set to min==0.
     constexpr int64_t kMinPacingMs = 3;
@@ -151,28 +152,28 @@ MY_TEST_F(ReceiverTimingTest, MaxTimeWaitingToDecodeZeroDelayPacingExperiment) {
 
     timing_.Reset();
     timing_.set_zero_playout_delay_min_pacing(TimeDelta::Millis(3));
-    // MaxTimeWaitingToDecode() returns zero for evenly spaced video frames.
+    // MaxWaitingTimeBeforeDecode() returns zero for evenly spaced video frames.
     for (int i = 0; i < 10; ++i) {
         clock_->AdvanceTimeMs(kTimeDeltaMs);
         int64_t now_ms = clock_->now_ms();
-        EXPECT_EQ(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 0);
+        EXPECT_EQ(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, now_ms), 0);
     }
     // Another frame submitted at the same time is paced according to the field
     // trial setting.
     int64_t now_ms = clock_->now_ms();
-    EXPECT_EQ(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), kMinPacingMs);
+    EXPECT_EQ(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, now_ms), kMinPacingMs);
     // If there's a burst of frames, the min pacing interval is summed.
-    EXPECT_EQ(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 2 * kMinPacingMs);
-    EXPECT_EQ(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 3 * kMinPacingMs);
-    EXPECT_EQ(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 4 * kMinPacingMs);
-    // Allow a few ms to pass, this should be subtracted from the MaxTimeWaitingToDecode.
+    EXPECT_EQ(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, now_ms), 2 * kMinPacingMs);
+    EXPECT_EQ(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, now_ms), 3 * kMinPacingMs);
+    EXPECT_EQ(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, now_ms), 4 * kMinPacingMs);
+    // Allow a few ms to pass, this should be subtracted from the MaxWaitingTimeBeforeDecode.
     constexpr int64_t kTwoMs = 2;
     clock_->AdvanceTimeMs(kTwoMs);
     now_ms = clock_->now_ms();
-    EXPECT_EQ(timing_.MaxTimeWaitingToDecode(kZeroRenderTimeMs, now_ms), 5 * kMinPacingMs - kTwoMs);
+    EXPECT_EQ(timing_.MaxWaitingTimeBeforeDecode(kZeroRenderTimeMs, now_ms), 5 * kMinPacingMs - kTwoMs);
 }
 
-MY_TEST_F(ReceiverTimingTest, DefaultMaxTimeWaitingToDecodeUnaffectedByPacingExperiment) {
+MY_TEST_F(ReceiverTimingTest, DefaultMaxWaitingTimeBeforeDecodeUnaffectedByPacingExperiment) {
     // The minimum pacing is enabled by a field trial but should not have any
     // effect if render_time_ms is greater than 0;
     constexpr int64_t kTimeDeltaMs = 1000.0 / 60.0;
@@ -184,14 +185,14 @@ MY_TEST_F(ReceiverTimingTest, DefaultMaxTimeWaitingToDecodeUnaffectedByPacingExp
     int64_t now_ms = clock_->now_ms();
     int64_t render_time_ms = now_ms + 30;
     // Estimate the internal processing delay from the first frame.
-    int64_t estimated_processing_delay = (render_time_ms - now_ms) - timing_.MaxTimeWaitingToDecode(render_time_ms, now_ms);
+    int64_t estimated_processing_delay = (render_time_ms - now_ms) - timing_.MaxWaitingTimeBeforeDecode(render_time_ms, now_ms);
     EXPECT_GT(estimated_processing_delay, 0);
 
     // Any other frame submitted at the same time should be scheduled according to
     // its render time.
     for (int i = 0; i < 5; ++i) {
         render_time_ms += kTimeDeltaMs;
-        EXPECT_EQ(timing_.MaxTimeWaitingToDecode(render_time_ms, now_ms), render_time_ms - now_ms - estimated_processing_delay);
+        EXPECT_EQ(timing_.MaxWaitingTimeBeforeDecode(render_time_ms, now_ms), render_time_ms - now_ms - estimated_processing_delay);
     }
 }
     

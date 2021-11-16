@@ -17,20 +17,20 @@ constexpr size_t kMaxFramesBuffered = 800;
 
 } // namespace
 
-int64_t FrameBuffer::InsertFrame(video::FrameToDecode frame) {
-    return task_queue_->Sync<int64_t>([this, frame=std::move(frame)](){
+std::pair<int64_t, bool> FrameBuffer::InsertFrame(video::FrameToDecode frame) {
+    return task_queue_->Sync<std::pair<int64_t, bool>>([this, frame=std::move(frame)](){
         return InsertFrameIntrenal(std::move(frame));
     });
 }
 
 // Private methods
-int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
+std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
     int64_t last_continuous_frame_id = last_continuous_frame_id_.value_or(-1);
 
     if (!ValidReferences(frame)) {
         PLOG_WARNING << "Frame " << frame.id()
                      << " has invaild frame reference, dropping it.";
-        return last_continuous_frame_id;
+        return {last_continuous_frame_id, false};
     }
 
     if (frames_.size() >= kMaxFramesBuffered) {
@@ -39,7 +39,7 @@ int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
                          << " but the buffer is full, clearing buffer and inserting the frame.";
             Clear();
         } else {
-            return last_continuous_frame_id;
+            return {last_continuous_frame_id, false};
         }
     }
 
@@ -66,7 +66,7 @@ int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
             PLOG_WARNING << "Frame " << frame.id() << " inserted after frame "
                          << *last_decoded_frame_id
                          << " was handed off for decoding, dropping frame.";
-            return last_continuous_frame_id;
+            return {last_continuous_frame_id, false};
         }
     }
 
@@ -87,7 +87,7 @@ int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
 
     // Frame has inserted already, dropping it.
     if (!success) {
-        return last_continuous_frame_id;
+        return {last_continuous_frame_id, false};
     }
 
     auto& frame_info = frame_it->second;
@@ -95,7 +95,9 @@ int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
     // If all packets of this frame was not be retransmited, 
     // it can be used to calculate delay in Timing.
     if (!frame.delayed_by_retransmission()) {
-        timing_->IncomingTimestamp(frame_info.frame.timestamp(), frame_info.frame.received_time_ms());
+        decode_queue_->Async([this, timestamp = frame_info.frame.timestamp(), received_time_ms=frame_info.frame.received_time_ms()](){
+            timing_->IncomingTimestamp(timestamp, received_time_ms);
+        });
     }
 
     if (auto observer = stats_observer_.lock()) {
@@ -109,10 +111,12 @@ int64_t FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
         // Update the last continuous frame id with this frame id.
         last_continuous_frame_id = *last_continuous_frame_id_;
         // Try to find the decodable frames.
-        FindNextDecodableFrames();
+        task_queue_->Async([this](){
+            FindNextDecodableFrames();
+        });
     }
 
-    return last_continuous_frame_id;
+    return {last_continuous_frame_id, true};
 }
 
 bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) {
@@ -157,9 +161,9 @@ std::pair<FrameBuffer::FrameMap::iterator, bool> FrameBuffer::EmplaceFrameInfo(v
     bool is_frame_decodable = true;
     // Find all referred frames of this frame that have not yet been fulfilled.
     frame.ForEachReference([&](int64_t ref_frame_id, bool* stoped) {
-        // Dose `frame` depend on a frame earlier than the last decoded frame?
+        // Dose frame depend on a frame earlier than the last decoded frame?
         if (last_decoded_frame_id && ref_frame_id <= *last_decoded_frame_id) {
-            // Was that frame decoded? If not, this `frame` will never become decodable.
+            // Was that referred frame decoded? If not, this frame will never become decodable.
             if (!decoded_frames_history_.WasDecoded(ref_frame_id)) {
                 int64_t now_ms = clock_->now_ms();
                 if (last_log_non_decoded_ms_ + kLogNonDecodedIntervalMs < now_ms) {

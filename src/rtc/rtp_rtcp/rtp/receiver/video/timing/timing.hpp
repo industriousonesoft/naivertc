@@ -17,7 +17,7 @@ class RTC_CPP_EXPORT Timing {
 public:
     struct TimingInfo {
         int max_decode_ms = -1;
-        int curr_delay_ms = -1;
+        int curr_playout_delay_ms = -1;
         int target_delay_ms = -1;
         int jitter_delay_ms = -1;
         int min_playout_delay_ms = -1;
@@ -58,8 +58,8 @@ public:
     // Given the actual time to decode in ms and the render time in ms for a frame,
     // this function calculates how late the frame is and increases the delay
     // accordingly.
-    void UpdateCurrentDelay(int64_t expect_render_time_ms,
-                            int64_t actual_time_ms_to_decode);
+    void UpdateCurrentDelay(int64_t render_time_ms,
+                            int64_t actual_decode_time_ms);
     
     // Returns the current target delay which is required delay + decode time +
     // render delay.
@@ -72,7 +72,7 @@ public:
 
     // Returns the maximum time in ms that we can wait for a frame to become
     // complete before we must pass it to the decoder.
-    virtual int64_t MaxTimeWaitingToDecode(int64_t render_time_ms, int64_t now_ms);
+    virtual int64_t MaxWaitingTimeBeforeDecode(int64_t render_time_ms, int64_t now_ms);
 
     // Return current timing information. Returns true if the first frame has been
     // decoded, false otherwise.
@@ -105,7 +105,7 @@ private:
     int min_playout_delay_ms_;
     int max_playout_delay_ms_;
     int jitter_delay_ms_;
-    int curr_delay_ms_;
+    int curr_playout_delay_ms_;
     uint32_t prev_timestamp_;
     size_t num_decoded_frames_;
 

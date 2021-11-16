@@ -58,6 +58,7 @@ RTC_CPP_EXPORT inline T Latest(T a, T b) {
 template <typename T, T M = 0>
 // Return 0 on no wrap around, 1 on forward wrap around, -1 on backward wrap around.
 RTC_CPP_EXPORT inline int DetectWrapAround(T prev, T curr) {
+    // NOTE: A new way to detect wrap around: curr < 0x0000ffff && prev > 0xffff0000
     if (curr < prev) {
         // When the incoming timestamp is less than the previous one, there are probably two situation:
         // it's a froward wrap around if the forward difference is less than 2^31 (casting to a int32_t, it should be positive),

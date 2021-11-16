@@ -19,7 +19,6 @@ constexpr int kMaxFramesHistory = 1 << 13; // 8192
 
 // FrameInfo
 FrameBuffer::FrameInfo::FrameInfo(video::FrameToDecode frame) : frame(std::move(frame)) {}
-FrameBuffer::FrameInfo::FrameInfo(FrameInfo&&) = default;
 FrameBuffer::FrameInfo::~FrameInfo() = default;
 
 // FrameBuffer
@@ -27,11 +26,13 @@ FrameBuffer::FrameBuffer(ProtectionMode protection_mode,
                          std::shared_ptr<Clock> clock, 
                          std::shared_ptr<Timing> timing,
                          std::shared_ptr<TaskQueue> task_queue,
+                         std::shared_ptr<TaskQueue> decode_queue,
                          std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer)
     : protection_mode_(protection_mode),
       clock_(std::move(clock)),
       timing_(std::move(timing)),
       task_queue_(std::move(task_queue)),
+      decode_queue_(std::move(decode_queue)),
       stats_observer_(std::move(stats_observer)),
       decoded_frames_history_(kMaxFramesHistory),
       jitter_estimator_({/* Default HyperParameters */}, clock_),
@@ -41,6 +42,7 @@ FrameBuffer::FrameBuffer(ProtectionMode protection_mode,
     assert(clock_ != nullptr);
     assert(timing_ != nullptr);
     assert(task_queue_ != nullptr);
+    assert(decode_queue_ != nullptr);
 }
 
 FrameBuffer::~FrameBuffer() {}
@@ -92,22 +94,6 @@ size_t FrameBuffer::NumUndecodedFrames(FrameMap::iterator begin, FrameMap::itera
                          [](const std::pair<const int64_t, FrameInfo>& frame_tuple) {
         return frame_tuple.second.IsValid();
     });
-}
-
-int FrameBuffer::EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size) {
-    // Calculate the delay of the current frame from the previous frame.
-    auto [frame_delay, success] = inter_frame_delay_.CalculateDelay(send_timestamp, recv_time_ms);
-    if (success) {
-        assert(frame_delay >= 0);
-        jitter_estimator_.UpdateEstimate(frame_delay, frame_size);
-    }
-
-    // `rtt_mult` will be 1 if protection mode is NACK only.
-    float rtt_mult = protection_mode_ == ProtectionMode::NACK_FEC ? 0 : 1;
-    std::optional<float> rtt_mult_add_cap_ms = std::nullopt;
-    // TODO: Enable RttMultExperiment if necessary.
-
-    return jitter_estimator_.GetJitterEstimate(rtt_mult, rtt_mult_add_cap_ms);
 }
 
 } // namespace jitter

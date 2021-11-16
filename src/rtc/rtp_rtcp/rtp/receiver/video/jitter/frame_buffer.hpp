@@ -30,6 +30,7 @@ public:
                 std::shared_ptr<Clock> clock, 
                 std::shared_ptr<Timing> timing,
                 std::shared_ptr<TaskQueue> task_queue,
+                std::shared_ptr<TaskQueue> decode_queue,
                 std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer);
     ~FrameBuffer();
 
@@ -39,7 +40,7 @@ public:
 
     void UpdateRtt(int64_t rtt_ms);
 
-    int64_t InsertFrame(video::FrameToDecode frame);
+    std::pair<int64_t, bool> InsertFrame(video::FrameToDecode frame);
 
     using FrameReadyToDecodeCallback = std::function<void(video::FrameToDecode, int64_t wait_ms)>;
     void OnDecodableFrame(FrameReadyToDecodeCallback callback);
@@ -49,7 +50,6 @@ public:
 private:
     struct FrameInfo {
         FrameInfo(video::FrameToDecode frame);
-        FrameInfo(FrameInfo&&);
         ~FrameInfo();
 
         int64_t frame_id() const { return IsValid() ? frame.id() : -1; }
@@ -81,7 +81,7 @@ private:
     int EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size);
 
     // Continuity
-    int64_t InsertFrameIntrenal(video::FrameToDecode frame);
+    std::pair<int64_t, bool> InsertFrameIntrenal(video::FrameToDecode frame);
     bool ValidReferences(const video::FrameToDecode& frame);
     // Returns a pair consisting of an iterator to the inserted element,
     // or the already-existing element if no insertion happened,
@@ -92,7 +92,7 @@ private:
 
     // Decodability
     void FindNextDecodableFrames();
-    void ProcessFramesToDecode(std::vector<FrameMap::iterator> frames_to_decode);
+    void DecodeFrames(std::vector<FrameInfo> frames_to_decode);
     bool IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms);
     bool PropagateDecodability(const FrameInfo& frame_info);
 
@@ -103,6 +103,7 @@ private:
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<Timing> timing_;
     std::shared_ptr<TaskQueue> task_queue_;
+    std::shared_ptr<TaskQueue> decode_queue_;
     std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer_;
 
     InterFrameDelay inter_frame_delay_;
