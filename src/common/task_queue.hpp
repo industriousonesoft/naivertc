@@ -9,6 +9,7 @@
 #include <boost/thread/thread.hpp>
 
 #include <functional>
+#include <list>
 
 namespace naivertc {
 
@@ -46,7 +47,7 @@ private:
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard_;
     boost::asio::io_context::strand strand_;
     std::unique_ptr<boost::thread> ioc_thread_;
-    boost::asio::deadline_timer timer_;
+    std::list<boost::asio::deadline_timer*> pending_timers_;
 
     mutable boost::mutex mutex_;
     mutable boost::condition_variable cond_;

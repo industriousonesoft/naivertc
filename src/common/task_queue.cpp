@@ -10,8 +10,7 @@ namespace naivertc {
 
 TaskQueue::TaskQueue(std::string&& name) 
     : work_guard_(boost::asio::make_work_guard(ioc_)),
-      strand_(ioc_),
-      timer_(ioc_) {
+      strand_(ioc_) {
     // The thread will start immediately after created
     ioc_thread_.reset(new boost::thread(boost::bind(&boost::asio::io_context::run, &ioc_)));
     if (!name.empty()) {
@@ -76,12 +75,20 @@ void TaskQueue::Dispatch(std::function<void()> handler) const {
 }
 
 void TaskQueue::AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler) {
-    // Construct a timer without setting an expiry time.
-    timer_.expires_from_now(boost::posix_time::seconds(delay_in_sec));
-    // Start an asynchronous wait
-    timer_.async_wait([handler = std::move(handler)](const boost::system::error_code& error){
-         handler();
-    });
+     if (is_in_current_queue()) {
+        // Construct a timer without setting an expiry time.
+        boost::asio::deadline_timer* timer = new boost::asio::deadline_timer(ioc_, boost::posix_time::seconds(delay_in_sec));
+        // Start an asynchronous wait
+        timer->async_wait([this, timer, handler = std::move(handler)](const boost::system::error_code& error){
+            handler();
+            pending_timers_.remove(timer);
+        });
+        pending_timers_.push_back(timer);
+    } else {
+        boost::asio::post(strand_, [this, delay_in_sec, handler = std::move(handler)](){
+            AsyncAfter(delay_in_sec, std::move(handler));
+        });
+    }
 }
 
 bool TaskQueue::is_in_current_queue() const {
