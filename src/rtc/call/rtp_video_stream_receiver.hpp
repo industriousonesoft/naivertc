@@ -2,7 +2,7 @@
 #define _RTC_CALL_RTP_VIDEO_STREAM_RECEIVER_H_
 
 #include "base/defines.hpp"
-#include "common/task_queue.hpp"
+#include "rtc/base/task_queue.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/nack_module.hpp"

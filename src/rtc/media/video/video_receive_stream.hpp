@@ -2,7 +2,7 @@
 #define _RTC_MEDIA_VIDEO_VIDEO_RECEIVE_STREAM_H_
 
 #include "base/defines.hpp"
-#include "common/task_queue.hpp"
+#include "rtc/base/task_queue.hpp"
 #include "rtc/call/rtp_video_stream_receiver.hpp"
 
 #include <map>

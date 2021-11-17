@@ -5,8 +5,8 @@
 #include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 #include "common/utils_numeric.hpp"
 #include "common/utils_random.hpp"
-#include "common/task_queue.hpp"
-#include "common/event.hpp"
+#include "rtc/base/task_queue.hpp"
+#include "rtc/base/event.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>

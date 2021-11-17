@@ -1,5 +1,5 @@
-#include "common/task_queue.hpp"
-#include "common/event.hpp"
+#include "rtc/base/task_queue.hpp"
+#include "rtc/base/event.hpp"
 #include "common/utils_time.hpp"
 
 #include <gtest/gtest.h>
@@ -49,6 +49,25 @@ MY_TEST(TaskQueueTest, AsyncDelayedPost) {
     int64_t end = utils::time::TimeInSec();
     EXPECT_GE(end-start, 3);
     EXPECT_NEAR(end-start, 3, 1);
+}
+
+MY_TEST(TaskQueueTest, MultipAsyncDelayedPost) {
+    TaskQueue task_queue;
+    Event event1;
+    int val = 1;
+    task_queue.AsyncAfter(3 /* seconds */, [&task_queue, &event1, &val](){
+        val += 1;
+        EXPECT_EQ(val, 2);
+        CheckCurrent(&event1, &task_queue);
+    });
+    Event event2;
+    task_queue.AsyncAfter(4, [&task_queue, &event2, &val](){
+        val -= 1;
+        EXPECT_EQ(val, 1);
+        CheckCurrent(&event2, &task_queue);
+    });
+    EXPECT_TRUE(event1.Wait(Event::kForever));
+    EXPECT_TRUE(event2.Wait(Event::kForever));
 }
 
 MY_TEST(TaskQueueTest, AsyncPostBehindDelayedPost) {

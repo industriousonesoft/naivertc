@@ -39,16 +39,12 @@ set(LIB_SOURCES
     src/base/init.cpp
     src/base/system_time.cpp
     # common
-    src/common/task_queue.cpp
     src/common/utils_string.cpp
     src/common/utils_random.cpp
     src/common/utils_time.cpp
     src/common/utils_network.cpp
     src/common/logger.cpp
     src/common/weak_ptr_manager.cpp
-    src/common/event.cpp
-    # src/common/event_win.cpp
-    src/common/event_posix.cpp
 
     # signaling
     src/signaling/base/base_channel.cpp
@@ -57,7 +53,6 @@ set(LIB_SOURCES
 
     # rtc
     # rtc -> base
-    src/rtc/base/repeating_task.cpp
     src/rtc/base/copy_on_write_buffer.cpp
     src/rtc/base/bit_io.cpp
     src/rtc/base/bit_io_reader.cpp
@@ -69,6 +64,11 @@ set(LIB_SOURCES
     src/rtc/base/time/clock_real_time.cpp
     src/rtc/base/time/clock_simulated.cpp
     src/rtc/base/numerics/histogram_percentile_counter.cpp
+    src/rtc/base/repeating_task.cpp
+    src/rtc/base/task_queue.cpp
+    src/rtc/base/event.cpp
+    # src/rtc/base/event_win.cpp
+    src/rtc/base/event_posix.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.cpp
@@ -270,7 +270,6 @@ set(LIB_HEADERS
     src/base/init.hpp
     src/base/system_time.hpp
     # common
-    src/common/task_queue.hpp
     src/common/proxy.hpp
     src/common/utils_network.hpp
     src/common/utils_numeric.hpp
@@ -281,7 +280,6 @@ set(LIB_HEADERS
     src/common/weak_ptr_manager.hpp
     src/common/numeric_range_checker.hpp
     src/common/array_view.hpp
-    src/common/event.hpp
 
     # signaling
     src/signaling/base/base_channel.hpp
@@ -297,7 +295,6 @@ set(LIB_HEADERS
     src/rtc/base/byte_io_reader.hpp
     src/rtc/base/byte_io_writer.hpp
     src/rtc/base/divide_round.hpp
-    src/rtc/base/repeating_task.hpp
     src/rtc/base/copy_on_write_buffer.hpp
     src/rtc/base/dscp.hpp
     src/rtc/base/packet_options.hpp
@@ -319,6 +316,9 @@ set(LIB_HEADERS
     src/rtc/base/numerics/modulo_operator.hpp
     src/rtc/base/numerics/running_statistics.hpp
     src/rtc/base/numerics/histogram_percentile_counter.hpp
+    src/rtc/base/repeating_task.hpp
+    src/rtc/base/task_queue.hpp
+    src/rtc/base/event.hpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.hpp
@@ -572,8 +572,6 @@ set(TEST_SOURCES
     src/base/system_time_unittest.cpp
     # common
     src/common/weak_ptr_manager_unittest.cpp
-    src/common/task_queue_unittest.cpp
-    src/common/event_unittest.cpp
 
     # rtc -> media
     src/rtc/media/media_track_unittest.cpp
@@ -602,6 +600,8 @@ set(TEST_SOURCES
     src/rtc/base/numerics/modulo_operator_unittest.cpp
     src/rtc/base/numerics/running_statistics_unittest.cpp
     src/rtc/base/numerics/histogram_percentile_counter_unittest.cpp
+    src/rtc/base/task_queue_unittest.cpp
+    src/rtc/base/event_unittest.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp
