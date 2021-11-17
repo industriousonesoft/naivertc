@@ -33,7 +33,7 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode f
         return {last_continuous_frame_id, false};
     }
 
-    if (frames_.size() >= kMaxFramesBuffered) {
+    if (frame_infos_.size() >= kMaxFramesBuffered) {
         if (frame.is_keyframe()) {
             PLOG_WARNING << "Inserting keyframe " << frame.id()
                          << " but the buffer is full, clearing buffer and inserting the frame.";
@@ -74,9 +74,9 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode f
     // ambigous (covering more than half the interval of 2^16). This can happen
     // when the frame id make large jumps mid stream.
     // FIXME: I don't think this can happen, since frame id has been unwrapped already.
-    if (!frames_.empty() && 
-        frame.id() < frames_.begin()->first &&
-        frame.id() > frames_.rbegin()->first) {
+    if (!frame_infos_.empty() && 
+        frame.id() < frame_infos_.begin()->first &&
+        frame.id() > frame_infos_.rbegin()->first) {
         PLOG_WARNING << "A jump in frame id was detected, clearing buffer.";
         // Clear and continue to decode (start from this frame).
         Clear();
@@ -136,11 +136,11 @@ bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) {
     }
 }
 
-std::pair<FrameBuffer::FrameMap::iterator, bool> FrameBuffer::EmplaceFrameInfo(video::FrameToDecode frame) {
+std::pair<FrameBuffer::FrameInfoMap::iterator, bool> FrameBuffer::EmplaceFrameInfo(video::FrameToDecode frame) {
     int64_t new_frame_id = frame.id();
-    FrameMap::iterator frame_it = frames_.find(new_frame_id);
+    FrameInfoMap::iterator frame_it = frame_infos_.find(new_frame_id);
     // Frame has inserted already, dropping it.
-    if (frame_it != frames_.end()) {
+    if (frame_it != frame_infos_.end()) {
         PLOG_WARNING << "Frame with id=" << new_frame_id
                      << " already inserted, dropping it.";
         return {frame_it, false};
@@ -180,8 +180,8 @@ std::pair<FrameBuffer::FrameMap::iterator, bool> FrameBuffer::EmplaceFrameInfo(v
         // The referred frame is not be decoded yet.
         } else {
             // Check if the referred frame is continuous.
-            auto ref_frame_it = frames_.find(ref_frame_id);
-            bool ref_continuous = ref_frame_it != frames_.end() &&
+            auto ref_frame_it = frame_infos_.find(ref_frame_id);
+            bool ref_continuous = ref_frame_it != frame_infos_.end() &&
                                   ref_frame_it->second.continuous();
             not_yet_fulfilled_referred_frames.push_back({ref_frame_id, ref_continuous});
         }
@@ -193,7 +193,7 @@ std::pair<FrameBuffer::FrameMap::iterator, bool> FrameBuffer::EmplaceFrameInfo(v
         return {frame_it, false};
     }
 
-    frame_it = frames_.emplace(new_frame_id, FrameInfo(std::move(frame))).first;
+    frame_it = frame_infos_.emplace(new_frame_id, FrameInfo(std::move(frame))).first;
     auto& frame_info = frame_it->second;
 
     // The `num_missing_decodable` is the same as `num_missing_continuous` so far.
@@ -205,8 +205,8 @@ std::pair<FrameBuffer::FrameMap::iterator, bool> FrameBuffer::EmplaceFrameInfo(v
         if (ref_frame.continuous) {
             --frame_info.num_missing_continuous;
         }
-        auto ref_frame_it = frames_.find(ref_frame.frame_id);
-        if (ref_frame_it != frames_.end()) {
+        auto ref_frame_it = frame_infos_.find(ref_frame.frame_id);
+        if (ref_frame_it != frame_infos_.end()) {
             // The referred frame of this frame is not continuous for now,
             // so we keep a dependent list (as a reverse link) to propagate 
             // continuity when the referred frame becomes continuous later.
@@ -237,9 +237,9 @@ void FrameBuffer::PropagateContinuity(const FrameInfo& frame_info) {
         // Loop through all dependent frames, and if that frame no longer has
         // any unfulfiied dependencies then that frame is continuous as well.
         for (int64_t dep_frame_id : frame_info->dependent_frames) {
-            auto it = frames_.find(dep_frame_id);
+            auto it = frame_infos_.find(dep_frame_id);
             // Test if the dependent frame is still in the buffer.
-            if (it != frames_.end()) {
+            if (it != frame_infos_.end()) {
                 auto& dep_frame = it->second;
                 --dep_frame.num_missing_continuous;
                 // Test if the dependent frame becomes continuous so far.

@@ -2,8 +2,6 @@
 
 #include <plog/Log.h>
 
-#include <mutex>
-
 namespace naivertc {
 
 // std::shared_ptr<TaskQueue> TaskQueue::GlobalTaskQueue = std::make_shared<TaskQueue>();

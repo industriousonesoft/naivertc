@@ -1,5 +1,5 @@
-#ifndef _COMMON_TASK_QUEUE_H_
-#define _COMMON_TASK_QUEUE_H_
+#ifndef _RTC_BASE_TASK_QUEUE_H_
+#define _RTC_BASE_TASK_QUEUE_H_
 
 #include "base/defines.hpp"
 

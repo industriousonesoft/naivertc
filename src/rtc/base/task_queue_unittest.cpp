@@ -3,7 +3,6 @@
 #include "common/utils_time.hpp"
 
 #include <gtest/gtest.h>
-#include <future>
 
 #define ENABLE_UNIT_TESTS 0
 #include "../testing/unittest_defines.hpp"

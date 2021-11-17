@@ -36,7 +36,6 @@ FrameBuffer::FrameBuffer(ProtectionMode protection_mode,
       stats_observer_(std::move(stats_observer)),
       decoded_frames_history_(kMaxFramesHistory),
       jitter_estimator_({/* Default HyperParameters */}, clock_),
-      keyframe_required_(true /* Require a keyframe to start */),
       add_rtt_to_playout_delay_(true),
       last_log_non_decoded_ms_(-kLogNonDecodedIntervalMs) {
     assert(clock_ != nullptr);
@@ -50,13 +49,13 @@ FrameBuffer::~FrameBuffer() {}
 void FrameBuffer::Clear() {
     task_queue_->Async([this](){
         if (auto observer = stats_observer_.lock()) {
-            size_t dropped_frames = NumUndecodedFrames(frames_.begin(), frames_.end());
+            size_t dropped_frames = NumUndecodedFrames(frame_infos_.begin(), frame_infos_.end());
             if (dropped_frames > 0) {
                 PLOG_WARNING << "Dropped " << dropped_frames << " frames";
                 observer->OnDroppedFrames(dropped_frames);
             }
         }
-        frames_.clear();
+        frame_infos_.clear();
         last_continuous_frame_id_.reset();
         decoded_frames_history_.Clear();
     });
@@ -89,7 +88,7 @@ void FrameBuffer::OnDecodableFrame(FrameReadyToDecodeCallback callback) {
 }
 
 // Private methods
-size_t FrameBuffer::NumUndecodedFrames(FrameMap::iterator begin, FrameMap::iterator end) {
+size_t FrameBuffer::NumUndecodedFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end) {
     return std::count_if(begin, end, 
                          [](const std::pair<const int64_t, FrameInfo>& frame_tuple) {
         return frame_tuple.second.IsValid();

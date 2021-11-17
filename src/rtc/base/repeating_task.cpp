@@ -5,19 +5,19 @@ namespace naivertc {
 std::unique_ptr<RepeatingTask> RepeatingTask::DelayedStart(std::shared_ptr<Clock> clock, 
                                                            std::shared_ptr<TaskQueue> task_queue, 
                                                            TimeDelta delay, 
-                                                           const TaskClouser clouser) {
-    auto task = std::unique_ptr<RepeatingTask>(new RepeatingTask(clock, task_queue, clouser));
+                                                           TaskHandler handler) {
+    auto task = std::unique_ptr<RepeatingTask>(new RepeatingTask(clock, task_queue, std::move(handler)));
     task->Start(delay);
     return task;
 }
 
 RepeatingTask::RepeatingTask(std::shared_ptr<Clock> clock, 
                              std::shared_ptr<TaskQueue> task_queue,
-                             const TaskClouser clouser) 
+                             TaskHandler handler) 
     : clock_(clock),
       task_queue_(task_queue != nullptr ? std::move(task_queue) 
                                         : std::make_shared<TaskQueue>("RepeatingTask.default.task.queue")),
-      clouser_(std::move(clouser)) {}
+      handler_(std::move(handler)) {}
 
 RepeatingTask::~RepeatingTask() {
     Stop();
@@ -34,8 +34,14 @@ void RepeatingTask::Start(TimeDelta delay) {
     });
 }
 
+bool RepeatingTask::Running() const {
+    return task_queue_->Sync<bool>([this](){
+        return !this->is_stoped;
+    });
+}
+
 void RepeatingTask::Stop() {
-    task_queue_->Async([&](){
+    task_queue_->Async([this](){
         this->is_stoped = true;
     });
 }
@@ -49,6 +55,9 @@ void RepeatingTask::ScheduleTaskAfter(TimeDelta delay) {
 }
 
 void RepeatingTask::MaybeExecuteTask(Timestamp execution_time) {
+    if (this->is_stoped) {
+        return;
+    }
     Timestamp now = clock_->CurrentTime();
     if (now >= execution_time) {
         ExecuteTask();
@@ -63,10 +72,13 @@ void RepeatingTask::MaybeExecuteTask(Timestamp execution_time) {
 }
 
 void RepeatingTask::ExecuteTask() {
-    if (this->clouser_ && !this->is_stoped) {
-        TimeDelta interval = this->clouser_();
-        if (!interval.IsZero()) {
+    if (this->handler_) {
+        TimeDelta interval = this->handler_();
+        if (interval.ms() > 0) {
             ScheduleTaskAfter(interval);
+        } else {
+            // Stop internally if the `interval` is not a positive number.
+            this->is_stoped = true;
         }
     }
 }

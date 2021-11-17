@@ -14,22 +14,23 @@
 namespace naivertc {
 class RTC_CPP_EXPORT RepeatingTask final {
 public:
-    using TaskClouser = std::function<TimeDelta(void)>;
+    using TaskHandler = std::function<TimeDelta(void)>;
     static std::unique_ptr<RepeatingTask> DelayedStart(std::shared_ptr<Clock> clock, 
                                                        std::shared_ptr<TaskQueue> task_queue, 
                                                        TimeDelta delay, 
-                                                       const TaskClouser clouser);
+                                                       TaskHandler clouser);
     static std::unique_ptr<RepeatingTask> Start(std::shared_ptr<Clock> clock, 
                                                 std::shared_ptr<TaskQueue> task_queue,
-                                                const TaskClouser clouser) {
+                                                TaskHandler clouser) {
         return RepeatingTask::DelayedStart(clock, task_queue, TimeDelta::Seconds(0), std::move(clouser));
     }
 public:
     ~RepeatingTask();
 
+    bool Running() const;
     void Stop();
 private:
-    RepeatingTask(std::shared_ptr<Clock> clock, std::shared_ptr<TaskQueue> task_queue, const TaskClouser clouser);
+    RepeatingTask(std::shared_ptr<Clock> clock, std::shared_ptr<TaskQueue> task_queue, TaskHandler clouser);
     void Start(TimeDelta delay);
 private:
     void ScheduleTaskAfter(TimeDelta delay);
@@ -38,7 +39,7 @@ private:
 private:
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<TaskQueue> task_queue_;
-    const TaskClouser clouser_;
+    const TaskHandler handler_;
     bool is_stoped = true;
 };
     

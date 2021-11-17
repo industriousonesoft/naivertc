@@ -11,10 +11,12 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_defines.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
+#include "rtc/base/repeating_task.hpp"
 
 #include <optional>
 #include <map>
 #include <vector>
+#include <list>
 
 namespace naivertc {
 namespace rtp {
@@ -41,6 +43,11 @@ public:
     void UpdateRtt(int64_t rtt_ms);
 
     std::pair<int64_t, bool> InsertFrame(video::FrameToDecode frame);
+
+    using NextFrameFoundCallback = std::function<void(std::optional<video::FrameToDecode>)>;
+    void NextFrame(int64_t max_wait_time_ms, 
+                   bool keyframe_required, 
+                   NextFrameFoundCallback callback);
 
     using FrameReadyToDecodeCallback = std::function<void(video::FrameToDecode, int64_t wait_ms)>;
     void OnDecodableFrame(FrameReadyToDecodeCallback callback);
@@ -74,10 +81,10 @@ private:
     };
     // FIXME: Is it necessary to add a compare to sort map by frame id?
     // DONE: No, because the frame id was unwrapped and will be sorted (ascending).
-    using FrameMap = std::map<int64_t, FrameInfo>;
+    using FrameInfoMap = std::map<int64_t, FrameInfo>;
 
 private:
-    size_t NumUndecodedFrames(FrameMap::iterator begin, FrameMap::iterator end);
+    size_t NumUndecodedFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end);
     int EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size);
 
     // Continuity
@@ -87,14 +94,16 @@ private:
     // or the already-existing element if no insertion happened,
     // and a bool denoting whether the insertion took place(true if insertion
     // happened, false if it did not).
-    std::pair<FrameMap::iterator, bool> EmplaceFrameInfo(video::FrameToDecode frame);
+    std::pair<FrameInfoMap::iterator, bool> EmplaceFrameInfo(video::FrameToDecode frame);
     void PropagateContinuity(const FrameInfo& frame_info);
 
     // Decodability
     void FindNextDecodableFrames();
-    void DecodeFrames(std::vector<FrameInfo> frames_to_decode);
     bool IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms);
     bool PropagateDecodability(const FrameInfo& frame_info);
+    void StartWaitForNextFrameToDecode();
+    int64_t FindNextFrameToDecode();
+    void DeliverFrameToDecode(video::FrameToDecode frame);
 
 private:
     static constexpr int64_t kLogNonDecodedIntervalMs = 5000;
@@ -109,13 +118,17 @@ private:
     InterFrameDelay inter_frame_delay_;
     DecodedFramesHistory decoded_frames_history_;
     JitterEstimator jitter_estimator_;
-    bool keyframe_required_;
     const bool add_rtt_to_playout_delay_;
     int64_t last_log_non_decoded_ms_;
 
     std::optional<int64_t> last_continuous_frame_id_ = std::nullopt;
 
-    FrameMap frames_;
+    FrameInfoMap frame_infos_;
+    std::list<video::FrameToDecode> decodable_frames_;
+    std::unique_ptr<RepeatingTask> decode_repeating_task_ = nullptr;
+    bool keyframe_required_ = false;
+    int64_t latest_return_time_ms_ = 0;
+    NextFrameFoundCallback next_frame_found_callback_ = nullptr;
 
     FrameReadyToDecodeCallback frame_ready_to_decode_callback_;
 };
