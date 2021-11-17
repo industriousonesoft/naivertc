@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 #include <future>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "../testing/unittest_defines.hpp"
 
 using namespace testing;
@@ -45,7 +45,7 @@ MY_TEST(TaskQueueTest, AsyncDelayedPost) {
     task_queue.AsyncAfter(3 /* seconds */, [&task_queue, &event](){
         CheckCurrent(&event, &task_queue);
     });
-    EXPECT_TRUE(event.Wait(Event::kForever));
+    EXPECT_TRUE(event.WaitForever());
     int64_t end = utils::time::TimeInSec();
     EXPECT_GE(end-start, 3);
     EXPECT_NEAR(end-start, 3, 1);
@@ -66,8 +66,8 @@ MY_TEST(TaskQueueTest, MultipAsyncDelayedPost) {
         EXPECT_EQ(val, 1);
         CheckCurrent(&event2, &task_queue);
     });
-    EXPECT_TRUE(event1.Wait(Event::kForever));
-    EXPECT_TRUE(event2.Wait(Event::kForever));
+    EXPECT_TRUE(event1.WaitForever());
+    EXPECT_TRUE(event2.WaitForever());
 }
 
 MY_TEST(TaskQueueTest, AsyncPostBehindDelayedPost) {
@@ -85,8 +85,8 @@ MY_TEST(TaskQueueTest, AsyncPostBehindDelayedPost) {
         EXPECT_EQ(val, 0);
         CheckCurrent(&event2, &task_queue);
     });
-    EXPECT_TRUE(event1.Wait(Event::kForever));
-    EXPECT_TRUE(event2.Wait(Event::kForever));
+    EXPECT_TRUE(event1.WaitForever());
+    EXPECT_TRUE(event2.WaitForever());
 }
 
 } // namespace test

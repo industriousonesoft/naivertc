@@ -13,9 +13,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT Event {
-public:
-    static const int kForever = -1;
+class RTC_CPP_EXPORT Event { 
 public:
     Event();
     Event(bool manual_reset, bool initially_signaled);
@@ -35,7 +33,12 @@ public:
         return Wait(give_up_after_ms, give_up_after_ms == kForever ? 3000 : kForever);
     }
 
+    bool WaitForever() {
+        return Wait(kForever);
+    }
+
 private:
+    static const int kForever = -1;
 #if defined(NAIVERTC_WIN)
     HANDLE event_handle_;
 #elif defined(NAIVERTC_POSIX)

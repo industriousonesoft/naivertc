@@ -116,7 +116,7 @@ public:
             handler();
             event.Set();
         });
-        event.Wait(Event::kForever);
+        event.WaitForever();
     }
 
     void AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler) override {
@@ -125,7 +125,7 @@ public:
             handler();
             event.Set();
         });
-        event.Wait(Event::kForever);
+        event.WaitForever();
     }
 };
 

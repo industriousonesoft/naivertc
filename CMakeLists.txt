@@ -600,8 +600,9 @@ set(TEST_SOURCES
     src/rtc/base/numerics/modulo_operator_unittest.cpp
     src/rtc/base/numerics/running_statistics_unittest.cpp
     src/rtc/base/numerics/histogram_percentile_counter_unittest.cpp
-    src/rtc/base/task_queue_unittest.cpp
     src/rtc/base/event_unittest.cpp
+    src/rtc/base/task_queue_unittest.cpp
+    src/rtc/base/repeating_task_unittest.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp

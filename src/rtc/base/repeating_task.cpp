@@ -15,7 +15,7 @@ RepeatingTask::RepeatingTask(std::shared_ptr<Clock> clock,
                              std::shared_ptr<TaskQueue> task_queue,
                              const TaskClouser clouser) 
     : clock_(clock),
-      task_queue_(task_queue != nullptr ? task_queue 
+      task_queue_(task_queue != nullptr ? std::move(task_queue) 
                                         : std::make_shared<TaskQueue>("RepeatingTask.default.task.queue")),
       clouser_(std::move(clouser)) {}
 
@@ -43,7 +43,7 @@ void RepeatingTask::Stop() {
 // Private methods
 void RepeatingTask::ScheduleTaskAfter(TimeDelta delay) {
     Timestamp execution_time = clock_->CurrentTime() + delay;
-    task_queue_->AsyncAfter(delay.seconds(), [&](){
+    task_queue_->AsyncAfter(delay.seconds(), [this, execution_time](){
         this->MaybeExecuteTask(execution_time);
     });
 }
@@ -56,7 +56,6 @@ void RepeatingTask::MaybeExecuteTask(Timestamp execution_time) {
     }
 
     PLOG_WARNING << "RepeatingTask: scheduled delayed called too early.";
-
     TimeDelta delay = execution_time - now;
     task_queue_->AsyncAfter(delay.seconds(), [this, execution_time](){
         this->MaybeExecuteTask(execution_time);
