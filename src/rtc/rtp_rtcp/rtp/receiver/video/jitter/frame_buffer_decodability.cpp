@@ -111,9 +111,8 @@ void FrameBuffer::StartWaitForNextFrameToDecode() {
             // Remove this frame after decoded.
             decodable_frames_.pop_front();
         } else if (clock_->now_ms() < latest_return_time_ms_) {
-            // If there's no frames to decode and there is still time left, it
-            // means that the frame buffer was cleared between creation and
-            // execution of this task. Continue waiting for the remaining time.
+            // If there's no frames to decode and there is still time left, 
+            // we should continue waiting for the remaining time.
             return TimeDelta::Millis(FindNextFrameToDecode());
         } else {
             // No frame found and timeout.
@@ -171,7 +170,6 @@ int64_t FrameBuffer::FindNextFrameToDecode() {
         }
 
         // Remove all undecoded frames before the found frame excluding itself.
-        // The erasing range: [begin, end)
         decodable_frames_.erase(decodable_frames_.begin(), frame_it);
 
         // Ready to decode the first frame in `decodable_frames_`.
