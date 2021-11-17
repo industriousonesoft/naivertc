@@ -31,6 +31,7 @@ void FrameBuffer::NextFrame(int64_t max_wait_time_ms,
 
 // Private methods
 void FrameBuffer::FindNextDecodableFrames() {
+    assert(task_queue_->is_in_current_queue());
     // NOTE: Using vector to support the temporal scalability in the future.
     std::optional<video::FrameToDecode> frame_to_decode = std::nullopt;
 
@@ -61,7 +62,7 @@ void FrameBuffer::FindNextDecodableFrames() {
             continue;
         }
         
-        // TODO: Gather all remaining frames for the same superframe.
+        // TODO: Gather and combine all remaining frames for the same superframe.
 
         // Trigger state callback with all the dropped frames.
         if (auto observer = stats_observer_.lock()) {
@@ -85,7 +86,7 @@ void FrameBuffer::FindNextDecodableFrames() {
         return;
     }
 
-    // Decode frames for the same superframe in decode queue.
+    // Try to decode frame in decode queue.
     decode_queue_->Async([this, frame=std::move(frame_to_decode.value())](){
         decodable_frames_.push_back(std::move(frame));
         // The decode task is not started yet.
@@ -93,7 +94,7 @@ void FrameBuffer::FindNextDecodableFrames() {
             return;
         }
         // The decode task is waiting for next frame to decode,
-        // so we restart the decode task.
+        // so we restart it for new decodable frame.
         decode_repeating_task_->Stop();
         StartWaitForNextFrameToDecode();
     });
@@ -106,8 +107,9 @@ void FrameBuffer::StartWaitForNextFrameToDecode() {
     decode_repeating_task_ = RepeatingTask::DelayedStart(clock_, decode_queue_, TimeDelta::Millis(wait_ms), [this]() {
         if (!decodable_frames_.empty()) {
             auto frame = std::move(*decodable_frames_.begin());
-            decodable_frames_.pop_front();
             DeliverFrameToDecode(std::move(frame));
+            // Remove this frame after decoded.
+            decodable_frames_.pop_front();
         } else if (clock_->now_ms() < latest_return_time_ms_) {
             // If there's no frames to decode and there is still time left, it
             // means that the frame buffer was cleared between creation and
@@ -122,6 +124,7 @@ void FrameBuffer::StartWaitForNextFrameToDecode() {
 }
 
 int64_t FrameBuffer::FindNextFrameToDecode() {
+    assert(decode_queue_->is_in_current_queue());
     int64_t now_ms = clock_->now_ms();
     int64_t max_wait_time_ms = now_ms - latest_return_time_ms_;
     int64_t wait_time_ms = max_wait_time_ms;
@@ -181,6 +184,7 @@ int64_t FrameBuffer::FindNextFrameToDecode() {
 }
 
 void FrameBuffer::DeliverFrameToDecode(video::FrameToDecode frame) {
+    assert(decode_queue_->is_in_current_queue());
     int64_t frame_id = frame.id();
     uint32_t timestamp = frame.timestamp();
     int64_t received_time_ms = frame.received_time_ms();
@@ -223,6 +227,7 @@ void FrameBuffer::DeliverFrameToDecode(video::FrameToDecode frame) {
 }
 
 bool FrameBuffer::IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms) {
+    assert(decode_queue_->is_in_current_queue());
     // Zero render time means render immediately.
     if (render_time_ms == 0) {
         return true;
@@ -251,6 +256,7 @@ bool FrameBuffer::IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms) {
 // NOTE: This function MUST be called after the frame was decoded to 
 // make sure the dependent frames of it can be decoded later.
 bool FrameBuffer::PropagateDecodability(const FrameInfo& frame_info) {
+    assert(task_queue_->is_in_current_queue());
     bool has_decodable_frame = false;
     for (int64_t frame_id : frame_info.dependent_frames) {
         auto dep_frame_it = frame_infos_.find(frame_id);
@@ -267,6 +273,7 @@ bool FrameBuffer::PropagateDecodability(const FrameInfo& frame_info) {
 }
 
 int FrameBuffer::EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size) {
+    assert(decode_queue_->is_in_current_queue());
     // Calculate the delay of the current frame from the previous frame.
     auto [frame_delay, success] = inter_frame_delay_.CalculateDelay(send_timestamp, recv_time_ms);
     if (success) {

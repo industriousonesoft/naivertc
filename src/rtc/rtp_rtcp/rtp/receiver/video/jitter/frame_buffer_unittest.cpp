@@ -138,12 +138,7 @@ protected:
           task_queue_(std::make_shared<TaskQueueForTest>()),
           decode_queue_(std::make_shared<TaskQueueForTest>()),
           stats_observer_(nullptr /* std::make_shared<VideoReceiveStatisticsObserverMock>() */),
-          frame_buffer_(std::make_unique<jitter::FrameBuffer>(jitter::ProtectionMode::NACK_FEC, clock_, timing_, task_queue_, decode_queue_, stats_observer_)) {
-        frame_buffer_->OnDecodableFrame([this](FrameToDecode frame, int64_t wait_ms){
-            EXPECT_GT(wait_ms, 0) << wait_ms;
-            frames_.emplace_back(std::move(frame));
-        });
-    }
+          frame_buffer_(std::make_unique<jitter::FrameBuffer>(jitter::ProtectionMode::NACK_FEC, clock_, timing_, task_queue_, decode_queue_, stats_observer_)) {}
 
     uint16_t RandPid() const {
         return utils::random::generate_random<uint16_t>();

@@ -38,8 +38,6 @@ public:
 
     ProtectionMode protection_mode() const;
     
-    void RequireKeyframe();
-
     void UpdateRtt(int64_t rtt_ms);
 
     std::pair<int64_t, bool> InsertFrame(video::FrameToDecode frame);
@@ -48,9 +46,6 @@ public:
     void NextFrame(int64_t max_wait_time_ms, 
                    bool keyframe_required, 
                    NextFrameFoundCallback callback);
-
-    using FrameReadyToDecodeCallback = std::function<void(video::FrameToDecode, int64_t wait_ms)>;
-    void OnDecodableFrame(FrameReadyToDecodeCallback callback);
 
     void Clear();
 
@@ -129,8 +124,6 @@ private:
     bool keyframe_required_ = false;
     int64_t latest_return_time_ms_ = 0;
     NextFrameFoundCallback next_frame_found_callback_ = nullptr;
-
-    FrameReadyToDecodeCallback frame_ready_to_decode_callback_;
 };
     
 } // namespace jitter

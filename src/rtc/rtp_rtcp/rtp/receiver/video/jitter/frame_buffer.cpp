@@ -62,28 +62,14 @@ void FrameBuffer::Clear() {
 }
 
 void FrameBuffer::UpdateRtt(int64_t rtt_ms) {
-    task_queue_->Async([this, rtt_ms](){
+    decode_queue_->Async([this, rtt_ms](){
         jitter_estimator_.UpdateRtt(rtt_ms);
     });
 }
 
 ProtectionMode FrameBuffer::protection_mode() const {
-    return task_queue_->Sync<ProtectionMode>([this](){
+    return decode_queue_->Sync<ProtectionMode>([this](){
         return protection_mode_;
-    });
-}
-
-void FrameBuffer::RequireKeyframe() {
-    task_queue_->Async([this](){
-        keyframe_required_ = true;
-        // Try to find a decadable keyframe.
-        FindNextDecodableFrames();
-    });
-}
-
-void FrameBuffer::OnDecodableFrame(FrameReadyToDecodeCallback callback) {
-    task_queue_->Async([this, callback=std::move(callback)](){
-        frame_ready_to_decode_callback_ = std::move(callback);
     });
 }
 
