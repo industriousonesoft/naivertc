@@ -319,6 +319,7 @@ set(LIB_HEADERS
     src/rtc/base/repeating_task.hpp
     src/rtc/base/task_queue.hpp
     src/rtc/base/event.hpp
+    src/rtc/base/thread_annotation.hpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.hpp
@@ -603,6 +604,7 @@ set(TEST_SOURCES
     src/rtc/base/event_unittest.cpp
     src/rtc/base/task_queue_unittest.cpp
     src/rtc/base/repeating_task_unittest.cpp
+    src/rtc/base/thread_annotation_unittest.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp
