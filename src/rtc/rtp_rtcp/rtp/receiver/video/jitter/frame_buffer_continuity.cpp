@@ -96,13 +96,13 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode f
     // If all packets of this frame was not be retransmited, 
     // it can be used to calculate delay in Timing.
     if (!frame.delayed_by_retransmission()) {
-        decode_queue_->Async([this, timestamp = frame_info.frame.timestamp(), received_time_ms=frame_info.frame.received_time_ms()](){
+        decode_queue_->Async([this, timestamp = frame_info.frame->timestamp(), received_time_ms=frame_info.frame->received_time_ms()](){
             timing_->IncomingTimestamp(timestamp, received_time_ms);
         });
     }
 
     if (auto observer = stats_observer_.lock()) {
-        observer->OnCompleteFrame(frame_info.frame.is_keyframe(), frame_info.frame.size());
+        observer->OnCompleteFrame(frame_info.frame->is_keyframe(), frame_info.frame->size());
     }
 
     // The incoming frame is continuous and try to find all the decodable frames.
@@ -194,8 +194,9 @@ std::pair<FrameBuffer::FrameInfoMap::iterator, bool> FrameBuffer::EmplaceFrameIn
         return {frame_it, false};
     }
 
-    frame_it = frame_infos_.emplace(new_frame_id, FrameInfo(std::move(frame))).first;
+    frame_it = frame_infos_.emplace(new_frame_id, FrameInfo()).first;
     auto& frame_info = frame_it->second;
+    frame_info.frame.emplace(std::move(frame));
 
     // The `num_missing_decodable` is the same as `num_missing_continuous` so far.
     frame_info.num_missing_continuous = not_yet_fulfilled_referred_frames.size();
@@ -219,9 +220,7 @@ std::pair<FrameBuffer::FrameInfoMap::iterator, bool> FrameBuffer::EmplaceFrameIn
 
 void FrameBuffer::PropagateContinuity(const FrameInfo& frame_info) {
     assert(task_queue_->is_in_current_queue());
-    if (!frame_info.IsValid() || !frame_info.continuous()) {
-        return;
-    }
+    assert(frame_info.continuous());
 
     std::queue<const FrameInfo*> continuous_frames;
     continuous_frames.push(&frame_info);

@@ -51,12 +51,10 @@ public:
 
 private:
     struct FrameInfo {
-        FrameInfo(video::FrameToDecode frame);
+        FrameInfo();
         ~FrameInfo();
 
-        int64_t frame_id() const { return IsValid() ? frame.id() : -1; }
-
-        bool IsValid() const { return frame.cdata() != nullptr; }
+        int64_t frame_id() const { return frame.has_value() ? frame->id() : -1; }
 
         // Indicate if the frame is continuous or not.
         bool continuous() const { return num_missing_continuous == 0; }
@@ -72,7 +70,7 @@ private:
         // Which other frames that have direct unfulfilled dependencies on this frame.
         std::vector<int64_t> dependent_frames;
 
-        video::FrameToDecode frame;
+        std::optional<video::FrameToDecode> frame = std::nullopt;
     };
     // FIXME: Is it necessary to add a compare to sort map by frame id?
     // DONE: No, because the frame id was unwrapped and will be sorted (ascending).

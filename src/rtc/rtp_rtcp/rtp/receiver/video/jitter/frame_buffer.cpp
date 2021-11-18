@@ -18,7 +18,7 @@ constexpr int kMaxFramesHistory = 1 << 13; // 8192
 } // namespace
 
 // FrameInfo
-FrameBuffer::FrameInfo::FrameInfo(video::FrameToDecode frame) : frame(std::move(frame)) {}
+FrameBuffer::FrameInfo::FrameInfo() = default;
 FrameBuffer::FrameInfo::~FrameInfo() = default;
 
 // FrameBuffer
@@ -78,7 +78,7 @@ ProtectionMode FrameBuffer::protection_mode() const {
 size_t FrameBuffer::NumUndecodedFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end) {
     return std::count_if(begin, end, 
                          [](const std::pair<const int64_t, FrameInfo>& frame_tuple) {
-        return frame_tuple.second.IsValid();
+        return frame_tuple.second.frame != std::nullopt;
     });
 }
 

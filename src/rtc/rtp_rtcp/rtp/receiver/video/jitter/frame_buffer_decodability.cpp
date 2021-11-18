@@ -44,8 +44,8 @@ void FrameBuffer::FindNextDecodableFrames() {
             continue;
         } 
 
-        // Filter the frame info with invalid frame.
-        if (!frame_it->second.IsValid()) {
+        // Filter the frame info without a frame.
+        if (frame_it->second.frame == std::nullopt) {
             continue;
         }
 
@@ -56,22 +56,22 @@ void FrameBuffer::FindNextDecodableFrames() {
         }
         
         auto& frame = frame_it->second.frame;
-        assert(frame_it->first == frame.id());
+        assert(frame_it->first == frame->id());
    
         // Filter the undecodable frames by timestamp.
         auto last_decoded_frame_timestamp = decoded_frames_history_.last_decoded_frame_timestamp();
         if (last_decoded_frame_timestamp && 
-            wrap_around_utils::AheadOf(*last_decoded_frame_timestamp, frame.timestamp())) {
-            PLOG_WARNING << "Frame (id=" << frame.id()
+            wrap_around_utils::AheadOf(*last_decoded_frame_timestamp, frame->timestamp())) {
+            PLOG_WARNING << "Frame (id=" << frame->id()
                          << ") can not be decoded as the frames behind it have been decoded.";
             continue;
         }
         
         // TODO: Gather and combine all remaining frames for the same superframe.
 
-        last_decodable_frame_id_.emplace(frame.id());
+        last_decodable_frame_id_.emplace(frame->id());
         // Keep the found frame to decode later.
-        frame_to_decode.emplace(std::move(frame_it->second.frame));
+        frame_to_decode.swap(frame_it->second.frame);
 
         break;
 
@@ -222,6 +222,7 @@ video::FrameToDecode FrameBuffer::GetNextFrameToDecode() {
         }
     });
 
+    // NOTE: Deliver the frame to decode after updating the relative infos.
     return frame;
 }
 
