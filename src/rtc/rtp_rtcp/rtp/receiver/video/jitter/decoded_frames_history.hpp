@@ -29,7 +29,6 @@ private:
     const size_t window_size_;
 
     std::vector<bool> buffer_;
-    std::optional<int64_t> last_frame_id_;
     std::optional<int64_t> last_decoded_frame_id_;
     std::optional<uint32_t> last_decoded_frame_timestamp_;
 };

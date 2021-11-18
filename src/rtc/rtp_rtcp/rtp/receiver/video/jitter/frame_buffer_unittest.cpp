@@ -161,12 +161,14 @@ protected:
         return frame_buffer_->InsertFrame(CreateFrame(picture_id, timestamp_ms, times_nacked, kFrameSize)).first;
     }
 
-    void ExtractFrame(int64_t max_wait_time_ms = 0, bool keyframe_required = false) {
-        frame_buffer_->NextFrame(max_wait_time_ms, keyframe_required, [this](std::optional<FrameToDecode> frame){
+    void ExtractFrame(int64_t max_wait_time_ms = 0, bool keyframe_required = false, std::function<void(void)> on_finished = nullptr) {
+        frame_buffer_->NextFrame(max_wait_time_ms, keyframe_required, [this, on_finished=std::move(on_finished)](std::optional<FrameToDecode> frame){
             if (frame) {
                 frames_.emplace_back(std::move(*frame));
             }
-            event_.Set();
+            if (on_finished) {
+                on_finished();
+            }
         });
     }
 
@@ -194,33 +196,48 @@ protected:
     std::shared_ptr<VideoReceiveStatisticsObserverMock> stats_observer_;
     std::unique_ptr<jitter::FrameBuffer> frame_buffer_;
     std::vector<FrameToDecode> frames_;
-    Event event_;
 };
 
-MY_TEST_F(FrameBufferTest, WaitForFrame) {
-    event_.Reset();
-    uint16_t pid = RandPid();
-    uint32_t ts = RandTs();
-    ExtractFrame(50);
-    InsertFrame(pid, ts, kFrameSize);
-    clock_->AdvanceTimeMs(50);
-    event_.WaitForever();
-    CheckFrame(0, pid);
-}
-
-// MY_TEST_F(FrameBufferTest, MissingFrame) {
+// MY_TEST_F(FrameBufferTest, WaitForFrame) {
+//     Event event;
 //     uint16_t pid = RandPid();
 //     uint32_t ts = RandTs();
-
-//     InsertFrame(pid, ts, kFrameSize);
-//     InsertFrame(pid + 2, ts, kFrameSize);
-//     // Missing pid + 1
-//     InsertFrame(pid + 3, ts, kFrameSize, pid + 1, pid + 2);
-
+//     ExtractFrame(50, false, [&event](){
+//         event.Set();
+//     });
+//     EXPECT_EQ(InsertFrame(pid, ts, kFrameSize), pid);
+//     clock_->AdvanceTimeMs(50);
+//     event.WaitForever();
 //     CheckFrame(0, pid);
-//     CheckFrame(1, pid + 2);
-//     CheckNoFrame(2);
 // }
+
+// MY_TEST_F(FrameBufferTest, ExtractFromEmptyBuffer) {
+//     Event event;
+//     ExtractFrame(0, false, [&event](){
+//         event.Set();
+//     });
+//     event.WaitForever();
+//     CheckNoFrame(0);
+// }
+
+MY_TEST_F(FrameBufferTest, MissingFrame) {
+    Event event;
+    uint16_t pid = 1;
+    uint32_t ts = RandTs();
+    EXPECT_EQ(InsertFrame(pid, ts, kFrameSize), pid);
+    // Missing the frame with id = pid + 1
+    EXPECT_EQ(InsertFrame(pid + 2, ts, kFrameSize), pid + 2);
+    EXPECT_EQ(InsertFrame(pid + 3, ts, kFrameSize, pid + 1, pid + 2), pid + 2);
+    ExtractFrame(0, false, [&](){
+        ExtractFrame(0, false, [&](){
+            event.Set();
+        });
+    });
+    event.WaitForever();
+    CheckFrame(0, pid);
+    CheckFrame(1, pid + 2);
+    CheckNoFrame(2);
+}
 
 // MY_TEST_F(FrameBufferTest, FrameStream) {
 //     uint16_t pid = RandPid();

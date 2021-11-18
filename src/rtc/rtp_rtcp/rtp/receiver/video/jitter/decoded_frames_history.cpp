@@ -15,16 +15,13 @@ DecodedFramesHistory::DecodedFramesHistory(size_t window_size)
 DecodedFramesHistory::~DecodedFramesHistory() = default;
 
 void DecodedFramesHistory::InsertFrame(int64_t frame_id, uint32_t timestamp) {
-    last_decoded_frame_id_ = frame_id;
-    last_decoded_frame_timestamp_ = timestamp;
     int new_index = FrameIdToIndex(frame_id);
 
-    assert (last_frame_id_ < frame_id);
-
     // Clears expired values from the cyclic buffer.
-    if (last_frame_id_) {
-        int64_t frame_id_jump = frame_id - *last_frame_id_;
-        int last_index = FrameIdToIndex(*last_frame_id_);
+    if (last_decoded_frame_id_) {
+        assert(last_decoded_frame_id_ < frame_id);
+        int64_t frame_id_jump = frame_id - *last_decoded_frame_id_;
+        int last_index = FrameIdToIndex(*last_decoded_frame_id_);
         if (frame_id_jump >= static_cast<int64_t>(window_size_)) {
             // Clear buffer if the jump of the missing frames is overflow.
             std::fill(buffer_.begin(), buffer_.end(), false);
@@ -45,11 +42,12 @@ void DecodedFramesHistory::InsertFrame(int64_t frame_id, uint32_t timestamp) {
     }
 
     buffer_[new_index] = true;
-    last_frame_id_ = frame_id;
+    last_decoded_frame_id_ = frame_id;
+    last_decoded_frame_timestamp_ = timestamp;
 }
 
 bool DecodedFramesHistory::WasDecoded(int64_t frame_id) {
-    if (!last_frame_id_) {
+    if (!last_decoded_frame_id_) {
         return false;
     }
 
@@ -57,13 +55,13 @@ bool DecodedFramesHistory::WasDecoded(int64_t frame_id) {
     // Cast the `size_t` type of `window_size_` to `int64_t` type to 
     // avoid the unexpected result as a negative result casted to a 
     // positive value implicitly.
-    if (frame_id <= *last_frame_id_ - static_cast<int64_t>(window_size_)) {
+    if (frame_id <= *last_decoded_frame_id_ - static_cast<int64_t>(window_size_)) {
         PLOG_WARNING << "Referencing a frame out of the window, "
                      << "assuming it was undecoded to avoid artifacts.";
         return false;
     }
 
-    if (frame_id > last_frame_id_) {
+    if (frame_id > last_decoded_frame_id_) {
         return false;
     }
 
@@ -72,7 +70,6 @@ bool DecodedFramesHistory::WasDecoded(int64_t frame_id) {
 
 void DecodedFramesHistory::Clear() {
     std::fill(buffer_.begin(), buffer_.end(), false);
-    last_frame_id_.reset();
     last_decoded_frame_id_.reset();
     last_decoded_frame_timestamp_.reset();
 }
