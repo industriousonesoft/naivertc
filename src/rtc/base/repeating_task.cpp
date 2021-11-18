@@ -26,7 +26,7 @@ RepeatingTask::~RepeatingTask() {
 void RepeatingTask::Start(TimeDelta delay) {
     task_queue_->Async([this, delay=std::move(delay)](){
         this->is_stoped = false;
-        if (delay.IsZero()) {
+        if (delay.ms() <= 0) {
             this->ExecuteTask();
         } else {
             this->ScheduleTaskAfter(delay);
