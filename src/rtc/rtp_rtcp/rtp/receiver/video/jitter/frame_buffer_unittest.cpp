@@ -198,27 +198,27 @@ protected:
     std::vector<FrameToDecode> frames_;
 };
 
-// MY_TEST_F(FrameBufferTest, WaitForFrame) {
-//     Event event;
-//     uint16_t pid = RandPid();
-//     uint32_t ts = RandTs();
-//     ExtractFrame(50, false, [&event](){
-//         event.Set();
-//     });
-//     EXPECT_EQ(InsertFrame(pid, ts, kFrameSize), pid);
-//     clock_->AdvanceTimeMs(50);
-//     event.WaitForever();
-//     CheckFrame(0, pid);
-// }
+MY_TEST_F(FrameBufferTest, WaitForFrame) {
+    Event event;
+    uint16_t pid = RandPid();
+    uint32_t ts = RandTs();
+    ExtractFrame(50, false, [&event](){
+        event.Set();
+    });
+    EXPECT_EQ(InsertFrame(pid, ts, kFrameSize), pid);
+    clock_->AdvanceTimeMs(50);
+    event.WaitForever();
+    CheckFrame(0, pid);
+}
 
-// MY_TEST_F(FrameBufferTest, ExtractFromEmptyBuffer) {
-//     Event event;
-//     ExtractFrame(0, false, [&event](){
-//         event.Set();
-//     });
-//     event.WaitForever();
-//     CheckNoFrame(0);
-// }
+MY_TEST_F(FrameBufferTest, ExtractFromEmptyBuffer) {
+    Event event;
+    ExtractFrame(0, false, [&event](){
+        event.Set();
+    });
+    event.WaitForever();
+    CheckNoFrame(0);
+}
 
 MY_TEST_F(FrameBufferTest, MissingFrame) {
     Event event;
@@ -230,7 +230,9 @@ MY_TEST_F(FrameBufferTest, MissingFrame) {
     EXPECT_EQ(InsertFrame(pid + 3, ts, kFrameSize, pid + 1, pid + 2), pid + 2);
     ExtractFrame(0, false, [&](){
         ExtractFrame(0, false, [&](){
-            event.Set();
+            ExtractFrame(0, false, [&](){
+                event.Set();
+            });
         });
     });
     event.WaitForever();

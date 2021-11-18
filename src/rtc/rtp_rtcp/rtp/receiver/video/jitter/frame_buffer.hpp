@@ -98,8 +98,7 @@ private:
     bool PropagateDecodability(const FrameInfo& frame_info);
     void StartWaitForNextFrameToDecode();
     int64_t FindNextFrameToDecode();
-    void DeliverFrameToDecode(video::FrameToDecode frame);
-    void OnDecodedFrame(int64_t frame_id, uint32_t timestamp);
+    video::FrameToDecode GetNextFrameToDecode();
 
 private:
     static constexpr int64_t kLogNonDecodedIntervalMs = 5000;

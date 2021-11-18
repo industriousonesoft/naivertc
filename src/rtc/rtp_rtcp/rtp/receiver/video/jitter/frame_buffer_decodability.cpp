@@ -105,9 +105,7 @@ void FrameBuffer::StartWaitForNextFrameToDecode() {
     int64_t wait_ms = FindNextFrameToDecode();
     decode_repeating_task_ = RepeatingTask::DelayedStart(clock_, decode_queue_, TimeDelta::Millis(wait_ms), [this]() {
         if (!decodable_frames_.empty()) {
-            video::FrameToDecode frame = std::move(*decodable_frames_.begin());
-            decodable_frames_.pop_front();
-            DeliverFrameToDecode(std::move(frame));
+            next_frame_found_callback_(GetNextFrameToDecode());
         } else if (clock_->now_ms() < waiting_deadline_ms_) {
             // If there's no frames to decode and there is still time left, 
             // we should continue waiting for the remaining time.
@@ -171,9 +169,12 @@ int64_t FrameBuffer::FindNextFrameToDecode() {
     return wait_time_ms;
 }
 
-// TODO: Rename `DeliverFrameToDecode` to `GetNextFrameToDecode`
-void FrameBuffer::DeliverFrameToDecode(video::FrameToDecode frame) {
+video::FrameToDecode FrameBuffer::GetNextFrameToDecode() {
     assert(decode_queue_->is_in_current_queue());
+    assert(decodable_frames_.size() > 0);
+    video::FrameToDecode frame = std::move(*decodable_frames_.begin());
+    decodable_frames_.pop_front();
+    
     int64_t frame_id = frame.id();
     uint32_t timestamp = frame.timestamp();
     int64_t received_time_ms = frame.received_time_ms();
@@ -194,25 +195,16 @@ void FrameBuffer::DeliverFrameToDecode(video::FrameToDecode frame) {
         }
     }
 
-    // Deliver frame to decode synchronizelly
-    next_frame_found_callback_(std::move(frame));
-
     // TODO: Update jitter delay and timing frame info.
     // TODO: Return next frames to decode
 
     // Update `frame_infos_` after decoded.
     task_queue_->Async([this, frame_id, timestamp](){
         // Indicate the frame was decoded.
-        if (decoded_frames_history_.last_decoded_frame_id() == 3) {
-            assert(frame_id == 1);
-            assert(false);
-        }
         decoded_frames_history_.InsertFrame(frame_id, timestamp);
         // Retrieve the info of the decoded frame.
         auto frame_info_it = frame_infos_.find(frame_id);
-        if (frame_info_it == frame_infos_.end()) {
-            return;
-        }
+        assert(frame_info_it != frame_infos_.end());
         // Propagate the decodability to the dependent frames of this frame.
         bool has_decodable_frame = PropagateDecodability(frame_info_it->second);
         // Trigger state callback with all the dropped frames.
@@ -222,13 +214,15 @@ void FrameBuffer::DeliverFrameToDecode(video::FrameToDecode frame) {
                 observer->OnDroppedFrames(dropped_frames);
             }
         }
-        Remove decoded frame and all undecoded frames before it.
+        // Remove decoded frame and all undecoded frames before it.
         frame_infos_.erase(frame_infos_.begin(), ++frame_info_it);
         if (has_decodable_frame) {
             // Detected new decodable frames.
             FindNextDecodableFrames();
         }
     });
+
+    return frame;
 }
 
 bool FrameBuffer::IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms) {

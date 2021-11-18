@@ -31,10 +31,24 @@ MY_TEST(TaskQueueTest, SyncPost) {
 MY_TEST(TaskQueueTest, AsyncPost) {
     TaskQueue task_queue;
     Event event;
+    int val = 1;
+    task_queue.Async([&](){
+        val += 1;
+    });
+    task_queue.Async([&](){
+        EXPECT_EQ(val, 2);
+        CheckCurrent(&event, &task_queue);
+    });
+    EXPECT_TRUE(event.WaitForever());
+}
+
+MY_TEST(TaskQueueTest, MultipAsyncPost) {
+    TaskQueue task_queue;
+    Event event;
     task_queue.Async([&task_queue, &event](){
         CheckCurrent(&event, &task_queue);
     });
-    EXPECT_TRUE(event.Wait(1000));
+    EXPECT_TRUE(event.WaitForever());
 }
 
 MY_TEST(TaskQueueTest, AsyncDelayedPost) {
