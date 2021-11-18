@@ -22,7 +22,7 @@ void FrameBuffer::NextFrame(int64_t max_wait_time_ms,
                             bool keyframe_required, 
                             std::function<void(std::optional<video::FrameToDecode>)> callback) {
     decode_queue_->Async([this, max_wait_time_ms, keyframe_required, callback=std::move(callback)](){
-        latest_return_time_ms_ = clock_->now_ms() + max_wait_time_ms;
+        waiting_deadline_ms_ = clock_->now_ms() + max_wait_time_ms;
         keyframe_required_ = keyframe_required;
         next_frame_found_callback_ = std::move(callback);
         StartWaitForNextFrameToDecode();
@@ -89,14 +89,17 @@ void FrameBuffer::FindNextDecodableFrames() {
     // Try to decode frame in decode queue.
     decode_queue_->Async([this, frame=std::move(frame_to_decode.value())](){
         decodable_frames_.push_back(std::move(frame));
-        // The decode task is not started yet.
-        if (!decode_repeating_task_->Running()) {
-            return;
+        // Check if the decode task has started.
+        if (decode_repeating_task_) {
+             // Do nothing if the decode task was done yet.
+            if (!decode_repeating_task_->Running()) {
+                return;
+            }
+            // The decode task is waiting for next frame to decode,
+            // so we restart it for new decodable frame.
+            decode_repeating_task_->Stop();
+            StartWaitForNextFrameToDecode();
         }
-        // The decode task is waiting for next frame to decode,
-        // so we restart it for new decodable frame.
-        decode_repeating_task_->Stop();
-        StartWaitForNextFrameToDecode();
     });
 }
 
@@ -110,7 +113,7 @@ void FrameBuffer::StartWaitForNextFrameToDecode() {
             DeliverFrameToDecode(std::move(frame));
             // Remove this frame after decoded.
             decodable_frames_.pop_front();
-        } else if (clock_->now_ms() < latest_return_time_ms_) {
+        } else if (clock_->now_ms() < waiting_deadline_ms_) {
             // If there's no frames to decode and there is still time left, 
             // we should continue waiting for the remaining time.
             return TimeDelta::Millis(FindNextFrameToDecode());
@@ -125,7 +128,7 @@ void FrameBuffer::StartWaitForNextFrameToDecode() {
 int64_t FrameBuffer::FindNextFrameToDecode() {
     assert(decode_queue_->is_in_current_queue());
     int64_t now_ms = clock_->now_ms();
-    int64_t max_wait_time_ms = now_ms - latest_return_time_ms_;
+    int64_t max_wait_time_ms = waiting_deadline_ms_ - now_ms;
     int64_t wait_time_ms = max_wait_time_ms;
     for (auto frame_it = decodable_frames_.begin(); frame_it != decodable_frames_.end(); ++frame_it) {
         // Filter the delta frames if the next frame we need is key frame.

@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define ENABLE_UNIT_TESTS 0
+#define ENABLE_UNIT_TESTS 1
 #include "../testing/unittest_defines.hpp"
 
 using namespace naivertc::rtp::video;
@@ -107,38 +107,21 @@ public:
     
 };
 
-// FakeTaskQueue
-class TaskQueueForTest : public TaskQueue {
-public:
-    void Async(std::function<void()> handler) const override {
-        Event event;
-        TaskQueue::Async([&event, handler=std::move(handler)](){
-            handler();
-            event.Set();
-        });
-        event.WaitForever();
-    }
-
-    void AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler) override {
-        Event event;
-        TaskQueue::AsyncAfter(delay_in_sec, [&event, handler=std::move(handler)](){
-            handler();
-            event.Set();
-        });
-        event.WaitForever();
-    }
-};
-
 // FrameBufferTest
 class T(FrameBufferTest) : public ::testing::Test {
 protected:
     T(FrameBufferTest)() 
         : clock_(std::make_shared<SimulatedClock>(0)),
           timing_(std::make_shared<FakeTiming>(clock_)),
-          task_queue_(std::make_shared<TaskQueueForTest>()),
-          decode_queue_(std::make_shared<TaskQueueForTest>()),
+          task_queue_(std::make_shared<TaskQueue>()),
+          decode_queue_(std::make_shared<TaskQueue>()),
           stats_observer_(nullptr /* std::make_shared<VideoReceiveStatisticsObserverMock>() */),
-          frame_buffer_(std::make_unique<jitter::FrameBuffer>(jitter::ProtectionMode::NACK_FEC, clock_, timing_, task_queue_, decode_queue_, stats_observer_)) {}
+          frame_buffer_(std::make_unique<jitter::FrameBuffer>(jitter::ProtectionMode::NACK_FEC, 
+                                                              clock_, 
+                                                              timing_, 
+                                                              task_queue_, 
+                                                              decode_queue_, 
+                                                              stats_observer_)) {}
 
     uint16_t RandPid() const {
         return utils::random::generate_random<uint16_t>();
@@ -178,6 +161,15 @@ protected:
         return frame_buffer_->InsertFrame(CreateFrame(picture_id, timestamp_ms, times_nacked, kFrameSize)).first;
     }
 
+    void ExtractFrame(int64_t max_wait_time_ms = 0, bool keyframe_required = false) {
+        frame_buffer_->NextFrame(max_wait_time_ms, keyframe_required, [this](std::optional<FrameToDecode> frame){
+            if (frame) {
+                frames_.emplace_back(std::move(*frame));
+            }
+            event_.Set();
+        });
+    }
+
     void CheckFrame(size_t index, int picture_id) {
         ASSERT_LT(index, frames_.size());
         ASSERT_NE(nullptr, frames_[index].cdata());
@@ -202,13 +194,17 @@ protected:
     std::shared_ptr<VideoReceiveStatisticsObserverMock> stats_observer_;
     std::unique_ptr<jitter::FrameBuffer> frame_buffer_;
     std::vector<FrameToDecode> frames_;
+    Event event_;
 };
 
 MY_TEST_F(FrameBufferTest, WaitForFrame) {
+    event_.Reset();
     uint16_t pid = RandPid();
     uint32_t ts = RandTs();
-
+    ExtractFrame(50);
     InsertFrame(pid, ts, kFrameSize);
+    clock_->AdvanceTimeMs(50);
+    event_.WaitForever();
     CheckFrame(0, pid);
 }
 

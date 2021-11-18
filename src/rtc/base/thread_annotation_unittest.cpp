@@ -112,7 +112,7 @@ private:
     int* pt_protected_by_lock_ RTC_PT_GUARDED_BY(pt_lock_);
 };
 
-TEST(ThreadAnnotationsTest, Test) {
+MY_TEST(ThreadAnnotationsTest, Test) {
     // This test ensure thread annotations doesn't break compilation.
     // Thus no run-time expectations.
     ThreadSafe t;

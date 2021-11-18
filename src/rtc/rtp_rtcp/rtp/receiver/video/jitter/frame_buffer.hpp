@@ -122,7 +122,7 @@ private:
     std::list<video::FrameToDecode> decodable_frames_;
     std::unique_ptr<RepeatingTask> decode_repeating_task_ = nullptr;
     bool keyframe_required_ = false;
-    int64_t latest_return_time_ms_ = 0;
+    int64_t waiting_deadline_ms_ = 0;
     NextFrameFoundCallback next_frame_found_callback_ = nullptr;
 };
     
