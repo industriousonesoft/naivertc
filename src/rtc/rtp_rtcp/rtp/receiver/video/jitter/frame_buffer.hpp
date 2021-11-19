@@ -91,9 +91,9 @@ private:
     void PropagateContinuity(const FrameInfo& frame_info);
 
     // Decodability
-    void FindNextDecodableFrames();
+    void FindNextDecodableFrames(int64_t last_decodable_frame_id);
     bool IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms);
-    bool PropagateDecodability(const FrameInfo& frame_info);
+    int64_t PropagateDecodability(const FrameInfo& frame_info);
     void StartWaitForNextFrameToDecode();
     int64_t FindNextFrameToDecode();
     video::FrameToDecode GetNextFrameToDecode();
@@ -115,7 +115,6 @@ private:
     int64_t last_log_non_decoded_ms_;
 
     std::optional<int64_t> last_continuous_frame_id_ = std::nullopt;
-    std::optional<int64_t> last_decodable_frame_id_ = std::nullopt;
 
     FrameInfoMap frame_infos_;
     std::list<video::FrameToDecode> decodable_frames_;

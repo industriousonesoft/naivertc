@@ -112,7 +112,7 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode f
         // Update the last continuous frame id with this frame id.
         last_continuous_frame_id = *last_continuous_frame_id_;
         // Try to find the decodable frames.
-        FindNextDecodableFrames();
+        FindNextDecodableFrames(last_continuous_frame_id);
     }
 
     return {last_continuous_frame_id, true};

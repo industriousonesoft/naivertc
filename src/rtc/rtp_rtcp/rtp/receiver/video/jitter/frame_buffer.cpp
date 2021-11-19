@@ -57,7 +57,6 @@ void FrameBuffer::Clear() {
         }
         frame_infos_.clear();
         last_continuous_frame_id_.reset();
-        last_decodable_frame_id_.reset();
         decoded_frames_history_.Clear();
     });
 }

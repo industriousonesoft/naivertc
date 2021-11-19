@@ -26,7 +26,7 @@ std::shared_ptr<RtcpModule> CreateRtcpModule(const RtpVideoStreamReceiver::Confi
 }
 
 rtp::video::FrameToDecode CreateFrameToDecode(const rtp::video::jitter::PacketBuffer::Frame& assembled_frame, 
-                                                               int64_t estimated_ntp_time_ms) {
+                                              int64_t estimated_ntp_time_ms) {
     return rtp::video::FrameToDecode(std::move(assembled_frame.bitstream),
                                      assembled_frame.frame_type,
                                      assembled_frame.codec_type,

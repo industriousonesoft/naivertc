@@ -19,7 +19,7 @@ using namespace naivertc::rtp::video;
 namespace naivertc {
 namespace test {
 constexpr int kMaxReferences = 5;
-constexpr int kFps1 = 1000;         // 10ms
+constexpr int kFps1 = 1000;         // 1s
 constexpr int kFps10 = kFps1 / 10;  // 100 ms
 constexpr int kFps20 = kFps1 / 20;  // 50 ms
 constexpr size_t kFrameSize = 10;
@@ -48,6 +48,9 @@ class VideoReceiveStatisticsObserverMock : public VideoReceiveStatisticsObserver
 class FakeTiming : public Timing {
 public:
     explicit FakeTiming(std::shared_ptr<Clock> clock) : Timing(std::move(clock)) {}
+
+    int64_t last_ms() const { return last_ms_; }
+    uint32_t last_timestamp() const { return last_timestamp_; }
 
     int64_t RenderTimeMs(uint32_t timestamp, int64_t now_ms) const override {
         if (last_ms_ == -1) {
@@ -81,7 +84,7 @@ public:
 
 private:
     static const int kDelayMs = 50;
-    static const int kDecodeTimeMs = kDelayMs / 2;
+    static const int kDecodeTimeMs = kDelayMs / 2; // 25 ms
     mutable uint32_t last_timestamp_ = 0;
     mutable int64_t last_ms_ = -1;
 };
@@ -99,7 +102,7 @@ public:
                         0, /* seq_num_start */
                         0, /* seq_num_end */
                         timestamp_ms * 90, /* timestamp */
-                        timestamp_ms, /* ntp_time_ms */
+                        0, /* ntp_time_ms */
                         times_nacked, /* times_nacked */
                         0, /* min_received_time_ms */
                         0 /* max_received_time_ms */) {}
@@ -115,7 +118,7 @@ protected:
           timing_(std::make_shared<FakeTiming>(clock_)),
           task_queue_(std::make_shared<TaskQueue>()),
           decode_queue_(std::make_shared<TaskQueue>()),
-          stats_observer_(nullptr /* std::make_shared<VideoReceiveStatisticsObserverMock>() */),
+          stats_observer_(/*std::make_shared<VideoReceiveStatisticsObserverMock>()*/ nullptr),
           frame_buffer_(std::make_unique<jitter::FrameBuffer>(jitter::ProtectionMode::NACK_FEC, 
                                                               clock_, 
                                                               timing_, 
@@ -123,12 +126,8 @@ protected:
                                                               decode_queue_, 
                                                               stats_observer_)) {}
 
-    uint16_t RandPid() const {
-        return utils::random::generate_random<uint16_t>();
-    }
-
-    uint32_t RandTs() const {
-        return utils::random::generate_random<uint32_t>();
+    uint32_t Rand() const {
+        return utils::random::random<uint32_t>(0, 0x34678213);
     }
 
     template<typename... U>
@@ -173,7 +172,7 @@ protected:
     }
 
     void CheckFrame(size_t index, int picture_id) {
-        ASSERT_LT(index, frames_.size());
+        ASSERT_LT(index, frames_.size()) << "index: " << index;;
         ASSERT_NE(nullptr, frames_[index].cdata());
         ASSERT_EQ(picture_id, frames_[index].id()) << "index: " << index;
     }
@@ -190,7 +189,7 @@ protected:
 
 protected:
     std::shared_ptr<SimulatedClock> clock_;
-    std::shared_ptr<Timing> timing_;
+    std::shared_ptr<FakeTiming> timing_;
     std::shared_ptr<TaskQueue> task_queue_;
     std::shared_ptr<TaskQueue> decode_queue_;
     std::shared_ptr<VideoReceiveStatisticsObserverMock> stats_observer_;
@@ -199,9 +198,9 @@ protected:
 };
 
 MY_TEST_F(FrameBufferTest, WaitForFrame) {
+    uint16_t pid = Rand();
+    uint32_t ts = Rand();
     Event event;
-    uint16_t pid = RandPid();
-    uint32_t ts = RandTs();
     ExtractFrame(50, false, [&event](){
         event.Set();
     });
@@ -222,8 +221,8 @@ MY_TEST_F(FrameBufferTest, ExtractFromEmptyBuffer) {
 
 MY_TEST_F(FrameBufferTest, MissingFrame) {
     Event event;
-    uint16_t pid = 1;
-    uint32_t ts = RandTs();
+    uint16_t pid = Rand();
+    uint32_t ts = Rand();
     EXPECT_EQ(InsertFrame(pid, ts, kFrameSize), pid);
     // Missing the frame with id = pid + 1
     EXPECT_EQ(InsertFrame(pid + 2, ts, kFrameSize), pid + 2);
@@ -241,45 +240,136 @@ MY_TEST_F(FrameBufferTest, MissingFrame) {
     CheckNoFrame(2);
 }
 
-// MY_TEST_F(FrameBufferTest, FrameStream) {
-//     uint16_t pid = RandPid();
-//     uint32_t ts = RandTs();
+MY_TEST_F(FrameBufferTest, FrameStream) {
+    uint16_t pid = Rand();
+    uint32_t ts = Rand();
+    Event event;
+    EXPECT_EQ(InsertFrame(pid, ts, kFrameSize), pid);
+    ExtractFrame(0, false, [&](){
+        event.Set();
+    });
+    event.WaitForever();
+    CheckFrame(0, pid);
+    for (int i = 1; i < 10; ++i) {
+        event.Reset();
+        EXPECT_EQ(InsertFrame(pid + i, ts + i * kFps10, kFrameSize, pid + i - 1), pid + i);
+        ExtractFrame(0, false, [&](){
+            event.Set();
+        });
+        clock_->AdvanceTimeMs(kFps10);
+        event.WaitForever();
+        CheckFrame(i, pid + i);
+    }
+}
 
-//     InsertFrame(pid, ts, kFrameSize);
-//     CheckFrame(0, pid);
-//     for (int i = 1; i < 10; ++i) {
-//         InsertFrame(pid + i, ts + i * kFps10, kFrameSize, pid + i - 1);
-//         clock_->AdvanceTimeMs(kFps10);
-//         CheckFrame(i, pid + i);
-//     }
-// }
+MY_TEST_F(FrameBufferTest, DISABLED_DropFrameSinceSlowDecoder) {
+    uint16_t pid = 0;
+    uint32_t ts = 0;
 
-// MY_TEST_F(FrameBufferTest, DropFrameSinceSlowDecoder) {
-//     uint16_t pid = 1;
-//     uint32_t ts = 1234;
+    EXPECT_EQ(InsertFrame(pid, ts, kFrameSize), pid);
+    EXPECT_EQ(InsertFrame(pid + 1, ts + kFps20, kFrameSize, pid), pid + 1);
+    for (int i = 2; i < 10; i += 2) {
+        uint32_t ts_t10 = ts + i / 2 * kFps10;
+        EXPECT_EQ(InsertFrame(pid + i, ts_t10, kFrameSize, pid + i - 2), pid + i);
+        EXPECT_EQ(InsertFrame(pid + i + 1, ts_t10 + kFps20, kFrameSize, pid + i, pid + i - 1), pid + i + 1);
+    }
 
-//     // EXPECT_CALL(*stats_observer_, OnDroppedFrames(1)).Times(3);
+    // EXPECT_CALL(*stats_observer_, OnDroppedFrames(1)).Times(3);
 
-//     InsertFrame(pid, ts, kFrameSize);
-//     InsertFrame(pid + 1, ts + kFps20, kFrameSize);
-//     for (int i = 2; i < 10; i += 2) {
-//         // i = 2,4,6,8
-//         uint32_t ts_t10 = ts + i / 2 * kFps10;
-//         InsertFrame(pid + i, ts_t10, kFrameSize, pid + i - 2);
-//         InsertFrame(pid + i + 1, ts_t10 + kFps20, kFrameSize, pid + i, pid + i - 1);
-//     }
+    //    render     now    docode
+    // 0:  50         0     - 25 = 25
+    // 1:  100        70    - 25 = 5
+    // 2:  150       140    - 25 = -15
+    // 3:  200       210    - 25 = -35
+    // 4:  250       280    - 25 = -55
+    // 5:  300       350    - 25 = -75
+    
+    for (int i = 0; i < 10; ++i) {
+        Event event;
+        ExtractFrame(0, false, [&](){
+            event.Set();
+        });
+        event.WaitForever();
+        clock_->AdvanceTimeMs(70);
+    }
 
-//     CheckFrame(0, pid);
-//     CheckFrame(1, pid + 1);
-//     CheckFrame(2, pid + 2);
-//     CheckFrame(3, pid + 4);
-//     CheckFrame(4, pid + 6);
-//     CheckFrame(5, pid + 8);
-//     // CheckNoFrame(6);
-//     // CheckNoFrame(7);
-//     // CheckNoFrame(8);
-//     // CheckNoFrame(9);
-// }
+    CheckFrame(0, pid);
+    CheckFrame(1, pid + 1);
+    CheckFrame(2, pid + 2);
+    CheckFrame(3, pid + 4);
+    CheckFrame(4, pid + 6);
+    CheckFrame(5, pid + 8);
+    // CheckNoFrame(6);
+    // CheckNoFrame(7);
+    // CheckNoFrame(8);
+    // CheckNoFrame(9);
+}
+
+MY_TEST_F(FrameBufferTest, DropFramesIfSystemIsStalled) {
+    uint16_t pid = Rand();
+    uint32_t ts = Rand();
+
+    EXPECT_EQ(InsertFrame(pid, ts, kFrameSize), pid);
+    EXPECT_EQ(InsertFrame(pid + 1, ts + 1 * kFps10, kFrameSize, pid), pid + 1);
+    EXPECT_EQ(InsertFrame(pid + 2, ts + 2 * kFps10, kFrameSize, pid + 1), pid + 2);
+    EXPECT_EQ(InsertFrame(pid + 3, ts + 3 * kFps10, kFrameSize), pid + 3);
+
+    Event event;
+    ExtractFrame(0, false, [&](){
+        clock_->AdvanceTimeMs(3 * kFps10);
+        ExtractFrame(0, false, [&](){
+            event.Set();
+        });
+    });
+    event.WaitForever();
+
+    CheckFrame(0, pid);
+    CheckFrame(1, pid + 3);
+}
+
+MY_TEST_F(FrameBufferTest, DISABLED_DroppedFramesCountedOnClear) {
+    uint16_t pid = Rand();
+    uint32_t ts = Rand();
+
+    EXPECT_EQ(InsertFrame(pid, ts, kFrameSize), pid);
+    for (int i = 1; i < 5; ++i) {
+        EXPECT_EQ(InsertFrame(pid + i,ts + i * kFps10, kFrameSize, pid + i - 1), pid + i);
+    }
+
+    // All frames should be dropped when Clear is called.
+    // EXPECT_CALL(*stats_observer_, OnDroppedFrames(5)).Times(1);
+    // frame_buffer_->Clear();
+}
+
+MY_TEST_F(FrameBufferTest, InsertLateFrame) {
+    uint16_t pid = Rand();
+    uint32_t ts = Rand();
+
+    Event event;
+    EXPECT_EQ(InsertFrame(pid, ts, kFrameSize), pid);
+    ExtractFrame(0, false, [&](){
+        event.Set();
+    });
+    event.WaitForever();
+
+    event.Reset();
+    EXPECT_EQ(InsertFrame(pid + 2, ts, kFrameSize), pid + 2);
+    ExtractFrame(0, false, [&](){
+        event.Set();
+    });
+    event.WaitForever();
+
+    event.Reset();
+    EXPECT_EQ(InsertFrame(pid + 1, ts, kFrameSize, pid), pid + 2);
+    ExtractFrame(0, false, [&](){
+        event.Set();
+    });
+    event.WaitForever();
+
+    CheckFrame(0, pid);
+    CheckFrame(1, pid + 2);
+    CheckNoFrame(2);
+}
     
 } // namespace test
 } // namespace naivertc
