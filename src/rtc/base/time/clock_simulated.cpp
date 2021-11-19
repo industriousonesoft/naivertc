@@ -30,6 +30,9 @@ void SimulatedClock::AdvanceTimeUs(int64_t time_us) {
     AdvanceTime(TimeDelta::Micros(time_us));
 }
 
+// TODO(bugs.webrtc.org(12102): It's desirable to let a single thread own
+// advancement of the clock. We could then replace this read-modify-write
+// operation with just a thread checker.
 void SimulatedClock::AdvanceTime(TimeDelta delta) {
     time_us_.fetch_add(delta.us(), std::memory_order_relaxed);
 }
