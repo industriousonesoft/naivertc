@@ -1,4 +1,5 @@
 #include "rtc/base/synchronization/event.hpp"
+#include "rtc/base/synchronization/yield_policy.hpp"
 
 #if defined(NAIVERTC_WIN)
 

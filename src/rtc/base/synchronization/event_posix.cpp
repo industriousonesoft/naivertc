@@ -1,4 +1,5 @@
 #include "rtc/base/synchronization/event.hpp"
+#include "rtc/base/synchronization/yield_policy.hpp"
 
 #include <plog/Log.h>
 
@@ -106,6 +107,7 @@ bool Event::Wait(const int give_up_after_ms, const int warn_after_ms) {
             ? std::nullopt
             : std::make_optional(GetTimespec(give_up_after_ms));
 
+    ScopedYieldPolicy::YieldExecution();
     pthread_mutex_lock(&event_mutex_);
 
     // Wait for `event_cond_` to trigger and `event_status_` to be set, with the

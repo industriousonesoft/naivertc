@@ -45,6 +45,7 @@ set(LIB_SOURCES
     src/common/utils_network.cpp
     src/common/logger.cpp
     src/common/weak_ptr_manager.cpp
+    src/common/thread_local_storage.cpp
 
     # signaling
     src/signaling/base/base_channel.cpp
@@ -69,6 +70,7 @@ set(LIB_SOURCES
     src/rtc/base/synchronization/event.cpp
     # src/rtc/base/synchronization/event_win.cpp
     src/rtc/base/synchronization/event_posix.cpp
+    src/rtc/base/synchronization/yield_policy.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.cpp
@@ -269,6 +271,7 @@ set(LIB_HEADERS
     src/base/tls.hpp
     src/base/init.hpp
     src/base/system_time.hpp
+
     # common
     src/common/proxy.hpp
     src/common/utils_network.hpp
@@ -280,6 +283,7 @@ set(LIB_HEADERS
     src/common/weak_ptr_manager.hpp
     src/common/numeric_range_checker.hpp
     src/common/array_view.hpp
+    src/common/thread_local_storage.hpp
 
     # signaling
     src/signaling/base/base_channel.hpp
@@ -319,6 +323,7 @@ set(LIB_HEADERS
     src/rtc/base/task_utils/repeating_task.hpp
     src/rtc/base/task_utils/task_queue.hpp
     src/rtc/base/synchronization/event.hpp
+    src/rtc/base/synchronization/yield_policy.hpp
     src/rtc/base/thread_annotation.hpp
     
     # rtc -> sdp
@@ -495,8 +500,16 @@ set(LIB_HEADERS
 # gcc -Wpedantic: 当gcc编译不符合ANSI/ISO C标准的代码时，将产生相应的警告信息
 set_source_files_properties(${LIB_SOURCES} PROPERTIES COMPILE_FLAGS -Wall -Wextra -Wpedantic)
 
-# naiveRTC
+# Add library
 add_library(${PROJECT_NAME} STATIC ${LIB_SOURCES} ${LIB_HEADERS} )
+
+# Add precompile headers
+# Call after the target has been created by a command such
+# as `add_library` or `add_executable`
+target_precompile_headers(${PROJECT_NAME} PRIVATE
+    "src/base/features_checker.hpp"
+    "src/base/attributes_checker.hpp" 
+)
 
 # c++17 required
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
@@ -602,6 +615,7 @@ set(TEST_SOURCES
     src/rtc/base/numerics/histogram_percentile_counter_unittest.cpp
     src/rtc/base/numerics/divide_round_unittest.cpp
     src/rtc/base/synchronization/event_unittest.cpp
+    src/rtc/base/synchronization/yield_policy_unittest.cpp
     src/rtc/base/task_utils/task_queue_unittest.cpp
     src/rtc/base/task_utils/repeating_task_unittest.cpp
     src/rtc/base/thread_annotation_unittest.cpp
