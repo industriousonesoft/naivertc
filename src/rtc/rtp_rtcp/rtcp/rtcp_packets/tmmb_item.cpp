@@ -1,6 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/tmmb_item.hpp"
-#include "rtc/base/byte_io_reader.hpp"
-#include "rtc/base/byte_io_writer.hpp"
+#include "rtc/base/memory/byte_io_reader.hpp"
+#include "rtc/base/memory/byte_io_writer.hpp"
 
 #include <plog/Log.h>
 

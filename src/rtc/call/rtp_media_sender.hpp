@@ -2,7 +2,7 @@
 #define _RTC_CALL_SEND_STREAM_BASE_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/task_queue.hpp"
+#include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/call/rtp_rtcp_config.hpp"
 #include "rtc/transports/transport.hpp"

@@ -1,6 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.hpp"
-#include "rtc/base/byte_io_reader.hpp"
-#include "rtc/base/byte_io_writer.hpp"
+#include "rtc/base/memory/byte_io_reader.hpp"
+#include "rtc/base/memory/byte_io_writer.hpp"
 #include "common/utils_numeric.hpp"
 
 #include <plog/Log.h>

@@ -1,4 +1,4 @@
-#include "rtc/base/bit_io_reader.hpp"
+#include "rtc/base/memory/bit_io_reader.hpp"
 
 namespace naivertc {
 namespace {

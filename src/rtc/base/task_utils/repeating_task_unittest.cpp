@@ -1,6 +1,6 @@
-#include "rtc/base/repeating_task.hpp"
+#include "rtc/base/task_utils/repeating_task.hpp"
 #include "rtc/base/time/clock_real_time.hpp"
-#include "rtc/base/event.hpp"
+#include "rtc/base/synchronization/event.hpp"
 
 #include <gtest/gtest.h>
 

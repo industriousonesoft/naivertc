@@ -1,6 +1,6 @@
 #include "rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer_h264.hpp"
-#include "rtc/base/bit_io_reader.hpp"
-#include "rtc/base/byte_io_writer.hpp"
+#include "rtc/base/memory/bit_io_reader.hpp"
+#include "rtc/base/memory/byte_io_writer.hpp"
 #include "common/array_view.hpp"
 
 #include <gtest/gtest.h>

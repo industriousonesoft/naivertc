@@ -1,5 +1,5 @@
-#include "rtc/base/bit_io_writer.hpp"
-#include "rtc/base/bit_io_reader.hpp"
+#include "rtc/base/memory/bit_io_writer.hpp"
+#include "rtc/base/memory/bit_io_reader.hpp"
 
 #include <gtest/gtest.h>
 

@@ -1,5 +1,5 @@
 #include "rtc/base/time/ntp_time_util.hpp"
-#include "rtc/base/divide_round.hpp"
+#include "rtc/base/numerics/divide_round.hpp"
 #include "common/utils_time.hpp"
 
 namespace naivertc {

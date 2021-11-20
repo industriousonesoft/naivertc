@@ -2,7 +2,7 @@
 #include "rtc/base/time/clock_simulated.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_test_helper.hpp"
-#include "rtc/base/byte_io_writer.hpp"
+#include "rtc/base/memory/byte_io_writer.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>

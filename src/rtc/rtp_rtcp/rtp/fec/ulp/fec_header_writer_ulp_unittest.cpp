@@ -2,7 +2,7 @@
 #include "rtc/rtp_rtcp/rtp/fec/ulp/fec_header_reader_ulp.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_defines.hpp"
 #include "common/utils_random.hpp"
-#include "rtc/base/byte_io_reader.hpp"
+#include "rtc/base/memory/byte_io_reader.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_decoder.hpp"
 
 #include <gtest/gtest.h>

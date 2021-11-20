@@ -1,4 +1,4 @@
-#include "rtc/base/divide_round.hpp"
+#include "rtc/base/numerics/divide_round.hpp"
 
 #include <gtest/gtest.h>
 

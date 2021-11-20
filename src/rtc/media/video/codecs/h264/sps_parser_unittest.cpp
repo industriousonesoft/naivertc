@@ -1,7 +1,7 @@
 #include "rtc/media/video/codecs/h264/sps_parser.hpp"
 #include "rtc/media/video/codecs/h264/nalunit.hpp"
-#include "rtc/base/bit_io_writer.hpp"
-#include "rtc/base/bit_io_reader.hpp"
+#include "rtc/base/memory/bit_io_writer.hpp"
+#include "rtc/base/memory/bit_io_reader.hpp"
 
 #include <gtest/gtest.h>
 

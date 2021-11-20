@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_PACKET_HISTORY_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/task_queue.hpp"
+#include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 

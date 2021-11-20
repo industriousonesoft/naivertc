@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "base/certificate.hpp"
 #include "common/proxy.hpp"
-#include "rtc/base/task_queue.hpp"
+#include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/pc/peer_connection_configuration.hpp"
 #include "rtc/sdp/candidate.hpp"
 #include "rtc/sdp/sdp_description.hpp"

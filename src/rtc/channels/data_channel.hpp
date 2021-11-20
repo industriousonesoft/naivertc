@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/transports/sctp_message.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
-#include "rtc/base/task_queue.hpp"
+#include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/channels/channel.hpp"
 
 #include <memory>

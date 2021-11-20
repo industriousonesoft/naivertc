@@ -54,9 +54,9 @@ set(LIB_SOURCES
     # rtc
     # rtc -> base
     src/rtc/base/copy_on_write_buffer.cpp
-    src/rtc/base/bit_io.cpp
-    src/rtc/base/bit_io_reader.cpp
-    src/rtc/base/bit_io_writer.cpp
+    src/rtc/base/memory/bit_io.cpp
+    src/rtc/base/memory/bit_io_reader.cpp
+    src/rtc/base/memory/bit_io_writer.cpp
     src/rtc/base/packet.cpp
     src/rtc/base/time/ntp_time.cpp
     src/rtc/base/time/ntp_time_util.cpp
@@ -64,11 +64,11 @@ set(LIB_SOURCES
     src/rtc/base/time/clock_real_time.cpp
     src/rtc/base/time/clock_simulated.cpp
     src/rtc/base/numerics/histogram_percentile_counter.cpp
-    src/rtc/base/repeating_task.cpp
-    src/rtc/base/task_queue.cpp
-    src/rtc/base/event.cpp
-    # src/rtc/base/event_win.cpp
-    src/rtc/base/event_posix.cpp
+    src/rtc/base/task_utils/repeating_task.cpp
+    src/rtc/base/task_utils/task_queue.cpp
+    src/rtc/base/synchronization/event.cpp
+    # src/rtc/base/synchronization/event_win.cpp
+    src/rtc/base/synchronization/event_posix.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.cpp
@@ -291,16 +291,15 @@ set(LIB_HEADERS
     # rtc -> base
     src/rtc/base/internals.hpp
     src/rtc/base/packet.hpp
-    src/rtc/base/byte_io.hpp
-    src/rtc/base/byte_io_reader.hpp
-    src/rtc/base/byte_io_writer.hpp
-    src/rtc/base/divide_round.hpp
+    src/rtc/base/memory/byte_io.hpp
+    src/rtc/base/memory/byte_io_reader.hpp
+    src/rtc/base/memory/byte_io_writer.hpp
     src/rtc/base/copy_on_write_buffer.hpp
     src/rtc/base/dscp.hpp
     src/rtc/base/packet_options.hpp
-    src/rtc/base/bit_io.hpp
-    src/rtc/base/bit_io_reader.hpp
-    src/rtc/base/bit_io_writer.hpp
+    src/rtc/base/memory/bit_io.hpp
+    src/rtc/base/memory/bit_io_reader.hpp
+    src/rtc/base/memory/bit_io_writer.hpp
     src/rtc/base/units/unit_base.hpp
     src/rtc/base/units/unit_relative.hpp
     src/rtc/base/units/timestamp.hpp
@@ -316,9 +315,10 @@ set(LIB_HEADERS
     src/rtc/base/numerics/modulo_operator.hpp
     src/rtc/base/numerics/running_statistics.hpp
     src/rtc/base/numerics/histogram_percentile_counter.hpp
-    src/rtc/base/repeating_task.hpp
-    src/rtc/base/task_queue.hpp
-    src/rtc/base/event.hpp
+    src/rtc/base/numerics/divide_round.hpp
+    src/rtc/base/task_utils/repeating_task.hpp
+    src/rtc/base/task_utils/task_queue.hpp
+    src/rtc/base/synchronization/event.hpp
     src/rtc/base/thread_annotation.hpp
     
     # rtc -> sdp
@@ -585,12 +585,11 @@ set(TEST_SOURCES
 
     # rtc -> base
     src/rtc/base/packet_unittest.cpp
-    src/rtc/base/byte_io_unittest.cpp
-    src/rtc/base/bit_io_reader_unittest.cpp
-    src/rtc/base/bit_io_writer_unittest.cpp
+    src/rtc/base/memory/byte_io_unittest.cpp
+    src/rtc/base/memory/bit_io_reader_unittest.cpp
+    src/rtc/base/memory/bit_io_writer_unittest.cpp
     src/rtc/base/time/clock_unittest.cpp
     src/rtc/base/time/ntp_time_unittest.cpp
-    src/rtc/base/divide_round_unittest.cpp
     src/rtc/base/copy_on_write_buffer_unittest.cpp
     src/rtc/base/units/unit_base_unittest.cpp
     src/rtc/base/units/timestamp_unittest.cpp
@@ -601,9 +600,10 @@ set(TEST_SOURCES
     src/rtc/base/numerics/modulo_operator_unittest.cpp
     src/rtc/base/numerics/running_statistics_unittest.cpp
     src/rtc/base/numerics/histogram_percentile_counter_unittest.cpp
-    src/rtc/base/event_unittest.cpp
-    src/rtc/base/task_queue_unittest.cpp
-    src/rtc/base/repeating_task_unittest.cpp
+    src/rtc/base/numerics/divide_round_unittest.cpp
+    src/rtc/base/synchronization/event_unittest.cpp
+    src/rtc/base/task_utils/task_queue_unittest.cpp
+    src/rtc/base/task_utils/repeating_task_unittest.cpp
     src/rtc/base/thread_annotation_unittest.cpp
     
     # rtc -> sdp

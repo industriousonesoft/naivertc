@@ -1,5 +1,5 @@
-#include "rtc/base/task_queue.hpp"
-#include "rtc/base/event.hpp"
+#include "rtc/base/task_utils/task_queue.hpp"
+#include "rtc/base/synchronization/event.hpp"
 #include "common/utils_time.hpp"
 
 #include <gtest/gtest.h>

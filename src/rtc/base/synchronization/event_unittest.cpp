@@ -1,4 +1,4 @@
-#include "rtc/base/event.hpp"
+#include "rtc/base/synchronization/event.hpp"
 
 #include <gtest/gtest.h>
 

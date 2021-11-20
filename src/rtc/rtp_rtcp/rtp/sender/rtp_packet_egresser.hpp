@@ -2,8 +2,8 @@
 #define _RTC_RTP_RTCP_RTP_PACKET_SENDER_IMPL_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/task_queue.hpp"
-#include "rtc/base/repeating_task.hpp"
+#include "rtc/base/task_utils/task_queue.hpp"
+#include "rtc/base/task_utils/repeating_task.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"

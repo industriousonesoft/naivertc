@@ -2,7 +2,7 @@
 #define _RTC_MEDIA_VIDEO_CODEC_H264_PPS_PARSER_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/bit_io_reader.hpp"
+#include "rtc/base/memory/bit_io_reader.hpp"
 
 #include <optional>
 

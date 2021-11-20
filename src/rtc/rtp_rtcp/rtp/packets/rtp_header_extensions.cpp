@@ -1,6 +1,6 @@
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
-#include "rtc/base/byte_io_reader.hpp"
-#include "rtc/base/byte_io_writer.hpp"
+#include "rtc/base/memory/byte_io_reader.hpp"
+#include "rtc/base/memory/byte_io_writer.hpp"
 
 namespace naivertc {
 namespace rtp {

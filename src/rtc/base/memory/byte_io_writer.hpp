@@ -2,7 +2,7 @@
 #define _RTC_BASE_BYTE_WRITER_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/byte_io.hpp"
+#include "rtc/base/memory/byte_io.hpp"
 
 namespace naivertc {
 

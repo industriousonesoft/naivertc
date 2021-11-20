@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/base/task_queue.hpp"
+#include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/timing/timing.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/timing/inter_frame_delay.hpp"
@@ -11,7 +11,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_defines.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
-#include "rtc/base/repeating_task.hpp"
+#include "rtc/base/task_utils/repeating_task.hpp"
 
 #include <optional>
 #include <map>

@@ -2,7 +2,7 @@
 #include "rtc/media/video/codecs/h264/common.hpp"
 #include "rtc/media/video/codecs/h264/pps_parser.hpp"
 #include "rtc/media/video/codecs/h264/sps_parser.hpp"
-#include "rtc/base/byte_io_reader.hpp"
+#include "rtc/base/memory/byte_io_reader.hpp"
 
 #include <plog/Log.h>
 
