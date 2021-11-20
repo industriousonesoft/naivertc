@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_BIT_BUFFER_H_
-#define _RTC_BASE_BIT_BUFFER_H_
+#ifndef _RTC_BASE_MEMORY_BIT_IO_READER_H_
+#define _RTC_BASE_MEMORY_BIT_IO_READER_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/memory/bit_io.hpp"

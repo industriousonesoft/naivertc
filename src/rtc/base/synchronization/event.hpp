@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_EVENT_H_
-#define _RTC_BASE_EVENT_H_
+#ifndef _RTC_BASE_SYNCHRONIZATION_EVENT_H_
+#define _RTC_BASE_SYNCHRONIZATION_EVENT_H_
 
 #include "base/defines.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_BYTE_WRITER_H_
-#define _RTC_BASE_BYTE_WRITER_H_
+#ifndef _RTC_BASE_MEMORY_BYTE_IO_WRITER_H_
+#define _RTC_BASE_MEMORY_BYTE_IO_WRITER_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/memory/byte_io.hpp"

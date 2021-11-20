@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_DIVIDE_ROUND_H_
-#define _RTC_BASE_DIVIDE_ROUND_H_
+#ifndef _RTC_BASE_NUMERICS_DIVIDE_ROUND_H_
+#define _RTC_BASE_NUMERICS_DIVIDE_ROUND_H_
 
 #include "base/defines.hpp"
 

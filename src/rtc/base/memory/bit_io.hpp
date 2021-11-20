@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_BIT_IO_H_
-#define _RTC_BASE_BIT_IO_H_
+#ifndef _RTC_BASE_MEMORY_BIT_IO_H_
+#define _RTC_BASE_MEMORY_BIT_IO_H_
 
 #include "base/defines.hpp"
 
