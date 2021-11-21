@@ -8,7 +8,7 @@
 #include <gmock/gmock.h>
 
 #define ENABLE_UNIT_TESTS 0
-#include "../testing/unittest_defines.hpp"
+#include "testing/defines.hpp"
 
 #include <cstring>
 #include <limits>

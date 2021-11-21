@@ -581,7 +581,16 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_TESTS=1)
 # google test
 add_subdirectory(deps/googletest)
 
-set(TEST_SOURCES
+set(TESTING_SOURCES
+    # testing
+    src/testing/defines.hpp
+    src/testing/gtest_main.cpp
+
+    src/testing/simulated_time_controller.hpp
+    src/testing/simulated_time_controller.cpp
+)
+
+set(UNITTEST_SOURCES
     # base
     src/base/system_time_unittest.cpp
     # common
@@ -687,13 +696,10 @@ set(TEST_SOURCES
 
     # rtc -> transports
     src/rtc/transports/ice_transport_description_unittest.cpp
-
-    testing/gtest_main.cpp
-    testing/unittest_defines.hpp
 )
 
 # EXCLUDE_FROM_ALL表示指定的target(或某个模块下的所有target)不会被加入默认编译的all target列表中，即不会自动编译，需要手动编译
-add_executable(naivertc_unittest EXCLUDE_FROM_ALL ${TEST_SOURCES})
+add_executable(naivertc_unittest EXCLUDE_FROM_ALL ${TESTING_SOURCES} ${UNITTEST_SOURCES})
 
 set_target_properties(naivertc_unittest PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
 

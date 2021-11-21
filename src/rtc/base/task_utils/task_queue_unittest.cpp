@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 #define ENABLE_UNIT_TESTS 0
-#include "../testing/unittest_defines.hpp"
+#include "testing/defines.hpp"
 
 using namespace testing;
 

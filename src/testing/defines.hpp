@@ -1,5 +1,5 @@
-#ifndef _NAIVE_RTC_UNITTEST_DEFINES_BASE_H_
-#define _NAIVE_RTC_UNITTEST_DEFINES_BASE_H_
+#ifndef _TESTING_DEFINES_H_
+#define _TESTING_DEFINES_H_
 
 #if ENABLE_UNIT_TESTS
 #define T(x)            x

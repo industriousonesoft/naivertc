@@ -5,7 +5,7 @@
 #include <limits>
 
 #define ENABLE_UNIT_TESTS 0
-#include "../testing/unittest_defines.hpp"
+#include "testing/defines.hpp"
 
 namespace naivertc {
 namespace test {

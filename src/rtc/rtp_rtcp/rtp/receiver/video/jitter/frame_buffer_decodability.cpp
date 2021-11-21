@@ -159,7 +159,7 @@ video::FrameToDecode FrameBuffer::GetNextFrameToDecode() {
     assert(decode_queue_->is_in_current_queue());
     assert(decodable_frames_.size() > 0);
 
-    video::FrameToDecode frame_to_decode = std::move(*decodable_frames_.begin());
+    video::FrameToDecode frame_to_decode = std::move(decodable_frames_.front());
     decodable_frames_.pop_front();
 
     // No nack has happened during the transport of this frame,
