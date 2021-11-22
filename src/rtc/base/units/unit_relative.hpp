@@ -27,11 +27,11 @@ public:
         if (this->IsMax() || other.IsMax()) {
             assert(!this->IsMin());
             assert(!other.IsMin());
-            return this->MaxValue();
+            return this->PlusInfinity();
         } else if (this->IsMin() || other.IsMin()) {
             assert(!this->IsMax());
             assert(!other.IsMax());
-            return this->MinValue();
+            return this->MinusInfinity();
         }
         return UnitBase<Unit_T>::FromValue(this->ToValue() + other.ToValue());
     }
@@ -40,11 +40,11 @@ public:
         if (this->IsMax() || other.IsMin()) {
             assert(!this->IsMin());
             assert(!other.IsMax());
-            return this->MaxValue();
+            return this->PlusInfinity();
         } else if (this->IsMin() || other.IsMax()) {
             assert(!this->IsMax());
             assert(!other.IsMin());
-            return this->MinValue();
+            return this->MinusInfinity();
         }
         return UnitBase<Unit_T>::FromValue(this->ToValue() - other.ToValue());
     }

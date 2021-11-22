@@ -11,7 +11,7 @@ class RTC_CPP_EXPORT RtpPacketReceived : public RtpPacket {
 public:
     RtpPacketReceived();
     RtpPacketReceived(std::shared_ptr<ExtensionManager> extension_manager, 
-                      Timestamp arrival_time = Timestamp::MaxValue());
+                      Timestamp arrival_time = Timestamp::PlusInfinity());
     RtpPacketReceived(const RtpPacketReceived& other);
     RtpPacketReceived(RtpPacketReceived&& other);
 
@@ -31,7 +31,7 @@ public:
     void set_payload_type_frequency(int frequency) { payload_type_frequency_ = frequency; }
 
 private:
-    Timestamp arrival_time_ = Timestamp::MaxValue();
+    Timestamp arrival_time_ = Timestamp::PlusInfinity();
     bool is_recovered_ = false;
     int payload_type_frequency_;
 };

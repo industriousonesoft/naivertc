@@ -20,8 +20,8 @@ template <class Unit_T>
 class RTC_CPP_EXPORT UnitBase {
 public:
     static constexpr Unit_T Zero() { return Unit_T(0); }
-    static constexpr Unit_T MaxValue() { return Unit_T(max_value()); }
-    static constexpr Unit_T MinValue() { return Unit_T(min_value()); }
+    static constexpr Unit_T PlusInfinity() { return Unit_T(PlusInfinityVal()); }
+    static constexpr Unit_T MinusInfinity() { return Unit_T(MinusInfinityVal()); }
 
 public:
     UnitBase() = default;
@@ -29,8 +29,8 @@ public:
     constexpr bool IsZero() const { return value_ == 0; }
     constexpr bool IsFinite() const { return !IsInfinite(); }
     constexpr bool IsInfinite() const { return IsMax() || IsMin(); }
-    constexpr bool IsMax() const { return value_ == max_value(); }
-    constexpr bool IsMin() const { return value_ == min_value(); }
+    constexpr bool IsMax() const { return value_ == PlusInfinityVal(); }
+    constexpr bool IsMin() const { return value_ == MinusInfinityVal(); }
 
     constexpr bool operator==(const Unit_T& other) const {
         return value_ == other.value_;
@@ -80,8 +80,8 @@ protected:
     static constexpr Unit_T FromValue(T value) {
         if (Unit_T::one_sided)
             assert(value >= 0);
-        assert(value > min_value());
-        assert(value < max_value());
+        assert(value > MinusInfinityVal());
+        assert(value < PlusInfinityVal());
         return Unit_T(utils::numeric::checked_static_cast<int64_t>(value));
     }
 
@@ -89,9 +89,9 @@ protected:
               typename std::enable_if<std::is_floating_point<T>::value>::type* = nullptr>
     static constexpr Unit_T FromValue(T value) {
         if (value == std::numeric_limits<T>::infinity()) {
-            return MaxValue();
+            return PlusInfinity();
         } else if (value == -std::numeric_limits<T>::infinity()) {
-            return MinValue();
+            return MinusInfinity();
         } else {
             assert(!std::isnan(value));
             return FromValue(utils::numeric::checked_static_cast<int64_t>(value));
@@ -105,8 +105,8 @@ protected:
         if (Unit_T::one_sided)
             assert(value >= 0);
         // FIXME: 当T为无符号类型时，min_value也会被隐式转换成无符号，导致assert结果为false
-        assert(value > min_value() / denominator);
-        assert(value < max_value() / denominator);
+        assert(value > MinusInfinityVal() / denominator);
+        assert(value < PlusInfinityVal() / denominator);
         return Unit_T(utils::numeric::checked_static_cast<int64_t>(value * denominator));
     }
 
@@ -173,8 +173,8 @@ protected:
     }
 
 private:
-    static inline constexpr int64_t max_value() { return std::numeric_limits<int64_t>::max(); }
-    static inline constexpr int64_t min_value() { return std::numeric_limits<int64_t>::min(); }
+    static inline constexpr int64_t PlusInfinityVal() { return std::numeric_limits<int64_t>::max(); }
+    static inline constexpr int64_t MinusInfinityVal() { return std::numeric_limits<int64_t>::min(); }
 
     constexpr Unit_T& AsSubClassRef() { return static_cast<Unit_T&>(*this); }
     constexpr const Unit_T& AsSubClassRef() const {

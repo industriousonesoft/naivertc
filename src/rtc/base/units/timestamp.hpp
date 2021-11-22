@@ -62,11 +62,11 @@ public:
         if (IsMax() || delta.IsMax()) {
             assert(!IsMin());
             assert(!delta.IsMin());
-            return MaxValue();
+            return PlusInfinity();
         } else if (IsMin() || delta.IsMin()) {
             assert(!IsMax());
             assert(!delta.IsMax());
-            return MinValue();
+            return MinusInfinity();
         }
         return Timestamp::Micros(us() + delta.us());
     }
@@ -74,11 +74,11 @@ public:
         if (IsMax() || delta.IsMin()) {
             assert(!IsMin());
             assert(!delta.IsMax());
-            return MaxValue();
+            return PlusInfinity();
         } else if (IsMin() || delta.IsMax()) {
             assert(!IsMax());
             assert(!delta.IsMin());
-            return MinValue();
+            return MinusInfinity();
         }
         return Timestamp::Micros(us() - delta.us());
     }
@@ -87,11 +87,11 @@ public:
         if (IsMax() || other.IsMin()) {
             assert(!IsMin());
             assert(!other.IsMax());
-            return TimeDelta::MaxValue();
+            return TimeDelta::PlusInfinity();
         } else if (IsMin() || other.IsMax()) {
             assert(!IsMax());
             assert(!other.IsMin());
-            return TimeDelta::MinValue();
+            return TimeDelta::MinusInfinity();
         }
         return TimeDelta::Micros(us() - other.us());
     }

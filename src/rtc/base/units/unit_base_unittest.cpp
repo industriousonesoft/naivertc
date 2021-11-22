@@ -53,8 +53,8 @@ namespace test {
 MY_TEST(UnitBaseTest, ConstExpr) {
     constexpr int64_t kValue = -12345;
     constexpr TestUnit kTestUnitZero = TestUnit::Zero();
-    constexpr TestUnit kTestUnitMaxValue = TestUnit::MaxValue();
-    constexpr TestUnit kTestUnitMinValue = TestUnit::MinValue();
+    constexpr TestUnit kTestUnitMaxValue = TestUnit::PlusInfinity();
+    constexpr TestUnit kTestUnitMinValue = TestUnit::MinusInfinity();
 
     static_assert(kTestUnitZero.IsZero(), "");
     static_assert(kTestUnitMaxValue.IsMax(), "");
@@ -104,12 +104,12 @@ MY_TEST(UnitBaseTest, ConvertsToAndFromDouble) {
     const double kMaxValue = std::numeric_limits<double>::infinity();
     const double kMinValue = -kMaxValue;
 
-    EXPECT_EQ(TestUnit::MaxValue().ToKilo<double>(), kMaxValue);
-    EXPECT_EQ(TestUnit::MinValue().ToKilo<double>(), kMinValue);
-    EXPECT_EQ(TestUnit::MaxValue().ToValue<double>(), kMaxValue);
-    EXPECT_EQ(TestUnit::MinValue().ToValue<double>(), kMinValue);
-    EXPECT_EQ(TestUnit::MaxValue().ToMilli<double>(), kMaxValue);
-    EXPECT_EQ(TestUnit::MinValue().ToMilli<double>(), kMinValue);
+    EXPECT_EQ(TestUnit::PlusInfinity().ToKilo<double>(), kMaxValue);
+    EXPECT_EQ(TestUnit::MinusInfinity().ToKilo<double>(), kMinValue);
+    EXPECT_EQ(TestUnit::PlusInfinity().ToValue<double>(), kMaxValue);
+    EXPECT_EQ(TestUnit::MinusInfinity().ToValue<double>(), kMinValue);
+    EXPECT_EQ(TestUnit::PlusInfinity().ToMilli<double>(), kMaxValue);
+    EXPECT_EQ(TestUnit::MinusInfinity().ToMilli<double>(), kMinValue);
 
     EXPECT_TRUE(TestUnit::FromKilo(kMaxValue).IsMax());
     EXPECT_TRUE(TestUnit::FromKilo(kMinValue).IsMin());
@@ -120,15 +120,15 @@ MY_TEST(UnitBaseTest, ConvertsToAndFromDouble) {
 MY_TEST(UnitBaseTest, InfinityOperations) {
   const int64_t kValue = 267;
   const TestUnit finite = TestUnit::FromKilo(kValue);
-  EXPECT_TRUE((TestUnit::MaxValue() + finite).IsMax());
-  EXPECT_TRUE((TestUnit::MaxValue() - finite).IsMax());
-  EXPECT_TRUE((finite + TestUnit::MaxValue()).IsMax());
-  EXPECT_TRUE((finite - TestUnit::MinValue()).IsMax());
+  EXPECT_TRUE((TestUnit::PlusInfinity() + finite).IsMax());
+  EXPECT_TRUE((TestUnit::PlusInfinity() - finite).IsMax());
+  EXPECT_TRUE((finite + TestUnit::PlusInfinity()).IsMax());
+  EXPECT_TRUE((finite - TestUnit::MinusInfinity()).IsMax());
 
-  EXPECT_TRUE((TestUnit::MinValue() + finite).IsMin());
-  EXPECT_TRUE((TestUnit::MinValue() - finite).IsMin());
-  EXPECT_TRUE((finite + TestUnit::MinValue()).IsMin());
-  EXPECT_TRUE((finite - TestUnit::MaxValue()).IsMin());
+  EXPECT_TRUE((TestUnit::MinusInfinity() + finite).IsMin());
+  EXPECT_TRUE((TestUnit::MinusInfinity() - finite).IsMin());
+  EXPECT_TRUE((finite + TestUnit::MinusInfinity()).IsMin());
+  EXPECT_TRUE((finite - TestUnit::PlusInfinity()).IsMin());
 }
     
 } // namespace test

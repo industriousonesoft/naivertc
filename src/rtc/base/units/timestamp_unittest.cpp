@@ -10,7 +10,7 @@ namespace test {
 
 MY_TEST(TimestampTest, ConstExpr) {
     constexpr int64_t kValue = 12345;
-    constexpr Timestamp kMaxValue = Timestamp::MaxValue();
+    constexpr Timestamp kMaxValue = Timestamp::PlusInfinity();
     static_assert(kMaxValue.IsInfinite(), "");
     static_assert(kMaxValue.ms_or(-1) == -1, "");
 
@@ -51,19 +51,19 @@ MY_TEST(TimestampTest, GetDifferentPrefix) {
 MY_TEST(TimestampTest, IdentityChecks) {
     const int64_t kValue = 3000;
 
-    EXPECT_TRUE(Timestamp::MaxValue().IsInfinite());
-    EXPECT_TRUE(Timestamp::MinValue().IsInfinite());
+    EXPECT_TRUE(Timestamp::PlusInfinity().IsInfinite());
+    EXPECT_TRUE(Timestamp::MinusInfinity().IsInfinite());
     EXPECT_FALSE(Timestamp::Millis(kValue).IsInfinite());
 
-    EXPECT_FALSE(Timestamp::MaxValue().IsFinite());
-    EXPECT_FALSE(Timestamp::MinValue().IsFinite());
+    EXPECT_FALSE(Timestamp::PlusInfinity().IsFinite());
+    EXPECT_FALSE(Timestamp::MinusInfinity().IsFinite());
     EXPECT_TRUE(Timestamp::Millis(kValue).IsFinite());
 
-    EXPECT_TRUE(Timestamp::MaxValue().IsMax());
-    EXPECT_FALSE(Timestamp::MinValue().IsMax());
+    EXPECT_TRUE(Timestamp::PlusInfinity().IsMax());
+    EXPECT_FALSE(Timestamp::MinusInfinity().IsMax());
 
-    EXPECT_TRUE(Timestamp::MinValue().IsMin());
-    EXPECT_FALSE(Timestamp::MaxValue().IsMin());
+    EXPECT_TRUE(Timestamp::MinusInfinity().IsMin());
+    EXPECT_FALSE(Timestamp::PlusInfinity().IsMin());
 }
 
 MY_TEST(TimestampTest, ConvertsToAndFromDouble) {
@@ -84,12 +84,12 @@ MY_TEST(TimestampTest, ConvertsToAndFromDouble) {
     const double kMaxValue = std::numeric_limits<double>::infinity();
     const double kMinValue = -kMaxValue;
 
-    EXPECT_EQ(Timestamp::MaxValue().seconds<double>(), kMaxValue);
-    EXPECT_EQ(Timestamp::MinValue().seconds<double>(), kMinValue);
-    EXPECT_EQ(Timestamp::MaxValue().ms<double>(), kMaxValue);
-    EXPECT_EQ(Timestamp::MinValue().ms<double>(), kMinValue);
-    EXPECT_EQ(Timestamp::MaxValue().us<double>(), kMaxValue);
-    EXPECT_EQ(Timestamp::MinValue().us<double>(), kMinValue);
+    EXPECT_EQ(Timestamp::PlusInfinity().seconds<double>(), kMaxValue);
+    EXPECT_EQ(Timestamp::MinusInfinity().seconds<double>(), kMinValue);
+    EXPECT_EQ(Timestamp::PlusInfinity().ms<double>(), kMaxValue);
+    EXPECT_EQ(Timestamp::MinusInfinity().ms<double>(), kMinValue);
+    EXPECT_EQ(Timestamp::PlusInfinity().us<double>(), kMaxValue);
+    EXPECT_EQ(Timestamp::MinusInfinity().us<double>(), kMinValue);
 
     EXPECT_TRUE(Timestamp::Seconds(kMaxValue).IsMax());
     EXPECT_TRUE(Timestamp::Seconds(kMinValue).IsMin());
@@ -122,10 +122,10 @@ MY_TEST(UnitConversionTest, InfinityOperations) {
     const int64_t kValue = 267;
     const Timestamp finite_time = Timestamp::Millis(kValue);
     const TimeDelta finite_delta = TimeDelta::Millis(kValue);
-    EXPECT_TRUE((Timestamp::MaxValue() + finite_delta).IsInfinite());
-    EXPECT_TRUE((Timestamp::MaxValue() - finite_delta).IsInfinite());
-    EXPECT_TRUE((finite_time + TimeDelta::MaxValue()).IsInfinite());
-    EXPECT_TRUE((finite_time - TimeDelta::MinValue()).IsInfinite());
+    EXPECT_TRUE((Timestamp::PlusInfinity() + finite_delta).IsInfinite());
+    EXPECT_TRUE((Timestamp::PlusInfinity() - finite_delta).IsInfinite());
+    EXPECT_TRUE((finite_time + TimeDelta::PlusInfinity()).IsInfinite());
+    EXPECT_TRUE((finite_time - TimeDelta::MinusInfinity()).IsInfinite());
 }
     
 } // namespace test

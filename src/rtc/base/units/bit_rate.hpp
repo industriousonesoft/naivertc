@@ -23,7 +23,7 @@ public:
         static_assert(std::is_arithmetic<T>::value, "");
         return FromFraction(1000, value);
     }
-    static constexpr BitRate Infinity() { return MaxValue(); }
+    static constexpr BitRate Infinity() { return PlusInfinity(); }
 
     // FIXME: BitRate as a return value used in TaskQueue, then the default constructor is required.
     // BitRate() = delete;

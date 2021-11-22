@@ -54,8 +54,8 @@ public:
 
     private:
         TimeDelta last_rtt_ = TimeDelta::Zero();
-        TimeDelta min_rtt_ = TimeDelta::MaxValue();
-        TimeDelta max_rtt_ = TimeDelta::MinValue();
+        TimeDelta min_rtt_ = TimeDelta::PlusInfinity();
+        TimeDelta max_rtt_ = TimeDelta::MinusInfinity();
         TimeDelta sum_rtt_ = TimeDelta::Zero();
         size_t num_rtts_ = 0;
     };
@@ -124,11 +124,11 @@ private:
     uint64_t remote_sender_reports_count_ = 0;
 
     // The last time we received an RTCP Report block
-    Timestamp last_time_received_rb_ = Timestamp::MaxValue();
+    Timestamp last_time_received_rb_ = Timestamp::PlusInfinity();
 
     // The time we last received an RTCP RR telling we have successfully
     // delivered RTP packet to the remote side.
-    Timestamp last_time_increased_sequence_number_ = Timestamp::MaxValue();
+    Timestamp last_time_increased_sequence_number_ = Timestamp::PlusInfinity();
 
     RtcpNackStats nack_stats_;
 

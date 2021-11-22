@@ -11,8 +11,8 @@ namespace test {
 MY_TEST(TimeDeltaBaseTest, ConstExpr) {
     constexpr int64_t kValue = -12345;
     constexpr TimeDelta kTestUnitZero = TimeDelta::Zero();
-    constexpr TimeDelta kTestUnitMaxValue = TimeDelta::MaxValue();
-    constexpr TimeDelta kTestUnitMinValue = TimeDelta::MinValue();
+    constexpr TimeDelta kTestUnitMaxValue = TimeDelta::PlusInfinity();
+    constexpr TimeDelta kTestUnitMinValue = TimeDelta::MinusInfinity();
 
     static_assert(kTestUnitZero.IsZero(), "");
     static_assert(kTestUnitMaxValue.IsMax(), "");
@@ -74,14 +74,14 @@ MY_TEST(TimeDeltaBaseTest, ConvertsToAndFromDouble) {
     const double kMaxValue = std::numeric_limits<double>::infinity();
     const double kMinValue = -kMaxValue;
 
-    EXPECT_EQ(TimeDelta::MaxValue().seconds<double>(), kMaxValue);
-    EXPECT_EQ(TimeDelta::MinValue().seconds<double>(), kMinValue);
-    EXPECT_EQ(TimeDelta::MaxValue().ms<double>(), kMaxValue);
-    EXPECT_EQ(TimeDelta::MinValue().ms<double>(), kMinValue);
-    EXPECT_EQ(TimeDelta::MaxValue().us<double>(), kMaxValue);
-    EXPECT_EQ(TimeDelta::MinValue().us<double>(), kMinValue);
-    EXPECT_EQ(TimeDelta::MaxValue().ns<double>(), kMaxValue);
-    EXPECT_EQ(TimeDelta::MinValue().ns<double>(), kMinValue);
+    EXPECT_EQ(TimeDelta::PlusInfinity().seconds<double>(), kMaxValue);
+    EXPECT_EQ(TimeDelta::MinusInfinity().seconds<double>(), kMinValue);
+    EXPECT_EQ(TimeDelta::PlusInfinity().ms<double>(), kMaxValue);
+    EXPECT_EQ(TimeDelta::MinusInfinity().ms<double>(), kMinValue);
+    EXPECT_EQ(TimeDelta::PlusInfinity().us<double>(), kMaxValue);
+    EXPECT_EQ(TimeDelta::MinusInfinity().us<double>(), kMinValue);
+    EXPECT_EQ(TimeDelta::PlusInfinity().ns<double>(), kMaxValue);
+    EXPECT_EQ(TimeDelta::MinusInfinity().ns<double>(), kMinValue);
 
     EXPECT_TRUE(TimeDelta::Seconds(kMaxValue).IsMax());
     EXPECT_TRUE(TimeDelta::Seconds(kMinValue).IsMin());
@@ -94,15 +94,15 @@ MY_TEST(TimeDeltaBaseTest, ConvertsToAndFromDouble) {
 MY_TEST(TimeDeltaBaseTest, InfinityOperations) {
   const int64_t kValue = 267;
   const TimeDelta finite = TimeDelta::Millis(kValue);
-  EXPECT_TRUE((TimeDelta::MaxValue() + finite).IsMax());
-  EXPECT_TRUE((TimeDelta::MaxValue() - finite).IsMax());
-  EXPECT_TRUE((finite + TimeDelta::MaxValue()).IsMax());
-  EXPECT_TRUE((finite - TimeDelta::MinValue()).IsMax());
+  EXPECT_TRUE((TimeDelta::PlusInfinity() + finite).IsMax());
+  EXPECT_TRUE((TimeDelta::PlusInfinity() - finite).IsMax());
+  EXPECT_TRUE((finite + TimeDelta::PlusInfinity()).IsMax());
+  EXPECT_TRUE((finite - TimeDelta::MinusInfinity()).IsMax());
 
-  EXPECT_TRUE((TimeDelta::MinValue() + finite).IsMin());
-  EXPECT_TRUE((TimeDelta::MinValue() - finite).IsMin());
-  EXPECT_TRUE((finite + TimeDelta::MinValue()).IsMin());
-  EXPECT_TRUE((finite - TimeDelta::MaxValue()).IsMin());
+  EXPECT_TRUE((TimeDelta::MinusInfinity() + finite).IsMin());
+  EXPECT_TRUE((TimeDelta::MinusInfinity() - finite).IsMin());
+  EXPECT_TRUE((finite + TimeDelta::MinusInfinity()).IsMin());
+  EXPECT_TRUE((finite - TimeDelta::PlusInfinity()).IsMin());
 }
     
 } // namespace test    
