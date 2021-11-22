@@ -12,7 +12,7 @@ public:
 };
 
 // Sets the current thread-local yield policy while it's in scope
-// and reverts to the previous thread-local value when it leaves the scope.
+// and reverts to the previous thread-local yield policy when it leaves the scope.
 class RTC_CPP_EXPORT ScopedYieldPolicy final {
 public:
     explicit ScopedYieldPolicy(YieldInterface* policy);
@@ -23,8 +23,8 @@ public:
     static void YieldExecution();
   
 private:
-    // The previous thread-local value.
-    void* const previous_;
+    // The previous thread-local yield policy.
+    YieldInterface* const previous_;
 };
 
 } // namespace naivertc
