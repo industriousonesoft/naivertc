@@ -12,7 +12,7 @@ namespace test {
 
 MY_TEST(RepeatingTaskTest, StopInternally) {
     std::shared_ptr<Clock> clock = std::make_shared<RealTimeClock>();
-    std::shared_ptr<TaskQueue> task_queue = std::make_shared<TaskQueue>();
+    std::shared_ptr<TaskQueue> task_queue = std::make_shared<TaskQueue>("RepeatingTaskTest.task_queue");
     Event event;
     int counter = 0;
     std::unique_ptr<RepeatingTask> repeating_task = RepeatingTask::DelayedStart(clock, task_queue, TimeDelta::Seconds(1), [&](){
@@ -32,7 +32,7 @@ MY_TEST(RepeatingTaskTest, StopInternally) {
 
 MY_TEST(RepeatingTaskTest, StopExternally) {
     std::shared_ptr<Clock> clock = std::make_shared<RealTimeClock>();
-    std::shared_ptr<TaskQueue> task_queue = std::make_shared<TaskQueue>();
+    std::shared_ptr<TaskQueue> task_queue = std::make_shared<TaskQueue>("RepeatingTaskTest.task_queue");
     Event event;
     int counter = 0;
     std::unique_ptr<RepeatingTask> repeating_task = RepeatingTask::DelayedStart(clock, task_queue, TimeDelta::Seconds(1), [&counter](){

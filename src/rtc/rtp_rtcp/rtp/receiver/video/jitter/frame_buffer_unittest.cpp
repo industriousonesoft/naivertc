@@ -116,8 +116,8 @@ protected:
     T(FrameBufferTest)() 
         : clock_(std::make_shared<SimulatedClock>(0)),
           timing_(std::make_shared<FakeTiming>(clock_)),
-          task_queue_(std::make_shared<TaskQueue>()),
-          decode_queue_(std::make_shared<TaskQueue>()),
+          task_queue_(std::make_shared<TaskQueue>("FrameBufferTest.task.queue")),
+          decode_queue_(std::make_shared<TaskQueue>("FrameBufferTest.decode.queue")),
           stats_observer_(/*std::make_shared<VideoReceiveStatisticsObserverMock>()*/ nullptr),
           frame_buffer_(std::make_unique<jitter::FrameBuffer>(jitter::ProtectionMode::NACK_FEC, 
                                                               clock_, 

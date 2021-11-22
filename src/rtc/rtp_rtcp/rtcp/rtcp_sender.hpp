@@ -204,8 +204,6 @@ private:
     // Map from RTCPPacketType to builder.
     std::map<RtcpPacketType, BuilderFunc> builders_;
 
-    TaskQueue schedule_queue_;
-
     NextSendEvaluationTimeScheduledCallback next_send_evaluation_time_scheduled_callback_;
 };
     

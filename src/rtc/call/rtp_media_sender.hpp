@@ -40,7 +40,6 @@ private:
     const RtpRtcpConfig rtp_rtcp_config_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<TaskQueue> task_queue_;
-    TaskQueue rtcp_task_queue_;
     
     std::unique_ptr<RtcpModule> rtcp_module_;
 };
