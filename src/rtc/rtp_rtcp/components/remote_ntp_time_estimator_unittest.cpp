@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp"
-#include "rtc/base/time/clock_simulated.hpp"
+#include "testing/simulated_clock.hpp"
 
 #include <gtest/gtest.h>
 

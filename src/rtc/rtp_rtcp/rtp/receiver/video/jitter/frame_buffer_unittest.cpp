@@ -1,6 +1,6 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/timing/timing.hpp"
-#include "rtc/base/time/clock_simulated.hpp"
+#include "testing/simulated_clock.hpp"
 #include "rtc/base/numerics/modulo_operator.hpp"
 #include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 #include "common/utils_numeric.hpp"

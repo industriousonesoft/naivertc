@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.hpp"
-#include "rtc/base/time/clock_simulated.hpp"
+#include "testing/simulated_clock.hpp"
 #include "rtc/base/numerics/histogram_percentile_counter.hpp"
 #include "common/utils_time.hpp"
 

@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/timing/timing.hpp"
-#include "rtc/base/time/clock_simulated.hpp"
+#include "testing/simulated_clock.hpp"
 
 #include <gtest/gtest.h>
 

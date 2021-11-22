@@ -1,4 +1,4 @@
-#include "rtc/base/time/clock_simulated.hpp"
+#include "testing/simulated_clock.hpp"
 
 namespace naivertc {
 

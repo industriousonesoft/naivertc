@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/fec/ulp/fec_receiver_ulp.hpp"
-#include "rtc/base/time/clock_simulated.hpp"
+#include "testing/simulated_clock.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_test_helper.hpp"
 #include "rtc/base/memory/byte_io_writer.hpp"

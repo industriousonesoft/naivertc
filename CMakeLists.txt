@@ -45,7 +45,7 @@ set(LIB_SOURCES
     src/common/utils_network.cpp
     src/common/logger.cpp
     src/common/weak_ptr_manager.cpp
-    src/common/thread_local_storage.cpp
+    src/common/thread_utils.cpp
 
     # signaling
     src/signaling/base/base_channel.cpp
@@ -63,7 +63,6 @@ set(LIB_SOURCES
     src/rtc/base/time/ntp_time_util.cpp
     src/rtc/base/time/clock.cpp
     src/rtc/base/time/clock_real_time.cpp
-    src/rtc/base/time/clock_simulated.cpp
     src/rtc/base/numerics/histogram_percentile_counter.cpp
     src/rtc/base/task_utils/repeating_task.cpp
     src/rtc/base/task_utils/task_queue.cpp
@@ -271,6 +270,7 @@ set(LIB_HEADERS
     src/base/tls.hpp
     src/base/init.hpp
     src/base/system_time.hpp
+    src/base/thread_annotation.hpp
 
     # common
     src/common/proxy.hpp
@@ -283,7 +283,7 @@ set(LIB_HEADERS
     src/common/weak_ptr_manager.hpp
     src/common/numeric_range_checker.hpp
     src/common/array_view.hpp
-    src/common/thread_local_storage.hpp
+    src/common/thread_utils.hpp
 
     # signaling
     src/signaling/base/base_channel.hpp
@@ -313,7 +313,6 @@ set(LIB_HEADERS
     src/rtc/base/time/ntp_time_util.hpp
     src/rtc/base/time/clock.hpp
     src/rtc/base/time/clock_real_time.hpp
-    src/rtc/base/time/clock_simulated.hpp
     src/rtc/base/numerics/moving_median_filter.hpp
     src/rtc/base/numerics/percentile_filter.hpp
     src/rtc/base/numerics/modulo_operator.hpp
@@ -324,7 +323,6 @@ set(LIB_HEADERS
     src/rtc/base/task_utils/task_queue.hpp
     src/rtc/base/synchronization/event.hpp
     src/rtc/base/synchronization/yield_policy.hpp
-    src/rtc/base/thread_annotation.hpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.hpp
@@ -506,7 +504,7 @@ add_library(${PROJECT_NAME} STATIC ${LIB_SOURCES} ${LIB_HEADERS} )
 # Add precompile headers
 # Call after the target has been created by a command such
 # as `add_library` or `add_executable`
-target_precompile_headers(${PROJECT_NAME} PRIVATE
+target_precompile_headers(${PROJECT_NAME} PUBLIC
     "src/base/features_checker.hpp"
     "src/base/attributes_checker.hpp" 
 )
@@ -584,15 +582,23 @@ add_subdirectory(deps/googletest)
 set(TESTING_SOURCES
     # testing
     src/testing/defines.hpp
-    src/testing/gtest_main.cpp
-
+    src/testing/simulated_clock.hpp
+    src/testing/simulated_clock.cpp
+    src/testing/simulated_sequence_runner.hpp
+    src/testing/simulated_task_queue.hpp
+    src/testing/simulated_task_queue.cpp
     src/testing/simulated_time_controller.hpp
     src/testing/simulated_time_controller.cpp
+    src/testing/simulated_time_controller_unittest.cpp
+  
+    # main
+    gtest/main.cpp
 )
 
 set(UNITTEST_SOURCES
     # base
     src/base/system_time_unittest.cpp
+    src/base/thread_annotation_unittest.cpp
     # common
     src/common/weak_ptr_manager_unittest.cpp
 
@@ -627,7 +633,6 @@ set(UNITTEST_SOURCES
     src/rtc/base/synchronization/yield_policy_unittest.cpp
     src/rtc/base/task_utils/task_queue_unittest.cpp
     src/rtc/base/task_utils/repeating_task_unittest.cpp
-    src/rtc/base/thread_annotation_unittest.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp
