@@ -4,17 +4,20 @@
 
 namespace naivertc {
 
-// std::shared_ptr<TaskQueue> TaskQueue::GlobalTaskQueue = std::make_shared<TaskQueue>();
-
-TaskQueue::TaskQueue(std::string&& name) 
+TaskQueue::TaskQueue(std::string name) 
     : work_guard_(boost::asio::make_work_guard(ioc_)),
       strand_(ioc_) {
     // The thread will start immediately after created
-    ioc_thread_.reset(new boost::thread(boost::bind(&boost::asio::io_context::run, &ioc_)));
-    if (!name.empty()) {
-        // TODO: Set a name for thread
-        PLOG_VERBOSE << "Task queue name: " << name << " in thread: " << ioc_thread_->get_id();
-    }
+    // ioc_thread_.reset(new boost::thread(boost::bind(&boost::asio::io_context::run, &ioc_)));
+    ioc_thread_.reset(new boost::thread([this, name=std::move(name)](){
+        if (!name.empty()) {
+            // FIXME: This seems not working?
+            SetCurrentThreadName(name.c_str());
+        }
+        // task_queue_thread_id_ = CurrentThreadId();
+        ioc_.run();
+        PLOG_VERBOSE << "ioc_thread of task queue exited.";
+    }));
 }
 
 TaskQueue::~TaskQueue() {
@@ -92,6 +95,7 @@ void TaskQueue::AsyncAfter(TimeInterval delay_in_sec, std::function<void()> hand
 bool TaskQueue::is_in_current_queue() const {
     // NOTE: DO NOT call get_id() in a detached thread, it will return 'Not-any-thread'
     return ioc_thread_->get_id() == boost::this_thread::get_id();    
+    // return task_queue_thread_id_ == CurrentThreadId();
 }
 
 

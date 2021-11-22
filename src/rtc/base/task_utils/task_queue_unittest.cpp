@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#define ENABLE_UNIT_TESTS 0
+#define ENABLE_UNIT_TESTS 1
 #include "testing/defines.hpp"
 
 using namespace testing;
@@ -20,7 +20,7 @@ void CheckCurrent(Event* signal, TaskQueue* queue) {
 }
 
 MY_TEST(TaskQueueTest, SyncPost) {
-    TaskQueue task_queue;
+    TaskQueue task_queue("TaskQueueTest.SyncPost");
     int ret = 1;
     ret = task_queue.Sync<int>([]() {
         return 100;
@@ -29,7 +29,16 @@ MY_TEST(TaskQueueTest, SyncPost) {
 }
 
 MY_TEST(TaskQueueTest, AsyncPost) {
-    TaskQueue task_queue;
+    TaskQueue task_queue("TaskQueueTest.AsyncPost");
+    Event event;
+    task_queue.Async([&task_queue, &event](){
+        CheckCurrent(&event, &task_queue);
+    });
+    EXPECT_TRUE(event.WaitForever());
+}
+
+MY_TEST(TaskQueueTest, MultipAsyncPost) {
+    TaskQueue task_queue("TaskQueueTest.MultipAsyncPost");
     Event event;
     int val = 1;
     task_queue.Async([&](){
@@ -42,17 +51,8 @@ MY_TEST(TaskQueueTest, AsyncPost) {
     EXPECT_TRUE(event.WaitForever());
 }
 
-MY_TEST(TaskQueueTest, MultipAsyncPost) {
-    TaskQueue task_queue;
-    Event event;
-    task_queue.Async([&task_queue, &event](){
-        CheckCurrent(&event, &task_queue);
-    });
-    EXPECT_TRUE(event.WaitForever());
-}
-
 MY_TEST(TaskQueueTest, AsyncDelayedPost) {
-    TaskQueue task_queue;
+    TaskQueue task_queue("TaskQueueTest.AsyncDelayedPost");
     Event event;
     int64_t start = utils::time::TimeInSec();
     task_queue.AsyncAfter(3 /* seconds */, [&task_queue, &event](){
@@ -65,7 +65,7 @@ MY_TEST(TaskQueueTest, AsyncDelayedPost) {
 }
 
 MY_TEST(TaskQueueTest, MultipAsyncDelayedPost) {
-    TaskQueue task_queue;
+    TaskQueue task_queue("TaskQueueTest.MultipAsyncDelayedPost");
     Event event1;
     int val = 1;
     task_queue.AsyncAfter(3 /* seconds */, [&task_queue, &event1, &val](){
@@ -84,7 +84,7 @@ MY_TEST(TaskQueueTest, MultipAsyncDelayedPost) {
 }
 
 MY_TEST(TaskQueueTest, AsyncPostBehindDelayedPost) {
-    TaskQueue task_queue;
+    TaskQueue task_queue("TaskQueueTest.AsyncPostBehindDelayedPost");
     Event event1;
     int val = 1;
     task_queue.AsyncAfter(3 /* seconds */, [&task_queue, &event1, &val](){
