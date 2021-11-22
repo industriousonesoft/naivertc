@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_THREAD_ANNOTATION_H_
-#define _RTC_BASE_THREAD_ANNOTATION_H_
+#ifndef _BASE_THREAD_ANNOTATION_H_
+#define _BASE_THREAD_ANNOTATION_H_
 
 // SWIG: Simplified Wrapper and Interface Generator
 #if defined(__clang__) && (!defined(SWIG))

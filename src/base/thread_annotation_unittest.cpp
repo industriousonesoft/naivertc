@@ -1,4 +1,4 @@
-#include "rtc/base/thread_annotation.hpp"
+#include "base/thread_annotation.hpp"
 
 #include <gtest/gtest.h>
 
