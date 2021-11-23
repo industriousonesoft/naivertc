@@ -36,59 +36,55 @@ void Transport::OnStateChanged(StateChangedCallback callback) {
 
 // Protected methods
 void Transport::UpdateState(State state) {
-    task_queue_->Async([this, state](){
-        if (state_ == state) 
-            return;
-        state_ = state;
-        if (state_changed_callback_) {
-            state_changed_callback_(state);
-        }
-    });
+    assert(task_queue_->IsCurrent());
+    if (state_ == state) {
+        return;
+    }
+    state_ = state;
+    if (state_changed_callback_) {
+        state_changed_callback_(state);
+    }
 }
 
 int Transport::ForwardOutgoingPacket(CopyOnWriteBuffer packet, const PacketOptions& options) {
-    return task_queue_->Sync<int>([this, packet=std::move(packet), &options](){
-        try {
-            if (auto lower = lower_.lock()) {
-                return lower->Send(std::move(packet), options);
-            } else {
-                return -1;
-            }
-        }catch (std::exception& e) {
-            PLOG_WARNING << "Failed to forward outgoing packet: " << e.what();
+    assert(task_queue_->IsCurrent());
+    try {
+        if (auto lower = lower_.lock()) {
+            return lower->Send(std::move(packet), options);
+        } else {
             return -1;
         }
-    });
+    }catch (std::exception& e) {
+        PLOG_WARNING << "Failed to forward outgoing packet: " << e.what();
+        return -1;
+    }
 }
 
 void Transport::ForwardIncomingPacket(CopyOnWriteBuffer packet) {
-    task_queue_->Async([this, packet=std::move(packet)](){
-        try {
-            if (packet_recv_callback_) {
-                packet_recv_callback_(std::move(packet));
-            }
-        } catch (std::exception& e) {
-            PLOG_WARNING << "Failed to forward incoming packet: " << e.what();
+    assert(task_queue_->IsCurrent());
+    try {
+        if (packet_recv_callback_) {
+            packet_recv_callback_(std::move(packet));
         }
-    });
+    } catch (std::exception& e) {
+        PLOG_WARNING << "Failed to forward incoming packet: " << e.what();
+    }
 }
 
 void Transport::RegisterIncoming() {
-    task_queue_->Async([this](){
-        if (auto lower = lower_.lock()) {
-            PLOG_VERBOSE << "Registering incoming callback";
-            lower->packet_recv_callback_ = std::bind(&Transport::Incoming, this, std::placeholders::_1);
-        }
-    });
+    assert(task_queue_->IsCurrent());
+    if (auto lower = lower_.lock()) {
+        PLOG_VERBOSE << "Registering incoming callback";
+        lower->packet_recv_callback_ = std::bind(&Transport::Incoming, this, std::placeholders::_1);
+    }
 }
 
 void Transport::DeregisterIncoming() {
-    task_queue_->Async([this](){
-        if (auto lower = lower_.lock()) {
-            lower->packet_recv_callback_ = nullptr;
-            PLOG_VERBOSE << "Deregistered incoming callback";
-        }
-    });
+    assert(task_queue_->IsCurrent());
+    if (auto lower = lower_.lock()) {
+        lower->packet_recv_callback_ = nullptr;
+        PLOG_VERBOSE << "Deregistered incoming callback";
+    }
 }
 
 } // namespace naivertc

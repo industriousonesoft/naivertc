@@ -47,7 +47,7 @@ void RtcpModule::ScheduleRtcpSendEvaluation(TimeDelta delay) {
         });
     } else {
         Timestamp execution_time = clock_->CurrentTime() + delay;
-        work_queue_.AsyncAfter(delay.seconds(), [this, execution_time](){
+        work_queue_.AsyncAfter(delay, [this, execution_time](){
             this->MaybeSendRtcpAtOrAfterTimestamp(execution_time);
         });
     }
@@ -63,7 +63,7 @@ void RtcpModule::MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time) {
     PLOG_WARNING << "TaskQueueBug: Task queue scheduled delayed call too early.";
 
     TimeDelta delay = execution_time - now;
-    work_queue_.AsyncAfter(delay.seconds(), [this, execution_time](){
+    work_queue_.AsyncAfter(delay, [this, execution_time](){
         this->MaybeSendRtcpAtOrAfterTimestamp(execution_time);
     });
 }

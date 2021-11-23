@@ -27,8 +27,14 @@ public:
 public:
     ~RepeatingTask();
 
-    bool Running() const;
+    // Stops future invocations of the repeating task closure.
+    // The closure is guaranteed to not be running after calling
+    // this function, unless it is called from the clouser itself. 
     void Stop();
+
+    // Returns true untill Stop() was called.
+    bool Running() const;
+    
 private:
     RepeatingTask(std::shared_ptr<Clock> clock, std::shared_ptr<TaskQueue> task_queue, TaskHandler clouser);
     void Start(TimeDelta delay);

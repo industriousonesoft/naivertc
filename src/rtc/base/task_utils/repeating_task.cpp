@@ -41,15 +41,19 @@ bool RepeatingTask::Running() const {
 }
 
 void RepeatingTask::Stop() {
-    task_queue_->Async([this](){
-        this->is_stoped = true;
-    });
+    if (task_queue_->IsCurrent()) {
+        is_stoped = true;
+    } else {
+        task_queue_->Async([this](){
+            this->is_stoped = true;
+        });
+    }
 }
 
 // Private methods
 void RepeatingTask::ScheduleTaskAfter(TimeDelta delay) {
     Timestamp execution_time = clock_->CurrentTime() + delay;
-    task_queue_->AsyncAfter(delay.seconds(), [this, execution_time](){
+    task_queue_->AsyncAfter(delay, [this, execution_time](){
         this->MaybeExecuteTask(execution_time);
     });
 }
@@ -66,7 +70,7 @@ void RepeatingTask::MaybeExecuteTask(Timestamp execution_time) {
 
     PLOG_WARNING << "RepeatingTask: scheduled delayed called too early.";
     TimeDelta delay = execution_time - now;
-    task_queue_->AsyncAfter(delay.seconds(), [this, execution_time](){
+    task_queue_->AsyncAfter(delay, [this, execution_time](){
         this->MaybeExecuteTask(execution_time);
     });
 }

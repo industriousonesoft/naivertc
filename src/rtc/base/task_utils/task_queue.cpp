@@ -1,4 +1,5 @@
 #include "rtc/base/task_utils/task_queue.hpp"
+#include "common/utils_time.hpp"
 
 #include <plog/Log.h>
 
@@ -51,7 +52,7 @@ void TaskQueue::Sync(std::function<void()> handler) const {
         handler();
     } else {
         boost::unique_lock<boost::mutex> lock(mutex_);
-        boost::asio::dispatch(strand_, [this, handler = std::move(handler)](){
+        boost::asio::post(strand_, [this, handler = std::move(handler)](){
             handler();
             cond_.notify_one();
         });
@@ -60,34 +61,25 @@ void TaskQueue::Sync(std::function<void()> handler) const {
 }
 
 void TaskQueue::Async(std::function<void()> handler) const {
-    if (IsCurrent()) {
-        handler();
-    } else {
-        boost::asio::post(strand_, std::move(handler));
-    }
+    boost::asio::post(strand_, std::move(handler));
 }
 
-void TaskQueue::Dispatch(std::function<void()> handler) const {
-    if (IsCurrent()) {
-        handler();
-    } else {
-        boost::asio::dispatch(strand_, std::move(handler));
-    }
-}
-
-void TaskQueue::AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler) {
+void TaskQueue::AsyncAfter(TimeDelta delay, std::function<void()> handler) {
      if (IsCurrent()) {
-        // Construct a timer without setting an expiry time.
-        boost::asio::deadline_timer* timer = new boost::asio::deadline_timer(ioc_, boost::posix_time::seconds(delay_in_sec));
-        // Start an asynchronous wait
-        timer->async_wait([this, timer, handler = std::move(handler)](const boost::system::error_code& error){
-            handler();
-            pending_timers_.remove(timer);
-        });
-        pending_timers_.push_back(timer);
+        if (delay.ms() > 0) {
+            ScheduleTaskAfter(delay, std::move(handler));
+        } else {
+            boost::asio::post(strand_, std::move(handler));
+        }
     } else {
-        boost::asio::post(strand_, [this, delay_in_sec, handler = std::move(handler)](){
-            AsyncAfter(delay_in_sec, std::move(handler));
+        uint32_t posted_time_ms = utils::time::Time32InMillis();
+        boost::asio::post(strand_, [this, delay, posted_time_ms, handler = std::move(handler)](){
+            uint32_t elasped_ms = utils::time::Time32InMillis() - posted_time_ms;
+            if (delay.ms() > elasped_ms) {
+                ScheduleTaskAfter(delay - TimeDelta::Millis(elasped_ms), std::move(handler));
+            } else {
+                boost::asio::post(strand_, std::move(handler));
+            }
         });
     }
 }
@@ -98,5 +90,17 @@ bool TaskQueue::IsCurrent() const {
     // return task_queue_thread_id_ == CurrentThreadId();
 }
 
+// Private methods
+void TaskQueue::ScheduleTaskAfter(TimeDelta delay, std::function<void()> handler) {
+    assert(IsCurrent());
+    // Construct a timer without setting an expiry time.
+    boost::asio::deadline_timer* timer = new boost::asio::deadline_timer(ioc_, boost::posix_time::milliseconds(delay.ms()));
+    // Start an asynchronous wait
+    timer->async_wait([this, timer, handler = std::move(handler)](const boost::system::error_code& error){
+        handler();
+        pending_timers_.remove(timer);
+    });
+    pending_timers_.push_back(timer);
+}
 
 }

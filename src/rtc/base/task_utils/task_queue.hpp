@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "common/thread_utils.hpp"
+#include "rtc/base/units/time_delta.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
@@ -21,9 +22,8 @@ public:
     ~TaskQueue();
 
     void Async(std::function<void()> handler) const;
-    void AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler);
-    void Dispatch(std::function<void()> handler) const;
-
+    void AsyncAfter(TimeDelta delay, std::function<void()> handler);
+   
     void Sync(std::function<void()> handler) const;
     template<typename T>
     T Sync(std::function<T(void)> handler) const {
@@ -42,6 +42,9 @@ public:
     }
 
     bool IsCurrent() const;
+
+private:
+    void ScheduleTaskAfter(TimeDelta delay, std::function<void()> handler);
 
 private:
     boost::asio::io_context ioc_;
