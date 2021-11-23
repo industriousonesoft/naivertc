@@ -16,7 +16,7 @@ void RtcpModule::RequestKeyFrame() {
 
 // Private methods
 const RtcpSender::FeedbackState& RtcpModule::GetFeedbackState() {
-    assert(work_queue_.is_in_current_queue());
+    assert(work_queue_.IsCurrent());
     uint32_t received_ntp_secs = 0;
     uint32_t received_ntp_frac = 0;
     feedback_state_.remote_sr = 0;
@@ -34,7 +34,7 @@ const RtcpSender::FeedbackState& RtcpModule::GetFeedbackState() {
 }
 
 void RtcpModule::MaybeSendRtcp() {
-    assert(work_queue_.is_in_current_queue());
+    assert(work_queue_.IsCurrent());
     if (rtcp_sender_.TimeToSendRtcpReport()) {
         rtcp_sender_.SendRtcp(GetFeedbackState(), RtcpPacketType::REPORT);
     }

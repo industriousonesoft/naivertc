@@ -132,7 +132,7 @@ void PeerConnection::OnSctpReadyToSend() {
 }
 
 void PeerConnection::OpenDataChannels() {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->Open(sctp_transport_);
@@ -141,7 +141,7 @@ void PeerConnection::OpenDataChannels() {
 }
 
 void PeerConnection::CloseDataChannels() {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->Close();
@@ -151,7 +151,7 @@ void PeerConnection::CloseDataChannels() {
 }
 
 void PeerConnection::RemoteCloseDataChannels() {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->RemoteClose();

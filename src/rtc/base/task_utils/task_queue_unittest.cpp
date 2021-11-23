@@ -13,7 +13,7 @@ namespace naivertc {
 namespace test {
 
 void CheckCurrent(Event* signal, TaskQueue* queue) {
-    EXPECT_TRUE(queue->is_in_current_queue());
+    EXPECT_TRUE(queue->IsCurrent());
     if (signal) {
         signal->Set();
     }

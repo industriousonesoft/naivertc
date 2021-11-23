@@ -92,7 +92,7 @@ void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string
 
 // SDP Processor
 void PeerConnection::SetLocalDescription(sdp::Type type) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     PLOG_VERBOSE << "Setting local description, type: " << type;
 
     if (type == sdp::Type::ROLLBACK) {
@@ -175,7 +175,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
 }
 
 void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     PLOG_VERBOSE << "Setting remote sdp: " << remote_sdp.type();
 
     // This is basically not gonna happen since we accept any offer
@@ -249,7 +249,7 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
 }
 
 void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     const uint16_t local_sctp_port = rtc_config_.local_sctp_port.value_or(kDefaultSctpPort);
     const size_t local_max_message_size = rtc_config_.sctp_max_message_size.value_or(kDefaultSctpMaxMessageSize);
 
@@ -389,7 +389,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description local_sdp) {
     }
 }
 void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     auto remote_ice_sdp = IceTransport::Description(remote_sdp.type(), remote_sdp.role(), remote_sdp.ice_ufrag(), remote_sdp.ice_pwd());
     ice_transport_->SetRemoteDescription(remote_ice_sdp);
 
@@ -431,7 +431,7 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
 }
 
 void PeerConnection::ProcessRemoteCandidates() {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     for (auto candidate : remote_candidates_) {
         ProcessRemoteCandidate(std::move(candidate));
     }
@@ -439,7 +439,7 @@ void PeerConnection::ProcessRemoteCandidates() {
 }
 
 void PeerConnection::ProcessRemoteCandidate(sdp::Candidate candidate) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     PLOG_VERBOSE << "Adding remote candidate: " << std::string(candidate);
 
     if (!remote_sdp_) {
@@ -466,7 +466,7 @@ void PeerConnection::ProcessRemoteCandidate(sdp::Candidate candidate) {
 }
 
 void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     if (!remote_sdp.ice_ufrag()) {
         throw std::invalid_argument("Remote sdp has no ICE user fragment");
     }
@@ -503,7 +503,7 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
 }
 
 void PeerConnection::ShiftDataChannelIfNeccessary(sdp::Role role) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     decltype(data_channels_) new_data_channels;
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
@@ -515,7 +515,7 @@ void PeerConnection::ShiftDataChannelIfNeccessary(sdp::Role role) {
 }
 
 void PeerConnection::TryToGatherLocalCandidate() {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     if (gathering_state_ == GatheringState::NEW && 
         local_sdp_.has_value()) {
         PLOG_DEBUG << "Start to gather local candidates";
@@ -524,7 +524,7 @@ void PeerConnection::TryToGatherLocalCandidate() {
 }
 
 void PeerConnection::OnIncomingMediaTrack(std::shared_ptr<MediaTrack> media_track) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     // Make sure the current media track dosen't be added before.
     if (media_tracks_.find(media_track->mid()) == media_tracks_.end()) {
         media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));

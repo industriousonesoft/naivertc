@@ -105,7 +105,7 @@ void PeerConnection::OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rt
 }
 
 void PeerConnection::OpenMediaTracks() {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     auto srtp_transport = std::dynamic_pointer_cast<DtlsSrtpTransport>(dtls_transport_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
@@ -117,7 +117,7 @@ void PeerConnection::OpenMediaTracks() {
 }
 
 void PeerConnection::CloseMediaTracks() {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
             media_track->Close();

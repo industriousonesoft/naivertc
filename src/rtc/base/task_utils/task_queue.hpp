@@ -18,16 +18,17 @@ namespace naivertc {
 class RTC_CPP_EXPORT TaskQueue {
 public:
     TaskQueue(std::string name);
-    virtual ~TaskQueue();
+    ~TaskQueue();
 
-    virtual void Sync(std::function<void()> handler) const;
-    virtual void Async(std::function<void()> handler) const;
-    virtual void AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler);
+    void Async(std::function<void()> handler) const;
+    void AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler);
+    void Dispatch(std::function<void()> handler) const;
 
+    void Sync(std::function<void()> handler) const;
     template<typename T>
     T Sync(std::function<T(void)> handler) const {
         T ret;
-        if (is_in_current_queue()) {
+        if (IsCurrent()) {
             ret = handler();
         } else {
             boost::unique_lock<boost::mutex> lock(mutex_);
@@ -40,9 +41,7 @@ public:
         return ret;
     }
 
-    virtual void Dispatch(std::function<void()> handler) const;
-
-    bool is_in_current_queue() const;
+    bool IsCurrent() const;
 
 private:
     boost::asio::io_context ioc_;

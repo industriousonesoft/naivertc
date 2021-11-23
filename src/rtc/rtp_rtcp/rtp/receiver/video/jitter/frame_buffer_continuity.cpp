@@ -25,7 +25,7 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrame(video::FrameToDecode frame) {
 
 // Private methods
 std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
-    assert(task_queue_->is_in_current_queue());
+    assert(task_queue_->IsCurrent());
     int64_t last_continuous_frame_id = last_continuous_frame_id_.value_or(-1);
 
     if (!ValidReferences(frame)) {
@@ -119,7 +119,7 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode f
 }
 
 bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) {
-    assert(task_queue_->is_in_current_queue());
+    assert(task_queue_->IsCurrent());
     if (frame.frame_type() == VideoFrameType::KEY) {
         // Key frame has no reference.
         return frame.NumReferences() == 0;
@@ -137,7 +137,7 @@ bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) {
 }
 
 std::pair<FrameBuffer::FrameInfoMap::iterator, bool> FrameBuffer::EmplaceFrameInfo(video::FrameToDecode frame) {
-    assert(task_queue_->is_in_current_queue());
+    assert(task_queue_->IsCurrent());
     int64_t new_frame_id = frame.id();
     FrameInfoMap::iterator frame_it = frame_infos_.find(new_frame_id);
     // Frame has inserted already, dropping it.
@@ -219,7 +219,7 @@ std::pair<FrameBuffer::FrameInfoMap::iterator, bool> FrameBuffer::EmplaceFrameIn
 }
 
 void FrameBuffer::PropagateContinuity(const FrameInfo& frame_info) {
-    assert(task_queue_->is_in_current_queue());
+    assert(task_queue_->IsCurrent());
     assert(frame_info.continuous());
 
     std::queue<const FrameInfo*> continuous_frames;

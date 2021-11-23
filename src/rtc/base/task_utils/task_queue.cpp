@@ -47,7 +47,7 @@ TaskQueue::~TaskQueue() {
 }
 
 void TaskQueue::Sync(std::function<void()> handler) const {
-    if (is_in_current_queue()) {
+    if (IsCurrent()) {
         handler();
     } else {
         boost::unique_lock<boost::mutex> lock(mutex_);
@@ -60,7 +60,7 @@ void TaskQueue::Sync(std::function<void()> handler) const {
 }
 
 void TaskQueue::Async(std::function<void()> handler) const {
-    if (is_in_current_queue()) {
+    if (IsCurrent()) {
         handler();
     } else {
         boost::asio::post(strand_, std::move(handler));
@@ -68,7 +68,7 @@ void TaskQueue::Async(std::function<void()> handler) const {
 }
 
 void TaskQueue::Dispatch(std::function<void()> handler) const {
-    if (is_in_current_queue()) {
+    if (IsCurrent()) {
         handler();
     } else {
         boost::asio::dispatch(strand_, std::move(handler));
@@ -76,7 +76,7 @@ void TaskQueue::Dispatch(std::function<void()> handler) const {
 }
 
 void TaskQueue::AsyncAfter(TimeInterval delay_in_sec, std::function<void()> handler) {
-     if (is_in_current_queue()) {
+     if (IsCurrent()) {
         // Construct a timer without setting an expiry time.
         boost::asio::deadline_timer* timer = new boost::asio::deadline_timer(ioc_, boost::posix_time::seconds(delay_in_sec));
         // Start an asynchronous wait
@@ -92,7 +92,7 @@ void TaskQueue::AsyncAfter(TimeInterval delay_in_sec, std::function<void()> hand
     }
 }
 
-bool TaskQueue::is_in_current_queue() const {
+bool TaskQueue::IsCurrent() const {
     // NOTE: DO NOT call get_id() in a detached thread, it will return 'Not-any-thread'
     return ioc_thread_->get_id() == boost::this_thread::get_id();    
     // return task_queue_thread_id_ == CurrentThreadId();

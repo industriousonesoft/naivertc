@@ -32,7 +32,7 @@ void FrameBuffer::NextFrame(int64_t max_wait_time_ms,
 
 // Private methods
 void FrameBuffer::FindNextDecodableFrames(int64_t last_decodable_frame_id) {
-    assert(task_queue_->is_in_current_queue());
+    assert(task_queue_->IsCurrent());
     assert(last_decodable_frame_id <= last_continuous_frame_id_);
 
     for (auto frame_it = frame_infos_.begin(); 
@@ -86,7 +86,7 @@ void FrameBuffer::FindNextDecodableFrames(int64_t last_decodable_frame_id) {
 }
 
 void FrameBuffer::StartWaitForNextFrameToDecode() {
-    assert(decode_queue_->is_in_current_queue());
+    assert(decode_queue_->IsCurrent());
     assert(!decode_repeating_task_ || !decode_repeating_task_->Running());
     int64_t wait_ms = FindNextFrameToDecode();
     decode_repeating_task_ = RepeatingTask::DelayedStart(clock_, decode_queue_, TimeDelta::Millis(wait_ms), [this]() {
@@ -105,7 +105,7 @@ void FrameBuffer::StartWaitForNextFrameToDecode() {
 }
 
 int64_t FrameBuffer::FindNextFrameToDecode() {
-    assert(decode_queue_->is_in_current_queue());
+    assert(decode_queue_->IsCurrent());
     int64_t now_ms = clock_->now_ms();
     const int64_t max_wait_time_ms = waiting_deadline_ms_ - now_ms;
     int64_t wait_time_ms = max_wait_time_ms;
@@ -156,7 +156,7 @@ int64_t FrameBuffer::FindNextFrameToDecode() {
 }
 
 video::FrameToDecode FrameBuffer::GetNextFrameToDecode() {
-    assert(decode_queue_->is_in_current_queue());
+    assert(decode_queue_->IsCurrent());
     assert(decodable_frames_.size() > 0);
 
     video::FrameToDecode frame_to_decode = std::move(decodable_frames_.front());
@@ -209,7 +209,7 @@ video::FrameToDecode FrameBuffer::GetNextFrameToDecode() {
 }
 
 bool FrameBuffer::IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms) {
-    assert(decode_queue_->is_in_current_queue());
+    assert(decode_queue_->IsCurrent());
     // Zero render time means render immediately.
     if (render_time_ms == 0) {
         return true;
@@ -238,7 +238,7 @@ bool FrameBuffer::IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms) {
 // NOTE: This function MUST be called after the frame was decoded to 
 // make sure the dependent frames of it can be decoded later.
 int64_t FrameBuffer::PropagateDecodability(const FrameInfo& frame_info) {
-    assert(task_queue_->is_in_current_queue());
+    assert(task_queue_->IsCurrent());
     int64_t last_decodable_frame_id = -1;
     for (int64_t frame_id : frame_info.dependent_frames) {
         auto dep_frame_it = frame_infos_.find(frame_id);
@@ -255,7 +255,7 @@ int64_t FrameBuffer::PropagateDecodability(const FrameInfo& frame_info) {
 }
 
 int FrameBuffer::EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size) {
-    assert(decode_queue_->is_in_current_queue());
+    assert(decode_queue_->IsCurrent());
     // Calculate the delay of the current frame from the previous frame.
     auto [frame_delay, success] = inter_frame_delay_.CalculateDelay(send_timestamp, recv_time_ms);
     if (success) {

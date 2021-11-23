@@ -53,7 +53,7 @@ void PeerConnection::Close() {
 }
 
 void PeerConnection::ResetCallbacks() {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     connection_state_callback_ = nullptr;
     gathering_state_callback_ = nullptr;
     candidate_callback_ = nullptr;
@@ -61,7 +61,7 @@ void PeerConnection::ResetCallbacks() {
 }
 
 void PeerConnection::CloseTransports() {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     if (!UpdateConnectionState(ConnectionState::CLOSED)) {
         // Closed already
         return;
@@ -86,7 +86,7 @@ void PeerConnection::CloseTransports() {
 }
 
 bool PeerConnection::UpdateConnectionState(ConnectionState state) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     if (connection_state_ == state) {
         return false;
     }
@@ -98,7 +98,7 @@ bool PeerConnection::UpdateConnectionState(ConnectionState state) {
 }
 
 bool PeerConnection::UpdateGatheringState(GatheringState state) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     if (gathering_state_ == state) {
         return false;
     }
@@ -110,7 +110,7 @@ bool PeerConnection::UpdateGatheringState(GatheringState state) {
 }
 
 bool PeerConnection::UpdateSignalingState(SignalingState state) {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     if (signaling_state_ == state) {
         return false;
     }
@@ -203,7 +203,7 @@ void PeerConnection::FlushPendingMediaTracks() {
 
 // Private methods
 std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(uint16_t stream_id) const {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     if (auto it = data_channels_.find(stream_id); it != data_channels_.end()) {
         return it->second.lock();
     }
@@ -211,7 +211,7 @@ std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(uint16_t stream_id)
 }
 
 std::shared_ptr<MediaTrack> PeerConnection::FindMediaTrack(std::string mid) const {
-    assert(signal_task_queue_->is_in_current_queue());
+    assert(signal_task_queue_->IsCurrent());
     if (auto it = this->media_tracks_.find(mid); it != this->media_tracks_.end()) {
         return it->second.lock();
     }
