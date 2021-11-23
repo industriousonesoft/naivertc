@@ -78,6 +78,10 @@ void SimulatedTimeController::Deregister(SimulatedSequenceRunner* runner) {
     }
 }
 
+void SimulatedTimeController::YieldExecution() {
+
+}
+
 // Private methods
 void SimulatedTimeController::AdvanceTimeTo(Timestamp target_time) {
     std::lock_guard lock(time_lock_);

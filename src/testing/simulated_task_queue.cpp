@@ -65,8 +65,8 @@ void SimulatedTaskQueue::Delete() {
     // Need to destroy the tasks outside of the lock because task destruction
     // can lead to re-entry in SimulatedTaskQueue via custom destructors.
     // FIXME: Why we need to prevent re-entry here?
-    std::deque<std::unique_ptr<QueuedTask>> ready_tasks;
-    std::map<Timestamp, std::vector<std::unique_ptr<QueuedTask>>> delayed_tasks;
+    ReadyTaskDeque ready_tasks;
+    DelayedTaskMap delayed_tasks;
     {
         std::lock_guard lock(lock_);
         ready_tasks_.swap(ready_tasks);

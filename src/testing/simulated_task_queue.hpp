@@ -45,8 +45,10 @@ private:
 
     mutable std::mutex lock_;
 
-    std::deque<std::unique_ptr<QueuedTask>> ready_tasks_ RTC_GUARDED_BY(lock_);
-    std::map<Timestamp, std::vector<std::unique_ptr<QueuedTask>>> delayed_tasks_ RTC_GUARDED_BY(lock_);
+    using ReadyTaskDeque = std::deque<std::unique_ptr<QueuedTask>>;
+    ReadyTaskDeque ready_tasks_ RTC_GUARDED_BY(lock_);
+    using DelayedTaskMap = std::map<Timestamp, std::vector<std::unique_ptr<QueuedTask>>>;
+    DelayedTaskMap delayed_tasks_ RTC_GUARDED_BY(lock_);
 
     Timestamp next_run_time_ RTC_GUARDED_BY(lock_) = Timestamp::PlusInfinity();
 };

@@ -31,6 +31,8 @@ public:
     void Register(SimulatedSequenceRunner* runner) RTC_LOCKS_EXCLUDED(lock_);
     void Deregister(SimulatedSequenceRunner* runner) RTC_LOCKS_EXCLUDED(lock_);
 
+    void YieldExecution() override;
+
 private:
     void AdvanceTimeTo(Timestamp target_time);
     void RunReadyRunners();
