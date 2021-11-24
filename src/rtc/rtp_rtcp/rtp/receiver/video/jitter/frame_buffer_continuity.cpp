@@ -19,12 +19,12 @@ constexpr size_t kMaxFramesBuffered = 800;
 
 std::pair<int64_t, bool> FrameBuffer::InsertFrame(video::FrameToDecode frame) {
     return task_queue_->Sync<std::pair<int64_t, bool>>([this, frame=std::move(frame)](){
-        return InsertFrameIntrenal(std::move(frame));
+        return InsertFrameInternal(std::move(frame));
     });
 }
 
 // Private methods
-std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode frame) {
+std::pair<int64_t, bool> FrameBuffer::InsertFrameInternal(video::FrameToDecode frame) {
     assert(task_queue_->IsCurrent());
     int64_t last_continuous_frame_id = last_continuous_frame_id_.value_or(-1);
 
@@ -38,7 +38,7 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode f
         if (frame.is_keyframe()) {
             PLOG_WARNING << "Inserting keyframe " << frame.id()
                          << " but the buffer is full, clearing buffer and inserting the frame.";
-            Clear();
+            ClearFramesAndHistory();
         } else {
             return {last_continuous_frame_id, false};
         }
@@ -60,7 +60,7 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode f
             // this frame if it is a keyframe.
             PLOG_WARNING << "A jump in frame is was detected, clearing buffer.";
             // Clear and continue to decode (start from this frame).
-            Clear();
+            ClearFramesAndHistory();
             last_continuous_frame_id = -1;
         } else {
             // The frame is out of order, and it's not a keyframe, droping it.
@@ -80,7 +80,7 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrameIntrenal(video::FrameToDecode f
         frame.id() > frame_infos_.rbegin()->first) {
         PLOG_WARNING << "A jump in frame id was detected, clearing buffer.";
         // Clear and continue to decode (start from this frame).
-        Clear();
+        ClearFramesAndHistory();
         last_continuous_frame_id = -1;
     }
 

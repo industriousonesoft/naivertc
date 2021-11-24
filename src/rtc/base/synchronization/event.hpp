@@ -45,7 +45,7 @@ private:
     pthread_mutex_t event_mutex_;
     pthread_cond_t event_cond_;
     const bool is_manual_reset_;
-    bool event_status_;
+    bool stop_waiting_;
 #endif
 };
     

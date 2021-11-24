@@ -61,7 +61,7 @@ timespec GetTimespec(const int milliseconds_from_now) {
 }  // namespace
 
 Event::Event(bool manual_reset, bool initially_signaled)
-    : is_manual_reset_(manual_reset), event_status_(initially_signaled) {
+    : is_manual_reset_(manual_reset), stop_waiting_(initially_signaled) {
     assert(pthread_mutex_init(&event_mutex_, nullptr) == 0);
     pthread_condattr_t cond_attr;
     assert(pthread_condattr_init(&cond_attr) == 0);
@@ -79,14 +79,14 @@ Event::~Event() {
 
 void Event::Set() {
     pthread_mutex_lock(&event_mutex_);
-    event_status_ = true;
+    stop_waiting_ = true;
     pthread_cond_broadcast(&event_cond_);
     pthread_mutex_unlock(&event_mutex_);
 }
 
 void Event::Reset() {
     pthread_mutex_lock(&event_mutex_);
-    event_status_ = false;
+    stop_waiting_ = false;
     pthread_mutex_unlock(&event_mutex_);
 }
 
@@ -110,11 +110,11 @@ bool Event::Wait(const int give_up_after_ms, const int warn_after_ms) {
     ScopedYieldPolicy::YieldExecution();
     pthread_mutex_lock(&event_mutex_);
 
-    // Wait for `event_cond_` to trigger and `event_status_` to be set, with the
+    // Wait for `event_cond_` to trigger and `stop_waiting_` to be set, with the
     // given timeout (or without a timeout if none is given).
     const auto wait = [&](const std::optional<timespec> timeout_ts) {
         int error = 0;
-        while (!event_status_ && error == 0) {
+        while (!stop_waiting_ && error == 0) {
             if (timeout_ts == std::nullopt) {
                 error = pthread_cond_wait(&event_cond_, &event_mutex_);
             } else {
@@ -145,7 +145,7 @@ bool Event::Wait(const int give_up_after_ms, const int warn_after_ms) {
     // the other threads will think it's unsignaled.  This seems to be
     // consistent with auto-reset events in WEBRTC_WIN
     if (error == 0 && !is_manual_reset_)
-        event_status_ = false;
+        stop_waiting_ = false;
 
     pthread_mutex_unlock(&event_mutex_);
 

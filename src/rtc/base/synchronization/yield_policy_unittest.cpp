@@ -25,7 +25,7 @@ MY_TEST(YieldPolicyTest, HandlerReceivesYieldSignalWhenSet) {
         ScopedYieldPolicy policy(&handler);
         event.Set();
         // Event will trigger `YieldExecution` when it's ready to wait.
-        // NOTE: The event will never wait as it was set before.
+        // NOTE: `WaitForever` will never block the thread as it was set before.
         event.WaitForever();
     }
     {

@@ -28,6 +28,7 @@ void SimulatedTaskQueue::RunReady(Timestamp at_time) {
             ready_tasks_.push_back(std::move(task));
         }
     }
+    CurrentTaskQueueSetter set_current(this);
     while (!ready_tasks_.empty()) {
         auto ready = std::move(ready_tasks_.front());
         ready_tasks_.pop_front();

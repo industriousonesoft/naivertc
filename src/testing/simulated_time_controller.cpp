@@ -18,7 +18,8 @@ bool RemoveByValue(C* container, typename C::value_type val) {
 SimulatedTimeController::SimulatedTimeController(Timestamp start_time) 
     : thread_id_(CurrentThreadId()), 
       current_time_(start_time),
-      sim_clock_(std::make_shared<SimulatedClock>(start_time.us())) {}
+      sim_clock_(std::make_shared<SimulatedClock>(start_time.us())),
+      yield_policy_(this) {}
 
 SimulatedTimeController::~SimulatedTimeController() = default;
 
@@ -79,7 +80,24 @@ void SimulatedTimeController::Deregister(SimulatedSequenceRunner* runner) {
 }
 
 void SimulatedTimeController::YieldExecution() {
-
+    if (CurrentThreadId() == thread_id_) {
+        TaskQueueImpl* yielding_from = TaskQueueImpl::Current();
+        // Since we might continue execution on a process thread, we should reset
+        // the thread local task queue reference. This ensures that thread checkers
+        // won't think we are executing on the yielding task queue. It also ensure
+        // that TaskQueueBase::Current() won't return the yielding task queue.
+        // NOTE: The current task queue of this thread will reset to `yielding_from`
+        // at the end of the call.
+        TokenTaskQueue::CurrentTaskQueueSetter reset_queue(nullptr);
+        // When we yield, we don't want to risk executing further tasks on the
+        // currently executing task queue. If there's a ready task that also yields,
+        // it's added to this set as well and only tasks on the remaining task
+        // queues are executed.
+        auto inserted = yielded_runners_.insert(yielding_from);
+        assert(inserted.second);
+        RunReadyRunners();
+        yielded_runners_.erase(inserted.first);
+    }
 }
 
 // Private methods

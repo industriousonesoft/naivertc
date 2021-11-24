@@ -48,16 +48,7 @@ FrameBuffer::~FrameBuffer() {}
 
 void FrameBuffer::Clear() {
     task_queue_->Async([this](){
-        if (auto observer = stats_observer_.lock()) {
-            size_t dropped_frames = NumUndecodedFrames(frame_infos_.begin(), frame_infos_.end());
-            if (dropped_frames > 0) {
-                PLOG_WARNING << "Dropped " << dropped_frames << " frames";
-                observer->OnDroppedFrames(dropped_frames);
-            }
-        }
-        frame_infos_.clear();
-        last_continuous_frame_id_.reset();
-        decoded_frames_history_.Clear();
+        ClearFramesAndHistory();
     });
 }
 
@@ -74,6 +65,20 @@ ProtectionMode FrameBuffer::protection_mode() const {
 }
 
 // Private methods
+void FrameBuffer::ClearFramesAndHistory() {
+    if (auto observer = stats_observer_.lock()) {
+        size_t dropped_frames = NumUndecodedFrames(frame_infos_.begin(), frame_infos_.end());
+        if (dropped_frames > 0) {
+            PLOG_WARNING << "Dropped " << dropped_frames << " frames";
+            observer->OnDroppedFrames(dropped_frames);
+        }
+    }
+    frame_infos_.clear();
+    decodable_frames_.clear();
+    last_continuous_frame_id_.reset();
+    decoded_frames_history_.Clear();
+}
+
 size_t FrameBuffer::NumUndecodedFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end) {
     return std::count_if(begin, end, 
                          [](const std::pair<const int64_t, FrameInfo>& frame_tuple) {

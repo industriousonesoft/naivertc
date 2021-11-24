@@ -40,16 +40,18 @@ void TaskQueue::Sync(std::function<void()> handler) const {
     if (IsCurrent()) {
         handler();
     } else {
-        std::unique_lock<std::mutex> lock(mutex_);
+        // std::unique_lock<std::mutex> lock(mutex_);
         impl_->Post([this, handler=std::move(handler)]{
             handler();
-            cond_.notify_one();
+            // cond_.notify_one();
+            event_.Set();
         });
-        cond_.wait(lock);
+        // cond_.wait(lock);
+        event_.WaitForever();
     }
 }
 
-void TaskQueue::Async(std::function<void()> handler) const {
+void TaskQueue::Async(std::function<void()> handler) {
     impl_->Post(std::move(handler));
 }
 

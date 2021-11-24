@@ -16,7 +16,6 @@
 #include <optional>
 #include <map>
 #include <vector>
-#include <list>
 
 namespace naivertc {
 namespace rtp {
@@ -77,11 +76,12 @@ private:
     using FrameInfoMap = std::map<int64_t, FrameInfo>;
 
 private:
+    void ClearFramesAndHistory();
     size_t NumUndecodedFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end);
     int EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size);
 
     // Continuity
-    std::pair<int64_t, bool> InsertFrameIntrenal(video::FrameToDecode frame);
+    std::pair<int64_t, bool> InsertFrameInternal(video::FrameToDecode frame);
     bool ValidReferences(const video::FrameToDecode& frame);
     // Returns a pair consisting of an iterator to the inserted element,
     // or the already-existing element if no insertion happened,
@@ -117,7 +117,7 @@ private:
     std::optional<int64_t> last_continuous_frame_id_ = std::nullopt;
 
     FrameInfoMap frame_infos_;
-    std::list<video::FrameToDecode> decodable_frames_;
+    std::map<int64_t, video::FrameToDecode> decodable_frames_;
     std::unique_ptr<RepeatingTask> decode_repeating_task_ = nullptr;
     bool keyframe_required_ = false;
     int64_t waiting_deadline_ms_ = 0;

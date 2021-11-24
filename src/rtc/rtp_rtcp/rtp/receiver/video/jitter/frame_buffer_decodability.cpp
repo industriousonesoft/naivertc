@@ -27,7 +27,6 @@ void FrameBuffer::NextFrame(int64_t max_wait_time_ms,
         next_frame_found_callback_ = std::move(callback);
         StartWaitForNextFrameToDecode();
     });
-
 }
 
 // Private methods
@@ -66,8 +65,8 @@ void FrameBuffer::FindNextDecodableFrames(int64_t last_decodable_frame_id) {
         frame_it->second.frame.reset();
 
         // Try to decode frame in decode queue.
-        decode_queue_->Async([this, frame=std::move(frame)](){
-            decodable_frames_.push_back(std::move(frame));
+        decode_queue_->Async([this, frame_id=frame_it->first, frame=std::move(frame)](){
+            decodable_frames_.emplace(frame_id, std::move(frame));
             // Check if the decode task has started.
             if (decode_repeating_task_) {
                 // Do nothing if the decode task was done, 
@@ -110,28 +109,29 @@ int64_t FrameBuffer::FindNextFrameToDecode() {
     const int64_t max_wait_time_ms = waiting_deadline_ms_ - now_ms;
     int64_t wait_time_ms = max_wait_time_ms;
     for (auto frame_it = decodable_frames_.begin(); frame_it != decodable_frames_.end(); ++frame_it) {
+        auto& frame = frame_it->second;
         // Filter the delta frames if the next frame we need is key frame.
-        if (keyframe_required_ && !frame_it->is_keyframe()) {
+        if (keyframe_required_ && !frame.is_keyframe()) {
             continue;
         }
 
         // Set render time if necessary.
-        if (frame_it->render_time_ms() == -1) {
+        if (frame.render_time_ms() == -1) {
             // Set a estimated render time that we expect.
-            frame_it->set_render_time_ms(timing_->RenderTimeMs(frame_it->timestamp(), now_ms));
+            frame.set_render_time_ms(timing_->RenderTimeMs(frame.timestamp(), now_ms));
         }
 
         // Check if the render time is valid or not, and reset the timing if necessary.
-        if (!IsValidRenderTiming(frame_it->render_time_ms(), now_ms)) {
+        if (!IsValidRenderTiming(frame.render_time_ms(), now_ms)) {
             jitter_estimator_.Reset();
             timing_->Reset();
             // Reset the render time.
-            frame_it->set_render_time_ms(timing_->RenderTimeMs(frame_it->timestamp(), now_ms));
+            frame.set_render_time_ms(timing_->RenderTimeMs(frame.timestamp(), now_ms));
         }
 
         // The waiting time in ms before decoding this frame:
         // wait_ms = render_time_ms - now_ms - decode_time_ms - render_delay_ms
-        wait_time_ms = timing_->MaxWaitingTimeBeforeDecode(frame_it->render_time_ms(), now_ms);
+        wait_time_ms = timing_->MaxWaitingTimeBeforeDecode(frame.render_time_ms(), now_ms);
 
         // This will cause the frame buffer to prefer high framerate rather
         // than high resolution in two case:
@@ -159,8 +159,9 @@ video::FrameToDecode FrameBuffer::GetNextFrameToDecode() {
     assert(decode_queue_->IsCurrent());
     assert(decodable_frames_.size() > 0);
 
-    video::FrameToDecode frame_to_decode = std::move(decodable_frames_.front());
-    decodable_frames_.pop_front();
+    // Pop up the first frame.
+    video::FrameToDecode frame_to_decode = std::move(decodable_frames_.begin()->second);
+    decodable_frames_.erase(frame_to_decode.id());
 
     // No nack has happened during the transport of this frame,
     // and it can estimate the jitter delay directly.
