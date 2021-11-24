@@ -4,13 +4,13 @@
 
 #include <gtest/gtest.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 
 namespace naivertc {
 namespace test {
 
-MY_TEST(RepeatingTaskTest, StopInternallyByReturningNonPositiveNumber) {
+MY_TEST(RepeatingTaskTest, TaskStopedByReturningNonPositiveNumber) {
     std::shared_ptr<Clock> clock = std::make_shared<RealTimeClock>();
     std::shared_ptr<TaskQueue> task_queue = std::make_shared<TaskQueue>("RepeatingTaskTest.task_queue");
     Event event;
@@ -30,7 +30,7 @@ MY_TEST(RepeatingTaskTest, StopInternallyByReturningNonPositiveNumber) {
     EXPECT_EQ(counter, 5);
 }
 
-MY_TEST(RepeatingTaskTest, StopByStoppedInside) {
+MY_TEST(RepeatingTaskTest, TaskCanStopItself) {
     std::shared_ptr<Clock> clock = std::make_shared<RealTimeClock>();
     std::shared_ptr<TaskQueue> task_queue = std::make_shared<TaskQueue>("RepeatingTaskTest.task_queue");
     Event event;

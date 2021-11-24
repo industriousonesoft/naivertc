@@ -18,17 +18,16 @@ bool RemoveByValue(C* container, typename C::value_type val) {
 SimulatedTimeController::SimulatedTimeController(Timestamp start_time) 
     : thread_id_(CurrentThreadId()), 
       current_time_(start_time),
-      sim_clock_(start_time.us()) {}
+      sim_clock_(std::make_shared<SimulatedClock>(start_time.us())) {}
 
 SimulatedTimeController::~SimulatedTimeController() = default;
 
-std::unique_ptr<SimulatedTaskQueue, SimulatedTaskQueue::Deleter> 
-SimulatedTimeController::CreateTaskQueue() {
-    return std::unique_ptr<SimulatedTaskQueue, SimulatedTaskQueue::Deleter>(new SimulatedTaskQueue(this));
+std::shared_ptr<TaskQueue> SimulatedTimeController::CreateTaskQueue() {
+    return std::make_shared<TaskQueue>(std::unique_ptr<SimulatedTaskQueue, SimulatedTaskQueue::Deleter>(new SimulatedTaskQueue(this)));
 }
 
-Clock* SimulatedTimeController::GetClock() {
-    return &sim_clock_;
+std::shared_ptr<Clock> SimulatedTimeController::Clock() const {
+    return sim_clock_;
 }
 
 Timestamp SimulatedTimeController::CurrentTime() const {
@@ -58,7 +57,8 @@ void SimulatedTimeController::AdvanceTime(TimeDelta duration) {
         Timestamp next_time = std::min(NextRunTime(), target_time);
         AdvanceTimeTo(next_time);
         auto delta = next_time - curr_time;
-        sim_clock_.AdvanceTime(delta);
+        sim_clock_->AdvanceTime(delta);
+        curr_time = next_time;
     }
     // After time has been simulated up until `target_time` we also need to run
     // tasks meant to be executed at `target_time`.
@@ -116,7 +116,6 @@ void SimulatedTimeController::RunReadyRunners() {
             lock_.lock();
         }
     }
-
 }
     
 } // namespace naivertc

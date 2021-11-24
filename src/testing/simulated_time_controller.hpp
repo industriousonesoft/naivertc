@@ -7,6 +7,7 @@
 #include "testing/simulated_task_queue.hpp"
 #include "common/thread_utils.hpp"
 #include "testing/simulated_clock.hpp"
+#include "rtc/base/task_utils/task_queue.hpp"
 
 #include <mutex>
 #include <vector>
@@ -20,9 +21,9 @@ public:
     explicit SimulatedTimeController(Timestamp start_time);
     ~SimulatedTimeController() override;
 
-    std::unique_ptr<SimulatedTaskQueue, SimulatedTaskQueue::Deleter> CreateTaskQueue();
+    std::shared_ptr<TaskQueue> CreateTaskQueue();
+    std::shared_ptr<Clock> Clock() const;
 
-    Clock* GetClock();
     Timestamp CurrentTime() const;
     Timestamp NextRunTime() const;
 
@@ -44,11 +45,10 @@ private:
     const PlatformThreadId thread_id_;
     Timestamp current_time_ RTC_GUARDED_BY(time_lock_);
     // Protected atomically.
-    SimulatedClock sim_clock_;
+    std::shared_ptr<SimulatedClock> sim_clock_;
 
     std::vector<SimulatedSequenceRunner *> runners_ RTC_GUARDED_BY(lock_);
     std::list<SimulatedSequenceRunner *> ready_runners_ RTC_GUARDED_BY(lock_);
-
 };
     
 } // namespace naivertc

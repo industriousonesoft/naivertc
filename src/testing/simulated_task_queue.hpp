@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "base/thread_annotation.hpp"
+#include "rtc/base/task_utils/task_queue_impl.hpp"
 #include "testing/simulated_sequence_runner.hpp"
 
 #include <mutex>
@@ -13,41 +14,32 @@ namespace naivertc {
 
 class SimulatedTimeController;
 
-// QueuedTask
-class RTC_CPP_EXPORT QueuedTask {
-public:
-    virtual ~QueuedTask() = default;
-    virtual bool Run() = 0;
-};
-
 // SimulatedTaskQueue
-class RTC_CPP_EXPORT SimulatedTaskQueue : public SimulatedSequenceRunner {
-public:
-    struct Deleter {
-        void operator()(SimulatedTaskQueue* task_queue) const { task_queue->Delete(); }
-    };
+class RTC_CPP_EXPORT SimulatedTaskQueue : public TaskQueueImpl, 
+                                          public SimulatedSequenceRunner {
 public:
     SimulatedTaskQueue(SimulatedTimeController* handler);
     ~SimulatedTaskQueue() override;
 
+    // SimulatedSequenceRunner interface
     // Provides next run time.
     Timestamp GetNextRunTime() const RTC_LOCKS_EXCLUDED(lock_) override;
     // Runs all ready tasks next run time.
     void RunReady(Timestamp at_time) RTC_LOCKS_EXCLUDED(lock_) override;
 
-    void Async(std::unique_ptr<QueuedTask> task) RTC_LOCKS_EXCLUDED(lock_);
-    void AsyncAfter(TimeDelta due_time, std::unique_ptr<QueuedTask> task) RTC_LOCKS_EXCLUDED(lock_);
+    // TaskQueueImpl interface
+    void Delete() RTC_LOCKS_EXCLUDED(lock_) override;
+    void Post(std::function<void()> handler) RTC_LOCKS_EXCLUDED(lock_) override;
+    void PostDelayed(TimeDelta delay, std::function<void()> handler) RTC_LOCKS_EXCLUDED(lock_) override;
 
-private:
-    void Delete();
 private:
     SimulatedTimeController* const handler_;
 
     mutable std::mutex lock_;
 
-    using ReadyTaskDeque = std::deque<std::unique_ptr<QueuedTask>>;
+    using ReadyTaskDeque = std::deque<std::function<void()>>;
     ReadyTaskDeque ready_tasks_ RTC_GUARDED_BY(lock_);
-    using DelayedTaskMap = std::map<Timestamp, std::vector<std::unique_ptr<QueuedTask>>>;
+    using DelayedTaskMap = std::map<Timestamp, std::vector<std::function<void()>>>;
     DelayedTaskMap delayed_tasks_ RTC_GUARDED_BY(lock_);
 
     Timestamp next_run_time_ RTC_GUARDED_BY(lock_) = Timestamp::PlusInfinity();

@@ -36,8 +36,7 @@ void SimulatedTaskQueue::RunReady(Timestamp at_time) {
         // of SimulatedTaskQueue instance, which will grab `lock_` again,
         // we should make sure the `lock_` is free before calling `Run`.
         lock_.unlock();
-        ready->Run();
-        ready.reset();
+        ready();
         lock_.lock();
     }
     if (!delayed_tasks_.empty()) {
@@ -47,17 +46,17 @@ void SimulatedTaskQueue::RunReady(Timestamp at_time) {
     }
 }
 
-void SimulatedTaskQueue::Async(std::unique_ptr<QueuedTask> task) {
+void SimulatedTaskQueue::Post(std::function<void()> handler) {
     std::lock_guard lock(lock_);
-    ready_tasks_.emplace_back(std::move(task));
+    ready_tasks_.emplace_back(std::move(handler));
     // Run the task ASAP.
     next_run_time_ = Timestamp::MinusInfinity();
 }
 
-void SimulatedTaskQueue::AsyncAfter(TimeDelta due_time, std::unique_ptr<QueuedTask> task) {
+void SimulatedTaskQueue::PostDelayed(TimeDelta delay, std::function<void()> handler) {
     std::lock_guard lock(lock_);
-    Timestamp target_time = handler_->CurrentTime() + due_time;
-    delayed_tasks_[target_time].push_back(std::move(task));
+    Timestamp target_time = handler_->CurrentTime() + delay;
+    delayed_tasks_[target_time].push_back(std::move(handler));
     next_run_time_ = std::min(next_run_time_, target_time);
 }
 

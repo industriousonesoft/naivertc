@@ -29,6 +29,9 @@ TaskQueue::TaskQueue(std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> task
 
 TaskQueue::~TaskQueue() {
     PLOG_VERBOSE << __FUNCTION__ << " will destroy.";
+    // Do NOT invalidate `impl_` until Delete returns to 
+    // make sure all remained tasks will be executed with a 
+    // valid pointer.
     impl_->Delete();
     PLOG_VERBOSE << __FUNCTION__ << " did destroy.";
 }

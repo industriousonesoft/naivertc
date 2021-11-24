@@ -5,7 +5,7 @@ namespace naivertc {
 std::unique_ptr<RepeatingTask> RepeatingTask::DelayedStart(std::shared_ptr<Clock> clock, 
                                                            std::shared_ptr<TaskQueue> task_queue, 
                                                            TimeDelta delay, 
-                                                           TaskHandler handler) {
+                                                           Handler handler) {
     auto task = std::unique_ptr<RepeatingTask>(new RepeatingTask(clock, task_queue, std::move(handler)));
     task->Start(delay);
     return task;
@@ -13,7 +13,7 @@ std::unique_ptr<RepeatingTask> RepeatingTask::DelayedStart(std::shared_ptr<Clock
 
 RepeatingTask::RepeatingTask(std::shared_ptr<Clock> clock, 
                              std::shared_ptr<TaskQueue> task_queue,
-                             TaskHandler handler) 
+                             Handler handler) 
     : clock_(clock),
       task_queue_(task_queue != nullptr ? std::move(task_queue) 
                                         : std::make_shared<TaskQueue>("RepeatingTask.default.task.queue")),
@@ -21,6 +21,7 @@ RepeatingTask::RepeatingTask(std::shared_ptr<Clock> clock,
 
 RepeatingTask::~RepeatingTask() {
     Stop();
+    task_queue_.reset();
 }
 
 void RepeatingTask::Start(TimeDelta delay) {

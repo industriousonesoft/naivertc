@@ -14,14 +14,14 @@
 namespace naivertc {
 class RTC_CPP_EXPORT RepeatingTask final {
 public:
-    using TaskHandler = std::function<TimeDelta(void)>;
+    using Handler = std::function<TimeDelta(void)>;
     static std::unique_ptr<RepeatingTask> DelayedStart(std::shared_ptr<Clock> clock, 
                                                        std::shared_ptr<TaskQueue> task_queue, 
                                                        TimeDelta delay, 
-                                                       TaskHandler clouser);
+                                                       Handler clouser);
     static std::unique_ptr<RepeatingTask> Start(std::shared_ptr<Clock> clock, 
                                                 std::shared_ptr<TaskQueue> task_queue,
-                                                TaskHandler clouser) {
+                                                Handler clouser) {
         return RepeatingTask::DelayedStart(clock, task_queue, TimeDelta::Seconds(0), std::move(clouser));
     }
 public:
@@ -36,7 +36,7 @@ public:
     bool Running() const;
     
 private:
-    RepeatingTask(std::shared_ptr<Clock> clock, std::shared_ptr<TaskQueue> task_queue, TaskHandler clouser);
+    RepeatingTask(std::shared_ptr<Clock> clock, std::shared_ptr<TaskQueue> task_queue, Handler clouser);
     void Start(TimeDelta delay);
 private:
     void ScheduleTaskAfter(TimeDelta delay);
@@ -45,7 +45,7 @@ private:
 private:
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<TaskQueue> task_queue_;
-    const TaskHandler handler_;
+    const Handler handler_;
     bool is_stoped = true;
 };
     

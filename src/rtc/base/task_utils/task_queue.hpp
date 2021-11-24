@@ -29,6 +29,9 @@ public:
 
     bool IsCurrent() const;
 
+    // Returns non-owning pointer to the task queue implementation.
+    TaskQueueImpl* Get() { return impl_; }
+
 private:
     TaskQueueImpl* const impl_;
     mutable std::mutex mutex_;
