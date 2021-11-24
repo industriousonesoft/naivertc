@@ -66,6 +66,8 @@ set(LIB_SOURCES
     src/rtc/base/numerics/histogram_percentile_counter.cpp
     src/rtc/base/task_utils/repeating_task.cpp
     src/rtc/base/task_utils/task_queue.cpp
+    src/rtc/base/task_utils/task_queue_impl.cpp
+    src/rtc/base/task_utils/task_queue_impl_boost.cpp
     src/rtc/base/synchronization/event.cpp
     # src/rtc/base/synchronization/event_win.cpp
     src/rtc/base/synchronization/event_posix.cpp
@@ -321,6 +323,8 @@ set(LIB_HEADERS
     src/rtc/base/numerics/divide_round.hpp
     src/rtc/base/task_utils/repeating_task.hpp
     src/rtc/base/task_utils/task_queue.hpp
+    src/rtc/base/task_utils/task_queue_impl.hpp
+    src/rtc/base/task_utils/task_queue_impl_boost.hpp
     src/rtc/base/synchronization/event.hpp
     src/rtc/base/synchronization/yield_policy.hpp
     
