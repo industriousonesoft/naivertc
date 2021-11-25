@@ -27,8 +27,7 @@ class RTC_CPP_EXPORT FrameBuffer {
 public:
     enum class ReturnReason { FOUND, TIME_OUT, STOPPED };
 public:
-    FrameBuffer(ProtectionMode protection_mode,
-                std::shared_ptr<Clock> clock, 
+    FrameBuffer(std::shared_ptr<Clock> clock, 
                 std::shared_ptr<Timing> timing,
                 std::shared_ptr<TaskQueue> task_queue,
                 std::shared_ptr<TaskQueue> decode_queue,
@@ -36,6 +35,7 @@ public:
     ~FrameBuffer();
 
     ProtectionMode protection_mode() const;
+    void set_protection_mode(ProtectionMode mode);
     
     void UpdateRtt(int64_t rtt_ms);
 
@@ -77,7 +77,7 @@ private:
 
 private:
     void ClearFramesAndHistory();
-    size_t NumUndecodedFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end);
+    size_t NumUndecodableFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end);
     int EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size);
 
     // Continuity
@@ -87,7 +87,7 @@ private:
     // or the already-existing element if no insertion happened,
     // and a bool denoting whether the insertion took place(true if insertion
     // happened, false if it did not).
-    std::pair<FrameInfoMap::iterator, bool> EmplaceFrameInfo(video::FrameToDecode frame);
+    std::pair<FrameInfo&, bool> EmplaceFrameInfo(video::FrameToDecode frame);
     void PropagateContinuity(const FrameInfo& frame_info);
 
     // Decodability
@@ -101,7 +101,6 @@ private:
 private:
     static constexpr int64_t kLogNonDecodedIntervalMs = 5000;
 private:
-    const ProtectionMode protection_mode_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<Timing> timing_;
     std::shared_ptr<TaskQueue> task_queue_;
@@ -111,12 +110,14 @@ private:
     InterFrameDelay inter_frame_delay_;
     DecodedFramesHistory decoded_frames_history_;
     JitterEstimator jitter_estimator_;
+    ProtectionMode protection_mode_;
     const bool add_rtt_to_playout_delay_;
     int64_t last_log_non_decoded_ms_;
 
     std::optional<int64_t> last_continuous_frame_id_ = std::nullopt;
 
     FrameInfoMap frame_infos_;
+    // Using map instead of list to make sure all the frames to decode in order.
     std::map<int64_t, video::FrameToDecode> decodable_frames_;
     std::unique_ptr<RepeatingTask> decode_repeating_task_ = nullptr;
     bool keyframe_required_ = false;

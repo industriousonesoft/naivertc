@@ -22,20 +22,19 @@ FrameBuffer::FrameInfo::FrameInfo() = default;
 FrameBuffer::FrameInfo::~FrameInfo() = default;
 
 // FrameBuffer
-FrameBuffer::FrameBuffer(ProtectionMode protection_mode,
-                         std::shared_ptr<Clock> clock, 
+FrameBuffer::FrameBuffer(std::shared_ptr<Clock> clock, 
                          std::shared_ptr<Timing> timing,
                          std::shared_ptr<TaskQueue> task_queue,
                          std::shared_ptr<TaskQueue> decode_queue,
                          std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer)
-    : protection_mode_(protection_mode),
-      clock_(std::move(clock)),
+    : clock_(std::move(clock)),
       timing_(std::move(timing)),
       task_queue_(std::move(task_queue)),
       decode_queue_(std::move(decode_queue)),
       stats_observer_(std::move(stats_observer)),
       decoded_frames_history_(kMaxFramesHistory),
       jitter_estimator_({/* Default HyperParameters */}, clock_),
+      protection_mode_(ProtectionMode::NACK),
       add_rtt_to_playout_delay_(true),
       last_log_non_decoded_ms_(-kLogNonDecodedIntervalMs) {
     assert(clock_ != nullptr);
@@ -64,10 +63,19 @@ ProtectionMode FrameBuffer::protection_mode() const {
     });
 }
 
+void FrameBuffer::set_protection_mode(ProtectionMode mode) {
+    decode_queue_->Async([this, mode](){
+        protection_mode_ = mode;
+    });
+}
+
 // Private methods
 void FrameBuffer::ClearFramesAndHistory() {
     if (auto observer = stats_observer_.lock()) {
-        size_t dropped_frames = NumUndecodedFrames(frame_infos_.begin(), frame_infos_.end());
+        // The undecodable frames
+        size_t dropped_frames = NumUndecodableFrames(frame_infos_.begin(), frame_infos_.end());
+        // the decodable frames
+        dropped_frames += decodable_frames_.size();
         if (dropped_frames > 0) {
             PLOG_WARNING << "Dropped " << dropped_frames << " frames";
             observer->OnDroppedFrames(dropped_frames);
@@ -79,7 +87,7 @@ void FrameBuffer::ClearFramesAndHistory() {
     decoded_frames_history_.Clear();
 }
 
-size_t FrameBuffer::NumUndecodedFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end) {
+size_t FrameBuffer::NumUndecodableFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end) {
     return std::count_if(begin, end, 
                          [](const std::pair<const int64_t, FrameInfo>& frame_tuple) {
         return frame_tuple.second.frame != std::nullopt;

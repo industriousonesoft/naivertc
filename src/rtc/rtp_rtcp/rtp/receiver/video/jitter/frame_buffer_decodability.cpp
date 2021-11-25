@@ -133,17 +133,23 @@ int64_t FrameBuffer::FindNextFrameToDecode() {
         // wait_ms = render_time_ms - now_ms - decode_time_ms - render_delay_ms
         wait_time_ms = timing_->MaxWaitingTimeBeforeDecode(frame.render_time_ms(), now_ms);
 
-        // This will cause the frame buffer to prefer high framerate rather
-        // than high resolution in two case:
-        // 1). the decoder is not decoding fast enough;
-        // 2). the stream has multiple spatial and temporal layers.
-        // For multiple temporal layers it may cause non-base layer frames to be
-        // skipped if they are late.
+        // Drop the frame in case of the decoder is not decoding fast enough (spend a long time to decode) or
+        // the stream has multiple spatial and temporal layers (spend a long to wait all layers to complete super frame).
+        // NOTE: This will cause the frame buffer to prefer high framerate rather than high resolution.
         if (wait_time_ms < -kMaxAllowedFrameDelayMs) {
+            // Try to find the next frame to decode in the remained frames.
+            // NOTE: In other word, we will decode the current frame if it's the last decodable frame so far.
             continue;
         }
 
-        // Remove all undecoded frames before the found frame excluding itself.
+        // Trigger state callback with all the dropped frames.
+        if (auto observer = stats_observer_.lock()) {
+            size_t dropped_frames = std::distance(decodable_frames_.begin(), frame_it);
+            if (dropped_frames > 0) {
+                observer->OnDroppedFrames(dropped_frames);
+            }
+        }
+        // Remove all decodable frames before the found frame excluding itself.
         decodable_frames_.erase(decodable_frames_.begin(), frame_it);
 
         // Ready to decode the first frame in `decodable_frames_`.
@@ -192,7 +198,7 @@ video::FrameToDecode FrameBuffer::GetNextFrameToDecode() {
         int64_t last_decodable_frame_id = PropagateDecodability(frame_info_it->second);
         // Trigger state callback with all the dropped frames.
         if (auto observer = stats_observer_.lock()) {
-            size_t dropped_frames = NumUndecodedFrames(frame_infos_.begin(), frame_info_it);
+            size_t dropped_frames = NumUndecodableFrames(frame_infos_.begin(), frame_info_it);
             if (dropped_frames > 0) {
                 observer->OnDroppedFrames(dropped_frames);
             }
