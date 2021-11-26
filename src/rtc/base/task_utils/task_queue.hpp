@@ -3,10 +3,14 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue_impl.hpp"
-#include "rtc/base/synchronization/event.hpp"
 
+// #define SUPPORT_YIELD
+#if defined(SUPPORT_YIELD)
+#include "rtc/base/synchronization/event.hpp"
+#else
 #include <mutex>
 #include <condition_variable>
+#endif
 
 namespace naivertc {
 
@@ -35,10 +39,13 @@ public:
 
 private:
     TaskQueueImpl* const impl_;
+#if defined(SUPPORT_YIELD)
     // NOTE: Using Event instead of std::mutex for YieldPolicy tests.
     mutable Event event_;
-    // mutable std::mutex mutex_;
-    // mutable std::condition_variable cond_;
+#else
+    mutable std::mutex mutex_;
+    mutable std::condition_variable cond_;
+#endif
 };
 
 template<typename T>
@@ -47,14 +54,22 @@ T TaskQueue::Sync(std::function<T()> handler) const {
     if (IsCurrent()) {
         ret = handler();
     } else {
-        // std::unique_lock<std::mutex> lock(mutex_);
+#if !defined(SUPPORT_YIELD)
+        std::unique_lock<std::mutex> lock(mutex_);
+#endif
         impl_->Post([this, handler=std::move(handler), &ret]{
             ret = handler();
-            // cond_.notify_one();
+#if defined(SUPPORT_YIELD)
             event_.Set();
+#else
+            cond_.notify_one();
+#endif
         });
-        // cond_.wait(lock);
-        event_.WaitForever();
+#if defined(SUPPORT_YIELD)
+    event_.WaitForever();
+#else
+    cond_.wait(lock);
+#endif
     }
     return ret;
 }

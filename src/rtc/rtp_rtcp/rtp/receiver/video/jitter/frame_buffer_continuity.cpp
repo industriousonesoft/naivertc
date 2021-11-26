@@ -18,14 +18,7 @@ constexpr size_t kMaxFramesBuffered = 800;
 } // namespace
 
 std::pair<int64_t, bool> FrameBuffer::InsertFrame(video::FrameToDecode frame) {
-    return task_queue_->Sync<std::pair<int64_t, bool>>([this, frame=std::move(frame)](){
-        return InsertFrameInternal(std::move(frame));
-    });
-}
-
-// Private methods
-std::pair<int64_t, bool> FrameBuffer::InsertFrameInternal(video::FrameToDecode frame) {
-    assert(task_queue_->IsCurrent());
+    std::lock_guard lock(lock_);
     int64_t last_continuous_frame_id = last_continuous_frame_id_.value_or(-1);
 
     if (!ValidReferences(frame)) {
@@ -94,9 +87,7 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrameInternal(video::FrameToDecode f
     // If all packets of this frame was not be retransmited, 
     // it can be used to calculate delay in Timing.
     if (!frame.delayed_by_retransmission()) {
-        decode_queue_->Async([this, timestamp = frame_info.frame->timestamp(), received_time_ms=frame_info.frame->received_time_ms()](){
-            timing_->IncomingTimestamp(timestamp, received_time_ms);
-        });
+        timing_->IncomingTimestamp(frame_info.frame->timestamp(), frame_info.frame->received_time_ms());
     }
 
     if (auto observer = stats_observer_.lock()) {
@@ -109,15 +100,27 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrameInternal(video::FrameToDecode f
         PropagateContinuity(frame_info);
         // Update the last continuous frame id with this frame id.
         last_continuous_frame_id = *last_continuous_frame_id_;
-        // Try to find the decodable frames.
-        FindNextDecodableFrames(last_continuous_frame_id);
+        // It might be a better time to decode next frame.
+        if (decode_queue_) {
+            decode_queue_->Async([this](){
+                // Check if the decode task has been started and 
+                // waiting for next decodable frame.
+                if (decode_task_ && decode_task_->Running()) {
+                    // The decode task is waiting for next frame to decode,
+                    // so we restart it for new decodable frame.
+                    decode_task_->Stop();
+                    StartWaitForNextFrameToDecode();
+                }
+            });
+        }
+        
     }
 
     return {last_continuous_frame_id, true};
 }
 
-bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) {
-    assert(task_queue_->IsCurrent());
+// Private methods
+bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) const {
     if (frame.frame_type() == VideoFrameType::KEY) {
         // Key frame has no reference.
         return frame.NumReferences() == 0;
@@ -136,7 +139,6 @@ bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) {
 
 std::pair<FrameBuffer::FrameInfo&, bool> 
 FrameBuffer::EmplaceFrameInfo(video::FrameToDecode frame) {
-    assert(task_queue_->IsCurrent());
     auto& frame_info = frame_infos_[frame.id()];
     // Frame has been inserted already, ignoring.
     if (frame_info.frame.has_value()) {
@@ -214,9 +216,7 @@ FrameBuffer::EmplaceFrameInfo(video::FrameToDecode frame) {
 }
 
 void FrameBuffer::PropagateContinuity(const FrameInfo& frame_info) {
-    assert(task_queue_->IsCurrent());
     assert(frame_info.continuous());
-
     std::queue<const FrameInfo*> continuous_frames;
     continuous_frames.push(&frame_info);
 

@@ -2,6 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_RECEIVER_VIDEO_JITTER_FRAME_BUFFER_H_
 
 #include "base/defines.hpp"
+#include "base/thread_annotation.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.hpp"
@@ -16,6 +17,7 @@
 #include <optional>
 #include <map>
 #include <vector>
+#include <mutex>
 
 namespace naivertc {
 namespace rtp {
@@ -23,30 +25,29 @@ namespace video {
 namespace jitter {
 
 // The class is not thread-safe, the caller MUST privode that.
-class RTC_CPP_EXPORT FrameBuffer {
+class RTC_CPP_EXPORT FrameBuffer final {
 public:
     enum class ReturnReason { FOUND, TIME_OUT, STOPPED };
 public:
     FrameBuffer(std::shared_ptr<Clock> clock, 
                 std::shared_ptr<Timing> timing,
-                std::shared_ptr<TaskQueue> task_queue,
                 std::shared_ptr<TaskQueue> decode_queue,
                 std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer);
     ~FrameBuffer();
 
     ProtectionMode protection_mode() const;
-    void set_protection_mode(ProtectionMode mode);
+    void set_protection_mode(ProtectionMode mode) RTC_LOCKS_EXCLUDED(lock_);
     
-    void UpdateRtt(int64_t rtt_ms);
+    void UpdateRtt(int64_t rtt_ms) RTC_LOCKS_EXCLUDED(lock_);
 
-    std::pair<int64_t, bool> InsertFrame(video::FrameToDecode frame);
+    std::pair<int64_t, bool> InsertFrame(video::FrameToDecode frame) RTC_LOCKS_EXCLUDED(lock_);
 
     using NextFrameFoundCallback = std::function<void(std::optional<video::FrameToDecode>)>;
     void NextFrame(int64_t max_wait_time_ms, 
-                   bool keyframe_required, 
+                   bool keyframe_required,
                    NextFrameFoundCallback callback);
 
-    void Clear();
+    void Clear() RTC_LOCKS_EXCLUDED(lock_);
 
 private:
     struct FrameInfo {
@@ -76,53 +77,51 @@ private:
     using FrameInfoMap = std::map<int64_t, FrameInfo>;
 
 private:
-    void ClearFramesAndHistory();
-    size_t NumUndecodableFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end);
-    int EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size);
+    void ClearFramesAndHistory() RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    size_t NumUndecodableFrames(FrameInfoMap::iterator begin, FrameInfoMap::iterator end) RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    int EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_ms, size_t frame_size) RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
     // Continuity
-    std::pair<int64_t, bool> InsertFrameInternal(video::FrameToDecode frame);
-    bool ValidReferences(const video::FrameToDecode& frame);
+    bool ValidReferences(const video::FrameToDecode& frame) const;
     // Returns a pair consisting of an iterator to the inserted element,
     // or the already-existing element if no insertion happened,
     // and a bool denoting whether the insertion took place(true if insertion
     // happened, false if it did not).
-    std::pair<FrameInfo&, bool> EmplaceFrameInfo(video::FrameToDecode frame);
-    void PropagateContinuity(const FrameInfo& frame_info);
+    std::pair<FrameInfo&, bool> EmplaceFrameInfo(video::FrameToDecode frame) RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    void PropagateContinuity(const FrameInfo& frame_info) RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
     // Decodability
-    void FindNextDecodableFrames(int64_t last_decodable_frame_id);
-    bool IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms);
-    int64_t PropagateDecodability(const FrameInfo& frame_info);
-    void StartWaitForNextFrameToDecode();
-    int64_t FindNextFrameToDecode();
-    video::FrameToDecode GetNextFrameToDecode();
+    void FindNextDecodableFrames(int64_t last_decodable_frame_id) RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    bool IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms) RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    int64_t PropagateDecodability(const FrameInfo& frame_info) RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    void StartWaitForNextFrameToDecode() RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    int64_t FindNextFrameToDecode() RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
+    video::FrameToDecode GetNextFrameToDecode() RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
 private:
     static constexpr int64_t kLogNonDecodedIntervalMs = 5000;
 private:
-    std::shared_ptr<Clock> clock_;
-    std::shared_ptr<Timing> timing_;
-    std::shared_ptr<TaskQueue> task_queue_;
-    std::shared_ptr<TaskQueue> decode_queue_;
+    std::mutex lock_;
+    std::shared_ptr<Clock> clock_ RTC_GUARDED_BY(lock_);
+    std::shared_ptr<Timing> timing_ RTC_GUARDED_BY(lock_);
+    std::shared_ptr<TaskQueue> decode_queue_ RTC_GUARDED_BY(lock_);
     std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer_;
 
-    InterFrameDelay inter_frame_delay_;
-    DecodedFramesHistory decoded_frames_history_;
-    JitterEstimator jitter_estimator_;
-    ProtectionMode protection_mode_;
+    InterFrameDelay inter_frame_delay_ RTC_GUARDED_BY(lock_);
+    DecodedFramesHistory decoded_frames_history_ RTC_GUARDED_BY(lock_);
+    JitterEstimator jitter_estimator_ RTC_GUARDED_BY(lock_);
+    ProtectionMode protection_mode_ RTC_GUARDED_BY(lock_);
     const bool add_rtt_to_playout_delay_;
-    int64_t last_log_non_decoded_ms_;
+    int64_t last_log_non_decoded_ms_ RTC_GUARDED_BY(lock_);
 
-    std::optional<int64_t> last_continuous_frame_id_ = std::nullopt;
-
-    FrameInfoMap frame_infos_;
-    // Using map instead of list to make sure all the frames to decode in order.
-    std::map<int64_t, video::FrameToDecode> decodable_frames_;
-    std::unique_ptr<RepeatingTask> decode_repeating_task_ = nullptr;
-    bool keyframe_required_ = false;
-    int64_t waiting_deadline_ms_ = 0;
-    NextFrameFoundCallback next_frame_found_callback_ = nullptr;
+    std::optional<int64_t> last_continuous_frame_id_ RTC_GUARDED_BY(lock_) = std::nullopt;
+    
+    FrameInfoMap frame_infos_ RTC_GUARDED_BY(lock_);
+    std::unique_ptr<RepeatingTask> decode_task_ RTC_GUARDED_BY(lock_) = nullptr;
+    std::optional<FrameInfoMap::iterator> frame_to_decode_;
+    bool keyframe_required_ RTC_GUARDED_BY(lock_) = false;
+    int64_t waiting_deadline_ms_ RTC_GUARDED_BY(lock_) = 0;
+    NextFrameFoundCallback next_frame_found_callback_ RTC_GUARDED_BY(lock_) = nullptr;
 };
     
 } // namespace jitter

@@ -24,12 +24,10 @@ FrameBuffer::FrameInfo::~FrameInfo() = default;
 // FrameBuffer
 FrameBuffer::FrameBuffer(std::shared_ptr<Clock> clock, 
                          std::shared_ptr<Timing> timing,
-                         std::shared_ptr<TaskQueue> task_queue,
                          std::shared_ptr<TaskQueue> decode_queue,
                          std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer)
     : clock_(std::move(clock)),
       timing_(std::move(timing)),
-      task_queue_(std::move(task_queue)),
       decode_queue_(std::move(decode_queue)),
       stats_observer_(std::move(stats_observer)),
       decoded_frames_history_(kMaxFramesHistory),
@@ -39,34 +37,27 @@ FrameBuffer::FrameBuffer(std::shared_ptr<Clock> clock,
       last_log_non_decoded_ms_(-kLogNonDecodedIntervalMs) {
     assert(clock_ != nullptr);
     assert(timing_ != nullptr);
-    assert(task_queue_ != nullptr);
-    assert(decode_queue_ != nullptr);
 }
 
 FrameBuffer::~FrameBuffer() {}
 
 void FrameBuffer::Clear() {
-    task_queue_->Async([this](){
-        ClearFramesAndHistory();
-    });
+    std::lock_guard lock(lock_);
+    ClearFramesAndHistory();
 }
 
 void FrameBuffer::UpdateRtt(int64_t rtt_ms) {
-    decode_queue_->Async([this, rtt_ms](){
-        jitter_estimator_.UpdateRtt(rtt_ms);
-    });
+    std::lock_guard lock(lock_);
+    jitter_estimator_.UpdateRtt(rtt_ms);
 }
 
 ProtectionMode FrameBuffer::protection_mode() const {
-    return decode_queue_->Sync<ProtectionMode>([this](){
-        return protection_mode_;
-    });
+    return protection_mode_;
 }
 
 void FrameBuffer::set_protection_mode(ProtectionMode mode) {
-    decode_queue_->Async([this, mode](){
-        protection_mode_ = mode;
-    });
+    std::lock_guard lock(lock_);
+    protection_mode_ = mode;
 }
 
 // Private methods
@@ -74,15 +65,13 @@ void FrameBuffer::ClearFramesAndHistory() {
     if (auto observer = stats_observer_.lock()) {
         // The undecodable frames
         size_t dropped_frames = NumUndecodableFrames(frame_infos_.begin(), frame_infos_.end());
-        // the decodable frames
-        dropped_frames += decodable_frames_.size();
         if (dropped_frames > 0) {
             PLOG_WARNING << "Dropped " << dropped_frames << " frames";
             observer->OnDroppedFrames(dropped_frames);
         }
     }
     frame_infos_.clear();
-    decodable_frames_.clear();
+    frame_to_decode_.reset();
     last_continuous_frame_id_.reset();
     decoded_frames_history_.Clear();
 }

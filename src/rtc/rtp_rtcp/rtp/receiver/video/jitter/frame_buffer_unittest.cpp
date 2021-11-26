@@ -107,7 +107,6 @@ public:
                         0, /* min_received_time_ms */
                         0 /* max_received_time_ms */) {}
 
-    
 };
 
 // FrameBufferTest
@@ -115,14 +114,12 @@ class T(FrameBufferTest) : public ::testing::Test {
 protected:
     T(FrameBufferTest)() 
         : time_controller_(Timestamp::Millis(0)),
-          task_queue_(time_controller_.CreateTaskQueue()),
           decode_queue_(time_controller_.CreateTaskQueue()),
           timing_(std::make_shared<FakeTiming>(time_controller_.Clock())),
           stats_observer_(std::make_shared<VideoReceiveStatisticsObserverMock>()),
           frame_buffer_(std::make_unique<jitter::FrameBuffer>(time_controller_.Clock(), 
-                                                              timing_, 
-                                                              task_queue_, 
-                                                              decode_queue_, 
+                                                              timing_,
+                                                              decode_queue_,
                                                               stats_observer_)) {}
 
     uint32_t Rand() const {
@@ -162,12 +159,14 @@ protected:
     int64_t InsertNackedFrame(uint16_t picture_id, int64_t timestamp_ms, int times_nacked = 1) {
         return frame_buffer_->InsertFrame(CreateFrame(picture_id, timestamp_ms, times_nacked, kFrameSize)).first;
     }
-    
+    // 
     void ExtractFrame(int64_t max_wait_time_ms = 0, bool keyframe_required = false) {
-        frame_buffer_->NextFrame(max_wait_time_ms, keyframe_required, [this](std::optional<FrameToDecode> frame){
-            if (frame) {
-                frames_.emplace_back(std::move(*frame));
-            }
+        decode_queue_->Async([this, max_wait_time_ms, keyframe_required](){
+            frame_buffer_->NextFrame(max_wait_time_ms, keyframe_required, [this](std::optional<FrameToDecode> frame){
+                if (frame) {
+                    frames_.emplace_back(std::move(*frame));
+                }
+            });
         });
         if (max_wait_time_ms == 0) {
             AdvanceTimeMs(0);
@@ -192,7 +191,6 @@ protected:
 
 protected:
     SimulatedTimeController time_controller_;
-    std::shared_ptr<TaskQueue> task_queue_;
     std::shared_ptr<TaskQueue> decode_queue_;
     std::shared_ptr<FakeTiming> timing_;
     std::shared_ptr<VideoReceiveStatisticsObserverMock> stats_observer_;
@@ -307,7 +305,7 @@ MY_TEST_F(FrameBufferTest, DropFramesIfSystemIsStalled) {
     EXPECT_EQ(pid + 2, InsertFrame(pid + 2, ts + 2 * kFps10, kFrameSize, pid + 1));
     EXPECT_EQ(pid + 3, InsertFrame(pid + 3, ts + 3 * kFps10, kFrameSize));
 
-    EXPECT_CALL(*stats_observer_, OnDroppedFrames(1)).Times(2);
+    EXPECT_CALL(*stats_observer_, OnDroppedFrames(2)).Times(1);
 
     ExtractFrame();
 
@@ -524,7 +522,9 @@ MY_TEST_F(FrameBufferTest, KeyframeClearsFullBuffer) {
 
 MY_TEST_F(FrameBufferTest, DontDecodeOlderTimestamp) {
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(2);
+    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(4);
+    // Frame 2 will be dropped before decoding the frame 3.
+    EXPECT_CALL(*stats_observer_, OnDroppedFrames(1)).Times(1);
 
     InsertFrame(2, 1, kFrameSize);
     InsertFrame(1, 2, kFrameSize);  // Older picture id but newer timestamp.
@@ -533,12 +533,12 @@ MY_TEST_F(FrameBufferTest, DontDecodeOlderTimestamp) {
     CheckFrame(0, 1);
     CheckNoFrame(1);
 
-    // InsertFrame(3, 4, kFrameSize);
-    // InsertFrame(4, 3, kFrameSize);  // Newer picture id but older timestamp.
-    // ExtractFrame(0);
-    // ExtractFrame(0);
-    // CheckFrame(2, 3);
-    // CheckNoFrame(3);
+    InsertFrame(3, 4, kFrameSize);
+    InsertFrame(4, 3, kFrameSize);  // Newer picture id but older timestamp.
+    ExtractFrame(0);
+    ExtractFrame(0);
+    CheckFrame(1, 3);
+    CheckNoFrame(2);
 }
     
 } // namespace test

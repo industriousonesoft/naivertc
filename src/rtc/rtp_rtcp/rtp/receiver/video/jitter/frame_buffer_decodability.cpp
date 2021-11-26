@@ -19,86 +19,38 @@ constexpr int64_t kMaxVideoDelayMs = 10000; // 10s
 } // namespace
 
 void FrameBuffer::NextFrame(int64_t max_wait_time_ms, 
-                            bool keyframe_required, 
+                            bool keyframe_required,
                             std::function<void(std::optional<video::FrameToDecode>)> callback) {
-    decode_queue_->Async([this, max_wait_time_ms, keyframe_required, callback=std::move(callback)](){
-        waiting_deadline_ms_ = clock_->now_ms() + max_wait_time_ms;
-        keyframe_required_ = keyframe_required;
-        next_frame_found_callback_ = std::move(callback);
-        StartWaitForNextFrameToDecode();
-    });
+    assert(decode_queue_->IsCurrent());
+    int64_t last_return_time_ms = clock_->now_ms() + max_wait_time_ms;
+    std::lock_guard lock(lock_);
+    waiting_deadline_ms_ = last_return_time_ms;
+    keyframe_required_ = keyframe_required;
+    next_frame_found_callback_ = std::move(callback);
+    StartWaitForNextFrameToDecode();
 }
 
 // Private methods
-void FrameBuffer::FindNextDecodableFrames(int64_t last_decodable_frame_id) {
-    assert(task_queue_->IsCurrent());
-    assert(last_decodable_frame_id <= last_continuous_frame_id_);
-
-    for (auto frame_it = frame_infos_.begin(); 
-         frame_it != frame_infos_.end() && frame_it->first <= last_decodable_frame_id; 
-         ++frame_it) {
-
-        // Filter the decoded frames.
-        if (frame_it->second.frame == std::nullopt) {
-            continue;
-        }
-
-        // Filter the uncontinuous or undecodable frames.
-        if (!frame_it->second.continuous() || 
-            frame_it->second.num_missing_decodable > 0) {
-            continue;
-        }
-        
-        // Filter the undecodable frames by timestamp.
-        auto last_decoded_frame_timestamp = decoded_frames_history_.last_decoded_frame_timestamp();
-        if (last_decoded_frame_timestamp && 
-            wrap_around_utils::AheadOf(*last_decoded_frame_timestamp, frame_it->second.frame->timestamp())) {
-            PLOG_WARNING << "Frame (id=" << frame_it->second.frame->id()
-                         << ") can not be decoded as the frames behind it have been decoded.";
-            continue;
-        }
-        
-        // TODO: Gather and combine all remaining frames for the same superframe.
-
-        // Retrieve the decodable frame.
-        video::FrameToDecode frame = std::move(frame_it->second.frame.value());
-        frame_it->second.frame.reset();
-
-        // Try to decode frame in decode queue.
-        decode_queue_->Async([this, frame_id=frame_it->first, frame=std::move(frame)](){
-            decodable_frames_.emplace(frame_id, std::move(frame));
-            // Check if the decode task has started.
-            if (decode_repeating_task_) {
-                // Do nothing if the decode task was done, 
-                // and is waiting for the next task.
-                if (!decode_repeating_task_->Running()) {
-                    return;
-                }
-                // The decode task is waiting for next frame to decode,
-                // so we restart it for new decodable frame.
-                decode_repeating_task_->Stop();
-                StartWaitForNextFrameToDecode();
-            }
-        });
-
-    } // end of for
-}
-
 void FrameBuffer::StartWaitForNextFrameToDecode() {
     assert(decode_queue_->IsCurrent());
-    assert(!decode_repeating_task_ || !decode_repeating_task_->Running());
+    assert(!decode_task_ || !decode_task_->Running());
     int64_t wait_ms = FindNextFrameToDecode();
-    decode_repeating_task_ = RepeatingTask::DelayedStart(clock_, decode_queue_, TimeDelta::Millis(wait_ms), [this]() {
-        if (!decodable_frames_.empty()) {
-            next_frame_found_callback_(GetNextFrameToDecode());
-        } else if (clock_->now_ms() < waiting_deadline_ms_) {
-            // If there's no frames to decode and there is still time left, 
-            // we should continue waiting for the remaining time.
-            return TimeDelta::Millis(FindNextFrameToDecode());
-        } else {
-            // No frame found and timeout.
-            next_frame_found_callback_(std::nullopt);
+    decode_task_ = RepeatingTask::DelayedStart(clock_, decode_queue_, TimeDelta::Millis(wait_ms), [this]() {
+        std::optional<video::FrameToDecode> next_frame = std::nullopt;
+        NextFrameFoundCallback callback = nullptr;
+        {
+            std::lock_guard lock(lock_);
+            if (frame_to_decode_) {
+                next_frame = GetNextFrameToDecode();
+            } else if (clock_->now_ms() < waiting_deadline_ms_) {
+                // If there's no frames to decode and there is still time left, 
+                // we should continue waiting for the remaining time.
+                return TimeDelta::Millis(FindNextFrameToDecode());
+            }
+            callback = std::move(next_frame_found_callback_);
+            next_frame_found_callback_ = nullptr;
         }
+        callback(std::move(next_frame));
         return TimeDelta::Zero();
     });
 }
@@ -108,30 +60,61 @@ int64_t FrameBuffer::FindNextFrameToDecode() {
     int64_t now_ms = clock_->now_ms();
     const int64_t max_wait_time_ms = waiting_deadline_ms_ - now_ms;
     int64_t wait_time_ms = max_wait_time_ms;
-    for (auto frame_it = decodable_frames_.begin(); frame_it != decodable_frames_.end(); ++frame_it) {
-        auto& frame = frame_it->second;
-        // Filter the delta frames if the next frame we need is key frame.
-        if (keyframe_required_ && !frame.is_keyframe()) {
+    frame_to_decode_.reset();
+
+    for (auto frame_it = frame_infos_.begin(); 
+         frame_it != frame_infos_.end() && frame_it->first <= last_continuous_frame_id_; 
+         ++frame_it) {
+
+        auto& frame_info = frame_it->second;
+
+        // Filter the decoded frames.
+        if (frame_info.frame == std::nullopt) {
             continue;
         }
 
+        // Filter the uncontinuous or undecodable frames.
+        if (!frame_info.continuous() || 
+            frame_info.num_missing_decodable > 0) {
+            continue;
+        }
+
+        // Filter the delta frames if the next frame we need is key frame.
+        if (keyframe_required_ && !frame_info.frame->is_keyframe()) {
+            continue;
+        }
+        
+        // Filter the undecodable frames by timestamp.
+        auto last_decoded_frame_timestamp = decoded_frames_history_.last_decoded_frame_timestamp();
+        if (last_decoded_frame_timestamp && 
+            wrap_around_utils::AheadOf(*last_decoded_frame_timestamp, frame_info.frame->timestamp())) {
+            PLOG_WARNING << "Frame (id=" << frame_info.frame->id()
+                         << ") can not be decoded as the frames behind it have been decoded.";
+            continue;
+        }
+        
+        // TODO: Gather and combine all remaining frames for the same superframe.
+
+        // Retrieve the decodable frame.
+        frame_to_decode_.emplace(frame_it);
+        
         // Set render time if necessary.
-        if (frame.render_time_ms() == -1) {
+        if (frame_info.frame->render_time_ms() == -1) {
             // Set a estimated render time that we expect.
-            frame.set_render_time_ms(timing_->RenderTimeMs(frame.timestamp(), now_ms));
+            frame_info.frame->set_render_time_ms(timing_->RenderTimeMs(frame_info.frame->timestamp(), now_ms));
         }
 
         // Check if the render time is valid or not, and reset the timing if necessary.
-        if (!IsValidRenderTiming(frame.render_time_ms(), now_ms)) {
+        if (!IsValidRenderTiming(frame_info.frame->render_time_ms(), now_ms)) {
             jitter_estimator_.Reset();
             timing_->Reset();
             // Reset the render time.
-            frame.set_render_time_ms(timing_->RenderTimeMs(frame.timestamp(), now_ms));
+            frame_info.frame->set_render_time_ms(timing_->RenderTimeMs(frame_info.frame->timestamp(), now_ms));
         }
 
         // The waiting time in ms before decoding this frame:
         // wait_ms = render_time_ms - now_ms - decode_time_ms - render_delay_ms
-        wait_time_ms = timing_->MaxWaitingTimeBeforeDecode(frame.render_time_ms(), now_ms);
+        wait_time_ms = timing_->MaxWaitingTimeBeforeDecode(frame_info.frame->render_time_ms(), now_ms);
 
         // Drop the frame in case of the decoder is not decoding fast enough (spend a long time to decode) or
         // the stream has multiple spatial and temporal layers (spend a long to wait all layers to complete super frame).
@@ -141,20 +124,10 @@ int64_t FrameBuffer::FindNextFrameToDecode() {
             // NOTE: In other word, we will decode the current frame if it's the last decodable frame so far.
             continue;
         }
-
-        // Trigger state callback with all the dropped frames.
-        if (auto observer = stats_observer_.lock()) {
-            size_t dropped_frames = std::distance(decodable_frames_.begin(), frame_it);
-            if (dropped_frames > 0) {
-                observer->OnDroppedFrames(dropped_frames);
-            }
-        }
-        // Remove all decodable frames before the found frame excluding itself.
-        decodable_frames_.erase(decodable_frames_.begin(), frame_it);
-
-        // Ready to decode the first frame in `decodable_frames_`.
+        
         break;
-    }
+    } // end of for
+
     // Limits the wait time in the range: [0, max_wait_time_ms]
     wait_time_ms = std::min<int64_t>(wait_time_ms, max_wait_time_ms);
     wait_time_ms = std::max<int64_t>(wait_time_ms, 0);
@@ -163,21 +136,39 @@ int64_t FrameBuffer::FindNextFrameToDecode() {
 
 video::FrameToDecode FrameBuffer::GetNextFrameToDecode() {
     assert(decode_queue_->IsCurrent());
-    assert(decodable_frames_.size() > 0);
+    assert(frame_to_decode_);
 
-    // Pop up the first frame.
-    video::FrameToDecode frame_to_decode = std::move(decodable_frames_.begin()->second);
-    decodable_frames_.erase(frame_to_decode.id());
+    auto& frame_info_it = frame_to_decode_.value();
+    auto& frame_info = frame_info_it->second;
+    assert(frame_info.frame);
+    
+    // Update related info.
+    // Propagate the decodability to the dependent frames of this frame.
+    PropagateDecodability(frame_info);
+    // Indicate the frame was decoded.
+    decoded_frames_history_.InsertFrame(frame_info.frame->id(), frame_info.frame->timestamp());
+
+    // Trigger state callback with all the dropped frames.
+    if (auto observer = stats_observer_.lock()) {
+        size_t dropped_frames = NumUndecodableFrames(frame_infos_.begin(), frame_info_it);
+        if (dropped_frames > 0) {
+            observer->OnDroppedFrames(dropped_frames);
+        }
+    }
+    // Retrieve the next frame to decode.
+    video::FrameToDecode frame = std::move(frame_info.frame.value());
+    // Remove decoded frame and all undecoded frames before it.
+    frame_infos_.erase(frame_infos_.begin(), ++frame_info_it);
 
     // No nack has happened during the transport of this frame,
     // and it can estimate the jitter delay directly.
-    if (!frame_to_decode.delayed_by_retransmission()) {
+    if (!frame.delayed_by_retransmission()) {
         // Estimate the jitter occurred during the transport of this frame.
-        int jitter_delay_ms = EstimateJitterDelay(frame_to_decode.timestamp(), /* send timestamp */
-                                                  frame_to_decode.received_time_ms(), /* arrived time */
-                                                  frame_to_decode.size());
+        int jitter_delay_ms = EstimateJitterDelay(frame.timestamp(), /* send timestamp */
+                                                  frame.received_time_ms(), /* arrived time */
+                                                  frame.size());
         timing_->set_jitter_delay_ms(jitter_delay_ms);
-        timing_->UpdateCurrentDelay(frame_to_decode.render_time_ms(), clock_->now_ms() /* actual_decode_time_ms */);
+        timing_->UpdateCurrentDelay(frame.render_time_ms(), clock_->now_ms() /* actual_decode_time_ms */);
     } else {
         if (add_rtt_to_playout_delay_) {
             jitter_estimator_.FrameNacked();
@@ -187,32 +178,8 @@ video::FrameToDecode FrameBuffer::GetNextFrameToDecode() {
     // TODO: Update jitter delay and timing frame info.
     // TODO: Return next frames to decode
 
-    // Update related info.
-    task_queue_->Async([this, frame_id=frame_to_decode.id(), timestamp=frame_to_decode.timestamp()](){
-        // Indicate the frame was decoded.
-        decoded_frames_history_.InsertFrame(frame_id, timestamp);
-        // Retrieve the info of the decoded frame.
-        auto frame_info_it = frame_infos_.find(frame_id);
-        assert(frame_info_it != frame_infos_.end());
-        // Propagate the decodability to the dependent frames of this frame.
-        int64_t last_decodable_frame_id = PropagateDecodability(frame_info_it->second);
-        // Trigger state callback with all the dropped frames.
-        if (auto observer = stats_observer_.lock()) {
-            size_t dropped_frames = NumUndecodableFrames(frame_infos_.begin(), frame_info_it);
-            if (dropped_frames > 0) {
-                observer->OnDroppedFrames(dropped_frames);
-            }
-        }
-        // Remove decoded frame and all undecoded frames before it.
-        frame_infos_.erase(frame_infos_.begin(), ++frame_info_it);
-        if (last_decodable_frame_id >= 0) {
-            // Detected new decodable frames.
-            FindNextDecodableFrames(last_decodable_frame_id);
-        }
-    });
-
     // NOTE: Deliver the frame to decode at last.
-    return frame_to_decode;
+    return frame;
 }
 
 bool FrameBuffer::IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms) {
@@ -245,7 +212,6 @@ bool FrameBuffer::IsValidRenderTiming(int64_t render_time_ms, int64_t now_ms) {
 // NOTE: This function MUST be called after the frame was decoded to 
 // make sure the dependent frames of it can be decoded later.
 int64_t FrameBuffer::PropagateDecodability(const FrameInfo& frame_info) {
-    assert(task_queue_->IsCurrent());
     int64_t last_decodable_frame_id = -1;
     for (int64_t frame_id : frame_info.dependent_frames) {
         auto dep_frame_it = frame_infos_.find(frame_id);
