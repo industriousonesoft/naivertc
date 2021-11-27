@@ -24,24 +24,19 @@ void PeerConnection::InitDtlsTransport(DtlsTransport::Configuration config) {
 
     PLOG_VERBOSE << "Init DTLS transport";
 
-    auto lower = ice_transport_;
-    if (!lower) {
-        throw std::logic_error("No underlying ICE transport for DTLS transport");
-    }
-
+    assert(ice_transport_ && "No underlying ICE transport for DTLS transport");
+ 
     // DTLS-SRTP
     if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVideo())) {
-        auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(std::move(config), lower);
+        auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(std::move(config), ice_transport_);
         dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1, std::placeholders::_2));
         dtls_transport_ = dtls_srtp_transport;
     // DTLS only
     } else {
-        dtls_transport_ = std::make_shared<DtlsTransport>(std::move(config), lower);
+        dtls_transport_ = std::make_shared<DtlsTransport>(std::move(config), ice_transport_);
     }
 
-    if (!dtls_transport_) {
-        throw std::logic_error("Failed to init DTLS transport");
-    }
+    assert(dtls_transport_ && "Failed to init DTLS transport");
 
     dtls_transport_->OnStateChanged(std::bind(&PeerConnection::OnDtlsTransportStateChanged, this, std::placeholders::_1));
     dtls_transport_->OnVerify(std::bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
@@ -59,12 +54,7 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
             if (auto remote_sdp = this->remote_sdp_; remote_sdp && remote_sdp->HasApplication()) {
                 auto sctp_config = CreateSctpConfig();
                 network_task_queue_->Async([this, config=std::move(sctp_config)](){
-                    try {
-                        InitSctpTransport(std::move(config));
-                    }catch(const std::exception& exp) {
-                        PLOG_ERROR << exp.what();
-                        UpdateConnectionState(ConnectionState::FAILED);
-                    }
+                    InitSctpTransport(std::move(config));
                 });
             } else {
                 this->UpdateConnectionState(ConnectionState::CONNECTED);

@@ -9,7 +9,7 @@ namespace naivertc {
 
 using namespace std::chrono_literals;
 
-IceTransport::IceTransport(const RtcConfiguration& config) 
+IceTransport::IceTransport(RtcConfiguration config) 
     : Transport(std::weak_ptr<Transport>()), 
       curr_mid_("0"),
       role_(sdp::Role::ACT_PASS) {

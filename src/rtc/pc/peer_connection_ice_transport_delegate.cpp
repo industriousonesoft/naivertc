@@ -4,7 +4,7 @@
 
 namespace naivertc {
 // Init IceTransport 
-void PeerConnection::InitIceTransport() {
+void PeerConnection::InitIceTransport(RtcConfiguration config) {
     assert(network_task_queue_->IsCurrent());
     try {
         if (ice_transport_) {
@@ -12,7 +12,7 @@ void PeerConnection::InitIceTransport() {
         }
         PLOG_VERBOSE << "Init Ice transport";
     
-       ice_transport_.reset(new IceTransport(rtc_config_));
+       ice_transport_.reset(new IceTransport(std::move(config)));
        
        ice_transport_->OnStateChanged(std::bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
        ice_transport_->OnGatheringStateChanged(std::bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));

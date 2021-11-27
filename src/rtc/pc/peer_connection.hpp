@@ -109,7 +109,7 @@ protected:
     PeerConnection(const RtcConfiguration& config);
 
 private:
-    void InitIceTransport();
+    void InitIceTransport(RtcConfiguration config);;
 
     DtlsTransport::Configuration CreateDtlsConfig() const;
     void InitDtlsTransport(DtlsTransport::Configuration config);

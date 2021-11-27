@@ -33,18 +33,9 @@ void PeerConnection::InitSctpTransport(SctpTransport::Configuration config) {
         return;
     }
     PLOG_VERBOSE << "Starting SCTP transport";
-
-    auto lower = dtls_transport_;
-    if (!lower) {
-        throw std::logic_error("No underlying DTLS transport for SCTP transport");
-    }
-    
-    sctp_transport_ = std::make_shared<SctpTransport>(std::move(config), lower);
-
-    if (!sctp_transport_) {
-        throw std::logic_error("Failed to init SCTP transport");
-    }
-
+    assert(dtls_transport_ && "No underlying DTLS transport for SCTP transport");
+    sctp_transport_ = std::make_shared<SctpTransport>(std::move(config), dtls_transport_);
+    assert(sctp_transport_ && "Failed to init SCTP transport");
     sctp_transport_->OnStateChanged(std::bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
     sctp_transport_->OnSctpMessageReceived(std::bind(&PeerConnection::OnSctpMessageReceived, this, std::placeholders::_1));
 

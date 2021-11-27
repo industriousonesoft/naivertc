@@ -31,8 +31,8 @@ PeerConnection::PeerConnection(const RtcConfiguration& config)
     network_task_queue_ = std::make_shared<TaskQueue>("PeerConnection.network.task.queue");
     worker_task_queue_ = std::make_shared<TaskQueue>("PeerConnection.worker.task.queue");
 
-    network_task_queue_->Async([this](){
-        InitIceTransport();
+    network_task_queue_->Async([this, config=rtc_config_](){
+        InitIceTransport(std::move(config));
     });
 }
 
