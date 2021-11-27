@@ -5,6 +5,7 @@
 #include "rtc/transports/transport.hpp"
 #include "rtc/transports/sctp_message.hpp"
 #include "rtc/transports/sctp_transport_usr_sctp_settings.hpp"
+#include "rtc/base/synchronization/event.hpp"
 
 #include <usrsctp.h>
 
@@ -29,8 +30,8 @@ public:
     static void CustomizeSctp(const SctpCustomizedSettings& settings);
     static void Cleanup();
 public:
-    SctpTransport(Configuration config, std::weak_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
-    ~SctpTransport();
+    SctpTransport(Configuration config, std::weak_ptr<Transport> lower);
+    ~SctpTransport() override;
 
     bool Start() override;
     bool Stop() override;
@@ -68,8 +69,8 @@ private:
     void DoFlush();
     void ResetStream(uint16_t stream_id);
 
-    void HandleSctpUpCall();
-    bool HandleSctpWrite(const void* data, size_t len, uint8_t tos, uint8_t set_df);
+    void OnSctpUpCall();
+    bool OnSctpWrite(CopyOnWriteBuffer data, uint8_t tos, uint8_t set_df);
     void OnSctpSendThresholdReached();
 
     // usrsctp callbacks
@@ -93,6 +94,9 @@ private:
     bool FlushPendingMessage();
     bool TrySend(SctpMessageToSend& message);
     void ReadyToSend();
+
+    void HandleSctpUpCall();
+    bool HandleSctpWrite(CopyOnWriteBuffer data);
 
     void ProcessPendingIncomingPackets();
     void ProcessIncomingPacket(CopyOnWriteBuffer in_packet);
@@ -126,6 +130,8 @@ private:
 
     SctpMessageReceivedCallback sctp_message_received_callback_ = nullptr;
     ReadyToSendCallback ready_to_send_callback_ = nullptr;
+
+    Event write_event_;
 };
 
 }

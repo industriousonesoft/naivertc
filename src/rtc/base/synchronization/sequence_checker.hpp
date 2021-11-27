@@ -1,5 +1,5 @@
-#ifndef _RTC_BASE_TASK_UTILS_TASK_QUEUE_CHECKER_H_
-#define _RTC_BASE_TASK_UTILS_TASK_QUEUE_CHECKER_H_
+#ifndef _RTC_BASE_SYNCHRONIZATION_SEQUENCE_CHECKER_H_
+#define _RTC_BASE_SYNCHRONIZATION_SEQUENCE_CHECKER_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue_impl.hpp"
@@ -10,7 +10,7 @@ namespace naivertc {
 // some methods of a class are called on the same task queue.
 class RTC_CPP_EXPORT SequenceChecker {
 public:
-    // The task queue checker will attacked to the queue 
+    // The task queue checker will be attached to the queue 
     // calling this constructor method.
     SequenceChecker();
     ~SequenceChecker();
@@ -19,9 +19,15 @@ public:
     // in which the checker was created before.
     bool IsCurrent() const;
 
+    // Return the task queue the checker has been attached to.
+    TaskQueueImpl* attached_queue();
+
 private:
-    const TaskQueueImpl* const attacked_queue_;
+    TaskQueueImpl* const attached_queue_;
 };
+
+#define RTC_RUN_ON(x)   \
+    assert((x)->IsCurrent() && "TaskQueue doesn't match.")
     
 } // namespace naivertc
 

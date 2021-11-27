@@ -282,11 +282,30 @@ void SctpTransport::ConfigSctpSocket() {
 		                         std::to_string(errno));
 }
 
+void SctpTransport::OnSctpUpCall() {
+	sequence_checker_.attached_queue()->Post([this](){
+		HandleSctpUpCall();
+	});
+}
+
+bool SctpTransport::OnSctpWrite(CopyOnWriteBuffer data, uint8_t tos, uint8_t set_df) {
+	if (sequence_checker_.IsCurrent()) {
+		return HandleSctpWrite(std::move(data));
+	}
+	bool bRet = false;
+	sequence_checker_.attached_queue()->Post([this, data=std::move(data), &bRet](){
+		bRet = HandleSctpWrite(std::move(data));
+		write_event_.Set();
+	});
+	write_event_.WaitForever();
+	return bRet;
+}
+
 // usrsctp callbacks
 void SctpTransport::on_sctp_upcall(struct socket* socket, void* arg, int flags) {
     auto* transport = static_cast<SctpTransport*>(arg);
     if (WeakPtrManager::SharedInstance()->Lock(transport)) {
-        transport->HandleSctpUpCall();
+        transport->OnSctpUpCall();
     }
 }
 
@@ -297,7 +316,7 @@ int SctpTransport::on_sctp_write(void* ptr, void* in_data, size_t in_size, uint8
     if (WeakPtrManager::SharedInstance()->Lock(transport)) {
 		// NOTE: the result MUST BE 0(success) or -1(failure), 
 		// returning a positive number which is greater than zero will result multiple sctp upcall to do flush for more data.
-        return transport->HandleSctpWrite(in_data, in_size, tos, set_df) == true ? 0 : -1;
+        return transport->OnSctpWrite(CopyOnWriteBuffer(static_cast<const uint8_t*>(in_data), in_size), tos, set_df) == true ? 0 : -1;
     } else {
         return -1;
     }

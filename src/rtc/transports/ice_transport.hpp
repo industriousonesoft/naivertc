@@ -60,8 +60,8 @@ public:
         std::optional<std::string> ice_pwd_;
     };
 public:
-    IceTransport(const RtcConfiguration& config, std::shared_ptr<TaskQueue> task_queue = nullptr);
-    ~IceTransport();
+    IceTransport(const RtcConfiguration& config);
+    ~IceTransport() override;
 
     sdp::Role role() const;
     std::exception_ptr last_exception() const;
@@ -89,19 +89,22 @@ private:
     void NegotiateRole(sdp::Role remote_role);
 
     void UpdateGatheringState(GatheringState state);
-    void ProcessGatheredCandidate(const char* sdp);
-    void ProcessReceivedData(const char* data, size_t size);
+    void OnGatheredCandidate(sdp::Candidate candidate);
+    void OnReceivedData(CopyOnWriteBuffer data);
 
     void Incoming(CopyOnWriteBuffer in_packet) override;
     int Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) override;
 
 private:
 #if USE_NICE
-    void InitNice(const RtcConfiguration& config);
+    static std::string ToString(const NiceAddress& nice_addr);
 
-    std::string NiceAddressToString(const NiceAddress& nice_addr) const;
-    void ProcessNiceTimeout();
-    void ProcessNiceState(guint state);
+    void InitNice(const RtcConfiguration& config);
+    void OnNiceTimeout();
+    void OnNiceState(guint state);
+    void OnNiceGatheringState(GatheringState state);
+    void OnNiceGatheredCandidate(sdp::Candidate candidate);
+    void OnNiceReceivedData(CopyOnWriteBuffer data);
 
     static void OnNiceLog(const gchar* log_domain, GLogLevelFlags log_level, const gchar* message, gpointer user_data);
     static void OnNiceStateChanged(NiceAgent *agent, guint stream_id, guint component_id, guint state, gpointer user_data);
@@ -112,6 +115,10 @@ private:
 
 #else
     void InitJuice(const RtcConfiguration& config);
+    void OnJuiceState(juice_state_t state);
+    void OnJuiceGatheringState(GatheringState state);
+    void OnJuiceGatheredCandidate(sdp::Candidate candidate);
+    void OnJuiceReceivedData(CopyOnWriteBuffer data);
 
     static void OnJuiceLog(juice_log_level_t level, const char* message);
     static void OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state, void* user_ptr);

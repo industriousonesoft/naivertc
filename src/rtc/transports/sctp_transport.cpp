@@ -9,9 +9,8 @@
 namespace naivertc {
 
 // SctpTransport
-SctpTransport::SctpTransport(Configuration config, std::weak_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue) 
-    : Transport(std::move(lower), 
-	  std::move(task_queue)),
+SctpTransport::SctpTransport(Configuration config, std::weak_ptr<Transport> lower) 
+    : Transport(std::move(lower)),
       config_(std::move(config)),
 	  // AF11: Assured Forwarding class 1, low drop probability
 	  packet_options_(DSCP::DSCP_AF11) {
@@ -19,80 +18,75 @@ SctpTransport::SctpTransport(Configuration config, std::weak_ptr<Transport> lowe
 }
 
 SctpTransport::~SctpTransport() {
+	RTC_RUN_ON(&sequence_checker_);
 	Close();
     usrsctp_deregister_address(this);
     WeakPtrManager::SharedInstance()->Deregister(this);
 }
 
 void SctpTransport::OnSctpMessageReceived(SctpMessageReceivedCallback callback) {
-	task_queue_->Async([this, callback=std::move(callback)](){
-        sctp_message_received_callback_ = std::move(callback);
-    });
+	RTC_RUN_ON(&sequence_checker_);
+	sctp_message_received_callback_ = std::move(callback);
 }
 
 void SctpTransport::OnReadyToSend(ReadyToSendCallback callback) {
-	task_queue_->Async([this, callback=std::move(callback)](){
-        ready_to_send_callback_ = std::move(callback);
-    });
+	RTC_RUN_ON(&sequence_checker_);
+	ready_to_send_callback_ = std::move(callback);
 }
 
 bool SctpTransport::Start() {
-	return task_queue_->Sync<bool>([this](){
-		try {
-			if (is_stoped_) {
-				Reset();
-				RegisterIncoming();
-				Connect();
-				is_stoped_ = false;
-			}
-			return true;
-		}catch(std::exception& e) {
-			PLOG_WARNING << e.what();
-			UpdateState(State::FAILED);
-			return false;
+	RTC_RUN_ON(&sequence_checker_);
+	try {
+		if (is_stoped_) {
+			Reset();
+			RegisterIncoming();
+			Connect();
+			is_stoped_ = false;
 		}
-	});
+		return true;
+	}catch(std::exception& e) {
+		PLOG_WARNING << e.what();
+		UpdateState(State::FAILED);
+		return false;
+	}
 }
 
 bool SctpTransport::Stop() {
-	return task_queue_->Sync<bool>([this](){
-		try {
-			if (!is_stoped_) {
-				DeregisterIncoming();
-				// Shutdwon SCTP connection
-				Shutdown();
-				is_stoped_ = true;
-				// TODO: Reset callback
-			}
-			return true;
-		}catch(std::exception& e) {
-			PLOG_WARNING << e.what();
-			UpdateState(State::FAILED);
-			return false;
+	RTC_RUN_ON(&sequence_checker_);
+	try {
+		if (!is_stoped_) {
+			DeregisterIncoming();
+			// Shutdwon SCTP connection
+			Shutdown();
+			is_stoped_ = true;
+			// TODO: Reset callback
 		}
-	});
+		return true;
+	}catch(std::exception& e) {
+		PLOG_WARNING << e.what();
+		UpdateState(State::FAILED);
+		return false;
+	}
 }
 
 void SctpTransport::CloseStream(uint16_t stream_id) {
-	task_queue_->Async([this, stream_id](){
-		ResetStream(stream_id);
-	});
+	RTC_RUN_ON(&sequence_checker_);
+	ResetStream(stream_id);
 }
 
 bool SctpTransport::ready_to_send() const {
-	return task_queue_->Sync<bool>([this](){
-		return ready_to_send_;
-	});
+	RTC_RUN_ON(&sequence_checker_);
+	return ready_to_send_;
 }
 
 bool SctpTransport::Send(SctpMessageToSend message) {
-	return task_queue_->Sync<bool>([this, message=std::move(message)](){
-		return SendInternal(std::move(message));
-	});
+	RTC_RUN_ON(&sequence_checker_);
+	return SendInternal(std::move(message));
 }
 
 // Private method
 void SctpTransport::Close() {
+	RTC_RUN_ON(&sequence_checker_);
 	if (socket_) {
 		usrsctp_close(socket_);
 		socket_ = nullptr;
@@ -100,6 +94,7 @@ void SctpTransport::Close() {
 }
 
 void SctpTransport::Reset() {
+	RTC_RUN_ON(&sequence_checker_);
 	bytes_sent_ = 0;
     bytes_recv_ = 0;
 	
@@ -114,6 +109,7 @@ void SctpTransport::Reset() {
 }
 
 void SctpTransport::Connect() {
+	RTC_RUN_ON(&sequence_checker_);
 	if (socket_ != nullptr) {
 		PLOG_VERBOSE << "SCTP is already connected.";
 		return;
@@ -153,6 +149,7 @@ void SctpTransport::Connect() {
 }
 
 void SctpTransport::Shutdown() {
+	RTC_RUN_ON(&sequence_checker_);
 	if (!socket_) return;
 
 	PLOG_DEBUG << "SCTP shutdown.";
@@ -166,6 +163,7 @@ void SctpTransport::Shutdown() {
 
 // Send
 bool SctpTransport::SendInternal(SctpMessageToSend message) {
+	RTC_RUN_ON(&sequence_checker_);
 	if (partial_outgoing_packet_.has_value()) {
 		ready_to_send_ = false;
 		return false;
@@ -180,6 +178,7 @@ bool SctpTransport::SendInternal(SctpMessageToSend message) {
 }
 
 bool SctpTransport::FlushPendingMessage() {
+	RTC_RUN_ON(&sequence_checker_);
 	if (partial_outgoing_packet_.has_value()) {
 		auto& message = partial_outgoing_packet_.value();
 		if (TrySend(message)) {
@@ -195,6 +194,7 @@ bool SctpTransport::FlushPendingMessage() {
 }
 
 bool SctpTransport::TrySend(SctpMessageToSend& message) {
+	RTC_RUN_ON(&sequence_checker_);
 	if (!socket_ || state_ != State::CONNECTED) {
 		return false;
 	}
@@ -285,6 +285,7 @@ bool SctpTransport::TrySend(SctpMessageToSend& message) {
 }
 
 void SctpTransport::ReadyToSend() {
+	RTC_RUN_ON(&sequence_checker_);
 	if (!ready_to_send_) {
 		ready_to_send_ = true;
 		if (ready_to_send_callback_) {
@@ -294,6 +295,7 @@ void SctpTransport::ReadyToSend() {
 }
 
 void SctpTransport::DoRecv() {
+	RTC_RUN_ON(&sequence_checker_);
 	try {
 		while (state_ != State::DISCONNECTED && state_ != State::FAILED) {
 			socklen_t from_len = 0;
@@ -340,6 +342,7 @@ void SctpTransport::DoRecv() {
 }
 
 void SctpTransport::DoFlush() {
+	RTC_RUN_ON(&sequence_checker_);
 	try {
 		if (FlushPendingMessage()) {
 			ReadyToSend();
@@ -350,6 +353,7 @@ void SctpTransport::DoFlush() {
 }
 
 void SctpTransport::ResetStream(uint16_t stream_id) {
+	RTC_RUN_ON(&sequence_checker_);
 	if (!socket_ || state_ != State::CONNECTED) {
 		return;
 	}
@@ -374,6 +378,7 @@ void SctpTransport::ResetStream(uint16_t stream_id) {
 }
 
 void SctpTransport::ProcessNotification(const union sctp_notification* notification, size_t len) {
+	RTC_RUN_ON(&sequence_checker_);
 	if (len != size_t(notification->sn_header.sn_length)) {
 		PLOG_WARNING << "Invalid SCTP notification length";
 		return;
@@ -460,7 +465,7 @@ void SctpTransport::ProcessNotification(const union sctp_notification* notificat
 }
 
 void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, uint16_t stream_id, SctpTransport::PayloadId payload_id) {
-
+	RTC_RUN_ON(&sequence_checker_);
 	PLOG_VERBOSE << "Process message, stream id: " << stream_id << ", payload id: " << int(payload_id);
 
 	// RFC 8831: The usage of the PPIDs "WebRTC String Partial" and "WebRTC Binary Partial" is
@@ -528,6 +533,7 @@ void SctpTransport::ProcessMessage(const BinaryBuffer& message_data, uint16_t st
 }
 
 void SctpTransport::ProcessPendingIncomingPackets() {
+	RTC_RUN_ON(&sequence_checker_);
 	while (!pending_incoming_packets_.empty()) {
 		auto packet = pending_incoming_packets_.front();
 		ProcessIncomingPacket(std::move(packet));
@@ -536,6 +542,7 @@ void SctpTransport::ProcessPendingIncomingPackets() {
 }
 
 void SctpTransport::ProcessIncomingPacket(CopyOnWriteBuffer in_packet) {
+	RTC_RUN_ON(&sequence_checker_);
 	// PLOG_VERBOSE << "Process incoming SCTP packet size: " << in_packet.size();
 	if (in_packet.empty()) {
 		// FIXME: Empty packet means diconnection?
@@ -548,63 +555,61 @@ void SctpTransport::ProcessIncomingPacket(CopyOnWriteBuffer in_packet) {
 }
 
 void SctpTransport::ForwardReceivedSctpMessage(SctpMessage message) {
+	RTC_RUN_ON(&sequence_checker_);
 	if (sctp_message_received_callback_) {
 		sctp_message_received_callback_(std::move(message));
 	}
 }
 
 void SctpTransport::Incoming(CopyOnWriteBuffer in_packet) {
+	RTC_RUN_ON(&sequence_checker_);
 	// PLOG_VERBOSE << "Incoming packet size: " << in_packet.size();
-	task_queue_->Async([this, in_packet=std::move(in_packet)](){
-		// There could be a race condition here where we receive the remote INIT before the local one is
-		// sent, which would result in the connection being aborted. Therefore, we need to wait for data
-		// to be sent on our side (i.e. the local INIT) before proceeding.
-		if (!has_sent_once_) {
-			PLOG_VERBOSE << "Pending incoming SCTP packet size: " << in_packet.size();
-			pending_incoming_packets_.push(std::move(in_packet));
-			return;
-		}
-		ProcessIncomingPacket(std::move(in_packet));
-	});
+	// There could be a race condition here where we receive the remote INIT before the local one is
+	// sent, which would result in the connection being aborted. Therefore, we need to wait for data
+	// to be sent on our side (i.e. the local INIT) before proceeding.
+	if (!has_sent_once_) {
+		PLOG_VERBOSE << "Pending incoming SCTP packet size: " << in_packet.size();
+		pending_incoming_packets_.push(std::move(in_packet));
+		return;
+	}
+	ProcessIncomingPacket(std::move(in_packet));
 }
 
 int SctpTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) {
+	RTC_RUN_ON(&sequence_checker_);
 	return ForwardOutgoingPacket(std::move(out_packet), options);
 }
 
 // SCTP callback methods
 void SctpTransport::HandleSctpUpCall() {
-	task_queue_->Async([this](){
-		if (socket_ == nullptr)
-			return;
+	RTC_RUN_ON(&sequence_checker_);
+	if (socket_ == nullptr)
+		return;
 
-		int events = usrsctp_get_events(socket_);
+	int events = usrsctp_get_events(socket_);
 
-		if (events & SCTP_EVENT_READ) {
-			PLOG_VERBOSE << "Handle SCTP upcall: do Recv";
-			DoRecv();
-		}
+	if (events & SCTP_EVENT_READ) {
+		PLOG_VERBOSE << "Handle SCTP upcall: do Recv";
+		DoRecv();
+	}
 
-		if (events & SCTP_EVENT_WRITE) {
-			// PLOG_VERBOSE << "Handle SCTP upcall: do flush";
-			DoFlush();
-		}
-	});
+	if (events & SCTP_EVENT_WRITE) {
+		// PLOG_VERBOSE << "Handle SCTP upcall: do flush";
+		DoFlush();
+	}
 }
     
-bool SctpTransport::HandleSctpWrite(const void* in_data, size_t in_size, uint8_t tos, uint8_t set_df) {
-	return task_queue_->Sync<bool>([this, in_data, in_size](){
-		// PLOG_VERBOSE << "Handle SCTP write: " << in_size;
-		CopyOnWriteBuffer packet(static_cast<const uint8_t*>(in_data), in_size);
-		int sent_size = Outgoing(std::move(packet), packet_options_);
-		// Reset the sent flag and ready to handle the incoming message
-		if (sent_size >= 0 && !has_sent_once_) {
-			PLOG_VERBOSE << "SCTP has set once";
-			ProcessPendingIncomingPackets();
-			has_sent_once_ = true;
-		}
-		return sent_size >= 0 ? true : false;
-	});
+bool SctpTransport::HandleSctpWrite(CopyOnWriteBuffer data) {
+	RTC_RUN_ON(&sequence_checker_);
+	// PLOG_VERBOSE << "Handle SCTP write: " << packet.size();
+	int sent_size = Outgoing(std::move(data), packet_options_);
+	// Reset the sent flag and ready to handle the incoming message
+	if (sent_size >= 0 && !has_sent_once_) {
+		PLOG_VERBOSE << "SCTP has set once";
+		ProcessPendingIncomingPackets();
+		has_sent_once_ = true;
+	}
+	return sent_size >= 0 ? true : false;
 }
 
 } // namespace naivertc

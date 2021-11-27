@@ -6,8 +6,16 @@
 #include <plog/Log.h>
 
 namespace naivertc {
+// Static methods
+std::string IceTransport::ToString(const NiceAddress& nice_addr) {
+    char buffer[NICE_ADDRESS_STRING_LEN];
+    nice_address_to_string(&nice_addr, buffer);
+    unsigned int port = nice_address_get_port(&nice_addr);
+    return std::string(buffer) + ":" + std::to_string(port);
+}
 
 void IceTransport::InitNice(const RtcConfiguration& config) {
+    RTC_RUN_ON(&sequence_checker_);
     PLOG_VERBOSE << "Initializing ICE transport (libnice)";
 
     g_log_set_handler("libnice", G_LOG_LEVEL_MASK, OnNiceLog, this);
@@ -137,23 +145,16 @@ void IceTransport::InitNice(const RtcConfiguration& config) {
 
 }
 
-std::string IceTransport::NiceAddressToString(const NiceAddress& nice_addr) const {
-    char buffer[NICE_ADDRESS_STRING_LEN];
-    nice_address_to_string(&nice_addr, buffer);
-    unsigned int port = nice_address_get_port(&nice_addr);
-    return std::string(buffer) + ":" + std::to_string(port);
-}
-
-void IceTransport::ProcessNiceTimeout() {
-    task_queue_->Async([this](){
+void IceTransport::OnNiceTimeout() {
+    sequence_checker_.attached_queue()->Post([this](){
         PLOG_WARNING << "ICE timeout";
         timeout_id_ = 0;
         UpdateState(State::FAILED);
     });
 }
 
-void IceTransport::ProcessNiceState(guint state) {
-    task_queue_->Async([this, state](){
+void IceTransport::OnNiceState(guint state) {
+    sequence_checker_.attached_queue()->Post([this, state](){
         if (state == NICE_COMPONENT_STATE_FAILED && trickle_timeout_.count() > 0) {
             if (timeout_id_)
                 g_source_remove(timeout_id_);
@@ -186,6 +187,24 @@ void IceTransport::ProcessNiceState(guint state) {
     });
 }
 
+void IceTransport::OnNiceGatheringState(GatheringState state) {
+    sequence_checker_.attached_queue()->Post([this, state](){
+        UpdateGatheringState(state);
+    });
+}
+
+void IceTransport::OnNiceGatheredCandidate(sdp::Candidate candidate) {
+    sequence_checker_.attached_queue()->Post([this, candidate=std::move(candidate)](){
+        OnGatheredCandidate(std::move(candidate));
+    });
+}
+
+void IceTransport::OnNiceReceivedData(CopyOnWriteBuffer data) {
+    sequence_checker_.attached_queue()->Post([this, data=std::move(data)](){
+        OnReceivedData(std::move(data));
+    });
+}
+
 // libnice callbacks
 void IceTransport::OnNiceLog(const gchar* log_domain, GLogLevelFlags log_level, const gchar* message, gpointer user_data) {
     plog::Severity severity;
@@ -209,7 +228,7 @@ void IceTransport::OnNiceLog(const gchar* log_domain, GLogLevelFlags log_level, 
 void IceTransport::OnNiceStateChanged(NiceAgent *agent, guint stream_id, guint component_id, guint state, gpointer user_data) {
     auto ice_transport = static_cast<IceTransport*>(user_data);
     try {
-        ice_transport->ProcessNiceState(state);
+        ice_transport->OnNiceState(state);
     }catch (const std::exception& exp) {
         PLOG_WARNING << exp.what();
     }
@@ -219,7 +238,7 @@ void IceTransport::OnNiceCandidateGathered(NiceAgent *agent, NiceCandidate *cand
     auto ice_transport = static_cast<IceTransport*>(user_data);
     try {
         gchar* sdp = nice_agent_generate_local_candidate_sdp(agent, candidate);
-        ice_transport->ProcessGatheredCandidate(std::move(sdp));
+        ice_transport->OnNiceGatheredCandidate(std::move(sdp::Candidate(sdp, ice_transport->curr_mid_)));
     }catch (const std::exception& exp) {
         PLOG_WARNING << exp.what();
     }
@@ -227,13 +246,14 @@ void IceTransport::OnNiceCandidateGathered(NiceAgent *agent, NiceCandidate *cand
 
 void IceTransport::OnNiceGetheringDone(NiceAgent *agent, guint stream_id, gpointer user_data) {
     auto ice_transport = static_cast<IceTransport*>(user_data);
-    ice_transport->UpdateGatheringState(GatheringState::COMPLETED);
+    ice_transport->OnNiceGatheringState(GatheringState::COMPLETED);
 }
 
 void IceTransport::OnNiceDataReceived(NiceAgent *agent, guint stream_id, guint component_id, guint size, gchar *data, gpointer user_data) {
     auto ice_transport = static_cast<IceTransport*>(user_data);
     try {
-        ice_transport->ProcessReceivedData(std::move(data), size);
+        auto bytes = reinterpret_cast<const uint8_t*>(data);
+        ice_transport->OnNiceReceivedData(CopyOnWriteBuffer(bytes, size));
     }catch (const std::exception& exp) {
         PLOG_WARNING << exp.what();
     }
@@ -242,7 +262,7 @@ void IceTransport::OnNiceDataReceived(NiceAgent *agent, guint stream_id, guint c
 gboolean IceTransport::OnNiceTimeout(gpointer user_data) {
     auto ice_transport = static_cast<IceTransport*>(user_data);
     try {
-        ice_transport->ProcessNiceTimeout();
+        ice_transport->OnNiceTimeout();
     }catch (const std::exception& exp) {
         PLOG_WARNING << exp.what();
     }

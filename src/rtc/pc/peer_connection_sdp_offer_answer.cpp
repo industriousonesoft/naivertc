@@ -397,7 +397,15 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
     if (remote_sdp.HasApplication()) {
         if (!sctp_transport_ && dtls_transport_ && 
             dtls_transport_->state() == Transport::State::CONNECTED) {
-            InitSctpTransport();
+            auto sctp_config = CreateSctpConfig();
+            network_task_queue_->Async([this, config=std::move(sctp_config)](){
+                try {
+                    InitSctpTransport(std::move(config));
+                }catch(const std::exception& exp) {
+                    PLOG_ERROR << exp.what();
+                    UpdateConnectionState(ConnectionState::FAILED);
+                }
+            });
         }
     }
 

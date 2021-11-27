@@ -2,7 +2,7 @@
 #define _RTC_TRANSPORTS_TRANSPORT_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/task_utils/task_queue.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/base/packet_options.hpp"
 
@@ -22,8 +22,7 @@ public:
     };
     
 public:
-    Transport(std::weak_ptr<Transport> lower, std::shared_ptr<TaskQueue> task_queue);
-    virtual ~Transport();
+    Transport(std::weak_ptr<Transport> lower);
 
     bool is_stoped() const;
     State state() const;
@@ -37,6 +36,8 @@ public:
     void OnStateChanged(StateChangedCallback callback);    
 
 protected:
+    virtual ~Transport();
+    
     virtual void Incoming(CopyOnWriteBuffer packet) = 0;
     virtual int Outgoing(CopyOnWriteBuffer packet, const PacketOptions& options) = 0;
   
@@ -49,8 +50,8 @@ protected:
     int ForwardOutgoingPacket(CopyOnWriteBuffer packet, const PacketOptions& options);
 
 protected:
+    SequenceChecker sequence_checker_;
     std::weak_ptr<Transport> lower_;
-    std::shared_ptr<TaskQueue> task_queue_;
 
     bool is_stoped_;
     State state_;

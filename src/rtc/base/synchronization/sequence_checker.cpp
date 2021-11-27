@@ -3,12 +3,18 @@
 namespace naivertc {
 
 SequenceChecker::SequenceChecker() 
-    : attacked_queue_(TaskQueueImpl::Current()) {}
+    : attached_queue_(TaskQueueImpl::Current()) {
+    assert(attached_queue_ != nullptr && "No task queue can be attached to.");
+}
 
 SequenceChecker::~SequenceChecker() = default;
 
 bool SequenceChecker::IsCurrent() const {
-    return attacked_queue_ == TaskQueueImpl::Current();
+    return attached_queue_ == TaskQueueImpl::Current();
+}
+
+TaskQueueImpl* SequenceChecker::attached_queue() {
+    return attached_queue_;
 }
     
 } // namespace naivertc

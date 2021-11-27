@@ -5,49 +5,48 @@
 
 namespace naivertc {
 
-void PeerConnection::InitDtlsTransport() {
-    try {
-        if (dtls_transport_) {
-            return;
-        }
+DtlsTransport::Configuration PeerConnection::CreateDtlsConfig() const {
+    assert(signal_task_queue_->IsCurrent());
+    // NOTE: The thread might be blocked here until the certificate has been created.
+    auto certificate = certificate_.get();
 
-        PLOG_VERBOSE << "Init DTLS transport";
+    auto dtls_config = DtlsTransport::Configuration();
+    dtls_config.certificate = std::move(certificate);
+    dtls_config.mtu = rtc_config_.mtu;
+    return dtls_config;
+}
 
-        auto lower = ice_transport_;
-        if (!lower) {
-            throw std::logic_error("No underlying ICE transport for DTLS transport");
-        }
-
-        auto certificate = certificate_.get();
-
-        auto dtls_init_config = DtlsTransport::Configuration();
-        dtls_init_config.certificate = std::move(certificate);
-        dtls_init_config.mtu = rtc_config_.mtu;
-
-        // DTLS-SRTP
-        if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVideo())) {
-            auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(std::move(dtls_init_config), lower, network_task_queue_);
-            dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1, std::placeholders::_2));
-            dtls_transport_ = dtls_srtp_transport;
-        // DTLS only
-        } else {
-            dtls_transport_ = std::make_shared<DtlsTransport>(std::move(dtls_init_config), lower, network_task_queue_);
-        }
-
-        if (!dtls_transport_) {
-            throw std::logic_error("Failed to init DTLS transport");
-        }
-
-        dtls_transport_->OnStateChanged(std::bind(&PeerConnection::OnDtlsTransportStateChanged, this, std::placeholders::_1));
-        dtls_transport_->OnVerify(std::bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
-        
-        dtls_transport_->Start();
-        
-    }catch (const std::exception& exp) {
-        PLOG_ERROR << "Failed to init dtls transport: " << exp.what();
-        UpdateConnectionState(ConnectionState::FAILED);
-        throw std::runtime_error("DTLS transport initialization failed");
+void PeerConnection::InitDtlsTransport(DtlsTransport::Configuration config) {
+    assert(network_task_queue_->IsCurrent());
+    if (dtls_transport_) {
+        return;
     }
+
+    PLOG_VERBOSE << "Init DTLS transport";
+
+    auto lower = ice_transport_;
+    if (!lower) {
+        throw std::logic_error("No underlying ICE transport for DTLS transport");
+    }
+
+    // DTLS-SRTP
+    if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVideo())) {
+        auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(std::move(config), lower);
+        dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1, std::placeholders::_2));
+        dtls_transport_ = dtls_srtp_transport;
+    // DTLS only
+    } else {
+        dtls_transport_ = std::make_shared<DtlsTransport>(std::move(config), lower);
+    }
+
+    if (!dtls_transport_) {
+        throw std::logic_error("Failed to init DTLS transport");
+    }
+
+    dtls_transport_->OnStateChanged(std::bind(&PeerConnection::OnDtlsTransportStateChanged, this, std::placeholders::_1));
+    dtls_transport_->OnVerify(std::bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
+    
+    dtls_transport_->Start();
 }
 
 void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_state) {
@@ -58,7 +57,15 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
             PLOG_DEBUG << "DTLS transport connected";
             // DataChannel enabled
             if (auto remote_sdp = this->remote_sdp_; remote_sdp && remote_sdp->HasApplication()) {
-                this->InitSctpTransport();
+                auto sctp_config = CreateSctpConfig();
+                network_task_queue_->Async([this, config=std::move(sctp_config)](){
+                    try {
+                        InitSctpTransport(std::move(config));
+                    }catch(const std::exception& exp) {
+                        PLOG_ERROR << exp.what();
+                        UpdateConnectionState(ConnectionState::FAILED);
+                    }
+                });
             } else {
                 this->UpdateConnectionState(ConnectionState::CONNECTED);
             }

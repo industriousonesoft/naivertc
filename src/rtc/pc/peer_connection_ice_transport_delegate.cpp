@@ -5,13 +5,14 @@
 namespace naivertc {
 // Init IceTransport 
 void PeerConnection::InitIceTransport() {
+    assert(network_task_queue_->IsCurrent());
     try {
         if (ice_transport_) {
            return;
         }
         PLOG_VERBOSE << "Init Ice transport";
     
-       ice_transport_.reset(new IceTransport(rtc_config_, network_task_queue_));
+       ice_transport_.reset(new IceTransport(rtc_config_));
        
        ice_transport_->OnStateChanged(std::bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
        ice_transport_->OnGatheringStateChanged(std::bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));
@@ -34,10 +35,20 @@ void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state
         case Transport::State::CONNECTING:
             this->UpdateConnectionState(ConnectionState::CONNECTING);
             break;
-        case Transport::State::CONNECTED:
+        case Transport::State::CONNECTED: {
             PLOG_DEBUG << "ICE transport connected";
-            this->InitDtlsTransport();
+            auto dtls_config = CreateDtlsConfig();
+            network_task_queue_->Async([this, config=std::move(dtls_config)](){
+                try {
+                    InitDtlsTransport(std::move(config));
+                }catch (const std::exception& exp) {
+                    PLOG_ERROR << exp.what();
+                    UpdateConnectionState(ConnectionState::FAILED);
+                }
+                
+            });
             break;
+        }
         case Transport::State::FAILED: 
             this->UpdateConnectionState(ConnectionState::FAILED);
             PLOG_DEBUG << "ICE transport failed";

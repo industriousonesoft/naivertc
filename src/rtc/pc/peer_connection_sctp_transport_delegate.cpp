@@ -5,52 +5,50 @@
 #include <plog/Log.h>
 
 namespace naivertc {
-// Init SctpTransport
-void PeerConnection::InitSctpTransport() {
-    try {
-        if (sctp_transport_) {
-            return;
+
+SctpTransport::Configuration PeerConnection::CreateSctpConfig() const {
+    assert(signal_task_queue_->IsCurrent());
+    assert (remote_sdp_ && remote_sdp_->HasApplication());
+
+    uint16_t sctp_port = rtc_config_.local_sctp_port.value_or(kDefaultSctpPort);
+    // FIXME: Is it necessary to make sure the local sctp port is the same as remote sctp port?
+    if (auto remote_app = remote_sdp_->application()) {
+        if (remote_app->sctp_port()) {
+            sctp_port = remote_app->sctp_port().value();
         }
-        PLOG_VERBOSE << "Starting SCTP transport";
-
-        auto lower = dtls_transport_;
-        if (!lower) {
-            throw std::logic_error("No underlying DTLS transport for SCTP transport");
-        }
-        
-        if (!remote_sdp_ || !remote_sdp_->HasApplication()) {
-            throw std::logic_error("Failed to start to create SCTP transport without application sdp.");
-        }
-
-        uint16_t sctp_port = rtc_config_.local_sctp_port.value_or(kDefaultSctpPort);
-        // FIXME: Is it necessary to make sure the local sctp port is the same as remote sctp port?
-        if (auto remote_app = remote_sdp_->application()) {
-            if (remote_app->sctp_port()) {
-                sctp_port = remote_app->sctp_port().value();
-            }
-        }
-        // Create SCTP tansport
-        SctpTransport::Configuration sctp_config;
-        sctp_config.port = sctp_port;
-        sctp_config.mtu = rtc_config_.mtu.value_or(kDefaultMtuSize);
-        sctp_config.max_message_size = rtc_config_.sctp_max_message_size.value_or(kDefaultSctpMaxMessageSize);
-
-        sctp_transport_ = std::make_shared<SctpTransport>(std::move(sctp_config), lower, network_task_queue_);
-
-        if (!sctp_transport_) {
-            throw std::logic_error("Failed to init SCTP transport");
-        }
-
-        sctp_transport_->OnStateChanged(std::bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
-        sctp_transport_->OnSctpMessageReceived(std::bind(&PeerConnection::OnSctpMessageReceived, this, std::placeholders::_1));
-
-        sctp_transport_->Start();
-
-    }catch(const std::exception& exp) {
-        PLOG_ERROR << exp.what();
-		UpdateConnectionState(ConnectionState::FAILED);
-		throw std::runtime_error("ICE transport initialization failed");
     }
+    // Create SCTP tansport
+    SctpTransport::Configuration sctp_config;
+    sctp_config.port = sctp_port;
+    sctp_config.mtu = rtc_config_.mtu.value_or(kDefaultMtuSize);
+    sctp_config.max_message_size = rtc_config_.sctp_max_message_size.value_or(kDefaultSctpMaxMessageSize);
+
+    return sctp_config;
+}
+
+// Init SctpTransport
+void PeerConnection::InitSctpTransport(SctpTransport::Configuration config) {
+    assert(network_task_queue_->IsCurrent());
+    if (sctp_transport_) {
+        return;
+    }
+    PLOG_VERBOSE << "Starting SCTP transport";
+
+    auto lower = dtls_transport_;
+    if (!lower) {
+        throw std::logic_error("No underlying DTLS transport for SCTP transport");
+    }
+    
+    sctp_transport_ = std::make_shared<SctpTransport>(std::move(config), lower);
+
+    if (!sctp_transport_) {
+        throw std::logic_error("Failed to init SCTP transport");
+    }
+
+    sctp_transport_->OnStateChanged(std::bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
+    sctp_transport_->OnSctpMessageReceived(std::bind(&PeerConnection::OnSctpMessageReceived, this, std::placeholders::_1));
+
+    sctp_transport_->Start();
 }
 
 // SctpTransport delegate

@@ -110,8 +110,12 @@ protected:
 
 private:
     void InitIceTransport();
-    void InitDtlsTransport();
-    void InitSctpTransport();
+
+    DtlsTransport::Configuration CreateDtlsConfig() const;
+    void InitDtlsTransport(DtlsTransport::Configuration config);
+
+    SctpTransport::Configuration CreateSctpConfig() const;
+    void InitSctpTransport(SctpTransport::Configuration config);
 
     bool UpdateConnectionState(ConnectionState state);
     bool UpdateGatheringState(GatheringState state);

@@ -43,6 +43,7 @@ void DtlsTransport::Cleanup() {
 
 // Init methods
 void DtlsTransport::InitOpenSSL(const Configuration& config) {
+    RTC_RUN_ON(&sequence_checker_);
     PLOG_DEBUG << "Initializing DTLS transport (OpenSSL)";
 
     if (!config.certificate) {
@@ -125,6 +126,7 @@ void DtlsTransport::InitOpenSSL(const Configuration& config) {
 }
 
 void DtlsTransport::DeinitOpenSSL() {
+    RTC_RUN_ON(&sequence_checker_);
     if (ssl_) {
         SSL_free(ssl_);
     }
@@ -134,6 +136,7 @@ void DtlsTransport::DeinitOpenSSL() {
 }
 
 void DtlsTransport::InitHandshake() {
+    RTC_RUN_ON(&sequence_checker_);
     if (!ssl_) {
         throw std::runtime_error("SSL instance is not created yet.");
     }
@@ -148,6 +151,7 @@ void DtlsTransport::InitHandshake() {
 }
 
 bool DtlsTransport::TryToHandshake() {
+    RTC_RUN_ON(&sequence_checker_);
     if (!ssl_) {
         throw std::runtime_error("SSL instance is not created yet.");
     }
@@ -171,6 +175,7 @@ bool DtlsTransport::TryToHandshake() {
 }
 
 bool DtlsTransport::IsHandshakeTimeout() {
+    RTC_RUN_ON(&sequence_checker_);
     if (!ssl_) {
         throw std::runtime_error("SSL instance is not created yet.");
     }
@@ -203,13 +208,15 @@ bool DtlsTransport::IsHandshakeTimeout() {
 }
 
 void DtlsTransport::DtlsHandshakeDone() {
+    RTC_RUN_ON(&sequence_checker_);
     // Dummy
 }
 
 bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
-                                        const char *label, size_t llen,
-                                        const unsigned char *context,
-                                        size_t contextlen, bool use_context) {
+                                         const char *label, size_t llen,
+                                         const unsigned char *context,
+                                         size_t contextlen, bool use_context) {
+    RTC_RUN_ON(&sequence_checker_);
     if (!ssl_) {
         return false;
     }
@@ -228,6 +235,19 @@ bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
     } else {
         return true;
     }
+}
+
+int DtlsTransport::OnDtlsWrite(CopyOnWriteBuffer data) {
+    if (sequence_checker_.IsCurrent()) {
+        return HandleDtlsWrite(std::move(data));
+    }
+    int ret = -1;
+    sequence_checker_.attached_queue()->Post([this, data=std::move(data), &ret](){
+        ret = HandleDtlsWrite(std::move(data));
+        write_event_.Set();
+    });
+    write_event_.WaitForever();
+    return ret;
 }
 
 // Callback methods
@@ -323,7 +343,8 @@ int DtlsTransport::BioMethodWrite(BIO* bio, const char* in_data, int in_size) {
     }
     auto transport = reinterpret_cast<DtlsTransport*>(BIO_get_data(bio));
     if (WeakPtrManager::SharedInstance()->Lock(transport)) {
-        int write_size = transport->HandleDtlsWrite(in_data, in_size);
+        auto bytes = reinterpret_cast<const uint8_t*>(in_data);
+        int write_size = transport->OnDtlsWrite(CopyOnWriteBuffer(bytes, in_size));
         PLOG_VERBOSE << "Handle DTLS size: " << in_size << " : " << write_size;
         return in_size;
     }

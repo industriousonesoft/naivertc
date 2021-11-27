@@ -9,7 +9,7 @@ namespace naivertc {
 const int kMaxTurnServersCount = 2;
 
 void IceTransport::InitJuice(const RtcConfiguration& config) {
-
+    RTC_RUN_ON(&sequence_checker_);
     PLOG_VERBOSE << "Initializing ICE transport (libjuice)";
 
     juice_log_level_t level;
@@ -97,6 +97,49 @@ void IceTransport::InitJuice(const RtcConfiguration& config) {
 
 }
 
+void IceTransport::OnJuiceState(juice_state_t state) {
+    sequence_checker_.attached_queue()->Post([this, state](){
+        switch (state) {
+        case JUICE_STATE_DISCONNECTED:
+            UpdateState(State::DISCONNECTED);
+            break;
+        case JUICE_STATE_CONNECTING:
+            UpdateState(State::CONNECTING);
+            break;
+        case JUICE_STATE_CONNECTED:
+            UpdateState(State::CONNECTED);
+            break;
+        case JUICE_STATE_FAILED:
+            UpdateState(State::FAILED);
+            break;
+        case JUICE_STATE_GATHERING:
+            // Gathering is not considerd as a connection state
+            break;
+        case JUICE_STATE_COMPLETED:
+            UpdateState(State::COMPLETED);
+            break;
+        }
+    });
+}
+
+void IceTransport::OnJuiceGatheringState(GatheringState state) {
+    sequence_checker_.attached_queue()->Post([this, state](){
+        UpdateGatheringState(state);
+    });
+}
+
+void IceTransport::OnJuiceGatheredCandidate(sdp::Candidate candidate) {
+    sequence_checker_.attached_queue()->Post([this, candidate=std::move(candidate)](){
+        OnGatheredCandidate(std::move(candidate));
+    });
+}
+
+void IceTransport::OnJuiceReceivedData(CopyOnWriteBuffer data) {
+    sequence_checker_.attached_queue()->Post([this, data=std::move(data)](){
+        OnReceivedData(std::move(data));
+    });
+}
+
 // Juice callback methods
 void IceTransport::OnJuiceLog(juice_log_level_t level, const char* message) {
     plog::Severity severity;
@@ -123,26 +166,7 @@ void IceTransport::OnJuiceLog(juice_log_level_t level, const char* message) {
 void IceTransport::OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
     try {
-        switch (state) {
-        case JUICE_STATE_DISCONNECTED:
-            ice_transport->UpdateState(State::DISCONNECTED);
-            break;
-        case JUICE_STATE_CONNECTING:
-            ice_transport->UpdateState(State::CONNECTING);
-            break;
-        case JUICE_STATE_CONNECTED:
-            ice_transport->UpdateState(State::CONNECTED);
-            break;
-        case JUICE_STATE_FAILED:
-            ice_transport->UpdateState(State::FAILED);
-            break;
-        case JUICE_STATE_GATHERING:
-            // Gathering is not considerd as a connection state
-            break;
-        case JUICE_STATE_COMPLETED:
-            ice_transport->UpdateState(State::COMPLETED);
-            break;
-        }
+        ice_transport->OnJuiceState(state);
     } catch (const std::exception &e) {
         PLOG_WARNING << e.what();
     }
@@ -150,17 +174,18 @@ void IceTransport::OnJuiceStateChanged(juice_agent_t* agent, juice_state_t state
 
 void IceTransport::OnJuiceCandidateGathered(juice_agent_t* agent, const char* sdp, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
-    ice_transport->ProcessGatheredCandidate(std::move(sdp));
+    ice_transport->OnJuiceGatheredCandidate(sdp::Candidate(sdp, ice_transport->curr_mid_));
 }
 
 void IceTransport::OnJuiceGetheringDone(juice_agent_t* agent, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
-    ice_transport->UpdateGatheringState(GatheringState::COMPLETED);
+    ice_transport->OnJuiceGatheringState(GatheringState::COMPLETED);
 }
 
 void IceTransport::OnJuiceDataReceived(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
     auto ice_transport = static_cast<IceTransport *>(user_ptr);
-    ice_transport->ProcessReceivedData(data, size);
+    auto bytes = reinterpret_cast<const uint8_t*>(data);
+    ice_transport->OnJuiceReceivedData(CopyOnWriteBuffer(bytes, size));
 }
 
 }

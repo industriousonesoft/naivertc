@@ -16,8 +16,8 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsSrtpTransport(Configuration config, std::weak_ptr<IceTransport> lower, std::shared_ptr<TaskQueue> task_queue = nullptr);
-    ~DtlsSrtpTransport();
+    DtlsSrtpTransport(Configuration config, std::weak_ptr<IceTransport> lower);
+    ~DtlsSrtpTransport() override;
 
     int SendRtpPacket(CopyOnWriteBuffer packet, const PacketOptions& options);
 
@@ -35,7 +35,7 @@ private:
 
     bool EncryptPacket(CopyOnWriteBuffer& packet);
 private:
-    std::atomic<bool> srtp_init_done_ = false;
+    bool srtp_init_done_;
 
     srtp_t srtp_in_;
     srtp_t srtp_out_;
