@@ -12,6 +12,7 @@
 
 namespace naivertc {
 
+// This class is not thread-safety, the caller MUST provide that.
 class RTC_CPP_EXPORT NackModuleImpl {
 public:
     struct InsertResult {

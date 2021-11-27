@@ -31,12 +31,17 @@ PeerConnection::PeerConnection(const RtcConfiguration& config)
     network_task_queue_ = std::make_shared<TaskQueue>("PeerConnection.network.task.queue");
     worker_task_queue_ = std::make_shared<TaskQueue>("PeerConnection.worker.task.queue");
 
-    InitIceTransport();
+    network_task_queue_->Async([this](){
+        InitIceTransport();
+    });
 }
 
 PeerConnection::~PeerConnection() {
-    CloseTransports();
-
+    signal_task_queue_->Async([this](){
+        CloseTransports();
+    });
+    // The signal queue will be blocked until
+    // all the tasks in the queue have been done. 
     signal_task_queue_.reset();
     network_task_queue_.reset();
     worker_task_queue_.reset();

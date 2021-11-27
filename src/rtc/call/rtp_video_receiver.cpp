@@ -146,7 +146,7 @@ void RtpVideoReceiver::UpdateRtt(int64_t max_rtt_ms) {
 }
 
 void RtpVideoReceiver::RequestKeyFrame() {
-    task_queue_->Async([this](){
+    task_queue_->Async([](){
         // TODO: Send PictureLossIndication by rtcp_module
     });
 }
