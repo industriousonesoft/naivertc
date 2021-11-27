@@ -52,7 +52,7 @@ private:
     std::set<PictureId, wrap_around_utils::OlderThan<PictureId>> stashed_padding_;
     std::deque<video::FrameToDecode> stashed_frames_;
 
-    NumberUnwrapper<uint16_t> seq_num_unwrapper_;
+    SeqNumUnwrapper seq_num_unwrapper_;
 };
     
 } // namespace jitter

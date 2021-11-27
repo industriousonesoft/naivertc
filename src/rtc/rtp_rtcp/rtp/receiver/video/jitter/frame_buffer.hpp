@@ -45,7 +45,7 @@ public:
     using NextFrameFoundCallback = std::function<void(std::optional<video::FrameToDecode>)>;
     void NextFrame(int64_t max_wait_time_ms, 
                    bool keyframe_required,
-                   NextFrameFoundCallback callback);
+                   NextFrameFoundCallback callback) RTC_LOCKS_EXCLUDED(lock_);
 
     void Clear() RTC_LOCKS_EXCLUDED(lock_);
 

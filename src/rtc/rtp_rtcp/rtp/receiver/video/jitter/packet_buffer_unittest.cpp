@@ -326,8 +326,8 @@ MY_TEST_F(PacketBufferTest, InsertPacketAfterSequenceNumberWrapAround) {
     uint16_t seq_num = kFirstSeqNum;
 
     // Loop until seq_num wraps around.
-    NumberUnwrapper<uint16_t> unwrapper;
-    while (unwrapper.Unwrap(seq_num) < std::numeric_limits<uint16_t>::max()) {
+    SeqNumUnwrapper seq_num_unwrapper;
+    while (seq_num_unwrapper.Unwrap(seq_num) < std::numeric_limits<uint16_t>::max()) {
         Insert(seq_num++, kKeyFrame, kFirst, kNotLast, {}, timestamp);
         for (int i = 0; i < 5; ++i) {
             Insert(seq_num++, kKeyFrame, kNotFirst, kNotLast, {}, timestamp);

@@ -1,4 +1,4 @@
-#include "rtc/media/video/video_receive_stream.hpp"
+#include "rtc/call/video_receive_stream.hpp"
 
 namespace naivertc {
 

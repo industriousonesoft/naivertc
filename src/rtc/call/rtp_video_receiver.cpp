@@ -1,4 +1,4 @@
-#include "rtc/call/rtp_video_stream_receiver.hpp"
+#include "rtc/call/rtp_video_receiver.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
@@ -15,7 +15,7 @@ constexpr int kPacketBufferMaxSize = 2048;
 
 constexpr int kPacketLogIntervalMs = 10000;
 
-std::shared_ptr<RtcpModule> CreateRtcpModule(const RtpVideoStreamReceiver::Configuration& stream_config,
+std::shared_ptr<RtcpModule> CreateRtcpModule(const RtpVideoReceiver::Configuration& stream_config,
                                              std::shared_ptr<Clock> clock,
                                              std::shared_ptr<TaskQueue> task_queue) {
     RtcpConfiguration rtcp_config;
@@ -41,8 +41,8 @@ rtp::video::FrameToDecode CreateFrameToDecode(const rtp::video::jitter::PacketBu
 
 } // namespace
 
-// RtpVideoStreamReceiver
-RtpVideoStreamReceiver::RtpVideoStreamReceiver(Configuration config,
+// RtpVideoReceiver
+RtpVideoReceiver::RtpVideoReceiver(Configuration config,
                                                std::shared_ptr<Clock> clock,
                                                std::shared_ptr<TaskQueue> task_queue,
                                                std::weak_ptr<CompleteFrameReceiver> complete_frame_receiver) 
@@ -62,9 +62,9 @@ RtpVideoStreamReceiver::RtpVideoStreamReceiver(Configuration config,
       ulp_fec_receiver_(config_.remote_ssrc, clock_, weak_from_this()),
       last_packet_log_ms_(-1) {}
 
-RtpVideoStreamReceiver::~RtpVideoStreamReceiver() {}
+RtpVideoReceiver::~RtpVideoReceiver() {}
 
-void RtpVideoStreamReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
+void RtpVideoReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
     task_queue_->Async([this, rtcp_packet=std::move(in_packet)](){
         rtcp_module_->IncomingPacket(std::move(rtcp_packet));
 
@@ -108,14 +108,52 @@ void RtpVideoStreamReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
     });
 }
 
-void RtpVideoStreamReceiver::OnRtpPacket(RtpPacketReceived in_packet) {
+void RtpVideoReceiver::OnRtpPacket(RtpPacketReceived in_packet) {
     task_queue_->Async([this, in_packet=std::move(in_packet)](){
         this->OnReceivedPacket(std::move(in_packet));
     });
 }
 
+void RtpVideoReceiver::OnContinuousFrame(int64_t frame_id) {
+    task_queue_->Async([this, frame_id](){
+        if (!nack_module_) {
+            return;
+        }
+        // Update nack info if having a continous frame found.
+        auto seq_num_it = last_seq_num_for_pic_id_.find(frame_id);
+        if (seq_num_it != last_seq_num_for_pic_id_.end()) {
+            nack_module_->ClearUpTo(seq_num_it->second);
+        }
+    });
+}
+
+void RtpVideoReceiver::OnDecodedFrame(int64_t frame_id) {
+    task_queue_->Async([this, frame_id](){
+        auto seq_num_it = last_seq_num_for_pic_id_.find(frame_id);
+        if (seq_num_it != last_seq_num_for_pic_id_.end()) {
+            frame_ref_finder_->ClearTo(seq_num_it->second);
+            last_seq_num_for_pic_id_.erase(last_seq_num_for_pic_id_.begin(), ++seq_num_it);
+        }
+    });
+}
+
+void RtpVideoReceiver::UpdateRtt(int64_t max_rtt_ms) {
+    task_queue_->Async([this, max_rtt_ms](){
+        if (nack_module_) {
+            nack_module_->UpdateRtt(max_rtt_ms);
+        }
+    });
+}
+
+void RtpVideoReceiver::RequestKeyFrame() {
+    task_queue_->Async([this](){
+        // TODO: Send PictureLossIndication by rtcp_module
+    });
+}
+
 // Private methods
-void RtpVideoStreamReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
+void RtpVideoReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
+    assert(task_queue_->IsCurrent());
     // Padding or keep-alive packet
     if (packet.payload_size() == 0) {
         HandleEmptyPacket(packet.sequence_number());
@@ -140,8 +178,9 @@ void RtpVideoStreamReceiver::OnReceivedPacket(const RtpPacketReceived& packet) {
     OnDepacketizedPacket(std::move(*depacketized_packet), packet);
 }
 
-void RtpVideoStreamReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized_packet, 
+void RtpVideoReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized_packet, 
                                                    const RtpPacketReceived& rtp_packet) {
+    assert(task_queue_->IsCurrent());
     auto packet = std::make_unique<rtp::video::jitter::PacketBuffer::Packet>(depacketized_packet.video_header,
                                                                               depacketized_packet.video_codec_header,
                                                                               rtp_packet.sequence_number(),
@@ -207,7 +246,8 @@ void RtpVideoStreamReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depack
     OnInsertedPacket(packet_buffer_.InsertPacket(std::move(packet)));
 }
 
-void RtpVideoStreamReceiver::OnInsertedPacket(rtp::video::jitter::PacketBuffer::InsertResult result) {
+void RtpVideoReceiver::OnInsertedPacket(rtp::video::jitter::PacketBuffer::InsertResult result) {
+    assert(task_queue_->IsCurrent());
     std::vector<ArrayView<const uint8_t>> packet_payloads;
     for (const auto& frame : result.assembled_frames) {
         auto frame_to_decode = CreateFrameToDecode(*(frame.get()), remote_ntp_time_estimator_.Estimate(frame->timestamp));
@@ -221,7 +261,8 @@ void RtpVideoStreamReceiver::OnInsertedPacket(rtp::video::jitter::PacketBuffer::
     }
 }
 
-void RtpVideoStreamReceiver::OnAssembledFrame(rtp::video::FrameToDecode frame) {
+void RtpVideoReceiver::OnAssembledFrame(rtp::video::FrameToDecode frame) {
+    assert(task_queue_->IsCurrent());
     if (!has_received_frame_) {
         // If frames arrive before a key frame, they would not be decodable.
         // In that case, request a key frame ASAP.
@@ -232,12 +273,13 @@ void RtpVideoStreamReceiver::OnAssembledFrame(rtp::video::FrameToDecode frame) {
     }
 
     // Switch `frame_ref_finder_` if necessary.
-    SwitchFrameRefFinderIfNecessary(frame);
+    CreateFrameRefFinderIfNecessary(frame);
 
     frame_ref_finder_->InsertFrame(std::move(frame));
 }
 
-void RtpVideoStreamReceiver::OnCompleteFrame(rtp::video::FrameToDecode frame) {
+void RtpVideoReceiver::OnCompleteFrame(rtp::video::FrameToDecode frame) {
+    assert(task_queue_->IsCurrent());
     last_seq_num_for_pic_id_[frame.id()] = frame.seq_num_end();
     last_completed_picture_id_ = std::max(last_completed_picture_id_, frame.id());
     if (auto receiver = complete_frame_receiver_.lock()) {
@@ -245,11 +287,9 @@ void RtpVideoStreamReceiver::OnCompleteFrame(rtp::video::FrameToDecode frame) {
     }
 }
 
-void RtpVideoStreamReceiver::RequestKeyFrame() {
-    // TODO: Send PictureLossIndication by rtcp_module
-}
 
-void RtpVideoStreamReceiver::HandleEmptyPacket(uint16_t seq_num) {
+void RtpVideoReceiver::HandleEmptyPacket(uint16_t seq_num) {
+    assert(task_queue_->IsCurrent());
     if (frame_ref_finder_) {
         frame_ref_finder_->InsertPadding(seq_num);
     }
@@ -259,7 +299,8 @@ void RtpVideoStreamReceiver::HandleEmptyPacket(uint16_t seq_num) {
     }
 }
 
-void RtpVideoStreamReceiver::HandleRedPacket(const RtpPacketReceived& packet) {
+void RtpVideoReceiver::HandleRedPacket(const RtpPacketReceived& packet) {
+    assert(task_queue_->IsCurrent());
     if (packet.payload_type() == config_.red_payload_type && 
         packet.payload_size() > 0) {
         if (packet.payload()[0] == config_.ulpfec_payload_type) {
@@ -274,7 +315,8 @@ void RtpVideoStreamReceiver::HandleRedPacket(const RtpPacketReceived& packet) {
     }
 }
 
-void RtpVideoStreamReceiver::UpdatePacketReceiveTimestamps(const RtpPacketReceived& packet, bool is_keyframe) {
+void RtpVideoReceiver::UpdatePacketReceiveTimestamps(const RtpPacketReceived& packet, bool is_keyframe) {
+    assert(task_queue_->IsCurrent());
     Timestamp now = clock_->CurrentTime();
     if (is_keyframe || last_received_keyframe_timestamp_ == packet.timestamp()) {
         last_received_keyframe_timestamp_ = packet.timestamp();
@@ -292,7 +334,8 @@ void RtpVideoStreamReceiver::UpdatePacketReceiveTimestamps(const RtpPacketReceiv
     }
 }
 
-void RtpVideoStreamReceiver::SwitchFrameRefFinderIfNecessary(const rtp::video::FrameToDecode& frame) {
+void RtpVideoReceiver::CreateFrameRefFinderIfNecessary(const rtp::video::FrameToDecode& frame) {
+    assert(task_queue_->IsCurrent());
     if (curr_codec_type_) {
         bool frame_is_newer = wrap_around_utils::AheadOf<uint32_t>(frame.timestamp(), last_assembled_frame_rtp_timestamp_);
         if (frame.codec_type() != curr_codec_type_) {
@@ -320,13 +363,15 @@ void RtpVideoStreamReceiver::SwitchFrameRefFinderIfNecessary(const rtp::video::F
     }
 }
 
-void RtpVideoStreamReceiver::CreateFrameRefFinder(VideoCodecType codec_type, int64_t picture_id_offset) {
+void RtpVideoReceiver::CreateFrameRefFinder(VideoCodecType codec_type, int64_t picture_id_offset) {
+    assert(task_queue_->IsCurrent());
     frame_ref_finder_.reset();
     frame_ref_finder_ = rtp::video::jitter::FrameRefFinder::Create(codec_type, picture_id_offset);
-    frame_ref_finder_->OnFrameRefFound(std::bind(&RtpVideoStreamReceiver::OnCompleteFrame, this, std::placeholders::_1));
+    frame_ref_finder_->OnFrameRefFound(std::bind(&RtpVideoReceiver::OnCompleteFrame, this, std::placeholders::_1));
 }
 
-void RtpVideoStreamReceiver::OnRecoveredPacket(CopyOnWriteBuffer recovered_packet) {
+void RtpVideoReceiver::OnRecoveredPacket(CopyOnWriteBuffer recovered_packet) {
+    assert(task_queue_->IsCurrent());
     RtpPacketReceived received_packet;
     if (!received_packet.Parse(std::move(recovered_packet))) {
         PLOG_WARNING << "Failed to parse recovered packet as RTP packet.";

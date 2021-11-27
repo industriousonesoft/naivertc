@@ -8,7 +8,7 @@ namespace naivertc {
 NackModule::NackModule(std::shared_ptr<Clock> clock,
                        std::shared_ptr<TaskQueue> task_queue,
                        std::weak_ptr<NackSender> nack_sender,
-                        std::weak_ptr<KeyFrameRequestSender> key_frame_request_sender,
+                       std::weak_ptr<KeyFrameRequestSender> key_frame_request_sender,
                        int64_t send_nack_delay_ms,
                        TimeDelta update_interval) 
     : impl_(clock, send_nack_delay_ms),

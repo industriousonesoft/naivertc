@@ -124,9 +124,10 @@ set(LIB_SOURCES
     src/rtc/call/rtp_demuxer.cpp
     src/rtc/call/rtp_demuxer_rtp.cpp
     src/rtc/call/rtp_demuxer_rtcp.cpp
-    src/rtc/call/rtp_video_stream_receiver.cpp
-    src/rtc/call/rtp_video_stream_receiver_auxiliaries.cpp
+    src/rtc/call/rtp_video_receiver.cpp
+    src/rtc/call/rtp_video_receiver_auxiliaries.cpp
     src/rtc/call/rtx_receive_stream.cpp
+    src/rtc/call/video_receive_stream.cpp
     
     # rtc -> media
     src/rtc/media/media_track.cpp
@@ -135,7 +136,6 @@ set(LIB_SOURCES
 
     # rtc -> media -> video
     src/rtc/media/video/encoded_frame.cpp
-    src/rtc/media/video/video_receive_stream.cpp
 
     # rtc -> media -> video -> codecs -> h264
     src/rtc/media/video/codecs/h264/nalunit.cpp
@@ -365,8 +365,9 @@ set(LIB_HEADERS
     src/rtc/call/rtp_utils.hpp
     src/rtc/call/rtp_demuxer.hpp
     src/rtc/call/rtp_packet_sink.hpp
-    src/rtc/call/rtp_video_stream_receiver.hpp
+    src/rtc/call/rtp_video_receiver.hpp
     src/rtc/call/rtx_receive_stream.hpp
+    src/rtc/call/video_receive_stream.hpp
 
     # rtc -> media
     src/rtc/media/media_track.hpp
@@ -374,7 +375,6 @@ set(LIB_HEADERS
     # rtc -> media -> video
     src/rtc/media/video/common.hpp
     src/rtc/media/video/encoded_frame.hpp
-    src/rtc/media/video/video_receive_stream.hpp
 
     # rtc -> media -> video -> codecs -> h264
     src/rtc/media/video/codecs/h264/common.hpp
@@ -391,8 +391,8 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.hpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp
     src/rtc/rtp_rtcp/components/wrap_around_utils.hpp
+    src/rtc/rtp_rtcp/components/num_unwrapper_base.hpp
     src/rtc/rtp_rtcp/components/num_unwrapper.hpp
-    src/rtc/rtp_rtcp/components/num_unwrapper_zero_modulo.hpp
     src/rtc/rtp_rtcp/components/rolling_accumulator.hpp
 
     # rtc -> rtp_rtcp
@@ -648,11 +648,11 @@ set(UNITTEST_SOURCES
 
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics_unittest.cpp
-    # src/rtc/rtp_rtcp/components/wrap_around_checker_unittest.cpp
-    src/rtc/rtp_rtcp/components/num_unwrapper_zero_modulo_unittest.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/wrap_around_utils_unittest.cpp
+    src/rtc/rtp_rtcp/components/num_unwrapper_base_unittest.cpp
+    # src/rtc/rtp_rtcp/components/wrap_around_checker_unittest.cpp
     src/rtc/rtp_rtcp/components/num_unwrapper_unittest.cpp
     src/rtc/rtp_rtcp/components/rolling_accumulator_unittest.cpp
 

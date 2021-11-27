@@ -52,7 +52,7 @@ private:
     int consecutive_invalid_samples_;
     std::list<Measurement> measurements_;
     std::optional<Parameters> params_;
-    mutable NumberUnwrapper<uint32_t> timestamp_unwrapper_;
+    mutable TimestampUnwrapper timestamp_unwrapper_;
 };
 
 } // namespace naivertc

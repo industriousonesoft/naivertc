@@ -1,19 +1,19 @@
-#include "rtc/call/rtp_video_stream_receiver.hpp"
+#include "rtc/call/rtp_video_receiver.hpp"
 
 #include <plog/Log.h>
 
 namespace naivertc {
 
 // RtcpFeedbackBuffer
-RtpVideoStreamReceiver::RtcpFeedbackBuffer::RtcpFeedbackBuffer(std::weak_ptr<NackSender> nack_sender, 
+RtpVideoReceiver::RtcpFeedbackBuffer::RtcpFeedbackBuffer(std::weak_ptr<NackSender> nack_sender, 
                                                                std::weak_ptr<KeyFrameRequestSender> key_frame_request_sender) 
     : nack_sender_(std::move(nack_sender)),
       key_frame_request_sender_(std::move(key_frame_request_sender)),
       request_key_frame_(false) {}
 
-RtpVideoStreamReceiver::RtcpFeedbackBuffer::~RtcpFeedbackBuffer() = default;
+RtpVideoReceiver::RtcpFeedbackBuffer::~RtcpFeedbackBuffer() = default;
 
-void RtpVideoStreamReceiver::RtcpFeedbackBuffer::SendNack(std::vector<uint16_t> nack_list,
+void RtpVideoReceiver::RtcpFeedbackBuffer::SendNack(std::vector<uint16_t> nack_list,
                                                           bool buffering_allowed) {
     if (nack_list.empty()) {
         return;
@@ -24,11 +24,11 @@ void RtpVideoStreamReceiver::RtcpFeedbackBuffer::SendNack(std::vector<uint16_t> 
     }
 }
 
-void RtpVideoStreamReceiver::RtcpFeedbackBuffer::RequestKeyFrame() {
+void RtpVideoReceiver::RtcpFeedbackBuffer::RequestKeyFrame() {
     request_key_frame_ = true;
 }
 
-void RtpVideoStreamReceiver::RtcpFeedbackBuffer::SendBufferedRtcpFeedbacks() {
+void RtpVideoReceiver::RtcpFeedbackBuffer::SendBufferedRtcpFeedbacks() {
     bool request_key_frame = false;
     std::vector<uint16_t> buffered_nack_list;
 
