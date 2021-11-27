@@ -6,21 +6,21 @@
 
 namespace naivertc {
 
-// TaskQueueChecker is a helper class used to help verify that
+// SequenceChecker is a helper class used to help verify that
 // some methods of a class are called on the same task queue.
-class RTC_CPP_EXPORT TaskQueueChecker {
+class RTC_CPP_EXPORT SequenceChecker {
 public:
     // The task queue checker will attacked to the queue 
     // calling this constructor method.
-    TaskQueueChecker();
-    ~TaskQueueChecker();
+    SequenceChecker();
+    ~SequenceChecker();
 
     // Return true if the checker is running on the queue 
     // in which the checker was created before.
     bool IsCurrent() const;
 
 private:
-    TaskQueueImpl* const attacked_queue_;
+    const TaskQueueImpl* const attacked_queue_;
 };
     
 } // namespace naivertc
