@@ -474,7 +474,7 @@ MY_TEST_F(FrameBufferTest, DuplicateFrames) {
     EXPECT_EQ(22256, InsertFrame(22256, 1, kFrameSize));
 }
 
-TEST_F(FrameBufferTest, InvalidReferences) {
+MY_TEST_F(FrameBufferTest, InvalidReferences) {
 
     EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(2);
 
@@ -484,7 +484,7 @@ TEST_F(FrameBufferTest, InvalidReferences) {
     EXPECT_EQ(2, InsertFrame(2, 3000, kFrameSize, 1));
 }
 
-TEST_F(FrameBufferTest, KeyframeRequired) {
+MY_TEST_F(FrameBufferTest, KeyframeRequired) {
 
     EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(3);
 
