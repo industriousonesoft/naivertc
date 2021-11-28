@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define ENABLE_UNIT_TESTS 0
+#define ENABLE_UNIT_TESTS 1
 #include "testing/defines.hpp"
 
 namespace naivertc {
@@ -35,7 +35,9 @@ MY_TEST(SimulatedTimeControllerTest, TaskIsStoppedOnStop) {
     time_simulation.AdvanceTime(kShortInterval * (kShortIntervalCount + kMargin));
     EXPECT_EQ(counter.load(), kShortIntervalCount);
 
-    repeating_task->Stop();
+    task_queue->Async([repeating_task=repeating_task.get()](){
+        repeating_task->Stop();
+    });
 
     // Sleep long enough that the task would run at least once more if not
     // stopped.

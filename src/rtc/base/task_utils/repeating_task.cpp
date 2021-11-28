@@ -17,16 +17,14 @@ RepeatingTask::RepeatingTask(std::shared_ptr<Clock> clock,
     : clock_(clock),
       task_queue_(task_queue != nullptr ? std::move(task_queue) 
                                         : std::make_shared<TaskQueue>("RepeatingTask.default.task.queue")),
-      handler_(std::move(handler)) {}
+      handler_(std::move(handler)),
+      is_stoped_(true) {}
 
-RepeatingTask::~RepeatingTask() {
-    Stop();
-    task_queue_.reset();
-}
+RepeatingTask::~RepeatingTask() = default;
 
 void RepeatingTask::Start(TimeDelta delay) {
     task_queue_->Async([this, delay=std::move(delay)](){
-        this->is_stoped = false;
+        this->is_stoped_ = false;
         if (delay.ms() <= 0) {
             this->ExecuteTask();
         } else {
@@ -36,19 +34,13 @@ void RepeatingTask::Start(TimeDelta delay) {
 }
 
 bool RepeatingTask::Running() const {
-    return task_queue_->Sync<bool>([this](){
-        return !this->is_stoped;
-    });
+    assert(task_queue_->IsCurrent());
+    return !is_stoped_;
 }
 
 void RepeatingTask::Stop() {
-    if (task_queue_->IsCurrent()) {
-        is_stoped = true;
-    } else {
-        task_queue_->Async([this](){
-            this->is_stoped = true;
-        });
-    }
+    assert(task_queue_->IsCurrent());
+    is_stoped_ = true;
 }
 
 // Private methods
@@ -60,7 +52,7 @@ void RepeatingTask::ScheduleTaskAfter(TimeDelta delay) {
 }
 
 void RepeatingTask::MaybeExecuteTask(Timestamp execution_time) {
-    if (this->is_stoped) {
+    if (this->is_stoped_) {
         return;
     }
     Timestamp now = clock_->CurrentTime();
@@ -83,7 +75,7 @@ void RepeatingTask::ExecuteTask() {
             ScheduleTaskAfter(interval);
         } else {
             // Stop internally if the `interval` is not a positive number.
-            this->is_stoped = true;
+            this->is_stoped_ = true;
         }
     }
 }

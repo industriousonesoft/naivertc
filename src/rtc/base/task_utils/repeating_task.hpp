@@ -22,17 +22,21 @@ public:
     static std::unique_ptr<RepeatingTask> Start(std::shared_ptr<Clock> clock, 
                                                 std::shared_ptr<TaskQueue> task_queue,
                                                 Handler clouser) {
-        return RepeatingTask::DelayedStart(clock, task_queue, TimeDelta::Seconds(0), std::move(clouser));
+        return RepeatingTask::DelayedStart(clock, task_queue, TimeDelta::Millis(0), std::move(clouser));
     }
 public:
     ~RepeatingTask();
 
     // Stops future invocations of the repeating task closure.
     // The closure is guaranteed to not be running after calling
-    // this function, unless it is called from the clouser itself. 
+    // this function, unless it is called from the clouser itself.
+    // NOTE: Can only be called from the task queue where the task 
+    // is running.
     void Stop();
 
     // Returns true untill Stop() was called.
+    // NOTE: Can only be called from the task queue where the task 
+    // is running.
     bool Running() const;
     
 private:
@@ -46,7 +50,7 @@ private:
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<TaskQueue> task_queue_;
     const Handler handler_;
-    bool is_stoped = true;
+    bool is_stoped_;
 };
     
 } // namespace naivertc
