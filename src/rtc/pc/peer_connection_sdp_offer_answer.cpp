@@ -142,7 +142,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
         // 2. We have local pranswer, and now we need to recreate a pr-answer
         if (type != sdp::Type::ANSWER && 
             type != sdp::Type::PRANSWER) {
-            throw std::logic_error("Unexpected local sdp type: " + sdp::ToString(type) + "for signling state: " + signaling_state_to_string(signaling_state_));
+            throw std::logic_error("Unexpected local sdp type: " + sdp::ToString(type) + "for signling state: " + ToString(signaling_state_));
         }
         // Now we have both local and remote sdp. so the signaling state goes to stable.
         new_signaling_state = SignalingState::STABLE;
@@ -150,7 +150,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     }
     default:
         PLOG_WARNING << "Ignore unexpected local sdp type: " <<  type
-                     << " in signaling state: " << signaling_state_to_string(signaling_state_);
+                     << " in signaling state: " << ToString(signaling_state_);
         return;
     }
 
@@ -206,7 +206,7 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
         remote_sdp.HintType(sdp::Type::ANSWER);
         if (remote_sdp.type() != sdp::Type::ANSWER &&
             remote_sdp.type() != sdp::Type::PRANSWER) {
-            throw std::logic_error("Unexpected remote sdp type: " + sdp::ToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
+            throw std::logic_error("Unexpected remote sdp type: " + sdp::ToString(remote_sdp.type()) + " in signaling state: " + ToString(signaling_state_));
         }
         if (remote_sdp.type() == sdp::Type::OFFER) {
             // The ICE agent will intiate a rollback automatically when a peer had
@@ -224,14 +224,14 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
         remote_sdp.HintType(sdp::Type::ANSWER);
         if (remote_sdp.type() != sdp::Type::ANSWER &&
             remote_sdp.type() != sdp::Type::PRANSWER) {
-            throw std::logic_error("Unexpected remote sdp type: " + sdp::ToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
+            throw std::logic_error("Unexpected remote sdp type: " + sdp::ToString(remote_sdp.type()) + " in signaling state: " + ToString(signaling_state_));
         }
         new_signaling_state = SignalingState::STABLE;
         break;
     }
     default:
         // TODO: Do we need to accept a remote offer sdp in the HAVE_REMOTE_OFFER state, and repalce the old remote offer sdp with the new one?
-        throw std::logic_error("Unexpected remote sdp type: " + sdp::ToString(remote_sdp.type()) + " in signaling state: " + signaling_state_to_string(signaling_state_));
+        throw std::logic_error("Unexpected remote sdp type: " + sdp::ToString(remote_sdp.type()) + " in signaling state: " + ToString(signaling_state_));
     }
 
     ProcessRemoteDescription(std::move(remote_sdp));

@@ -103,7 +103,7 @@ public:
     void OnDataChannel(DataChannelCallback callback);
     void OnMediaTrack(MediaTrackCallback callback);
 
-    static std::string signaling_state_to_string(SignalingState state);
+    static std::string ToString(SignalingState state);
 
 protected:
     PeerConnection(const RtcConfiguration& config);

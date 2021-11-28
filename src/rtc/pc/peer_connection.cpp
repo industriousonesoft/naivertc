@@ -57,92 +57,6 @@ void PeerConnection::Close() {
     });
 }
 
-void PeerConnection::ResetCallbacks() {
-    assert(signal_task_queue_->IsCurrent());
-    connection_state_callback_ = nullptr;
-    gathering_state_callback_ = nullptr;
-    candidate_callback_ = nullptr;
-    signaling_state_callback_ = nullptr;
-}
-
-void PeerConnection::CloseTransports() {
-    assert(signal_task_queue_->IsCurrent());
-    if (!UpdateConnectionState(ConnectionState::CLOSED)) {
-        // Closed already
-        return;
-    }
-
-    ResetCallbacks();
-
-    if (sctp_transport_) {
-        sctp_transport_->Stop();
-    }
-    if (dtls_transport_) {
-        dtls_transport_->Stop();
-    }
-    if (ice_transport_) {
-        ice_transport_->Stop();
-    }
-
-    sctp_transport_.reset();  
-    dtls_transport_.reset();
-    ice_transport_.reset();
-
-}
-
-bool PeerConnection::UpdateConnectionState(ConnectionState state) {
-    assert(signal_task_queue_->IsCurrent());
-    if (connection_state_ == state) {
-        return false;
-    }
-    connection_state_ = state;
-    if (connection_state_callback_) {
-        connection_state_callback_(connection_state_);
-    }
-    return true;
-}
-
-bool PeerConnection::UpdateGatheringState(GatheringState state) {
-    assert(signal_task_queue_->IsCurrent());
-    if (gathering_state_ == state) {
-        return false;
-    }
-    gathering_state_ = state;
-    if (gathering_state_callback_) {
-        gathering_state_callback_(gathering_state_);
-    }
-    return true;
-}
-
-bool PeerConnection::UpdateSignalingState(SignalingState state) {
-    assert(signal_task_queue_->IsCurrent());
-    if (signaling_state_ == state) {
-        return false;
-    }
-    signaling_state_ = state;
-    if (signaling_state_callback_) {
-        signaling_state_callback_(signaling_state_);
-    }
-    return true;
-}
-
-std::string PeerConnection::signaling_state_to_string(SignalingState state) {
-    switch (state) {
-	case SignalingState::STABLE:
-		return "stable";
-	case SignalingState::HAVE_LOCAL_OFFER:
-		return "have-local-offer";
-	case SignalingState::HAVE_REMOTE_OFFER:
-		return "have-remote-offer";
-	case SignalingState::HAVE_LOCAL_PRANSWER:
-		return "have-local-pranswer";
-	case SignalingState::HAVE_REMOTE_PRANSWER:
-		return "have-remote-pranswer";
-	default:
-		return "unknown";
-	}
-}
-
 // state && candidate callback
 void PeerConnection::OnConnectionStateChanged(ConnectionStateCallback callback) {
     signal_task_queue_->Async([this, callback](){
@@ -237,6 +151,92 @@ void PeerConnection::OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_tr
             });
         }
     });
+}
+
+// Private methods
+bool PeerConnection::UpdateConnectionState(ConnectionState state) {
+    assert(signal_task_queue_->IsCurrent());
+    if (connection_state_ == state) {
+        return false;
+    }
+    connection_state_ = state;
+    if (connection_state_callback_) {
+        connection_state_callback_(connection_state_);
+    }
+    return true;
+}
+
+bool PeerConnection::UpdateGatheringState(GatheringState state) {
+    assert(signal_task_queue_->IsCurrent());
+    if (gathering_state_ == state) {
+        return false;
+    }
+    gathering_state_ = state;
+    if (gathering_state_callback_) {
+        gathering_state_callback_(gathering_state_);
+    }
+    return true;
+}
+
+bool PeerConnection::UpdateSignalingState(SignalingState state) {
+    assert(signal_task_queue_->IsCurrent());
+    if (signaling_state_ == state) {
+        return false;
+    }
+    signaling_state_ = state;
+    if (signaling_state_callback_) {
+        signaling_state_callback_(signaling_state_);
+    }
+    return true;
+}
+
+void PeerConnection::ResetCallbacks() {
+    assert(signal_task_queue_->IsCurrent());
+    connection_state_callback_ = nullptr;
+    gathering_state_callback_ = nullptr;
+    candidate_callback_ = nullptr;
+    signaling_state_callback_ = nullptr;
+}
+
+void PeerConnection::CloseTransports() {
+    assert(signal_task_queue_->IsCurrent());
+    if (!UpdateConnectionState(ConnectionState::CLOSED)) {
+        return;
+    }
+
+    ResetCallbacks();
+
+    if (sctp_transport_) {
+        sctp_transport_->Stop();
+    }
+    if (dtls_transport_) {
+        dtls_transport_->Stop();
+    }
+    if (ice_transport_) {
+        ice_transport_->Stop();
+    }
+
+    sctp_transport_.reset();  
+    dtls_transport_.reset();
+    ice_transport_.reset();
+
+}
+
+std::string PeerConnection::ToString(SignalingState state) {
+    switch (state) {
+	case SignalingState::STABLE:
+		return "stable";
+	case SignalingState::HAVE_LOCAL_OFFER:
+		return "have-local-offer";
+	case SignalingState::HAVE_REMOTE_OFFER:
+		return "have-remote-offer";
+	case SignalingState::HAVE_LOCAL_PRANSWER:
+		return "have-local-pranswer";
+	case SignalingState::HAVE_REMOTE_PRANSWER:
+		return "have-remote-pranswer";
+	default:
+		return "unknown";
+	}
 }
 
 // ostream operator << override
