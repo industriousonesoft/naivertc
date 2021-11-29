@@ -12,8 +12,6 @@ std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> CreateTaskQueue(std::stri
     switch (kind) {
     case TaskQueue::Kind::BOOST:
         return TaskQueueImplBoost::Create(std::move(name));
-    case TaskQueue::Kind::SIMULATED:
-        return nullptr;
     default:
         return nullptr;
     }

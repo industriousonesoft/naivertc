@@ -109,7 +109,7 @@ protected:
     PeerConnection(const RtcConfiguration& config);
 
 private:
-    void InitIceTransport(RtcConfiguration config);;
+    void InitIceTransport(RtcConfiguration config, sdp::Role role);
 
     DtlsTransport::Configuration CreateDtlsConfig() const;
     void InitDtlsTransport(DtlsTransport::Configuration config);
@@ -121,20 +121,22 @@ private:
     bool UpdateGatheringState(GatheringState state);
     bool UpdateSignalingState(SignalingState state);
 
-    void SetLocalDescription(sdp::Type type);
-    void SetRemoteDescription(sdp::Description remote_sdp);
-
-    void ProcessLocalDescription(sdp::Description local_sdp);
-    void ProcessRemoteDescription(sdp::Description remote_sdp);
-    void ValidRemoteDescription(const sdp::Description& remote_sdp);
-
-    void TryToGatherLocalCandidate();
-    void ProcessRemoteCandidates();
-    void ProcessRemoteCandidate(sdp::Candidate candidate);
-
     void ResetCallbacks();
     void CloseTransports();
 
+    // SDP
+    void SetLocalDescription(sdp::Type type);
+    void SetRemoteDescription(sdp::Description remote_sdp);
+
+    sdp::Description CreateLocalDescription(sdp::Type type);
+
+    void ProcessLocalDescription(sdp::Description& local_sdp);
+    void ProcessRemoteDescription(sdp::Description remote_sdp);
+    void ValidRemoteDescription(const sdp::Description& remote_sdp);
+
+    void ProcessRemoteCandidates();
+    void ProcessRemoteCandidate(sdp::Candidate candidate);
+    
     // DataChannel
     void OpenDataChannels();
     void CloseDataChannels();
@@ -142,17 +144,15 @@ private:
     void FlushPendingDataChannels();
     void ShiftDataChannelIfNeccessary(sdp::Role role);
     void OnIncomingDataChannel(std::shared_ptr<DataChannel> data_channel);
+    std::shared_ptr<DataChannel> FindDataChannel(uint16_t stream_id) const;
 
     // MediaTacks
     void OpenMediaTracks();
     void CloseMediaTracks();
     void FlushPendingMediaTracks();
-    void OnIncomingMediaTrack(std::shared_ptr<MediaTrack> media_track);
-    
-    std::shared_ptr<DataChannel> FindDataChannel(uint16_t stream_id) const;
     std::shared_ptr<MediaTrack> FindMediaTrack(std::string mid) const;
-
-    void OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_track);
+    void OnMediaTrackNegotiated(const sdp::Media& remote_sdp);
+    void OnIncomingMediaTrack(const sdp::Media& remote_sdp);
   
 private:
     // IceTransport callbacks
@@ -174,13 +174,20 @@ private:
 
 private:
     const RtcConfiguration rtc_config_;
+    // RFC 5763: The answerer MUST use either a setup attibute value of setup:active or setup:passive.
+    // and, setup::active is RECOMMENDED. See https://tools.ietf.org/html/rfc5763#section-5
+    // Thus, we assume passive role if we are the offerer.
+    sdp::Role role_;
     std::shared_future<std::shared_ptr<Certificate>> certificate_;
-
+    
     ConnectionState connection_state_ = ConnectionState::CLOSED;
     GatheringState gathering_state_ = GatheringState::NEW;
     SignalingState signaling_state_ = SignalingState::STABLE;
 
+    // Indicate if we need to negotiate or not.
     bool negotiation_needed_ = false;
+    // Indicate if we need to create a data channel or not.
+    bool data_channel_needed_ = false;
 
     std::unique_ptr<TaskQueue> signal_task_queue_ = nullptr;
     std::shared_ptr<TaskQueue> network_task_queue_ = nullptr;
@@ -202,6 +209,8 @@ private:
     std::optional<sdp::Description> remote_sdp_ = std::nullopt;
 
     std::vector<const sdp::Candidate> remote_candidates_;
+
+    std::unordered_map<std::string, sdp::Media> media_sdps_;
 
     // Keep a weak reference instead of shared one, since the life cycle of 
     // data channels or media tracks should be owned by the one who has created them.

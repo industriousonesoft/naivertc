@@ -3,8 +3,8 @@
 
 #include "stream/media_stream_source.hpp"
 
-#include <common/task_queue.hpp>
-#include <rtc/base/clock_real_time.hpp>
+#include <rtc/base/task_utils/task_queue.hpp>
+#include <rtc/base/time/clock_real_time.hpp>
 
 #include <string>
 #include <fstream>

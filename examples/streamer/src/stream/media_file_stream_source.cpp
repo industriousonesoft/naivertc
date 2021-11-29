@@ -1,5 +1,7 @@
 #include "stream/media_file_stream_source.hpp"
 
+#include "rtc/base/units/time_delta.hpp"
+
 #include <limits>
 
 
@@ -11,7 +13,8 @@ MediaFileStreamSource::MediaFileStreamSource(std::string directory, std::string 
       next_sample_time_ms_(std::numeric_limits<int64_t>::max()),
       sample_duration_ms_(1000 / samplesPerSecond),
       is_stoped_(true),
-      sample_callback_(nullptr) {
+      sample_callback_(nullptr),
+      task_queue_("MediaFileStreamSource.task.queue") {
 
 }
 
@@ -78,7 +81,7 @@ void MediaFileStreamSource::LoadNextSample() {
     if (eslapsed_ms < sample_duration_ms_) {
         delay_ms = sample_duration_ms_ - eslapsed_ms;
     }
-    task_queue_.AsyncAfter(delay_ms, [this](){
+    task_queue_.AsyncAfter(naivertc::TimeDelta::Millis(delay_ms), [this](){
         this->LoadNextSample();
     });
 }

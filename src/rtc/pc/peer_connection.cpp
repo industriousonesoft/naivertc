@@ -10,6 +10,7 @@ namespace naivertc {
 
 PeerConnection::PeerConnection(const RtcConfiguration& config) 
     : rtc_config_(config),
+      role_(sdp::Role::ACT_PASS),
       certificate_(Certificate::MakeCertificate(rtc_config_.certificate_type)) {
 
     if (rtc_config_.port_range_end > 0 && rtc_config_.port_range_end < rtc_config_.port_range_begin) {
@@ -31,16 +32,14 @@ PeerConnection::PeerConnection(const RtcConfiguration& config)
     network_task_queue_ = std::make_shared<TaskQueue>("PeerConnection.network.task.queue");
     worker_task_queue_ = std::make_shared<TaskQueue>("PeerConnection.worker.task.queue");
 
-    network_task_queue_->Async([this, config=rtc_config_](){
-        InitIceTransport(std::move(config));
+    network_task_queue_->Async([this, config=rtc_config_, role=role_](){
+        InitIceTransport(std::move(config), role);
     });
 }
 
 PeerConnection::~PeerConnection() {
-    signal_task_queue_->Async([this](){
-        CloseTransports();
-    });
-    // The signal queue will be blocked until
+    Close();
+    // Those task queues will be blocked until
     // all the tasks in the queue have been done. 
     signal_task_queue_.reset();
     network_task_queue_.reset();
@@ -50,8 +49,12 @@ PeerConnection::~PeerConnection() {
 void PeerConnection::Close() {
     signal_task_queue_->Async([this](){
         PLOG_VERBOSE << "Closing PeerConnection";
-
         this->negotiation_needed_ = false;
+        this->data_channel_needed_ = false;
+        this->UpdateConnectionState(ConnectionState::CLOSED);
+        this->ResetCallbacks();
+    });
+    network_task_queue_->Async([this](){
         this->CloseDataChannels();
         this->CloseTransports();
     });
@@ -83,7 +86,7 @@ void PeerConnection::OnSignalingStateChanged(SignalingStateCallback callback) {
 }
 
 void PeerConnection::OnDataChannel(DataChannelCallback callback) {
-    signal_task_queue_->Async([this, callback=std::move(callback)](){
+    worker_task_queue_->Async([this, callback=std::move(callback)](){
         this->data_channel_callback_ = std::move(callback);
         // Flush pending data channels
         this->FlushPendingDataChannels();
@@ -91,38 +94,36 @@ void PeerConnection::OnDataChannel(DataChannelCallback callback) {
 }
 
 void PeerConnection::OnMediaTrack(MediaTrackCallback callback) {
-    signal_task_queue_->Async([this, callback=std::move(callback)](){
+    worker_task_queue_->Async([this, callback=std::move(callback)](){
         this->media_track_callback_ = std::move(callback);
         // Flush pending media tracks
         this->FlushPendingMediaTracks();
     });
 }
 
+// Private methods
 void PeerConnection::FlushPendingDataChannels() {
-    signal_task_queue_->Async([this](){
-        if (this->data_channel_callback_ && this->pending_data_channels_.size() > 0) {
-            for (auto dc : this->pending_data_channels_) {
-                this->data_channel_callback_(std::move(dc));
-            }
-            this->pending_data_channels_.clear();
+    assert(worker_task_queue_->IsCurrent());
+    if (this->data_channel_callback_ && this->pending_data_channels_.size() > 0) {
+        for (auto dc : this->pending_data_channels_) {
+            this->data_channel_callback_(std::move(dc));
         }
-    });
+        this->pending_data_channels_.clear();
+    }
 }
 
 void PeerConnection::FlushPendingMediaTracks() {
-    signal_task_queue_->Async([this](){
-        if (this->media_track_callback_ && this->pending_media_tracks_.size() > 0) {
-            for (auto dc : this->pending_media_tracks_) {
-                this->media_track_callback_(std::move(dc));
-            }
-            this->pending_media_tracks_.clear();
+    assert(worker_task_queue_->IsCurrent());
+    if (this->media_track_callback_ && this->pending_media_tracks_.size() > 0) {
+        for (auto dc : this->pending_media_tracks_) {
+            this->media_track_callback_(std::move(dc));
         }
-    });
+        this->pending_media_tracks_.clear();
+    }
 }
 
-// Private methods
 std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(uint16_t stream_id) const {
-    assert(signal_task_queue_->IsCurrent());
+    assert(worker_task_queue_->IsCurrent());
     if (auto it = data_channels_.find(stream_id); it != data_channels_.end()) {
         return it->second.lock();
     }
@@ -130,30 +131,51 @@ std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(uint16_t stream_id)
 }
 
 std::shared_ptr<MediaTrack> PeerConnection::FindMediaTrack(std::string mid) const {
-    assert(signal_task_queue_->IsCurrent());
+    assert(worker_task_queue_->IsCurrent());
     if (auto it = this->media_tracks_.find(mid); it != this->media_tracks_.end()) {
         return it->second.lock();
     }
     return nullptr;
 }
 
-void PeerConnection::OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_track) {
-    worker_task_queue_->Async([this, media_track=std::move(media_track)](){
-        if (auto media_sdp = media_track->local_description()) {
-            media_sdp->ForEachSsrc([this, &media_track](const sdp::Media::SsrcEntry& ssrc_entry){
-                rtp_demuxer_.AddSink(ssrc_entry.ssrc, media_track);
-            });
+void PeerConnection::ShiftDataChannelIfNeccessary(sdp::Role role) {
+    assert(worker_task_queue_->IsCurrent());
+    decltype(data_channels_) new_data_channels;
+    for (auto& kv : data_channels_) {
+        if (auto dc = kv.second.lock()) {
+            dc.get()->HintStreamId(role);
+            new_data_channels.emplace(dc->stream_id(), dc);
         }
-
-        if (auto media_sdp = media_track->remote_description()) {
-            media_sdp->ForEachSsrc([this, &media_track](const sdp::Media::SsrcEntry& ssrc_entry){
-                rtp_demuxer_.AddSink(ssrc_entry.ssrc, media_track);
-            });
-        }
-    });
+    }
+    std::swap(data_channels_, new_data_channels);
 }
 
 // Private methods
+void PeerConnection::OnMediaTrackNegotiated(const sdp::Media& remote_sdp) {
+    assert(signal_task_queue_->IsCurrent());
+    auto mid = remote_sdp.mid();
+    auto local_sdp_it = media_sdps_.find(mid);
+    if (local_sdp_it != media_sdps_.end()) {
+        // Send SSRCs
+        local_sdp_it->second.ForEachSsrc([this, &mid](const sdp::Media::SsrcEntry& ssrc_entry){
+            worker_task_queue_->Async([this, mid, ssrc=ssrc_entry.ssrc](){
+                if (auto media_track = FindMediaTrack(mid)) {
+                    rtp_demuxer_.AddSink(ssrc, media_track);
+                }
+            });
+        });
+    }
+    
+    // Receive SSRCs
+    remote_sdp.ForEachSsrc([this, &mid](const sdp::Media::SsrcEntry& ssrc_entry){
+        worker_task_queue_->Async([this, mid, ssrc=ssrc_entry.ssrc](){
+            if (auto media_track = FindMediaTrack(mid)) {
+                rtp_demuxer_.AddSink(ssrc, media_track);
+            }
+        });
+    });
+}
+
 bool PeerConnection::UpdateConnectionState(ConnectionState state) {
     assert(signal_task_queue_->IsCurrent());
     if (connection_state_ == state) {
@@ -199,12 +221,7 @@ void PeerConnection::ResetCallbacks() {
 }
 
 void PeerConnection::CloseTransports() {
-    assert(signal_task_queue_->IsCurrent());
-    if (!UpdateConnectionState(ConnectionState::CLOSED)) {
-        return;
-    }
-
-    ResetCallbacks();
+    assert(network_task_queue_->IsCurrent());
 
     if (sctp_transport_) {
         sctp_transport_->Stop();

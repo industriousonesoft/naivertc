@@ -27,8 +27,8 @@ public:
 public:
     ~RepeatingTask();
 
-    // Stops future invocations of the repeating task closure.
-    // The closure is guaranteed to not be running after calling
+    // Stops future invocations of the repeating task.
+    // The task is guaranteed to not be running after calling
     // this function, unless it is called from the clouser itself.
     // NOTE: Can only be called from the task queue where the task 
     // is running.

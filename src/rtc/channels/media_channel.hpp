@@ -26,6 +26,7 @@ public:
 
     bool is_opened() const;
 
+    // TODO: Using peer connection as transport instead of srtp transport.
     void Open(std::weak_ptr<DtlsSrtpTransport> srtp_transport);
     void Close() override;
 

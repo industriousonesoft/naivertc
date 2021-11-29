@@ -133,7 +133,7 @@ set(LIB_SOURCES
     # rtc -> media
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_configuration.cpp
-    src/rtc/media/media_track_sdp_builder.cpp
+    src/rtc/media/media_track_sdp.cpp
 
     # rtc -> media -> video
     src/rtc/media/video/encoded_frame.cpp

@@ -9,10 +9,10 @@ namespace naivertc {
 
 using namespace std::chrono_literals;
 
-IceTransport::IceTransport(RtcConfiguration config) 
+IceTransport::IceTransport(RtcConfiguration config, sdp::Role role) 
     : Transport(std::weak_ptr<Transport>()), 
       curr_mid_("0"),
-      role_(sdp::Role::ACT_PASS) {
+      role_(role) {
 #if !USE_NICE
     if (config.enable_ice_tcp) {
         PLOG_WARNING << "ICE-TCP is not supported with libjuice.";

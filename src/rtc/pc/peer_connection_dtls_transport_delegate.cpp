@@ -45,32 +45,30 @@ void PeerConnection::InitDtlsTransport(DtlsTransport::Configuration config) {
 }
 
 void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_state) {
+    assert(network_task_queue_->IsCurrent());
     signal_task_queue_->Async([this, transport_state](){
         switch (transport_state)
         {
         case DtlsSrtpTransport::State::CONNECTED: {
             PLOG_DEBUG << "DTLS transport connected";
             // DataChannel enabled
-            if (auto remote_sdp = this->remote_sdp_; remote_sdp && remote_sdp->HasApplication()) {
+            if (this->remote_sdp_ && this->remote_sdp_->HasApplication()) {
                 auto sctp_config = CreateSctpConfig();
-                network_task_queue_->Async([this, config=std::move(sctp_config)](){
-                    InitSctpTransport(std::move(config));
+                this->network_task_queue_->Async([this, config=std::move(sctp_config)](){
+                    this->InitSctpTransport(std::move(config));
                 });
             } else {
                 this->UpdateConnectionState(ConnectionState::CONNECTED);
             }
-            this->OpenMediaTracks();
             break;
         }
         case DtlsSrtpTransport::State::FAILED: {
             this->UpdateConnectionState(ConnectionState::FAILED);
-            this->CloseMediaTracks();
             PLOG_DEBUG << "DTLS transport failed";
             break;
         }
         case DtlsSrtpTransport::State::DISCONNECTED: {
             this->UpdateConnectionState(ConnectionState::DISCONNECTED);
-            this->CloseMediaTracks();
             PLOG_DEBUG << "DTLS transport dicconnected";
             break;
         }
@@ -78,9 +76,18 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
             break;
         }
     });
+    worker_task_queue_->Async([this, transport_state](){
+        if (transport_state == DtlsSrtpTransport::State::CONNECTED) {
+            this->OpenMediaTracks();
+        } else if (transport_state == DtlsSrtpTransport::State::FAILED ||
+                   transport_state == DtlsSrtpTransport::State::DISCONNECTED) {
+            this->CloseMediaTracks();
+        }
+    });
 }
 
 bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
+    assert(network_task_queue_->IsCurrent());
     return signal_task_queue_->Sync<bool>([this, remote_fingerprint=std::move(fingerprint)](){
         // We expect the remote fingerprint received by singaling channel is equal to 
         // the remote fingerprint received by DTLS channel.
@@ -96,13 +103,14 @@ bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
 }
 
 void PeerConnection::OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rtcp) {
+    assert(network_task_queue_->IsCurrent());
     worker_task_queue_->Async([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
         rtp_demuxer_.OnRtpPacket(in_packet, is_rtcp);
     });
 }
 
 void PeerConnection::OpenMediaTracks() {
-    assert(signal_task_queue_->IsCurrent());
+    assert(worker_task_queue_->IsCurrent());
     auto srtp_transport = std::dynamic_pointer_cast<DtlsSrtpTransport>(dtls_transport_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
@@ -114,7 +122,7 @@ void PeerConnection::OpenMediaTracks() {
 }
 
 void PeerConnection::CloseMediaTracks() {
-    assert(signal_task_queue_->IsCurrent());
+    assert(worker_task_queue_->IsCurrent());
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
             media_track->Close();

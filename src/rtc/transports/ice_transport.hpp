@@ -60,7 +60,7 @@ public:
         std::optional<std::string> ice_pwd_;
     };
 public:
-    IceTransport(RtcConfiguration config);
+    IceTransport(RtcConfiguration config, sdp::Role role);
     ~IceTransport() override;
 
     sdp::Role role() const;

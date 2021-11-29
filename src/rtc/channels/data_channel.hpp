@@ -68,6 +68,7 @@ public:
 
     void HintStreamId(sdp::Role role);
 
+    // TODO: Using peer connection as transport instead of sctp transport.
     void Open(std::weak_ptr<SctpTransport> sctp_transport);
     void Close() override;
     void RemoteClose();

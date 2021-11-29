@@ -33,7 +33,7 @@ constexpr int kDefaultVideoClockRate = 90000;
 
 namespace naivertc {
 
-std::optional<sdp::Media> MediaTrack::SDPBuilder::Build(const Configuration& config) {
+std::optional<sdp::Media> MediaTrack::SdpBuilder::Build(const Configuration& config) {
     std::optional<sdp::Media> media = std::nullopt;
     if (config.kind() == MediaTrack::Kind::AUDIO) {
         auto audio = sdp::Media(sdp::MediaEntry::Kind::AUDIO,
@@ -56,7 +56,7 @@ std::optional<sdp::Media> MediaTrack::SDPBuilder::Build(const Configuration& con
 }
 
 // Private methods
-bool MediaTrack::SDPBuilder::AddCodecs(const Configuration& config, sdp::Media& media) {
+bool MediaTrack::SdpBuilder::AddCodecs(const Configuration& config, sdp::Media& media) {
     // Associated payload types of RTX
     std::vector<int> associated_payload_types;
     // Media codecs
@@ -138,7 +138,7 @@ bool MediaTrack::SDPBuilder::AddCodecs(const Configuration& config, sdp::Media& 
 
 }
 
-bool MediaTrack::SDPBuilder::AddMediaCodec(int payload_type, const CodecParams& cp, sdp::Media& media) {
+bool MediaTrack::SdpBuilder::AddMediaCodec(int payload_type, const CodecParams& cp, sdp::Media& media) {
     // Audio codecs
     // OPUS
     if (cp.codec == MediaTrack::Codec::OPUS) {
@@ -157,7 +157,7 @@ bool MediaTrack::SDPBuilder::AddMediaCodec(int payload_type, const CodecParams& 
     }
 }
 
-bool MediaTrack::SDPBuilder::AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media) {
+bool MediaTrack::SdpBuilder::AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media) {
     switch(fb) {
     case RtcpFeedback::NACK:
         media.AddFeedback(payload_type, "nack");
@@ -168,7 +168,7 @@ bool MediaTrack::SDPBuilder::AddFeedback(int payload_type, RtcpFeedback fb, sdp:
     return true;
 }
 
-bool MediaTrack::SDPBuilder::AddSsrcs(const Configuration& config, sdp::Media& media) {
+bool MediaTrack::SdpBuilder::AddSsrcs(const Configuration& config, sdp::Media& media) {
     if (media.direction() != sdp::Direction::SEND_ONLY &&
         media.direction() != sdp::Direction::SEND_RECV) {
         PLOG_WARNING << "Inactive or only received media track do not contains send stream.";
@@ -193,7 +193,7 @@ bool MediaTrack::SDPBuilder::AddSsrcs(const Configuration& config, sdp::Media& m
     return true;
 }
 
-std::optional<int> MediaTrack::SDPBuilder::NextPayloadType(Kind kind) {
+std::optional<int> MediaTrack::SdpBuilder::NextPayloadType(Kind kind) {
     if (kind == Kind::AUDIO) {
         static int payload_type = kAudioPayloadTypeLowerRangeValue;
         if (payload_type + 1 <= kAudioPayloadTypeUpperRangeValue) {

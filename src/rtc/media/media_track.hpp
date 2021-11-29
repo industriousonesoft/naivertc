@@ -92,20 +92,16 @@ public:
     
 public:
     MediaTrack(const Configuration& config);
-    MediaTrack(sdp::Media description);
+    MediaTrack(Kind kind, std::string mid);
     ~MediaTrack();
 
-    const sdp::Media* local_description() const;
-    bool ReconfigLocalDescription(const Configuration& config);
-
-    const sdp::Media* remote_description() const;
-    bool OnRemoteDescription(sdp::Media description);
+    bool IsValidConfig(const Configuration& config);
 
     void OnRtpPacket(RtpPacketReceived in_packet) override;
     void OnRtcpPacket(CopyOnWriteBuffer in_packet) override;
-    
-private:
-    class SDPBuilder {
+
+public:
+    class SdpBuilder final {
     public:
         static std::optional<sdp::Media> Build(const Configuration& config);
     private:
@@ -115,9 +111,6 @@ private:
         static bool AddSsrcs(const Configuration& config, sdp::Media& media);
         static std::optional<int> NextPayloadType(Kind kind);
     };
-private:
-    std::optional<sdp::Media> local_description_;
-    std::optional<sdp::Media> remote_description_;
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec);

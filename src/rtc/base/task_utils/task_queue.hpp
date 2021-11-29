@@ -17,8 +17,7 @@ namespace naivertc {
 class RTC_CPP_EXPORT TaskQueue {
 public:
     enum class Kind {
-        BOOST,
-        SIMULATED
+        BOOST
     };
 public:
     TaskQueue(std::string name, Kind kind = Kind::BOOST);

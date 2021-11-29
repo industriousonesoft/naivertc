@@ -43,33 +43,39 @@ void PeerConnection::InitSctpTransport(SctpTransport::Configuration config) {
 }
 
 // SctpTransport delegate
-void PeerConnection::OnSctpTransportStateChanged(Transport::State transport_state) {
-    signal_task_queue_->Async([this, transport_state](){
-        switch(transport_state) {
+void PeerConnection::OnSctpTransportStateChanged(Transport::State state) {
+    assert(network_task_queue_->IsCurrent());
+    signal_task_queue_->Async([this, state](){
+        switch(state) {
         case SctpTransport::State::CONNECTED:
             PLOG_DEBUG << "SCTP transport connected";
-            this->UpdateConnectionState(ConnectionState::CONNECTED);
-            OpenDataChannels();
+            UpdateConnectionState(ConnectionState::CONNECTED);
             break;
         case SctpTransport::State::FAILED:
             PLOG_WARNING << "SCTP transport failed";
-            this->UpdateConnectionState(ConnectionState::FAILED);
-            RemoteCloseDataChannels();
+            UpdateConnectionState(ConnectionState::FAILED);
             break;
         case SctpTransport::State::DISCONNECTED:
-            this->UpdateConnectionState(ConnectionState::DISCONNECTED);
-            RemoteCloseDataChannels();
+            UpdateConnectionState(ConnectionState::DISCONNECTED);
             PLOG_DEBUG << "SCTP transport disconnected";
             break;
         default:
             break;
         }
     });
+    worker_task_queue_->Async([this, state](){
+        if (state == SctpTransport::State::CONNECTED) {
+            OpenDataChannels();
+        } else if (state == SctpTransport::State::FAILED ||
+                   state == SctpTransport::State::DISCONNECTED) {
+            RemoteCloseDataChannels();
+        }
+    });
 }
 
 void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
-    // TODO: Using work task queue
-    signal_task_queue_->Async([this, message=std::move(message)]() mutable {
+    assert(network_task_queue_->IsCurrent());
+    worker_task_queue_->Async([this, message=std::move(message)](){
         auto stream_id = message.stream_id();
         auto data_channel = FindDataChannel(stream_id);
         if (!data_channel) {
@@ -95,13 +101,17 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                     data_channel->OnIncomingMessage(std::move(message));
                 } else {
                     PLOG_WARNING << "Failed to response the data channel created by remote peer, since it's stream id [" << stream_id
-                                 << "] is not corresponding to the remote role.";
-                    sctp_transport_->CloseStream(stream_id);
+                                    << "] is not corresponding to the remote role.";
+                    worker_task_queue_->Async([this, stream_id](){
+                        sctp_transport_->CloseStream(stream_id);
+                    });
                     return;
                 }
             } else {
                 PLOG_WARNING << "No data channel found to handle non-opening incoming message with stream id: " << stream_id;
-                sctp_transport_->CloseStream(stream_id);
+                worker_task_queue_->Async([this, stream_id](){
+                    sctp_transport_->CloseStream(stream_id);
+                });
                 return;
             }
         } else {
@@ -111,7 +121,8 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
 }
 
 void PeerConnection::OnSctpReadyToSend() {
-    signal_task_queue_->Async([this](){
+    assert(network_task_queue_->IsCurrent());
+    worker_task_queue_->Async([this](){
         for (auto& kv : data_channels_) {
             if (auto dc = kv.second.lock()) {
                 dc->OnReadyToSend();
@@ -120,8 +131,9 @@ void PeerConnection::OnSctpReadyToSend() {
     });
 }
 
+// Helper methods
 void PeerConnection::OpenDataChannels() {
-    assert(signal_task_queue_->IsCurrent());
+    assert(worker_task_queue_->IsCurrent());
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->Open(sctp_transport_);
@@ -130,7 +142,7 @@ void PeerConnection::OpenDataChannels() {
 }
 
 void PeerConnection::CloseDataChannels() {
-    assert(signal_task_queue_->IsCurrent());
+    assert(worker_task_queue_->IsCurrent());
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->Close();
@@ -140,7 +152,7 @@ void PeerConnection::CloseDataChannels() {
 }
 
 void PeerConnection::RemoteCloseDataChannels() {
-    assert(signal_task_queue_->IsCurrent());
+    assert(worker_task_queue_->IsCurrent());
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->RemoteClose();
@@ -150,13 +162,12 @@ void PeerConnection::RemoteCloseDataChannels() {
 }
 
 void PeerConnection::OnIncomingDataChannel(std::shared_ptr<DataChannel> data_channel) {
-    signal_task_queue_->Async([this, data_channel=std::move(data_channel)](){
-        if (data_channel_callback_) {
-            data_channel_callback_(std::move(data_channel));
-        } else {
-            pending_data_channels_.push_back(std::move(data_channel));
-        }
-    });
+    assert(worker_task_queue_->IsCurrent());
+    if (data_channel_callback_) {
+        data_channel_callback_(std::move(data_channel));
+    } else {
+        pending_data_channels_.push_back(std::move(data_channel));
+    }
 }
 
 } // namespace naivertc
