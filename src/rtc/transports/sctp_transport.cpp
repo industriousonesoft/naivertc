@@ -13,7 +13,7 @@ SctpTransport::SctpTransport(Configuration config, std::weak_ptr<Transport> lowe
     : Transport(std::move(lower)),
       config_(std::move(config)),
 	  // AF11: Assured Forwarding class 1, low drop probability
-	  packet_options_(DSCP::DSCP_AF11) {
+	  packet_options_(DSCP::DSCP_AF11, PacketKind::TEXT) {
 	WeakPtrManager::SharedInstance()->Register(this);
 }
 
