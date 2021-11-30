@@ -38,7 +38,6 @@ public:
 
     bool Send(SctpMessageToSend message);
     void CloseStream(uint16_t stream_id);
-    bool ready_to_send() const;
 
     using ReadyToSendCallback = std::function<void(void)>;
     void OnReadyToSend(ReadyToSendCallback callback);
@@ -85,9 +84,9 @@ private:
 
 private:
     void Incoming(CopyOnWriteBuffer in_packet) override;
-    int Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) override;
+    int Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) override;
     // Disable inherited Send method
-    int Send(CopyOnWriteBuffer packet, const PacketOptions& options) override { return -1; };
+    int Send(CopyOnWriteBuffer packet, PacketOptions options) override { return -1; };
 
     bool SendInternal(SctpMessageToSend message);
 

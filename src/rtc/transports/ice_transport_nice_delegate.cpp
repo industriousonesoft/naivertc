@@ -201,7 +201,7 @@ void IceTransport::OnNiceGatheredCandidate(sdp::Candidate candidate) {
 
 void IceTransport::OnNiceReceivedData(CopyOnWriteBuffer data) {
     sequence_checker_.attached_queue()->Post([this, data=std::move(data)](){
-        OnReceivedData(std::move(data));
+        Incoming(std::move(data));
     });
 }
 

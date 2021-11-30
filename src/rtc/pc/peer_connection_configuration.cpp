@@ -14,7 +14,7 @@ namespace naivertc {
 IceServer::IceServer(const std::string& url_string) {
     // Parsing a URI Reference with a Regular Expression
     // Modified regex from RFC 3986, see https://tools.ietf.org/html/rfc3986#appendix-B
-    // TODO(cwp): 这段正则表达式怎么理解?
+    // FIXME: How to understand this regex sentence?
 	static const char *rs =
 	    R"(^(([^:.@/?#]+):)?(/{0,2}((([^:@]*)(:([^@]*))?)@)?(([^:/?#]*)(:([^/?#]*))?))?([^?#]*)(\?([^#]*))?(#(.*))?)";
 	static const std::regex r(rs, std::regex::extended);

@@ -28,10 +28,10 @@ void DtlsSrtpTransport::DtlsHandshakeDone() {
     srtp_init_done_ = true;
 }
 
-int DtlsSrtpTransport::SendRtpPacket(CopyOnWriteBuffer packet, const PacketOptions& options) {
+int DtlsSrtpTransport::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
     RTC_RUN_ON(&sequence_checker_);
     if (!packet.empty() && EncryptPacket(packet)) {
-        return Outgoing(std::move(packet), options);
+        return Outgoing(std::move(packet), std::move(options));
     } else {
         return -1;
     }
@@ -168,7 +168,7 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
     }
 }
 
-int DtlsSrtpTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) {
+int DtlsSrtpTransport::Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) {
     RTC_RUN_ON(&sequence_checker_);
     // if (out_packet.dscp() == 0) {
     //     // Set recommended medium-priority DSCP value
@@ -179,7 +179,7 @@ int DtlsSrtpTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOption
     //     //                      : packet.set_dscp(36) // AF42: Assured Forwarding class 4, medium drop probability
     //     out_packet.set_dscp(36);
     // }
-    return ForwardOutgoingPacket(std::move(out_packet), options);
+    return ForwardOutgoingPacket(std::move(out_packet), std::move(options));
 }
     
 } // namespace naivertc

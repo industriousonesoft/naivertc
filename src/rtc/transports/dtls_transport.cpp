@@ -8,12 +8,15 @@
 
 namespace naivertc {
 
+DtlsTransport::Configuration::Configuration(std::shared_ptr<Certificate> certificate, std::optional<size_t> mtu) 
+ : certificate(std::move(certificate)),
+   mtu(std::move(mtu)) {}
+
 DtlsTransport::DtlsTransport(Configuration config, std::weak_ptr<IceTransport> lower) 
     : Transport(lower),
       config_(std::move(config)),
       is_client_(lower.lock() != nullptr ? lower.lock()->role() == sdp::Role::ACTIVE : false),
-      handshake_packet_options_(DSCP::DSCP_AF21 /* Assured Forwarding class 2, low drop precedence, the recommendation for high-priority data in RFC 8837 */),
-      user_packet_options_(DSCP::DSCP_DF) {
+      handshake_packet_options_(DSCP::DSCP_AF21 /* Assured Forwarding class 2, low drop precedence, the recommendation for high-priority data in RFC 8837 */) {
     InitOpenSSL(config_);
     WeakPtrManager::SharedInstance()->Register(this);
 }
@@ -66,12 +69,12 @@ bool DtlsTransport::Stop() {
     return true;
 }
 
-int DtlsTransport::Send(CopyOnWriteBuffer packet, const PacketOptions& options) {
+int DtlsTransport::Send(CopyOnWriteBuffer packet, PacketOptions options) {
     RTC_RUN_ON(&sequence_checker_);
     if (packet.empty() || state_ != State::CONNECTED) {
         return -1;
     }
-    user_packet_options_ = options;
+    user_packet_options_ = std::move(options);
     int ret = SSL_write(ssl_, packet.cdata(), int(packet.size()));
     if (openssl::check(ssl_, ret)) {
         PLOG_VERBOSE << "Send size=" << ret;
@@ -135,13 +138,14 @@ int DtlsTransport::HandleDtlsWrite(CopyOnWriteBuffer data) {
     if (state_ != State::CONNECTED) {
         return Outgoing(std::move(data), handshake_packet_options_);
     } else {
-        return Outgoing(std::move(data), user_packet_options_);
+        PacketOptions options = user_packet_options_ ? std::move(*user_packet_options_): PacketOptions(DSCP::DSCP_DF);
+        return Outgoing(std::move(data), std::move(options));
     }
 }
     
-int DtlsTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) {
+int DtlsTransport::Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) {
     RTC_RUN_ON(&sequence_checker_);
-    return ForwardOutgoingPacket(std::move(out_packet), options);
+    return ForwardOutgoingPacket(std::move(out_packet), std::move(options));
 }
     
 } // namespace naivertc

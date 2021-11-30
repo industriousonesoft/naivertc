@@ -70,6 +70,8 @@ public:
     static std::shared_ptr<PeerConnection> Create(const RtcConfiguration& config) {
         return std::shared_ptr<PeerConnection>(new PeerConnection(config));
     }
+    static std::string ToString(SignalingState state);
+public:
     ~PeerConnection();
 
     std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Configuration& config);
@@ -92,29 +94,24 @@ public:
 
     void Close();
 
-public:
     // setup State & Candidate callback
     void OnConnectionStateChanged(ConnectionStateCallback callback);
     void OnIceGatheringStateChanged(GatheringStateCallback callback);
-    void OnIceCandidate(CandidateCallback callback);
+    void OnIceCandidateGathered(CandidateCallback callback);
     void OnSignalingStateChanged(SignalingStateCallback callback);
 
     // Incoming data channel or media track created by remote peer
-    void OnDataChannel(DataChannelCallback callback);
-    void OnMediaTrack(MediaTrackCallback callback);
-
-    static std::string ToString(SignalingState state);
+    void OnRemoteDataChannelReceived(DataChannelCallback callback);
+    void OnRemoteMediaTrackReceived(MediaTrackCallback callback);
 
 protected:
     PeerConnection(const RtcConfiguration& config);
 
 private:
     void InitIceTransport(RtcConfiguration config, sdp::Role role);
-
-    DtlsTransport::Configuration CreateDtlsConfig() const;
     void InitDtlsTransport(DtlsTransport::Configuration config);
 
-    SctpTransport::Configuration CreateSctpConfig() const;
+    SctpTransport::Configuration CreateSctpConfig(const sdp::Description& remote_sdp) const;
     void InitSctpTransport(SctpTransport::Configuration config);
 
     bool UpdateConnectionState(ConnectionState state);
@@ -127,8 +124,6 @@ private:
     // SDP
     void SetLocalDescription(sdp::Type type);
     void SetRemoteDescription(sdp::Description remote_sdp);
-
-    sdp::Description CreateLocalDescription(sdp::Type type);
 
     void ProcessLocalDescription(sdp::Description& local_sdp);
     void ProcessRemoteDescription(sdp::Description remote_sdp);

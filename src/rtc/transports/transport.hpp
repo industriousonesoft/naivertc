@@ -30,7 +30,7 @@ public:
     virtual bool Start() = 0;
     virtual bool Stop() = 0;
     
-    virtual int Send(CopyOnWriteBuffer packet, const PacketOptions& options) = 0;
+    virtual int Send(CopyOnWriteBuffer packet, PacketOptions options) = 0;
 
     using StateChangedCallback = std::function<void(State state)>;
     void OnStateChanged(StateChangedCallback callback);    
@@ -39,7 +39,7 @@ protected:
     virtual ~Transport();
     
     virtual void Incoming(CopyOnWriteBuffer packet) = 0;
-    virtual int Outgoing(CopyOnWriteBuffer packet, const PacketOptions& options) = 0;
+    virtual int Outgoing(CopyOnWriteBuffer packet, PacketOptions options) = 0;
   
     void UpdateState(State state);
 
@@ -47,7 +47,7 @@ protected:
     void DeregisterIncoming();
 
     void ForwardIncomingPacket(CopyOnWriteBuffer packet);
-    int ForwardOutgoingPacket(CopyOnWriteBuffer packet, const PacketOptions& options);
+    int ForwardOutgoingPacket(CopyOnWriteBuffer packet, PacketOptions options);
 
 protected:
     SequenceChecker sequence_checker_;

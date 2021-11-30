@@ -21,6 +21,9 @@ static const openssl_bool openssl_false = 0;
 class RTC_CPP_EXPORT DtlsTransport : public Transport {
 public:
     struct Configuration {
+        Configuration(std::shared_ptr<Certificate> certificate, 
+                      std::optional<size_t> mtu);
+
         std::shared_ptr<Certificate> certificate;
         std::optional<size_t> mtu;
     };
@@ -39,11 +42,11 @@ public:
     virtual bool Start() override;
     virtual bool Stop() override;
 
-    virtual int Send(CopyOnWriteBuffer packet, const PacketOptions& options) override;
+    virtual int Send(CopyOnWriteBuffer packet, PacketOptions options) override;
 
 protected:
     virtual void Incoming(CopyOnWriteBuffer in_packet) override;
-    virtual int Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) override;
+    virtual int Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) override;
 
     bool ExportKeyingMaterial(unsigned char *out, size_t olen,
                               const char *label, size_t llen,
@@ -78,7 +81,7 @@ private:
     const bool is_client_;
     
     const PacketOptions handshake_packet_options_;
-    PacketOptions user_packet_options_;
+    std::optional<PacketOptions> user_packet_options_;
 
     SSL_CTX* ctx_ = NULL;
     SSL* ssl_ = NULL;

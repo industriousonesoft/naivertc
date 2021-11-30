@@ -40,11 +40,11 @@ void Transport::UpdateState(State state) {
     }
 }
 
-int Transport::ForwardOutgoingPacket(CopyOnWriteBuffer packet, const PacketOptions& options) {
+int Transport::ForwardOutgoingPacket(CopyOnWriteBuffer packet, PacketOptions options) {
     RTC_RUN_ON(&sequence_checker_);
     try {
         if (auto lower = lower_.lock()) {
-            return lower->Send(std::move(packet), options);
+            return lower->Send(std::move(packet), std::move(options));
         } else {
             return -1;
         }

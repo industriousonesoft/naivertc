@@ -64,12 +64,13 @@ public:
     ~IceTransport() override;
 
     sdp::Role role() const;
+    GatheringState gathering_state() const;
     std::exception_ptr last_exception() const;
-
+    
     bool Start() override;
     bool Stop() override;
 
-    int Send(CopyOnWriteBuffer packet, const PacketOptions& options) override;
+    int Send(CopyOnWriteBuffer packet, PacketOptions options) override;
 
     void StartToGatherLocalCandidate(std::string mid);
     void AddRemoteCandidate(const sdp::Candidate& candidate);
@@ -90,10 +91,9 @@ private:
 
     void UpdateGatheringState(GatheringState state);
     void OnGatheredCandidate(sdp::Candidate candidate);
-    void OnReceivedData(CopyOnWriteBuffer data);
 
     void Incoming(CopyOnWriteBuffer in_packet) override;
-    int Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) override;
+    int Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) override;
 
 private:
 #if USE_NICE
@@ -144,7 +144,7 @@ private:
 
     std::string curr_mid_;
     sdp::Role role_;
-    std::atomic<GatheringState> gathering_state_ = GatheringState::NEW;
+    GatheringState gathering_state_ = GatheringState::NEW;
     CandidateGatheredCallback candidate_gathered_callback_ = nullptr;
     GatheringStateChangedCallback gathering_state_changed_callback_ = nullptr;
     RoleChangedCallback role_changed_callback_ = nullptr;

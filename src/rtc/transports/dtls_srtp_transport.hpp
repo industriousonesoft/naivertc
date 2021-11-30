@@ -3,7 +3,6 @@
 
 #include "base/defines.hpp"
 #include "rtc/transports/dtls_transport.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp"
 
 #include <srtp.h>
 
@@ -19,7 +18,7 @@ public:
     DtlsSrtpTransport(Configuration config, std::weak_ptr<IceTransport> lower);
     ~DtlsSrtpTransport() override;
 
-    int SendRtpPacket(CopyOnWriteBuffer packet, const PacketOptions& options);
+    int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options);
 
     using RtpPacketRecvCallback = std::function<void(CopyOnWriteBuffer, bool /* is_rtcp */)>;
     void OnReceivedRtpPacket(RtpPacketRecvCallback callback);
@@ -31,7 +30,7 @@ private:
 
     void DtlsHandshakeDone() override;
     void Incoming(CopyOnWriteBuffer in_packet) override;
-    int Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) override;
+    int Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) override;
 
     bool EncryptPacket(CopyOnWriteBuffer& packet);
 private:

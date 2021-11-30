@@ -33,6 +33,11 @@ sdp::Role IceTransport::role() const {
     return role_;
 }
 
+IceTransport::GatheringState IceTransport::gathering_state() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return gathering_state_;
+}
+
 std::exception_ptr IceTransport::last_exception() const {
     RTC_RUN_ON(&sequence_checker_);
     return last_exception_;
@@ -261,12 +266,12 @@ IceTransport::CandidatePair IceTransport::GetSelectedCandidatePair() const {
     return std::make_pair(selected_local_candidate, selected_remote_candidate);
 }
 
-int IceTransport::Send(CopyOnWriteBuffer packet, const PacketOptions& options) {
+int IceTransport::Send(CopyOnWriteBuffer packet, PacketOptions options) {
     RTC_RUN_ON(&sequence_checker_);
     if (packet.empty() || (state_ != State::CONNECTED && state_ != State::COMPLETED)) {
         return -1;
     }
-    return Outgoing(std::move(packet), options);
+    return Outgoing(std::move(packet), std::move(options));
 }
 
 // Private methods
@@ -287,7 +292,8 @@ void IceTransport::NegotiateRole(sdp::Role remote_role) {
 
 void IceTransport::UpdateGatheringState(GatheringState state) {
     RTC_RUN_ON(&sequence_checker_);
-    if (gathering_state_.exchange(state) != state) {
+    if (gathering_state_ != state) {
+        gathering_state_ = state;
         if (gathering_state_changed_callback_) {
             gathering_state_changed_callback_(state);
         }
@@ -301,17 +307,7 @@ void IceTransport::OnGatheredCandidate(sdp::Candidate candidate) {
     }
 }
 
-void IceTransport::OnReceivedData(CopyOnWriteBuffer data) {
-    RTC_RUN_ON(&sequence_checker_);
-    try {
-        // PLOG_VERBOSE << "Incoming ICE packet size: " << data.size();
-        Incoming(std::move(data));
-    } catch(const std::exception &e) {
-        PLOG_WARNING << e.what();
-    }
-}
-
-int IceTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) {
+int IceTransport::Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) {
     RTC_RUN_ON(&sequence_checker_);
     int ret = -1;
 #if !USE_NICE

@@ -47,16 +47,19 @@ PeerConnection::~PeerConnection() {
 }
 
 void PeerConnection::Close() {
-    signal_task_queue_->Async([this](){
+    worker_task_queue_->Sync([this](){
+        this->CloseDataChannels();
+        this->CloseMediaTracks();
+    });
+    network_task_queue_->Sync([this](){
+        this->CloseTransports();
+    });
+    signal_task_queue_->Sync([this](){
         PLOG_VERBOSE << "Closing PeerConnection";
+        this->UpdateConnectionState(ConnectionState::CLOSED);
         this->negotiation_needed_ = false;
         this->data_channel_needed_ = false;
-        this->UpdateConnectionState(ConnectionState::CLOSED);
         this->ResetCallbacks();
-    });
-    network_task_queue_->Async([this](){
-        this->CloseDataChannels();
-        this->CloseTransports();
     });
 }
 
@@ -73,7 +76,7 @@ void PeerConnection::OnIceGatheringStateChanged(GatheringStateCallback callback)
     });
 }
 
-void PeerConnection::OnIceCandidate(CandidateCallback callback) {
+void PeerConnection::OnIceCandidateGathered(CandidateCallback callback) {
     signal_task_queue_->Async([this, callback](){
         this->candidate_callback_ = callback;
     });
@@ -85,7 +88,7 @@ void PeerConnection::OnSignalingStateChanged(SignalingStateCallback callback) {
     });
 }
 
-void PeerConnection::OnDataChannel(DataChannelCallback callback) {
+void PeerConnection::OnRemoteDataChannelReceived(DataChannelCallback callback) {
     worker_task_queue_->Async([this, callback=std::move(callback)](){
         this->data_channel_callback_ = std::move(callback);
         // Flush pending data channels
@@ -93,7 +96,7 @@ void PeerConnection::OnDataChannel(DataChannelCallback callback) {
     });
 }
 
-void PeerConnection::OnMediaTrack(MediaTrackCallback callback) {
+void PeerConnection::OnRemoteMediaTrackReceived(MediaTrackCallback callback) {
     worker_task_queue_->Async([this, callback=std::move(callback)](){
         this->media_track_callback_ = std::move(callback);
         // Flush pending media tracks

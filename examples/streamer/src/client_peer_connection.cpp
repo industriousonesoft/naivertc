@@ -24,7 +24,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
         PLOG_INFO << "Peer gathering state: " << new_state;
     });
 
-    peer_conn_->OnIceCandidate([this](const sdp::Candidate& candidate){
+    peer_conn_->OnIceCandidateGathered([this](const sdp::Candidate& candidate){
         auto mid = candidate.mid();
         auto sdp = std::string(candidate);
         PLOG_INFO << "Local candidate => mid: " << mid << " sdp: " << sdp;
@@ -32,10 +32,6 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
             this->SendLocalCandidate(mid, sdp);
         }));
     });
-
-    peer_conn_->OnDataChannel([](std::shared_ptr<DataChannel> data_channel){
-        PLOG_INFO << "Remote data channel: " << data_channel->label();
-    }); 
 
 #if HAS_MEDIA
     // TODO: Generate a random 16-char and case-insensitive string, e.g.; TjtznXLCNH7nbRw
@@ -114,13 +110,13 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
         PLOG_VERBOSE << "OnBufferedAmountChanged : " << previous_amount;
     });
 
-    // Incoming data channel
-    peer_conn_->OnDataChannel([](std::shared_ptr<DataChannel> data_channel){
+    // Incoming data channel from remote peer
+    peer_conn_->OnRemoteDataChannelReceived([](std::shared_ptr<DataChannel> data_channel){
         PLOG_INFO << "Incoming data channel:" << data_channel->stream_id();
     });
 
-    // Incoming media track
-    peer_conn_->OnMediaTrack([](std::shared_ptr<MediaTrack> media_track){
+    // Incoming media track from remote peer
+    peer_conn_->OnRemoteMediaTrackReceived([](std::shared_ptr<MediaTrack> media_track){
         PLOG_INFO << "Incoming media track:" << media_track->mid();
     });
 

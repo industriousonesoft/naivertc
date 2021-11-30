@@ -5,17 +5,6 @@
 
 namespace naivertc {
 
-DtlsTransport::Configuration PeerConnection::CreateDtlsConfig() const {
-    assert(signal_task_queue_->IsCurrent());
-    // NOTE: The thread might be blocked here until the certificate has been created.
-    auto certificate = certificate_.get();
-
-    auto dtls_config = DtlsTransport::Configuration();
-    dtls_config.certificate = std::move(certificate);
-    dtls_config.mtu = rtc_config_.mtu;
-    return dtls_config;
-}
-
 void PeerConnection::InitDtlsTransport(DtlsTransport::Configuration config) {
     assert(network_task_queue_->IsCurrent());
     if (dtls_transport_) {
@@ -53,7 +42,7 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
             PLOG_DEBUG << "DTLS transport connected";
             // DataChannel enabled
             if (this->remote_sdp_ && this->remote_sdp_->HasApplication()) {
-                auto sctp_config = CreateSctpConfig();
+                auto sctp_config = CreateSctpConfig(*remote_sdp_);
                 this->network_task_queue_->Async([this, config=std::move(sctp_config)](){
                     this->InitSctpTransport(std::move(config));
                 });

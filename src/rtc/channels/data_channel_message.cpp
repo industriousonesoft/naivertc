@@ -225,10 +225,7 @@ bool DataChannel::TrySend(SctpMessageToSend message) {
         PLOG_WARNING << "Failed to send message cause the sctp transport is not set yet.";
         return false;
     }
-    if (transport->ready_to_send()) {
-        return transport->Send(std::move(message));
-    }
-    return false;
+    return transport->Send(std::move(message));;
 }
     
 } // namespace naivertc

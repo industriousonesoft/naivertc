@@ -54,11 +54,11 @@ set(LIB_SOURCES
 
     # rtc
     # rtc -> base
+    src/rtc/base/packet.cpp
     src/rtc/base/copy_on_write_buffer.cpp
     src/rtc/base/memory/bit_io.cpp
     src/rtc/base/memory/bit_io_reader.cpp
     src/rtc/base/memory/bit_io_writer.cpp
-    src/rtc/base/packet.cpp
     src/rtc/base/time/ntp_time.cpp
     src/rtc/base/time/ntp_time_util.cpp
     src/rtc/base/time/clock.cpp
@@ -298,12 +298,12 @@ set(LIB_HEADERS
     # rtc -> base
     src/rtc/base/internals.hpp
     src/rtc/base/packet.hpp
+    src/rtc/base/dscp.hpp
+    src/rtc/base/packet_options.hpp
+    src/rtc/base/copy_on_write_buffer.hpp
     src/rtc/base/memory/byte_io.hpp
     src/rtc/base/memory/byte_io_reader.hpp
     src/rtc/base/memory/byte_io_writer.hpp
-    src/rtc/base/copy_on_write_buffer.hpp
-    src/rtc/base/dscp.hpp
-    src/rtc/base/packet_options.hpp
     src/rtc/base/memory/bit_io.hpp
     src/rtc/base/memory/bit_io_reader.hpp
     src/rtc/base/memory/bit_io_writer.hpp

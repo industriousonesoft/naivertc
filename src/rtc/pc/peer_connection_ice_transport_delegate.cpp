@@ -38,9 +38,11 @@ void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state
             break;
         case Transport::State::CONNECTED: {
             PLOG_DEBUG << "ICE transport connected";
-            auto dtls_config = CreateDtlsConfig();
-            network_task_queue_->Async([this, config=std::move(dtls_config)](){
-                InitDtlsTransport(std::move(config));
+            network_task_queue_->Async([this, mtu=rtc_config_.mtu](){
+                // NOTE: The thread might be blocked here until the certificate has been created.
+                auto certificate = certificate_.get();
+                auto dtls_config = DtlsTransport::Configuration(std::move(certificate), mtu);
+                InitDtlsTransport(std::move(dtls_config));
             });
             break;
         }

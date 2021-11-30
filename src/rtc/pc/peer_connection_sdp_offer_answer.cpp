@@ -164,20 +164,23 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
         return;
     }
 
-    // Start to gather local candidate after local sdp was set.
-    bool ready_to_gather = gathering_state_ == GatheringState::NEW;
-
-    network_task_queue_->Async([this, type, ready_to_gather](){
-        auto local_sdp = CreateLocalDescription(type);
-        ProcessLocalDescription(local_sdp);
-        if (ready_to_gather) {
-            PLOG_DEBUG << "Start to gather local candidates";
-            ice_transport_->StartToGatherLocalCandidate(local_sdp_.value().bundle_id());
-        }
-        // TODO: Update local SDP
+    // Retrieve the ICE SDP from ICE transport.
+    auto local_ice_sdp = network_task_queue_->Sync<IceTransport::Description>([this, type](){
+        return ice_transport_->GetLocalDescription(type);
     });
 
-    UpdateSignalingState(new_signaling_state);
+    auto local_sdp_builder = sdp::Description::Builder(type);
+    auto local_sdp = local_sdp_builder
+                    .set_role(local_ice_sdp.role())
+                    .set_ice_ufrag(local_ice_sdp.ice_ufrag())
+                    .set_ice_pwd(local_ice_sdp.ice_pwd())
+                    // Set local fingerprint (wait for certificate if necessary)
+                    .set_fingerprint(certificate_.get()->fingerprint())
+                    .Build();
+
+    ProcessLocalDescription(local_sdp);
+
+    UpdateSignalingState(new_signaling_state);  
 }
 
 void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
@@ -255,23 +258,8 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
     }
 }
 
-sdp::Description PeerConnection::CreateLocalDescription(sdp::Type type) {
-    assert(network_task_queue_->IsCurrent());
-    // Build local sdp
-    auto local_ice_sdp = ice_transport_->GetLocalDescription(type);
-    auto local_sdp_builder = sdp::Description::Builder(type);
-    auto local_sdp = local_sdp_builder
-                    .set_role(local_ice_sdp.role())
-                    .set_ice_ufrag(local_ice_sdp.ice_ufrag())
-                    .set_ice_pwd(local_ice_sdp.ice_pwd())
-                    // Set local fingerprint (wait for certificate if necessary)
-                    .set_fingerprint(certificate_.get()->fingerprint())
-                    .Build();
-    return local_sdp;
-}
-
 void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
-    assert(network_task_queue_->IsCurrent());
+    assert(signal_task_queue_->IsCurrent());
     const uint16_t local_sctp_port = rtc_config_.local_sctp_port.value_or(kDefaultSctpPort);
     const size_t local_max_message_size = rtc_config_.sctp_max_message_size.value_or(kDefaultSctpMaxMessageSize);
 
@@ -375,32 +363,20 @@ void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
 
     local_sdp_ = std::move(local_sdp);
    
-    // Reciprocated tracks might need to be open
-    if (dtls_transport_ && dtls_transport_->state() == DtlsTransport::State::CONNECTED) {
-        OpenMediaTracks();
-    }
+    network_task_queue_->Async([this](){
+        // Start to gather local candidate after local sdp was set.
+        if (ice_transport_->gathering_state() == IceTransport::GatheringState::NEW) {
+            PLOG_DEBUG << "Start to gather local candidates";
+            ice_transport_->StartToGatherLocalCandidate(local_sdp_.value().bundle_id());
+        }
+        // Reciprocated tracks might need to be open
+        if (dtls_transport_ && dtls_transport_->state() == DtlsTransport::State::CONNECTED) {
+            OpenMediaTracks();
+        }
+    });
 }
 void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
     assert(signal_task_queue_->IsCurrent());
-    auto remote_ice_sdp = IceTransport::Description(remote_sdp.type(), remote_sdp.role(), remote_sdp.ice_ufrag(), remote_sdp.ice_pwd());
-    ice_transport_->SetRemoteDescription(remote_ice_sdp);
-
-    // we need to create sctp transport for data channel if we could.
-    if (remote_sdp.HasApplication()) {
-        if (!sctp_transport_ && dtls_transport_ && 
-            dtls_transport_->state() == Transport::State::CONNECTED) {
-            auto sctp_config = CreateSctpConfig();
-            network_task_queue_->Async([this, config=std::move(sctp_config)](){
-                try {
-                    InitSctpTransport(std::move(config));
-                }catch(const std::exception& exp) {
-                    PLOG_ERROR << exp.what();
-                    UpdateConnectionState(ConnectionState::FAILED);
-                }
-            });
-        }
-    }
-
     PLOG_VERBOSE << "Did process remote sdp: " << std::string(remote_sdp);
 
     // Handle incoming media track in remote SDP.
@@ -419,6 +395,25 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
         });
     }
 
+    auto remote_ice_sdp = IceTransport::Description(remote_sdp.type(), 
+                                                    remote_sdp.role(), 
+                                                    remote_sdp.ice_ufrag(), 
+                                                    remote_sdp.ice_pwd());
+    network_task_queue_->Async([this, remote_ice_sdp=std::move(remote_ice_sdp)](){
+        ice_transport_->SetRemoteDescription(remote_ice_sdp);
+    });
+    
+    // we need to create sctp transport for data channel if we could.
+    if (remote_sdp.HasApplication()) {
+        auto sctp_config = CreateSctpConfig(remote_sdp);
+        network_task_queue_->Async([this, config=std::move(sctp_config)](){
+            if (!sctp_transport_ && dtls_transport_ && 
+                dtls_transport_->state() == Transport::State::CONNECTED) {
+                InitSctpTransport(std::move(config));
+            }
+        });
+    }
+
     remote_sdp_ = std::move(remote_sdp);
 }
 
@@ -433,22 +428,19 @@ void PeerConnection::ProcessRemoteCandidates() {
 
 void PeerConnection::ProcessRemoteCandidate(sdp::Candidate candidate) {
     assert(signal_task_queue_->IsCurrent());
-    assert(ice_transport_ != nullptr);
     PLOG_VERBOSE << "Adding remote candidate: " << std::string(candidate);
-
     // We assume all medias are multiplex
     candidate.HintMid(remote_sdp_->bundle_id());
     candidate.Resolve(sdp::Candidate::ResolveMode::SIMPLE);
 
-    if (candidate.isResolved()) {
-        ice_transport_->AddRemoteCandidate(candidate);
     // We might need a lookup
-    } else if (candidate.Resolve(sdp::Candidate::ResolveMode::LOOK_UP)) {
-        ice_transport_->AddRemoteCandidate(candidate);
+    if (candidate.isResolved() || candidate.Resolve(sdp::Candidate::ResolveMode::LOOK_UP)) {
+        network_task_queue_->Async([this, candidate=std::move(candidate)](){
+            ice_transport_->AddRemoteCandidate(candidate);
+        });
     } else {
-        throw std::runtime_error("Failed to resolve remote candidate");
+        PLOG_WARNING << "Failed to resolve remote candidate: " << std::string(candidate);
     }
-
 }
 
 void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) {

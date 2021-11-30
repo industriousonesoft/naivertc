@@ -6,13 +6,13 @@
 
 namespace naivertc {
 
-SctpTransport::Configuration PeerConnection::CreateSctpConfig() const {
+SctpTransport::Configuration PeerConnection::CreateSctpConfig(const sdp::Description& remote_sdp) const {
     assert(signal_task_queue_->IsCurrent());
-    assert (remote_sdp_ && remote_sdp_->HasApplication());
+    assert (remote_sdp.HasApplication());
 
     uint16_t sctp_port = rtc_config_.local_sctp_port.value_or(kDefaultSctpPort);
     // FIXME: Is it necessary to make sure the local sctp port is the same as remote sctp port?
-    if (auto remote_app = remote_sdp_->application()) {
+    if (auto remote_app = remote_sdp.application()) {
         if (remote_app->sctp_port()) {
             sctp_port = remote_app->sctp_port().value();
         }

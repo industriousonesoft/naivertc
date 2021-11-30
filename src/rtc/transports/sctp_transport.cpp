@@ -70,18 +70,28 @@ bool SctpTransport::Stop() {
 }
 
 void SctpTransport::CloseStream(uint16_t stream_id) {
-	RTC_RUN_ON(&sequence_checker_);
-	ResetStream(stream_id);
-}
-
-bool SctpTransport::ready_to_send() const {
-	RTC_RUN_ON(&sequence_checker_);
-	return ready_to_send_;
+	// RTC_RUN_ON(&sequence_checker_);
+	// FIXME: Call me in a right way.
+	if (sequence_checker_.IsCurrent()) {
+		ResetStream(stream_id);
+	} else {
+		sequence_checker_.attached_queue()->Post([this, stream_id](){
+			ResetStream(stream_id);
+		});
+	}
 }
 
 bool SctpTransport::Send(SctpMessageToSend message) {
-	RTC_RUN_ON(&sequence_checker_);
-	return SendInternal(std::move(message));
+	// RTC_RUN_ON(&sequence_checker_);
+	// FIXME: Call me in a right way.
+	if (sequence_checker_.IsCurrent()) {
+		return SendInternal(std::move(message));
+	} else {
+		sequence_checker_.attached_queue()->Post([this, message=std::move(message)](){
+			return SendInternal(std::move(message));
+		});
+		return true;
+	}
 }
 
 // Private method
@@ -575,9 +585,9 @@ void SctpTransport::Incoming(CopyOnWriteBuffer in_packet) {
 	ProcessIncomingPacket(std::move(in_packet));
 }
 
-int SctpTransport::Outgoing(CopyOnWriteBuffer out_packet, const PacketOptions& options) {
+int SctpTransport::Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) {
 	RTC_RUN_ON(&sequence_checker_);
-	return ForwardOutgoingPacket(std::move(out_packet), options);
+	return ForwardOutgoingPacket(std::move(out_packet), std::move(options));
 }
 
 // SCTP callback methods
