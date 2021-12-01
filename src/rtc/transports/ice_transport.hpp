@@ -60,7 +60,7 @@ public:
         std::optional<std::string> ice_pwd_;
     };
 public:
-    IceTransport(RtcConfiguration config, sdp::Role role);
+    IceTransport(RtcConfiguration config, sdp::Role role, TaskQueue* task_queue);
     ~IceTransport() override;
 
     sdp::Role role() const;
@@ -73,10 +73,10 @@ public:
     int Send(CopyOnWriteBuffer packet, PacketOptions options) override;
 
     void StartToGatherLocalCandidate(std::string mid);
-    void AddRemoteCandidate(const sdp::Candidate& candidate);
+    void AddRemoteCandidate(sdp::Candidate candidate);
 
     Description GetLocalDescription(sdp::Type type) const;
-    void SetRemoteDescription(const Description remote_sdp);
+    void SetRemoteDescription(Description remote_sdp);
 
     std::optional<std::string> GetLocalAddress() const;
     std::optional<std::string> GetRemoteAddress() const;

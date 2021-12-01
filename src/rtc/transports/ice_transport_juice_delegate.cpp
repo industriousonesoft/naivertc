@@ -9,7 +9,7 @@ namespace naivertc {
 const int kMaxTurnServersCount = 2;
 
 void IceTransport::InitJuice(const RtcConfiguration& config) {
-    RTC_RUN_ON(&sequence_checker_);
+    RTC_RUN_ON(task_queue_);
     PLOG_VERBOSE << "Initializing ICE transport (libjuice)";
 
     juice_log_level_t level;
@@ -98,7 +98,7 @@ void IceTransport::InitJuice(const RtcConfiguration& config) {
 }
 
 void IceTransport::OnJuiceState(juice_state_t state) {
-    sequence_checker_.attached_queue()->Post([this, state](){
+    task_queue_->Async([this, state](){
         switch (state) {
         case JUICE_STATE_DISCONNECTED:
             UpdateState(State::DISCONNECTED);
@@ -123,19 +123,19 @@ void IceTransport::OnJuiceState(juice_state_t state) {
 }
 
 void IceTransport::OnJuiceGatheringState(GatheringState state) {
-    sequence_checker_.attached_queue()->Post([this, state](){
+    task_queue_->Async([this, state](){
         UpdateGatheringState(state);
     });
 }
 
 void IceTransport::OnJuiceGatheredCandidate(sdp::Candidate candidate) {
-    sequence_checker_.attached_queue()->Post([this, candidate=std::move(candidate)](){
+    task_queue_->Async([this, candidate=std::move(candidate)](){
         OnGatheredCandidate(std::move(candidate));
     });
 }
 
 void IceTransport::OnJuiceReceivedData(CopyOnWriteBuffer data) {
-    sequence_checker_.attached_queue()->Post([this, data=std::move(data)](){
+    task_queue_->Async([this, data=std::move(data)](){
         Incoming(std::move(data));
     });
 }

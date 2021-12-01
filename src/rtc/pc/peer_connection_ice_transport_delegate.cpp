@@ -4,33 +4,25 @@
 
 namespace naivertc {
 // Init IceTransport 
-void PeerConnection::InitIceTransport(RtcConfiguration config, sdp::Role role) {
-    assert(network_task_queue_->IsCurrent());
-    try {
-        if (ice_transport_) {
-           return;
-        }
-        PLOG_VERBOSE << "Init Ice transport";
+void PeerConnection::InitIceTransport() {
+    RTC_RUN_ON(signal_task_queue_);
+    if (ice_transport_) {
+        return;
+    }
+    PLOG_VERBOSE << "Init Ice transport";
+    ice_transport_.reset(new IceTransport(rtc_config_, role_, network_task_queue_.get()));
     
-       ice_transport_.reset(new IceTransport(std::move(config), role));
-       
-       ice_transport_->OnStateChanged(std::bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
-       ice_transport_->OnGatheringStateChanged(std::bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));
-       ice_transport_->OnCandidateGathered(std::bind(&PeerConnection::OnCandidateGathered, this, std::placeholders::_1));
-       ice_transport_->OnRoleChanged(std::bind(&PeerConnection::OnRoleChanged, this, std::placeholders::_1));
+    ice_transport_->OnStateChanged(std::bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
+    ice_transport_->OnGatheringStateChanged(std::bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));
+    ice_transport_->OnCandidateGathered(std::bind(&PeerConnection::OnCandidateGathered, this, std::placeholders::_1));
+    ice_transport_->OnRoleChanged(std::bind(&PeerConnection::OnRoleChanged, this, std::placeholders::_1));
 
-       ice_transport_->Start();
-
-    } catch(const std::exception& e) {
-        PLOG_ERROR << "Failed to init ice transport: " << e.what();
-        UpdateConnectionState(ConnectionState::FAILED);
-        throw std::runtime_error("Ice tansport initialization failed.");
-    }   
+    ice_transport_->Start();  
 }
 
 // IceTransport delegate
 void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state) {
-    assert(network_task_queue_->IsCurrent());
+    RTC_RUN_ON(network_task_queue_);
     signal_task_queue_->Async([this, transport_state](){
         switch (transport_state) {
         case Transport::State::CONNECTING:
@@ -38,12 +30,7 @@ void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state
             break;
         case Transport::State::CONNECTED: {
             PLOG_DEBUG << "ICE transport connected";
-            network_task_queue_->Async([this, mtu=rtc_config_.mtu](){
-                // NOTE: The thread might be blocked here until the certificate has been created.
-                auto certificate = certificate_.get();
-                auto dtls_config = DtlsTransport::Configuration(std::move(certificate), mtu);
-                InitDtlsTransport(std::move(dtls_config));
-            });
+            InitDtlsTransport();
             break;
         }
         case Transport::State::FAILED: 
@@ -62,7 +49,7 @@ void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state
 }
 
 void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gathering_state) {
-    assert(network_task_queue_->IsCurrent());
+    RTC_RUN_ON(network_task_queue_);
     signal_task_queue_->Async([this, gathering_state](){
         switch (gathering_state) {
         case IceTransport::GatheringState::NEW:
@@ -81,7 +68,7 @@ void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gather
 }
 
 void PeerConnection::OnCandidateGathered(sdp::Candidate candidate) {
-    assert(network_task_queue_->IsCurrent());
+    RTC_RUN_ON(network_task_queue_);
     signal_task_queue_->Async([this, candidate = std::move(candidate)](){
         if (this->candidate_callback_) {
             this->candidate_callback_(std::move(candidate));
@@ -90,7 +77,7 @@ void PeerConnection::OnCandidateGathered(sdp::Candidate candidate) {
 }
 
 void PeerConnection::OnRoleChanged(sdp::Role role) {
-    assert(network_task_queue_->IsCurrent());
+    RTC_RUN_ON(network_task_queue_);
     // If sctp transport is created already, which means we have no chance to change the role any more
     assert(sctp_transport_ == nullptr && "Can not change the DTLS role of data channel after SCTP transport was created.");
     worker_task_queue_->Async([this, role](){

@@ -5,7 +5,6 @@
 #include "base/certificate.hpp"
 #include "base/tls.hpp"
 #include "rtc/base/internals.hpp"
-#include "rtc/base/synchronization/event.hpp"
 #include "rtc/transports/ice_transport.hpp"
 
 #include <optional>
@@ -31,7 +30,7 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsTransport(Configuration config, std::weak_ptr<IceTransport> lower);
+    DtlsTransport(Configuration config, IceTransport* lower, TaskQueue* task_queue);
     virtual ~DtlsTransport() override;
 
     bool is_client() const;
@@ -70,7 +69,7 @@ private:
     static int BioMethodWrite(BIO* bio, const char* in_data, int in_size);
     static long BioMethodCtrl(BIO* bio, int cmd, long num, void* ptr);
 
-    bool HandleVerify(std::string_view fingerprint);
+    bool HandleVerify(std::string fingerprint);
     bool IsClient() const;
 
     int OnDtlsWrite(CopyOnWriteBuffer data);
@@ -92,8 +91,6 @@ private:
     static BIO_METHOD* bio_methods_;
     static int transport_ex_index_;
     static std::mutex global_mutex_;
-
-    Event write_event_;
 
     static constexpr size_t DEFAULT_SSL_BUFFER_SIZE = 4096;
     uint8_t ssl_read_buffer_[DEFAULT_SSL_BUFFER_SIZE];

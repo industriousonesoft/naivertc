@@ -11,11 +11,11 @@ DataChannel::Init::Init(std::string label)
 // Implement of DataChannel
 std::shared_ptr<DataChannel> DataChannel::RemoteDataChannel(uint16_t stream_id,
                                                             bool negotiated,
-                                                            std::weak_ptr<SctpTransport> sctp_transport) {
+                                                            SctpTransport* sctp_transport) {
     Init init("");
     init.negotiated = negotiated;
     auto dc = std::shared_ptr<DataChannel>(new DataChannel(init, stream_id));
-    dc->sctp_transport_ = std::move(sctp_transport);
+    dc->sctp_transport_ = sctp_transport;
     return dc;
 }
 
@@ -86,14 +86,14 @@ void DataChannel::HintStreamId(sdp::Role role) {
     });
 }
 
-void DataChannel::Open(std::weak_ptr<SctpTransport> sctp_transport) {
-    task_queue_.Async([this, sctp_transport=std::move(sctp_transport)](){
+void DataChannel::Open(SctpTransport* sctp_transport) {
+    task_queue_.Async([this, sctp_transport](){
         if (is_opened_) {
             PLOG_VERBOSE << "DataChannel: " + std::to_string(stream_id_) + "did open already.";
             return;
         }
         PLOG_VERBOSE << __FUNCTION__;
-        sctp_transport_ = std::move(sctp_transport);
+        sctp_transport_ = sctp_transport;
         config_.negotiated ? TriggerOpen() : SendOpenMessage();
     });
     
@@ -190,12 +190,12 @@ void DataChannel::Reset() {
     std::queue<SctpMessageToSend>().swap(pending_outgoing_messages_);
 	std::queue<SctpMessage>().swap(pending_incoming_messages_);
     buffered_amount_ = 0;
-    sctp_transport_.reset();
+    sctp_transport_ = nullptr;
 }
 
 void DataChannel::CloseStream() {
-    if (auto transport = sctp_transport_.lock()) {
-        transport->CloseStream(stream_id_);
+    if (sctp_transport_) {
+        sctp_transport_->CloseStream(stream_id_);
     }
 }
 

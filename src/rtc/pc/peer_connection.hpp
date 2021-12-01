@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "base/certificate.hpp"
+#include "base/thread_annotation.hpp"
 #include "common/proxy.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/pc/peer_connection_configuration.hpp"
@@ -108,11 +109,9 @@ protected:
     PeerConnection(const RtcConfiguration& config);
 
 private:
-    void InitIceTransport(RtcConfiguration config, sdp::Role role);
-    void InitDtlsTransport(DtlsTransport::Configuration config);
-
-    SctpTransport::Configuration CreateSctpConfig(const sdp::Description& remote_sdp) const;
-    void InitSctpTransport(SctpTransport::Configuration config);
+    void InitIceTransport();
+    void InitDtlsTransport();
+    void InitSctpTransport();
 
     bool UpdateConnectionState(ConnectionState state);
     bool UpdateGatheringState(GatheringState state);
@@ -168,56 +167,56 @@ private:
     void OnSctpReadyToSend();
 
 private:
-    const RtcConfiguration rtc_config_;
+    const RtcConfiguration rtc_config_ RTC_GUARDED_BY(signal_task_queue_);
     // RFC 5763: The answerer MUST use either a setup attibute value of setup:active or setup:passive.
     // and, setup::active is RECOMMENDED. See https://tools.ietf.org/html/rfc5763#section-5
     // Thus, we assume passive role if we are the offerer.
-    sdp::Role role_;
+    sdp::Role role_ RTC_GUARDED_BY(signal_task_queue_);
     std::shared_future<std::shared_ptr<Certificate>> certificate_;
     
-    ConnectionState connection_state_ = ConnectionState::CLOSED;
-    GatheringState gathering_state_ = GatheringState::NEW;
-    SignalingState signaling_state_ = SignalingState::STABLE;
+    ConnectionState connection_state_ RTC_GUARDED_BY(signal_task_queue_) = ConnectionState::CLOSED;
+    GatheringState gathering_state_ RTC_GUARDED_BY(signal_task_queue_) = GatheringState::NEW;
+    SignalingState signaling_state_ RTC_GUARDED_BY(signal_task_queue_) = SignalingState::STABLE;
 
     // Indicate if we need to negotiate or not.
-    bool negotiation_needed_ = false;
+    bool negotiation_needed_ RTC_GUARDED_BY(signal_task_queue_) = false;
     // Indicate if we need to create a data channel or not.
-    bool data_channel_needed_ = false;
+    bool data_channel_needed_ RTC_GUARDED_BY(signal_task_queue_) = false;
 
     std::unique_ptr<TaskQueue> signal_task_queue_ = nullptr;
-    std::shared_ptr<TaskQueue> network_task_queue_ = nullptr;
-    std::shared_ptr<TaskQueue> worker_task_queue_ = nullptr;
+    std::unique_ptr<TaskQueue> network_task_queue_ = nullptr;
+    std::unique_ptr<TaskQueue> worker_task_queue_ = nullptr;
 
-    std::shared_ptr<IceTransport> ice_transport_ = nullptr;
-    std::shared_ptr<DtlsTransport> dtls_transport_ = nullptr;
-    std::shared_ptr<SctpTransport> sctp_transport_ = nullptr;
+    std::unique_ptr<IceTransport> ice_transport_ RTC_GUARDED_BY(signal_task_queue_) = nullptr;
+    std::unique_ptr<DtlsTransport> dtls_transport_ RTC_GUARDED_BY(signal_task_queue_) = nullptr;
+    std::unique_ptr<SctpTransport> sctp_transport_ RTC_GUARDED_BY(signal_task_queue_) = nullptr;
 
-    ConnectionStateCallback connection_state_callback_ = nullptr;
-    GatheringStateCallback gathering_state_callback_ = nullptr;
-    CandidateCallback candidate_callback_ = nullptr;
-    SignalingStateCallback signaling_state_callback_ = nullptr;
+    ConnectionStateCallback connection_state_callback_ RTC_GUARDED_BY(signal_task_queue_) = nullptr;
+    GatheringStateCallback gathering_state_callback_ RTC_GUARDED_BY(signal_task_queue_) = nullptr;
+    CandidateCallback candidate_callback_ RTC_GUARDED_BY(signal_task_queue_) = nullptr;
+    SignalingStateCallback signaling_state_callback_ RTC_GUARDED_BY(signal_task_queue_) = nullptr;
 
-    DataChannelCallback data_channel_callback_ = nullptr;
-    MediaTrackCallback media_track_callback_ = nullptr;
+    std::optional<sdp::Description> local_sdp_ RTC_GUARDED_BY(signal_task_queue_) = std::nullopt;
+    std::optional<sdp::Description> remote_sdp_ RTC_GUARDED_BY(signal_task_queue_) = std::nullopt;
 
-    std::optional<sdp::Description> local_sdp_ = std::nullopt;
-    std::optional<sdp::Description> remote_sdp_ = std::nullopt;
+    std::vector<const sdp::Candidate> remote_candidates_ RTC_GUARDED_BY(signal_task_queue_);
 
-    std::vector<const sdp::Candidate> remote_candidates_;
+    std::unordered_map<std::string, sdp::Media> media_sdps_ RTC_GUARDED_BY(signal_task_queue_);
 
-    std::unordered_map<std::string, sdp::Media> media_sdps_;
+    DataChannelCallback data_channel_callback_ RTC_GUARDED_BY(worker_task_queue_) = nullptr;
+    MediaTrackCallback media_track_callback_ RTC_GUARDED_BY(worker_task_queue_) = nullptr;
 
     // Keep a weak reference instead of shared one, since the life cycle of 
     // data channels or media tracks should be owned by the one who has created them.
-    std::unordered_map<uint16_t, std::weak_ptr<DataChannel>> data_channels_;
-    std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_;
+    std::unordered_map<uint16_t, std::weak_ptr<DataChannel>> data_channels_ RTC_GUARDED_BY(worker_task_queue_);
+    std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_ RTC_GUARDED_BY(worker_task_queue_);
 
     // The pending data channels will be owned by peer connection before 
     // handled by user, that's why we use shared_ptr here.
-    std::vector<std::shared_ptr<DataChannel>> pending_data_channels_;
-    std::vector<std::shared_ptr<MediaTrack>> pending_media_tracks_;
+    std::vector<std::shared_ptr<DataChannel>> pending_data_channels_ RTC_GUARDED_BY(worker_task_queue_);
+    std::vector<std::shared_ptr<MediaTrack>> pending_media_tracks_ RTC_GUARDED_BY(worker_task_queue_);
 
-    RtpDemuxer rtp_demuxer_;
+    RtpDemuxer rtp_demuxer_ RTC_GUARDED_BY(worker_task_queue_);
     
 };
 

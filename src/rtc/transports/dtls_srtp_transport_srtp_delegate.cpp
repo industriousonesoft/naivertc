@@ -26,7 +26,7 @@ void DtlsSrtpTransport::Cleanup() {
 }
 
 void DtlsSrtpTransport::CreateSrtp() {
-    RTC_RUN_ON(&sequence_checker_);
+    RTC_RUN_ON(task_queue_);
     if (srtp_err_status_t err = srtp_create(&srtp_in_, nullptr)) {
 		throw std::runtime_error("SRTP create failed, status=" + std::to_string(static_cast<int>(err)));
 	}
@@ -37,13 +37,13 @@ void DtlsSrtpTransport::CreateSrtp() {
 }
 
 void DtlsSrtpTransport::DestroySrtp() {
-    RTC_RUN_ON(&sequence_checker_);
+    RTC_RUN_ON(task_queue_);
     srtp_dealloc(srtp_in_);
     srtp_dealloc(srtp_out_);
 }
 
 void DtlsSrtpTransport::InitSrtp() {
-    RTC_RUN_ON(&sequence_checker_);
+    RTC_RUN_ON(task_queue_);
     static_assert(SRTP_AES_ICM_128_KEY_LEN_WSALT == SRTP_AES_128_KEY_LEN + SRTP_SALT_LEN);
 
     const size_t material_len = SRTP_AES_ICM_128_KEY_LEN_WSALT * 2;

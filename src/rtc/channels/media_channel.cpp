@@ -29,20 +29,20 @@ bool MediaChannel::is_opened() const {
     });
 }
 
-void MediaChannel::Open(std::weak_ptr<DtlsSrtpTransport> srtp_transport) {
-    task_queue_.Async([this, srtp_transport=std::move(srtp_transport)](){
+void MediaChannel::Open(DtlsSrtpTransport* srtp_transport) {
+    task_queue_.Async([this, srtp_transport](){
         if (is_opened_) {
             PLOG_VERBOSE << "MediaChannel: " << mid_ << " did open already.";
             return;
         }
-        srtp_transport_ = std::move(srtp_transport);
+        srtp_transport_ = srtp_transport;
         TriggerOpen();
     });
 }
 
 void MediaChannel::Close() {
     task_queue_.Async([this](){
-        srtp_transport_.reset();
+        srtp_transport_ = nullptr;
         TriggerClose();
     });
 }

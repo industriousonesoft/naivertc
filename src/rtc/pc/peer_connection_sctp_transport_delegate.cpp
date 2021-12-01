@@ -6,13 +6,19 @@
 
 namespace naivertc {
 
-SctpTransport::Configuration PeerConnection::CreateSctpConfig(const sdp::Description& remote_sdp) const {
-    assert(signal_task_queue_->IsCurrent());
-    assert (remote_sdp.HasApplication());
+// Init SctpTransport
+void PeerConnection::InitSctpTransport() {
+    RTC_RUN_ON(signal_task_queue_);
+    if (sctp_transport_) {
+        return;
+    }
+    PLOG_VERBOSE << "Starting SCTP transport";
+    assert(dtls_transport_ && "No underlying DTLS transport for SCTP transport");
+    assert(remote_sdp_->HasApplication());
 
     uint16_t sctp_port = rtc_config_.local_sctp_port.value_or(kDefaultSctpPort);
     // FIXME: Is it necessary to make sure the local sctp port is the same as remote sctp port?
-    if (auto remote_app = remote_sdp.application()) {
+    if (auto remote_app = remote_sdp_->application()) {
         if (remote_app->sctp_port()) {
             sctp_port = remote_app->sctp_port().value();
         }
@@ -23,18 +29,7 @@ SctpTransport::Configuration PeerConnection::CreateSctpConfig(const sdp::Descrip
     sctp_config.mtu = rtc_config_.mtu.value_or(kDefaultMtuSize);
     sctp_config.max_message_size = rtc_config_.sctp_max_message_size.value_or(kDefaultSctpMaxMessageSize);
 
-    return sctp_config;
-}
-
-// Init SctpTransport
-void PeerConnection::InitSctpTransport(SctpTransport::Configuration config) {
-    assert(network_task_queue_->IsCurrent());
-    if (sctp_transport_) {
-        return;
-    }
-    PLOG_VERBOSE << "Starting SCTP transport";
-    assert(dtls_transport_ && "No underlying DTLS transport for SCTP transport");
-    sctp_transport_ = std::make_shared<SctpTransport>(std::move(config), dtls_transport_);
+    sctp_transport_ = std::make_unique<SctpTransport>(std::move(sctp_config), dtls_transport_.get(), network_task_queue_.get());
     assert(sctp_transport_ && "Failed to init SCTP transport");
     sctp_transport_->OnStateChanged(std::bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
     sctp_transport_->OnSctpMessageReceived(std::bind(&PeerConnection::OnSctpMessageReceived, this, std::placeholders::_1));
@@ -44,7 +39,7 @@ void PeerConnection::InitSctpTransport(SctpTransport::Configuration config) {
 
 // SctpTransport delegate
 void PeerConnection::OnSctpTransportStateChanged(Transport::State state) {
-    assert(network_task_queue_->IsCurrent());
+    RTC_RUN_ON(network_task_queue_);
     signal_task_queue_->Async([this, state](){
         switch(state) {
         case SctpTransport::State::CONNECTED:
@@ -74,7 +69,7 @@ void PeerConnection::OnSctpTransportStateChanged(Transport::State state) {
 }
 
 void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
-    assert(network_task_queue_->IsCurrent());
+    RTC_RUN_ON(network_task_queue_);
     worker_task_queue_->Async([this, message=std::move(message)](){
         auto stream_id = message.stream_id();
         auto data_channel = FindDataChannel(stream_id);
@@ -90,7 +85,7 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                 if (stream_id % 2 == remote_parity) {
                     // The remote data channel will negotiate later by processing incomming message, 
                     // so it's unnegotiated.
-                    data_channel = DataChannel::RemoteDataChannel(stream_id, false /* unnegotiated */, sctp_transport_);
+                    data_channel = DataChannel::RemoteDataChannel(stream_id, false /* unnegotiated */, sctp_transport_.get());
                     // We own the data channel temporarily
                     pending_data_channels_.push_back(data_channel);
                     data_channels_.emplace(stream_id, data_channel);
@@ -102,16 +97,12 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                 } else {
                     PLOG_WARNING << "Failed to response the data channel created by remote peer, since it's stream id [" << stream_id
                                     << "] is not corresponding to the remote role.";
-                    worker_task_queue_->Async([this, stream_id](){
-                        sctp_transport_->CloseStream(stream_id);
-                    });
+                    sctp_transport_->CloseStream(stream_id);
                     return;
                 }
             } else {
                 PLOG_WARNING << "No data channel found to handle non-opening incoming message with stream id: " << stream_id;
-                worker_task_queue_->Async([this, stream_id](){
-                    sctp_transport_->CloseStream(stream_id);
-                });
+                sctp_transport_->CloseStream(stream_id);
                 return;
             }
         } else {
@@ -121,7 +112,7 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
 }
 
 void PeerConnection::OnSctpReadyToSend() {
-    assert(network_task_queue_->IsCurrent());
+    RTC_RUN_ON(network_task_queue_);
     worker_task_queue_->Async([this](){
         for (auto& kv : data_channels_) {
             if (auto dc = kv.second.lock()) {
@@ -133,16 +124,16 @@ void PeerConnection::OnSctpReadyToSend() {
 
 // Helper methods
 void PeerConnection::OpenDataChannels() {
-    assert(worker_task_queue_->IsCurrent());
+    RTC_RUN_ON(worker_task_queue_);
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
-            dc->Open(sctp_transport_);
+            dc->Open(sctp_transport_.get());
         }
     }
 }
 
 void PeerConnection::CloseDataChannels() {
-    assert(worker_task_queue_->IsCurrent());
+    RTC_RUN_ON(worker_task_queue_);
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->Close();
@@ -152,7 +143,7 @@ void PeerConnection::CloseDataChannels() {
 }
 
 void PeerConnection::RemoteCloseDataChannels() {
-    assert(worker_task_queue_->IsCurrent());
+    RTC_RUN_ON(worker_task_queue_);
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->RemoteClose();
@@ -162,7 +153,7 @@ void PeerConnection::RemoteCloseDataChannels() {
 }
 
 void PeerConnection::OnIncomingDataChannel(std::shared_ptr<DataChannel> data_channel) {
-    assert(worker_task_queue_->IsCurrent());
+    RTC_RUN_ON(worker_task_queue_);
     if (data_channel_callback_) {
         data_channel_callback_(std::move(data_channel));
     } else {

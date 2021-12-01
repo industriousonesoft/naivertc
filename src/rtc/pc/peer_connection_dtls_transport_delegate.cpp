@@ -5,24 +5,27 @@
 
 namespace naivertc {
 
-void PeerConnection::InitDtlsTransport(DtlsTransport::Configuration config) {
-    assert(network_task_queue_->IsCurrent());
+void PeerConnection::InitDtlsTransport() {
+    RTC_RUN_ON(signal_task_queue_);
     if (dtls_transport_) {
         return;
     }
+    assert(ice_transport_ && "No underlying ICE transport for DTLS transport");
 
     PLOG_VERBOSE << "Init DTLS transport";
-
-    assert(ice_transport_ && "No underlying ICE transport for DTLS transport");
+    
+    // NOTE: The thread might be blocked here until the certificate has been created.
+    auto certificate = certificate_.get();
+    auto dtls_config = DtlsTransport::Configuration(std::move(certificate), rtc_config_.mtu);
  
     // DTLS-SRTP
     if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVideo())) {
-        auto dtls_srtp_transport = std::make_shared<DtlsSrtpTransport>(std::move(config), ice_transport_);
+        auto dtls_srtp_transport = std::make_unique<DtlsSrtpTransport>(std::move(dtls_config), ice_transport_.get(), network_task_queue_.get());
         dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1, std::placeholders::_2));
-        dtls_transport_ = dtls_srtp_transport;
+        dtls_transport_ = std::move(dtls_srtp_transport);
     // DTLS only
     } else {
-        dtls_transport_ = std::make_shared<DtlsTransport>(std::move(config), ice_transport_);
+        dtls_transport_ = std::make_unique<DtlsTransport>(std::move(dtls_config), ice_transport_.get(), network_task_queue_.get());
     }
 
     assert(dtls_transport_ && "Failed to init DTLS transport");
@@ -34,7 +37,7 @@ void PeerConnection::InitDtlsTransport(DtlsTransport::Configuration config) {
 }
 
 void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_state) {
-    assert(network_task_queue_->IsCurrent());
+    RTC_RUN_ON(network_task_queue_);
     signal_task_queue_->Async([this, transport_state](){
         switch (transport_state)
         {
@@ -42,10 +45,7 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
             PLOG_DEBUG << "DTLS transport connected";
             // DataChannel enabled
             if (this->remote_sdp_ && this->remote_sdp_->HasApplication()) {
-                auto sctp_config = CreateSctpConfig(*remote_sdp_);
-                this->network_task_queue_->Async([this, config=std::move(sctp_config)](){
-                    this->InitSctpTransport(std::move(config));
-                });
+                this->InitSctpTransport();
             } else {
                 this->UpdateConnectionState(ConnectionState::CONNECTED);
             }
@@ -76,7 +76,7 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
 }
 
 bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
-    assert(network_task_queue_->IsCurrent());
+    RTC_RUN_ON(network_task_queue_);
     return signal_task_queue_->Sync<bool>([this, remote_fingerprint=std::move(fingerprint)](){
         // We expect the remote fingerprint received by singaling channel is equal to 
         // the remote fingerprint received by DTLS channel.
@@ -92,15 +92,15 @@ bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
 }
 
 void PeerConnection::OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rtcp) {
-    assert(network_task_queue_->IsCurrent());
+    RTC_RUN_ON(network_task_queue_);
     worker_task_queue_->Async([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
         rtp_demuxer_.OnRtpPacket(in_packet, is_rtcp);
     });
 }
 
 void PeerConnection::OpenMediaTracks() {
-    assert(worker_task_queue_->IsCurrent());
-    auto srtp_transport = std::dynamic_pointer_cast<DtlsSrtpTransport>(dtls_transport_);
+    RTC_RUN_ON(worker_task_queue_);
+    auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
             if (!media_track->is_opened()) {
@@ -111,7 +111,7 @@ void PeerConnection::OpenMediaTracks() {
 }
 
 void PeerConnection::CloseMediaTracks() {
-    assert(worker_task_queue_->IsCurrent());
+    RTC_RUN_ON(worker_task_queue_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
             media_track->Close();

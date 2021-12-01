@@ -12,82 +12,95 @@ DtlsTransport::Configuration::Configuration(std::shared_ptr<Certificate> certifi
  : certificate(std::move(certificate)),
    mtu(std::move(mtu)) {}
 
-DtlsTransport::DtlsTransport(Configuration config, std::weak_ptr<IceTransport> lower) 
-    : Transport(lower),
+DtlsTransport::DtlsTransport(Configuration config, IceTransport* lower, TaskQueue* task_queue) 
+    : Transport(lower, task_queue),
       config_(std::move(config)),
-      is_client_(lower.lock() != nullptr ? lower.lock()->role() == sdp::Role::ACTIVE : false),
+      is_client_(lower != nullptr ? lower->role() == sdp::Role::ACTIVE : false),
       handshake_packet_options_(DSCP::DSCP_AF21 /* Assured Forwarding class 2, low drop precedence, the recommendation for high-priority data in RFC 8837 */) {
-    InitOpenSSL(config_);
-    WeakPtrManager::SharedInstance()->Register(this);
+    task_queue_->Async([this](){
+        InitOpenSSL(config_);
+        WeakPtrManager::SharedInstance()->Register(this);
+    });
 }
 
 DtlsTransport::~DtlsTransport() {
-    RTC_RUN_ON(&sequence_checker_);
-    DeinitOpenSSL();
-    WeakPtrManager::SharedInstance()->Deregister(this);
+    task_queue_->Async([this](){
+        DeinitOpenSSL();
+        WeakPtrManager::SharedInstance()->Deregister(this);
+    });
 }
 
 void DtlsTransport::OnVerify(VerifyCallback callback) {
-    RTC_RUN_ON(&sequence_checker_);
-    verify_callback_ = callback;
+    task_queue_->Async([this, callback=std::move(callback)](){
+        verify_callback_ = callback;
+    });
+    
 }
 
-bool DtlsTransport::HandleVerify(std::string_view fingerprint) {
-    RTC_RUN_ON(&sequence_checker_);
-    return verify_callback_ != nullptr ? verify_callback_(fingerprint) : false;
+bool DtlsTransport::HandleVerify(std::string fingerprint) {
+    return task_queue_->Sync<bool>([this, fingerprint=std::move(fingerprint)](){
+        return verify_callback_ != nullptr ? verify_callback_(std::move(fingerprint)) : false;
+    });
+    
 }
 
 bool DtlsTransport::is_client() const {
-    RTC_RUN_ON(&sequence_checker_);
-    return is_client_;
+    return task_queue_->Sync<bool>([this](){
+        return is_client_;
+    });
 }
 
 bool DtlsTransport::Start() {
-    RTC_RUN_ON(&sequence_checker_);
-    if (is_stoped_) {
-        UpdateState(State::CONNECTING);
-        // Start to handshake
-        // TODO: Do we should use delay post to check handshake timeout in 30s here?
-        InitHandshake();
-        RegisterIncoming();
-        is_stoped_ = false;
-    }
-    return true;
+    return task_queue_->Sync<bool>([this](){
+        if (is_stoped_) {
+            UpdateState(State::CONNECTING);
+            // Start to handshake
+            // TODO: Do we should use delay post to check handshake timeout in 30s here?
+            InitHandshake();
+            RegisterIncoming();
+            is_stoped_ = false;
+        }
+        return true;      
+    });
+
 }
 
 bool DtlsTransport::Stop() {
-    RTC_RUN_ON(&sequence_checker_);
-    if (!is_stoped_) {
-        // Cut down incomming data
-        DeregisterIncoming();
-        // Shutdown SSL connection
-        SSL_shutdown(ssl_);
-        ssl_ = NULL;
-        is_stoped_ = true;
-        UpdateState(State::DISCONNECTED);
-    }
-    return true;
+    return task_queue_->Sync<bool>([this](){
+        if (!is_stoped_) {
+            // Cut down incomming data
+            DeregisterIncoming();
+            // Shutdown SSL connection
+            SSL_shutdown(ssl_);
+            ssl_ = NULL;
+            is_stoped_ = true;
+            UpdateState(State::DISCONNECTED);
+        }
+        return true;
+    });
 }
 
 int DtlsTransport::Send(CopyOnWriteBuffer packet, PacketOptions options) {
-    RTC_RUN_ON(&sequence_checker_);
-    if (packet.empty() || state_ != State::CONNECTED) {
-        return -1;
-    }
-    user_packet_options_ = std::move(options);
-    int ret = SSL_write(ssl_, packet.cdata(), int(packet.size()));
-    if (openssl::check(ssl_, ret)) {
-        PLOG_VERBOSE << "Send size=" << ret;
-        return ret;
-    } else {
-        PLOG_VERBOSE << "Failed to send size=" << ret;
-        return -1;
-    }
+    return task_queue_->Sync<int>([this, packet=std::move(packet), options=std::move(options)](){
+        if (packet.empty() || state_ != State::CONNECTED) {
+            return -1;
+        }
+        user_packet_options_ = std::move(options);
+        int ret = SSL_write(ssl_, packet.cdata(), int(packet.size()));
+        if (openssl::check(ssl_, ret)) {
+            PLOG_VERBOSE << "Send size=" << ret;
+            return ret;
+        } else {
+            PLOG_VERBOSE << "Failed to send size=" << ret;
+            return -1;
+        }
+    });
+
 }
 
 // Protected && private methods
 void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
-    RTC_RUN_ON(&sequence_checker_);
+    RTC_RUN_ON(task_queue_);
     if (in_packet.empty() || !ssl_) {
         return;
     }
@@ -134,7 +147,7 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
 }
 
 int DtlsTransport::HandleDtlsWrite(CopyOnWriteBuffer data) {
-    RTC_RUN_ON(&sequence_checker_);
+    RTC_RUN_ON(task_queue_);
     if (state_ != State::CONNECTED) {
         return Outgoing(std::move(data), handshake_packet_options_);
     } else {
@@ -144,7 +157,7 @@ int DtlsTransport::HandleDtlsWrite(CopyOnWriteBuffer data) {
 }
     
 int DtlsTransport::Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) {
-    RTC_RUN_ON(&sequence_checker_);
+    RTC_RUN_ON(task_queue_);
     return ForwardOutgoingPacket(std::move(out_packet), std::move(options));
 }
     

@@ -48,6 +48,9 @@ protected:
         TaskQueueImpl* const previous_;
     };
 };
+
+#define RTC_RUN_ON(x)   \
+    assert((x)->IsCurrent() && "TaskQueue doesn't match.")
     
 } // namespace naivertc
 

@@ -15,7 +15,7 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsSrtpTransport(Configuration config, std::weak_ptr<IceTransport> lower);
+    DtlsSrtpTransport(Configuration config, IceTransport* lower, TaskQueue* task_queue);
     ~DtlsSrtpTransport() override;
 
     int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options);

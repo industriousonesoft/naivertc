@@ -5,7 +5,6 @@
 #include "rtc/transports/transport.hpp"
 #include "rtc/transports/sctp_message.hpp"
 #include "rtc/transports/sctp_transport_usr_sctp_settings.hpp"
-#include "rtc/base/synchronization/event.hpp"
 
 #include <usrsctp.h>
 
@@ -30,7 +29,7 @@ public:
     static void CustomizeSctp(const SctpCustomizedSettings& settings);
     static void Cleanup();
 public:
-    SctpTransport(Configuration config, std::weak_ptr<Transport> lower);
+    SctpTransport(Configuration config, Transport* lower, TaskQueue* task_queue);
     ~SctpTransport() override;
 
     bool Start() override;
@@ -129,8 +128,6 @@ private:
 
     SctpMessageReceivedCallback sctp_message_received_callback_ = nullptr;
     ReadyToSendCallback ready_to_send_callback_ = nullptr;
-
-    Event write_event_;
 };
 
 }

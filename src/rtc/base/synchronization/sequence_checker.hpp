@@ -25,9 +25,6 @@ public:
 private:
     TaskQueueImpl* const attached_queue_;
 };
-
-#define RTC_RUN_ON(x)   \
-    assert((x)->IsCurrent() && "TaskQueue doesn't match.")
     
 } // namespace naivertc
 

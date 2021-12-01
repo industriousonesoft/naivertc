@@ -54,7 +54,7 @@ public:
 public:
     static std::shared_ptr<DataChannel> RemoteDataChannel(uint16_t stream_id,
                                                           bool negotiated,
-                                                          std::weak_ptr<SctpTransport> sctp_transport);
+                                                          SctpTransport* sctp_transport);
 
     static bool IsOpenMessage(const CopyOnWriteBuffer& message);
 public:
@@ -69,7 +69,7 @@ public:
     void HintStreamId(sdp::Role role);
 
     // TODO: Using peer connection as transport instead of sctp transport.
-    void Open(std::weak_ptr<SctpTransport> sctp_transport);
+    void Open(SctpTransport* sctp_transport);
     void Close() override;
     void RemoteClose();
 
@@ -120,7 +120,7 @@ private:
     TaskQueue task_queue_;
 
     bool is_opened_ = false;
-    std::weak_ptr<SctpTransport> sctp_transport_;
+    SctpTransport* sctp_transport_;
 
     std::queue<SctpMessageToSend> pending_outgoing_messages_;
     std::queue<SctpMessage> pending_incoming_messages_;

@@ -34,12 +34,12 @@ void RepeatingTask::Start(TimeDelta delay) {
 }
 
 bool RepeatingTask::Running() const {
-    assert(task_queue_->IsCurrent());
+    RTC_RUN_ON(task_queue_);
     return !is_stoped_;
 }
 
 void RepeatingTask::Stop() {
-    assert(task_queue_->IsCurrent());
+    RTC_RUN_ON(task_queue_);
     is_stoped_ = true;
 }
 

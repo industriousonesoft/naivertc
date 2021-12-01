@@ -6,31 +6,37 @@
 
 namespace naivertc {
 
-Transport::Transport(std::weak_ptr<Transport> lower) 
-    : lower_(std::move(lower)), 
+Transport::Transport(Transport* lower, TaskQueue* task_queue) 
+    : lower_(lower),
+      task_queue_(task_queue),
       is_stoped_(true),
-      state_(State::DISCONNECTED) {}
+      state_(State::DISCONNECTED) {
+    assert(task_queue_ != nullptr);
+}
 
 Transport::~Transport() = default;
 
 bool Transport::is_stoped() const {
-    RTC_RUN_ON(&sequence_checker_);
-    return is_stoped_;
+    return task_queue_->Sync<bool>([this](){
+        return is_stoped_;
+    });
 }
 
 Transport::State Transport::state() const {
-    RTC_RUN_ON(&sequence_checker_);
-    return state_;
+    return task_queue_->Sync<Transport::State>([this](){
+        return state_;
+    });
 }
 
 void Transport::OnStateChanged(StateChangedCallback callback) {
-    RTC_RUN_ON(&sequence_checker_);
-    state_changed_callback_ = std::move(callback);
+    task_queue_->Async([this, callback=std::move(callback)](){
+        state_changed_callback_ = std::move(callback);
+    });
 }
 
 // Protected methods
 void Transport::UpdateState(State state) {
-    RTC_RUN_ON(&sequence_checker_);
+    RTC_RUN_ON(task_queue_);
     if (state_ == state) {
         return;
     }
@@ -41,10 +47,10 @@ void Transport::UpdateState(State state) {
 }
 
 int Transport::ForwardOutgoingPacket(CopyOnWriteBuffer packet, PacketOptions options) {
-    RTC_RUN_ON(&sequence_checker_);
+    RTC_RUN_ON(task_queue_);
     try {
-        if (auto lower = lower_.lock()) {
-            return lower->Send(std::move(packet), std::move(options));
+        if (lower_) {
+            return lower_->Send(std::move(packet), std::move(options));
         } else {
             return -1;
         }
@@ -55,7 +61,7 @@ int Transport::ForwardOutgoingPacket(CopyOnWriteBuffer packet, PacketOptions opt
 }
 
 void Transport::ForwardIncomingPacket(CopyOnWriteBuffer packet) {
-    RTC_RUN_ON(&sequence_checker_);
+    RTC_RUN_ON(task_queue_);
     try {
         if (packet_recv_callback_) {
             packet_recv_callback_(std::move(packet));
@@ -66,17 +72,17 @@ void Transport::ForwardIncomingPacket(CopyOnWriteBuffer packet) {
 }
 
 void Transport::RegisterIncoming() {
-    RTC_RUN_ON(&sequence_checker_);
-    if (auto lower = lower_.lock()) {
+    RTC_RUN_ON(task_queue_);
+    if (lower_) {
         PLOG_VERBOSE << "Registering incoming callback";
-        lower->packet_recv_callback_ = std::bind(&Transport::Incoming, this, std::placeholders::_1);
+        lower_->packet_recv_callback_ = std::bind(&Transport::Incoming, this, std::placeholders::_1);
     }
 }
 
 void Transport::DeregisterIncoming() {
-    RTC_RUN_ON(&sequence_checker_);
-    if (auto lower = lower_.lock()) {
-        lower->packet_recv_callback_ = nullptr;
+    RTC_RUN_ON(task_queue_);
+    if (lower_) {
+        lower_->packet_recv_callback_ = nullptr;
         PLOG_VERBOSE << "Deregistered incoming callback";
     }
 }
