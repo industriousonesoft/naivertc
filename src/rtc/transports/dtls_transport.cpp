@@ -8,8 +8,8 @@
 
 namespace naivertc {
 
-DtlsTransport::Configuration::Configuration(std::shared_ptr<Certificate> certificate, std::optional<size_t> mtu) 
- : certificate(std::move(certificate)),
+DtlsTransport::Configuration::Configuration(const Certificate* certificate, std::optional<size_t> mtu) 
+ : certificate(certificate),
    mtu(std::move(mtu)) {}
 
 DtlsTransport::DtlsTransport(Configuration config, IceTransport* lower, TaskQueue* task_queue) 

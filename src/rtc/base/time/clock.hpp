@@ -45,7 +45,7 @@ public:
     }
 
     // Returns an instance of the real-time system clock implementation.
-    static std::shared_ptr<Clock> GetRealTimeClock();
+    static std::unique_ptr<Clock> GetRealTimeClock();
 };
     
 } // namespace naivertc

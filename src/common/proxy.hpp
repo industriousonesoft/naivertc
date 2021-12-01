@@ -5,7 +5,7 @@
 
 namespace naivertc {
 
-template <typename T> using impl_ptr = std::shared_ptr<T>;
+template <typename T> using impl_ptr = std::unique_ptr<T>;
 template <typename T> class Proxy {
 public:
     Proxy(impl_ptr<T> impl) : impl_(std::move(impl)) {}
@@ -27,8 +27,8 @@ public:
     Proxy &operator=(const Proxy<T> &) = delete;
 
 protected:
-    impl_ptr<T> impl() { return impl_; }
-    impl_ptr<const T> impl() const { return impl_; }
+    T* impl() { return impl_.get(); }
+    const T* impl() const { return impl_.get(); }
 
 private:
     impl_ptr<T> impl_;

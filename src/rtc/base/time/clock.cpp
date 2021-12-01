@@ -25,13 +25,12 @@ class UnixRealTimeClock : public RealTimeClock {
   }
 };
 
-std::shared_ptr<Clock> Clock::GetRealTimeClock() {
+std::unique_ptr<Clock> Clock::GetRealTimeClock() {
 #if defined(NAIVERTC_POSIX)
-    static std::shared_ptr<Clock> clock = std::make_shared<UnixRealTimeClock>();
+    return std::make_unique<UnixRealTimeClock>();
 #else
-    static std::shared_ptr<Clock> clock = nullptr;
+    return nullptr;
 #endif
-    return clock;
 }
     
 } // namespace naivertc

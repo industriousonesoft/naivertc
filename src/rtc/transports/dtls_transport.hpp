@@ -20,10 +20,10 @@ static const openssl_bool openssl_false = 0;
 class RTC_CPP_EXPORT DtlsTransport : public Transport {
 public:
     struct Configuration {
-        Configuration(std::shared_ptr<Certificate> certificate, 
+        Configuration(const Certificate* certificate, 
                       std::optional<size_t> mtu);
 
-        std::shared_ptr<Certificate> certificate;
+        const Certificate* certificate;
         std::optional<size_t> mtu;
     };
 public:

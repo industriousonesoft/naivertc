@@ -16,7 +16,7 @@ void PeerConnection::InitDtlsTransport() {
     
     // NOTE: The thread might be blocked here until the certificate has been created.
     auto certificate = certificate_.get();
-    auto dtls_config = DtlsTransport::Configuration(std::move(certificate), rtc_config_.mtu);
+    auto dtls_config = DtlsTransport::Configuration(certificate.get(), rtc_config_.mtu);
  
     // DTLS-SRTP
     if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVideo())) {
