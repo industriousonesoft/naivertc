@@ -10,7 +10,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 
 using namespace naivertc::rtp::video;
@@ -47,7 +47,7 @@ class VideoReceiveStatisticsObserverMock : public VideoReceiveStatisticsObserver
 // FakeTiming
 class FakeTiming : public Timing {
 public:
-    explicit FakeTiming(std::shared_ptr<Clock> clock) : Timing(std::move(clock)) {}
+    explicit FakeTiming(Clock* clock) : Timing(clock) {}
 
     int64_t last_ms() const { return last_ms_; }
     uint32_t last_timestamp() const { return last_timestamp_; }
@@ -114,13 +114,12 @@ class T(FrameBufferTest) : public ::testing::Test {
 protected:
     T(FrameBufferTest)() 
         : time_controller_(Timestamp::Millis(0)),
-          decode_queue_(time_controller_.CreateTaskQueue()),
-          timing_(std::make_shared<FakeTiming>(time_controller_.Clock())),
-          stats_observer_(std::make_shared<VideoReceiveStatisticsObserverMock>()),
+          decode_queue_(std::make_unique<TaskQueue>(time_controller_.CreateTaskQueue())),
+          timing_(std::make_unique<FakeTiming>(time_controller_.Clock())),
           frame_buffer_(std::make_unique<jitter::FrameBuffer>(time_controller_.Clock(), 
-                                                              timing_,
-                                                              decode_queue_,
-                                                              stats_observer_)) {}
+                                                              timing_.get(),
+                                                              decode_queue_.get(),
+                                                              &stats_observer_)) {}
 
     uint32_t Rand() const {
         return utils::random::random<uint32_t>(0, 0x34678213);
@@ -191,9 +190,9 @@ protected:
 
 protected:
     SimulatedTimeController time_controller_;
-    std::shared_ptr<TaskQueue> decode_queue_;
-    std::shared_ptr<FakeTiming> timing_;
-    std::shared_ptr<VideoReceiveStatisticsObserverMock> stats_observer_;
+    std::unique_ptr<TaskQueue> decode_queue_;
+    std::unique_ptr<FakeTiming> timing_;
+    VideoReceiveStatisticsObserverMock stats_observer_;
     std::unique_ptr<jitter::FrameBuffer> frame_buffer_;
     std::vector<FrameToDecode> frames_;
 };
@@ -202,7 +201,7 @@ MY_TEST_F(FrameBufferTest, WaitForFrame) {
     uint16_t pid = Rand();
     uint32_t ts = Rand();
     ExtractFrame(50);
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(1);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(1);
     EXPECT_EQ(pid, InsertFrame(pid, ts, kFrameSize));
     AdvanceTimeMs(50);
     CheckFrame(0, pid);
@@ -217,7 +216,7 @@ MY_TEST_F(FrameBufferTest, MissingFrame) {
     uint16_t pid = Rand();
     uint32_t ts = Rand();
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(3);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(3);
 
     EXPECT_EQ(pid, InsertFrame(pid, ts, kFrameSize));
     // Missing the frame with id = pid + 1
@@ -236,7 +235,7 @@ MY_TEST_F(FrameBufferTest, FrameStream) {
     uint16_t pid = Rand();
     uint32_t ts = Rand();
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(10);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(10);
    
     EXPECT_EQ(pid, InsertFrame(pid, ts, kFrameSize));
     ExtractFrame();
@@ -253,7 +252,7 @@ MY_TEST_F(FrameBufferTest, DropFrameSinceSlowDecoder) {
     uint16_t pid = Rand();
     uint32_t ts = Rand();
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(10);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(10);
 
     EXPECT_EQ(pid, InsertFrame(pid, ts, kFrameSize));
     EXPECT_EQ(pid + 1, InsertFrame(pid + 1, ts + kFps20, kFrameSize, pid));
@@ -275,7 +274,7 @@ MY_TEST_F(FrameBufferTest, DropFrameSinceSlowDecoder) {
     // 8:      6      450       350    - 25       = 75   // will be decoded as expected
     // 9:     7,8      -        -        -         -     // Undecodable as the referred frame was undecoded.
 
-    EXPECT_CALL(*stats_observer_, OnDroppedFrames(1)).Times(3);
+    EXPECT_CALL(stats_observer_, OnDroppedFrames(1)).Times(3);
     
     for (int i = 0; i < 10; ++i) {
         ExtractFrame();
@@ -298,14 +297,14 @@ MY_TEST_F(FrameBufferTest, DropFramesIfSystemIsStalled) {
     uint16_t pid = Rand();
     uint32_t ts = Rand();
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(4);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(4);
    
     EXPECT_EQ(pid, InsertFrame(pid, ts, kFrameSize));
     EXPECT_EQ(pid + 1, InsertFrame(pid + 1, ts + 1 * kFps10, kFrameSize, pid));
     EXPECT_EQ(pid + 2, InsertFrame(pid + 2, ts + 2 * kFps10, kFrameSize, pid + 1));
     EXPECT_EQ(pid + 3, InsertFrame(pid + 3, ts + 3 * kFps10, kFrameSize));
 
-    EXPECT_CALL(*stats_observer_, OnDroppedFrames(2)).Times(1);
+    EXPECT_CALL(stats_observer_, OnDroppedFrames(2)).Times(1);
 
     ExtractFrame();
 
@@ -321,7 +320,7 @@ MY_TEST_F(FrameBufferTest, DroppedFramesCountedOnClear) {
     uint16_t pid = Rand();
     uint32_t ts = Rand();
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(5);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(5);
 
     EXPECT_EQ(pid, InsertFrame(pid, ts, kFrameSize));
     for (int i = 1; i < 5; ++i) {
@@ -329,7 +328,7 @@ MY_TEST_F(FrameBufferTest, DroppedFramesCountedOnClear) {
     }
 
     // All frames should be dropped when Clear is called.
-    EXPECT_CALL(*stats_observer_, OnDroppedFrames(5)).Times(1);
+    EXPECT_CALL(stats_observer_, OnDroppedFrames(5)).Times(1);
     frame_buffer_->Clear();
     // Make the clear task executed.
     AdvanceTimeMs(0);
@@ -339,7 +338,7 @@ MY_TEST_F(FrameBufferTest, InsertLateFrame) {
     uint16_t pid = Rand();
     uint32_t ts = Rand();
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(2);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(2);
    
     EXPECT_EQ(pid, InsertFrame(pid, ts, kFrameSize));
     ExtractFrame();
@@ -360,7 +359,7 @@ MY_TEST_F(FrameBufferTest, ProtectionModeNackFEC) {
     constexpr int64_t kRttMs = 200;
     frame_buffer_->UpdateRtt(kRttMs);
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(4);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(4);
 
     // Jitter estimate unaffected by RTT in this protection mode.
     frame_buffer_->set_protection_mode(jitter::ProtectionMode::NACK_FEC);
@@ -383,7 +382,7 @@ MY_TEST_F(FrameBufferTest, ProtectionModeNack) {
     constexpr int64_t kRttMs = 200;
     frame_buffer_->UpdateRtt(kRttMs);
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(4);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(4);
 
     // Jitter estimate includes RTT (after 3 retransmitted packets)
     frame_buffer_->set_protection_mode(jitter::ProtectionMode::NACK);
@@ -404,7 +403,7 @@ MY_TEST_F(FrameBufferTest, NoContinuousFrame) {
     uint16_t pid = Rand();
     uint32_t ts = Rand();
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(1);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(1);
 
     EXPECT_EQ(-1, InsertFrame(pid + 1, ts, kFrameSize, pid));
 }
@@ -413,7 +412,7 @@ MY_TEST_F(FrameBufferTest, LastContinuousFrameSingleLayer) {
     uint16_t pid = Rand();
     uint32_t ts = Rand();
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(5);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(5);
 
     EXPECT_EQ(pid, InsertFrame(pid, ts, kFrameSize));
     EXPECT_EQ(pid, InsertFrame(pid + 2, ts, kFrameSize, pid + 1));
@@ -426,7 +425,7 @@ MY_TEST_F(FrameBufferTest, PictureIdJumpBack) {
     uint16_t pid = Rand();
     uint32_t ts = Rand();
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(3);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(3);
 
     EXPECT_EQ(pid, InsertFrame(pid, ts, kFrameSize));
     EXPECT_EQ(pid + 1, InsertFrame(pid + 1, ts + 1, kFrameSize, pid));
@@ -434,7 +433,7 @@ MY_TEST_F(FrameBufferTest, PictureIdJumpBack) {
     CheckFrame(0, pid);
 
     // pid + 1 will be cleared 
-    EXPECT_CALL(*stats_observer_, OnDroppedFrames(1)).Times(1);
+    EXPECT_CALL(stats_observer_, OnDroppedFrames(1)).Times(1);
 
     // Jump back in pid but increase ts.
     EXPECT_EQ(pid - 1, InsertFrame(pid - 1, ts + 2, kFrameSize));
@@ -445,7 +444,7 @@ MY_TEST_F(FrameBufferTest, PictureIdJumpBack) {
 }
 
 MY_TEST_F(FrameBufferTest, ForwardJumps) {
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(8);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(8);
 
     EXPECT_EQ(5453, InsertFrame(5453, 1, kFrameSize));
     ExtractFrame();
@@ -467,7 +466,7 @@ MY_TEST_F(FrameBufferTest, ForwardJumps) {
 
 MY_TEST_F(FrameBufferTest, DuplicateFrames) {
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(1);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(1);
 
     EXPECT_EQ(22256, InsertFrame(22256, 1, kFrameSize));
     ExtractFrame();
@@ -476,7 +475,7 @@ MY_TEST_F(FrameBufferTest, DuplicateFrames) {
 
 MY_TEST_F(FrameBufferTest, InvalidReferences) {
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(2);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(2);
 
     EXPECT_EQ(-1, InsertFrame(0, 1000, kFrameSize, 2));
     EXPECT_EQ(1, InsertFrame(1, 2000, kFrameSize));
@@ -486,14 +485,14 @@ MY_TEST_F(FrameBufferTest, InvalidReferences) {
 
 MY_TEST_F(FrameBufferTest, KeyframeRequired) {
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(3);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(3);
 
     EXPECT_EQ(1, InsertFrame(1, 1000, kFrameSize));
     EXPECT_EQ(2, InsertFrame(2, 2000, kFrameSize, 1));
     EXPECT_EQ(3, InsertFrame(3, 3000, kFrameSize));
 
     // The delta frame with pid = 2 will be dropped.
-    EXPECT_CALL(*stats_observer_, OnDroppedFrames(1)).Times(1);
+    EXPECT_CALL(stats_observer_, OnDroppedFrames(1)).Times(1);
 
     ExtractFrame();
     ExtractFrame(0, true);
@@ -507,8 +506,8 @@ MY_TEST_F(FrameBufferTest, KeyframeRequired) {
 MY_TEST_F(FrameBufferTest, KeyframeClearsFullBuffer) {
     const int kMaxBufferSize = 600;
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(kMaxBufferSize + 1);
-    EXPECT_CALL(*stats_observer_, OnDroppedFrames(kMaxBufferSize)).Times(1);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(kMaxBufferSize + 1);
+    EXPECT_CALL(stats_observer_, OnDroppedFrames(kMaxBufferSize)).Times(1);
 
     for (int i = 1; i <= kMaxBufferSize; ++i)
         EXPECT_EQ(-1, InsertFrame(i, i * 1000, kFrameSize, i - 1));
@@ -522,9 +521,9 @@ MY_TEST_F(FrameBufferTest, KeyframeClearsFullBuffer) {
 
 MY_TEST_F(FrameBufferTest, DontDecodeOlderTimestamp) {
 
-    EXPECT_CALL(*stats_observer_, OnCompleteFrame(_, _)).Times(4);
+    EXPECT_CALL(stats_observer_, OnCompleteFrame(_, _)).Times(4);
     // Frame 2 will be dropped before decoding the frame 3.
-    EXPECT_CALL(*stats_observer_, OnDroppedFrames(1)).Times(1);
+    EXPECT_CALL(stats_observer_, OnDroppedFrames(1)).Times(1);
 
     InsertFrame(2, 1, kFrameSize);
     InsertFrame(1, 2, kFrameSize);  // Older picture id but newer timestamp.

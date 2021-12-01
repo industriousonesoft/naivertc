@@ -35,7 +35,7 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
     }
 
     if (rtp_sent_statistics_observer_) {
-        update_task_ = RepeatingTask::DelayedStart(clock_, worker_queue_, kUpdateInterval, [this](){
+        update_task_ = RepeatingTask::DelayedStart(clock_.get(), worker_queue_->Get(), kUpdateInterval, [this](){
             this->PeriodicUpdate();
             return kUpdateInterval;
         });

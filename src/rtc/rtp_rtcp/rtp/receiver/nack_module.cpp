@@ -16,7 +16,7 @@ NackModule::NackModule(std::shared_ptr<Clock> clock,
       nack_sender_(std::move(nack_sender)),
       key_frame_request_sender_(std::move(key_frame_request_sender)) {
     assert(task_queue != nullptr && "Task queue is not supposed to be null.");
-    periodic_task_ = RepeatingTask::DelayedStart(clock, task_queue_, update_interval, [this, update_interval]{
+    periodic_task_ = RepeatingTask::DelayedStart(clock.get(), task_queue_->Get(), update_interval, [this, update_interval]{
         PeriodicUpdate();
         return update_interval;
     });

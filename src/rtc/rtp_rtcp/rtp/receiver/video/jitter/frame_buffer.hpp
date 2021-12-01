@@ -29,10 +29,10 @@ class RTC_CPP_EXPORT FrameBuffer final {
 public:
     enum class ReturnReason { FOUND, TIME_OUT, STOPPED };
 public:
-    FrameBuffer(std::shared_ptr<Clock> clock, 
-                std::shared_ptr<Timing> timing,
-                std::shared_ptr<TaskQueue> decode_queue,
-                std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer);
+    FrameBuffer(Clock* clock, 
+                Timing* timing,
+                TaskQueue* decode_queue,
+                VideoReceiveStatisticsObserver* stats_observer);
     ~FrameBuffer();
 
     ProtectionMode protection_mode() const;
@@ -102,10 +102,10 @@ private:
     static constexpr int64_t kLogNonDecodedIntervalMs = 5000;
 private:
     std::mutex lock_;
-    std::shared_ptr<Clock> clock_ RTC_GUARDED_BY(lock_);
-    std::shared_ptr<Timing> timing_ RTC_GUARDED_BY(lock_);
-    std::shared_ptr<TaskQueue> decode_queue_ RTC_GUARDED_BY(lock_);
-    std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer_;
+    Clock* const clock_ RTC_GUARDED_BY(lock_);
+    Timing* const timing_ RTC_GUARDED_BY(lock_);
+    TaskQueue* const decode_queue_ RTC_GUARDED_BY(lock_);
+    VideoReceiveStatisticsObserver* const stats_observer_;
 
     InterFrameDelay inter_frame_delay_ RTC_GUARDED_BY(lock_);
     DecodedFramesHistory decoded_frames_history_ RTC_GUARDED_BY(lock_);

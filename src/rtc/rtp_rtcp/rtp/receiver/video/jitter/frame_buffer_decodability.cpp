@@ -35,7 +35,7 @@ void FrameBuffer::StartWaitForNextFrameToDecode() {
     RTC_RUN_ON(decode_queue_);
     assert(!decode_task_ || !decode_task_->Running());
     int64_t wait_ms = FindNextFrameToDecode();
-    decode_task_ = RepeatingTask::DelayedStart(clock_, decode_queue_, TimeDelta::Millis(wait_ms), [this]() {
+    decode_task_ = RepeatingTask::DelayedStart(clock_, decode_queue_->Get(), TimeDelta::Millis(wait_ms), [this]() {
         std::optional<video::FrameToDecode> next_frame = std::nullopt;
         NextFrameFoundCallback callback = nullptr;
         {
@@ -149,10 +149,10 @@ video::FrameToDecode FrameBuffer::GetNextFrameToDecode() {
     decoded_frames_history_.InsertFrame(frame_info.frame->id(), frame_info.frame->timestamp());
 
     // Trigger state callback with all the dropped frames.
-    if (auto observer = stats_observer_.lock()) {
+    if (stats_observer_) {
         size_t dropped_frames = NumUndecodableFrames(frame_infos_.begin(), frame_info_it);
         if (dropped_frames > 0) {
-            observer->OnDroppedFrames(dropped_frames);
+            stats_observer_->OnDroppedFrames(dropped_frames);
         }
     }
     // Retrieve the next frame to decode.

@@ -22,8 +22,8 @@ public:
     explicit SimulatedTimeController(Timestamp start_time);
     ~SimulatedTimeController() override;
 
-    std::shared_ptr<TaskQueue> CreateTaskQueue();
-    std::shared_ptr<Clock> Clock() const;
+    std::unique_ptr<SimulatedTaskQueue, SimulatedTaskQueue::Deleter> CreateTaskQueue();
+    Clock* Clock() const;
 
     Timestamp CurrentTime() const;
     Timestamp NextRunTime() const;

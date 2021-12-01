@@ -22,14 +22,14 @@ FrameBuffer::FrameInfo::FrameInfo() = default;
 FrameBuffer::FrameInfo::~FrameInfo() = default;
 
 // FrameBuffer
-FrameBuffer::FrameBuffer(std::shared_ptr<Clock> clock, 
-                         std::shared_ptr<Timing> timing,
-                         std::shared_ptr<TaskQueue> decode_queue,
-                         std::weak_ptr<VideoReceiveStatisticsObserver> stats_observer)
-    : clock_(std::move(clock)),
-      timing_(std::move(timing)),
-      decode_queue_(std::move(decode_queue)),
-      stats_observer_(std::move(stats_observer)),
+FrameBuffer::FrameBuffer(Clock* clock, 
+                         Timing* timing,
+                         TaskQueue* decode_queue,
+                         VideoReceiveStatisticsObserver* stats_observer)
+    : clock_(clock),
+      timing_(timing),
+      decode_queue_(decode_queue),
+      stats_observer_(stats_observer),
       decoded_frames_history_(kMaxFramesHistory),
       jitter_estimator_({/* Default HyperParameters */}, clock_),
       protection_mode_(ProtectionMode::NACK),
@@ -62,12 +62,12 @@ void FrameBuffer::set_protection_mode(ProtectionMode mode) {
 
 // Private methods
 void FrameBuffer::ClearFramesAndHistory() {
-    if (auto observer = stats_observer_.lock()) {
+    if (stats_observer_) {
         // The undecodable frames
         size_t dropped_frames = NumUndecodableFrames(frame_infos_.begin(), frame_infos_.end());
         if (dropped_frames > 0) {
             PLOG_WARNING << "Dropped " << dropped_frames << " frames";
-            observer->OnDroppedFrames(dropped_frames);
+            stats_observer_->OnDroppedFrames(dropped_frames);
         }
     }
     frame_infos_.clear();

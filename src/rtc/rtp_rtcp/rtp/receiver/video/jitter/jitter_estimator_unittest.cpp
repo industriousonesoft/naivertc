@@ -17,15 +17,15 @@ namespace test {
 class T(JitterEstimatorTest) : public ::testing::Test {
 protected:
     T(JitterEstimatorTest)() 
-        : fake_clock_(std::make_shared<SimulatedClock>(0)), 
-          jitter_estimator_(std::make_unique<JitterEstimator>(JitterEstimator::HyperParameters(), fake_clock_)) {}
+        : fake_clock_(std::make_unique<SimulatedClock>(0)), 
+          jitter_estimator_(std::make_unique<JitterEstimator>(JitterEstimator::HyperParameters(), fake_clock_.get())) {}
 
     void Reset(const JitterEstimator::HyperParameters& hyper_params) {
-        jitter_estimator_.reset(new JitterEstimator(hyper_params, fake_clock_));
+        jitter_estimator_.reset(new JitterEstimator(hyper_params, fake_clock_.get()));
     }
 
 protected:
-    std::shared_ptr<SimulatedClock> fake_clock_;
+    std::unique_ptr<SimulatedClock> fake_clock_;
     std::unique_ptr<JitterEstimator> jitter_estimator_;
 };
 

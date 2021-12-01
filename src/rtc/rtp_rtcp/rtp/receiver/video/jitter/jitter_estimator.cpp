@@ -20,7 +20,7 @@ static constexpr double kMaxEstimatedJitterMs = 10000.0;
 }  // namespace
 
 JitterEstimator::JitterEstimator(const HyperParameters& hyper_params, 
-                                 std::shared_ptr<Clock> clock) 
+                                 Clock* clock) 
     : phi_(hyper_params.filter_factor_of_frame_size),
       psi_(hyper_params.weight_of_max_frame_size),
       max_alpha_(hyper_params.max_filter_factor_of_random_jitter),
@@ -33,7 +33,7 @@ JitterEstimator::JitterEstimator(const HyperParameters& hyper_params,
       time_deviation_upper_bound_(hyper_params.time_deviation_upper_bound),
       // TODO: Use an estimator with limit base on time rather than number of samples.
       frame_delta_us_accumulator_(30 /* window_size: 30 us */),
-      clock_(std::move(clock)) {
+      clock_(clock) {
     // Reset to the intial values.
     Reset();
 }

@@ -5,7 +5,7 @@
 
 namespace naivertc {
 namespace message {
-
+// TODO: Wraps the datachannel establishment as the payload of SCTP control message
 // Messages for the datachannel establishment protocol (RFC 8832)
 // See https://tools.ietf.org/html/rfc8832
 

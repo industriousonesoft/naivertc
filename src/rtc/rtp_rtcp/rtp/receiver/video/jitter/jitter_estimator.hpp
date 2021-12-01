@@ -47,7 +47,7 @@ public:
     static const uint32_t kOperatingSystemJitterMs = 10;
 public:
     explicit JitterEstimator(const HyperParameters& hyper_params, 
-                             std::shared_ptr<Clock> clock);
+                             Clock* clock);
     ~JitterEstimator();
     JitterEstimator& operator=(const JitterEstimator& rhs);
 
@@ -131,7 +131,7 @@ private:
     RttFilter rtt_filter_;
     RollingAccumulator<uint64_t> frame_delta_us_accumulator_;
 
-    std::shared_ptr<Clock> clock_;
+    Clock* clock_;
 
 };
     

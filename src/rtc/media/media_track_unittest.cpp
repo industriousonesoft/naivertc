@@ -41,8 +41,8 @@ MY_TEST(TrackConfigTest, CreateVideoMediaSDPWithUlpFEC) {
     EXPECT_TRUE(config.AddCodec(MediaTrack::Codec::H264));
 
     MediaTrack media_track(config);
-    const sdp::Media* description = media_track.local_description();
-    EXPECT_NE(description, nullptr);
+    auto description = MediaTrack::SdpBuilder::Build(config);
+    EXPECT_TRUE(description.has_value());
 
     EXPECT_EQ(description->direction(), sdp::Direction::SEND_ONLY);
     // Payload type: h264(+ rtx) + red(+ rtx) + fec
@@ -61,8 +61,8 @@ MY_TEST(TrackConfigTest, CreateVideoMediaSDPWithFlexFEC) {
     EXPECT_TRUE(config.AddCodec(MediaTrack::Codec::H264));
 
     MediaTrack media_track(config);
-    const sdp::Media* description = media_track.local_description();
-    EXPECT_NE(description, nullptr);
+    auto description = MediaTrack::SdpBuilder::Build(config);
+    EXPECT_TRUE(description.has_value());
 
     EXPECT_EQ(description->direction(), sdp::Direction::SEND_ONLY);
     // Payload type: h264(+ rtx) + fec
@@ -82,8 +82,8 @@ MY_TEST(TrackConfigTest, CreateAudioMediaSDP) {
     EXPECT_TRUE(config.AddCodec(MediaTrack::Codec::OPUS));
 
     MediaTrack media_track(config);
-    const sdp::Media* description = media_track.local_description();
-    EXPECT_NE(description, nullptr);
+    auto description = MediaTrack::SdpBuilder::Build(config);
+    EXPECT_TRUE(description.has_value());
 
     EXPECT_EQ(description->direction(), sdp::Direction::SEND_ONLY);
     // Payload type: opus

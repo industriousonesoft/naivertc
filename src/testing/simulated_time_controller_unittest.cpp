@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 
 namespace naivertc {
@@ -24,7 +24,7 @@ MY_TEST(SimulatedTimeControllerTest, TaskIsStoppedOnStop) {
     SimulatedTimeController time_simulation(kStartTime);
     auto task_queue = time_simulation.CreateTaskQueue();
     std::atomic_int counter(0);
-    auto repeating_task = RepeatingTask::Start(time_simulation.Clock(), task_queue, [&](){
+    auto repeating_task = RepeatingTask::Start(time_simulation.Clock(), task_queue.get(), [&](){
         if (++counter >= kShortIntervalCount) {
             return kLongInterval;
         }
@@ -35,7 +35,7 @@ MY_TEST(SimulatedTimeControllerTest, TaskIsStoppedOnStop) {
     time_simulation.AdvanceTime(kShortInterval * (kShortIntervalCount + kMargin));
     EXPECT_EQ(counter.load(), kShortIntervalCount);
 
-    task_queue->Async([repeating_task=repeating_task.get()](){
+    task_queue->Post([repeating_task=repeating_task.get()](){
         repeating_task->Stop();
     });
 
@@ -49,7 +49,7 @@ MY_TEST(SimulatedTimeControllerTest, TaskCanStopItself) {
     SimulatedTimeController time_simulation(kStartTime);
     auto task_queue = time_simulation.CreateTaskQueue();
     std::atomic_int counter(0);
-    std::unique_ptr<RepeatingTask> repeating_task = RepeatingTask::Start(time_simulation.Clock(), task_queue, [&](){
+    std::unique_ptr<RepeatingTask> repeating_task = RepeatingTask::Start(time_simulation.Clock(), task_queue.get(), [&](){
         ++counter;
         repeating_task->Stop();
         return TimeDelta::Millis(2);
@@ -63,7 +63,7 @@ MY_TEST(SimulatedTimeControllerTest, DelayedTaskRunOnTime) {
     auto task_queue = time_simulation.CreateTaskQueue();
 
     bool delay_task_executed = false;
-    task_queue->AsyncAfter(TimeDelta::Millis(10), [&](){
+    task_queue->PostDelayed(TimeDelta::Millis(10), [&](){
         delay_task_executed = true;
     });
 

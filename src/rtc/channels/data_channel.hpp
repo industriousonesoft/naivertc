@@ -13,6 +13,7 @@
 
 namespace naivertc {
 
+// DataTransport
 class RTC_CPP_EXPORT DataTransport {
 public:
     virtual bool Send(SctpMessageToSend message) = 0;
@@ -20,6 +21,7 @@ protected:
     virtual ~DataTransport() = default;
 };
 
+// DataChannel
 class RTC_CPP_EXPORT DataChannel : public Channel, 
                                    public std::enable_shared_from_this<DataChannel> {
 public:

@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/base/units/time_delta.hpp"
-#include "rtc/base/task_utils/task_queue.hpp"
+#include "rtc/base/task_utils/task_queue_impl.hpp"
 
 #include <plog/Log.h>
 
@@ -14,15 +14,15 @@
 namespace naivertc {
 class RTC_CPP_EXPORT RepeatingTask final {
 public:
-    using Handler = std::function<TimeDelta(void)>;
-    static std::unique_ptr<RepeatingTask> DelayedStart(std::shared_ptr<Clock> clock, 
-                                                       std::shared_ptr<TaskQueue> task_queue, 
-                                                       TimeDelta delay, 
-                                                       Handler clouser);
-    static std::unique_ptr<RepeatingTask> Start(std::shared_ptr<Clock> clock, 
-                                                std::shared_ptr<TaskQueue> task_queue,
-                                                Handler clouser) {
-        return RepeatingTask::DelayedStart(clock, task_queue, TimeDelta::Millis(0), std::move(clouser));
+    using TaskClouser = std::function<TimeDelta(void)>;
+    static std::unique_ptr<RepeatingTask> DelayedStart(Clock* clock,
+                                                       TaskQueueImpl* task_queue,
+                                                       TimeDelta delay,
+                                                       TaskClouser task);
+    static std::unique_ptr<RepeatingTask> Start(Clock* clock,
+                                                TaskQueueImpl* task_queue,
+                                                TaskClouser task) {
+        return RepeatingTask::DelayedStart(clock, task_queue, TimeDelta::Millis(0), std::move(task));
     }
 public:
     ~RepeatingTask();
@@ -40,16 +40,16 @@ public:
     bool Running() const;
     
 private:
-    RepeatingTask(std::shared_ptr<Clock> clock, std::shared_ptr<TaskQueue> task_queue, Handler clouser);
+    RepeatingTask(Clock* clock,  TaskQueueImpl* task_queue, TaskClouser task);
     void Start(TimeDelta delay);
 private:
     void ScheduleTaskAfter(TimeDelta delay);
     void MaybeExecuteTask(Timestamp execution_time);
     void ExecuteTask();
 private:
-    std::shared_ptr<Clock> clock_;
-    std::shared_ptr<TaskQueue> task_queue_;
-    const Handler handler_;
+    Clock* const clock_;
+    TaskQueueImpl* const task_queue_;
+    const TaskClouser task_clouser_;
     bool is_stoped_;
 };
     

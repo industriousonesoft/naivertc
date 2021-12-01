@@ -19,10 +19,10 @@ constexpr int kDelayMaxChangeMsPerS = 100;
 class T(ReceiverTimingTest) : public ::testing::Test {
 public:
     T(ReceiverTimingTest)() 
-        : clock_(std::make_shared<SimulatedClock>(0)),
-          timing_(clock_) {};
+        : clock_(std::make_unique<SimulatedClock>(0)),
+          timing_(clock_.get()) {};
 protected:
-    std::shared_ptr<SimulatedClock> clock_;
+    std::unique_ptr<SimulatedClock> clock_;
     rtp::video::Timing timing_;
 };
 

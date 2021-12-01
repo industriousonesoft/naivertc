@@ -90,8 +90,8 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrame(video::FrameToDecode frame) {
         timing_->IncomingTimestamp(frame_info.frame->timestamp(), frame_info.frame->received_time_ms());
     }
 
-    if (auto observer = stats_observer_.lock()) {
-        observer->OnCompleteFrame(frame_info.frame->is_keyframe(), frame_info.frame->size());
+    if (stats_observer_) {
+        stats_observer_->OnCompleteFrame(frame_info.frame->is_keyframe(), frame_info.frame->size());
     }
 
     // The incoming frame is continuous and try to find all the decodable frames.

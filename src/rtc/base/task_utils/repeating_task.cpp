@@ -2,28 +2,29 @@
 
 namespace naivertc {
 
-std::unique_ptr<RepeatingTask> RepeatingTask::DelayedStart(std::shared_ptr<Clock> clock, 
-                                                           std::shared_ptr<TaskQueue> task_queue, 
+std::unique_ptr<RepeatingTask> RepeatingTask::DelayedStart(Clock* clock,
+                                                           TaskQueueImpl* task_queue,
                                                            TimeDelta delay, 
-                                                           Handler handler) {
-    auto task = std::unique_ptr<RepeatingTask>(new RepeatingTask(clock, task_queue, std::move(handler)));
+                                                           TaskClouser task_clouser) {
+    auto task = std::unique_ptr<RepeatingTask>(new RepeatingTask(clock, task_queue, std::move(task_clouser)));
     task->Start(delay);
     return task;
 }
 
-RepeatingTask::RepeatingTask(std::shared_ptr<Clock> clock, 
-                             std::shared_ptr<TaskQueue> task_queue,
-                             Handler handler) 
+RepeatingTask::RepeatingTask(Clock* clock,
+                             TaskQueueImpl* task_queue,
+                             TaskClouser task_clouser) 
     : clock_(clock),
-      task_queue_(task_queue != nullptr ? std::move(task_queue) 
-                                        : std::make_shared<TaskQueue>("RepeatingTask.default.task.queue")),
-      handler_(std::move(handler)),
-      is_stoped_(true) {}
+      task_queue_(task_queue),
+      task_clouser_(std::move(task_clouser)),
+      is_stoped_(true) {
+    assert(task_queue != nullptr);
+}
 
 RepeatingTask::~RepeatingTask() = default;
 
 void RepeatingTask::Start(TimeDelta delay) {
-    task_queue_->Async([this, delay=std::move(delay)](){
+    task_queue_->Post([this, delay](){
         this->is_stoped_ = false;
         if (delay.ms() <= 0) {
             this->ExecuteTask();
@@ -46,7 +47,7 @@ void RepeatingTask::Stop() {
 // Private methods
 void RepeatingTask::ScheduleTaskAfter(TimeDelta delay) {
     Timestamp execution_time = clock_->CurrentTime() + delay;
-    task_queue_->AsyncAfter(delay, [this, execution_time](){
+    task_queue_->PostDelayed(delay, [this, execution_time](){
         this->MaybeExecuteTask(execution_time);
     });
 }
@@ -63,14 +64,14 @@ void RepeatingTask::MaybeExecuteTask(Timestamp execution_time) {
 
     PLOG_WARNING << "RepeatingTask: scheduled delayed called too early.";
     TimeDelta delay = execution_time - now;
-    task_queue_->AsyncAfter(delay, [this, execution_time](){
+    task_queue_->PostDelayed(delay, [this, execution_time](){
         this->MaybeExecuteTask(execution_time);
     });
 }
 
 void RepeatingTask::ExecuteTask() {
-    if (this->handler_) {
-        TimeDelta interval = this->handler_();
+    if (this->task_clouser_) {
+        TimeDelta interval = this->task_clouser_();
         if (interval.ms() > 0) {
             ScheduleTaskAfter(interval);
         } else {

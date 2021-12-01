@@ -23,12 +23,12 @@ SimulatedTimeController::SimulatedTimeController(Timestamp start_time)
 
 SimulatedTimeController::~SimulatedTimeController() = default;
 
-std::shared_ptr<TaskQueue> SimulatedTimeController::CreateTaskQueue() {
-    return std::make_shared<TaskQueue>(std::unique_ptr<SimulatedTaskQueue, SimulatedTaskQueue::Deleter>(new SimulatedTaskQueue(this)));
+std::unique_ptr<SimulatedTaskQueue, SimulatedTaskQueue::Deleter> SimulatedTimeController::CreateTaskQueue() {
+    return std::unique_ptr<SimulatedTaskQueue, SimulatedTaskQueue::Deleter>(new SimulatedTaskQueue(this));
 }
 
-std::shared_ptr<Clock> SimulatedTimeController::Clock() const {
-    return sim_clock_;
+Clock* SimulatedTimeController::Clock() const {
+    return sim_clock_.get();
 }
 
 Timestamp SimulatedTimeController::CurrentTime() const {

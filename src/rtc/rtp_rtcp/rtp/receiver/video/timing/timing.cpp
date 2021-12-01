@@ -12,8 +12,8 @@ constexpr int kDelayMaxChangeMsPerS = 100;
 } // namespace
 
 
-Timing::Timing(std::shared_ptr<Clock> clock) 
-    : clock_(std::move(clock)),
+Timing::Timing(Clock* clock) 
+    : clock_(clock),
       timestamp_extrapolator_(nullptr),
       decode_time_filter_(std::make_unique<DecodeTimeFilter>()),
       low_latency_renderer_enabled_(true),

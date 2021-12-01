@@ -24,7 +24,7 @@ public:
         int render_delay_ms = -1;
     };
 public:
-    explicit Timing(std::shared_ptr<Clock> clock);
+    explicit Timing(Clock* clock);
     virtual ~Timing();
 
     int min_playout_delay_ms() const { return min_playout_delay_ms_; }
@@ -84,7 +84,7 @@ public:
 private:
     int RequiredDecodeTimeMs() const;
 private:
-    std::shared_ptr<Clock> clock_;
+    Clock* const clock_;
     std::unique_ptr<TimestampExtrapolator> timestamp_extrapolator_;
     std::unique_ptr<DecodeTimeFilter> decode_time_filter_;
 

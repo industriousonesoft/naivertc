@@ -13,7 +13,7 @@ bool SequenceChecker::IsCurrent() const {
     return attached_queue_ == TaskQueueImpl::Current();
 }
 
-TaskQueueImpl* SequenceChecker::attached_queue() {
+TaskQueueImpl* SequenceChecker::attached_queue() const {
     return attached_queue_;
 }
     
