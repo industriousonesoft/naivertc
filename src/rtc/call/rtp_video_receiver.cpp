@@ -43,19 +43,18 @@ rtp::video::FrameToDecode CreateFrameToDecode(const rtp::video::jitter::PacketBu
 
 // RtpVideoReceiver
 RtpVideoReceiver::RtpVideoReceiver(Configuration config,
-                                               std::shared_ptr<Clock> clock,
-                                               std::shared_ptr<TaskQueue> task_queue,
-                                               std::weak_ptr<CompleteFrameReceiver> complete_frame_receiver) 
+                                    std::shared_ptr<Clock> clock,
+                                    std::shared_ptr<TaskQueue> task_queue,
+                                    std::weak_ptr<CompleteFrameReceiver> complete_frame_receiver) 
     : config_(std::move(config)),
       clock_(std::move(clock)),
       task_queue_(std::move(task_queue)),
       complete_frame_receiver_(std::move(complete_frame_receiver)),
       rtcp_module_(CreateRtcpModule(config_, clock_, task_queue)),
-      rtcp_feedback_buffer_(std::make_shared<RtcpFeedbackBuffer>(rtcp_module_, rtcp_module_)),
-      nack_module_(config.nack_enabled ? std::make_unique<NackModule>(clock_, 
-                                                                      task_queue_, 
-                                                                      rtcp_feedback_buffer_, 
-                                                                      rtcp_feedback_buffer_)
+      rtcp_feedback_buffer_(rtcp_module_, rtcp_module_),
+      nack_module_(config.nack_enabled ? std::make_unique<NackModule>(clock_.get(),
+                                                                      &rtcp_feedback_buffer_, 
+                                                                      &rtcp_feedback_buffer_)
                                        : nullptr),
       packet_buffer_(kPacketBufferStartSize, kPacketBufferMaxSize),
       remote_ntp_time_estimator_(clock_),
@@ -213,7 +212,7 @@ void RtpVideoReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized
 
     if (depacketized_packet.video_payload.empty()) {
         HandleEmptyPacket(rtp_packet.sequence_number());
-        rtcp_feedback_buffer_->SendBufferedRtcpFeedbacks();
+        rtcp_feedback_buffer_.SendBufferedRtcpFeedbacks();
         return;
     }
 
@@ -227,8 +226,8 @@ void RtpVideoReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized
                                                                                               depacketized_packet.video_payload);
         switch (fixed.action) {
         case h264::SpsPpsTracker::PacketAction::REQUEST_KEY_FRAME:
-            rtcp_feedback_buffer_->RequestKeyFrame();
-            rtcp_feedback_buffer_->SendBufferedRtcpFeedbacks();
+            rtcp_feedback_buffer_.RequestKeyFrame();
+            rtcp_feedback_buffer_.SendBufferedRtcpFeedbacks();
             PLOG_WARNING << "IDR as the first packet in frame without SPS and PPS, droping.";
             return;
         case h264::SpsPpsTracker::PacketAction::DROP:
@@ -242,7 +241,7 @@ void RtpVideoReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized
         packet->video_payload = std::move(depacketized_packet.video_payload);
     }
 
-    rtcp_feedback_buffer_->SendBufferedRtcpFeedbacks();
+    rtcp_feedback_buffer_.SendBufferedRtcpFeedbacks();
     OnInsertedPacket(packet_buffer_.InsertPacket(std::move(packet)));
 }
 

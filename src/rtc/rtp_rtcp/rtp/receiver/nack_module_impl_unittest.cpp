@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#define ENABLE_UNIT_TESTS 0
+#define ENABLE_UNIT_TESTS 1
 #include "testing/defines.hpp"
 
 namespace naivertc {
@@ -12,10 +12,10 @@ namespace test {
 class T(NackModuleTest) : public ::testing::Test {
 protected:
     T(NackModuleTest)() 
-        : clock_(std::make_shared<SimulatedClock>(0)) {}
+        : clock_(std::make_unique<SimulatedClock>(0)) {}
 
     void CreateNackModule(int64_t send_nack_delay_ms = 0) {
-        nack_module_ = std::make_unique<NackModuleImpl>(clock_, send_nack_delay_ms);
+        nack_module_ = std::make_unique<NackModuleImpl>(clock_.get(), send_nack_delay_ms);
         nack_module_->UpdateRtt(kDefaultRttMs);
     }
 
@@ -38,7 +38,7 @@ protected:
     }
 
     static constexpr int64_t kDefaultRttMs = 20;
-    std::shared_ptr<SimulatedClock> clock_;
+    std::unique_ptr<SimulatedClock> clock_;
     std::vector<uint16_t> sent_nacks_;
     size_t keyframes_requested_ = 0;
     std::unique_ptr<NackModuleImpl> nack_module_;

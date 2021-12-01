@@ -120,7 +120,7 @@ private:
     std::shared_ptr<TaskQueue> task_queue_;
     std::weak_ptr<CompleteFrameReceiver> complete_frame_receiver_;
     std::shared_ptr<RtcpModule> rtcp_module_;
-    std::shared_ptr<RtcpFeedbackBuffer> rtcp_feedback_buffer_;
+    RtcpFeedbackBuffer rtcp_feedback_buffer_;
     std::unique_ptr<NackModule> nack_module_;
 
     h264::SpsPpsTracker h264_sps_pps_tracker_;

@@ -25,7 +25,7 @@ public:
         std::vector<uint16_t> nack_list_to_send;
     };
 public:
-    NackModuleImpl(std::shared_ptr<Clock> clock, 
+    NackModuleImpl(Clock* clock, 
                    int64_t send_nack_delay_ms);
     ~NackModuleImpl();
 
@@ -61,7 +61,7 @@ private:
     bool AddPacketsToNack(uint16_t seq_num_start, uint16_t seq_num_end);
     bool RemovePacketsUntilKeyFrame();
 private:
-    std::shared_ptr<Clock> clock_;
+    Clock* const clock_;
     // Delay before send nack on packet received.
     const int64_t send_nack_delay_ms_;
 

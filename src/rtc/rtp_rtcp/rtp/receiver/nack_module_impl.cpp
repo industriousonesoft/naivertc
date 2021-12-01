@@ -27,8 +27,8 @@ NackModuleImpl::NackInfo::NackInfo(uint16_t seq_num,
       retries(0) {}
 
 // NackModuleImpl
-NackModuleImpl::NackModuleImpl(std::shared_ptr<Clock> clock, 
-                   int64_t send_nack_delay_ms) 
+NackModuleImpl::NackModuleImpl(Clock* clock, 
+                               int64_t send_nack_delay_ms) 
     : clock_(clock),
       send_nack_delay_ms_(send_nack_delay_ms),
       initialized_(false),
