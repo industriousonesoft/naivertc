@@ -13,7 +13,12 @@
 
 namespace naivertc {
 
-class SctpTransport;
+class RTC_CPP_EXPORT DataTransport {
+public:
+    virtual bool Send(SctpMessageToSend message) = 0;
+protected:
+    virtual ~DataTransport() = default;
+};
 
 class RTC_CPP_EXPORT DataChannel : public Channel, 
                                    public std::enable_shared_from_this<DataChannel> {
@@ -54,7 +59,7 @@ public:
 public:
     static std::shared_ptr<DataChannel> RemoteDataChannel(uint16_t stream_id,
                                                           bool negotiated,
-                                                          SctpTransport* sctp_transport);
+                                                          DataTransport* transport);
 
     static bool IsOpenMessage(const CopyOnWriteBuffer& message);
 public:
@@ -69,7 +74,7 @@ public:
     void HintStreamId(sdp::Role role);
 
     // TODO: Using peer connection as transport instead of sctp transport.
-    void Open(SctpTransport* sctp_transport);
+    void Open(DataTransport* transport);
     void Close() override;
     void RemoteClose();
 
@@ -120,7 +125,7 @@ private:
     TaskQueue task_queue_;
 
     bool is_opened_ = false;
-    SctpTransport* sctp_transport_;
+    DataTransport* transport_;
 
     std::queue<SctpMessageToSend> pending_outgoing_messages_;
     std::queue<SctpMessage> pending_incoming_messages_;

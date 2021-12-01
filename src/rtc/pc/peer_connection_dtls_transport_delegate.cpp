@@ -100,11 +100,10 @@ void PeerConnection::OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rt
 
 void PeerConnection::OpenMediaTracks() {
     RTC_RUN_ON(worker_task_queue_);
-    auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
             if (!media_track->is_opened()) {
-                media_track->Open(srtp_transport);
+                media_track->Open(this);
             }
         }
     }

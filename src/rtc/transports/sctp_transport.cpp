@@ -84,7 +84,13 @@ void SctpTransport::CloseStream(uint16_t stream_id) {
 
 bool SctpTransport::Send(SctpMessageToSend message) {
 	return task_queue_->Sync<bool>([this, message=std::move(message)](){
-		return SendInternal(std::move(message));
+		// TODO: Using DataChannel establishment message instead.
+		if (message.type() == SctpMessage::Type::CLOSE) {
+			ResetStream(message.stream_id());
+			return true;
+		} else {
+			return SendInternal(std::move(message));
+		}
 	});
 }
 
@@ -213,7 +219,7 @@ bool SctpTransport::TrySend(SctpMessageToSend& message) {
 		break;
 	case SctpMessage::Type::CONTROL:
 		ppid = PayloadId::PPID_CONTROL;	
-		break;
+		break;	
 	default:
 		// Ignore
 		return false;

@@ -72,7 +72,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
 
             // If sctp transport is connected yet, we open the data channel immidiately
             if (sctp_transport_ && sctp_transport_->state() == SctpTransport::State::CONNECTED) {
-                data_channel->Open(sctp_transport_.get());
+                data_channel->Open(this);
             }
 
             data_channels_.emplace(stream_id, data_channel);

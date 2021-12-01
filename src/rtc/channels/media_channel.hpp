@@ -4,11 +4,19 @@
 #include "base/defines.hpp"
 #include "rtc/channels/channel.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
-#include "rtc/transports/dtls_srtp_transport.hpp"
+#include "rtc/base/copy_on_write_buffer.hpp"
+#include "rtc/base/packet_options.hpp"
 
 #include <iostream>
 
 namespace naivertc {
+
+class RTC_CPP_EXPORT MediaTransport {
+public:
+    virtual int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) = 0;
+protected:
+    virtual ~MediaTransport() = default;
+};
 
 class RTC_CPP_EXPORT MediaChannel : public Channel {
 public:
@@ -27,7 +35,7 @@ public:
     bool is_opened() const;
 
     // TODO: Using peer connection as transport instead of srtp transport.
-    void Open(DtlsSrtpTransport* srtp_transport);
+    void Open(MediaTransport* transport);
     void Close() override;
 
     void OnOpened(OpenedCallback callback) override;
@@ -46,7 +54,7 @@ protected:
     OpenedCallback opened_callback_ = nullptr;
     ClosedCallback closed_callback_ = nullptr;
 
-    DtlsSrtpTransport* srtp_transport_;
+    MediaTransport* transport_;
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaChannel::Kind kind);

@@ -23,7 +23,8 @@
 namespace naivertc {
 
 // PeerConnection
-class RTC_CPP_EXPORT PeerConnection final : public std::enable_shared_from_this<PeerConnection> {
+class RTC_CPP_EXPORT PeerConnection : public MediaTransport,
+                                      public DataTransport {
 public:
     // ConnectionState
     enum class ConnectionState: int {
@@ -73,7 +74,7 @@ public:
     }
     static std::string ToString(SignalingState state);
 public:
-    ~PeerConnection();
+    ~PeerConnection() override;
 
     std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Configuration& config);
     std::shared_ptr<DataChannel> CreateDataChannel(const DataChannel::Init& config, std::optional<uint16_t> stream_id = std::nullopt);
@@ -105,6 +106,12 @@ public:
     void OnRemoteDataChannelReceived(DataChannelCallback callback);
     void OnRemoteMediaTrackReceived(MediaTrackCallback callback);
 
+public:
+    // MediaTransport interfaces
+    int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override;
+    // DataTransport interfaces
+    bool Send(SctpMessageToSend message) override;
+    
 protected:
     PeerConnection(const RtcConfiguration& config);
 

@@ -85,7 +85,7 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                 if (stream_id % 2 == remote_parity) {
                     // The remote data channel will negotiate later by processing incomming message, 
                     // so it's unnegotiated.
-                    data_channel = DataChannel::RemoteDataChannel(stream_id, false /* unnegotiated */, sctp_transport_.get());
+                    data_channel = DataChannel::RemoteDataChannel(stream_id, false /* unnegotiated */, this);
                     // We own the data channel temporarily
                     pending_data_channels_.push_back(data_channel);
                     data_channels_.emplace(stream_id, data_channel);
@@ -97,12 +97,16 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                 } else {
                     PLOG_WARNING << "Failed to response the data channel created by remote peer, since it's stream id [" << stream_id
                                     << "] is not corresponding to the remote role.";
-                    sctp_transport_->CloseStream(stream_id);
+                    signal_task_queue_->Async([this, stream_id](){
+                        sctp_transport_->CloseStream(stream_id);
+                    });
                     return;
                 }
             } else {
                 PLOG_WARNING << "No data channel found to handle non-opening incoming message with stream id: " << stream_id;
-                sctp_transport_->CloseStream(stream_id);
+                signal_task_queue_->Async([this, stream_id](){
+                    sctp_transport_->CloseStream(stream_id);
+                });
                 return;
             }
         } else {
@@ -127,7 +131,7 @@ void PeerConnection::OpenDataChannels() {
     RTC_RUN_ON(worker_task_queue_);
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
-            dc->Open(sctp_transport_.get());
+            dc->Open(this);
         }
     }
 }

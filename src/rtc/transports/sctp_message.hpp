@@ -17,7 +17,8 @@ public:
     enum class Type {
         BINARY,
         STRING,
-        CONTROL
+        CONTROL,
+        CLOSE // TODO: Using DataChannel establishment message instead.
     };
 public:
     SctpMessage(Type type, 

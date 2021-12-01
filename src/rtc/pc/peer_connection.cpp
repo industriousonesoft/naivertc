@@ -1,4 +1,5 @@
 #include "rtc/pc/peer_connection.hpp"
+#include "rtc/transports/dtls_srtp_transport.hpp"
 #include "common/logger.hpp"
 
 #include <plog/Log.h>
@@ -101,6 +102,29 @@ void PeerConnection::OnRemoteMediaTrackReceived(MediaTrackCallback callback) {
         this->media_track_callback_ = std::move(callback);
         // Flush pending media tracks
         this->FlushPendingMediaTracks();
+    });
+}
+
+// MediaTransport interfaces
+int PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
+    return signal_task_queue_->Sync<int>([this, packet=std::move(packet), options=std::move(options)](){
+        auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
+        if (srtp_transport) {
+            return srtp_transport->SendRtpPacket(std::move(packet), std::move(options));
+        } else {
+            return -1;
+        }
+    });
+}
+
+    // DataTransport interfaces
+bool PeerConnection::Send(SctpMessageToSend message) {
+    return signal_task_queue_->Sync<bool>([this, message=std::move(message)](){
+        if (sctp_transport_) {
+            return sctp_transport_->Send(std::move(message));
+        } else {
+            return false;
+        }
     });
 }
 

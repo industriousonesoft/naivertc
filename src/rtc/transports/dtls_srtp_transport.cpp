@@ -65,6 +65,8 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
             }
         }
         PLOG_VERBOSE << "Protected SRTCP packet, size=" << protectd_data_size;
+
+        packet.Resize(protectd_data_size);
     // Rtp packet
     } else if (IsRtpPacket(packet)) {
         // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
@@ -81,13 +83,12 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
             }
         }
         PLOG_VERBOSE << "Protected SRTP packet, size=" << protectd_data_size;
+
+        packet.Resize(protectd_data_size);
     } else {
         PLOG_WARNING << "Sending packet is neither a RTP packet nor a RTCP packet, ignoring.";
         return false;
     }
-
-    packet.Resize(protectd_data_size);
-
     return true;
 }
 

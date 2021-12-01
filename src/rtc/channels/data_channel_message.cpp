@@ -133,7 +133,7 @@ void DataChannel::OnIncomingMessage(SctpMessage message) {
 
 void DataChannel::Send(const std::string text) {
     task_queue_.Async([this, text=std::move(text)](){
-        if (sctp_transport_) {
+        if (transport_) {
             CopyOnWriteBuffer payload(reinterpret_cast<const uint8_t*>(text.c_str()), text.length());
             Send(SctpMessageToSend(SctpMessage::Type::STRING, stream_id_, std::move(payload), user_message_reliability_));
         } else {
@@ -220,11 +220,11 @@ bool DataChannel::FlushPendingMessages() {
 }
 
 bool DataChannel::TrySend(SctpMessageToSend message) {
-    if (!sctp_transport_) {
+    if (!transport_) {
         PLOG_WARNING << "Failed to send message cause the sctp transport is not set yet.";
         return false;
     }
-    return sctp_transport_->Send(std::move(message));;
+    return transport_->Send(std::move(message));;
 }
     
 } // namespace naivertc
