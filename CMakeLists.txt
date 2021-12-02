@@ -254,6 +254,9 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
 
+    # rtc -> congestion_controller -> goog_cc
+    src/rtc/congestion_controller/goog_cc/inter_arrival_delta.cpp
+
 )
 
 if(USE_NICE)
@@ -496,6 +499,9 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp
     src/rtc/rtp_rtcp/rtcp/report_block_data.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
+
+    # rtc -> congestion_controller -> goog_cc
+    src/rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp
 
 )
 
