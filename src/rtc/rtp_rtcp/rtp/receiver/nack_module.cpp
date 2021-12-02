@@ -13,14 +13,15 @@ NackModule::NackModule(Clock* clock,
     : impl_(clock, send_nack_delay_ms),
       nack_sender_(std::move(nack_sender)),
       key_frame_request_sender_(std::move(key_frame_request_sender)) {
-    assert(sequence_checker_.attached_queue() != nullptr && "Task queue is not supposed to be null.");
-    periodic_task_ = RepeatingTask::DelayedStart(clock, sequence_checker_.attached_queue(), update_interval, [this, update_interval]{
+    RTC_RUN_ON(&sequence_checker_);
+    periodic_task_ = RepeatingTask::DelayedStart(clock, TaskQueueImpl::Current(), update_interval, [this, update_interval]{
         PeriodicUpdate();
         return update_interval;
     });
 }
 
 NackModule::~NackModule() {
+    RTC_RUN_ON(&sequence_checker_);
     periodic_task_->Stop();
 }
 

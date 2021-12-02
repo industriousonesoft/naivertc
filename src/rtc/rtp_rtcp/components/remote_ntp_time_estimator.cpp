@@ -9,8 +9,8 @@ constexpr int kTimingLogIntervalMs = 10000; // 10s
 constexpr int kClocksOffsetSmoothingWindow = 100;
 }  // namespace
 
-RemoteNtpTimeEstimator::RemoteNtpTimeEstimator(std::shared_ptr<Clock> clock) 
-    : clock_(std::move(clock)),
+RemoteNtpTimeEstimator::RemoteNtpTimeEstimator(Clock* clock) 
+    : clock_(clock),
       ntp_clocks_offset_estimator_(kClocksOffsetSmoothingWindow),
       last_timing_log_ms_(-1) {}
 

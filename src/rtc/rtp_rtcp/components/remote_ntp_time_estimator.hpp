@@ -17,7 +17,7 @@ namespace naivertc {
 // the RTP packet received NTP time in local timebase.
 class RTC_CPP_EXPORT RemoteNtpTimeEstimator {
 public:
-    explicit RemoteNtpTimeEstimator(std::shared_ptr<Clock> clock);
+    explicit RemoteNtpTimeEstimator(Clock* clock);
     ~RemoteNtpTimeEstimator();
 
     bool UpdateRtcpTimestamp(int64_t rtt, 
@@ -34,7 +34,7 @@ public:
     std::optional<int64_t> EstimateRemoteToLocalClockOffsetMs();
 
 private:
-    std::shared_ptr<Clock> clock_;
+    Clock* const clock_;
     MovingMedianFilter<int64_t> ntp_clocks_offset_estimator_;
     RtpToNtpEstimator rtp_to_ntp_estimator_;
     int64_t last_timing_log_ms_;

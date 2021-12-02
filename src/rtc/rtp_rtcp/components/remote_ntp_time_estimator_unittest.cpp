@@ -19,9 +19,9 @@ constexpr int64_t kRemoteToLocalClockOffsetMs = kLocalClockInitialTimeMs - kRemo
 class T(RemoteNtpTimeEstimatorTest) : public ::testing::Test {
 protected:
     T(RemoteNtpTimeEstimatorTest)()
-        : local_clock_(std::make_shared<SimulatedClock>(kLocalClockInitialTimeMs * 1000)),
-          remote_clock_(std::make_shared<SimulatedClock>(kRemoteClockInitialTimeMs * 1000)),
-          estimator_(new RemoteNtpTimeEstimator(local_clock_)) {}
+        : local_clock_(std::make_unique<SimulatedClock>(kLocalClockInitialTimeMs * 1000)),
+          remote_clock_(std::make_unique<SimulatedClock>(kRemoteClockInitialTimeMs * 1000)),
+          estimator_(new RemoteNtpTimeEstimator(local_clock_.get())) {}
 
     ~T(RemoteNtpTimeEstimatorTest)() override = default;
 
@@ -68,8 +68,8 @@ protected:
         UpdateRtcpTimestamp(rtt, ntp_seconds, ntp_fractions, rtcp_timestamp, true);
     }
 
-    std::shared_ptr<SimulatedClock> local_clock_;
-    std::shared_ptr<SimulatedClock> remote_clock_;
+    std::unique_ptr<SimulatedClock> local_clock_;
+    std::unique_ptr<SimulatedClock> remote_clock_;
     std::unique_ptr<RemoteNtpTimeEstimator> estimator_;
 };
 

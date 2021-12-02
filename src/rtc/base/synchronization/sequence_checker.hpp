@@ -19,9 +19,6 @@ public:
     // in which the checker was created before.
     bool IsCurrent() const;
 
-    // Return the task queue the checker has been attached to.
-    TaskQueueImpl* attached_queue() const;
-
 private:
     TaskQueueImpl* const attached_queue_;
 };

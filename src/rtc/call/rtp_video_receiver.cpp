@@ -57,7 +57,7 @@ RtpVideoReceiver::RtpVideoReceiver(Configuration config,
                                                                       &rtcp_feedback_buffer_)
                                        : nullptr),
       packet_buffer_(kPacketBufferStartSize, kPacketBufferMaxSize),
-      remote_ntp_time_estimator_(clock_),
+      remote_ntp_time_estimator_(clock_.get()),
       ulp_fec_receiver_(config_.remote_ssrc, clock_, weak_from_this()),
       last_packet_log_ms_(-1) {}
 
