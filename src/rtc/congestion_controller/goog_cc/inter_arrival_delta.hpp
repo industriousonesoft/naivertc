@@ -14,40 +14,53 @@ public:
     static constexpr int kReorderedResetThreshold = 3;
     static constexpr TimeDelta kArrivalTimeOffsetThreshold = TimeDelta::Seconds(3);
 public:
-    explicit InterArrivalDelta(TimeDelta packet_group_time_span);
+    explicit InterArrivalDelta(TimeDelta send_time_group_span);
     InterArrivalDelta() = delete;
     InterArrivalDelta(const InterArrivalDelta&) = delete;
     InterArrivalDelta& operator=(const InterArrivalDelta&) = delete;
     ~InterArrivalDelta();
 
+    bool ComputeDeltas(Timestamp send_time, 
+                       Timestamp arrival_time, 
+                       Timestamp system_time,
+                       size_t packet_size, 
+                       TimeDelta* send_time_delta,
+                       TimeDelta* arrival_time_delta,
+                       int* packet_size_delta);
+
     void Reset();
 
 private:
+    // Check if the incoming packet is the first packet of a new pakcet group.
     bool IsNewPacketGroup(Timestamp arrival_time, Timestamp send_time);
-    bool DoseBurstHappen(Timestamp arrival_time, Timestamp send_time);
+    // Detecte if a burst happened.
+    bool DetectedABurst(Timestamp arrival_time, Timestamp send_time);
 
 private:
+    // Assume all the packets of a group belongs to a frame.
     struct PacketGroup {
-        bool IsFirstPacket() const { return first_packet_send_time.IsInfinite(); }
+
+        bool IsStarted() const { return first_packet_send_time.IsFinite(); }
+        bool IsCompleted() const { return last_packet_arrival_time.IsFinite(); }
 
         void Reset() {
             size = 0;
             first_packet_send_time = Timestamp::MinusInfinity();
             first_packet_arrival_time = Timestamp::MinusInfinity();
-            packet_send_time = Timestamp::MinusInfinity();
-            packet_arrival_time = Timestamp::MinusInfinity();
+            last_packet_send_time = Timestamp::MinusInfinity();
+            last_packet_arrival_time = Timestamp::MinusInfinity();
             last_system_time = Timestamp::MinusInfinity();
         }
 
         size_t size = 0;
         Timestamp first_packet_send_time = Timestamp::MinusInfinity();
         Timestamp first_packet_arrival_time = Timestamp::MinusInfinity();
-        Timestamp packet_send_time = Timestamp::MinusInfinity();
-        Timestamp packet_arrival_time = Timestamp::MinusInfinity();
+        Timestamp last_packet_send_time = Timestamp::MinusInfinity();
+        Timestamp last_packet_arrival_time = Timestamp::MinusInfinity();
         Timestamp last_system_time = Timestamp::MinusInfinity();
     };
 private:
-    const TimeDelta packet_group_time_span_;
+    const TimeDelta send_time_group_span_;
     PacketGroup curr_packet_group_;
     PacketGroup prev_packet_group_;
     size_t num_consecutive_reordered_packets_;
