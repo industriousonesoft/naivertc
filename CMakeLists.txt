@@ -256,6 +256,7 @@ set(LIB_SOURCES
 
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.cpp
+    src/rtc/congestion_controller/goog_cc/trendline_estimator.cpp
 
 )
 
@@ -502,7 +503,7 @@ set(LIB_HEADERS
 
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp
-
+    src/rtc/congestion_controller/goog_cc/trendline_estimator.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
