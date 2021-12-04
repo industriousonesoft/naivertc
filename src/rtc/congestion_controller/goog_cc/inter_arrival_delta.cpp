@@ -37,7 +37,9 @@ bool InterArrivalDelta::ComputeDeltas(Timestamp send_time,
     } else if (IsNewPacketGroup(arrival_time, send_time)) {
         // Detected a new packet group, and the previous packet group is ready.
         if (prev_packet_group_.IsCompleted()) {
+            // Inter-depature
             *send_time_delta = curr_packet_group_.last_packet_send_time - prev_packet_group_.last_packet_send_time;
+            // Inter-arrival
             *arrival_time_delta = curr_packet_group_.last_packet_arrival_time - prev_packet_group_.last_packet_arrival_time;
             TimeDelta system_time_delta = curr_packet_group_.last_system_time - prev_packet_group_.last_system_time;
             if (*arrival_time_delta - system_time_delta >= kArrivalTimeOffsetThreshold) {
@@ -88,29 +90,37 @@ bool InterArrivalDelta::ComputeDeltas(Timestamp send_time,
 bool InterArrivalDelta::IsNewPacketGroup(Timestamp arrival_time, Timestamp send_time) {
     if (!curr_packet_group_.IsStarted()) {
         return false;
-    } else if (DetectedABurst(arrival_time, send_time)) {
-        // Filter the burst packets, which are not taken account into the a new packet group.
+    }
+    // The pre-filtering aims at handling delay transients caused by channel outages.
+    // During an outage, packets being queued in network buffers, for reasons unrelated 
+    // to congestion, are delivered in a burst when the outage ends.
+    // The pre-filtering merges together groups of packets that arrive in a burst. 
+    // Packets are merged in the same group if one of these two conditions holds:
+    if (BelongsToBurst(arrival_time, send_time)) {
+        // 1. All packets that arrive in a burst will be merged in the current group.
         return false;
     } else {
-        // FIXME: Using send time instead of arrival time to calculate the time span of a packet group,
-        // since the send time is in the order.
+        // 2. A sequence of packets which are sent within a burst_time interval constitue a group,
+        // otherwise, the incoming packet is the first packet of new group. since the Pacer 
+        // sends a group of packets to the network every burst_time interval.
         return send_time - curr_packet_group_.first_packet_send_time > send_time_group_span_;
     }
 }
 
-bool InterArrivalDelta::DetectedABurst(Timestamp arrival_time, Timestamp send_time) {
+bool InterArrivalDelta::BelongsToBurst(Timestamp arrival_time, Timestamp send_time) {
     assert(curr_packet_group_.IsCompleted());
     TimeDelta send_time_delta = send_time - curr_packet_group_.last_packet_send_time;
     if (send_time_delta.IsZero()) {
         return true;
     }
     TimeDelta arrival_time_delta = arrival_time - curr_packet_group_.last_packet_arrival_time;
-    TimeDelta transport_delay = arrival_time_delta - send_time_delta;
-    // The conditions to detect a burst:
-    // 1. there have one or more packets dropped during transport (transport_delay_ms < 0);
-    // 2. the interval between two arrival packet is too small (<= 5ms);
-    // 3. the arrival span of the current packet group is too small (<= 100ms)
-    if (transport_delay < TimeDelta::Zero() && 
+    // Inter-group delay variation
+    TimeDelta inter_group_delay_var = arrival_time_delta - send_time_delta;
+    // A Packet belongs to a burst if all the three conditions holds:
+    // 1. A packet which has an inter-group delay variation less then 0;
+    // 2. A packet which has an inter-arrival time less then burst_time (5ms);
+    // 3. the arrival span of the current packet group is too small (100ms)
+    if (inter_group_delay_var < TimeDelta::Zero() && 
         arrival_time_delta <= kBurstDeltaThreshold &&
         arrival_time - curr_packet_group_.first_packet_arrival_time < kMaxBurstDuration) {
         return true;

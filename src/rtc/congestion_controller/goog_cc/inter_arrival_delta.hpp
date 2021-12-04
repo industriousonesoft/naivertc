@@ -14,7 +14,9 @@ public:
     static constexpr int kReorderedResetThreshold = 3;
     static constexpr TimeDelta kArrivalTimeOffsetThreshold = TimeDelta::Seconds(3);
 public:
-    explicit InterArrivalDelta(TimeDelta send_time_group_span);
+    // NOTE: As the Pacer sends a group of packets to the network every burst_time 
+    // interval. RECOMMENDED value for burst_time is 5 ms. 
+    explicit InterArrivalDelta(TimeDelta send_time_group_span = TimeDelta::Millis(5));
     InterArrivalDelta() = delete;
     InterArrivalDelta(const InterArrivalDelta&) = delete;
     InterArrivalDelta& operator=(const InterArrivalDelta&) = delete;
@@ -34,7 +36,7 @@ private:
     // Check if the incoming packet is the first packet of a new pakcet group.
     bool IsNewPacketGroup(Timestamp arrival_time, Timestamp send_time);
     // Detecte if a burst happened.
-    bool DetectedABurst(Timestamp arrival_time, Timestamp send_time);
+    bool BelongsToBurst(Timestamp arrival_time, Timestamp send_time);
 
 private:
     // Assume all the packets of a group belongs to a frame.
