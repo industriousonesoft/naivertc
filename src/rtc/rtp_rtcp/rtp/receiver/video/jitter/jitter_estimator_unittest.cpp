@@ -63,7 +63,7 @@ MY_TEST_F(JitterEstimatorTest, TestLowFrameRate) {
         jitter_estimator_->UpdateEstimate(gen.FrameDelay(), gen.FrameSize());
         fake_clock_->AdvanceTimeUs(frame_delta_us);
         if (i > 2) {
-            EXPECT_EQ(jitter_estimator_->GetJitterEstimate(0, std::nullopt, true /* enble_reduced_delay */), 0);
+            EXPECT_EQ(jitter_estimator_->GetEstimatedJitter(0, std::nullopt, true /* enble_reduced_delay */), 0);
         }
         gen.Advance();
     }
@@ -77,7 +77,7 @@ MY_TEST_F(JitterEstimatorTest, TestLowFrameRateDisabled) {
         jitter_estimator_->UpdateEstimate(gen.FrameDelay(), gen.FrameSize());
         fake_clock_->AdvanceTimeUs(frame_delta_us);
         if (i > 2) {
-            EXPECT_GT(jitter_estimator_->GetJitterEstimate(0, std::nullopt, false /* enble_reduced_delay */), 0);
+            EXPECT_GT(jitter_estimator_->GetEstimatedJitter(0, std::nullopt, false /* enble_reduced_delay */), 0);
         }
         gen.Advance();
     }
@@ -139,7 +139,7 @@ MY_TEST_F(JitterEstimatorTest, TestUpperBound) {
             fake_clock_->AdvanceTimeUs(time_delta_us);
             jitter_estimator_->FrameNacked();
             jitter_estimator_->UpdateRtt(kRttMs);
-            estimated_jitter_delay = jitter_estimator_->GetJitterEstimate(ctx.rtt_mult, ctx.rtt_mult_add_cap_ms);
+            estimated_jitter_delay = jitter_estimator_->GetEstimatedJitter(ctx.rtt_mult, ctx.rtt_mult_add_cap_ms);
             // if (max_jitter < estimated_jitter_delay) {
             //     max_jitter = estimated_jitter_delay;
             // }

@@ -171,9 +171,9 @@ void JitterEstimator::UpdateEstimate(int64_t frame_delay_ms,
     }
 }
 
-int JitterEstimator::GetJitterEstimate(double rtt_multiplier,
-                                       std::optional<double> rtt_mult_add_cap_ms,
-                                       bool enable_reduced_delay) {
+int JitterEstimator::GetEstimatedJitter(double rtt_multiplier,
+                                        std::optional<double> rtt_mult_add_cap_ms,
+                                        bool enable_reduced_delay) {
     // The current jitter = estimated jitter + operating system jitter.
     double curr_jitter_ms = CalcJitterEstimate() + kOperatingSystemJitterMs;    
     // Update the previous jitter 

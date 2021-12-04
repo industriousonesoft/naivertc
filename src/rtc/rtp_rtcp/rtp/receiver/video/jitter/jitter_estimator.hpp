@@ -60,9 +60,9 @@ public:
     // Updates the nack counter.
     void FrameNacked();
 
-    int GetJitterEstimate(double rtt_multiplier,
-                          std::optional<double> rtt_mult_add_cap_ms,
-                          bool enable_reduced_delay = true);
+    int GetEstimatedJitter(double rtt_multiplier,
+                           std::optional<double> rtt_mult_add_cap_ms,
+                           bool enable_reduced_delay = true);
 
     void Reset();
 private:

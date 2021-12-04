@@ -30,6 +30,15 @@ public:
     TrendlineEstimator(Configuration config);
     ~TrendlineEstimator();
 
+    void Update(double recv_delta_ms,
+                double send_delta_ms,
+                int64_t send_time_ms,
+                int64_t arrival_time_ms,
+                size_t packet_size,
+                bool calculated_deltas);
+
+    BandwidthUsage State() const;
+
 private:
     void UpdateTrendline(double recv_delta_ms,
                          double send_delta_ms,
@@ -37,7 +46,7 @@ private:
                          int64_t arrival_time_ms,
                          size_t packet_size);
 
-    void Detect(double trend_ms, double ts_delta, int64_t now_ms);
+    void Detect(double trend, double ts_delta, int64_t now_ms);
     void UpdateThreshold(double modified_trend_ms, int now_ms);
 
     std::optional<double> CalcLinearFitSlope() const;
@@ -71,19 +80,18 @@ private:
     double accumulated_delay_ms_;
     double smoothed_delay_ms_;
     // Linear least squares regression.
-    std::deque<PacketTiming> packet_timings_;
+    std::deque<PacketTiming> delay_hits_;
 
     const double k_up_;
     const double k_down_;
-    double overusing_time_threshold_ms_;
-    double threshold_ms_;
+    double overusing_time_threshold_;
+    double threshold_;
     double prev_modified_trend_ms_;
     int64_t last_update_ms_;
-    double prev_trend_ms_;
+    double prev_trend_;
     double time_over_using_ms_;
     int overuse_counter_;
-    BandwidthUsage hypothesis_;
-    BandwidthUsage hypothesis_predicted_;
+    BandwidthUsage estimated_state_;
 
     DISALLOW_COPY_AND_ASSIGN(TrendlineEstimator);
 };

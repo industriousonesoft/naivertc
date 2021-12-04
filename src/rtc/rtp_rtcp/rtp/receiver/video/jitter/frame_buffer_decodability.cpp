@@ -241,7 +241,7 @@ int FrameBuffer::EstimateJitterDelay(uint32_t send_timestamp, int64_t recv_time_
     std::optional<float> rtt_mult_add_cap_ms = std::nullopt;
     // TODO: Enable RttMultExperiment if necessary.
 
-    return jitter_estimator_.GetJitterEstimate(rtt_mult, rtt_mult_add_cap_ms);
+    return jitter_estimator_.GetEstimatedJitter(rtt_mult, rtt_mult_add_cap_ms);
 }
 
 } // namespace jitter
