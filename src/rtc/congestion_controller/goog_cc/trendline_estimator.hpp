@@ -47,21 +47,21 @@ private:
                          size_t packet_size);
 
     void Detect(double trend, double ts_delta, int64_t now_ms);
-    void UpdateThreshold(double modified_trend_ms, int now_ms);
+    void UpdateThreshold(double modified_trend, int now_ms);
 
     std::optional<double> CalcLinearFitSlope() const;
     std::optional<double> CalcSlopeCap() const;
 
 private:
     struct PacketTiming {
-        PacketTiming(double arrival_time_ms,
+        PacketTiming(double arrival_time_span_ms,
                      double smoothed_delay_ms,
                      double accumulated_delay_ms) 
-            : arrival_time_ms(arrival_time_ms),
+            : arrival_time_span_ms(arrival_time_span_ms),
               smoothed_delay_ms(smoothed_delay_ms),
               accumulated_delay_ms(accumulated_delay_ms) {}
 
-        double arrival_time_ms;
+        double arrival_time_span_ms;
         double smoothed_delay_ms;
         double accumulated_delay_ms;
     };
@@ -86,7 +86,7 @@ private:
     const double k_down_;
     double overusing_time_threshold_;
     double threshold_;
-    double prev_modified_trend_ms_;
+    double prev_modified_trend_;
     int64_t last_update_ms_;
     double prev_trend_;
     double time_over_using_ms_;

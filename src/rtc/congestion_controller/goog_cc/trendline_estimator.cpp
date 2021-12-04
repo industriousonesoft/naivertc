@@ -31,7 +31,7 @@ TrendlineEstimator::TrendlineEstimator(Configuration config)
       k_down_(0.039),
       overusing_time_threshold_(kOverUsingTimeThresholdMs),
       threshold_(12.5),
-      prev_modified_trend_ms_(NAN),
+      prev_modified_trend_(NAN),
       last_update_ms_(-1),
       prev_trend_(0.0),
       time_over_using_ms_(-1),
@@ -77,7 +77,7 @@ void TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
     if (config_.enable_sort) {
         for (size_t i = delay_hits_.size() - 1;
              i > 0 &&
-             delay_hits_[i].arrival_time_ms < delay_hits_[i - 1].arrival_time_ms;
+             delay_hits_[i].arrival_time_span_ms < delay_hits_[i - 1].arrival_time_span_ms;
              --i) {
             std::swap(delay_hits_[i], delay_hits_[i - 1]);
         }
@@ -114,9 +114,9 @@ void TrendlineEstimator::Detect(double trend, double ts_delta, int64_t now_ms) {
         estimated_state_ = BandwidthUsage::NORMAL;
         return;
     }
-    const double modified_trend_ms = std::min<double>(num_of_deltas_, kMinNumDeltas) * trend * threshold_gain_;
-    prev_modified_trend_ms_ = modified_trend_ms;
-    if (modified_trend_ms > threshold_) {
+    const double modified_trend = std::min<double>(num_of_deltas_, kMinNumDeltas) * trend * threshold_gain_;
+    prev_modified_trend_ = modified_trend;
+    if (modified_trend > threshold_) {
         if (time_over_using_ms_ == -1) {
             // Initialize the timer. Assume that we've been
             // over-using half of the time since the previous
@@ -134,7 +134,7 @@ void TrendlineEstimator::Detect(double trend, double ts_delta, int64_t now_ms) {
                 estimated_state_ = BandwidthUsage::OVERUSING;
             }
         }
-    } else if (modified_trend_ms < -threshold_) {
+    } else if (modified_trend < -threshold_) {
         time_over_using_ms_ = -1;
         overuse_counter_ = 0;
         estimated_state_ = BandwidthUsage::UNDERUSING;
@@ -144,15 +144,15 @@ void TrendlineEstimator::Detect(double trend, double ts_delta, int64_t now_ms) {
         estimated_state_ = BandwidthUsage::NORMAL;
     }
     prev_trend_ = trend;
-    UpdateThreshold(modified_trend_ms, now_ms);
+    UpdateThreshold(modified_trend, now_ms);
 }
 
-void TrendlineEstimator::UpdateThreshold(double modified_trend_ms, int now_ms) {
+void TrendlineEstimator::UpdateThreshold(double modified_trend, int now_ms) {
     if (last_update_ms_ == -1) {
         last_update_ms_ = now_ms;
     }
-    double modified_trend_ms_abs = fabs(modified_trend_ms);
-    if (modified_trend_ms_abs > threshold_ + kMaxAdaptOffsetMs) {
+    double modified_trend_abs = fabs(modified_trend);
+    if (modified_trend_abs > threshold_ + kMaxAdaptOffsetMs) {
         // Avoid adapting the threshold to big letency spikes.
         last_update_ms_ = now_ms;
         return;
@@ -163,13 +163,14 @@ void TrendlineEstimator::UpdateThreshold(double modified_trend_ms, int now_ms) {
     // algorithm (the least square algorithm) to the delay gradient based on 
     // network conditions.
     // For detail, see https://c3lab.poliba.it/images/6/65/Gcc-analysis.pdf (4.2 Adaptive threshold design)
-    const double k = modified_trend_ms_abs < threshold_ ? k_down_ : k_up_;
+    const double k = modified_trend_abs < threshold_ ? k_down_ : k_up_;
     const int64_t kMaxTimeDeltaMs = 100;
     int64_t time_delta_ms = std::min<double>(now_ms - last_update_ms_, kMaxTimeDeltaMs);
-    // The proposed formula: threshold_i = threshold_i-1 + k_i * (|modified_trend| - threshold_i-1) * delta_time 
-    threshold_ += k * (modified_trend_ms_abs - threshold_) * time_delta_ms;
-    threshold_ = std::min<double>(threshold_, 6.f);
-    threshold_ = std::max<double>(threshold_, 600.f);
+    // The proposed formula: threshold_i = threshold_i-1 + k_i * (|modified_trend_i| - threshold_i-1) * delta_time 
+    threshold_ += k * (modified_trend_abs - threshold_) * time_delta_ms;
+    // Clamp `threshold_` in [6.f, 600.f]
+    threshold_ = std::max<double>(threshold_, 6.f);
+    threshold_ = std::min<double>(threshold_, 600.f);
     last_update_ms_ = now_ms;
 }
 
@@ -179,7 +180,7 @@ std::optional<double> TrendlineEstimator::CalcLinearFitSlope() const {
     double sum_x = 0;
     double sum_y = 0;
     for (const auto& pt : delay_hits_) {
-        sum_x += pt.arrival_time_ms;
+        sum_x += pt.arrival_time_span_ms;
         sum_y += pt.smoothed_delay_ms;
     }
     double x_avg = sum_x / delay_hits_.size();
@@ -191,7 +192,7 @@ std::optional<double> TrendlineEstimator::CalcLinearFitSlope() const {
     double numerator = 0;
     double denominator = 0;
     for (const auto& pt : delay_hits_) {
-        double x = pt.arrival_time_ms;
+        double x = pt.arrival_time_span_ms;
         double y = pt.smoothed_delay_ms;
         numerator += (x - x_avg) * (y - y_avg);
         denominator += pow(x - x_avg, 2);
@@ -216,10 +217,10 @@ std::optional<double> TrendlineEstimator::CalcSlopeCap() const {
             late = delay_hits_[i];
         }
     }
-    if (late.arrival_time_ms - early.arrival_time_ms < 1 /* 1ms */) {
+    if (late.arrival_time_span_ms - early.arrival_time_span_ms < 1 /* 1ms */) {
         return std::nullopt;
     }
-    return (late.accumulated_delay_ms - early.accumulated_delay_ms) / (late.arrival_time_ms - early.arrival_time_ms) + config_.cap_uncertainty;
+    return (late.accumulated_delay_ms - early.accumulated_delay_ms) / (late.arrival_time_span_ms - early.arrival_time_span_ms) + config_.cap_uncertainty;
 }
     
 } // namespace naivertc

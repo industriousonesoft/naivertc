@@ -87,10 +87,10 @@ void Timing::UpdateCurrentDelay(uint32_t timestamp) {
             // Negative change will be due to reordering and should be ignored.
             return;
         }
-        // Limits `delay_diff_ms` in range: [-max_change_ms, max_change_ms]
+        // Clamps `delay_diff_ms` in range: [-max_change_ms, max_change_ms]
         delay_diff_ms = std::max(delay_diff_ms, -max_change_ms);
         delay_diff_ms = std::min(delay_diff_ms, max_change_ms);
-
+        
         curr_playout_delay_ms_ += delay_diff_ms;
     }
     prev_timestamp_ = timestamp;

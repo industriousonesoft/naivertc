@@ -69,20 +69,20 @@ protected:
 
 } // namespace
 
-// MY_TEST_F(TrendlineEstimatorTest, Normal) {
-//     PacketTimeGenerator send_time_generator(123456789 /*initial clock*/,
-//                                             20 /*20 ms between sent packets*/);
-//     std::generate(send_times.begin(), send_times.end(), send_time_generator);
+MY_TEST_F(TrendlineEstimatorTest, Normal) {
+    PacketTimeGenerator send_time_generator(123456789 /*initial clock*/,
+                                            20 /*20 ms between sent packets*/);
+    std::generate(send_times.begin(), send_times.end(), send_time_generator);
 
-//     PacketTimeGenerator recv_time_generator(987654321 /*initial clock*/,
-//                                             20 /*delivered at the same pace*/);
-//     std::generate(recv_times.begin(), recv_times.end(), recv_time_generator);
+    PacketTimeGenerator recv_time_generator(987654321 /*initial clock*/,
+                                            20 /*delivered at the same pace*/);
+    std::generate(recv_times.begin(), recv_times.end(), recv_time_generator);
 
-//     EXPECT_EQ(estimator.State(), BandwidthUsage::NORMAL);
-//     RunTestUntilStateChange();
-//     EXPECT_EQ(estimator.State(), BandwidthUsage::NORMAL);
-//     EXPECT_EQ(packet_index, kPacketCount);  // All packets processed
-// }
+    EXPECT_EQ(estimator.State(), BandwidthUsage::NORMAL);
+    RunTestUntilStateChange();
+    EXPECT_EQ(estimator.State(), BandwidthUsage::NORMAL);
+    EXPECT_EQ(packet_index, kPacketCount);  // All packets processed
+}
 
 MY_TEST_F(TrendlineEstimatorTest, Overusing) {
     PacketTimeGenerator send_time_generator(123456789 /*initial clock*/,
@@ -101,41 +101,41 @@ MY_TEST_F(TrendlineEstimatorTest, Overusing) {
     EXPECT_EQ(packet_index, kPacketCount);  // All packets processed
 }
 
-// MY_TEST_F(TrendlineEstimatorTest, Underusing) {
-//     PacketTimeGenerator send_time_generator(123456789 /*initial clock*/,
-//                                             20 /*20 ms between sent packets*/);
-//     std::generate(send_times.begin(), send_times.end(), send_time_generator);
+MY_TEST_F(TrendlineEstimatorTest, Underusing) {
+    PacketTimeGenerator send_time_generator(123456789 /*initial clock*/,
+                                            20 /*20 ms between sent packets*/);
+    std::generate(send_times.begin(), send_times.end(), send_time_generator);
 
-//     PacketTimeGenerator recv_time_generator(987654321 /*initial clock*/,
-//                                             0.85 * 20 /*15% faster delivery*/);
-//     std::generate(recv_times.begin(), recv_times.end(), recv_time_generator);
+    PacketTimeGenerator recv_time_generator(987654321 /*initial clock*/,
+                                            0.85 * 20 /*15% faster delivery*/);
+    std::generate(recv_times.begin(), recv_times.end(), recv_time_generator);
 
-//     EXPECT_EQ(estimator.State(), BandwidthUsage::NORMAL);
-//     RunTestUntilStateChange();
-//     EXPECT_EQ(estimator.State(), BandwidthUsage::UNDERUSING);
-//     RunTestUntilStateChange();
-//     EXPECT_EQ(estimator.State(), BandwidthUsage::UNDERUSING);
-//     EXPECT_EQ(packet_index, kPacketCount);  // All packets processed
-// }
+    EXPECT_EQ(estimator.State(), BandwidthUsage::NORMAL);
+    RunTestUntilStateChange();
+    EXPECT_EQ(estimator.State(), BandwidthUsage::UNDERUSING);
+    RunTestUntilStateChange();
+    EXPECT_EQ(estimator.State(), BandwidthUsage::UNDERUSING);
+    EXPECT_EQ(packet_index, kPacketCount);  // All packets processed
+}
 
-// MY_TEST_F(TrendlineEstimatorTest, IncludesSmallPacketsByDefault) {
-//     PacketTimeGenerator send_time_generator(123456789 /*initial clock*/,
-//                                             20 /*20 ms between sent packets*/);
-//     std::generate(send_times.begin(), send_times.end(), send_time_generator);
+MY_TEST_F(TrendlineEstimatorTest, IncludesSmallPacketsByDefault) {
+    PacketTimeGenerator send_time_generator(123456789 /*initial clock*/,
+                                            20 /*20 ms between sent packets*/);
+    std::generate(send_times.begin(), send_times.end(), send_time_generator);
 
-//     PacketTimeGenerator recv_time_generator(987654321 /*initial clock*/,
-//                                             1.1 * 20 /*10% slower delivery*/);
-//     std::generate(recv_times.begin(), recv_times.end(), recv_time_generator);
+    PacketTimeGenerator recv_time_generator(987654321 /*initial clock*/,
+                                            1.1 * 20 /*10% slower delivery*/);
+    std::generate(recv_times.begin(), recv_times.end(), recv_time_generator);
 
-//     std::fill(packet_sizes.begin(), packet_sizes.end(), 100);
+    std::fill(packet_sizes.begin(), packet_sizes.end(), 100);
 
-//     EXPECT_EQ(estimator.State(), BandwidthUsage::NORMAL);
-//     RunTestUntilStateChange();
-//     EXPECT_EQ(estimator.State(), BandwidthUsage::OVERUSING);
-//     RunTestUntilStateChange();
-//     EXPECT_EQ(estimator.State(), BandwidthUsage::OVERUSING);
-//     EXPECT_EQ(packet_index, kPacketCount);  // All packets processed
-// }
+    EXPECT_EQ(estimator.State(), BandwidthUsage::NORMAL);
+    RunTestUntilStateChange();
+    EXPECT_EQ(estimator.State(), BandwidthUsage::OVERUSING);
+    RunTestUntilStateChange();
+    EXPECT_EQ(estimator.State(), BandwidthUsage::OVERUSING);
+    EXPECT_EQ(packet_index, kPacketCount);  // All packets processed
+}
     
 } // namespace test
 } // namespace naivertc

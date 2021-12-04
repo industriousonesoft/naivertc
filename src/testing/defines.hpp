@@ -1,6 +1,12 @@
 #ifndef _TESTING_DEFINES_H_
 #define _TESTING_DEFINES_H_
 
+#include <iostream>
+
+// GTEST_COUT
+#define GTEST_COUT std::cerr << "[          ] [ INFO ]"
+
+// ENABLE_UNIT_TESTS
 #if ENABLE_UNIT_TESTS
 #define T(x)            x
 #define MY_TEST(x, y)   TEST(x, y)
