@@ -49,14 +49,16 @@ void LinkCapacityEstimator::Update(DataRate capacity_sample, double alpha) {
     } else {
         estimate_kbps_ = (1 - alpha) * estimate_kbps_.value() + alpha * sample_kbps;
     }
-    // Calculate the estimated variance of the link capacity estimate 
+    // Calculate the estimated variance of the link capacity estimate
+    // norm in the range: [1, estimate_kbps_]
     const double norm = std::max(estimate_kbps_.value(), 1.0);
     double error_kbps = estimate_kbps_.value() - sample_kbps;
-    // FIXME: Why we need to normalize the variance with the link capacity estimate?
+    // Normalize the variance with the link capacity estimate.
     double normalized_variance_kbps = (error_kbps * error_kbps /* variance */) / norm;
     variance_kbps_ = (1 - alpha) * variance_kbps_ + alpha * normalized_variance_kbps;
+    // TODO: How to figure out the formula below?
     // 0.4 ~= 14 kbit/s at 500 kbit/s
-    // 2.5f ~= 35 kbit/s at 500 kbit/s
+    // 2.5 ~= 35 kbit/s at 500 kbit/s
     // Clamps `variance_kbps_` in the range: [0.4, 2.5]
     variance_kbps_ = std::max<double>(variance_kbps_, 0.4f);
     variance_kbps_ = std::min<double>(variance_kbps_, 2.5f);
