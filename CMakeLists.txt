@@ -257,7 +257,8 @@ set(LIB_SOURCES
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.cpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator.cpp
-
+    src/rtc/congestion_controller/goog_cc/link_capacity_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/aimd_rate_control.cpp
 )
 
 if(USE_NICE)
@@ -315,7 +316,7 @@ set(LIB_HEADERS
     src/rtc/base/units/unit_relative.hpp
     src/rtc/base/units/timestamp.hpp
     src/rtc/base/units/time_delta.hpp
-    src/rtc/base/units/bit_rate.hpp
+    src/rtc/base/units/data_rate.hpp
     src/rtc/base/time/ntp_time.hpp
     src/rtc/base/time/ntp_time_util.hpp
     src/rtc/base/time/clock.hpp
@@ -504,6 +505,8 @@ set(LIB_HEADERS
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator.hpp
+    src/rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp
+    src/rtc/congestion_controller/goog_cc/aimd_rate_control.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
@@ -635,7 +638,7 @@ set(UNITTEST_SOURCES
     src/rtc/base/units/unit_base_unittest.cpp
     src/rtc/base/units/timestamp_unittest.cpp
     src/rtc/base/units/time_delta_unittest.cpp
-    src/rtc/base/units/bit_rate_unittest.cpp
+    src/rtc/base/units/data_rate_unittest.cpp
     src/rtc/base/numerics/percentile_filter_unittest.cpp
     src/rtc/base/numerics/moving_median_filter_unittest.cpp
     src/rtc/base/numerics/modulo_operator_unittest.cpp

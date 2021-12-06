@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
+#include "rtc/base/units/data_rate.hpp"
 
 #include <vector>
 
@@ -15,7 +16,7 @@ public:
     virtual ~RtpSentStatisticsObserver() = default;
     virtual void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, 
                                         const RtpSentCounters& rtx_sent_counters) = 0;
-    virtual void RtpSentBitRateUpdated(const BitRate bit_rate) = 0;
+    virtual void RtpSentBitRateUpdated(const DataRate bit_rate) = 0;
 };
 
 // NackSender

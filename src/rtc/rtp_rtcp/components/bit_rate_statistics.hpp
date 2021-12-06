@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_COMPONENTS_RATE_STATISTICS_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/units/bit_rate.hpp"
+#include "rtc/base/units/data_rate.hpp"
 
 #include <deque>
 #include <optional>
@@ -26,7 +26,7 @@ public:
 
     void Update(int64_t bytes, int64_t now_ms);
 
-    std::optional<BitRate> Rate(int64_t now_ms);
+    std::optional<DataRate> Rate(int64_t now_ms);
 
 #if ENABLE_TESTS
     size_t num_bucket() const { return buckets_.size(); }

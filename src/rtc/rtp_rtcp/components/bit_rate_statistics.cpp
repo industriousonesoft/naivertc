@@ -72,7 +72,7 @@ void BitRateStatistics::Update(int64_t bytes, int64_t now_ms) {
     ++total_num_samples_;
 }
 
-std::optional<BitRate> BitRateStatistics::Rate(int64_t now_ms) {
+std::optional<DataRate> BitRateStatistics::Rate(int64_t now_ms) {
     // Erase the obsolete buckets
     EraseObsoleteBuckets(now_ms);
 
@@ -99,7 +99,7 @@ std::optional<BitRate> BitRateStatistics::Rate(int64_t now_ms) {
     if (bits_per_sec < 0 /* overflow */ || bits_per_sec > static_cast<float>(std::numeric_limits<int64_t>::max())) {
         return std::nullopt;
     }
-    return BitRate::BitsPerSec(static_cast<int64_t>(bits_per_sec));
+    return DataRate::BitsPerSec(static_cast<int64_t>(bits_per_sec));
 }
 
 bool BitRateStatistics::SetWindowSize(int64_t window_size_ms, int64_t now_ms) {

@@ -61,15 +61,17 @@ void TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
                                          int64_t send_time_ms,
                                          int64_t arrival_time_ms,
                                          size_t packet_size) {
-    const double transport_delay_ms = recv_delta_ms - send_delta_ms;
+    // Inter-group delay variation
+    const double propagation_delta_ms = recv_delta_ms - send_delta_ms;
     ++num_of_deltas_;
     num_of_deltas_ = std::min(num_of_deltas_, kDeltaCounterMax);
     if (first_arrival_time_ms_ == -1) {
         first_arrival_time_ms_ = arrival_time_ms;
     }
     
-    accumulated_delay_ms_ += transport_delay_ms;
+    accumulated_delay_ms_ += propagation_delta_ms;
     // Exponential backoff filter.
+    // Calculate the smoothed accumulated delay.
     smoothed_delay_ms_ = smoothing_coeff_ * smoothed_delay_ms_ + (1 - smoothing_coeff_) * accumulated_delay_ms_;
 
     // Maintain packet window.
@@ -77,7 +79,7 @@ void TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
     if (config_.enable_sort) {
         for (size_t i = delay_hits_.size() - 1;
              i > 0 &&
-             delay_hits_[i].arrival_time_span_ms < delay_hits_[i - 1].arrival_time_span_ms;
+             delay_hits_[i].arrival_time_ms < delay_hits_[i - 1].arrival_time_ms;
              --i) {
             std::swap(delay_hits_[i], delay_hits_[i - 1]);
         }
@@ -180,19 +182,20 @@ std::optional<double> TrendlineEstimator::CalcLinearFitSlope() const {
     double sum_x = 0;
     double sum_y = 0;
     for (const auto& pt : delay_hits_) {
-        sum_x += pt.arrival_time_span_ms;
+        sum_x += pt.arrival_time_ms;
         sum_y += pt.smoothed_delay_ms;
     }
     double x_avg = sum_x / delay_hits_.size();
     double y_avg = sum_y / delay_hits_.size();
-    // Least square:
+    // Least Square:
     // y = k*x + b
+    // propagation_delta = k * arrive_time + b
     // error = y_i - y^ = y_i - (k*x_i + b)
     // Compute the slope k = ∑(x_i-x_avg)(y_i-y_avg) / ∑(x_i-x_avg)^2
     double numerator = 0;
     double denominator = 0;
     for (const auto& pt : delay_hits_) {
-        double x = pt.arrival_time_span_ms;
+        double x = pt.arrival_time_ms;
         double y = pt.smoothed_delay_ms;
         numerator += (x - x_avg) * (y - y_avg);
         denominator += pow(x - x_avg, 2);
@@ -217,10 +220,10 @@ std::optional<double> TrendlineEstimator::CalcSlopeCap() const {
             late = delay_hits_[i];
         }
     }
-    if (late.arrival_time_span_ms - early.arrival_time_span_ms < 1 /* 1ms */) {
+    if (late.arrival_time_ms - early.arrival_time_ms < 1 /* 1ms */) {
         return std::nullopt;
     }
-    return (late.accumulated_delay_ms - early.accumulated_delay_ms) / (late.arrival_time_span_ms - early.arrival_time_span_ms) + config_.cap_uncertainty;
+    return (late.accumulated_delay_ms - early.accumulated_delay_ms) / (late.arrival_time_ms - early.arrival_time_ms) + config_.cap_uncertainty;
 }
     
 } // namespace naivertc

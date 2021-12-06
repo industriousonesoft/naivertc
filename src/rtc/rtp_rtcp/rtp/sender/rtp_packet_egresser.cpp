@@ -159,12 +159,12 @@ std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketEgresser::FetchFecPackets
     });
 }
 
-const BitRate RtpPacketEgresser::CalcTotalSentBitRate(const int64_t now_ms) {
+const DataRate RtpPacketEgresser::CalcTotalSentBitRate(const int64_t now_ms) {
     int64_t bits_per_sec = 0;
     for (auto& kv : send_bitrate_map_) {
-        bits_per_sec += kv.second.Rate(now_ms).value_or(BitRate::Zero()).bps();
+        bits_per_sec += kv.second.Rate(now_ms).value_or(DataRate::Zero()).bps();
     }
-    return BitRate::BitsPerSec(bits_per_sec);
+    return DataRate::BitsPerSec(bits_per_sec);
 }
 
 // Private methods

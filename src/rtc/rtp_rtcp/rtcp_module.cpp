@@ -1,5 +1,4 @@
 #include "rtc/rtp_rtcp/rtcp_module.hpp"
-#include "rtc/base/units/bit_rate.hpp"
 
 namespace naivertc {
 
@@ -40,7 +39,7 @@ void RtcpModule::RtpSentCountersUpdated(const RtpSentCounters& rtp_stats, const 
     });
 }
 
-void RtcpModule::RtpSentBitRateUpdated(const BitRate bit_rate) {
+void RtcpModule::RtpSentBitRateUpdated(const DataRate bit_rate) {
     work_queue_.Async([this, bit_rate=std::move(bit_rate)](){
         feedback_state_.send_bitrate = bit_rate.bps<uint32_t>();
     });

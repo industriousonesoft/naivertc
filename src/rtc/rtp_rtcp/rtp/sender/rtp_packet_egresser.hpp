@@ -51,7 +51,7 @@ private:
     void UpdateSentStatistics(const int64_t now_ms, const RtpPacketToSend& packet);
 
     // Return total bitrates for all kind sent packets for now.
-    const BitRate CalcTotalSentBitRate(const int64_t now_ms);
+    const DataRate CalcTotalSentBitRate(const int64_t now_ms);
 
     void PeriodicUpdate();
   

@@ -115,12 +115,12 @@ bool InterArrivalDelta::BelongsToBurst(Timestamp arrival_time, Timestamp send_ti
     }
     TimeDelta arrival_time_delta = arrival_time - curr_packet_group_.last_packet_arrival_time;
     // Inter-group delay variation
-    TimeDelta inter_group_delay_var = arrival_time_delta - send_time_delta;
+    TimeDelta propagation_delta = arrival_time_delta - send_time_delta;
     // A Packet belongs to a burst if all the three conditions holds:
     // 1. A packet which has an inter-group delay variation less then 0;
     // 2. A packet which has an inter-arrival time less then burst_time (5ms);
     // 3. the arrival span of the current packet group is too small (100ms)
-    if (inter_group_delay_var < TimeDelta::Zero() && 
+    if (propagation_delta < TimeDelta::Zero() && 
         arrival_time_delta <= kBurstDeltaThreshold &&
         arrival_time - curr_packet_group_.first_packet_arrival_time < kMaxBurstDuration) {
         return true;

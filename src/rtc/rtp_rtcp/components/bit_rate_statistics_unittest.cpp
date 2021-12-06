@@ -49,7 +49,7 @@ MY_TEST_F(BitRateStatisticsTest, TestStrictMode) {
         // Approximately 1200 kbps expected. Not exact since when packets
         // are removed we will jump 10 ms to the next packet.
         if (i > kInterval) {
-            std::optional<BitRate> bitrate = stats_.Rate(now_ms);
+            std::optional<DataRate> bitrate = stats_.Rate(now_ms);
             EXPECT_TRUE(bitrate.has_value());
             uint32_t samples = i / kInterval + 1;
             uint64_t total_bits = samples * kPacketSize * 8;
@@ -81,7 +81,7 @@ MY_TEST_F(BitRateStatisticsTest, IncreasingThenDecreasingBitrate) {
     // 1000 bytes per millisecond until plateau is reached.
     int prev_delta = kExpectedBps;
     EXPECT_EQ(prev_delta, kExpectedBps);
-    std::optional<BitRate> bitrate;
+    std::optional<DataRate> bitrate;
     while (++now_ms < 10000) {
         stats_.Update(1000, now_ms);
         bitrate = stats_.Rate(now_ms);
@@ -98,7 +98,7 @@ MY_TEST_F(BitRateStatisticsTest, IncreasingThenDecreasingBitrate) {
     EXPECT_EQ(kExpectedBps, bitrate->bps());
 
     // Zero bytes per millisecond until 0 is reached.
-    std::optional<BitRate> new_bitrate;
+    std::optional<DataRate> new_bitrate;
     while (++now_ms < 20000) {
         stats_.Update(0, now_ms);
         new_bitrate = stats_.Rate(now_ms);
@@ -125,7 +125,7 @@ MY_TEST_F(BitRateStatisticsTest, ResetAfterSilence) {
     const uint32_t kExpectedBitrate = 8000000;
     // 1000 bytes per millisecond until the window has been filled.
     int prev_delta = kExpectedBitrate;
-    std::optional<BitRate> bitrate;
+    std::optional<DataRate> bitrate;
     while (++now_ms < 10000) {
         stats_.Update(1000, now_ms);
         bitrate = stats_.Rate(now_ms);
@@ -210,7 +210,7 @@ MY_TEST_F(BitRateStatisticsTest, RespectsWindowSizeEdges) {
 
     // Window size should be full, and the single data point should be accepted.
     ++now_ms;
-    std::optional<BitRate> bitrate = stats_.Rate(now_ms);
+    std::optional<DataRate> bitrate = stats_.Rate(now_ms);
     EXPECT_TRUE(bitrate.has_value());
     EXPECT_EQ(1000 * 8u, bitrate->bps());
 
@@ -236,7 +236,7 @@ MY_TEST_F(BitRateStatisticsTest, HandlesZeroCounts) {
     stats_.Update(KWindowSizeMs, now_ms);
     now_ms += KWindowSizeMs - 1;
     stats_.Update(0, now_ms);
-    std::optional<BitRate> bitrate = stats_.Rate(now_ms);
+    std::optional<DataRate> bitrate = stats_.Rate(now_ms);
     EXPECT_TRUE(bitrate.has_value());
     EXPECT_EQ(1000 * 8u, bitrate->bps());
 
@@ -260,7 +260,7 @@ MY_TEST_F(BitRateStatisticsTest, HandlesQuietPeriods) {
 
     stats_.Update(0, now_ms);
     now_ms += KWindowSizeMs - 1;
-    std::optional<BitRate> bitrate = stats_.Rate(now_ms);
+    std::optional<DataRate> bitrate = stats_.Rate(now_ms);
     EXPECT_TRUE(bitrate.has_value());
     EXPECT_EQ(0u, bitrate->bps());
 
@@ -283,7 +283,7 @@ MY_TEST_F(BitRateStatisticsTest, HandlesBigNumbers) {
     int64_t now_ms = 0;
     stats_.Update(large_number, now_ms++);
     stats_.Update(large_number, now_ms);
-    std::optional<BitRate> bitrate = stats_.Rate(now_ms);
+    std::optional<DataRate> bitrate = stats_.Rate(now_ms);
     EXPECT_TRUE(bitrate.has_value());
     EXPECT_EQ(large_number * 8000, bitrate->bps());
 }

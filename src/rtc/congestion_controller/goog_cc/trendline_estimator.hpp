@@ -54,14 +54,15 @@ private:
 
 private:
     struct PacketTiming {
-        PacketTiming(double arrival_time_span_ms,
+        PacketTiming(double arrival_time_ms,
                      double smoothed_delay_ms,
                      double accumulated_delay_ms) 
-            : arrival_time_span_ms(arrival_time_span_ms),
+            : arrival_time_ms(arrival_time_ms),
               smoothed_delay_ms(smoothed_delay_ms),
               accumulated_delay_ms(accumulated_delay_ms) {}
 
-        double arrival_time_span_ms;
+        // This value is relative to the arrival time of the first packet.
+        double arrival_time_ms;
         double smoothed_delay_ms;
         double accumulated_delay_ms;
     };

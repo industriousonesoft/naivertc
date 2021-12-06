@@ -6,28 +6,26 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT BitRate final : public RelativeUnit<BitRate> {
+class RTC_CPP_EXPORT DataRate final : public RelativeUnit<DataRate> {
 public:
     template <typename T>
-    static constexpr BitRate BitsPerSec(T value) {
+    static constexpr DataRate BitsPerSec(T value) {
         static_assert(std::is_arithmetic<T>::value, "");
         return FromValue(value);
     }
     template <typename T>
-    static constexpr BitRate BytesPerSec(T value) {
+    static constexpr DataRate BytesPerSec(T value) {
         static_assert(std::is_arithmetic<T>::value, "");
         return FromFraction(8, value);
     }
     template <typename T>
-    static constexpr BitRate KilobitsPerSec(T value) {
+    static constexpr DataRate KilobitsPerSec(T value) {
         static_assert(std::is_arithmetic<T>::value, "");
         return FromFraction(1000, value);
     }
-    static constexpr BitRate Infinity() { return PlusInfinity(); }
+    static constexpr DataRate Infinity() { return PlusInfinity(); }
 
-    // FIXME: BitRate as a return value used in TaskQueue, then the default constructor is required.
-    // BitRate() = delete;
-    BitRate() = default;
+    DataRate() = delete;
 
     template <typename T = int64_t>
     constexpr T bps() const {
@@ -48,7 +46,7 @@ public:
         return ToFractionOr<1000>(fallback_value);
     }
 private:
-    friend class UnitBase<BitRate>;
+    friend class UnitBase<DataRate>;
     using RelativeUnit::RelativeUnit;
     static constexpr bool one_sided = true;
 };

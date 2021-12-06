@@ -49,7 +49,7 @@ private:
     // RtpSentStatistics Observer
     void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, 
                                 const RtpSentCounters& rtx_sent_counters) override;
-    void RtpSentBitRateUpdated(const BitRate bit_rate) override;
+    void RtpSentBitRateUpdated(const DataRate bit_rate) override;
 
 private:
     // RtcpSender
