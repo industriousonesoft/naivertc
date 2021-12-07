@@ -185,6 +185,7 @@ DataRate AimdRateControl::MultiplicativeRateIncrease(Timestamp at_time,
         alpha = pow(alpha, std::min<double>(time_since_last_update, 1.0));
     }
     // During multiplicative increase, the estimate is increased by at most 8% per second.
+    // NOTE: The min bitrate increased multiplicatively is limited to 1000 bps.
     DataRate multiplicative_increase = std::max(curr_bitrate * (alpha - 1.0), DataRate::BitsPerSec(1000));
     return multiplicative_increase;
 }

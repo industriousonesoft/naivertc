@@ -7,6 +7,8 @@
 
 namespace naivertc {
 
+// Helper class to compute the inter-arrival time delta and the size delta
+// between two send bursts.
 class RTC_CPP_EXPORT InterArrivalDelta {
 public:
     // After this many packet groups received out of order InterArrival will
