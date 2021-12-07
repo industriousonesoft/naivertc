@@ -8,6 +8,9 @@
 
 namespace naivertc {
 
+// The class is used to estimate an average of incoming bitrates.
+// It measure this average and standard deviation with an exponential
+// moving average with the smoothing factor 0.95.
 class RTC_CPP_EXPORT LinkCapacityEstimator {
 public:
     LinkCapacityEstimator();
@@ -18,9 +21,10 @@ public:
     void OnProbeRate(DataRate probe_rate);
     std::optional<DataRate> UpperBound() const;
     std::optional<DataRate> LowerBound() const;
+    // Return estimated average bitrate.
     std::optional<DataRate> Estimate() const;
 private:
-    void Update(DataRate capacity_sample, double alpha);
+    void Update(DataRate capacity_sample, double smoothing_coeff);
     double EstimatedStdDev() const;
 
 private:

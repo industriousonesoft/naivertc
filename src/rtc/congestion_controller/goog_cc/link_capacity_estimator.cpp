@@ -13,7 +13,11 @@ void LinkCapacityEstimator::Reset() {
 }
 
 void LinkCapacityEstimator::OnOveruseDetected(DataRate acknowledged_rate) {
-    Update(acknowledged_rate, 0.05);
+    // It is RECOMMENDED to measure this average and standard deviation with an
+    // exponential moving average with the smoothing factor 0.95, as it is
+    // expected that this average covers multiple occasions at which we are
+    // in the Decrease state. 
+    Update(acknowledged_rate, 0.95);
 }
 
 void LinkCapacityEstimator::OnProbeRate(DataRate probe_rate) {
@@ -22,6 +26,8 @@ void LinkCapacityEstimator::OnProbeRate(DataRate probe_rate) {
 
 std::optional<DataRate> LinkCapacityEstimator::UpperBound() const {
     if (estimate_kbps_) {
+        // The uppper bound is defined as three standard deviations above the average
+        // max bitrate.
         return DataRate::KilobitsPerSec(estimate_kbps_.value() + 3 * EstimatedStdDev());
     }
     return std::nullopt;
@@ -29,6 +35,8 @@ std::optional<DataRate> LinkCapacityEstimator::UpperBound() const {
 
 std::optional<DataRate> LinkCapacityEstimator::LowerBound() const {
     if (estimate_kbps_) {
+        // The uppper bound is defined as three standard deviations below the average
+        // max bitrate, but not negetive.
         return DataRate::KilobitsPerSec(std::max<double>(0.0, estimate_kbps_.value() - 3 * EstimatedStdDev()));
     }
     return std::nullopt;
@@ -42,12 +50,13 @@ std::optional<DataRate> LinkCapacityEstimator::Estimate() const {
 }
 
 // Private methods
-void LinkCapacityEstimator::Update(DataRate capacity_sample, double alpha) {
+void LinkCapacityEstimator::Update(DataRate capacity_sample, double smoothing_coeff) {
     double sample_kbps = capacity_sample.kbps();
     if (!estimate_kbps_) {
         estimate_kbps_ = sample_kbps;
     } else {
-        estimate_kbps_ = (1 - alpha) * estimate_kbps_.value() + alpha * sample_kbps;
+        // exponential moving average
+        estimate_kbps_ = smoothing_coeff * estimate_kbps_.value() + (1 - smoothing_coeff) * sample_kbps;
     }
     // Calculate the estimated variance of the link capacity estimate
     // norm in the range: [1, estimate_kbps_]
@@ -55,7 +64,7 @@ void LinkCapacityEstimator::Update(DataRate capacity_sample, double alpha) {
     double error_kbps = estimate_kbps_.value() - sample_kbps;
     // Normalize the variance with the link capacity estimate.
     double normalized_variance_kbps = (error_kbps * error_kbps /* variance */) / norm;
-    variance_kbps_ = (1 - alpha) * variance_kbps_ + alpha * normalized_variance_kbps;
+    variance_kbps_ = smoothing_coeff * variance_kbps_ + (1- smoothing_coeff) * normalized_variance_kbps;
     // TODO: How to figure out the formula below?
     // 0.4 ~= 14 kbit/s at 500 kbit/s
     // 2.5 ~= 35 kbit/s at 500 kbit/s

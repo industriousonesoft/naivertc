@@ -720,6 +720,7 @@ set(UNITTEST_SOURCES
 
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/goog_cc/trendline_estimator_unittest.cpp
+    src/rtc/congestion_controller/goog_cc/aimd_rate_control_unittest.cpp
 )
 
 # EXCLUDE_FROM_ALL表示指定的target(或某个模块下的所有target)不会被加入默认编译的all target列表中，即不会自动编译，需要手动编译

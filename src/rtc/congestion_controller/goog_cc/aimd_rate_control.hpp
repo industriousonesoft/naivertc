@@ -18,8 +18,9 @@ namespace naivertc {
 class RTC_CPP_EXPORT AimdRateControl {
 public:
     struct Configuration {
-        bool send_side = true;
-        bool no_bitrate_increase_in_alr = true;
+        bool send_side = false;
+        bool adaptive_threshold_in_experiment = true;
+        bool no_bitrate_increase_in_alr = false;
         bool estimate_bounded_backoff = true;
         bool estimate_bounded_increase = true;
         std::optional<TimeDelta> initial_backoff_interval = std::nullopt;
@@ -33,6 +34,7 @@ public:
     void set_in_alr(bool in_alr);
     void SetStartBitrate(DataRate start_bitrate);
     void SetMinBitrate(DataRate min_bitrate);
+    void SetEstimate(DataRate bitrate, Timestamp at_time);
     bool ValidEstimate() const;
     TimeDelta GetFeedbackInterval() const;
 
@@ -51,8 +53,8 @@ public:
                     std::optional<DataRate> estimated_throughput, 
                     Timestamp at_time);
 
-    // Returns the increase rate when used bandwidth is near the link capacity.
-    DataRate GetNearMaxIncreaseRateBps() const;
+    // Returns the increase rate per second when used bandwidth is near the link capacity.
+    DataRate GetNearMaxIncreaseRatePerSecond() const;
 
     // Returns the expected time between overuse signals (assuming steady state).
     TimeDelta GetExpectedBandwidthPeriod() const;
@@ -64,9 +66,14 @@ private:
                                         DataRate curr_bitrate) const;
     DataRate AdditiveRateIncrease(Timestamp at_time, 
                                   Timestamp last_time) const;
+    
+    void ChangeBitrate(BandwidthUsage bw_state, 
+                       std::optional<DataRate> estimated_throughput, 
+                       Timestamp at_time);
     void ChangeState(BandwidthUsage bw_state, 
                      Timestamp at_time);
     
+    bool DontIncreaseBitrateInAlr() const;
 
 private:
     enum class RateControlState { HOLD, INCREASE, DECREASE };
@@ -89,7 +96,7 @@ private:
     // ALR (Application Limited Region)
     bool in_alr_;
     TimeDelta rtt_;
-    std::optional<DataRate> last_decrease_;
+    std::optional<DataRate> last_decreased_bitrate_;
 };
     
 } // namespace naivert 
