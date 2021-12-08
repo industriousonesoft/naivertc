@@ -15,7 +15,7 @@ BitrateEstimator::BitrateEstimator(Configuration config)
       prev_time_ms_(-1),
       bitrate_estimate_kbps_(-1.0f),
       bitrate_estimate_var_(50.f) {
-    // Clamps the `initial_window_ms` and `noninitial_window_ms` in [150, 1000].
+    // MAKE SURE the `initial_window_ms` and `noninitial_window_ms` is limited in range [150, 1000].
     assert(config_.initial_window_ms >= kMinRateWindowMs && 
            config_.initial_window_ms <= kMaxRateWindowMs);
     assert(config_.noninitial_window_ms >= kMinRateWindowMs && 
@@ -68,7 +68,7 @@ void BitrateEstimator::Update(Timestamp at_time, size_t amount, bool in_alr) {
     bitrate_estimate_kbps_ = std::max(bitrate_estimate_kbps_, config_.estimate_floor.kbps<float>());
     bitrate_estimate_var_ = sample_var * pred_bitrate_estimate_var / 
                             (sample_var + pred_bitrate_estimate_var);
-    
+
 }   
 
 std::optional<DataRate> BitrateEstimator::Estimate() const {
