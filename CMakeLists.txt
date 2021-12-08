@@ -261,6 +261,7 @@ set(LIB_SOURCES
     src/rtc/congestion_controller/goog_cc/link_capacity_estimator.cpp
     src/rtc/congestion_controller/goog_cc/aimd_rate_control.cpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe.cpp
+    src/rtc/congestion_controller/goog_cc/bitrate_estimator.cpp
 )
 
 if(USE_NICE)
@@ -511,6 +512,7 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp
     src/rtc/congestion_controller/goog_cc/aimd_rate_control.hpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe.hpp
+    src/rtc/congestion_controller/goog_cc/bitrate_estimator.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
@@ -610,7 +612,10 @@ set(TESTING_SOURCES
     src/testing/simulated_time_controller.hpp
     src/testing/simulated_time_controller.cpp
     src/testing/simulated_time_controller_unittest.cpp
-  
+
+    # rtc -> congestion_controller -> goog_cc
+    src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.hpp
+    
     # main
     gtest/main.cpp
 )
@@ -725,6 +730,7 @@ set(UNITTEST_SOURCES
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/goog_cc/trendline_estimator_unittest.cpp
     src/rtc/congestion_controller/goog_cc/aimd_rate_control_unittest.cpp
+    src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.cpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest.cpp
 )
 
