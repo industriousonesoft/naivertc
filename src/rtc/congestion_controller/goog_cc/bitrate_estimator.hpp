@@ -39,7 +39,7 @@ private:
 
 private:
     const Configuration config_;
-    int sum_;
+    size_t accumulated_bytes_;
     int64_t curr_window_ms_;
     std::optional<int64_t> prev_time_ms_;
     float bitrate_estimate_kbps_;
