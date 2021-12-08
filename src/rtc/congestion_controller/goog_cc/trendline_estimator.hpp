@@ -9,6 +9,7 @@
 
 namespace naivertc {
 
+// Heper class to detect the trandline of delay based the deltas calculated by `InterArrivalDelta`.
 struct RTC_CPP_EXPORT TrendlineEstimator {
 public:
     static constexpr unsigned kDefaultTrendlineWindowSize = 20;
@@ -30,13 +31,14 @@ public:
     TrendlineEstimator(Configuration config);
     ~TrendlineEstimator();
 
+    // Update the detector with a new sample.
     void Update(double recv_delta_ms,
                 double send_delta_ms,
                 int64_t send_time_ms,
                 int64_t arrival_time_ms,
-                size_t packet_size,
-                bool calculated_deltas);
+                size_t packet_size);
 
+    // Return the current bandwidth usage state.
     BandwidthUsage State() const;
 
 private:

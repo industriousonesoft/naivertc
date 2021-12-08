@@ -50,7 +50,7 @@ public:
         for (; packet_index < kPacketCount; ++packet_index) {
             double recv_delta = recv_times[packet_index] - recv_times[packet_index - 1];
             double send_delta = send_times[packet_index] - send_times[packet_index - 1];
-            estimator.Update(recv_delta, send_delta, send_times[packet_index], recv_times[packet_index], packet_sizes[packet_index], true);
+            estimator.Update(recv_delta, send_delta, send_times[packet_index], recv_times[packet_index], packet_sizes[packet_index]);
             if (estimator.State() != initial_state) {
                 return;
             }

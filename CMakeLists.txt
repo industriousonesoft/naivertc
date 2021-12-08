@@ -255,6 +255,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
 
     # rtc -> congestion_controller -> goog_cc
+    src/rtc/congestion_controller/network_types.cpp
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.cpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator.cpp
     src/rtc/congestion_controller/goog_cc/link_capacity_estimator.cpp
@@ -504,6 +505,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
 
     # rtc -> congestion_controller -> goog_cc
+    src/rtc/congestion_controller/network_types.hpp
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator.hpp
     src/rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp
