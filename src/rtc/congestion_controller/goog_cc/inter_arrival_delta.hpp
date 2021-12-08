@@ -5,6 +5,8 @@
 #include "rtc/base/units/time_delta.hpp"
 #include "rtc/base/units/timestamp.hpp"
 
+#include <optional>
+
 namespace naivertc {
 
 // Helper class to compute the inter-arrival time delta and the size delta
@@ -15,6 +17,12 @@ public:
     // reset, assuming that clocks have made a jump.
     static constexpr int kReorderedResetThreshold = 3;
     static constexpr TimeDelta kArrivalTimeOffsetThreshold = TimeDelta::Seconds(3);
+
+    struct Result {
+        TimeDelta send_time_delta = TimeDelta::Zero();
+        TimeDelta arrival_time_delta = TimeDelta::Zero();
+        int packet_size_delta = 0;
+    };
 public:
     // NOTE: As the Pacer sends a group of packets to the network every burst_time 
     // interval. RECOMMENDED value for burst_time is 5 ms. 
@@ -24,13 +32,10 @@ public:
     InterArrivalDelta& operator=(const InterArrivalDelta&) = delete;
     ~InterArrivalDelta();
 
-    bool ComputeDeltas(Timestamp send_time, 
-                       Timestamp arrival_time, 
-                       Timestamp system_time,
-                       size_t packet_size, 
-                       TimeDelta* send_time_delta,
-                       TimeDelta* arrival_time_delta,
-                       int* packet_size_delta);
+    std::optional<Result> ComputeDeltas(Timestamp send_time, 
+                                        Timestamp arrival_time, 
+                                        Timestamp system_time,
+                                        size_t packet_size);
 
     void Reset();
 
