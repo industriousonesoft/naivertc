@@ -12,7 +12,7 @@ BitrateEstimator::BitrateEstimator(Configuration config)
     : config_(std::move(config)),
       sum_(0),
       curr_window_ms_(0),
-      prev_time_ms_(-1),
+      prev_time_ms_(std::nullopt),
       bitrate_estimate_kbps_(-1.0f),
       bitrate_estimate_var_(50.f) {
     // MAKE SURE the `initial_window_ms` and `noninitial_window_ms` is limited in range [150, 1000].
@@ -95,18 +95,20 @@ void BitrateEstimator::ExpectedFastRateChange() {
 std::pair<float, bool> BitrateEstimator::UpdateWindow(int64_t now_ms,
                                                       int bytes,
                                                       int rate_window_ms) {
-    // Reset if time moves backwards.
-    if (now_ms < prev_time_ms_) {
-        prev_time_ms_ = -1;
-        sum_ = 0;
-        curr_window_ms_ = 0;
-    }
-    if (prev_time_ms_ >= 0) {
-        curr_window_ms_ += now_ms - prev_time_ms_;
-        // Reset if nothing has been received for more than a full window.
-        if (now_ms - prev_time_ms_ > rate_window_ms) {
+    if (prev_time_ms_) {
+        // Reset if time moves backwards.
+        if (now_ms < *prev_time_ms_) {
+            prev_time_ms_.reset();
             sum_ = 0;
-            curr_window_ms_ %= rate_window_ms;
+            curr_window_ms_ = 0;
+        } else {
+            int elapsed_time_ms = static_cast<int>(now_ms - *prev_time_ms_);
+            curr_window_ms_ += elapsed_time_ms;
+            // Reset if nothing has been received for more than a full window.
+            if (elapsed_time_ms > rate_window_ms) {
+                sum_ = 0;
+                curr_window_ms_ %= rate_window_ms;
+            }
         }
     }
     prev_time_ms_ = now_ms;

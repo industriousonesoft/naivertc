@@ -41,7 +41,7 @@ private:
     const Configuration config_;
     int sum_;
     int64_t curr_window_ms_;
-    int64_t prev_time_ms_;
+    std::optional<int64_t> prev_time_ms_;
     float bitrate_estimate_kbps_;
     float bitrate_estimate_var_;
 };
