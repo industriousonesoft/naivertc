@@ -10,18 +10,18 @@
 
 namespace naivertc {
 
-// ProbeClusterInfo
-struct RTC_CPP_EXPORT ProbeClusterInfo {
-    int probe_cluster_id = -1;
-    int probe_cluster_min_probes = -1;
-    int probe_cluster_min_bytes = -1;
-    int probe_cluster_bytes_sent = 0;
+// ProbeCluster
+struct RTC_CPP_EXPORT ProbeCluster {
+    int id = -1;
+    int min_probes = -1;
+    int min_bytes = -1;
+    int bytes_sent = 0;
 };
 
 // PacedPacketInfo
 struct RTC_CPP_EXPORT PacedPacketInfo {
     int send_bitrate_bps = -1;
-    std::optional<ProbeClusterInfo> probe_cluster = std::nullopt;
+    std::optional<ProbeCluster> probe_cluster = std::nullopt;
 };
 
 // SendPacket
