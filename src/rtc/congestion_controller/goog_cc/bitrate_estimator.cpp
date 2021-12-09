@@ -85,7 +85,7 @@ std::optional<DataRate> BitrateEstimator::PeekRate() const {
     return std::nullopt;
 }
 
-void BitrateEstimator::ExpectedFastRateChange() {
+void BitrateEstimator::ExpectFastRateChange() {
     // By setting the bitrate-estimate variance to a higher value we allow the
     // bitrate to change fast for the next few samples.
     bitrate_estimate_var_ += 200;

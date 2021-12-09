@@ -262,6 +262,7 @@ set(LIB_SOURCES
     src/rtc/congestion_controller/goog_cc/aimd_rate_control.cpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe.cpp
     src/rtc/congestion_controller/goog_cc/bitrate_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.cpp
 )
 
 if(USE_NICE)
@@ -512,7 +513,9 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp
     src/rtc/congestion_controller/goog_cc/aimd_rate_control.hpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe.hpp
+    src/rtc/congestion_controller/goog_cc/bitrate_estimator_interface.hpp
     src/rtc/congestion_controller/goog_cc/bitrate_estimator.hpp
+    src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages
@@ -732,6 +735,7 @@ set(UNITTEST_SOURCES
     src/rtc/congestion_controller/goog_cc/aimd_rate_control_unittest.cpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.cpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest.cpp
+    src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator_unittest.cpp
 )
 
 # EXCLUDE_FROM_ALL表示指定的target(或某个模块下的所有target)不会被加入默认编译的all target列表中，即不会自动编译，需要手动编译

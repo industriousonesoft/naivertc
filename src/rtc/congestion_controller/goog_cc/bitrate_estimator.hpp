@@ -4,12 +4,11 @@
 #include "base/defines.hpp"
 #include "rtc/base/units/data_rate.hpp"
 #include "rtc/base/units/timestamp.hpp"
-
-#include <optional>
+#include "rtc/congestion_controller/goog_cc/bitrate_estimator_interface.hpp"
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT BitrateEstimator {
+class RTC_CPP_EXPORT BitrateEstimator : public BitrateEstimatorInterface {
 public:
     struct Configuration {
         int initial_window_ms = 500;
@@ -23,14 +22,14 @@ public:
     };
 public:
     BitrateEstimator(Configuration config);
-    ~BitrateEstimator();
+    ~BitrateEstimator() override;
 
-    void Update(Timestamp at_time, size_t amount, bool in_alr);
+    void Update(Timestamp at_time, size_t amount, bool in_alr) override;
 
-    std::optional<DataRate> Estimate() const;
-    std::optional<DataRate> PeekRate() const;
+    std::optional<DataRate> Estimate() const override;
+    std::optional<DataRate> PeekRate() const override;
 
-    void ExpectedFastRateChange();
+    void ExpectFastRateChange() override;
 
 private:
     std::pair<float, bool> UpdateWindow(int64_t now_ms,

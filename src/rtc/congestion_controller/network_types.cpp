@@ -3,6 +3,16 @@
 namespace naivertc {
 
 // TransportPacketsFeedback
+
+bool PacketResult::ReceiveTimeOrder::operator()(const PacketResult& lhs,
+                                                const PacketResult& rhs) {
+  if (lhs.recv_time != rhs.recv_time)
+    return lhs.recv_time < rhs.recv_time;
+  if (lhs.sent_packet.send_time != rhs.sent_packet.send_time)
+    return lhs.sent_packet.send_time < rhs.sent_packet.send_time;
+  return lhs.sent_packet.sequence_number < rhs.sent_packet.sequence_number;
+}
+
 std::vector<PacketResult> TransportPacketsFeedback::ReceivedWithSendInfo()
     const {
   std::vector<PacketResult> res;
