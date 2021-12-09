@@ -31,8 +31,9 @@ void BitrateEstimator::Update(Timestamp at_time, size_t amount, bool in_alr) {
     if (bitrate_estimate_kbps_ < 0.f) {
         rate_window_ms = config_.initial_window_ms;
     }
-    auto [immediate_bitrate_kbps, is_small_sample] = UpdateWindow(at_time.ms(), amount, rate_window_ms);
-    if (immediate_bitrate_kbps < 0.0f) {
+    
+    auto [immediate_bitrate_kbps, is_small_sample] = CalcImmediateBitrate(at_time.ms(), amount, rate_window_ms);
+    if (immediate_bitrate_kbps < 0.0f) { 
         return;
     }
     if (bitrate_estimate_kbps_ < 0.0f) {
@@ -61,6 +62,7 @@ void BitrateEstimator::Update(Timestamp at_time, size_t amount, bool in_alr) {
     // uncertainty is large.
     // The bitrate estimate uncertainty is increased with each update to model
     // that the bitrate changes over time.
+    // FIXME: How to understand the formula below?
     float pred_bitrate_estimate_var = bitrate_estimate_var_ + 5.f;
     bitrate_estimate_kbps_ = (sample_var * bitrate_estimate_kbps_ +
                               pred_bitrate_estimate_var * immediate_bitrate_kbps) /
@@ -92,9 +94,9 @@ void BitrateEstimator::ExpectFastRateChange() {
 }
 
 // Private methods
-std::pair<float, bool> BitrateEstimator::UpdateWindow(int64_t now_ms,
-                                                      int bytes,
-                                                      int rate_window_ms) {
+std::pair<float, bool> BitrateEstimator::CalcImmediateBitrate(int64_t now_ms,
+                                                              int bytes,
+                                                              int rate_window_ms) {
     if (prev_time_ms_) {
         // Reset if time moves backwards.
         if (now_ms < *prev_time_ms_) {

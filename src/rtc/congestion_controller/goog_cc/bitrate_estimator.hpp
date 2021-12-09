@@ -32,9 +32,12 @@ public:
     void ExpectFastRateChange() override;
 
 private:
-    std::pair<float, bool> UpdateWindow(int64_t now_ms,
-                                        int bytes,
-                                        int rate_window_ms);
+    // Return a pari consisting of the immediate bitrate in kbps and
+    // a bool denoting whether the count of accumulated bytes is small  
+    // than `small_sample_threshold` defined configuration.
+    std::pair<float, bool> CalcImmediateBitrate(int64_t now_ms,
+                                                int bytes,
+                                                int rate_window_ms);
 
 private:
     const Configuration config_;
