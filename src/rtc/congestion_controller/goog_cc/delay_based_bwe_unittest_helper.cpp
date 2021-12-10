@@ -1,4 +1,5 @@
 #include "rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.hpp"
+#include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
 
 namespace naivertc {
 namespace test {
@@ -17,18 +18,18 @@ constexpr int kInitialProbingPackets = 5;
 
 // TestBitrateObserver
 TestBitrateObserver::TestBitrateObserver() 
-    : updated_(false), latest_bitrate_(0) {}
+    : updated_(false), latest_bitrate_bps_(0) {}
 
 TestBitrateObserver::~TestBitrateObserver() = default;
 
-void TestBitrateObserver::OnReceiveBitrateChanged(uint32_t bitrate) {
-    latest_bitrate_ = bitrate;
+void TestBitrateObserver::OnReceiveBitrateChanged(uint32_t bitrate_bps) {
+    latest_bitrate_bps_ = bitrate_bps;
     updated_ = true;
 }
     
 void TestBitrateObserver::Reset() {
     updated_ = false;
-    latest_bitrate_ = 0;
+    latest_bitrate_bps_ = 0;
 }
 
 // RtpStream
@@ -108,6 +109,95 @@ std::pair<std::vector<PacketResult>, int64_t> RtpStreamGenerator::GenerateFrame(
     }
     it = std::min_element(streams_.begin(), streams_.end(), RtpStream::Compare);
     return {packets, std::max((*it)->next_rtp_time_us(), now_us)};
+}
+
+// T(DelayBasedBweTest)
+T(DelayBasedBweTest)::T(DelayBasedBweTest)() 
+    : clock_(Timestamp::Millis(100)),
+      ack_bitrate_estimator_(std::make_unique<AcknowledgedBitrateEstimator>(std::make_unique<BitrateEstimator>(BitrateEstimator::Configuration()))),
+      probe_bitrate_estimator_(std::make_unique<ProbeBitrateEstimator>()),
+      bandwidth_estimator_(std::make_unique<DelayBasedBwe>(DelayBasedBwe::Configuration())),
+      stream_generator_(std::make_unique<RtpStreamGenerator>(/*link_capacity_bps=*/1e6, clock_.now_ms())),
+      recv_time_offset_ms_(0),
+      first_update_(true) {}
+
+T(DelayBasedBweTest)::~T(DelayBasedBweTest)() = default;
+
+void T(DelayBasedBweTest)::AddStream(int fps, int bitrate_bps) {
+    stream_generator_->AddStream(std::make_unique<RtpStream>(fps, bitrate_bps));
+}
+
+void T(DelayBasedBweTest)::IncomingFeedback(int64_t recv_time_ms,
+                                            int64_t send_time_ms,
+                                            size_t payload_size) {
+    IncomingFeedback(recv_time_ms, send_time_ms, payload_size, PacedPacketInfo());
+}   
+
+void T(DelayBasedBweTest)::IncomingFeedback(int64_t recv_time_ms,
+                                            int64_t send_time_ms,
+                                            size_t payload_size,
+                                            const PacedPacketInfo& pacing_info) {
+    ASSERT_GE(recv_time_ms + recv_time_offset_ms_, 0);
+    PacketResult packet_feedback;
+    packet_feedback.recv_time = Timestamp::Millis(recv_time_ms + recv_time_offset_ms_);
+    packet_feedback.sent_packet.send_time = Timestamp::Millis(send_time_ms);
+    packet_feedback.sent_packet.size = payload_size;
+    packet_feedback.sent_packet.pacing_info = pacing_info;
+    if (packet_feedback.sent_packet.pacing_info.probe_cluster) {
+        probe_bitrate_estimator_->HandleProbeAndEstimateBitrate(packet_feedback);
+    }
+
+    TransportPacketsFeedback msg;
+    msg.feedback_time = Timestamp::Millis(clock_.now_ms());
+    msg.packet_feedbacks.emplace_back(std::move(packet_feedback));
+    ack_bitrate_estimator_->IncomingPacketFeedbackVector(msg.SortedByReceiveTime());
+    DelayBasedBwe::Result ret = bandwidth_estimator_->IncomingPacketFeedbackVector(msg, 
+                                                                                   ack_bitrate_estimator_->Estimate(),
+                                                                                   probe_bitrate_estimator_->FetchAndResetLastEstimatedBitrate(),
+                                                                                   /*in_alr=*/false);
+    if (ret.updated) {
+        bitrate_observer_.OnReceiveBitrateChanged(ret.target_bitrate.bps());
+    }
+}
+
+bool T(DelayBasedBweTest)::GenerateAndProcessFrame(uint32_t ssrc, uint32_t bitrate_bps) {
+    stream_generator_->SetBitrateBps(bitrate_bps);
+  
+    auto [packets, next_time_us] = stream_generator_->GenerateFrame(clock_.now_ms());
+    if (packets.empty()) {
+        return false;
+    }
+
+    bool overuse = false;
+    bitrate_observer_.Reset();
+    clock_.AdvanceTimeUs(packets.back().recv_time.us() - clock_.now_us());
+
+    for (auto& packet : packets) {
+        packet.recv_time += TimeDelta::Millis(recv_time_offset_ms_);
+        if (packet.sent_packet.pacing_info.probe_cluster) {
+            probe_bitrate_estimator_->HandleProbeAndEstimateBitrate(packet);
+        }
+    }
+
+    ack_bitrate_estimator_->IncomingPacketFeedbackVector(packets);
+    TransportPacketsFeedback msg;
+    msg.packet_feedbacks = packets;
+    msg.feedback_time = Timestamp::Millis(clock_.now_ms());
+
+    DelayBasedBwe::Result ret = bandwidth_estimator_->IncomingPacketFeedbackVector(msg,
+                                                                                   ack_bitrate_estimator_->Estimate(),
+                                                                                   probe_bitrate_estimator_->FetchAndResetLastEstimatedBitrate(),
+                                                                                   /*in_alr=*/false);
+    if (ret.updated) {
+        bitrate_observer_.OnReceiveBitrateChanged(ret.target_bitrate.bps());
+        if (!first_update_ && ret.target_bitrate.bps() < bitrate_bps) {
+            overuse = true;
+        }
+        first_update_ = false;
+    }
+
+    clock_.AdvanceTimeUs(next_time_us - clock_.now_us());
+    return overuse;
 }
     
 } // namespace test

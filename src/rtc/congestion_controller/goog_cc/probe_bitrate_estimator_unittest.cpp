@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 
 #include <optional>
@@ -34,10 +34,7 @@ public:
         feedback.sent_packet.send_time = kReferenceTime + TimeDelta::Millis(send_time_ms);
         feedback.sent_packet.size = size_bytes;
         // ProbeCluster
-        ProbeCluster probe_cluster;
-        probe_cluster.id = probe_cluster_id;
-        probe_cluster.min_probes = min_probes;
-        probe_cluster.min_bytes = min_bytes;
+        ProbeCluster probe_cluster = {probe_cluster_id, min_probes, min_bytes};
         // PacedPacketInfo
         feedback.sent_packet.pacing_info.probe_cluster.emplace(std::move(probe_cluster));
         feedback.recv_time = kReferenceTime + TimeDelta::Millis(recv_time_ms);

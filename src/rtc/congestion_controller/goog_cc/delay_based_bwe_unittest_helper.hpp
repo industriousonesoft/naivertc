@@ -2,11 +2,15 @@
 #define _RTC_CONGESTION_CONTROLLER_GOOG_CC_DELAY_BASED_BWE_UNIT_TEST_HELPER_H_
 
 #include "rtc/congestion_controller/network_types.hpp"
+#include "rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/delay_based_bwe.hpp"
 #include "testing/simulated_clock.hpp"
 
 #include <gtest/gtest.h>
+
+#define ENABLE_UNIT_TESTS 1
+#include "testing/defines.hpp"
 
 #include <string>
 
@@ -20,14 +24,14 @@ public:
     ~TestBitrateObserver();
 
     bool updated() const { return updated_; }
-    bool latest_bitrate() const { return latest_bitrate_; }
+    uint32_t latest_bitrate_bps() const { return latest_bitrate_bps_; }
 
-    void OnReceiveBitrateChanged(uint32_t bitrate);
+    void OnReceiveBitrateChanged(uint32_t bitrate_bps);
     void Reset();
 
 private:
     bool updated_;
-    uint32_t latest_bitrate_;
+    uint32_t latest_bitrate_bps_;
 };
 
 // RtpStream
@@ -81,14 +85,39 @@ private:
 };
 
 // DelayBasedBweTest
-class DelayBasedBweTest : public ::testing::TestWithParam<std::string> {
+class T(DelayBasedBweTest) : public ::testing::Test {
 public:
+    T(DelayBasedBweTest)();
+    ~T(DelayBasedBweTest)() override;
 
 protected:
+    void AddStream(int fps = 30, int bitrate_bps = 3e5 /* 300kbps */);
+
+    void IncomingFeedback(int64_t recv_time_ms,
+                          int64_t send_time_ms,
+                          size_t payload_size);
+
+    void IncomingFeedback(int64_t recv_time_ms,
+                          int64_t send_time_ms,
+                          size_t payload_size,
+                          const PacedPacketInfo& pacing_info);
+
+    // Generates a frame of packets belonging to a stream at a given bitrate
+    // and with a given ssrc. The stream is pushed through a very simple simulated
+    // network, and is then given to the receive-side bandwidth estimator.
+    // Return true if an over-use was detected, false otherwise.
+    bool GenerateAndProcessFrame(uint32_t ssrc, uint32_t bitrate_bps);
+
+protected:
+    static const uint32_t kDefaultSsrc = 0;
     SimulatedClock clock_;
     TestBitrateObserver bitrate_observer_;
     std::unique_ptr<AcknowledgedBitrateEstimator> ack_bitrate_estimator_;
-    
+    std::unique_ptr<ProbeBitrateEstimator> probe_bitrate_estimator_;
+    std::unique_ptr<DelayBasedBwe> bandwidth_estimator_;
+    std::unique_ptr<RtpStreamGenerator> stream_generator_;
+    int64_t recv_time_offset_ms_;
+    bool first_update_;
 };
     
 } // namespace test
