@@ -7,13 +7,6 @@
 
 namespace naivertc {
 namespace test {
-
-MY_TEST(DelayBasedBweTest, Test) {
-    int a = 7;
-    int b = 20;
-    int c = (b * 1.0) / a + 0.5;
-    EXPECT_EQ(c, 3);
-}
     
 } // namespace test
 } // namespace naivertc

@@ -738,6 +738,7 @@ set(UNITTEST_SOURCES
     src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.cpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest.cpp
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator_unittest.cpp
+    src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator_unittest.cpp
 )
 
 # EXCLUDE_FROM_ALL表示指定的target(或某个模块下的所有target)不会被加入默认编译的all target列表中，即不会自动编译，需要手动编译

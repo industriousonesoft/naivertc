@@ -20,7 +20,7 @@ public:
     // Returns the estimated bitrate if the probe completes a valid cluster.
     std::optional<DataRate> HandleProbeAndEstimateBitrate(const PacketResult& packet_feedback);
 
-    std::optional<DataRate> FetchAndResetLastEstimateBitrate();
+    std::optional<DataRate> FetchAndResetLastEstimatedBitrate();
 
 private:
     struct AggregatedCluster {
@@ -31,7 +31,7 @@ private:
         Timestamp last_recv_time = Timestamp::MinusInfinity();
         size_t last_send_size = 0;
         size_t first_recv_size = 0;
-        size_t total_size = 0;
+        size_t accumulated_size = 0;
     };
 
     // Erases old cluster data that was seen before |timestamp|.
