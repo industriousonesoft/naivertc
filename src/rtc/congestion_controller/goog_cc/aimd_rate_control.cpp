@@ -15,9 +15,8 @@ constexpr TimeDelta kDefaultRtt = TimeDelta::Millis(200);
 
 AimdRateControl::AimdRateControl(Configuration config) 
     : config_(std::move(config)),
-      min_configured_bitrate_(DataRate::BitsPerSec(5000)),
-      max_configured_bitrate_(DataRate::BitsPerSec(30000)),
-      curr_bitrate_(max_configured_bitrate_),
+      min_configured_bitrate_(config_.min_bitrate),
+      curr_bitrate_(config_.max_bitrate),
       latest_estimated_throughput_(curr_bitrate_),
       rate_control_state_(RateControlState::HOLD),
       time_last_bitrate_change_(Timestamp::MinusInfinity()),
@@ -145,13 +144,13 @@ DataRate AimdRateControl::GetNearMaxIncreaseRatePerSecond() const {
     // The response_time interval is estimated as the round-trip time plus
     // 100 ms as an estimate of over-use estimator and detector reaction time.
     TimeDelta response_time = rtt_ + TimeDelta::Millis(100);
-    // FIXME: Using the adaptive threshold in `TrendlineEstimator`?
+    // FIXME: Dose this mean that the adaptive threshold used in `TrendlineEstimator`?
     if (config_.adaptive_threshold_in_experiment) {
         response_time = response_time * 2;
     }
     // Additive increases of bitrate: Add one packet per response time when no over-use is detected.
     DataRate increase_rate_per_second = DataRate::BitsPerSec(avg_packet_size_bits * 1000.0 / response_time.ms());
-    const DataRate kMinIncreaseRatePerSecond = DataRate::BitsPerSec(4000); // 4000 bps
+    const DataRate kMinIncreaseRatePerSecond = DataRate::BitsPerSec(4000); // 4 kbps
     return std::max(kMinIncreaseRatePerSecond, increase_rate_per_second);
 }
 
@@ -240,7 +239,7 @@ void AimdRateControl::ChangeBitrate(BandwidthUsage bw_state,
             // If we have previously increased above the limit (for instance due to
             // probing), we don't allow further changes.
             if (curr_bitrate_ < throughput_based_limit &&
-                DontIncreaseBitrateInAlr() == false) {
+                !DontIncreaseInAlr()) {
                 DataRate increased_bitrate = DataRate::MinusInfinity();
                 if (link_capacity_.Estimate().has_value()) {
                     // The `link_capacity_` estimate is reset if the measured throughput
@@ -340,7 +339,7 @@ void AimdRateControl::ChangeState(BandwidthUsage bw_state,
     }
 }
 
-bool AimdRateControl::DontIncreaseBitrateInAlr() const {
+bool AimdRateControl::DontIncreaseInAlr() const {
     return config_.send_side && in_alr_ && config_.no_bitrate_increase_in_alr;
 }
     

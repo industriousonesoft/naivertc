@@ -25,6 +25,8 @@ public:
         bool estimate_bounded_increase = true;
         std::optional<TimeDelta> initial_backoff_interval = std::nullopt;
         bool link_capacity_fix = false;
+        DataRate min_bitrate = DataRate::BitsPerSec(5'000);
+        DataRate max_bitrate = DataRate::KilobitsPerSec(30'000);
     };
 public:
     AimdRateControl(Configuration config);
@@ -73,15 +75,13 @@ private:
     void ChangeState(BandwidthUsage bw_state, 
                      Timestamp at_time);
     
-    bool DontIncreaseBitrateInAlr() const;
+    bool DontIncreaseInAlr() const;
 
 private:
     enum class RateControlState { HOLD, INCREASE, DECREASE };
 
     const Configuration config_;
-
     DataRate min_configured_bitrate_;
-    DataRate max_configured_bitrate_;
     DataRate curr_bitrate_;
     DataRate latest_estimated_throughput_;
     
