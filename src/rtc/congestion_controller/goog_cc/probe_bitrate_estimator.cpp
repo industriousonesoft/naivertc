@@ -41,7 +41,7 @@ ProbeBitrateEstimator::ProbeBitrateEstimator()
     
 ProbeBitrateEstimator::~ProbeBitrateEstimator() = default;
 
-std::optional<DataRate> ProbeBitrateEstimator::HandleProbeAndEstimateBitrate(const PacketResult& packet_feedback) {
+std::optional<DataRate> ProbeBitrateEstimator::IncomingProbePacket(const PacketResult& packet_feedback) {
     assert(packet_feedback.sent_packet.pacing_info.probe_cluster.has_value());
     assert(packet_feedback.sent_packet.pacing_info.probe_cluster->min_bytes > 0);
     assert(packet_feedback.sent_packet.pacing_info.probe_cluster->min_bytes > 0);
@@ -135,10 +135,12 @@ std::optional<DataRate> ProbeBitrateEstimator::HandleProbeAndEstimateBitrate(con
 
 }
 
-std::optional<DataRate> ProbeBitrateEstimator::FetchAndResetLastEstimatedBitrate() {
-    std::optional<DataRate> estimated_bitrate = estimated_bitrate_;
-    estimated_bitrate_.reset();
-    return estimated_bitrate;
+std::optional<DataRate> ProbeBitrateEstimator::Estimate(bool reset_after_reading) {
+    std::optional<DataRate> ret = estimated_bitrate_;
+    if (reset_after_reading) {
+        estimated_bitrate_.reset();
+    }
+    return ret;
 }
 
 // Private methods

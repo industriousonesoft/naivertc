@@ -38,7 +38,7 @@ public:
         // PacedPacketInfo
         feedback.sent_packet.pacing_info.probe_cluster.emplace(std::move(probe_cluster));
         feedback.recv_time = kReferenceTime + TimeDelta::Millis(recv_time_ms);
-        measured_bitrate_ = probe_bitrate_estimator_.HandleProbeAndEstimateBitrate(feedback);
+        measured_bitrate_ = probe_bitrate_estimator_.IncomingProbePacket(feedback);
     }
 
 protected:
@@ -197,7 +197,7 @@ MY_TEST_F(ProbeBitrateEstimatorTest, IgnoreSizeFirstReceivePacket) {
 }
 
 MY_TEST_F(ProbeBitrateEstimatorTest, NoLastEstimatedBitrateBps) {
-    EXPECT_FALSE(probe_bitrate_estimator_.FetchAndResetLastEstimatedBitrate());
+    EXPECT_FALSE(probe_bitrate_estimator_.Estimate());
 }
 
 MY_TEST_F(ProbeBitrateEstimatorTest, FetchLastEstimatedBitrateBps) {
@@ -206,10 +206,10 @@ MY_TEST_F(ProbeBitrateEstimatorTest, FetchLastEstimatedBitrateBps) {
     AddPacketFeedback(0, 1000, 20, 30);
     AddPacketFeedback(0, 1000, 30, 40);
 
-    auto estimated_bitrate = probe_bitrate_estimator_.FetchAndResetLastEstimatedBitrate();
+    auto estimated_bitrate = probe_bitrate_estimator_.Estimate();
     EXPECT_TRUE(estimated_bitrate);
     EXPECT_NEAR(estimated_bitrate->bps(), 800000, 10);
-    EXPECT_FALSE(probe_bitrate_estimator_.FetchAndResetLastEstimatedBitrate());
+    EXPECT_FALSE(probe_bitrate_estimator_.Estimate());
 }
 
 } // namespace test    
