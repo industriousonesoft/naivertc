@@ -38,7 +38,7 @@ public:
         // PacedPacketInfo
         feedback.sent_packet.pacing_info.probe_cluster.emplace(std::move(probe_cluster));
         feedback.recv_time = kReferenceTime + TimeDelta::Millis(recv_time_ms);
-        measured_bitrate_ = probe_bitrate_estimator_.IncomingProbePacket(feedback);
+        measured_bitrate_ = probe_bitrate_estimator_.IncomingProbePacketFeedback(feedback);
     }
 
 protected:

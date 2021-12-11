@@ -80,32 +80,18 @@ TimeDelta AimdRateControl::GetFeedbackInterval() const {
     return interval.Clamped(kMinFeedbackInterval, kMaxFeedbackInterval);
 }
 
-bool AimdRateControl::TimeToReduceFurther(Timestamp at_time, DataRate estimated_throughput) const {
-    const TimeDelta clamped_rtt = rtt_.Clamped(TimeDelta::Millis(10), TimeDelta::Millis(200));
-    // if the bitrate estimate hasn't been changed for more than an RTT.
-    if (at_time - time_last_bitrate_change_ >= clamped_rtt) {
-        return true;
-    }
-    if (is_bitrate_initialized_) {
-        // If the estimated_throughput is less than half of the current
-        // estimate
-        const DataRate half_of_current_bitrate = DataRate::BitsPerSec(0.5 * curr_bitrate_.bps());
-        return estimated_throughput < half_of_current_bitrate;
-    }
-    return false;
+bool AimdRateControl::CanReduceFurther(Timestamp at_time, DataRate estimated_throughput) const {
+    return CanReduceFurther(at_time) || CanReduceFurther(estimated_throughput);
 }
 
-bool AimdRateControl::InitialTimeToReduceFurther(Timestamp at_time) const {
-    // TODO: We could use the RTT (clamped to suitable limits) 
-    // instead of a fixed bitrate_reduction_interval.
+bool AimdRateControl::CanReduceFurtherInInitialPeriod(Timestamp at_time) const {
     if (!config_.initial_backoff_interval) {
-        // The estimated_throughput is less than half of the current
-        // estimate.
-        const DataRate less_than_half = DataRate::BitsPerSec(0.5 * curr_bitrate_.bps() - 1);
-        return ValidEstimate() && TimeToReduceFurther(at_time, less_than_half);
+        return ValidEstimate() && CanReduceFurther(at_time);
     }
     // If the bitrate estimate hasn't been decreased before or more 
     // the `initial_backoff_interval`.
+    // TODO: We could use the RTT (clamped to suitable limits) 
+    // instead of a fixed bitrate_reduction_interval.
     if (time_last_bitrate_decrease_.IsInfinite() ||
         at_time - time_last_bitrate_decrease_ >= *config_.initial_backoff_interval) {
         return true;
@@ -159,10 +145,10 @@ TimeDelta AimdRateControl::GetExpectedBandwidthPeriod() const {
     const TimeDelta kMinPeriod = TimeDelta::Seconds(2);
     const TimeDelta kMaxPeriod = TimeDelta::Seconds(50);
 
-    DataRate increase_rate_per_second = GetNearMaxIncreaseRatePerSecond();
     if (!last_decreased_bitrate_) {
         return kDefaultPeriod;
     }
+    DataRate increase_rate_per_second = GetNearMaxIncreaseRatePerSecond();
     // Calculate the time in second to recover from `DECREASE` state.
     double time_to_recover_decrease_seconds = last_decreased_bitrate_->bps<double>() / increase_rate_per_second.bps<double>();
     TimeDelta period = TimeDelta::Seconds(time_to_recover_decrease_seconds);
@@ -341,6 +327,22 @@ void AimdRateControl::ChangeState(BandwidthUsage bw_state,
 
 bool AimdRateControl::DontIncreaseInAlr() const {
     return config_.send_side && in_alr_ && config_.no_bitrate_increase_in_alr;
+}
+
+bool AimdRateControl::CanReduceFurther(Timestamp at_time) const {
+    const TimeDelta clamped_rtt = rtt_.Clamped(TimeDelta::Millis(10), TimeDelta::Millis(200));
+    // If the bitrate estimate hasn't been changed for more than an RTT.
+    return at_time - time_last_bitrate_change_ >= clamped_rtt;
+}
+
+bool AimdRateControl::CanReduceFurther(DataRate estimated_throughput) const {
+    if (is_bitrate_initialized_) {
+        // If the estimated_throughput is less than half of the current
+        // estimate.
+        // TODO: Investigate consequences of increasing the threshold to 0.95 * `curr_bitrate_`.
+        return estimated_throughput < DataRate::BitsPerSec(curr_bitrate_.bps() / 2);
+    }
+    return false;
 }
     
 } // namespace naivert 

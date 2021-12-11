@@ -10,6 +10,7 @@ namespace naivertc {
 namespace utils {
 namespace numeric {
 
+// is_value_in_range
 template <typename Dst, typename Src>
 RTC_CPP_EXPORT inline constexpr bool is_value_in_range(Src value) {
     return RangeCheck<Dst>(value) == RangeCheckResult::TYPE_VALID;
@@ -37,10 +38,26 @@ RTC_CPP_EXPORT uint32_t to_uint32(T i) {
     }
 };
 
+// checked_static_cast
 template <typename Dst, typename Src>
 RTC_CPP_EXPORT inline constexpr Dst checked_static_cast(Src value) {
     assert(is_value_in_range<Dst>(value));
     return static_cast<Dst>(value);
+}
+
+// division_with_roundup
+template <typename T,
+          typename std::enable_if<std::is_floating_point<T>::value, T>::type* = nullptr>
+RTC_CPP_EXPORT inline T division_with_roundup(T numerator, T denominator) {
+    assert(denominator > 0);
+    return numerator / denominator + 0.5;
+}
+
+template <typename T,
+          typename std::enable_if<std::is_integral<T>::value, T>::type* = nullptr>
+RTC_CPP_EXPORT inline T division_with_roundup(T numerator, T denominator) {
+    assert(denominator > 0);
+    return (numerator + denominator / 2) / denominator;
 }
 
 }

@@ -41,7 +41,7 @@ ProbeBitrateEstimator::ProbeBitrateEstimator()
     
 ProbeBitrateEstimator::~ProbeBitrateEstimator() = default;
 
-std::optional<DataRate> ProbeBitrateEstimator::IncomingProbePacket(const PacketResult& packet_feedback) {
+std::optional<DataRate> ProbeBitrateEstimator::IncomingProbePacketFeedback(const PacketResult& packet_feedback) {
     assert(packet_feedback.sent_packet.pacing_info.probe_cluster.has_value());
     assert(packet_feedback.sent_packet.pacing_info.probe_cluster->min_bytes > 0);
     assert(packet_feedback.sent_packet.pacing_info.probe_cluster->min_bytes > 0);

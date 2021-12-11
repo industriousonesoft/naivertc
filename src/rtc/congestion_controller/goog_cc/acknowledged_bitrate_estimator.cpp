@@ -21,11 +21,11 @@ void AcknowledgedBitrateEstimator::set_alr_ended_time(Timestamp alr_ended_time) 
     alr_ended_time_.emplace(alr_ended_time);
 }
 
-void AcknowledgedBitrateEstimator::IncomingPacketFeedbackVector(const std::vector<PacketResult>& packet_feedback_vector) {
-    assert(std::is_sorted(packet_feedback_vector.begin(),
-                          packet_feedback_vector.end(),
+void AcknowledgedBitrateEstimator::IncomingPacketFeedbacks(const std::vector<PacketResult>& packet_feedbacks) {
+    assert(std::is_sorted(packet_feedbacks.begin(),
+                          packet_feedbacks.end(),
                           PacketResult::ReceiveTimeOrder()));
-    for (const auto& packet_feedback : packet_feedback_vector) {
+    for (const auto& packet_feedback : packet_feedbacks) {
         if (alr_ended_time_ && packet_feedback.sent_packet.send_time > *alr_ended_time_) {
             bitrate_estimator_->ExpectFastRateChange();
             alr_ended_time_.reset();

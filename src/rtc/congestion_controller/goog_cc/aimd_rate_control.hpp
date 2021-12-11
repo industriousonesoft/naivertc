@@ -46,10 +46,10 @@ public:
     // an RTT, or if the estimated_throughput is less than half of the current
     // estimate. Should be used to decide if we should reduce the rate further
     // when over-using.
-    bool TimeToReduceFurther(Timestamp at_time, DataRate estimated_throughput) const;
+    bool CanReduceFurther(Timestamp at_time, DataRate estimated_throughput) const;
 
-    // As above. To be used if overusing before we have measured a throughput.
-    bool InitialTimeToReduceFurther(Timestamp at_time) const;
+    // As above. To be used if overusing before we have measured a throughput (in initial period).
+    bool CanReduceFurtherInInitialPeriod(Timestamp at_time) const;
 
     DataRate Update(BandwidthUsage bw_state, 
                     std::optional<DataRate> estimated_throughput, 
@@ -76,6 +76,9 @@ private:
                      Timestamp at_time);
     
     bool DontIncreaseInAlr() const;
+
+    bool CanReduceFurther(Timestamp at_time) const;
+    bool CanReduceFurther(DataRate estimated_throughput) const;
 
 private:
     enum class RateControlState { HOLD, INCREASE, DECREASE };

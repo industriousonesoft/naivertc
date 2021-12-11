@@ -19,7 +19,7 @@ public:
     void set_in_alr(bool in_alr);
     void set_alr_ended_time(Timestamp alr_ended_time);
 
-    void IncomingPacketFeedbackVector(const std::vector<PacketResult>& packet_feedback_vector);
+    void IncomingPacketFeedbacks(const std::vector<PacketResult>& packet_feedbacks);
 
     std::optional<DataRate> Estimate() const;
     std::optional<DataRate> PeekRate() const;

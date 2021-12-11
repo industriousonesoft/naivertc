@@ -18,7 +18,7 @@ public:
 
     // Should be called for every probe packet we receive feedback about.
     // Returns the estimated bitrate if the probe completes a valid cluster.
-    std::optional<DataRate> IncomingProbePacket(const PacketResult& packet_feedback);
+    std::optional<DataRate> IncomingProbePacketFeedback(const PacketResult& packet_feedback);
 
     // Return the latest estimated bitrate and will reset it after reading by default.
     std::optional<DataRate> Estimate(bool reset_after_reading = true);

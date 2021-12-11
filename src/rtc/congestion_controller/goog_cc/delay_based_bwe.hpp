@@ -42,10 +42,10 @@ public:
     void SetStartBitrate(DataRate start_bitrate);
     void SetMinBitrate(DataRate min_bitrate);
 
-    Result IncomingPacketFeedbackVector(const TransportPacketsFeedback& packets_feedback_info,
-                                        std::optional<DataRate> acked_bitrate,
-                                        std::optional<DataRate> probe_bitrate,
-                                        bool in_alr);
+    Result IncomingPacketFeedbacks(const TransportPacketsFeedback& packets_feedback_info,
+                                   std::optional<DataRate> acked_bitrate,
+                                   std::optional<DataRate> probe_bitrate,
+                                   bool in_alr);
 
     // Return a pair consisting of the lastest estimated bitrate
     // and a bool denoting whether a valid estimate exists.
@@ -55,8 +55,9 @@ public:
     DataRate last_estimate() const;
 
 private:
-    void IncomingPacketFeedback(const PacketResult& packet_feedback, 
-                                Timestamp at_time);
+    // Try to detect the current bandwidth usage with the incoming packet feedback.
+    BandwidthUsage DetectBandwidthUsage(const PacketResult& packet_feedback, 
+                                             Timestamp at_time);
 
     Result MaybeUpdateEstimate(std::optional<DataRate> acked_bitrate,
                                std::optional<DataRate> probe_bitrate,
@@ -67,8 +68,9 @@ private:
     // Updates the current remote rate estimate.
     // Return a pair consisting of a updated bitrate process by AIMD 
     // and a bool denoting whether a valid estimate exists.
-    std::pair<DataRate, bool> UpdateEstimate(Timestamp at_time, 
-                                             std::optional<DataRate> acked_bitrate);
+    std::pair<DataRate, bool> UpdateEstimate(BandwidthUsage bw_state, 
+                                             std::optional<DataRate> acked_bitrate,
+                                             Timestamp at_time);
 
 private:
     const Configuration config_;
@@ -79,7 +81,7 @@ private:
     std::unique_ptr<TrendlineEstimator> audio_delay_detector_;
     TrendlineEstimator* active_delay_detector_;
 
-    Timestamp last_seen_packet_;
+    Timestamp last_feedback_arrival_time_;
     Timestamp last_video_packet_recv_time_;
     int64_t audio_packets_since_last_video_;
     AimdRateControl rate_control_;

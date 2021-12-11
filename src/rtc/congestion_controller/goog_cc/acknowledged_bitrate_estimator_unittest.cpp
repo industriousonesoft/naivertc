@@ -75,7 +75,7 @@ MY_TEST(AcknowledgedBitrateEstimatorTest, UpdateBandwidth) {
                                                       packet_feedback_vector[1].sent_packet.size,
                                                       /* in_alr */ false)).Times(1);
     }
-    states.acknowledged_bitrate_estimator->IncomingPacketFeedbackVector(packet_feedback_vector);
+    states.acknowledged_bitrate_estimator->IncomingPacketFeedbacks(packet_feedback_vector);
 }
 
 MY_TEST(TestAcknowledgedBitrateEstimator, ExpectFastRateChangeWhenLeftAlr) {
@@ -94,8 +94,7 @@ MY_TEST(TestAcknowledgedBitrateEstimator, ExpectFastRateChangeWhenLeftAlr) {
                        /*in_alr*/ false)).Times(1);
   }
   states.acknowledged_bitrate_estimator->set_alr_ended_time(Timestamp::Millis(kFirstArrivalTimeMs + 1));
-  states.acknowledged_bitrate_estimator->IncomingPacketFeedbackVector(
-      packet_feedback_vector);
+  states.acknowledged_bitrate_estimator->IncomingPacketFeedbacks(packet_feedback_vector);
 }
 
 MY_TEST(TestAcknowledgedBitrateEstimator, ReturnBitrate) {

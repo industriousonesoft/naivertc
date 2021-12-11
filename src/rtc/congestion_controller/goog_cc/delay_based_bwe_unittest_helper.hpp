@@ -108,6 +108,21 @@ protected:
     // Return true if an over-use was detected, false otherwise.
     bool GenerateAndProcessFrame(uint32_t ssrc, uint32_t bitrate_bps);
 
+    // Run the bandwidth estimator with a stream of `num_of_frames` frames,
+    // or until it reaches `target_bitrate`.
+    // Can for instance be used to run the estimator for same time to get it
+    // into a steady state.
+    uint32_t SteadyStateRun(uint32_t ssrc,
+                            int num_of_frames,
+                            uint32_t start_bitrate,
+                            uint32_t min_bitrate,
+                            uint32_t max_bitrate,
+                            uint32_t target_bitrate);
+
+    void LinkCapacityDropTestHelper(int num_of_streams,
+                                    uint32_t expected_bitrate_drop_delta,
+                                    int64_t receiver_clock_offset_change_ms);
+
 protected:
     static const uint32_t kDefaultSsrc = 0;
     SimulatedClock clock_;
