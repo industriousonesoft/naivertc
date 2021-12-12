@@ -93,7 +93,7 @@ private:
     RateControlState rate_control_state_;
     Timestamp time_last_bitrate_change_;
     Timestamp time_last_bitrate_decrease_;
-    Timestamp time_first_throughput_estimate_;
+    Timestamp time_first_throughput_arrive_;
     bool is_bitrate_initialized_;
     double backoff_factor_;
     // ALR (Application Limited Region)

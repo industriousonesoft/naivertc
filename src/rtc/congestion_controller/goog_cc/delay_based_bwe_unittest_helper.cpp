@@ -191,7 +191,7 @@ bool T(DelayBasedBweTest)::GenerateAndProcessFrame(uint32_t ssrc, uint32_t bitra
     DelayBasedBwe::Result ret = bandwidth_estimator_->IncomingPacketFeedbacks(msg,
                                                                               ack_bitrate_estimator_->Estimate(),
                                                                               probe_bitrate_estimator_->Estimate(),
-                                                                                   /*in_alr=*/false);
+                                                                              /*in_alr=*/false);
     if (ret.updated) {
         bitrate_observer_.OnReceiveBitrateChanged(ret.target_bitrate.bps());
         if (!first_update_ && ret.target_bitrate.bps() < bitrate_bps) {

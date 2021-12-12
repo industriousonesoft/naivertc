@@ -21,7 +21,7 @@ AimdRateControl::AimdRateControl(Configuration config)
       rate_control_state_(RateControlState::HOLD),
       time_last_bitrate_change_(Timestamp::MinusInfinity()),
       time_last_bitrate_decrease_(Timestamp::MinusInfinity()),
-      time_first_throughput_estimate_(Timestamp::MinusInfinity()),
+      time_first_throughput_arrive_(Timestamp::MinusInfinity()),
       is_bitrate_initialized_(false),
       backoff_factor_(kDefaultBackoffFactor),
       in_alr_(false),
@@ -102,14 +102,13 @@ bool AimdRateControl::CanReduceFurtherInInitialPeriod(Timestamp at_time) const {
 DataRate AimdRateControl::Update(BandwidthUsage bw_state, 
                                  std::optional<DataRate> estimated_throughput, 
                                  Timestamp at_time) {
-    if (!is_bitrate_initialized_) {
+    // Try to initialize the current bitrate with the `estimated_throughput`.
+    if (!is_bitrate_initialized_ && estimated_throughput) {
         const TimeDelta kInitializationTime = TimeDelta::Seconds(5);
-        if (time_first_throughput_estimate_.IsInfinite()) {
-            if (estimated_throughput) {
-                time_first_throughput_estimate_ = at_time;
-            }
-        } else if (at_time - time_first_throughput_estimate_ > kInitializationTime &&
-                   estimated_throughput) {
+        if (time_first_throughput_arrive_.IsInfinite()) {
+            // The time of the first arrived throughput.
+            time_first_throughput_arrive_ = at_time;
+        } else if (at_time - time_first_throughput_arrive_ > kInitializationTime) {
             curr_bitrate_ = estimated_throughput.value();
             is_bitrate_initialized_ = true;
         }
