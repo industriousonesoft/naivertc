@@ -233,18 +233,20 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
             ret.recovered_from_overuse = recovered_from_overuse;
         }
     }
-    BandwidthUsage detector_state = active_delay_detector_->State();
+    BandwidthUsage detected_state = active_delay_detector_->State();
     if ((ret.updated && prev_bitrate_ != ret.target_bitrate) ||
-        detector_state != prev_state_) {
+        detected_state != prev_state_) {
         auto curr_bitrate = ret.updated ? ret.target_bitrate : prev_bitrate_;
 #if ENABLE_TEST_DEBUG
-        GTEST_COUT << "state: " << prev_state_ << " => " << detector_state << " - "
-                   << "bitrate: " << prev_bitrate_.bps<double>() << " => " << curr_bitrate.bps<double>() << " - "
-                   << "at_time: " << at_time.ms()
-                   << std::endl;
+        if (prev_state_ != detected_state) {
+            GTEST_COUT << "state: " << prev_state_ << " => " << detected_state << " - "
+                       << "bitrate: " << prev_bitrate_.bps<double>() << " => " << curr_bitrate.bps<double>() << " - "
+                       << "at_time: " << at_time.ms()
+                       << std::endl;
+        }
 #endif 
         prev_bitrate_ = curr_bitrate;
-        prev_state_ = detector_state;
+        prev_state_ = detected_state;
     }
 
     return ret;

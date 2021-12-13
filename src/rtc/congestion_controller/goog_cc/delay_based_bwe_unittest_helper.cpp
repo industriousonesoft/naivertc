@@ -118,7 +118,7 @@ std::pair<std::vector<PacketResult>, int64_t> RtpStreamGenerator::GenerateFrame(
 
 // T(DelayBasedBweTest)
 T(DelayBasedBweTest)::T(DelayBasedBweTest)() 
-    : clock_(Timestamp::Millis(100)),
+    : clock_(Timestamp::Millis(0)),
       ack_bitrate_estimator_(std::make_unique<AcknowledgedBitrateEstimator>(std::make_unique<BitrateEstimator>(BitrateEstimator::Configuration()))),
       probe_bitrate_estimator_(std::make_unique<ProbeBitrateEstimator>()),
       bandwidth_estimator_(std::make_unique<DelayBasedBwe>(DelayBasedBwe::Configuration())),
@@ -270,12 +270,15 @@ void T(DelayBasedBweTest)::LinkCapacityDropTestHelper(int num_of_streams,
 
     // Run in steady state to make the estimator converge.
     stream_generator_->set_link_capacity_bps(kInitialCapacityBps);
+    // The steady will consume 10 second as the generated frame = frames_per_second * 10.
     uint32_t bitrate_bps = SteadyStateRun(kDefaultSsrc,
                                           steady_state_time * kFrameRate,
                                           kStartBitrate,
                                           kMinExpectedBitrate,
                                           kMaxExpectedBitrate,
                                           kInitialCapacityBps);
+    // The birate will reach steady state: normal->overuse->normal->underuse->normal.
+    // FIXME: Why the error value is 180 kbp ? (15% off on the initial capacity?)
     EXPECT_NEAR(kInitialCapacityBps, bitrate_bps, 180'000u);
     GTEST_COUT << "steady run bitrate_bps: " << bitrate_bps << std::endl;
     bitrate_observer_.Reset();
@@ -302,7 +305,7 @@ void T(DelayBasedBweTest)::LinkCapacityDropTestHelper(int num_of_streams,
         }
     }
 
-    EXPECT_NEAR(expected_bitrate_drop_delta_ms, bitrate_drop_time_ms - bitrate_drop_time_ms, 33);
+    EXPECT_NEAR(expected_bitrate_drop_delta_ms, bitrate_drop_time_ms - overuse_start_time_ms, 33);
 }
     
 } // namespace test

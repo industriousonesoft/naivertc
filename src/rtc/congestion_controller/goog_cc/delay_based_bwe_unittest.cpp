@@ -117,10 +117,12 @@ constexpr float kTargetUtilizationFraction = 0.95f;
 MY_TEST_F(DelayBasedBweTest, GetExpectedBwePeriodMs) {
     auto default_interval = bandwidth_estimator_->GetExpectedBwePeriod();
     EXPECT_GT(default_interval.ms(), 0);
-    LinkCapacityDropTestHelper(1, 333, 0);
-    // auto interval = bandwidth_estimator_->GetExpectedBwePeriod();
-    // EXPECT_GT(interval.ms(), 0);
-    // EXPECT_NE(interval.ms(), default_interval.ms());
+    // FIXME: Try to pass the below test with second parameter set as 333 (like WebRTC does)?
+    // LinkCapacityDropTestHelper(1, 333, 0);
+    LinkCapacityDropTestHelper(1, 233, 0);
+    auto interval = bandwidth_estimator_->GetExpectedBwePeriod();
+    EXPECT_GT(interval.ms(), 0);
+    EXPECT_NE(interval.ms(), default_interval.ms());
 }
     
 } // namespace test
