@@ -12,6 +12,7 @@ constexpr double kDefaultTrendlineSmoothingCoeff = 0.9;
 constexpr double kDefaultTrendlineThresholdGain = 4.0;
 constexpr double kMaxAdaptOffsetMs = 15.0;
 constexpr double kOverUsingTimeThresholdMs = 10;
+constexpr int kOverUsingCountThreshold = 1;
 constexpr int kMinNumDeltas = 60;
 constexpr int kDeltaCounterMax = 1000;
     
@@ -29,13 +30,14 @@ TrendlineEstimator::TrendlineEstimator(Configuration config)
       smoothed_delay_ms_(0),
       k_up_(0.0087),
       k_down_(0.039),
+      overusing_count_threshold_(kOverUsingCountThreshold),
       overusing_time_threshold_(kOverUsingTimeThresholdMs),
       threshold_(12.5),
       prev_modified_trend_(NAN),
       last_update_ms_(-1),
       prev_trend_(0.0),
-      time_over_using_ms_(-1),
-      overuse_counter_(0),
+      overuse_continuous_time_ms_(-1),
+      overuse_accumated_counter_(0),
       estimated_state_(BandwidthUsage::NORMAL) {}
 
 TrendlineEstimator::~TrendlineEstimator() = default;
@@ -92,6 +94,7 @@ void TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
 
     // Simple linear regression.
     double trend = prev_trend_;
+    // We have enoght smaples to estmate the trend of delay.
     if (delay_hits_.size() == config_.window_size) {
         // Update `trend` if it is possible to fit a line to the data. The delay
         // trend can be seen as an estimate of (send_rate - capacity) / capacity.
@@ -112,38 +115,41 @@ void TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
     Detect(trend, send_delta_ms, arrival_time_ms);
 }
 
-void TrendlineEstimator::Detect(double trend, double ts_delta, int64_t now_ms) {
+void TrendlineEstimator::Detect(double trend, double inter_depature_ms, int64_t now_ms) {
     if (num_of_deltas_ < 2) {
         estimated_state_ = BandwidthUsage::NORMAL;
         return;
     }
     const double modified_trend = std::min<double>(num_of_deltas_, kMinNumDeltas) * trend * threshold_gain_;
     prev_modified_trend_ = modified_trend;
+    // Overusing
     if (modified_trend > threshold_) {
-        if (time_over_using_ms_ == -1) {
-            // Initialize the timer. Assume that we've been
-            // over-using half of the time since the previous
-            // sample.
-            time_over_using_ms_ = ts_delta / 2;
+        if (overuse_continuous_time_ms_ == -1) {
+            // Assume that we've been over-using half of 
+            // the time since the previous sample.
+            overuse_continuous_time_ms_ = inter_depature_ms / 2;
         } else {
             // Increment timer.
-            time_over_using_ms_ += ts_delta;
+            overuse_continuous_time_ms_ += inter_depature_ms;
         }
-        ++overuse_counter_;
-        if (time_over_using_ms_ > overusing_time_threshold_ && overuse_counter_ > 1) {
-            if (trend >= prev_trend_) {
-                time_over_using_ms_ = 0;
-                overuse_counter_ = 0;
-                estimated_state_ = BandwidthUsage::OVERUSING;
-            }
+        ++overuse_accumated_counter_;
+        // No detect overusing sensitively.
+        if (overuse_continuous_time_ms_ > overusing_time_threshold_ && 
+            overuse_accumated_counter_ > overusing_count_threshold_ &&
+            trend >= prev_trend_) {
+            overuse_continuous_time_ms_ = 0;
+            overuse_accumated_counter_ = 0;
+            estimated_state_ = BandwidthUsage::OVERUSING;
         }
+    // Underusing
     } else if (modified_trend < -threshold_) {
-        time_over_using_ms_ = -1;
-        overuse_counter_ = 0;
+        overuse_continuous_time_ms_ = -1;
+        overuse_accumated_counter_ = 0;
         estimated_state_ = BandwidthUsage::UNDERUSING;
+    // Nomal
     } else {
-        time_over_using_ms_ = -1;
-        overuse_counter_ = 0;
+        overuse_continuous_time_ms_ = -1;
+        overuse_accumated_counter_ = 0;
         estimated_state_ = BandwidthUsage::NORMAL;
     }
     prev_trend_ = trend;

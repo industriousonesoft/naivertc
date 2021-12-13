@@ -48,7 +48,7 @@ private:
                          int64_t arrival_time_ms,
                          size_t packet_size);
 
-    void Detect(double trend, double ts_delta, int64_t now_ms);
+    void Detect(double trend, double inter_depature_ms, int64_t now_ms);
     void UpdateThreshold(double modified_trend, int now_ms);
 
     std::optional<double> CalcLinearFitSlope() const;
@@ -87,13 +87,16 @@ private:
 
     const double k_up_;
     const double k_down_;
+    int overusing_count_threshold_;
     double overusing_time_threshold_;
     double threshold_;
     double prev_modified_trend_;
     int64_t last_update_ms_;
     double prev_trend_;
-    double time_over_using_ms_;
-    int overuse_counter_;
+    // The continuous time of being over-using state since the previous sample.
+    double overuse_continuous_time_ms_;
+    // The accumated count of being over-using state since the prevous sample.
+    int overuse_accumated_counter_;
     BandwidthUsage estimated_state_;
 
     DISALLOW_COPY_AND_ASSIGN(TrendlineEstimator);
