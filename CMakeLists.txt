@@ -256,6 +256,7 @@ set(LIB_SOURCES
 
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/network_types.cpp
+    src/rtc/congestion_controller/goog_cc/defines.cpp
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.cpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator.cpp
     src/rtc/congestion_controller/goog_cc/link_capacity_estimator.cpp

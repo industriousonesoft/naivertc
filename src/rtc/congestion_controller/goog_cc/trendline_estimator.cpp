@@ -4,6 +4,11 @@
 
 #include <algorithm>
 
+#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 0)
+#if ENABLE_TEST_DEBUG
+#include "testing/defines.hpp"
+#endif
+
 namespace naivertc {
 namespace {
 
@@ -42,16 +47,16 @@ TrendlineEstimator::TrendlineEstimator(Configuration config)
 
 TrendlineEstimator::~TrendlineEstimator() = default;
 
-void TrendlineEstimator::Update(double recv_delta_ms,
-                                double send_delta_ms,
-                                int64_t send_time_ms,
-                                int64_t arrival_time_ms,
-                                size_t packet_size) {
-    UpdateTrendline(recv_delta_ms, 
-                    send_delta_ms, 
-                    send_time_ms, 
-                    arrival_time_ms, 
-                    packet_size);
+BandwidthUsage TrendlineEstimator::Update(double recv_delta_ms,
+                                          double send_delta_ms,
+                                          int64_t send_time_ms,
+                                          int64_t arrival_time_ms,
+                                          size_t packet_size) {
+    return UpdateTrendline(recv_delta_ms, 
+                           send_delta_ms, 
+                           send_time_ms, 
+                           arrival_time_ms, 
+                           packet_size);
 }
 
 BandwidthUsage TrendlineEstimator::State() const {
@@ -59,11 +64,11 @@ BandwidthUsage TrendlineEstimator::State() const {
 }
 
 // Private methods
-void TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
-                                         double send_delta_ms,
-                                         int64_t send_time_ms,
-                                         int64_t arrival_time_ms,
-                                         size_t packet_size) {
+BandwidthUsage TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
+                                                   double send_delta_ms,
+                                                   int64_t send_time_ms,
+                                                   int64_t arrival_time_ms,
+                                                   size_t packet_size) {
     // Inter-group delay variation
     const double propagation_delta_ms = recv_delta_ms - send_delta_ms;
     ++num_of_deltas_;
@@ -112,25 +117,33 @@ void TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
         }
     }
 
-    Detect(trend, send_delta_ms, arrival_time_ms);
+    // FIXME: The reason of using inter-departure instead of inter-arrval is that we  
+    // used the inter-departure to detect the packet group (also known as sample here) in
+    // `InterArrivalDelta`?
+    return Detect(trend, send_delta_ms, arrival_time_ms);
 }
 
-void TrendlineEstimator::Detect(double trend, double inter_depature_ms, int64_t now_ms) {
+BandwidthUsage TrendlineEstimator::Detect(double trend, double inter_departure_ms, int64_t now_ms) {
     if (num_of_deltas_ < 2) {
         estimated_state_ = BandwidthUsage::NORMAL;
-        return;
+        return estimated_state_;
     }
     const double modified_trend = std::min<double>(num_of_deltas_, kMinNumDeltas) * trend * threshold_gain_;
     prev_modified_trend_ = modified_trend;
+#if ENABLE_TEST_DEBUG
+    GTEST_COUT << "modified_trend=" << modified_trend << " - "
+               << "threshold=" << threshold_
+               << std::endl;
+#endif
     // Overusing
     if (modified_trend > threshold_) {
         if (overuse_continuous_time_ms_ == -1) {
             // Assume that we've been over-using half of 
             // the time since the previous sample.
-            overuse_continuous_time_ms_ = inter_depature_ms / 2;
+            overuse_continuous_time_ms_ = inter_departure_ms / 2;
         } else {
             // Increment timer.
-            overuse_continuous_time_ms_ += inter_depature_ms;
+            overuse_continuous_time_ms_ += inter_departure_ms;
         }
         ++overuse_accumated_counter_;
         // No detect overusing sensitively.
@@ -140,6 +153,8 @@ void TrendlineEstimator::Detect(double trend, double inter_depature_ms, int64_t 
             overuse_continuous_time_ms_ = 0;
             overuse_accumated_counter_ = 0;
             estimated_state_ = BandwidthUsage::OVERUSING;
+        } else {
+            // Remains the previous state. 
         }
     // Underusing
     } else if (modified_trend < -threshold_) {
@@ -154,6 +169,7 @@ void TrendlineEstimator::Detect(double trend, double inter_depature_ms, int64_t 
     }
     prev_trend_ = trend;
     UpdateThreshold(modified_trend, now_ms);
+    return estimated_state_;
 }
 
 void TrendlineEstimator::UpdateThreshold(double modified_trend, int now_ms) {

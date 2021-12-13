@@ -46,7 +46,7 @@ public:
     void set_bitrate_bps(int bitrate_bps) { bitrate_bps_ = bitrate_bps; }
 
     // The send-side time when the next frame can be generated.
-    int64_t next_rtp_time_us() const { return next_rtp_time_us_; }
+    int64_t next_time_to_generate_frame_us() const { return next_time_to_generate_frame_us_; }
 
     std::vector<PacketResult> GenerateFrame(int64_t now_us);
 
@@ -56,7 +56,7 @@ public:
 private:
     int fps_;
     int bitrate_bps_;
-    int64_t next_rtp_time_us_;
+    int64_t next_time_to_generate_frame_us_;
 };
 
 // RtpStreamGenerator
@@ -120,7 +120,7 @@ protected:
                             uint32_t target_bitrate);
 
     void LinkCapacityDropTestHelper(int num_of_streams,
-                                    uint32_t expected_bitrate_drop_delta,
+                                    uint32_t expected_bitrate_drop_delta_ms,
                                     int64_t receiver_clock_offset_change_ms);
 
 protected:

@@ -2,6 +2,11 @@
 
 #include <plog/Log.h>
 
+#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 0)
+#if ENABLE_TEST_DEBUG
+#include "testing/defines.hpp"
+#endif
+
 namespace naivertc {
 namespace {
 
@@ -68,15 +73,18 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPack
 
     bool delayed_feedback = true;
     bool recovered_from_overuse = false;
-    BandwidthUsage prev_detector_state = active_delay_detector_->State();
+    BandwidthUsage prev_state = active_delay_detector_->State();
     for (const auto& packet_feedback : packet_feedbacks) {
         delayed_feedback = false;
-        auto curr_detector_state = DetectBandwidthUsage(packet_feedback, packets_feedback_info.feedback_time);
-        if (prev_detector_state == BandwidthUsage::UNDERUSING &&
-            curr_detector_state == BandwidthUsage::NORMAL) {
+        auto curr_state = Detect(packet_feedback, packets_feedback_info.feedback_time);
+        if (prev_state == BandwidthUsage::UNDERUSING &&
+            curr_state == BandwidthUsage::NORMAL) {
+#if ENABLE_TEST_DEBUG
+            GTEST_COUT << "Reconvered from overuse." << std::endl;
+#endif
             recovered_from_overuse = true;
         }
-        prev_detector_state = curr_detector_state;
+        prev_state = curr_state;
     }
 
     // FIXME: How to understand this mechanism? who not use packet_feedbacks.empty() instead?
@@ -107,8 +115,8 @@ DataRate DelayBasedBwe::last_estimate() const {
 }
 
 // Private methods
-BandwidthUsage DelayBasedBwe::DetectBandwidthUsage(const PacketResult& packet_feedback, 
-                                                   Timestamp at_time) {
+BandwidthUsage DelayBasedBwe::Detect(const PacketResult& packet_feedback, 
+                                     Timestamp at_time) {
     // Reset if the stream has time out.
     if (last_feedback_arrival_time_.IsInfinite() ||
         at_time - last_feedback_arrival_time_ > kStreamTimeOut) {
@@ -147,18 +155,30 @@ BandwidthUsage DelayBasedBwe::DetectBandwidthUsage(const PacketResult& packet_fe
     InterArrivalDelta* inter_arrival_for_packet = (config_.separate_audio && packet_feedback.sent_packet.is_audio) 
                                                   ? video_inter_arrival_delta_.get()
                                                   : audio_inter_arrival_delta_.get();
-    // Waits for two adjacent packet group, and try to compute the deltas of them.
+    // Waits for two adjacent packet group arriving, and try to compute the deltas of them.
     auto deltas = inter_arrival_for_packet->ComputeDeltas(packet_feedback.sent_packet.send_time,
                                                           packet_feedback.recv_time,
                                                           at_time,
-                                                          packet_size);
+                                                          packet_size);                                     
     // Detected two adjacent packet groups.
     if (deltas) {
-        delay_detector_for_packet->Update(deltas->arrival_time_delta.ms(),
-                                          deltas->send_time_delta.ms(),
-                                          packet_feedback.sent_packet.send_time.ms(),
-                                          packet_feedback.recv_time.ms(),
-                                          packet_size);
+#if ENABLE_TEST_DEBUG
+    // GTEST_COUT << "inter-departure=" << deltas->send_time_delta.ms() << " - "
+    //            << "inter-arrval=" << deltas->arrival_time_delta.ms()
+    //            << std::endl;
+#endif
+        BandwidthUsage prev_state = delay_detector_for_packet->State();
+        auto state = delay_detector_for_packet->Update(deltas->arrival_time_delta.ms(),
+                                                       deltas->send_time_delta.ms(),
+                                                       packet_feedback.sent_packet.send_time.ms(),
+                                                       packet_feedback.recv_time.ms(),
+                                                       packet_size);
+        if (prev_state != state) {
+#if ENABLE_TEST_DEBUG
+            GTEST_COUT << "state: " << prev_state << " => " << state
+                       << std::endl;
+#endif 
+        }
     }
     return active_delay_detector_->State();
 }
@@ -216,8 +236,14 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
     BandwidthUsage detector_state = active_delay_detector_->State();
     if ((ret.updated && prev_bitrate_ != ret.target_bitrate) ||
         detector_state != prev_state_) {
-        DataRate bitrate = ret.updated ? ret.target_bitrate : prev_bitrate_;
-        prev_bitrate_ = bitrate;
+        auto curr_bitrate = ret.updated ? ret.target_bitrate : prev_bitrate_;
+#if ENABLE_TEST_DEBUG
+        GTEST_COUT << "state: " << prev_state_ << " => " << detector_state << " - "
+                   << "bitrate: " << prev_bitrate_.bps<double>() << " => " << curr_bitrate.bps<double>() << " - "
+                   << "at_time: " << at_time.ms()
+                   << std::endl;
+#endif 
+        prev_bitrate_ = curr_bitrate;
         prev_state_ = detector_state;
     }
 

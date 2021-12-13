@@ -3,6 +3,8 @@
 
 #include "base/defines.hpp"
 
+#include <iostream>
+
 namespace naivertc {
 
 enum class BandwidthUsage {
@@ -10,6 +12,8 @@ enum class BandwidthUsage {
     UNDERUSING,
     OVERUSING
 };
+
+std::ostream& operator<<(std::ostream& out, BandwidthUsage usage);
     
 } // namespace naivertc
 

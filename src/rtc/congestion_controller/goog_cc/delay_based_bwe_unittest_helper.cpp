@@ -19,7 +19,8 @@ constexpr int kInitialProbingPackets = 5;
 
 // TestBitrateObserver
 TestBitrateObserver::TestBitrateObserver() 
-    : updated_(false), latest_bitrate_bps_(0) {}
+    : updated_(false), 
+      latest_bitrate_bps_(0) {}
 
 TestBitrateObserver::~TestBitrateObserver() = default;
 
@@ -36,31 +37,34 @@ void TestBitrateObserver::Reset() {
 // RtpStream
 RtpStream::RtpStream(int fps, int bitrate_bps) 
     : fps_(fps),
-      bitrate_bps_(bitrate_bps) {}
+      bitrate_bps_(bitrate_bps),
+      next_time_to_generate_frame_us_(0) {}
 
 RtpStream::~RtpStream() = default;
 
 std::vector<PacketResult> RtpStream::GenerateFrame(int64_t now_us) {
     std::vector<PacketResult> packets;
-    if (now_us < next_rtp_time_us_) {
+    if (now_us < next_time_to_generate_frame_us_) {
         return packets;
     }
     size_t bits_per_frame = utils::numeric::division_with_roundup(bitrate_bps_, fps_);
     size_t num_packets = std::max<size_t>(utils::numeric::division_with_roundup(bits_per_frame, 8 * kMtu), 1u);
     size_t bytes_per_packet = utils::numeric::division_with_roundup(bits_per_frame, 8 * num_packets);
+    int64_t send_time_us = now_us + kSendSideOffsetUs;
     for (size_t i = 0; i < num_packets; ++i) {
         PacketResult packet;
-        packet.sent_packet.send_time = Timestamp::Micros(now_us + kSendSideOffsetUs);
+        packet.sent_packet.send_time = Timestamp::Micros(send_time_us);
         packet.sent_packet.size = bytes_per_packet;
         packets.push_back(std::move(packet));
     }
-    next_rtp_time_us_ = utils::numeric::division_with_roundup<int64_t>(now_us + kSendSideOffsetUs, fps_);
+    int64_t interval_to_generate_frame_us = utils::numeric::division_with_roundup<int64_t>(1000'000 /* micros per second */, fps_);
+    next_time_to_generate_frame_us_ = now_us + interval_to_generate_frame_us;
     return packets;
 }
 
 bool RtpStream::Compare(const std::unique_ptr<RtpStream>& lhs,
                         const std::unique_ptr<RtpStream>& rhs) {
-    return lhs->next_rtp_time_us_ < rhs->next_rtp_time_us_;
+    return lhs->next_time_to_generate_frame_us_ < rhs->next_time_to_generate_frame_us_;
 }
 
 // RtpStreamGenerator
@@ -96,11 +100,12 @@ void RtpStreamGenerator::SetBitrateBps(int new_bitrate_bps) {
 }
 
 std::pair<std::vector<PacketResult>, int64_t> RtpStreamGenerator::GenerateFrame(int64_t now_us) {
+    // Find the next RTP stream to generate frame.
     auto it = std::min_element(streams_.begin(), streams_.end(), RtpStream::Compare);
     auto packets = (*it)->GenerateFrame(now_us);
     int i = 0;
     for (PacketResult& packet : packets) {
-        int capacity_bpus = link_capacity_bps_ / 1000'000;
+        int capacity_bpus = link_capacity_bps_ / 1000;
         int64_t transport_time_us = utils::numeric::division_with_roundup<int64_t>(8 * 1000 * packet.sent_packet.size, capacity_bpus);
         int64_t arrival_time_us_ = std::max(now_us + transport_time_us, pre_arrival_time_us_ + transport_time_us);
         packet.recv_time = Timestamp::Micros(arrival_time_us_);
@@ -108,7 +113,7 @@ std::pair<std::vector<PacketResult>, int64_t> RtpStreamGenerator::GenerateFrame(
         ++i;
     }
     it = std::min_element(streams_.begin(), streams_.end(), RtpStream::Compare);
-    return {packets, std::max((*it)->next_rtp_time_us(), now_us)};
+    return {packets, std::max((*it)->next_time_to_generate_frame_us(), now_us)};
 }
 
 // T(DelayBasedBweTest)
@@ -117,7 +122,7 @@ T(DelayBasedBweTest)::T(DelayBasedBweTest)()
       ack_bitrate_estimator_(std::make_unique<AcknowledgedBitrateEstimator>(std::make_unique<BitrateEstimator>(BitrateEstimator::Configuration()))),
       probe_bitrate_estimator_(std::make_unique<ProbeBitrateEstimator>()),
       bandwidth_estimator_(std::make_unique<DelayBasedBwe>(DelayBasedBwe::Configuration())),
-      stream_generator_(std::make_unique<RtpStreamGenerator>(/*link_capacity_bps=*/1e6, clock_.now_ms())),
+      stream_generator_(std::make_unique<RtpStreamGenerator>(/*link_capacity_bps=*/1e6, clock_.now_us())),
       recv_time_offset_ms_(0),
       first_update_(true) {}
 
@@ -163,7 +168,7 @@ void T(DelayBasedBweTest)::IncomingFeedback(int64_t recv_time_ms,
 bool T(DelayBasedBweTest)::GenerateAndProcessFrame(uint32_t ssrc, uint32_t bitrate_bps) {
     // Generates frame with a given bitrate.
     stream_generator_->SetBitrateBps(bitrate_bps);
-    auto [packets, next_time_us] = stream_generator_->GenerateFrame(clock_.now_ms());
+    auto [packets, next_time_us] = stream_generator_->GenerateFrame(clock_.now_us());
     if (packets.empty()) {
         return false;
     }
@@ -233,7 +238,7 @@ uint32_t T(DelayBasedBweTest)::SteadyStateRun(uint32_t ssrc,
 }
 
 void T(DelayBasedBweTest)::LinkCapacityDropTestHelper(int num_of_streams,
-                                                      uint32_t expected_bitrate_drop_delta,
+                                                      uint32_t expected_bitrate_drop_delta_ms,
                                                       int64_t receiver_clock_offset_change_ms) {
     const int kFrameRate = 30;
     const int kStartBitrate = 900e3;
@@ -272,27 +277,32 @@ void T(DelayBasedBweTest)::LinkCapacityDropTestHelper(int num_of_streams,
                                           kMaxExpectedBitrate,
                                           kInitialCapacityBps);
     EXPECT_NEAR(kInitialCapacityBps, bitrate_bps, 180'000u);
+    GTEST_COUT << "steady run bitrate_bps: " << bitrate_bps << std::endl;
     bitrate_observer_.Reset();
 
-    // // Add an offset to make sure the BWE can handle it.
-    // recv_time_offset_ms_ += receiver_clock_offset_change_ms;
+    // Add an offset to make sure the BWE can handle it.
+    recv_time_offset_ms_ += receiver_clock_offset_change_ms;
 
-    // // Reduce the capacity and verify the decrease time.
-    // stream_generator_->set_link_capacity_bps(kReducedCapcacityBps);
-    // int64_t overuse_start_time = clock_.now_ms();
-    // int64_t bitrate_drop_time = -1;
-    // for (int i = 0; i < 100 * num_of_streams; ++i) {
-    //     GenerateAndProcessFrame(kDefaultSsrc, bitrate_bps);
-    //     if (bitrate_drop_time == -1 &&
-    //         bitrate_observer_.latest_bitrate_bps() <= kReducedCapcacityBps) {
-    //         bitrate_drop_time = clock_.now_ms();
-    //     }
-    //     if (bitrate_observer_.updated()) {
-    //         bitrate_bps = bitrate_observer_.latest_bitrate_bps();
-    //     }
-    // }
+    // Reduce the capacity and verify the decrease time.
+    stream_generator_->set_link_capacity_bps(kReducedCapcacityBps);
+    int64_t overuse_start_time_ms = clock_.now_ms();
+    int64_t bitrate_drop_time_ms = -1;
+    int frames_per_stream = 100;
+    for (int i = 0; i < frames_per_stream * num_of_streams; ++i) {
+        GenerateAndProcessFrame(kDefaultSsrc, bitrate_bps);
+        if (bitrate_drop_time_ms == -1 &&
+            bitrate_observer_.latest_bitrate_bps() <= kReducedCapcacityBps) {
+            bitrate_drop_time_ms = clock_.now_ms();
+            GTEST_COUT << "drop from: " << overuse_start_time_ms << " to " << bitrate_drop_time_ms << " - " 
+                       << "reduced to: " << bitrate_bps 
+                       << std::endl;
+        }
+        if (bitrate_observer_.updated()) {
+            bitrate_bps = bitrate_observer_.latest_bitrate_bps();
+        }
+    }
 
-    // EXPECT_NEAR(expected_bitrate_drop_delta, bitrate_drop_time - overuse_start_time, 33);
+    EXPECT_NEAR(expected_bitrate_drop_delta_ms, bitrate_drop_time_ms - bitrate_drop_time_ms, 33);
 }
     
 } // namespace test

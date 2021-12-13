@@ -56,8 +56,8 @@ public:
 
 private:
     // Try to detect the current bandwidth usage with the incoming packet feedback.
-    BandwidthUsage DetectBandwidthUsage(const PacketResult& packet_feedback, 
-                                             Timestamp at_time);
+    BandwidthUsage Detect(const PacketResult& packet_feedback, 
+                          Timestamp at_time);
 
     Result MaybeUpdateEstimate(std::optional<DataRate> acked_bitrate,
                                std::optional<DataRate> probe_bitrate,

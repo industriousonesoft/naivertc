@@ -32,23 +32,23 @@ public:
     ~TrendlineEstimator();
 
     // Update the detector with a new sample.
-    void Update(double recv_delta_ms,
-                double send_delta_ms,
-                int64_t send_time_ms,
-                int64_t arrival_time_ms,
-                size_t packet_size);
+    BandwidthUsage Update(double recv_delta_ms,
+                          double send_delta_ms,
+                          int64_t send_time_ms,
+                          int64_t arrival_time_ms,
+                          size_t packet_size);
 
     // Return the current bandwidth usage state.
     BandwidthUsage State() const;
 
 private:
-    void UpdateTrendline(double recv_delta_ms,
-                         double send_delta_ms,
-                         int64_t send_time_ms,
-                         int64_t arrival_time_ms,
-                         size_t packet_size);
+    BandwidthUsage UpdateTrendline(double recv_delta_ms,
+                                   double send_delta_ms,
+                                   int64_t send_time_ms,
+                                   int64_t arrival_time_ms,
+                                   size_t packet_size);
 
-    void Detect(double trend, double inter_depature_ms, int64_t now_ms);
+    BandwidthUsage Detect(double trend, double inter_departure_ms, int64_t now_ms);
     void UpdateThreshold(double modified_trend, int now_ms);
 
     std::optional<double> CalcLinearFitSlope() const;
