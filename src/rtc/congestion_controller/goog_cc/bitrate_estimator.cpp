@@ -128,8 +128,8 @@ std::pair<float, bool> BitrateEstimator::CalcImmediateBitrate(int64_t now_ms,
         curr_window_ms_ -= rate_window_ms;
         accumulated_bytes_ = 0;
 #if ENABLE_TEST_DEBUG
-        GTEST_COUT << "Estimated bitrate: " << immediate_bitrate_kbps << " - "
-                   << "curr_window: " << curr_window_ms_
+        GTEST_COUT << "Estimated bitrate: " << immediate_bitrate_kbps << " kbps - "
+                   << "at_time: " << now_ms 
                    << std::endl;
 #endif
     }

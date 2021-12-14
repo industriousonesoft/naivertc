@@ -226,7 +226,7 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
         detected_state != prev_state_) {
         auto curr_bitrate = ret.updated ? ret.target_bitrate : prev_bitrate_;
 #if ENABLE_TEST_DEBUG
-        if (prev_state_ != detected_state) {
+        if (prev_state_ != detected_state || prev_bitrate_ != curr_bitrate) {
             GTEST_COUT << "state: " << prev_state_ << " => " << detected_state << " - "
                        << "bitrate: " << prev_bitrate_.bps<double>() << " => " << curr_bitrate.bps<double>() << " - "
                        << "at_time: " << at_time.ms()

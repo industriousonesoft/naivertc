@@ -7,12 +7,6 @@ namespace test {
 namespace {
 
 constexpr size_t kMtu = 1200;
-constexpr uint32_t kAcceptedBitrateErrorBps = 50000;
-
-// Number of packets needed before we have a valid estimate.
-constexpr int kNumInitialPackets = 2;
-
-constexpr int kInitialProbingPackets = 5;
     
 } // namespace
 

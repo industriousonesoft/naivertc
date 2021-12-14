@@ -141,7 +141,7 @@ DataRate AimdRateControl::GetNearMaxIncreaseRatePerSecond() const {
     // 100 ms as an estimate of over-use estimator and detector reaction time.
     TimeDelta response_time = rtt_ + TimeDelta::Millis(100);
     // FIXME: Dose this mean that the adaptive threshold used in `TrendlineEstimator`?
-    if (config_.adaptive_threshold_in_experiment) {
+    if (config_.adaptive_threshold_enabled) {
         response_time = response_time * 2;
     }
     // Additive increases of bitrate: Add one packet per response time when no over-use is detected.
@@ -221,39 +221,40 @@ void AimdRateControl::ChangeBitrate(BandwidthUsage bw_state,
     switch (rate_control_state_) {
     case RateControlState::HOLD:
         break;
-    case RateControlState::INCREASE:
+    case RateControlState::INCREASE: {
         // If throughput increases above three standard deviations of the average
         // max bitrate, we assume that the current congestion level has changed,
         // at which point we reset the average max bitrate and go back to the
         // multiplicative increase state.
         if (estimated_throughput > link_capacity_.UpperBound()) {
             link_capacity_.Reset();
-
-            // Do not increase the delay based estimate in alr since the estimator
-            // will not be able to get transport feedback necessary to detect if
-            // the new estimate is correct.
-            // If we have previously increased above the limit (for instance due to
-            // probing), we don't allow further changes.
-            if (curr_bitrate_ < throughput_based_limit &&
-                !DontIncreaseInAlr()) {
-                DataRate increased_bitrate = DataRate::MinusInfinity();
-                if (link_capacity_.Estimate().has_value()) {
-                    // The `link_capacity_` estimate is reset if the measured throughput
-                    // is too far from the estimate. We can therefore assume that our target
-                    // rate is reasonably to link capacity and use additive increase.
-                    DataRate additive_increase = AdditiveRateIncrease(at_time, time_last_bitrate_change_);
-                    increased_bitrate = curr_bitrate_ + additive_increase;
-                } else {
-                    // If we don't have an estimate of the link capacity, use faster ramp
-                    // up to discover the capacity.
-                    DataRate multiplicative_increase = MultiplicativeRateIncrease(at_time, time_last_bitrate_change_, curr_bitrate_);
-                    increased_bitrate = curr_bitrate_ + multiplicative_increase;
-                }
-                new_bitrate = std::min(increased_bitrate, throughput_based_limit);
-            }
         }
+
+        // Do not increase the delay based estimate in alr since the estimator
+        // will not be able to get transport feedback necessary to detect if
+        // the new estimate is correct.
+        // If we have previously increased above the limit (for instance due to
+        // probing), we don't allow further changes.
+        if (curr_bitrate_ < throughput_based_limit && !DontIncreaseInAlr()) {
+            DataRate increased_bitrate = DataRate::MinusInfinity();
+            if (link_capacity_.Estimate().has_value()) {
+                // The `link_capacity_` estimate is not reset which means the measured 
+                // throughput is not too far from it. So we can therefore assume that 
+                // our target rate is reasonably to link capacity and use additive increase.
+                DataRate additive_increase = AdditiveRateIncrease(at_time, time_last_bitrate_change_);
+                increased_bitrate = curr_bitrate_ + additive_increase;
+            } else {
+                // If we don't have an estimate of the link capacity, use faster ramp
+                // up to discover the capacity.
+                DataRate multiplicative_increase = MultiplicativeRateIncrease(at_time, time_last_bitrate_change_, curr_bitrate_);
+                increased_bitrate = curr_bitrate_ + multiplicative_increase;
+            }
+            new_bitrate = std::min(increased_bitrate, throughput_based_limit);
+        }
+        
         time_last_bitrate_change_ = at_time;
         break;
+    }
     case RateControlState::DECREASE: {
         DataRate decreased_bitrate = DataRate::PlusInfinity();
         

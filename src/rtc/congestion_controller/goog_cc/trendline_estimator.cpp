@@ -130,13 +130,6 @@ BandwidthUsage TrendlineEstimator::Detect(double trend, double inter_departure_m
     }
     const double modified_trend = std::min<double>(num_of_deltas_, kMinNumDeltas) * trend * threshold_gain_;
     prev_modified_trend_ = modified_trend;
-#if ENABLE_TEST_DEBUG
-    GTEST_COUT << "modified_trend: " << modified_trend << " vs "
-               << "threshold: " << threshold_ << " - "
-               << "trend: " << trend << " vs "
-               << "prev_trend: " << prev_trend_
-               << std::endl;
-#endif
     // Overusing
     if (modified_trend > threshold_) {
         if (overuse_continuous_time_ms_ == -1) {
@@ -169,6 +162,14 @@ BandwidthUsage TrendlineEstimator::Detect(double trend, double inter_departure_m
         overuse_accumated_counter_ = 0;
         estimated_state_ = BandwidthUsage::NORMAL;
     }
+#if ENABLE_TEST_DEBUG
+    GTEST_COUT << "modified_trend: " << modified_trend << " vs "
+               << "threshold: " << threshold_ << " - "
+               << "trend: " << trend << " vs "
+               << "prev_trend: " << prev_trend_ << " - "
+               << "estimated_state: " << estimated_state_
+               << std::endl;
+#endif
     prev_trend_ = trend;
     UpdateThreshold(modified_trend, now_ms);
     return estimated_state_;

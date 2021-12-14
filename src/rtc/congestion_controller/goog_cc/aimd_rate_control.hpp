@@ -19,12 +19,10 @@ class RTC_CPP_EXPORT AimdRateControl {
 public:
     struct Configuration {
         bool send_side = false;
-        bool adaptive_threshold_in_experiment = true;
+        bool adaptive_threshold_enabled = true;
         bool no_bitrate_increase_in_alr = false;
-        bool estimate_bounded_backoff = true;
-        bool estimate_bounded_increase = true;
-        std::optional<TimeDelta> initial_backoff_interval = std::nullopt;
         bool link_capacity_fix = false;
+        std::optional<TimeDelta> initial_backoff_interval = std::nullopt;
         DataRate min_bitrate = DataRate::BitsPerSec(5'000);
         DataRate max_bitrate = DataRate::KilobitsPerSec(30'000);
     };
