@@ -48,8 +48,8 @@ public:
     // when over-using.
     bool CanReduceFurther(Timestamp at_time, DataRate estimated_throughput) const;
 
-    // As above. To be used if overusing before we have measured a throughput (in initial period).
-    bool CanReduceFurtherInInitialPeriod(Timestamp at_time) const;
+    // As above. To be used if overusing before we have measured a throughput.
+    bool CanReduceFurtherBeforeMeasuredThroughput(Timestamp at_time) const;
 
     DataRate Update(BandwidthUsage bw_state, 
                     std::optional<DataRate> estimated_throughput, 

@@ -81,22 +81,33 @@ TimeDelta AimdRateControl::GetFeedbackInterval() const {
 }
 
 bool AimdRateControl::CanReduceFurther(Timestamp at_time, DataRate estimated_throughput) const {
-    return CanReduceFurther(at_time) || CanReduceFurther(estimated_throughput);
+    if (!is_bitrate_initialized_) {
+        return false;
+    } else {
+        return CanReduceFurther(at_time) || CanReduceFurther(estimated_throughput);
+    }
 }
 
-bool AimdRateControl::CanReduceFurtherInInitialPeriod(Timestamp at_time) const {
-    if (!config_.initial_backoff_interval) {
-        return ValidEstimate() && CanReduceFurther(at_time);
+bool AimdRateControl::CanReduceFurtherBeforeMeasuredThroughput(Timestamp at_time) const {
+    if (!is_bitrate_initialized_) {
+        return false;
     }
-    // If the bitrate estimate hasn't been decreased before or more 
-    // the `initial_backoff_interval`.
-    // TODO: We could use the RTT (clamped to suitable limits) 
-    // instead of a fixed bitrate_reduction_interval.
-    if (time_last_bitrate_decrease_.IsInfinite() ||
-        at_time - time_last_bitrate_decrease_ >= *config_.initial_backoff_interval) {
+    if (config_.initial_backoff_interval) {
+        // If the bitrate estimate hasn't been decreased before or more 
+        // the `initial_backoff_interval`.
+        // TODO: We could use the RTT (clamped to suitable limits) 
+        // instead of a fixed bitrate_reduction_interval.
+        if (time_last_bitrate_decrease_.IsInfinite() ||
+            at_time - time_last_bitrate_decrease_ >= *config_.initial_backoff_interval) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        // If the `initial_backoff_interval` is not set, 
+        // we can reduce further when the bitrate is initialized.
         return true;
     }
-    return false;
 }
 
 DataRate AimdRateControl::Update(BandwidthUsage bw_state, 

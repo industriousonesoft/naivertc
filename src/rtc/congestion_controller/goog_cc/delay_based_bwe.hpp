@@ -13,13 +13,22 @@ namespace naivertc {
 // A bandwidth estimation based on delay.
 class RTC_CPP_EXPORT DelayBasedBwe {
 public:
+    using AimdRateControlConfig = AimdRateControl::Configuration;
+    using TrendlineEstimatorConfig = TrendlineEstimator::Configuration;
+    struct SeparateAudioConfiguration {
+        // Denotes whether to separate audio from video packets to detect bandwidth usage.
+        bool enabled = false;
+        // The audio packets have accumulated until the next video packet arrive.
+        int packet_threshold = 10;
+        // The time has elpased until the next video packet arrive.
+        TimeDelta time_threshold = TimeDelta::Seconds(1);
+    };
+
     struct Configuration {
-        // Denotes whether to separate audio and video packets for overuse detection.
-        bool separate_audio = false;
-        // The packet threshold of separation.
-        int separate_packet_threshold = 10;
-        // The time threshold of separation.
-        TimeDelta separate_time_threshold = TimeDelta::Seconds(1);
+        AimdRateControlConfig aimd_rate_control_config;
+        TrendlineEstimatorConfig audio_trendline_estimator_config;
+        TrendlineEstimatorConfig video_trendline_estimator_config;
+        SeparateAudioConfiguration separate_audio_config;
     };
 
     struct Result {
@@ -73,7 +82,7 @@ private:
                                              Timestamp at_time);
 
 private:
-    const Configuration config_;
+    const SeparateAudioConfiguration separate_audio_;
 
     std::unique_ptr<InterArrivalDelta> video_inter_arrival_delta_;
     std::unique_ptr<TrendlineEstimator> video_delay_detector_;
@@ -82,7 +91,7 @@ private:
     TrendlineEstimator* active_delay_detector_;
 
     Timestamp last_feedback_arrival_time_;
-    Timestamp last_video_packet_recv_time_;
+    Timestamp last_video_packet_arrival_time_;
     int64_t audio_packets_since_last_video_;
     AimdRateControl rate_control_;
     DataRate prev_bitrate_;

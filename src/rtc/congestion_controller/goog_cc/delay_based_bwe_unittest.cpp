@@ -114,15 +114,54 @@ constexpr float kTargetUtilizationFraction = 0.95f;
 //                 kTargetUtilizationFraction * 4000000u, 10000u);
 // }
 
-MY_TEST_F(DelayBasedBweTest, GetExpectedBwePeriodMs) {
-    auto default_interval = bandwidth_estimator_->GetExpectedBwePeriod();
-    EXPECT_GT(default_interval.ms(), 0);
-    // FIXME: Try to pass the below test with second parameter set as 333 (like WebRTC does)?
-    // LinkCapacityDropTestHelper(1, 333, 0);
-    LinkCapacityDropTestHelper(1, 233, 0);
-    auto interval = bandwidth_estimator_->GetExpectedBwePeriod();
-    EXPECT_GT(interval.ms(), 0);
-    EXPECT_NE(interval.ms(), default_interval.ms());
+// MY_TEST_F(DelayBasedBweTest, GetExpectedBwePeriodMs) {
+//     auto default_interval = bandwidth_estimator_->GetExpectedBwePeriod();
+//     EXPECT_GT(default_interval.ms(), 0);
+//     // FIXME: Try to pass the below test with second parameter set as 333 (like WebRTC does)?
+//     // LinkCapacityDropTestHelper(1, 333, 0);
+//     LinkCapacityDropTestHelper(1, 233, 0);
+//     auto interval = bandwidth_estimator_->GetExpectedBwePeriod();
+//     EXPECT_GT(interval.ms(), 0);
+//     EXPECT_NE(interval.ms(), default_interval.ms());
+// }
+
+MY_TEST_F(DelayBasedBweTest, TestInitialOveruse) {
+    const DataRate kStartBitrate = DataRate::KilobitsPerSec(300);
+    const DataRate kInitialCapacity = DataRate::KilobitsPerSec(200);
+    const uint32_t kDummySsrc = 0;
+    // High FPS to ensure that we send a lot of packets in a short time.
+    const int kFps = 90;
+
+    stream_generator_->AddStream(std::make_unique<RtpStream>(kFps, kStartBitrate.bps()));
+    stream_generator_->set_link_capacity_bps(kInitialCapacity.bps());
+
+    // Needed to initialize the AimdRateControl.
+    bandwidth_estimator_->SetStartBitrate(kStartBitrate);
+
+    // Produce 30 frames (in 1/3 second) and give them to the estimator.
+    int64_t bitrate_bps = kStartBitrate.bps();
+    bool seen_overuse = false;
+    for (int i = 0; i < 30; ++i) {
+        bool overuse = GenerateAndProcessFrame(kDummySsrc, bitrate_bps);
+        // The purpose of this test is to ensure that we back down even if we don't
+        // have any acknowledged bitrate estimate yet. Hence, if the test works
+        // as expected, we should not have a measured bitrate yet.
+        EXPECT_FALSE(ack_bitrate_estimator_->Estimate().has_value());
+        if (overuse) {
+            EXPECT_TRUE(bitrate_observer_.updated());
+            EXPECT_NEAR(bitrate_observer_.latest_bitrate_bps(), kStartBitrate.bps() / 2,
+                        15000);
+            bitrate_bps = bitrate_observer_.latest_bitrate_bps();
+            seen_overuse = true;
+            break;
+        } else if (bitrate_observer_.updated()) {
+            bitrate_bps = bitrate_observer_.latest_bitrate_bps();
+            bitrate_observer_.Reset();
+        }
+    }
+    EXPECT_TRUE(seen_overuse);
+    EXPECT_NEAR(bitrate_observer_.latest_bitrate_bps(), kStartBitrate.bps() / 2,
+                15000);
 }
     
 } // namespace test

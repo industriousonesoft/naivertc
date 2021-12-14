@@ -1,5 +1,10 @@
 #include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
 
+#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 1)
+#if ENABLE_TEST_DEBUG
+#include "testing/defines.hpp"
+#endif
+
 namespace naivertc {
 namespace {
 
@@ -122,6 +127,11 @@ std::pair<float, bool> BitrateEstimator::CalcImmediateBitrate(int64_t now_ms,
         immediate_bitrate_kbps = 8.0f * accumulated_bytes_ / static_cast<float>(rate_window_ms);
         curr_window_ms_ -= rate_window_ms;
         accumulated_bytes_ = 0;
+#if ENABLE_TEST_DEBUG
+        GTEST_COUT << "Estimated bitrate: " << immediate_bitrate_kbps << " - "
+                   << "curr_window: " << curr_window_ms_
+                   << std::endl;
+#endif
     }
     accumulated_bytes_ += bytes;
     return {immediate_bitrate_kbps, is_small_sample};

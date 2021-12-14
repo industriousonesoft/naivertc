@@ -89,7 +89,7 @@ BandwidthUsage TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
              i > 0 &&
              delay_hits_[i].arrival_time_ms < delay_hits_[i - 1].arrival_time_ms;
              --i) {
-            std::swap(delay_hits_[i], delay_hits_[i - 1]);
+                 std::swap(delay_hits_[i], delay_hits_[i - 1]);
         }
     }
     // Drop the earliest packet if overflowed.
@@ -131,8 +131,10 @@ BandwidthUsage TrendlineEstimator::Detect(double trend, double inter_departure_m
     const double modified_trend = std::min<double>(num_of_deltas_, kMinNumDeltas) * trend * threshold_gain_;
     prev_modified_trend_ = modified_trend;
 #if ENABLE_TEST_DEBUG
-    GTEST_COUT << "modified_trend=" << modified_trend << " - "
-               << "threshold=" << threshold_
+    GTEST_COUT << "modified_trend: " << modified_trend << " vs "
+               << "threshold: " << threshold_ << " - "
+               << "trend: " << trend << " vs "
+               << "prev_trend: " << prev_trend_
                << std::endl;
 #endif
     // Overusing

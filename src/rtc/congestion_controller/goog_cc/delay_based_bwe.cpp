@@ -2,7 +2,7 @@
 
 #include <plog/Log.h>
 
-#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 0)
+#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 1)
 #if ENABLE_TEST_DEBUG
 #include "testing/defines.hpp"
 #endif
@@ -12,27 +12,20 @@ namespace {
 
 constexpr TimeDelta kStreamTimeOut = TimeDelta::Seconds(2);
 constexpr TimeDelta kSendTimeGroupLength = TimeDelta::Millis(5);
-
-// CreateConfigOfRateControl
-AimdRateControl::Configuration CreateConfigOfRateControl(bool send_side) {
-    AimdRateControl::Configuration config;
-    config.send_side = send_side;
-    return config;
-}
     
 } // namespace
 
 DelayBasedBwe::DelayBasedBwe(Configuration config) 
-    : config_(std::move(config)),
+    : separate_audio_(std::move(config.separate_audio_config)),
       video_inter_arrival_delta_(nullptr),
-      video_delay_detector_(new TrendlineEstimator({})),
+      video_delay_detector_(new TrendlineEstimator(std::move(config.video_trendline_estimator_config))),
       audio_inter_arrival_delta_(nullptr),
-      audio_delay_detector_(new TrendlineEstimator({})),
+      audio_delay_detector_(new TrendlineEstimator(std::move(config.audio_trendline_estimator_config))),
       active_delay_detector_(video_delay_detector_.get()),
       last_feedback_arrival_time_(Timestamp::MinusInfinity()),
-      last_video_packet_recv_time_(Timestamp::MinusInfinity()),
+      last_video_packet_arrival_time_(Timestamp::MinusInfinity()),
       audio_packets_since_last_video_(0),
-      rate_control_(CreateConfigOfRateControl(/*send_side=*/true)),
+      rate_control_(std::move(config.aimd_rate_control_config)),
       prev_bitrate_(DataRate::Zero()),
       has_once_detected_overuse_(false),
       prev_state_(BandwidthUsage::NORMAL),
@@ -76,6 +69,7 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPack
     BandwidthUsage prev_state = active_delay_detector_->State();
     for (const auto& packet_feedback : packet_feedbacks) {
         delayed_feedback = false;
+        // Detect the current bandwidth usage.
         auto curr_state = Detect(packet_feedback, packets_feedback_info.feedback_time);
         if (prev_state == BandwidthUsage::UNDERUSING &&
             curr_state == BandwidthUsage::NORMAL) {
@@ -132,29 +126,30 @@ BandwidthUsage DelayBasedBwe::Detect(const PacketResult& packet_feedback,
     // As an alternative to ignoring small packets, we can separate audio and
     // video packets for overuse detection.
     TrendlineEstimator* delay_detector_for_packet = video_delay_detector_.get();
-    if (config_.separate_audio) {
+    if (separate_audio_.enabled) {
         if (packet_feedback.sent_packet.is_audio) {
             delay_detector_for_packet = audio_delay_detector_.get();
             audio_packets_since_last_video_++;
             // The conditions to separate audio and video packet for overuse detection:
-            // 1. Have received more than `separate_packet_threshold` audio packets continously;
-            // 2. Have elapsed more than `separate_time_threshold` time since receiving the last video packet.
-            if (audio_packets_since_last_video_ > config_.separate_packet_threshold &&
-                packet_feedback.recv_time - last_video_packet_recv_time_ > config_.separate_time_threshold) {
+            // 1. The audio packets have accumulated since the last video packet arrived are more than `packet_threshold`;
+            // 2. The time has elapsed since the last video packet arrived are more the `time_threshold`.
+            if (audio_packets_since_last_video_ > separate_audio_.packet_threshold &&
+                packet_feedback.recv_time - last_video_packet_arrival_time_ > separate_audio_.time_threshold) {
                 active_delay_detector_ = audio_delay_detector_.get();
             }
         } else {
             audio_packets_since_last_video_ = 0;
-            last_video_packet_recv_time_ = std::max(last_video_packet_recv_time_, packet_feedback.recv_time);
+            last_video_packet_arrival_time_ = std::max(last_video_packet_arrival_time_, packet_feedback.recv_time);
             active_delay_detector_ = video_delay_detector_.get();
         }
     }
     size_t packet_size = packet_feedback.sent_packet.size;
 
-    // FIXME: Why do we use the video inter arrival for the audio packets?
-    InterArrivalDelta* inter_arrival_for_packet = (config_.separate_audio && packet_feedback.sent_packet.is_audio) 
-                                                  ? video_inter_arrival_delta_.get()
-                                                  : audio_inter_arrival_delta_.get();
+    // FIXME: Why using the video inter arrival for the audio packets in WebRTC?
+    InterArrivalDelta* inter_arrival_for_packet = (separate_audio_.enabled && packet_feedback.sent_packet.is_audio) 
+                                                  ? audio_inter_arrival_delta_.get()
+                                                  : video_inter_arrival_delta_.get();
+
     // Waits for two adjacent packet group arriving, and try to compute the deltas of them.
     auto deltas = inter_arrival_for_packet->ComputeDeltas(packet_feedback.sent_packet.send_time,
                                                           packet_feedback.recv_time,
@@ -167,18 +162,11 @@ BandwidthUsage DelayBasedBwe::Detect(const PacketResult& packet_feedback,
     //            << "inter-arrval=" << deltas->arrival_time_delta.ms()
     //            << std::endl;
 #endif
-        BandwidthUsage prev_state = delay_detector_for_packet->State();
-        auto state = delay_detector_for_packet->Update(deltas->arrival_time_delta.ms(),
-                                                       deltas->send_time_delta.ms(),
-                                                       packet_feedback.sent_packet.send_time.ms(),
-                                                       packet_feedback.recv_time.ms(),
-                                                       packet_size);
-        if (prev_state != state) {
-#if ENABLE_TEST_DEBUG
-            GTEST_COUT << "state: " << prev_state << " => " << state
-                       << std::endl;
-#endif 
-        }
+        delay_detector_for_packet->Update(deltas->arrival_time_delta.ms(),
+                                          deltas->send_time_delta.ms(),
+                                          packet_feedback.sent_packet.send_time.ms(),
+                                          packet_feedback.recv_time.ms(),
+                                          packet_size);
     }
     return active_delay_detector_->State();
 }
@@ -206,7 +194,7 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
             ret.target_bitrate = target_bitrate;
         // Reduce the curren bitrate further if overusing before we have measured a throughout.
         } else if (!acked_bitrate && rate_control_.ValidEstimate() &&
-                   rate_control_.CanReduceFurtherInInitialPeriod(at_time)) {
+                   rate_control_.CanReduceFurtherBeforeMeasuredThroughput(at_time)) {
             // Overusing before we have a measured acknowledged bitrate.
             // Reduce send rate by 50% every rtt [10ms, 200 ms].
             // TODO: Improve this and/or the acknowledged bitrate estimator

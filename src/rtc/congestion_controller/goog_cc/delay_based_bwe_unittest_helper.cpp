@@ -48,7 +48,8 @@ std::vector<PacketResult> RtpStream::GenerateFrame(int64_t now_us) {
         return packets;
     }
     size_t bits_per_frame = utils::numeric::division_with_roundup(bitrate_bps_, fps_);
-    size_t num_packets = std::max<size_t>(utils::numeric::division_with_roundup(bits_per_frame, 8 * kMtu), 1u);
+    size_t max_bits_per_packet = 8 * kMtu;
+    size_t num_packets = std::max<size_t>(utils::numeric::division_with_roundup(bits_per_frame, max_bits_per_packet), 1u);
     size_t bytes_per_packet = utils::numeric::division_with_roundup(bits_per_frame, 8 * num_packets);
     int64_t send_time_us = now_us + kSendSideOffsetUs;
     for (size_t i = 0; i < num_packets; ++i) {
@@ -91,7 +92,7 @@ void RtpStreamGenerator::SetBitrateBps(int new_bitrate_bps) {
     int total_bitrate_after = 0;
     for (const auto& stream : streams_) {
         bitrate_before += stream->bitrate_bps();
-        int64_t bitrate_after = utils::numeric::division_with_roundup<int64_t>(bitrate_before * new_bitrate_bps, total_bitrate_before);;
+        int64_t bitrate_after = utils::numeric::division_with_roundup<int64_t>(bitrate_before * new_bitrate_bps, total_bitrate_before);
         stream->set_bitrate_bps(bitrate_after - total_bitrate_after);
         total_bitrate_after += stream->bitrate_bps();
     }
@@ -117,7 +118,7 @@ std::pair<std::vector<PacketResult>, int64_t> RtpStreamGenerator::GenerateFrame(
 }
 
 // T(DelayBasedBweTest)
-T(DelayBasedBweTest)::T(DelayBasedBweTest)() 
+T(DelayBasedBweTest)::T(DelayBasedBweTest)()
     : clock_(Timestamp::Millis(0)),
       ack_bitrate_estimator_(std::make_unique<AcknowledgedBitrateEstimator>(std::make_unique<BitrateEstimator>(BitrateEstimator::Configuration()))),
       probe_bitrate_estimator_(std::make_unique<ProbeBitrateEstimator>()),
