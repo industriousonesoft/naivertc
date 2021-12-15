@@ -2,7 +2,7 @@
 
 #include <plog/Log.h>
 
-#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 1)
+#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 0)
 #if ENABLE_TEST_DEBUG
 #include "testing/defines.hpp"
 #endif

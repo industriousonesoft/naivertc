@@ -212,12 +212,6 @@ void AimdRateControl::ChangeBitrate(BandwidthUsage bw_state,
 
     ChangeState(bw_state, at_time);
 
-    // We limit the new bitrate based on the throughput to avoid unlimited bitrate
-    // increases. 
-    // We allow a bit more lag at very low rates to not too easily get stuck if 
-    // the encoder produces uneven outputs.
-    const DataRate throughput_based_limit = DataRate::KilobitsPerSec(1.5 * estimated_throughput.kbps() + 10 /* 10kbps*/);
-
     switch (rate_control_state_) {
     case RateControlState::HOLD:
         break;
@@ -229,6 +223,12 @@ void AimdRateControl::ChangeBitrate(BandwidthUsage bw_state,
         if (estimated_throughput > link_capacity_.UpperBound()) {
             link_capacity_.Reset();
         }
+
+        // We limit the new bitrate based on the throughput to avoid unlimited bitrate
+        // increases. 
+        // We allow a bit more lag at very low rates to not too easily get stuck if 
+        // the encoder produces uneven outputs.
+        const DataRate throughput_based_limit = DataRate::KilobitsPerSec(1.5 * estimated_throughput.kbps() + 10 /* 10kbps*/);
 
         // Do not increase the delay based estimate in alr since the estimator
         // will not be able to get transport feedback necessary to detect if
