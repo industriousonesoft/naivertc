@@ -265,6 +265,7 @@ set(LIB_SOURCES
     src/rtc/congestion_controller/goog_cc/bitrate_estimator.cpp
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.cpp
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/loss_based_bwe.cpp
 )
 
 if(USE_NICE)
@@ -519,6 +520,7 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/bitrate_estimator.hpp
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp
+    src/rtc/congestion_controller/goog_cc/loss_based_bwe.hpp
 )
 
 # gcc -Wall: enables all compiler's warning messages

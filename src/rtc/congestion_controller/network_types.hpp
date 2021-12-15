@@ -51,6 +51,7 @@ struct RTC_CPP_EXPORT PacketResult {
     };
 
     bool IsReceived() const { return !recv_time.IsInfinite(); }
+    bool IsLost() const { return !IsReceived(); }
 
     SendPacket sent_packet;
     Timestamp recv_time = Timestamp::PlusInfinity();
