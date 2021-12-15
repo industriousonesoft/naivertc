@@ -78,6 +78,21 @@ public:
 protected:
     using UnitBase<Unit_T>::UnitBase;
 };
+
+template <class Uint_T>
+inline constexpr Uint_T operator*(double scalar, RelativeUnit<Uint_T> other) {
+    return other * scalar;
+}
+
+template <class Uint_T>
+inline constexpr Uint_T operator*(int64_t scalar, RelativeUnit<Uint_T> other) {
+    return other * scalar;
+}
+
+template <class Uint_T>
+inline constexpr Uint_T operator*(int32_t scalar, RelativeUnit<Uint_T> other) {
+    return other * scalar;
+}
     
 } // namespace naivertc
 

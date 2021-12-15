@@ -228,7 +228,7 @@ void AimdRateControl::ChangeBitrate(BandwidthUsage bw_state,
         // increases. 
         // We allow a bit more lag at very low rates to not too easily get stuck if 
         // the encoder produces uneven outputs.
-        const DataRate throughput_based_limit = DataRate::KilobitsPerSec(1.5 * estimated_throughput.kbps() + 10 /* 10kbps*/);
+        const DataRate throughput_based_limit = 1.5 * estimated_throughput + DataRate::KilobitsPerSec(10);
 
         // Do not increase the delay based estimate in alr since the estimator
         // will not be able to get transport feedback necessary to detect if
@@ -351,7 +351,7 @@ bool AimdRateControl::CanReduceFurther(DataRate estimated_throughput) const {
         // If the estimated_throughput is less than half of the current
         // estimate.
         // TODO: Investigate consequences of increasing the threshold to 0.95 * `curr_bitrate_`.
-        return estimated_throughput < DataRate::BitsPerSec(curr_bitrate_.bps() / 2);
+        return estimated_throughput < 0.5 * curr_bitrate_;
     }
     return false;
 }

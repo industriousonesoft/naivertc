@@ -114,7 +114,7 @@ void LossBasedBwe::UpdateAcknowledgedBitrate(DataRate ack_bitrate,
         ack_bitrate_max_ = ack_bitrate;
     } else {
         double smoothing_factor = ExponentialSmoothingFactor(config_.ack_rate_max_window, elapsed_time);
-        ack_bitrate_max_ -= DataRate::BitsPerSec<double>(smoothing_factor * (ack_bitrate_max_.bps() - ack_bitrate.bps()));
+        ack_bitrate_max_ -= smoothing_factor * (ack_bitrate_max_ - ack_bitrate);
     }
 }
 
@@ -155,7 +155,7 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
         loss_based_bitrate_ = std::max(new_bibtrate, loss_based_bitrate_);
     } else if (loss_ratio_estimate_for_decrease > ThresholdToDecrease() && allow_to_decrease) {
         // Decrease bitrate by the fixed ratio.
-        DataRate new_bitrate = DataRate::BitsPerSec<double>(config_.decrease_factor * ack_bitrate_max_.bps<double>());
+        DataRate new_bitrate =  config_.decrease_factor * ack_bitrate_max_;
         const DataRate decreased_bitrate_floor = BitrateFromLossRatio(loss_ratio_estimate_for_decrease,
                                                                       config_.loss_bandwidth_balance_decrease,
                                                                       config_.loss_bandwidth_balance_exponent);
