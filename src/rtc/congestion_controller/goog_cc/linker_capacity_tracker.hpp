@@ -16,11 +16,13 @@ public:
     ~LinkerCapacityTracker();
 
     void OnStartingBitrate(DataRate bitrate);
-    void OnDelayBasedEsimate(DataRate bitrate, 
-                             Timestamp at_time);
-    void OnAcknowledgeBitrate(DataRate ack_bitrate,
+    void OnDelayBasedEstimate(DataRate bitrate, 
                               Timestamp at_time);
-    void Update(DataRate expected_bitrate, 
+    // Call when the estimated bitrate has been dropped
+    // since congestion has detected by the RTT estimate (with backoff).
+    void OnRttBasedEstimate(DataRate bitrate,
+                            Timestamp at_time);
+    void Update(DataRate bitrate, 
                 Timestamp at_time);
 
     DataRate estimate() const;
@@ -29,7 +31,6 @@ private:
     TimeDelta tracking_window_;
     DataRate estimated_capacity_;
     DataRate last_delay_based_estimate_;
-    std::optional<DataRate> ack_bitrate_;
     Timestamp time_last_capacity_udpate_;
 };
     

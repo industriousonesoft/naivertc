@@ -64,7 +64,7 @@ private:
     DataRate ack_bitrate_max_;
     Timestamp time_ack_bitrate_last_update_;
     Timestamp time_last_decrease_;
-    Timestamp time_last_loss_packet_report_arrive_;    
+    Timestamp time_last_loss_packet_report_;    
 };
     
 } // namespace naivertc

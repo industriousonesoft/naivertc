@@ -32,255 +32,7 @@ else()
     message(FATAL_ERROR "unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif()
 
-set(LIB_SOURCES
-    # base
-    src/base/certificate.cpp
-    src/base/tls.cpp
-    src/base/init.cpp
-    src/base/system_time.cpp
-    # common
-    src/common/utils_string.cpp
-    src/common/utils_random.cpp
-    src/common/utils_time.cpp
-    src/common/utils_network.cpp
-    src/common/logger.cpp
-    src/common/weak_ptr_manager.cpp
-    src/common/thread_utils.cpp
-
-    # signaling
-    src/signaling/base/base_channel.cpp
-    src/signaling/base/websocket.cpp
-    src/signaling/ayame/ayame_channel.cpp
-
-    # rtc
-    # rtc -> base
-    src/rtc/base/packet.cpp
-    src/rtc/base/copy_on_write_buffer.cpp
-    src/rtc/base/memory/bit_io.cpp
-    src/rtc/base/memory/bit_io_reader.cpp
-    src/rtc/base/memory/bit_io_writer.cpp
-    src/rtc/base/time/ntp_time.cpp
-    src/rtc/base/time/ntp_time_util.cpp
-    src/rtc/base/time/clock.cpp
-    src/rtc/base/time/clock_real_time.cpp
-    src/rtc/base/numerics/histogram_percentile_counter.cpp
-    src/rtc/base/task_utils/repeating_task.cpp
-    src/rtc/base/task_utils/task_queue.cpp
-    src/rtc/base/task_utils/task_queue_impl.cpp
-    src/rtc/base/task_utils/task_queue_impl_boost.cpp
-    src/rtc/base/synchronization/event.cpp
-    # src/rtc/base/synchronization/event_win.cpp
-    src/rtc/base/synchronization/event_posix.cpp
-    src/rtc/base/synchronization/yield_policy.cpp
-    src/rtc/base/synchronization/sequence_checker.cpp
-    
-    # rtc -> sdp
-    src/rtc/sdp/sdp_defines.cpp
-    src/rtc/sdp/sdp_utils.cpp
-    src/rtc/sdp/candidate.cpp
-    src/rtc/sdp/sdp_description.cpp
-    src/rtc/sdp/sdp_description_builder.cpp
-    src/rtc/sdp/sdp_description_parser.cpp
-    src/rtc/sdp/sdp_entry.cpp
-    src/rtc/sdp/sdp_media_entry.cpp
-    src/rtc/sdp/sdp_session_entry.cpp
-    src/rtc/sdp/sdp_media_entry_application.cpp
-    src/rtc/sdp/sdp_media_entry_media.cpp
-    src/rtc/sdp/sdp_media_entry_media_audio.cpp
-    src/rtc/sdp/sdp_media_entry_media_video.cpp
-
-    # rtc -> transports
-    src/rtc/transports/transport.cpp
-    src/rtc/transports/ice_transport.cpp
-    src/rtc/transports/ice_transport_description.cpp
-    src/rtc/transports/sctp_transport.cpp
-    src/rtc/transports/sctp_transport_usrsctp_delegate.cpp
-    src/rtc/transports/sctp_message.cpp
-    src/rtc/transports/dtls_transport.cpp
-    src/rtc/transports/dtls_transport_openssl_delegate.cpp
-    src/rtc/transports/dtls_srtp_transport.cpp
-    src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
-
-    # rtc -> pc
-    src/rtc/pc/peer_connection.cpp
-    src/rtc/pc/peer_connection_configuration.cpp
-    src/rtc/pc/peer_connection_ice_transport_delegate.cpp
-    src/rtc/pc/peer_connection_dtls_transport_delegate.cpp
-    src/rtc/pc/peer_connection_sctp_transport_delegate.cpp
-    src/rtc/pc/peer_connection_sdp_offer_answer.cpp
-    src/rtc/pc/peer_connection_media_handler.cpp
-
-    # rtc -> channels
-    src/rtc/channels/channel.cpp
-    src/rtc/channels/data_channel.cpp
-    src/rtc/channels/data_channel_utils.cpp
-    src/rtc/channels/data_channel_message.cpp
-    src/rtc/channels/media_channel.cpp
-
-    # rtc -> call
-    src/rtc/call/rtp_rtcp_config.cpp
-    src/rtc/call/rtp_media_sender.cpp
-    src/rtc/call/rtp_video_sender.cpp
-    src/rtc/call/rtp_utils.cpp
-    src/rtc/call/rtp_demuxer.cpp
-    src/rtc/call/rtp_demuxer_rtp.cpp
-    src/rtc/call/rtp_demuxer_rtcp.cpp
-    src/rtc/call/rtp_video_receiver.cpp
-    src/rtc/call/rtp_video_receiver_auxiliaries.cpp
-    src/rtc/call/rtx_receive_stream.cpp
-    src/rtc/call/video_receive_stream.cpp
-    
-    # rtc -> media
-    src/rtc/media/media_track.cpp
-    src/rtc/media/media_track_configuration.cpp
-    src/rtc/media/media_track_sdp.cpp
-
-    # rtc -> media -> video
-    src/rtc/media/video/encoded_frame.cpp
-
-    # rtc -> media -> video -> codecs -> h264
-    src/rtc/media/video/codecs/h264/nalunit.cpp
-    src/rtc/media/video/codecs/h264/nalunit_fragment.cpp
-    src/rtc/media/video/codecs/h264/nalunit_auxiliaries.cpp
-    src/rtc/media/video/codecs/h264/pps_parser.cpp
-    src/rtc/media/video/codecs/h264/sps_parser.cpp
-    src/rtc/media/video/codecs/h264/sps_pps_tracker.cpp
-    src/rtc/media/video/codecs/h264/sprop_parameter_parser.cpp
-
-    # rtc -> rtp_rtcp -> components
-    src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
-    src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.cpp
-    src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.cpp
-
-    # rtc -> rtp_rtcp
-    src/rtc/rtp_rtcp/rtp_rtcp_structs.cpp
-    src/rtc/rtp_rtcp/rtcp_module.cpp
-    src/rtc/rtp_rtcp/rtcp_module_sender.cpp
-    src/rtc/rtp_rtcp/rtcp_module_receiver.cpp
-    src/rtc/rtp_rtcp/rtp_sender.cpp
-    src/rtc/rtp_rtcp/rtp_sender_non_paced.cpp
-    src/rtc/rtp_rtcp/rtp_sender_video.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> packet
-    src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
-    src/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.cpp
-    src/rtc/rtp_rtcp/rtp/packets/rtp_packet_received.cpp
-    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.cpp
-    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> sender
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.cpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> receiver
-    src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/nack_module.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> receiver -> video
-    src/rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> jitter
-    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_seq_num.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer_continuity.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer_decodability.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/rtt_filter.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> timing
-    src/rtc/rtp_rtcp/rtp/receiver/video/timing/decode_time_filter.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/timing/timestamp_extrapolator.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/timing/timing.cpp
-    src/rtc/rtp_rtcp/rtp/receiver/video/timing/inter_frame_delay.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> packetizer
-    src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
-    src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer_h264.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> depacketizer
-    src/rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer_h264.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> pacing
-    src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
-
-    # rtc -> rtp_rtcp -> rtp -> fec
-    src/rtc/rtp_rtcp/rtp/fec/fec_codec.cpp
-    src/rtc/rtp_rtcp/rtp/fec/fec_encoder.cpp
-    src/rtc/rtp_rtcp/rtp/fec/fec_decoder.cpp
-    src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator.cpp
-    src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator_bursty_table.cpp
-    src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator_random_table.cpp
-    src/rtc/rtp_rtcp/rtp/fec/fec_header_writer.cpp
-    src/rtc/rtp_rtcp/rtp/fec/fec_header_reader.cpp
-    src/rtc/rtp_rtcp/rtp/fec/fec_test_helper.cpp
-    src/rtc/rtp_rtcp/rtp/fec/ulp/fec_header_writer_ulp.cpp
-    src/rtc/rtp_rtcp/rtp/fec/ulp/fec_header_reader_ulp.cpp
-    src/rtc/rtp_rtcp/rtp/fec/ulp/fec_generator_ulp.cpp
-    src/rtc/rtp_rtcp/rtp/fec/ulp/fec_receiver_ulp.cpp
-    src/rtc/rtp_rtcp/rtp/fec/flex/fec_generator_flex.cpp
-
-    # rtc -> rtp_rtcp -> rtcp_packets
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/compound_packet.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/report_block.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/sender_report.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/rtp_feedback.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/sdes.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/receiver_report.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/remb.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/psfb.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/pli.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/fir.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/nack.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/loss_notification.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmb_item.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbr.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/bye.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.cpp
-
-    # rtc -> rtp_rtcp -> rtcp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packet.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_sender.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_sender_builder.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_sender_auxiliaries.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_receiver.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
-    src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
-
-    # rtc -> congestion_controller -> goog_cc
-    src/rtc/congestion_controller/network_types.cpp
-    src/rtc/congestion_controller/goog_cc/defines.cpp
-    src/rtc/congestion_controller/goog_cc/inter_arrival_delta.cpp
-    src/rtc/congestion_controller/goog_cc/trendline_estimator.cpp
-    src/rtc/congestion_controller/goog_cc/link_capacity_estimator.cpp
-    src/rtc/congestion_controller/goog_cc/aimd_rate_control.cpp
-    src/rtc/congestion_controller/goog_cc/delay_based_bwe.cpp
-    src/rtc/congestion_controller/goog_cc/bitrate_estimator.cpp
-    src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.cpp
-    src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.cpp
-    src/rtc/congestion_controller/goog_cc/loss_based_bwe.cpp
-    src/rtc/congestion_controller/goog_cc/rtt_based_backoff.cpp
-    src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.cpp
-    src/rtc/congestion_controller/goog_cc/send_side_bwe.cpp
-)
-
-if(USE_NICE)
-    set(LIB_SOURCES ${LIB_SOURCES}
-        src/rtc/transports/ice_transport_nice_delegate.cpp
-    )
-else()
-    set(LIB_SOURCES ${LIB_SOURCES}
-        src/rtc/transports/ice_transport_juice_delegate.cpp
-    )
-endif()
-
+# Header files
 set(LIB_HEADERS
     # base
     src/base/defines.hpp
@@ -514,6 +266,7 @@ set(LIB_HEADERS
 
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/network_types.hpp
+    src/rtc/congestion_controller/goog_cc/bwe_defines.hpp
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator.hpp
     src/rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp
@@ -529,13 +282,263 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/send_side_bwe.hpp
 )
 
+# Cpp files
+set(LIB_SOURCES
+    # base
+    src/base/certificate.cpp
+    src/base/tls.cpp
+    src/base/init.cpp
+    src/base/system_time.cpp
+    # common
+    src/common/utils_string.cpp
+    src/common/utils_random.cpp
+    src/common/utils_time.cpp
+    src/common/utils_network.cpp
+    src/common/logger.cpp
+    src/common/weak_ptr_manager.cpp
+    src/common/thread_utils.cpp
+
+    # signaling
+    src/signaling/base/base_channel.cpp
+    src/signaling/base/websocket.cpp
+    src/signaling/ayame/ayame_channel.cpp
+
+    # rtc
+    # rtc -> base
+    src/rtc/base/packet.cpp
+    src/rtc/base/copy_on_write_buffer.cpp
+    src/rtc/base/memory/bit_io.cpp
+    src/rtc/base/memory/bit_io_reader.cpp
+    src/rtc/base/memory/bit_io_writer.cpp
+    src/rtc/base/time/ntp_time.cpp
+    src/rtc/base/time/ntp_time_util.cpp
+    src/rtc/base/time/clock.cpp
+    src/rtc/base/time/clock_real_time.cpp
+    src/rtc/base/numerics/histogram_percentile_counter.cpp
+    src/rtc/base/task_utils/repeating_task.cpp
+    src/rtc/base/task_utils/task_queue.cpp
+    src/rtc/base/task_utils/task_queue_impl.cpp
+    src/rtc/base/task_utils/task_queue_impl_boost.cpp
+    src/rtc/base/synchronization/event.cpp
+    # src/rtc/base/synchronization/event_win.cpp
+    src/rtc/base/synchronization/event_posix.cpp
+    src/rtc/base/synchronization/yield_policy.cpp
+    src/rtc/base/synchronization/sequence_checker.cpp
+    
+    # rtc -> sdp
+    src/rtc/sdp/sdp_defines.cpp
+    src/rtc/sdp/sdp_utils.cpp
+    src/rtc/sdp/candidate.cpp
+    src/rtc/sdp/sdp_description.cpp
+    src/rtc/sdp/sdp_description_builder.cpp
+    src/rtc/sdp/sdp_description_parser.cpp
+    src/rtc/sdp/sdp_entry.cpp
+    src/rtc/sdp/sdp_media_entry.cpp
+    src/rtc/sdp/sdp_session_entry.cpp
+    src/rtc/sdp/sdp_media_entry_application.cpp
+    src/rtc/sdp/sdp_media_entry_media.cpp
+    src/rtc/sdp/sdp_media_entry_media_audio.cpp
+    src/rtc/sdp/sdp_media_entry_media_video.cpp
+
+    # rtc -> transports
+    src/rtc/transports/transport.cpp
+    src/rtc/transports/ice_transport.cpp
+    src/rtc/transports/ice_transport_description.cpp
+    src/rtc/transports/sctp_transport.cpp
+    src/rtc/transports/sctp_transport_usrsctp_delegate.cpp
+    src/rtc/transports/sctp_message.cpp
+    src/rtc/transports/dtls_transport.cpp
+    src/rtc/transports/dtls_transport_openssl_delegate.cpp
+    src/rtc/transports/dtls_srtp_transport.cpp
+    src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
+
+    # rtc -> pc
+    src/rtc/pc/peer_connection.cpp
+    src/rtc/pc/peer_connection_configuration.cpp
+    src/rtc/pc/peer_connection_ice_transport_delegate.cpp
+    src/rtc/pc/peer_connection_dtls_transport_delegate.cpp
+    src/rtc/pc/peer_connection_sctp_transport_delegate.cpp
+    src/rtc/pc/peer_connection_sdp_offer_answer.cpp
+    src/rtc/pc/peer_connection_media_handler.cpp
+
+    # rtc -> channels
+    src/rtc/channels/channel.cpp
+    src/rtc/channels/data_channel.cpp
+    src/rtc/channels/data_channel_utils.cpp
+    src/rtc/channels/data_channel_message.cpp
+    src/rtc/channels/media_channel.cpp
+
+    # rtc -> call
+    src/rtc/call/rtp_rtcp_config.cpp
+    src/rtc/call/rtp_media_sender.cpp
+    src/rtc/call/rtp_video_sender.cpp
+    src/rtc/call/rtp_utils.cpp
+    src/rtc/call/rtp_demuxer.cpp
+    src/rtc/call/rtp_demuxer_rtp.cpp
+    src/rtc/call/rtp_demuxer_rtcp.cpp
+    src/rtc/call/rtp_video_receiver.cpp
+    src/rtc/call/rtp_video_receiver_auxiliaries.cpp
+    src/rtc/call/rtx_receive_stream.cpp
+    src/rtc/call/video_receive_stream.cpp
+    
+    # rtc -> media
+    src/rtc/media/media_track.cpp
+    src/rtc/media/media_track_configuration.cpp
+    src/rtc/media/media_track_sdp.cpp
+
+    # rtc -> media -> video
+    src/rtc/media/video/encoded_frame.cpp
+
+    # rtc -> media -> video -> codecs -> h264
+    src/rtc/media/video/codecs/h264/nalunit.cpp
+    src/rtc/media/video/codecs/h264/nalunit_fragment.cpp
+    src/rtc/media/video/codecs/h264/nalunit_auxiliaries.cpp
+    src/rtc/media/video/codecs/h264/pps_parser.cpp
+    src/rtc/media/video/codecs/h264/sps_parser.cpp
+    src/rtc/media/video/codecs/h264/sps_pps_tracker.cpp
+    src/rtc/media/video/codecs/h264/sprop_parameter_parser.cpp
+
+    # rtc -> rtp_rtcp -> components
+    src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
+    src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.cpp
+    src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.cpp
+
+    # rtc -> rtp_rtcp
+    src/rtc/rtp_rtcp/rtp_rtcp_structs.cpp
+    src/rtc/rtp_rtcp/rtcp_module.cpp
+    src/rtc/rtp_rtcp/rtcp_module_sender.cpp
+    src/rtc/rtp_rtcp/rtcp_module_receiver.cpp
+    src/rtc/rtp_rtcp/rtp_sender.cpp
+    src/rtc/rtp_rtcp/rtp_sender_non_paced.cpp
+    src/rtc/rtp_rtcp/rtp_sender_video.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> packet
+    src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_packet_received.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> sender
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> receiver
+    src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/nack_module.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> receiver -> video
+    src/rtc/rtp_rtcp/rtp/receiver/video/frame_to_decode.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> jitter
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/packet_buffer.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_ref_finder_seq_num.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer_continuity.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer_decodability.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/jitter/rtt_filter.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> receiver -> video -> timing
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/decode_time_filter.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/timestamp_extrapolator.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/timing.cpp
+    src/rtc/rtp_rtcp/rtp/receiver/video/timing/inter_frame_delay.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> packetizer
+    src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.cpp
+    src/rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer_h264.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> depacketizer
+    src/rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer_h264.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> pacing
+    src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
+
+    # rtc -> rtp_rtcp -> rtp -> fec
+    src/rtc/rtp_rtcp/rtp/fec/fec_codec.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_encoder.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_decoder.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator_bursty_table.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator_random_table.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_header_writer.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_header_reader.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_test_helper.cpp
+    src/rtc/rtp_rtcp/rtp/fec/ulp/fec_header_writer_ulp.cpp
+    src/rtc/rtp_rtcp/rtp/fec/ulp/fec_header_reader_ulp.cpp
+    src/rtc/rtp_rtcp/rtp/fec/ulp/fec_generator_ulp.cpp
+    src/rtc/rtp_rtcp/rtp/fec/ulp/fec_receiver_ulp.cpp
+    src/rtc/rtp_rtcp/rtp/fec/flex/fec_generator_flex.cpp
+
+    # rtc -> rtp_rtcp -> rtcp_packets
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/compound_packet.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/report_block.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/sender_report.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/rtp_feedback.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/sdes.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/receiver_report.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/remb.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/psfb.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/pli.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/fir.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/nack.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/loss_notification.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmb_item.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbr.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/bye.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.cpp
+
+    # rtc -> rtp_rtcp -> rtcp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packet.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_sender.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_sender_builder.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_sender_auxiliaries.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_receiver.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
+    src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
+
+    # rtc -> congestion_controller -> goog_cc
+    src/rtc/congestion_controller/network_types.cpp
+    src/rtc/congestion_controller/goog_cc/bwe_defines.cpp
+    src/rtc/congestion_controller/goog_cc/inter_arrival_delta.cpp
+    src/rtc/congestion_controller/goog_cc/trendline_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/link_capacity_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/aimd_rate_control.cpp
+    src/rtc/congestion_controller/goog_cc/delay_based_bwe.cpp
+    src/rtc/congestion_controller/goog_cc/bitrate_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/loss_based_bwe.cpp
+    src/rtc/congestion_controller/goog_cc/rtt_based_backoff.cpp
+    src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.cpp
+    src/rtc/congestion_controller/goog_cc/send_side_bwe.cpp
+)
+
+if(USE_NICE)
+    set(LIB_SOURCES ${LIB_SOURCES}
+        src/rtc/transports/ice_transport_nice_delegate.cpp
+    )
+else()
+    set(LIB_SOURCES ${LIB_SOURCES}
+        src/rtc/transports/ice_transport_juice_delegate.cpp
+    )
+endif()
+
 # gcc -Wall: enables all compiler's warning messages
 # gcc -Wextra: enables extra warning messages
 # gcc -Wpedantic: 当gcc编译不符合ANSI/ISO C标准的代码时，将产生相应的警告信息
 set_source_files_properties(${LIB_SOURCES} PROPERTIES COMPILE_FLAGS -Wall -Wextra -Wpedantic)
 
 # Add library
-add_library(${PROJECT_NAME} STATIC ${LIB_SOURCES} ${LIB_HEADERS} )
+add_library(${PROJECT_NAME} STATIC ${LIB_SOURCES} ${LIB_HEADERS})
 
 # Add precompile headers
 # Call after the target has been created by a command such

@@ -2,9 +2,8 @@
 
 namespace naivertc {
 
-RttBasedBackoff::RttBasedBackoff(Configuration config) 
-    : config_(std::move(config)),
-      last_rtt_(TimeDelta::Zero()),
+RttBasedBackoff::RttBasedBackoff() 
+    : last_rtt_(TimeDelta::Zero()),
       time_last_rtt_update_(Timestamp::PlusInfinity()),
       time_last_packet_sent_(Timestamp::MinusInfinity()) {}
 
@@ -16,7 +15,7 @@ void RttBasedBackoff::Update(TimeDelta rtt,
     time_last_rtt_update_ = at_time;
 }
 
-void RttBasedBackoff::OnSentPacket(const SendPacket& sent_packet) {
+void RttBasedBackoff::OnSentPacket(const SentPacket& sent_packet) {
     time_last_packet_sent_ = sent_packet.send_time;
 }
 

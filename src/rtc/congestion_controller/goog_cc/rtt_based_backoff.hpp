@@ -1,5 +1,5 @@
-#ifndef _RTC_CONGESTION_CONTROLLER_GOOG_CC_RTT_BASED_BACKOFF_H_
-#define _RTC_CONGESTION_CONTROLLER_GOOG_CC_RTT_BASED_BACKOFF_H_
+#ifndef _RTC_CONGESTION_CONTROLLER_GOOG_CC_RTT_BASED_BWE_H_
+#define _RTC_CONGESTION_CONTROLLER_GOOG_CC_RTT_BASED_BWE_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/units/time_delta.hpp"
@@ -11,26 +11,18 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT RttBasedBackoff {
 public:
-    struct Configuration {
-        TimeDelta rtt_limit = TimeDelta::Seconds(3);
-        double drop_fraction = 0.8;
-        TimeDelta drop_interval = TimeDelta::Seconds(1);
-        DataRate bandwidth_floor = DataRate::KilobitsPerSec(5);
-    };
-
-public:
-    RttBasedBackoff(Configuration config);
+    RttBasedBackoff();
     ~RttBasedBackoff();
 
     void Update(TimeDelta rtt,
                 Timestamp at_time);
 
-    void OnSentPacket(const SendPacket& sent_packet);
+    void OnSentPacket(const SentPacket& sent_packet);
 
+    // Returns the RTT with backoff.
     TimeDelta CorrectedRtt() const;
 
 private:
-    const Configuration config_;
     TimeDelta last_rtt_;
     Timestamp time_last_rtt_update_;
     Timestamp time_last_packet_sent_;

@@ -69,7 +69,7 @@ LossBasedBwe::LossBasedBwe(Configuration config)
       ack_bitrate_max_(DataRate::Zero()),
       time_ack_bitrate_last_update_(Timestamp::MinusInfinity()),
       time_last_decrease_(Timestamp::MinusInfinity()),
-      time_last_loss_packet_report_arrive_(Timestamp::MinusInfinity()) {}
+      time_last_loss_packet_report_(Timestamp::MinusInfinity()) {}
 
 LossBasedBwe::~LossBasedBwe() = default;
 
@@ -89,10 +89,10 @@ void LossBasedBwe::IncomingFeedbacks(const std::vector<PacketResult> packet_feed
         loss_count += pkt_feedback.IsLost() ? 1 : 0;
     }
     last_loss_ratio_ = static_cast<double>(loss_count) / packet_feedbacks.size();
-    const TimeDelta elapsed_time = time_last_loss_packet_report_arrive_.IsFinite()
-                                  ? at_time - time_last_loss_packet_report_arrive_
+    const TimeDelta elapsed_time = time_last_loss_packet_report_.IsFinite()
+                                  ? at_time - time_last_loss_packet_report_
                                   : kDefaultRtcpFeedbackInterval;
-    time_last_loss_packet_report_arrive_ = at_time;
+    time_last_loss_packet_report_ = at_time;
     has_decreased_since_last_loss_report_ = false;
     // Exponetial smoothing
     avg_loss_ratio_ += ExponentialSmoothingFactor(config_.loss_window, elapsed_time) * (last_loss_ratio_ - avg_loss_ratio_);
@@ -122,7 +122,7 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
                                                DataRate expected_birate,
                                                TimeDelta rtt,
                                                Timestamp at_time) {
-    if (time_last_loss_packet_report_arrive_.IsInfinite()) {
+    if (time_last_loss_packet_report_.IsInfinite()) {
         // The first RTCP feedback is not coming yet.
         return std::nullopt;
     }
@@ -139,7 +139,7 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
     // FIXME: How to understand the formula below.
     const bool allow_to_decrease = !has_decreased_since_last_loss_report_ && (at_time - time_last_decrease_ >= rtt + config_.decrease_interval);
     // If packet lost reports are too old, don't increase bitrate.
-    const bool loss_report_valid = at_time - time_last_loss_packet_report_arrive_ < kRtcpFeedbackValidPeriod;
+    const bool loss_report_valid = at_time - time_last_loss_packet_report_ < kRtcpFeedbackValidPeriod;
 
     if (loss_report_valid && config_.allow_resets &&
         loss_ratio_estimate_for_increase < ThresholdToReset()) {

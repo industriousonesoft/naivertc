@@ -12,30 +12,95 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT SendSideBwe {
 public:
-    SendSideBwe();
+    struct Configuration {
+        TimeDelta rtt_limit = TimeDelta::Seconds(3);
+        double drop_factor = 0.8;
+        TimeDelta drop_interval = TimeDelta::Seconds(1);
+        DataRate bandwidth_floor = DataRate::KilobitsPerSec(5);
+    };
+public:
+    SendSideBwe(Configuration config);
     ~SendSideBwe();
+
+    DataRate target_bitate() const;
+    DataRate min_bitate() const;
+    uint8_t fraction_loss() const;
+    TimeDelta rtt() const;
+
+    void OnBitrates(std::optional<DataRate> send_bitrate,
+                    DataRate min_bitrate,
+                    DataRate max_bitrate,
+                    Timestamp at_time);
+
+    void OnSendBitrate(DataRate bitrate,
+                       Timestamp at_time);
+
+    void OnDelayBasedBitrate(DataRate bitrate,
+                             Timestamp at_time);
+
+    void OnAcknowledgeBitrate(DataRate ack_bitrate,
+                              Timestamp at_time);
+
+    void OnPropagationRtt(TimeDelta rtt,
+                          Timestamp at_time);
+
+    void OnSentPacket(const SentPacket& sent_packet);
+
+    // Call when we receive a RTCP message with TMMBR or REMB.
+    void OnRemb(DataRate bitrate,
+                Timestamp at_time);
+
+    // Call when we receive a RTCP message with a RecieveBlock.
+    void OnPacketsLost(int64_t packets_lost,
+                       int64_t num_packets,
+                       Timestamp at_time);
+
+    // Call when we receive a RTCP message with a ReceiveBlock.   
+    void OnRtt(TimeDelta rtt,
+               Timestamp at_time);
+
+    void IncomingPacketFeedbacks(const TransportPacketsFeedback& report);
+
+    void SetBitrateBoundary(DataRate min_bitrate,
+                            DataRate max_bitrate);
+
+    void UpdateEstimate(Timestamp at_time);
 
 private:
     // User Metrics Analysis
     enum UmaState { NO_UPDATE, FIRST_DONE, DONE };
 
+    DataRate Clamp(DataRate bitrate) const;
+    void ApplyLimits(Timestamp at_time);
+    void UpdateTargetBitrate(DataRate bitrate, 
+                             Timestamp at_time);
+
+    bool IsInStartPhase(Timestamp at_time) const;
+
+    void UpdateMinHistory(Timestamp at_time, TimeDelta window_size);
+
 private:
+    const Configuration config_;
+
     RttBasedBackoff rtt_backoff_;
+    LossBasedBwe loss_based_bwe_;
     LinkerCapacityTracker linker_capacity_tracker_;
 
     std::deque<std::pair<Timestamp, DataRate>> min_bitrate_history_;
 
-    // Incoming filter
-    int lost_packtes_since_last_loss_update_;
-    int expected_packets_since_last_loss_update_;
+    // The number of lost packets has accumuted since the last loss report.
+    int accumulated_lost_packets_;
+    // The number of packets has accumulated since the last loss report.
+    int accumulated_packets_;
 
-    DataRate curr_target_bitrate_;
+    DataRate curr_bitrate_;
     DataRate min_configured_bitrate_;
     DataRate max_configured_bitrate_;
+    std::optional<DataRate> ack_bitrate_;
 
     bool has_decreased_since_last_fraction_loss_;
-    Timestamp time_last_loss_feedback_;
-    Timestamp time_last_loss_packet_report_;
+    Timestamp time_last_fraction_loss_update_;
+    // The fraction part of loss ratio in Q8 format.
     uint8_t last_fraction_loss_;
     TimeDelta last_rtt_;
 
@@ -43,7 +108,7 @@ private:
     // This is typically signalled using the REMB (Receiver Estimated Maximum Bitrate) message
     // and is used when we don't have any send side delay based estimate.
     DataRate remb_limit_;
-    bool remb_limit_cpas_only_;
+    bool use_remb_limit_cpas_only_;
     DataRate delay_based_limit_;
     Timestamp time_last_decrease_;
     Timestamp time_first_report_;
@@ -55,7 +120,6 @@ private:
     float low_loss_threshold_;
     float high_loss_threshold_;
     DataRate bitrate_threshold_;
-    LossBasedBwe loss_based_bwe_;
 };
     
 } // namespace naivertc
