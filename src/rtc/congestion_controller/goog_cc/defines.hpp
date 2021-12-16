@@ -7,6 +7,8 @@
 
 namespace naivertc {
 
+constexpr int kMinBitrateBps = 5000;
+
 enum class BandwidthUsage {
     NORMAL,
     UNDERUSING,

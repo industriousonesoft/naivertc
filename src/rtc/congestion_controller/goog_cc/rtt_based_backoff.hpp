@@ -1,5 +1,5 @@
-#ifndef _RTC_CONGESTION_CONTROLLER_GOOG_CC_RTT_ESTIMATOR_H_
-#define _RTC_CONGESTION_CONTROLLER_GOOG_CC_RTT_ESTIMATOR_H_
+#ifndef _RTC_CONGESTION_CONTROLLER_GOOG_CC_RTT_BASED_BACKOFF_H_
+#define _RTC_CONGESTION_CONTROLLER_GOOG_CC_RTT_BASED_BACKOFF_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/units/time_delta.hpp"
@@ -9,7 +9,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RttEstimator {
+class RTC_CPP_EXPORT RttBasedBackoff {
 public:
     struct Configuration {
         TimeDelta rtt_limit = TimeDelta::Seconds(3);
@@ -19,15 +19,15 @@ public:
     };
 
 public:
-    RttEstimator(Configuration config);
-    ~RttEstimator();
+    RttBasedBackoff(Configuration config);
+    ~RttBasedBackoff();
 
     void Update(TimeDelta rtt,
                 Timestamp at_time);
 
     void OnSentPacket(const SendPacket& sent_packet);
 
-    TimeDelta Estimate() const;
+    TimeDelta CorrectedRtt() const;
 
 private:
     const Configuration config_;

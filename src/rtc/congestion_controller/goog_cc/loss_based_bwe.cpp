@@ -104,8 +104,8 @@ void LossBasedBwe::IncomingFeedbacks(const std::vector<PacketResult> packet_feed
     }
 }
 
-void LossBasedBwe::UpdateAcknowledgedBitrate(DataRate ack_bitrate, 
-                                             Timestamp at_time) {
+void LossBasedBwe::OnAcknowledgedBitrate(DataRate ack_bitrate, 
+                                         Timestamp at_time) {
     const TimeDelta elapsed_time = time_ack_bitrate_last_update_.IsFinite()
                                    ? at_time - time_ack_bitrate_last_update_
                                    : kDefaultRtcpFeedbackInterval;

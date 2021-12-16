@@ -39,8 +39,8 @@ public:
 
     void IncomingFeedbacks(const std::vector<PacketResult> packet_feedbacks, 
                            Timestamp at_time);
-    void UpdateAcknowledgedBitrate(DataRate ack_bitrate, 
-                                   Timestamp at_time);
+    void OnAcknowledgedBitrate(DataRate ack_bitrate, 
+                               Timestamp at_time);
 
     std::optional<DataRate> Estimate(DataRate min_bitrate,
                                      DataRate expected_birate,
