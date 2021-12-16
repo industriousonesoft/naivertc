@@ -88,26 +88,11 @@ bool AimdRateControl::CanReduceFurther(Timestamp at_time, DataRate estimated_thr
     }
 }
 
-bool AimdRateControl::CanReduceFurtherBeforeMeasuredThroughput(Timestamp at_time) const {
+bool AimdRateControl::CanReduceFurtherInStartPhase(Timestamp at_time) const {
     if (!is_bitrate_initialized_) {
         return false;
     }
-    if (config_.initial_backoff_interval) {
-        // If the bitrate estimate hasn't been decreased before or more 
-        // the `initial_backoff_interval`.
-        // TODO: We could use the RTT (clamped to suitable limits) 
-        // instead of a fixed bitrate_reduction_interval.
-        if (time_last_bitrate_decrease_.IsInfinite() ||
-            at_time - time_last_bitrate_decrease_ >= *config_.initial_backoff_interval) {
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        // If the `initial_backoff_interval` is not set, 
-        // we can reduce further when the bitrate is initialized.
-        return true;
-    }
+    return IsInStartPhase(at_time);
 }
 
 DataRate AimdRateControl::Update(BandwidthUsage bw_state, 
@@ -338,6 +323,21 @@ void AimdRateControl::ChangeState(BandwidthUsage bw_state,
 
 bool AimdRateControl::DontIncreaseInAlr() const {
     return config_.send_side && in_alr_ && config_.no_bitrate_increase_in_alr;
+}
+
+bool AimdRateControl::IsInStartPhase(Timestamp at_time) const {
+    if (config_.initial_backoff_interval) {
+        // If the bitrate estimate hasn't been decreased before or more 
+        // the `initial_backoff_interval`.
+        // TODO: We could use the RTT (clamped to suitable limits) 
+        // instead of a fixed bitrate_reduction_interval.
+        return time_last_bitrate_decrease_.IsInfinite() ||
+               at_time - time_last_bitrate_decrease_ >= *config_.initial_backoff_interval;
+    } else {
+        // If the `initial_backoff_interval` is not set, 
+        // we can reduce further when the bitrate is initialized.
+        return true;
+    }
 }
 
 bool AimdRateControl::CanReduceFurther(Timestamp at_time) const {

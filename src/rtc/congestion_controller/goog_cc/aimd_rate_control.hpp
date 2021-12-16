@@ -6,7 +6,7 @@
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/base/units/data_rate.hpp"
 #include "rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp"
-#include "rtc/congestion_controller/goog_cc/defines.hpp"
+#include "rtc/congestion_controller/goog_cc/bwe_defines.hpp"
 
 #include <optional>
 
@@ -46,8 +46,8 @@ public:
     // when over-using.
     bool CanReduceFurther(Timestamp at_time, DataRate estimated_throughput) const;
 
-    // As above. To be used if overusing before we have measured a throughput.
-    bool CanReduceFurtherBeforeMeasuredThroughput(Timestamp at_time) const;
+    // As above. To be used if overusing before we have measured a throughput (in start phase).
+    bool CanReduceFurtherInStartPhase(Timestamp at_time) const;
 
     DataRate Update(BandwidthUsage bw_state, 
                     std::optional<DataRate> estimated_throughput, 
@@ -75,6 +75,7 @@ private:
     
     bool DontIncreaseInAlr() const;
 
+    bool IsInStartPhase(Timestamp at_time) const;
     bool CanReduceFurther(Timestamp at_time) const;
     bool CanReduceFurther(DataRate estimated_throughput) const;
 

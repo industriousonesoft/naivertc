@@ -192,9 +192,9 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
             auto [target_bitrate, updated] = UpdateEstimate(BandwidthUsage::OVERUSING, *acked_bitrate, at_time);
             ret.updated = updated;
             ret.target_bitrate = target_bitrate;
-        // Reduce the curren bitrate further if overusing before we have measured a throughout.
+        // Reduce the curren bitrate further if overusing before we have measured a throughout (in start phase).
         } else if (!acked_bitrate && rate_control_.ValidEstimate() &&
-                   rate_control_.CanReduceFurtherBeforeMeasuredThroughput(at_time)) {
+                   rate_control_.CanReduceFurtherInStartPhase(at_time)) {
             // Overusing before we have a measured acknowledged bitrate.
             // Reduce send rate by 50% every rtt [10ms, 200 ms].
             // TODO: Improve this and/or the acknowledged bitrate estimator
