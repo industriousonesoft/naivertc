@@ -7,6 +7,7 @@
 #include "rtc/congestion_controller/goog_cc/loss_based_bwe.hpp"
 
 #include <deque>
+#include <optional>
 
 namespace naivertc {
 
@@ -77,13 +78,14 @@ private:
 
     bool IsInStartPhase(Timestamp at_time) const;
 
-    void UpdateMinHistory(Timestamp at_time, TimeDelta window_size);
+    void UpdateMinHistory(DataRate bitrate, Timestamp at_time);
+
+    void UpdateUmaStats(int packet_lost, Timestamp at_time);
 
 private:
     const Configuration config_;
 
     RttBasedBackoff rtt_backoff_;
-    LossBasedBwe loss_based_bwe_;
     LinkerCapacityTracker linker_capacity_tracker_;
 
     std::deque<std::pair<Timestamp, DataRate>> min_bitrate_history_;
@@ -113,13 +115,15 @@ private:
     Timestamp time_last_decrease_;
     Timestamp time_first_report_;
     int initially_loss_packets_;
-    DataRate bitrate_at_2_seconds_;
+    DataRate bitrate_at_start_;
     UmaState uma_update_state_;
-    UmaState uam_rtt_state_;
+    UmaState uma_rtt_state_;
     std::vector<bool> rampup_uma_states_updated_;
     float low_loss_threshold_;
     float high_loss_threshold_;
     DataRate bitrate_threshold_;
+
+    std::optional<LossBasedBwe> loss_based_bwe_;
 };
     
 } // namespace naivertc

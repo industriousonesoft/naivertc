@@ -24,6 +24,7 @@ public:
         TimeDelta time_threshold = TimeDelta::Seconds(1);
     };
 
+    // TODO: Implement the field trial to set the hyper parameters below.
     struct Configuration {
         AimdRateControlConfig aimd_rate_control_config;
         TrendlineEstimatorConfig audio_trendline_estimator_config;

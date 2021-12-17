@@ -36,6 +36,7 @@ void LinkerCapacityTracker::Update(DataRate bitrate,
                                    Timestamp at_time) {
     if (bitrate > estimated_capacity_) {
         TimeDelta elapsed_time = at_time - time_last_capacity_udpate_;
+        // Calculate the exponential smoothing faction: e^-x = 1 / e^x
         double alpha = elapsed_time.IsFinite() ? exp(-(elapsed_time / tracking_window_))
                                                : 0;
         estimated_capacity_ = alpha * estimated_capacity_ + (1 - alpha) * bitrate;

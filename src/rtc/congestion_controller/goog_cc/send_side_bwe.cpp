@@ -12,8 +12,6 @@ constexpr TimeDelta kStartPhase = TimeDelta::Millis(2000);
 constexpr TimeDelta kBweConverganceTime = TimeDelta::Millis(20000);
 constexpr int kLimitNumPackets = 20;
 constexpr DataRate kDefaultMaxBitrate = DataRate::BitsPerSec(1000000000);
-constexpr TimeDelta kLowBitrateLogPeriod = TimeDelta::Millis(10000);
-constexpr TimeDelta kRtcEventLogPeriod = TimeDelta::Millis(5000);
 // Expecting that RTCP feedback is sent uniformly within [0.5, 1.5]s intervals.
 constexpr TimeDelta kMaxRtcpFeedbackInterval = TimeDelta::Millis(5000);
 
@@ -37,7 +35,6 @@ const size_t kNumUmaRampupMetrics = sizeof(kUmaRampupMetrics) / sizeof(kUmaRampu
 SendSideBwe::SendSideBwe(Configuration config)
     : config_(std::move(config)),
       rtt_backoff_(),
-      loss_based_bwe_({}),
       linker_capacity_tracker_(),
       accumulated_lost_packets_(0),
       accumulated_packets_(0),
@@ -55,13 +52,14 @@ SendSideBwe::SendSideBwe(Configuration config)
       time_last_decrease_(Timestamp::MinusInfinity()),
       time_first_report_(Timestamp::MinusInfinity()),
       initially_loss_packets_(0),
-      bitrate_at_2_seconds_(DataRate::Zero()),
+      bitrate_at_start_(DataRate::Zero()),
       uma_update_state_(NO_UPDATE),
-      uam_rtt_state_(NO_UPDATE),
+      uma_rtt_state_(NO_UPDATE),
       rampup_uma_states_updated_(kNumUmaRampupMetrics, false),
       low_loss_threshold_(kDefaultLowLossThreshold),
       high_loss_threshold_(kDefaultHighLossThreshold),
-      bitrate_threshold_(kDefaultBitrateThreshold) {}
+      bitrate_threshold_(kDefaultBitrateThreshold),
+      loss_based_bwe_(std::make_optional<LossBasedBwe>(LossBasedBwe::Configuration())) {}
 
 SendSideBwe::~SendSideBwe() = default;
 
@@ -98,7 +96,8 @@ void SendSideBwe::OnSendBitrate(DataRate bitrate,
         // Reset to avoid being caped by the estimate.
         delay_based_limit_ = DataRate::PlusInfinity();
         UpdateTargetBitrate(bitrate, at_time);
-        // TODO: add annotation
+        // Clear last sent bitrate history so the new bitrate can
+        // be used directly and not capped.
         min_bitrate_history_.clear();
     }
 }
@@ -114,7 +113,9 @@ void SendSideBwe::OnDelayBasedBitrate(DataRate bitrate,
 void SendSideBwe::OnAcknowledgeBitrate(DataRate ack_bitrate,
                                        Timestamp at_time) {
     ack_bitrate_ = ack_bitrate;
-    loss_based_bwe_.OnAcknowledgedBitrate(ack_bitrate, at_time);
+    if (loss_based_bwe_) {
+        loss_based_bwe_->OnAcknowledgedBitrate(ack_bitrate, at_time);
+    }
 }
 
 void SendSideBwe::OnPropagationRtt(TimeDelta rtt,
@@ -159,6 +160,7 @@ void SendSideBwe::OnPacketsLost(int64_t packets_lost,
         has_decreased_since_last_fraction_loss_ = false;
         UpdateEstimate(at_time);
     }
+    UpdateUmaStats(packets_lost, at_time);
 }
                 
 void SendSideBwe::OnRtt(TimeDelta rtt,
@@ -168,13 +170,15 @@ void SendSideBwe::OnRtt(TimeDelta rtt,
     if (rtt > TimeDelta::Zero()) {
         last_rtt_ = rtt;
     }
-    if (IsInStartPhase(at_time) && uma_update_state_ == NO_UPDATE) {
-        uma_update_state_ = DONE;
+    if (IsInStartPhase(at_time) && uma_rtt_state_ == NO_UPDATE) {
+        uma_rtt_state_ = DONE;
     }
 }
 
 void SendSideBwe::IncomingPacketFeedbacks(const TransportPacketsFeedback& report) {
-    loss_based_bwe_.IncomingFeedbacks(report.packet_feedbacks, report.feedback_time);
+    if (loss_based_bwe_) {
+        loss_based_bwe_->IncomingFeedbacks(report.packet_feedbacks, report.feedback_time);
+    }
 }
 
 void SendSideBwe::SetBitrateBoundary(DataRate min_bitrate,
@@ -210,35 +214,43 @@ void SendSideBwe::UpdateEstimate(Timestamp at_time) {
         DataRate new_bitrate = curr_bitrate_;
 
         if (remb_limit_.IsFinite()) {
-            new_bitrate = std::max(remb_limit_, new_bitrate);
+            // FIXME: Why the new bitrate should not be larger than the REMB?
+            new_bitrate = remb_limit_;
         }
         if (delay_based_limit_.IsFinite()) {
             new_bitrate = std::max(delay_based_limit_, new_bitrate);
         }
-        loss_based_bwe_.SetInitialBitrate(new_bitrate);
+        if (loss_based_bwe_) {
+            loss_based_bwe_->SetInitialBitrate(new_bitrate);
+        }
 
         if (new_bitrate != curr_bitrate_) {
             min_bitrate_history_.clear();
-            min_bitrate_history_.push_back({at_time, new_bitrate});
+            if (loss_based_bwe_) {
+                min_bitrate_history_.push_back({at_time, new_bitrate});
+            } else {
+                min_bitrate_history_.push_back({at_time, curr_bitrate_});
+            }
             UpdateTargetBitrate(new_bitrate, at_time);
             return;
         }
-    }
-    UpdateMinHistory(at_time, kBweIncreaseInterval);
-    
-    auto esimate = loss_based_bwe_.Estimate(min_bitrate_history_.front().second,
-                                            delay_based_limit_,
-                                            last_rtt_,
-                                            at_time);
-
-    if (esimate) {
-        UpdateTargetBitrate(*esimate, at_time);
-        return;
-    }
+    } 
+    UpdateMinHistory(curr_bitrate_, at_time);
 
     // No loss information updated yet.
     if (time_last_fraction_loss_update_.IsInfinite()) {
         return;
+    }
+    
+    if (loss_based_bwe_) {
+        auto esimate = loss_based_bwe_->Estimate(min_bitrate_history_.front().second,
+                                                 delay_based_limit_,
+                                                 last_rtt_,
+                                                 at_time);
+        if (esimate) {
+            UpdateTargetBitrate(*esimate, at_time);
+            return;
+        }
     }
 
     TimeDelta elapsed_time = at_time - time_last_fraction_loss_update_;
@@ -277,8 +289,10 @@ void SendSideBwe::UpdateEstimate(Timestamp at_time) {
                     (at_time-time_last_decrease_) > (kBweDecreaseInterval + last_rtt_)) {
                     time_last_decrease_ = at_time;
 
+                    // Reduce bitrate: new_bitrate = curr_bitrate * (1 - 0.5 * loss_ratio)
                     DataRate new_bitrate = DataRate::BitsPerSec(curr_bitrate_.bps() * static_cast<double>((512 - last_fraction_loss_) / 512.0));
                     has_decreased_since_last_fraction_loss_ = true;
+                    UpdateTargetBitrate(new_bitrate, at_time);
                     return;
                 }
             }
@@ -324,25 +338,45 @@ bool SendSideBwe::IsInStartPhase(Timestamp at_time) const {
            at_time - time_first_report_ < kStartPhase;
 }
 
-void SendSideBwe::UpdateMinHistory(Timestamp at_time, TimeDelta window_size) {
+void SendSideBwe::UpdateMinHistory(DataRate bitrate, Timestamp at_time) {
     // Remove old data points from history.
     // Since history precision is in ms, add one so it is able to 
     // increase bitrate if it is off by as little as 0.5ms.
     const TimeDelta percision_correction = TimeDelta::Millis(1);
     while (!min_bitrate_history_.empty() && 
-           at_time - min_bitrate_history_.front().first + percision_correction > window_size) {
+           at_time - min_bitrate_history_.front().first + percision_correction > kBweIncreaseInterval) {
         min_bitrate_history_.pop_front();
     }
 
     // Typical minimum sliding-window algorithm:
     // Pop values higher than current birate before pushint it.
     while (!min_bitrate_history_.empty() && 
-           curr_bitrate_ <= min_bitrate_history_.back().second) {
+           bitrate <= min_bitrate_history_.back().second) {
         min_bitrate_history_.pop_back();
     }
 
-    min_bitrate_history_.push_back({at_time, curr_bitrate_});
+    min_bitrate_history_.push_back({at_time, bitrate});
 
+}
+
+void SendSideBwe::UpdateUmaStats(int packet_lost, Timestamp at_time) {
+    DataRate bitrate = curr_bitrate_;
+    for (size_t i = 0; i < kNumUmaRampupMetrics; ++i) {
+        if (!rampup_uma_states_updated_[i] &&
+            bitrate.kbps() >= kUmaRampupMetrics[i].bitrate_kbps) {
+            rampup_uma_states_updated_[i] = true;
+        }
+    }
+
+    if (IsInStartPhase(at_time)) {
+        initially_loss_packets_ += packet_lost;
+    } else if (uma_update_state_ == UmaState::NO_UPDATE) {
+        uma_update_state_ = UmaState::FIRST_DONE;
+        bitrate_at_start_ = bitrate;
+    } else if (uma_update_state_ == UmaState::FIRST_DONE &&
+               at_time - time_first_report_ >= kBweConverganceTime) {
+        uma_update_state_ = UmaState::DONE;
+    }
 }
     
 } // namespace naivertc

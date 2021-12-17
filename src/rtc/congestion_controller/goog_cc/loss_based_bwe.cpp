@@ -52,7 +52,7 @@ double ExponentialSmoothingFactor(TimeDelta window_size, TimeDelta interval) {
     if (window_size <= TimeDelta::Zero()) {
         return 1.0;
     }
-    // 1 - e^-x(1/e^x)
+    // 1 - e^-x= 1 - 1/e^x
     // FIXME: Why using the exp?
     return 1.0 - exp(interval / window_size * -1.0);
 }

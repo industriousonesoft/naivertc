@@ -618,6 +618,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_TESTS=1)
 # google test
 add_subdirectory(deps/googletest)
 
+# Header files of unit tests
 set(TESTING_SOURCES
     # testing
     src/testing/defines.hpp
@@ -637,6 +638,7 @@ set(TESTING_SOURCES
     gtest/main.cpp
 )
 
+# Cpp files of unit tests
 set(UNITTEST_SOURCES
     # base
     src/base/system_time_unittest.cpp
@@ -751,6 +753,7 @@ set(UNITTEST_SOURCES
     src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest.cpp
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator_unittest.cpp
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator_unittest.cpp
+    src/rtc/congestion_controller/goog_cc/send_side_bwe_unittest.cpp
 )
 
 # EXCLUDE_FROM_ALL表示指定的target(或某个模块下的所有target)不会被加入默认编译的all target列表中，即不会自动编译，需要手动编译
