@@ -37,7 +37,7 @@ double LossRatioFromBitrate(DataRate bitrate,
 }
 
 DataRate BitrateFromLossRatio(double loss_ratio, 
-                              DataRate losss_bandwidth_balance, 
+                              DataRate loss_bandwidth_balance, 
                               double exponent) {
     if (exponent <= 0) {
         return DataRate::Infinity();
@@ -45,7 +45,8 @@ DataRate BitrateFromLossRatio(double loss_ratio,
     if (loss_ratio < 1e-5) {
         return DataRate::Infinity();
     }
-    return losss_bandwidth_balance * pow(loss_ratio, -1.0 / exponent);
+    // loss_bandwidth_balance * (1 / (loss_ratio^1/exponent))
+    return loss_bandwidth_balance * pow(loss_ratio, -1.0 / exponent);
 }
 
 double ExponentialSmoothingFactor(TimeDelta window_size, TimeDelta interval) {
@@ -88,34 +89,36 @@ void LossBasedBwe::IncomingFeedbacks(const std::vector<PacketResult> packet_feed
     for (const auto& pkt_feedback : packet_feedbacks) {
         loss_count += pkt_feedback.IsLost() ? 1 : 0;
     }
-    last_loss_ratio_ = static_cast<double>(loss_count) / packet_feedbacks.size();
+    double loss_ratio = static_cast<double>(loss_count) / packet_feedbacks.size();
     const TimeDelta elapsed_time = time_last_loss_packet_report_.IsFinite()
                                   ? at_time - time_last_loss_packet_report_
                                   : kDefaultRtcpFeedbackInterval;
     time_last_loss_packet_report_ = at_time;
     has_decreased_since_last_loss_report_ = false;
     // Exponetial smoothing
-    avg_loss_ratio_ += ExponentialSmoothingFactor(config_.loss_window, elapsed_time) * (last_loss_ratio_ - avg_loss_ratio_);
+    avg_loss_ratio_ += ExponentialSmoothingFactor(config_.loss_window, elapsed_time) * (loss_ratio - avg_loss_ratio_);
     if (avg_loss_ratio_ > avg_loss_ratio_max_) {
         avg_loss_ratio_max_ = avg_loss_ratio_;
     } else {
         double smoothing_factor = ExponentialSmoothingFactor(config_.loss_max_window, elapsed_time);
         avg_loss_ratio_max_ -= smoothing_factor * (avg_loss_ratio_max_ - avg_loss_ratio_);
     }
+    last_loss_ratio_ = loss_ratio;
 }
 
 void LossBasedBwe::OnAcknowledgedBitrate(DataRate ack_bitrate, 
                                          Timestamp at_time) {
-    const TimeDelta elapsed_time = time_ack_bitrate_last_update_.IsFinite()
-                                   ? at_time - time_ack_bitrate_last_update_
-                                   : kDefaultRtcpFeedbackInterval;
-    time_ack_bitrate_last_update_ = at_time;
+    
     if (ack_bitrate > ack_bitrate_max_) {
         ack_bitrate_max_ = ack_bitrate;
     } else {
+        // The time has elapsed since last time.
+        TimeDelta elapsed_time = time_ack_bitrate_last_update_.IsFinite() ? at_time - time_ack_bitrate_last_update_
+                                                                          : kDefaultRtcpFeedbackInterval;
         double smoothing_factor = ExponentialSmoothingFactor(config_.ack_rate_max_window, elapsed_time);
         ack_bitrate_max_ -= smoothing_factor * (ack_bitrate_max_ - ack_bitrate);
     }
+     time_ack_bitrate_last_update_ = at_time;
 }
 
 std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
@@ -136,7 +139,7 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
     const double loss_ratio_estimate_for_increase = avg_loss_ratio_max_;
     // Avoid multiple decreases from averaging over one loss spike.
     const double loss_ratio_estimate_for_decrease = std::min(avg_loss_ratio_, last_loss_ratio_);
-    // FIXME: How to understand the formula below.
+    // Limit decrease once a period (RTT + decrease_interval) since last update.
     const bool allow_to_decrease = !has_decreased_since_last_loss_report_ && (at_time - time_last_decrease_ >= rtt + config_.decrease_interval);
     // If packet lost reports are too old, don't increase bitrate.
     const bool loss_report_valid = at_time - time_last_loss_packet_report_ < kRtcpFeedbackValidPeriod;
@@ -149,17 +152,21 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
         DataRate new_bibtrate = min_bitrate * CalcIncreaseFactor(config_, rtt) + config_.increase_offset;
 
         const DataRate increased_bibtrate_cap = BitrateFromLossRatio(loss_ratio_estimate_for_increase,
-                                                                         config_.loss_bandwidth_balance_increase,
-                                                                         config_.loss_bandwidth_balance_exponent);
+                                                                     config_.loss_bandwidth_balance_increase,
+                                                                     config_.loss_bandwidth_balance_exponent);
+        // Limit the new bitrate below the cap.
         new_bibtrate = std::min(new_bibtrate, increased_bibtrate_cap);
-        loss_based_bitrate_ = std::max(new_bibtrate, loss_based_bitrate_);
+        if (new_bibtrate > loss_based_bitrate_) {
+            loss_based_bitrate_ = new_bibtrate;
+        }
     } else if (loss_ratio_estimate_for_decrease > ThresholdToDecrease() && allow_to_decrease) {
         // Decrease bitrate by the fixed ratio.
-        DataRate new_bitrate =  config_.decrease_factor * ack_bitrate_max_;
+        DataRate new_bitrate = config_.decrease_factor * ack_bitrate_max_;
         const DataRate decreased_bitrate_floor = BitrateFromLossRatio(loss_ratio_estimate_for_decrease,
                                                                       config_.loss_bandwidth_balance_decrease,
                                                                       config_.loss_bandwidth_balance_exponent);
         
+        // Limit the new bitrate above the floor.
         new_bitrate = std::max(new_bitrate, decreased_bitrate_floor);
         if (new_bitrate < loss_based_bitrate_) {
             time_last_decrease_ = at_time;
