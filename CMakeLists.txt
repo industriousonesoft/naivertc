@@ -266,6 +266,7 @@ set(LIB_HEADERS
 
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/network_types.hpp
+    src/rtc/congestion_controller/network_controller_interface.hpp
     src/rtc/congestion_controller/goog_cc/bwe_defines.hpp
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator.hpp
@@ -280,6 +281,7 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/rtt_based_backoff.hpp
     src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.hpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe.hpp
+    src/rtc/congestion_controller/goog_cc/goog_cc_network_controller.hpp
 )
 
 # Cpp files
@@ -520,6 +522,7 @@ set(LIB_SOURCES
     src/rtc/congestion_controller/goog_cc/rtt_based_backoff.cpp
     src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.cpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe.cpp
+    src/rtc/congestion_controller/goog_cc/goog_cc_network_controller.cpp
 )
 
 if(USE_NICE)

@@ -2,6 +2,7 @@
 #define _BASE_ATTRIBUTES_CHECKER_H_
 
 // RTC_HAS_CPP_ATTRIBUTE
+//
 // A function-like feature checking macro that accepts C++11 style attributes.
 // It's a wrapper around `__has_cpp_attribute`, defined by ISO C++ SD-6
 // (https://en.cppreference.com/w/cpp/experimental/feature_test). If we don't
@@ -15,6 +16,7 @@
 #endif
 
 // RTC_CONST_INIT
+//
 // A variable declaration annotated with the `RTC_CONST_INIT` attribute will
 // not compile (on supported platforms) unless the variable has a constant
 // initializer. This is useful for variables with static and thread storage
@@ -30,6 +32,7 @@
 #endif // RTC_HAS_CPP_ATTRIBUTE(clang::require_constant_initialization)
 
 // RTC_DEPRECATED()
+//
 // Marks a deprecated class, struct, enum, function, method and variable
 // declarations. The macro argument is used as a custom diagnostic message (e.g.
 // suggestion of a better alternative).
@@ -51,6 +54,23 @@
 #endif
 #ifndef RTC_DEPRECATED
 #define RTC_DEPRECATED(message)
+#endif
+
+// RTC_MUST_USE_RESULT
+//
+// Tells the compiler to warn about unused results.
+//
+// When annotating a function, it must appear as the first part of the
+// declaration or definition. The compiler will warn if the return value
+// from such a function is unused.
+//
+// NOTE: `warn_unused_result` is used only for clang but not for gcc.
+#if RTC_HAS_CPP_ATTRIBUTE(nodiscard)
+#define RTC_MUST_USE_RESULT [[nodiscard]]
+#elif defined(__clang__) && RTC_HAS_CPP_ATTRIBUTE(warn_unused_result)
+#define RTC_MUST_USE_RESULT __attribute__(warn_unused_result)
+#else
+#define RTC_MUST_USE_RESULT
 #endif
 
 #endif // _BASE_ATTRIBUTES_CHECKER_H_
