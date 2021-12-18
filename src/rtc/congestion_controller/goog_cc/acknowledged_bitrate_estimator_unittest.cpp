@@ -1,5 +1,5 @@
 #include "rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp"
-#include "rtc/congestion_controller/goog_cc/bitrate_estimator_interface.hpp"
+#include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -21,8 +21,9 @@ constexpr int64_t kFirstSendTimeMs = 10;
 constexpr uint16_t kSequenceNumber = 1;
 constexpr size_t kPayloadSize = 10;
 
-class MockBitrateEstimator : public BitrateEstimatorInterface {
+class MockBitrateEstimator : public BitrateEstimator {
 public:
+    using BitrateEstimator::BitrateEstimator;
     MOCK_METHOD(void, Update, (Timestamp at_time, size_t amount, bool in_alr), (override));
     MOCK_METHOD(std::optional<DataRate>, Estimate, (), (const, override));
     MOCK_METHOD(std::optional<DataRate>, PeekRate, (), (const, override));
@@ -36,7 +37,7 @@ struct AcknowledgedBitrateEstimatorTestStates {
 
 AcknowledgedBitrateEstimatorTestStates CreateTestStates() {
     AcknowledgedBitrateEstimatorTestStates states;
-    auto mock_bitrate_estimator = std::make_unique<MockBitrateEstimator>();
+    auto mock_bitrate_estimator = std::make_unique<MockBitrateEstimator>(MockBitrateEstimator::Configuration());
     states.bitrate_estimator = mock_bitrate_estimator.get();
     states.acknowledged_bitrate_estimator = std::make_unique<AcknowledgedBitrateEstimator>(std::move(mock_bitrate_estimator));
     return states;

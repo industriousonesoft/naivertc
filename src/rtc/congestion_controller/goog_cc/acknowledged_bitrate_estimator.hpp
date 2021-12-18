@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/congestion_controller/network_types.hpp"
-#include "rtc/congestion_controller/goog_cc/bitrate_estimator_interface.hpp"
+#include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
 
 #include <optional>
 #include <vector>
@@ -13,7 +13,9 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT AcknowledgedBitrateEstimator {
 public:
-    AcknowledgedBitrateEstimator(std::unique_ptr<BitrateEstimatorInterface> bitrate_estimator);
+    static std::unique_ptr<AcknowledgedBitrateEstimator> Create(BitrateEstimator::Configuration config);
+public:
+    AcknowledgedBitrateEstimator(std::unique_ptr<BitrateEstimator> bitrate_estimator);
     ~AcknowledgedBitrateEstimator();
 
     void set_in_alr(bool in_alr);
@@ -25,7 +27,7 @@ public:
     std::optional<DataRate> PeekRate() const;
 
 private:
-    std::unique_ptr<BitrateEstimatorInterface> bitrate_estimator_;
+    std::unique_ptr<BitrateEstimator> bitrate_estimator_;
     bool in_alr_;
     std::optional<Timestamp> alr_ended_time_;
 };

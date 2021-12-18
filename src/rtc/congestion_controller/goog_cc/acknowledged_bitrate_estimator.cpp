@@ -4,7 +4,11 @@
 
 namespace naivertc {
 
-AcknowledgedBitrateEstimator::AcknowledgedBitrateEstimator(std::unique_ptr<BitrateEstimatorInterface> bitrate_estimator) 
+std::unique_ptr<AcknowledgedBitrateEstimator> AcknowledgedBitrateEstimator::Create(BitrateEstimator::Configuration config) {
+    return std::make_unique<AcknowledgedBitrateEstimator>(std::make_unique<BitrateEstimator>(std::move(config)));
+}
+
+AcknowledgedBitrateEstimator::AcknowledgedBitrateEstimator(std::unique_ptr<BitrateEstimator> bitrate_estimator) 
     : bitrate_estimator_(std::move(bitrate_estimator)),
       in_alr_(false),
       alr_ended_time_(std::nullopt) {}
