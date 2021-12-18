@@ -34,8 +34,7 @@ std::vector<PacketResult> TransportPacketsFeedback::LostWithSendInfo() const {
   return res;
 }
 
-std::vector<PacketResult> TransportPacketsFeedback::PacketsWithFeedback()
-    const {
+std::vector<PacketResult> TransportPacketsFeedback::PacketsWithFeedback() const {
   return packet_feedbacks;
 }
 

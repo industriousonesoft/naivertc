@@ -71,6 +71,10 @@ DataRate SendSideBwe::min_bitate() const {
     return min_configured_bitrate_;
 }
 
+DataRate SendSideBwe::EstimatedLinkCapacity() const {
+    return linker_capacity_tracker_.estimate();
+}
+
 uint8_t SendSideBwe::fraction_loss() const {
     return last_fraction_loss_;
 }
@@ -110,11 +114,11 @@ void SendSideBwe::OnDelayBasedBitrate(DataRate bitrate,
     ApplyLimits(at_time);
 }
 
-void SendSideBwe::OnAcknowledgeBitrate(DataRate ack_bitrate,
+void SendSideBwe::OnAcknowledgeBitrate(std::optional<DataRate> ack_bitrate,
                                        Timestamp at_time) {
     ack_bitrate_ = ack_bitrate;
-    if (loss_based_bwe_) {
-        loss_based_bwe_->OnAcknowledgedBitrate(ack_bitrate, at_time);
+    if (ack_bitrate && loss_based_bwe_) {
+        loss_based_bwe_->OnAcknowledgedBitrate(*ack_bitrate, at_time);
     }
 }
 

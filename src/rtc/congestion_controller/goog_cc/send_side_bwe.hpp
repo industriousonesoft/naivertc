@@ -28,6 +28,8 @@ public:
     uint8_t fraction_loss() const;
     TimeDelta rtt() const;
 
+    DataRate EstimatedLinkCapacity() const;
+
     void OnBitrates(std::optional<DataRate> send_bitrate,
                     DataRate min_bitrate,
                     DataRate max_bitrate,
@@ -39,7 +41,7 @@ public:
     void OnDelayBasedBitrate(DataRate bitrate,
                              Timestamp at_time);
 
-    void OnAcknowledgeBitrate(DataRate ack_bitrate,
+    void OnAcknowledgeBitrate(std::optional<DataRate> ack_bitrate,
                               Timestamp at_time);
 
     void OnPropagationRtt(TimeDelta rtt,

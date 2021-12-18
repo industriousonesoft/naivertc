@@ -273,7 +273,6 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp
     src/rtc/congestion_controller/goog_cc/aimd_rate_control.hpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe.hpp
-    src/rtc/congestion_controller/goog_cc/bitrate_estimator_interface.hpp
     src/rtc/congestion_controller/goog_cc/bitrate_estimator.hpp
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp

@@ -8,6 +8,13 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT NetworkControllerInterface {
 public:
+    struct Configuration {
+        // The initial constraints to start with.
+        TargetBitrateConstraints constraints;
+        // The stream specific configuration.
+        StreamsConfig stream_based_config;
+    };
+public:
     virtual ~NetworkControllerInterface() = default;
 
     // Called when network availability changes.

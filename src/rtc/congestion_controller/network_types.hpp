@@ -154,9 +154,9 @@ struct RTC_CPP_EXPORT NetworkRouteChange {
 // BitrateAllocationLimits
 struct RTC_CPP_EXPORT BitrateAllocationLimits {
     // The total minimum send bitrate required by all send streams.
-    DataRate min_allocated_bitrate = DataRate::Zero();
+    DataRate min_total_allocated_bitrate = DataRate::Zero();
     // The total maximum allocatable bitrate for all currently availale stream.
-    DataRate max_allocated_bitrate = DataRate::Zero();
+    DataRate max_total_allocated_bitrate = DataRate::Zero();
     // The max bitrate to use for padding. The sum of the pre-stream max padding rate.
     DataRate max_padding_bitrate = DataRate::Zero();
 };
@@ -165,7 +165,7 @@ struct RTC_CPP_EXPORT BitrateAllocationLimits {
 struct RTC_CPP_EXPORT StreamsConfig {
     std::optional<bool> request_alr_probing;
     std::optional<double> pacing_factor;
-    std::optional<BitrateAllocationLimits> allocated_bitrate_limits;
+    BitrateAllocationLimits allocated_bitrate_limits;
     Timestamp at_time = Timestamp::PlusInfinity();
 };
 
@@ -180,7 +180,7 @@ struct RTC_CPP_EXPORT ProcessInterval {
 // Transport level feedback
 struct RTC_CPP_EXPORT RemoteBitrateReport {
     DataRate bitrate = DataRate::Infinity();
-    Timestamp at_time = Timestamp::PlusInfinity();
+    Timestamp receive_time = Timestamp::PlusInfinity();
 };
 
 // RoundTripTimeUpdate
