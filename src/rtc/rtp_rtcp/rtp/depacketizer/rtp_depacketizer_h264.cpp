@@ -108,7 +108,7 @@ std::optional<RtpDepacketizer::Packet> RtpH264Depacketizer::DepacketizeStapAOrSi
 
         switch (nalu_info.type) {
         case h264::NaluType::SPS: {
-            std::optional<SpsParser::SpsState> sps = SpsParser::ParseSps(nalu_payload, nalu_payload_size);
+            std::optional<h264::SpsParser::SpsState> sps = h264::SpsParser::ParseSps(nalu_payload, nalu_payload_size);
             if (sps.has_value()) {
                 // TODO: Parse VUI parameters if necessary.
                 if (sps->vui_params_present != 0) {
@@ -127,7 +127,7 @@ std::optional<RtpDepacketizer::Packet> RtpH264Depacketizer::DepacketizeStapAOrSi
         case h264::NaluType::PPS: {
             uint32_t pps_id;
             uint32_t sps_id;
-            if (PpsParser::ParsePpsIds(nalu_payload, nalu_payload_size, &pps_id, &sps_id)) {
+            if (h264::PpsParser::ParsePpsIds(nalu_payload, nalu_payload_size, &pps_id, &sps_id)) {
                 nalu_info.pps_id = pps_id;
                 nalu_info.sps_id = sps_id;
             } else {
@@ -141,7 +141,7 @@ std::optional<RtpDepacketizer::Packet> RtpH264Depacketizer::DepacketizeStapAOrSi
             h264_video_codec_header.has_idr = true;
             // fallthrough
         case h264::NaluType::SLICE: {
-            std::optional<uint32_t> pps_id = PpsParser::ParsePpsIdFromSlice(nalu_payload, payload_size);
+            std::optional<uint32_t> pps_id = h264::PpsParser::ParsePpsIdFromSlice(nalu_payload, payload_size);
             if (pps_id.has_value()) {
                 nalu_info.pps_id = pps_id.value();
             } else {
@@ -254,7 +254,7 @@ std::optional<RtpDepacketizer::Packet> RtpH264Depacketizer::DepacketizeFuANalu(C
     nalu_info.sps_id = -1;
     // First packet in frame.
     if (is_first_fragment) {
-        std::optional<uint32_t> pps_id = PpsParser::ParsePpsIdFromSlice(rtp_payload.cdata() + 2 * kNalHeaderSize,
+        std::optional<uint32_t> pps_id = h264::PpsParser::ParsePpsIdFromSlice(rtp_payload.cdata() + 2 * kNalHeaderSize,
                                                                          rtp_payload.size() - 2 * kNalHeaderSize);
         if (pps_id.has_value()) {
             nalu_info.pps_id = pps_id.value();

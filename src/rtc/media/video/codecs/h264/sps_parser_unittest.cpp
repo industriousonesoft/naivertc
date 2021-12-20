@@ -8,6 +8,8 @@
 #define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 
+using namespace naivertc::h264;
+
 namespace naivertc {
 namespace test {
 // Example SPS can be generated with ffmpeg. Here's an example set of commands,

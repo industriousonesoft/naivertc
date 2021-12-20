@@ -2,6 +2,7 @@
 #include "rtc/media/video/codecs/h264/nalunit.hpp"
 
 namespace naivertc {
+namespace h264 {
 namespace {
 constexpr int kScalingDeltaMin = -128;
 constexpr int kScaldingDeltaMax = 127;
@@ -272,4 +273,5 @@ std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(BitReader& bit_rea
     return sps_state;
 }
     
+} // namespace h264
 } // namespace naivertc

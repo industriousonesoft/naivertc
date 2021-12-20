@@ -7,7 +7,8 @@
 #include <optional>
 
 namespace naivertc {
-
+namespace h264 {
+    
 class RTC_CPP_EXPORT PpsParser {
 public:
     struct PpsState {
@@ -32,6 +33,7 @@ private:
     static bool ParsePpsIdsInternal(BitReader& bit_reader, uint32_t* pps_id, uint32_t* sps_id);
 };
     
+} // namespace h264
 } // namespace naivertc
 
 

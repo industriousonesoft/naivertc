@@ -2,6 +2,7 @@
 #include "rtc/media/video/codecs/h264/nalunit.hpp"
 
 namespace naivertc {
+namespace h264 {
 namespace {
 const int kMaxPicInitQpDeltaValue = 25;
 const int kMinPicInitQpDeltaValue = -26;
@@ -193,4 +194,5 @@ std::optional<PpsParser::PpsState> PpsParser::ParseInternal(BitReader& bit_reade
     return pps;
 }
     
+} // namespace h264
 } // namespace naivertc

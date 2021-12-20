@@ -7,6 +7,7 @@
 #include <optional>
 
 namespace naivertc {
+namespace h264 {
 
 class RTC_CPP_EXPORT SpsParser {
 public:
@@ -37,6 +38,7 @@ protected:
     static std::optional<SpsState> ParseSpsUpToVui(BitReader& bit_reader);
 };
     
+} // namespace h264
 } // namespace naivertc
 
 
