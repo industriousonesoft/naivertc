@@ -17,7 +17,7 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT RtpSenderVideo {
 public:
-    RtpSenderVideo(VideoCodecType codec_type,
+    RtpSenderVideo(video::CodecType codec_type,
                    std::shared_ptr<Clock> clock,
                    std::shared_ptr<RtpSender> packet_sender,
                    std::shared_ptr<TaskQueue> task_queue);
@@ -36,12 +36,12 @@ private:
 
     void AddRtpHeaderExtensions(std::shared_ptr<RtpPacketToSend> packet);
 private:
-    const VideoCodecType codec_type_;
+    const video::CodecType codec_type_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<RtpSender> packet_sender_;
     std::shared_ptr<TaskQueue> task_queue_;
 
-    VideoPlayoutDelay current_playout_delay_;
+    video::PlayoutDelay current_playout_delay_;
 
     bool playout_delay_pending_;
 

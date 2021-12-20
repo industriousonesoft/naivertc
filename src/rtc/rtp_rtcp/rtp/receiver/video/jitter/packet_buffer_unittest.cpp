@@ -59,11 +59,11 @@ MATCHER_P2(StartSeqNumsAre, seq_num1, seq_num2, "") {
 }
 
 MATCHER(KeyFrame, "") {
-  return arg->frame_type == VideoFrameType::KEY;
+  return arg->frame_type == video::FrameType::KEY;
 }
 
 MATCHER(DeltaFrame, "") {
-  return arg->frame_type == VideoFrameType::DELTA;
+  return arg->frame_type == video::FrameType::DELTA;
 }
 
 void PrintTo(const InsertResult& result, std::ostream& os) {
@@ -98,12 +98,12 @@ protected:
                         ArrayView<const uint8_t> data = {},
                         uint32_t timestamp = 123u) {  // rtp timestamp
         auto packet = std::make_unique<Packet>();
-        packet->video_header.codec_type = VideoCodecType::GENERIC;
+        packet->video_header.codec_type = video::CodecType::GENERIC;
         packet->timestamp = timestamp;
         packet->seq_num = seq_num;
         packet->video_header.frame_type = keyframe == kKeyFrame
-                                            ? VideoFrameType::KEY
-                                            : VideoFrameType::DELTA;
+                                            ? video::FrameType::KEY
+                                            : video::FrameType::DELTA;
         packet->video_header.is_first_packet_in_frame = first == kFirst;
         packet->video_header.is_last_packet_in_frame = last == kLast;
         packet->video_payload.Assign(data.data(), data.size());
@@ -402,10 +402,10 @@ MY_TEST_F(PacketBufferTest, ContinuousSeqNumDoubleMarkerBit) {
 
 MY_TEST_F(PacketBufferTest, TooManyNalusInPacket) {
     auto packet = std::make_unique<Packet>();
-    packet->video_header.codec_type = VideoCodecType::H264;
+    packet->video_header.codec_type = video::CodecType::H264;
     packet->timestamp = 1;
     packet->seq_num = 1;
-    packet->video_header.frame_type = VideoFrameType::KEY;
+    packet->video_header.frame_type = video::FrameType::KEY;
     packet->video_header.is_first_packet_in_frame = true;
     packet->video_header.is_last_packet_in_frame = true;
     auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
@@ -434,7 +434,7 @@ protected:
                             uint32_t width = 0,     // width of frame (SPS/IDR)
                             uint32_t height = 0) {  // height of frame (SPS/IDR)
         auto packet = std::make_unique<Packet>();
-        packet->video_header.codec_type = VideoCodecType::H264;
+        packet->video_header.codec_type = video::CodecType::H264;
         auto& h264_header = packet->video_codec_header.emplace<h264::PacketizationInfo>();
         
         packet->seq_num = seq_num;
@@ -520,7 +520,7 @@ MY_TEST_P(PacketBufferH264ParameterizedTest, GetBitstreamBufferPadding) {
     h264_header.nalus[0].type = h264::NaluType::IDR;
     h264_header.packetization_type = h264::PacketizationType::SIGNLE;
     packet->seq_num = seq_num;
-    packet->video_header.codec_type = VideoCodecType::H264;
+    packet->video_header.codec_type = video::CodecType::H264;
     packet->video_payload = data;
     packet->video_header.is_first_packet_in_frame = true;
     packet->video_header.is_last_packet_in_frame = true;
@@ -606,7 +606,7 @@ protected:
 
     std::unique_ptr<Packet> CreatePacket() {
         auto packet = std::make_unique<Packet>();
-        packet->video_header.codec_type = VideoCodecType::H264;
+        packet->video_header.codec_type = video::CodecType::H264;
         packet->seq_num = kSeqNum;
 
         packet->video_header.is_first_packet_in_frame = true;

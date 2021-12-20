@@ -61,7 +61,7 @@ public:
         uint32_t diff = MinDiff(timestamp, last_timestamp_);
         if (wrap_around_utils::AheadOf(timestamp, last_timestamp_)) {
             last_ms_ += diff / 90; // timestamp diff time in ms
-        }else {
+        } else {
             last_ms_ -= diff / 90;
         }
 
@@ -92,13 +92,13 @@ private:
 // FakeFrameToDecode
 class FakeFrameToDecode : public FrameToDecode {
 public:
-    FakeFrameToDecode(VideoFrameType frame_type,
+    FakeFrameToDecode(video::FrameType frame_type,
                       int64_t timestamp_ms,
                       int times_nacked,
                       size_t frame_size) 
         : FrameToDecode(CopyOnWriteBuffer(frame_size),
                         frame_type,
-                        VideoCodecType::H264,
+                        video::CodecType::H264,
                         0, /* seq_num_start */
                         0, /* seq_num_end */
                         timestamp_ms * 90, /* timestamp */
@@ -138,7 +138,7 @@ protected:
         static_assert(sizeof...(refs) <= kMaxReferences,
                       "To many references specified for frame to decode.");
         std::array<uint16_t, sizeof...(refs)> references = {{utils::numeric::checked_static_cast<uint16_t>(refs)...}};
-        VideoFrameType frame_type = references.size() == 0 ? VideoFrameType::KEY : VideoFrameType::DELTA;
+        video::FrameType frame_type = references.size() == 0 ? video::FrameType::KEY : video::FrameType::DELTA;
         FakeFrameToDecode frame(frame_type, timestamp_ms, times_nacked, frame_size);
         frame.set_id(picture_id);
         for (uint16_t ref : references) {

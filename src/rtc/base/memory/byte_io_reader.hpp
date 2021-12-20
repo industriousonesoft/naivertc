@@ -88,7 +88,7 @@ private:
             // type, so mask out highest bit and mask it back manually.
             val = static_cast<T>(unsigned_val & ~kUnsignedHighestBitMask);
             val |= kSignedHighestBitMask;
-        }else {
+        } else {
             val = static_cast<T>(unsigned_val);
         }
         return val;

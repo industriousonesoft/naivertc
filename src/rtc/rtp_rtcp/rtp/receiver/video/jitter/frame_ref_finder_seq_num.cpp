@@ -67,7 +67,7 @@ void SeqNumFrameRefFinder::ClearTo(uint16_t seq_num) {
 // Private methods
 SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video::FrameToDecode& frame) {
     // We received a keyframe,
-    if (frame.frame_type() == VideoFrameType::KEY) {
+    if (frame.frame_type() == video::FrameType::KEY) {
         gop_infos_.insert({frame.seq_num_end(), {frame.seq_num_end(), frame.seq_num_end()}});
     }
 
@@ -97,7 +97,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
     auto curr_gop_info_it = --next_gop_info_it;
 
     // The frame is not continuous with the last frame in the GOP, stashing it.
-    if (frame.frame_type() == VideoFrameType::DELTA) {
+    if (frame.frame_type() == video::FrameType::DELTA) {
         uint16_t prev_seq_num = static_cast<uint16_t>((frame.seq_num_start() - 1));
         // Check if the frame is continuous with the previous frame in the GOP.
         if (prev_seq_num != curr_gop_info_it->second.last_picture_id_with_padding_gop) {
@@ -111,7 +111,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
 
     PictureId last_picture_id_gop = curr_gop_info_it->second.last_picture_id_gop;
     // the keyframe has no reference frames, but the delta frame has.
-    if (frame.frame_type() == VideoFrameType::DELTA) {
+    if (frame.frame_type() == video::FrameType::DELTA) {
         int64_t referred_picture_id = seq_num_unwrapper_.Unwrap(last_picture_id_gop);
         bool success = InsertReference(referred_picture_id, frame);
         // Drop the frame if having dulplicate reference frame
@@ -184,7 +184,7 @@ void SeqNumFrameRefFinder::RetryStashedFrames() {
             // Not found yet, move to next frame.
             if (decision == FrameDecision::STASHED) {
                 ++frame_it;
-            }else {
+            } else {
                 if (decision == FrameDecision::HAND_OFF) {
                     ref_found = true;
                     if (frame_ref_found_callback_) {

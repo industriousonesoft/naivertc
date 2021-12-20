@@ -23,6 +23,7 @@ constexpr size_t kPayloadSize = 10;
 
 class MockBitrateEstimator : public BitrateEstimator {
 public:
+    // Inherits the constructs from superclass.
     using BitrateEstimator::BitrateEstimator;
     MOCK_METHOD(void, Update, (Timestamp at_time, size_t amount, bool in_alr), (override));
     MOCK_METHOD(std::optional<DataRate>, Estimate, (), (const, override));

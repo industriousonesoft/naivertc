@@ -15,7 +15,7 @@ namespace naivertc {
 class RTC_CPP_EXPORT RtpVideoSender : public RtpMediaSender {
 public:
     RtpVideoSender(const RtpRtcpConfig& rtp_rtcp_config,
-                   VideoCodecType codec_type,
+                   video::CodecType codec_type,
                    std::shared_ptr<Clock> clock,
                    std::shared_ptr<Transport> send_transport, 
                    std::shared_ptr<TaskQueue> task_queue);
@@ -23,7 +23,7 @@ public:
 
     MediaType media_type() const override { return MediaType::VIDEO; }
 
-    bool SendEncodedFrame(std::shared_ptr<VideoEncodedFrame> encoded_frame);
+    bool SendEncodedFrame(std::shared_ptr<video::EncodedFrame> encoded_frame);
 
 private:
     RtpSenderVideo rtp_video_sender_;

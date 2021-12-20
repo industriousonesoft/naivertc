@@ -6,10 +6,14 @@
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/base/packet_options.hpp"
+#include "rtc/call/rtp_packet_sink.hpp"
 
 #include <iostream>
 
 namespace naivertc {
+
+class RtpPacketReceived;
+class CopyOnWriteBuffer;
 
 // MediaTransport
 class RTC_CPP_EXPORT MediaTransport {
@@ -20,7 +24,8 @@ protected:
 };
 
 // MediaChannel
-class RTC_CPP_EXPORT MediaChannel : public Channel {
+class RTC_CPP_EXPORT MediaChannel : public Channel,
+                                    public RtpPacketSink {
 public:
     enum class Kind {
         UNKNOWN,
@@ -36,12 +41,15 @@ public:
 
     bool is_opened() const;
 
-    // TODO: Using peer connection as transport instead of srtp transport.
     void Open(MediaTransport* transport);
     void Close() override;
 
     void OnOpened(OpenedCallback callback) override;
     void OnClosed(ClosedCallback callback) override;
+
+    // RtpPacketSink
+    void OnRtpPacket(RtpPacketReceived in_packet) override;
+    void OnRtcpPacket(CopyOnWriteBuffer in_packet) override;
 
 private:
     void TriggerOpen();

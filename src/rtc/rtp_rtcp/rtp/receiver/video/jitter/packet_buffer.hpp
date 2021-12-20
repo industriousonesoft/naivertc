@@ -15,6 +15,10 @@
 namespace naivertc {
 namespace rtp {
 namespace video {
+
+using FrameType = ::naivertc::video::FrameType;
+using CodecType = ::naivertc::video::CodecType;
+
 namespace jitter {
     
 // This class is not thread-safety, the caller MUST provide that.
@@ -59,8 +63,8 @@ public:
     struct Frame {
         int frame_width;
         int frame_height;
-        VideoFrameType frame_type;
-        VideoCodecType codec_type;
+        video::FrameType frame_type;
+        video::CodecType codec_type;
         uint16_t seq_num_start = 0;
         uint16_t seq_num_end = 0;
         uint32_t timestamp = 0;

@@ -12,7 +12,7 @@ namespace jitter {
 // This class is not thread-safe, the caller MUST provide that.
 class RTC_CPP_EXPORT FrameRefFinder {
 public:
-    static std::unique_ptr<FrameRefFinder> Create(VideoCodecType codec_type, int64_t picture_id_offset = 0);
+    static std::unique_ptr<FrameRefFinder> Create(video::CodecType codec_type, int64_t picture_id_offset = 0);
 public:
     virtual ~FrameRefFinder();
 

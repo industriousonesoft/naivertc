@@ -1,13 +1,15 @@
 #include "rtc/media/video/encoded_frame.hpp"
 
 namespace naivertc {
+namespace video {
 
-VideoEncodedFrame::VideoEncodedFrame() {
+EncodedFrame::EncodedFrame() {
 
 }
     
-VideoEncodedFrame::~VideoEncodedFrame() {
+EncodedFrame::~EncodedFrame() {
     
 }
     
+} // namespace video
 } // namespace naivertc

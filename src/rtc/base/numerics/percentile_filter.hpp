@@ -56,7 +56,7 @@ void PercentileFilter<T>::Insert(const T& value) {
     if (set_.size() == 1u) {
         percentile_it_ = set_.begin();
         percentile_index_ = 0;
-    }else if (value < *percentile_it_) {
+    } else if (value < *percentile_it_) {
         ++percentile_index_;
     }
     Refresh();
@@ -72,7 +72,7 @@ bool PercentileFilter<T>::Erase(const T& value) {
     // If same iterator, update to the following element. Index is not affected.
     if (it == percentile_it_) {
         percentile_it_ = set_.erase(it);
-    }else {
+    } else {
         set_.erase(it);
         // If erased element was before us, decrement `percentile_index_`
         if (value <= *percentile_it_) {

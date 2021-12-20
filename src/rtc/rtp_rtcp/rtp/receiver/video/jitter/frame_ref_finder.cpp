@@ -6,11 +6,11 @@ namespace rtp {
 namespace video {
 namespace jitter {
 
-std::unique_ptr<FrameRefFinder> FrameRefFinder::Create(VideoCodecType codec_type, int64_t picture_id_offset) {
+std::unique_ptr<FrameRefFinder> FrameRefFinder::Create(video::CodecType codec_type, int64_t picture_id_offset) {
     std::unique_ptr<FrameRefFinder> ref_finder = nullptr;
 
     switch (codec_type) {
-    case VideoCodecType::H264:
+    case video::CodecType::H264:
         ref_finder = std::make_unique<SeqNumFrameRefFinder>(picture_id_offset);
         break;
     default:

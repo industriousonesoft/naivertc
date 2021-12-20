@@ -33,7 +33,7 @@ template <
 RTC_CPP_EXPORT uint32_t to_uint32(T i) {
     if (is_value_in_range<uint32_t>(i)) {
         return static_cast<uint32_t>(i);
-    }else {
+    } else {
         throw std::invalid_argument("Integer out of range.");
     }
 };

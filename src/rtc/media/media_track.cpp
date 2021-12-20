@@ -1,5 +1,4 @@
 #include "rtc/media/media_track.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 #include <plog/Log.h>
 
@@ -28,14 +27,6 @@ bool MediaTrack::IsValidConfig(const Configuration& config) {
         }
         return true;
     });
-}
-
-void MediaTrack::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
-
-}
-
-void MediaTrack::OnRtpPacket(RtpPacketReceived in_packet) {
-
 }
 
 } // namespace naivertc

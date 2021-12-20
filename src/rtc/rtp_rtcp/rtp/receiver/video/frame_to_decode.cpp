@@ -5,8 +5,8 @@ namespace rtp {
 namespace video {
 
 FrameToDecode::FrameToDecode(CopyOnWriteBuffer bitstream,
-                             VideoFrameType frame_type,
-                             VideoCodecType codec_type, 
+                             video::FrameType frame_type,
+                             video::CodecType codec_type, 
                              uint16_t seq_num_start, 
                              uint16_t seq_num_end,
                              uint32_t timestamp,

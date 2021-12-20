@@ -17,8 +17,8 @@ namespace {
 FrameToDecode CreateFrame(uint16_t seq_num_start, 
                           uint16_t seq_num_end,
                           bool is_keyframe,
-                          VideoCodecType codec_type) {
-    VideoFrameType frame_type = is_keyframe ? VideoFrameType::KEY : VideoFrameType::DELTA;
+                          video::CodecType codec_type) {
+    video::FrameType frame_type = is_keyframe ? video::FrameType::KEY : video::FrameType::DELTA;
     return FrameToDecode(CopyOnWriteBuffer(1),
                          frame_type, 
                          codec_type, 
@@ -34,7 +34,7 @@ FrameToDecode CreateFrame(uint16_t seq_num_start,
 
 class FrameRefFinderTest : public ::testing::Test {
 protected:
-    FrameRefFinderTest(VideoCodecType codec_type) 
+    FrameRefFinderTest(video::CodecType codec_type) 
         : frame_ref_finder_(jitter::FrameRefFinder::Create(codec_type)) {
         frame_ref_finder_->OnFrameRefFound([this](FrameToDecode frame){
             OnFrameRefFound(std::move(frame));
@@ -44,7 +44,7 @@ protected:
     uint16_t Rand() const { return utils::random::generate_random<uint16_t>(); }
 
     void InsertH264(uint16_t seq_num_start, uint16_t seq_num_end, bool is_keyframe) {
-        auto frame = CreateFrame(seq_num_start, seq_num_end, is_keyframe, VideoCodecType::H264);
+        auto frame = CreateFrame(seq_num_start, seq_num_end, is_keyframe, video::CodecType::H264);
         EXPECT_NE(frame.cdata(), nullptr);
         frame_ref_finder_->InsertFrame(std::move(frame));
     }
@@ -107,7 +107,7 @@ protected:
 // H264
 class T(H264FrameRefFinderTest) : public FrameRefFinderTest {
 protected:
-    T(H264FrameRefFinderTest)() : FrameRefFinderTest(VideoCodecType::H264) {}
+    T(H264FrameRefFinderTest)() : FrameRefFinderTest(video::CodecType::H264) {}
 };
 
 MY_TEST_F(H264FrameRefFinderTest, H264KeyFrameReferences) {

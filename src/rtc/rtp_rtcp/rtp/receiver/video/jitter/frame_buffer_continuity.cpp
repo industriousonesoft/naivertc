@@ -121,7 +121,7 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrame(video::FrameToDecode frame) {
 
 // Private methods
 bool FrameBuffer::ValidReferences(const video::FrameToDecode& frame) const {
-    if (frame.frame_type() == VideoFrameType::KEY) {
+    if (frame.frame_type() == video::FrameType::KEY) {
         // Key frame has no reference.
         return frame.NumReferences() == 0;
     } else {

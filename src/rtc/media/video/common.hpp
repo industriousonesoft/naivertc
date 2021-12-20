@@ -4,16 +4,17 @@
 #include "base/defines.hpp"
 
 namespace naivertc {
+namespace video {
 
 // Frame types
-enum class VideoFrameType {
+enum class FrameType {
     EMPTTY = 0,
     KEY = 1,
     DELTA = 2
 };
 
 // Codec types
-enum class VideoCodecType {
+enum class CodecType {
     GENERIC = 0,
     H264,
     // VP8,
@@ -33,20 +34,20 @@ enum class VideoCodecType {
 //
 // min = x, max = y indicates that the receiver is free to adapt
 // in the range (x, y) based on network jitter.
-struct RTC_CPP_EXPORT VideoPlayoutDelay {
-    VideoPlayoutDelay() = default;
-    VideoPlayoutDelay(int min_ms, int max_ms) : min_ms(min_ms), max_ms(max_ms) {}
+struct RTC_CPP_EXPORT PlayoutDelay {
+    PlayoutDelay() = default;
+    PlayoutDelay(int min_ms, int max_ms) : min_ms(min_ms), max_ms(max_ms) {}
     int min_ms = -1;
     int max_ms = -1;
 
-    bool operator==(const VideoPlayoutDelay& rhs) const {
+    bool operator==(const PlayoutDelay& rhs) const {
         return min_ms == rhs.min_ms && max_ms == rhs.max_ms;
     }
 
     bool IsAvailable() const { return min_ms >= 0 || max_ms >= 0; }
 };
     
+} // namespace video
 } // namespace naivertc
-
 
 #endif

@@ -109,7 +109,7 @@ private:
     void UpdatePacketReceiveTimestamps(const RtpPacketReceived& packet, bool is_keyframe);
 
     void CreateFrameRefFinderIfNecessary(const rtp::video::FrameToDecode& frame);
-    void CreateFrameRefFinder(VideoCodecType codec_type, int64_t picture_id_offset);
+    void CreateFrameRefFinder(video::CodecType codec_type, int64_t picture_id_offset);
 
     // Implements RecoveredPacketReceiver.
     void OnRecoveredPacket(CopyOnWriteBuffer packet) override;
@@ -132,7 +132,7 @@ private:
     std::map<uint8_t, std::unique_ptr<RtpDepacketizer>> payload_type_map_;
 
     bool has_received_frame_ = false;
-    std::optional<VideoCodecType> curr_codec_type_ = std::nullopt;
+    std::optional<video::CodecType> curr_codec_type_ = std::nullopt;
     uint32_t last_assembled_frame_rtp_timestamp_ = 0;
     int64_t last_completed_picture_id_ = 0;
 

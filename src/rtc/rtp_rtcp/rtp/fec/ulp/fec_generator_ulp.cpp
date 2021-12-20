@@ -112,7 +112,7 @@ void UlpFecGenerator::PushMediaPacket(std::shared_ptr<RtpPacketToSend> media_pac
         if (num_generated_fec_packets_ == 0 || !success) {
             Reset();
         }
-    }else {
+    } else {
         num_generated_fec_packets_ = 0;
     }
 }

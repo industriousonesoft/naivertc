@@ -107,12 +107,12 @@ public:
     void Assign(const T* data, size_t size) {
         if (!buffer_) {
             buffer_ = size > 0 ? std::make_shared<BinaryBuffer>(data, data + size) : nullptr;
-        }else if (buffer_.use_count() == 1) {
+        } else if (buffer_.use_count() == 1) {
             if (size > buffer_->capacity()) {
                 buffer_->reserve(size);
             }
             buffer_->assign(data, data + size);
-        }else {
+        } else {
             size_t capacity = std::max(buffer_->capacity(), size);
             buffer_ = std::make_shared<BinaryBuffer>(data, data + size);
             buffer_->reserve(capacity);

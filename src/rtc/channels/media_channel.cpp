@@ -1,4 +1,5 @@
 #include "rtc/channels/media_channel.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 #include <plog/Log.h>
 
@@ -80,6 +81,15 @@ void MediaChannel::TriggerClose() {
     }
 }
 
+void MediaChannel::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
+
+}
+
+void MediaChannel::OnRtpPacket(RtpPacketReceived in_packet) {
+
+}
+
+// ostream
 std::ostream& operator<<(std::ostream& out, MediaChannel::Kind kind) {
     switch(kind) {
     case MediaChannel::Kind::AUDIO:

@@ -77,7 +77,7 @@ void FecDecoder::InsertPacket(uint32_t fec_ssrc, uint16_t seq_num, bool is_fec, 
             uint16_t seq_num_diff = MinDiff<uint16_t>(seq_num, it->first);
             if (seq_num_diff > kOldSequenceThreshold) {
                 it = received_fec_packets_.erase(it);
-            }else {
+            } else {
                 // No need to keep iterating, since `received_fec_packets_` is sorted.
                 break;
             }

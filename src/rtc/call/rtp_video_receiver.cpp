@@ -196,16 +196,16 @@ void RtpVideoReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized
     // TODO: Support more RTP header extensions
 
     if (!rtp_packet.is_recovered()) {
-        UpdatePacketReceiveTimestamps(rtp_packet, video_header.frame_type == VideoFrameType::KEY);
+        UpdatePacketReceiveTimestamps(rtp_packet, video_header.frame_type == video::FrameType::KEY);
     }
 
     if (nack_module_) {
         // Using first packet of the keyframe to indicate the keyframe is coming.
         const bool is_keyframe = video_header.is_first_packet_in_frame && 
-                                 video_header.frame_type == VideoFrameType::KEY;
+                                 video_header.frame_type == video::FrameType::KEY;
         // Return the nacks has sent for the packet.
         packet->times_nacked = nack_module_->InsertPacket(rtp_packet.sequence_number(), is_keyframe, rtp_packet.is_recovered());
-    }else {
+    } else {
         // Indicates the NACK mechanism is disable.
         packet->times_nacked = -1;
     }
@@ -217,7 +217,7 @@ void RtpVideoReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized
     }
 
     // H264
-    if (video_header.codec_type == VideoCodecType::H264) {
+    if (video_header.codec_type == video::CodecType::H264) {
         auto h264_header = std::get<h264::PacketizationInfo>(packet->video_codec_header);
         h264::SpsPpsTracker::FixedBitstream fixed = h264_sps_pps_tracker_.CopyAndFixBitstream(video_header.is_first_packet_in_frame, 
                                                                                               video_header.frame_width, 
@@ -265,7 +265,7 @@ void RtpVideoReceiver::OnAssembledFrame(rtp::video::FrameToDecode frame) {
     if (!has_received_frame_) {
         // If frames arrive before a key frame, they would not be decodable.
         // In that case, request a key frame ASAP.
-        if (frame.frame_type() == VideoFrameType::KEY) {
+        if (frame.frame_type() == video::FrameType::KEY) {
             RequestKeyFrame();
         }
         has_received_frame_ = true;
@@ -347,7 +347,7 @@ void RtpVideoReceiver::CreateFrameRefFinderIfNecessary(const rtp::video::FrameTo
                 // FIXME: Why we use uint16_max as the gap value?
                 int64_t picture_id_offset = last_completed_picture_id_ + std::numeric_limits<uint16_t>::max();
                 CreateFrameRefFinder(curr_codec_type_.value(), picture_id_offset);
-            }else {
+            } else {
                 // Old frame from before the codec switch, discard it.
                 return;
             }
@@ -355,14 +355,14 @@ void RtpVideoReceiver::CreateFrameRefFinderIfNecessary(const rtp::video::FrameTo
         if (frame_is_newer) {
             last_assembled_frame_rtp_timestamp_ = frame.timestamp();
         }
-    }else {
+    } else {
         curr_codec_type_ = frame.codec_type();
         last_assembled_frame_rtp_timestamp_ = frame.timestamp();
         CreateFrameRefFinder(curr_codec_type_.value(), 0 /* picture_id_offset */);
     }
 }
 
-void RtpVideoReceiver::CreateFrameRefFinder(VideoCodecType codec_type, int64_t picture_id_offset) {
+void RtpVideoReceiver::CreateFrameRefFinder(video::CodecType codec_type, int64_t picture_id_offset) {
     RTC_RUN_ON(task_queue_);
     frame_ref_finder_.reset();
     frame_ref_finder_ = rtp::video::jitter::FrameRefFinder::Create(codec_type, picture_id_offset);

@@ -5,8 +5,7 @@
 
 namespace naivertc {
 
-
-RtpSenderVideo::RtpSenderVideo(VideoCodecType codec_type,
+RtpSenderVideo::RtpSenderVideo(video::CodecType codec_type,
                                std::shared_ptr<Clock> clock,
                                std::shared_ptr<RtpSender> packet_sender,
                                std::shared_ptr<TaskQueue> task_queue) 
@@ -17,7 +16,7 @@ RtpSenderVideo::RtpSenderVideo(VideoCodecType codec_type,
       current_playout_delay_{-1, -1},
       playout_delay_pending_(false) {
           
-    if (codec_type_ == VideoCodecType::H264) {
+    if (codec_type_ == video::CodecType::H264) {
         rtp_packetizer_ = std::make_unique<RtpH264Packetizer>();
     }
 }
@@ -38,7 +37,7 @@ bool RtpSenderVideo::SendVideo(int payload_type,
 
         this->MaybeUpdateCurrentPlayoutDelay(video_header);
         // Key frame
-        if (video_header.frame_type == VideoFrameType::KEY) {
+        if (video_header.frame_type == video::FrameType::KEY) {
             // Force playout delay on key frame, if set.
             if (this->current_playout_delay_.IsAvailable()) {
                 this->playout_delay_pending_ = true;
@@ -91,7 +90,7 @@ bool RtpSenderVideo::SendVideo(int payload_type,
         limits.first_packet_reduction_size = first_packet->header_size() - middle_packet->header_size();
         limits.last_packet_reduction_size = last_packet->header_size() - middle_packet->header_size();
 
-        if (codec_type_ == VideoCodecType::H264) {
+        if (codec_type_ == video::CodecType::H264) {
             dynamic_cast<RtpH264Packetizer*>(this->rtp_packetizer_.get())->Packetize(payload, limits, h264::PacketizationMode::NON_INTERLEAVED);
         } else {
             PLOG_WARNING << "Unsupported codec type.";
@@ -137,7 +136,7 @@ bool RtpSenderVideo::SendVideo(int payload_type,
             assert(packet->payload_size() <= expected_payload_capacity);
 
             packet->set_allow_retransmission(allow_retransmission);
-            packet->set_is_key_frame(video_header.frame_type == VideoFrameType::KEY);
+            packet->set_is_key_frame(video_header.frame_type == video::FrameType::KEY);
 
             // TODO: Put packetization finish timestap into extension
 
@@ -165,7 +164,7 @@ bool RtpSenderVideo::SendVideo(int payload_type,
         }
 
         // FIXME: H264 maybe reset always?
-        if (video_header.frame_type == VideoFrameType::KEY) {
+        if (video_header.frame_type == video::FrameType::KEY) {
             this->playout_delay_pending_ = false;
         }
         return true;

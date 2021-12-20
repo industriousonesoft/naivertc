@@ -3,13 +3,15 @@
 
 #include "base/defines.hpp"
 #include "rtc/media/video/common.hpp"
+#include "rtc/base/copy_on_write_buffer.hpp"
 
 namespace naivertc {
-
-class RTC_CPP_EXPORT VideoEncodedFrame : public BinaryBuffer {
+namespace video {
+    
+class RTC_CPP_EXPORT EncodedFrame : public CopyOnWriteBuffer {
 public:
-    VideoEncodedFrame();
-    ~VideoEncodedFrame();
+    EncodedFrame();
+    ~EncodedFrame();
 
     // frame timestamp (90kHz)
     uint32_t timestamp() const { return timestamp_; }
@@ -21,8 +23,8 @@ public:
     bool retransmission_allowed() const { return retransmission_allowed_; }
     void set_retransmission_allowed(bool retransmission_allowed) { retransmission_allowed_ = retransmission_allowed; }
 
-    VideoFrameType frame_type() const { return frame_type_; }
-    void set_frame_type(VideoFrameType type) { frame_type_ = type; }
+    video::FrameType frame_type() const { return frame_type_; }
+    void set_frame_type(video::FrameType type) { frame_type_ = type; }
 
 private:
     uint32_t timestamp_ = 0;
@@ -30,10 +32,10 @@ private:
     // Retransmission is allowed as default state
     bool retransmission_allowed_ = true;
 
-    VideoFrameType frame_type_ = VideoFrameType::EMPTTY;
+    video::FrameType frame_type_ = video::FrameType::EMPTTY;
 };
     
+} // namespace video
 } // namespace naivertc
-
 
 #endif

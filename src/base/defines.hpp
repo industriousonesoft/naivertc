@@ -28,7 +28,7 @@ RTC_CPP_EXPORT auto weak_bind(F&& f, T* t, Args&& ..._args) {
     return [bound = std::bind(f, t, _args...), weak_this = t->weak_from_this()](auto &&...args) {
         if (auto shared_this = weak_this.lock()) {
             return bound(args...);
-        }else {
+        } else {
             return static_cast<decltype(bound(args...))>(false);
         }
     };
