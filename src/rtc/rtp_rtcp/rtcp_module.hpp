@@ -45,6 +45,8 @@ public:
                       uint32_t* rtcp_arrival_time_frac,
                       uint32_t* rtcp_timestamp) const;
 
+    int64_t ExpectedRestransmissionTimeMs() const;
+
 private:
     // RtpSentStatistics Observer
     void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, 

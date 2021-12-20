@@ -23,10 +23,10 @@ public:
 
     MediaType media_type() const override { return MediaType::VIDEO; }
 
-    bool SendEncodedFrame(std::shared_ptr<video::EncodedFrame> encoded_frame);
+    bool OnEncodedFrame(video::EncodedFrame encoded_frame);
 
 private:
-    RtpSenderVideo rtp_video_sender_;
+    RtpSenderVideo sender_video_;
 };
 
 } // namespace naivertc

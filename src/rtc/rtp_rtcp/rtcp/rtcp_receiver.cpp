@@ -110,7 +110,26 @@ int32_t RtcpReceiver::RTT(uint32_t remote_ssrc,
                           int64_t* min_rtt_ms,
                           int64_t* max_rtt_ms) const {
     return task_queue_->Sync<int32_t>([&](){ 
-        // TODO: Implement this.
+        auto it = rtts_.find(remote_ssrc);
+        if (it == rtts_.end()) {
+            return -1;
+        }
+        if (last_rtt_ms) {
+            *last_rtt_ms = it->second.last_rtt().ms();
+        }
+
+        if (avg_rtt_ms) {
+            *avg_rtt_ms = it->second.average_rtt().ms();
+        }
+
+        if (min_rtt_ms) {
+            *min_rtt_ms = it->second.min_rtt().ms();
+        }
+
+        if (max_rtt_ms) {
+            *max_rtt_ms = it->second.max_rtt().ms();
+        }
+
         return 0;
     });
 }

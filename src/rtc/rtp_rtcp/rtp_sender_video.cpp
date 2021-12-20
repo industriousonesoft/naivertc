@@ -23,13 +23,13 @@ RtpSenderVideo::RtpSenderVideo(video::CodecType codec_type,
     
 RtpSenderVideo::~RtpSenderVideo() {}
 
-bool RtpSenderVideo::SendVideo(int payload_type,
-                               uint32_t rtp_timestamp, 
-                               int64_t capture_time_ms, 
-                               ArrayView<const uint8_t> payload,
-                               RtpVideoHeader video_header,
-                               std::optional<int64_t> expected_retransmission_time_ms,
-                               std::optional<int64_t> estimated_capture_clock_offset_ms) {
+bool RtpSenderVideo::Send(int payload_type,
+                          uint32_t rtp_timestamp, 
+                          int64_t capture_time_ms,
+                          RtpVideoHeader video_header,
+                          ArrayView<const uint8_t> payload,
+                          std::optional<int64_t> expected_retransmission_time_ms,
+                          std::optional<int64_t> estimated_capture_clock_offset_ms) {
     return task_queue_->Sync<bool>([=, video_header=std::move(video_header)](){
         if (payload.empty()) {
             return false;

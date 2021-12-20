@@ -1,6 +1,11 @@
 #include "rtc/rtp_rtcp/rtcp_module.hpp"
 
 namespace naivertc {
+namespace {
+
+const int64_t kDefaultExpectedRetransmissionTimeMs = 125;
+
+}  // namespace
 
 void RtcpModule::IncomingPacket(const uint8_t* packet, size_t packet_size) {
     task_queue_->Async([this, packet, packet_size](){
@@ -45,6 +50,24 @@ int32_t RtcpModule::RemoteNTP(uint32_t* received_ntp_secs,
                 ? 0
                 : -1;
     });
+}
+
+int64_t RtcpModule::ExpectedRestransmissionTimeMs() const {
+    int64_t expected_retransmission_time_ms = rtt_ms_;
+    if (expected_retransmission_time_ms > 0) {
+        return expected_retransmission_time_ms;
+    }
+
+    // If no RTT available yet, so try to retrieve avg_rtt_ms directly
+    // from RTCP receiver.
+    if (rtcp_receiver_.RTT(/*remote_ssrc=*/rtcp_receiver_.remote_ssrc(),
+                           /*last_rtt_ms=*/nullptr,
+                           /*avg_rtt_ms=*/&expected_retransmission_time_ms,
+                           /*min_rtt_ms=*/nullptr,
+                           /*max_rtt_ms=*/nullptr) == 0) {
+        return expected_retransmission_time_ms;
+    }
+    return kDefaultExpectedRetransmissionTimeMs;
 }
 
 void RtcpModule::SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) {
