@@ -43,6 +43,10 @@ struct RTC_CPP_EXPORT RtpRtcpConfig {
     // TODO: UlpFec and flexfex support both of two ways to send: 1) packetized in RED, 2) by a separate stream
     // UlpFec: RED
     struct UlpFec {
+        UlpFec();
+        UlpFec(const UlpFec&);
+        ~UlpFec();
+
         // Payload type used for ULPFEC packets.
         int ulpfec_payload_type = -1;
 
@@ -55,6 +59,9 @@ struct RTC_CPP_EXPORT RtpRtcpConfig {
 
     // Flexfec: Separate stream
     struct Flexfec {
+        Flexfec();
+        Flexfec(const Flexfec&);
+        ~Flexfec();
         // Payload type of FlexFEC. Set to -1 to disable sending FlexFEC.
         int payload_type = -1;
 
