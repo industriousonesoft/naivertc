@@ -128,8 +128,6 @@ set(LIB_HEADERS
     src/rtc/channels/media_channel.hpp
 
     # rtc -> call
-    src/rtc/call/rtp_rtcp_config.hpp
-    src/rtc/call/rtp_media_sender.hpp
     src/rtc/call/rtp_video_sender.hpp
     src/rtc/call/rtp_utils.hpp
     src/rtc/call/rtp_demuxer.hpp
@@ -370,8 +368,6 @@ set(LIB_SOURCES
     src/rtc/channels/media_channel.cpp
 
     # rtc -> call
-    src/rtc/call/rtp_rtcp_config.cpp
-    src/rtc/call/rtp_media_sender.cpp
     src/rtc/call/rtp_video_sender.cpp
     src/rtc/call/rtp_utils.cpp
     src/rtc/call/rtp_demuxer.cpp

@@ -58,8 +58,7 @@ void RtpSender::SetRtxPayloadType(int payload_type, int associated_payload_type)
 
 std::shared_ptr<RtpPacketToSend> RtpSender::AllocatePacket() const {
     RTC_RUN_ON(&sequence_checker_);
-    packet_generator_.AllocatePacket();
-    
+    return packet_generator_.AllocatePacket();
 }
 
 bool RtpSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
