@@ -126,6 +126,7 @@ set(LIB_HEADERS
     src/rtc/channels/channel.hpp
     src/rtc/channels/data_channel.hpp
     src/rtc/channels/media_channel.hpp
+    src/rtc/channels/media_transport_interface.hpp
 
     # rtc -> call
     src/rtc/call/rtp_video_sender.hpp

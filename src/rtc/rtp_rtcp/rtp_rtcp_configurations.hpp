@@ -3,10 +3,10 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/transports/transport.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
+#include "rtc/channels/media_transport_interface.hpp"
 
 #include <optional>
 #include <vector>
@@ -38,7 +38,7 @@ struct RTC_CPP_EXPORT RtpConfiguration {
 
     Clock* clock;
     
-    Transport* send_transport;
+    MediaTransport* send_transport;
 };
 
 struct RTC_CPP_EXPORT RtcpConfiguration {

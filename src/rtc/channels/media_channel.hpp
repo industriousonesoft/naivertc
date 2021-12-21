@@ -4,9 +4,8 @@
 #include "base/defines.hpp"
 #include "rtc/channels/channel.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
-#include "rtc/base/copy_on_write_buffer.hpp"
-#include "rtc/base/packet_options.hpp"
 #include "rtc/call/rtp_packet_sink.hpp"
+#include "rtc/channels/media_transport_interface.hpp"
 
 #include <iostream>
 
@@ -14,14 +13,6 @@ namespace naivertc {
 
 class RtpPacketReceived;
 class CopyOnWriteBuffer;
-
-// MediaTransport
-class RTC_CPP_EXPORT MediaTransport {
-public:
-    virtual int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) = 0;
-protected:
-    virtual ~MediaTransport() = default;
-};
 
 // MediaChannel
 class RTC_CPP_EXPORT MediaChannel : public Channel,

@@ -13,8 +13,8 @@ namespace naivertc {
 class RTC_CPP_EXPORT VideoReceiveStream {
 public:
     struct Configuration {
-        using Rtp = struct RtpVideoReceiver::Configuration;
-        Rtp rtp;
+        using RtpConfig = struct RtpVideoReceiver::Configuration;
+        RtpConfig rtp;
     };  
 public:
     VideoReceiveStream(Configuration config);
