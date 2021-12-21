@@ -41,7 +41,7 @@ private:
     // Retransmission is allowed as default state
     bool retransmission_allowed_ = true;
 
-    video::FrameType frame_type_ = video::FrameType::EMPTTY;
+    video::FrameType frame_type_ = video::FrameType::EMPTY;
     video::CodecType codec_type_ = video::CodecType::GENERIC;
 };
     

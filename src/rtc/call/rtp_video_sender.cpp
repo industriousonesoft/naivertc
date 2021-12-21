@@ -9,7 +9,7 @@ RtpVideoSender::RtpVideoSender(RtpRtcpConfig rtp_rtcp_config,
                                Clock* clock,
                                Transport* send_transport) 
     : RtpMediaSender(std::move(rtp_rtcp_config), clock, send_transport),
-      sender_video_(codec_type, clock, rtp_sender_.get()) {}
+      sender_video_(clock, rtp_sender_.get()) {}
 
 RtpVideoSender::~RtpVideoSender() {}
 

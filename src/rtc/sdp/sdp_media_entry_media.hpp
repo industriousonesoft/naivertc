@@ -115,11 +115,11 @@ public:
     
     bool AddFeedback(int payload_type, const std::string feed_back);
     void AddRtpMap(RtpMap map);
+    void ForEachRtpMap(std::function<void(const RtpMap& rtp_map)>&& handler) const;
+    void ClearRtpMap();
     
     bool HasPayloadType(int pt) const;
     std::vector<int> payload_types() const;
-
-    void AddExtraAttribute(std::string attr_value);
 
     virtual bool ParseSDPLine(std::string_view line) override;
     virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;

@@ -3,12 +3,14 @@
 
 #include "base/defines.hpp"
 
+#include <iostream>
+
 namespace naivertc {
 namespace video {
 
 // Frame types
 enum class FrameType {
-    EMPTTY = 0,
+    EMPTY = 0,
     KEY = 1,
     DELTA = 2
 };
@@ -47,6 +49,9 @@ struct RTC_CPP_EXPORT PlayoutDelay {
     bool IsAvailable() const { return min_ms >= 0 || max_ms >= 0; }
 };
     
+std::ostream& operator<<(std::ostream& out, FrameType type);
+std::ostream& operator<<(std::ostream& out, CodecType type);
+
 } // namespace video
 } // namespace naivertc
 

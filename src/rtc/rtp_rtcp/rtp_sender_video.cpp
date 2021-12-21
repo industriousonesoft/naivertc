@@ -5,19 +5,12 @@
 
 namespace naivertc {
 
-RtpSenderVideo::RtpSenderVideo(video::CodecType codec_type,
-                               Clock* clock,
+RtpSenderVideo::RtpSenderVideo(Clock* clock,
                                RtpSender* packet_sender) 
-    : codec_type_(codec_type),
-      clock_(clock),
+    : clock_(clock),
       packet_sender_(packet_sender),
       current_playout_delay_{-1, -1},
-      playout_delay_pending_(false) {
-          
-    if (codec_type_ == video::CodecType::H264) {
-        rtp_packetizer_ = std::make_unique<RtpH264Packetizer>();
-    }
-}
+      playout_delay_pending_(false) {}
     
 RtpSenderVideo::~RtpSenderVideo() {}
 
@@ -89,16 +82,15 @@ bool RtpSenderVideo::Send(int payload_type,
     limits.first_packet_reduction_size = first_packet->header_size() - middle_packet->header_size();
     limits.last_packet_reduction_size = last_packet->header_size() - middle_packet->header_size();
 
-    if (codec_type_ == video::CodecType::H264) {
-        dynamic_cast<RtpH264Packetizer*>(rtp_packetizer_.get())->Packetize(payload, limits, h264::PacketizationMode::NON_INTERLEAVED);
-    } else {
-        PLOG_WARNING << "Unsupported codec type.";
-        return false;
+    auto packetizer = Packetize(video_header.codec_type, payload, limits);
+
+    if (packetizer == nullptr) {
+       return false; 
     }
 
     const bool allow_retransmission = expected_retransmission_time_ms.has_value();
 
-    const size_t num_of_packets = rtp_packetizer_->NumberOfPackets();
+    const size_t num_of_packets = packetizer->NumberOfPackets();
 
     if (num_of_packets == 0) {
         PLOG_VERBOSE << "No packets packetized.";
@@ -128,7 +120,7 @@ bool RtpSenderVideo::Send(int payload_type,
 
         packet->set_is_first_packet_of_frame(i == 0);
 
-        if (!rtp_packetizer_->NextPacket(packet.get())) {
+        if (!packetizer->NextPacket(packet.get())) {
             return false;
         }
 
@@ -175,6 +167,22 @@ void RtpSenderVideo::AddRtpHeaderExtensions(std::shared_ptr<RtpPacketToSend> pac
         packet->SetExtension<rtp::PlayoutDelayLimits>(current_playout_delay_.min_ms, current_playout_delay_.max_ms);
     }
     // TODO: Support more extensions
+}
+
+RtpPacketizer* RtpSenderVideo::Packetize(video::CodecType codec_type, 
+                                         ArrayView<const uint8_t> payload, 
+                                         const RtpPacketizer::PayloadSizeLimits& limits) {
+    if (codec_type == video::CodecType::H264) {
+        auto& packetizer = rtp_packetizers_[codec_type];
+        if (packetizer == nullptr) {
+            packetizer.reset(new RtpH264Packetizer());
+        }
+        dynamic_cast<RtpH264Packetizer*>(packetizer.get())->Packetize(payload, limits, h264::PacketizationMode::NON_INTERLEAVED);
+        return packetizer.get();
+    } else {
+        PLOG_WARNING << "Unsupported codec type: " << codec_type;
+        return nullptr;
+    }
 }
 
 void RtpSenderVideo::MaybeUpdateCurrentPlayoutDelay(const RtpVideoHeader& header) {

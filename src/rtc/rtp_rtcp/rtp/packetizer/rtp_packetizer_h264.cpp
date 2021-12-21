@@ -68,7 +68,6 @@ bool RtpH264Packetizer::NextPacket(RtpPacketToSend* rtp_packet) {
     return true;
 }
 
-// Private methods
 void RtpH264Packetizer::Packetize(ArrayView<const uint8_t> payload, 
                                  const PayloadSizeLimits& limits, 
                                  h264::PacketizationMode packetization_mode) {
@@ -85,6 +84,7 @@ void RtpH264Packetizer::Packetize(ArrayView<const uint8_t> payload,
     }
 }
 
+// Private methods
 bool RtpH264Packetizer::GeneratePackets(const PayloadSizeLimits& limits, h264::PacketizationMode packetization_mode) {
     for (size_t i = 0; i < input_fragments_.size();) {
         if (packetization_mode == h264::PacketizationMode::SINGLE_NAL_UNIT) {

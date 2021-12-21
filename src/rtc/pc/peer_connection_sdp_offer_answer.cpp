@@ -10,18 +10,6 @@
 #include <memory>
 
 namespace naivertc {
-namespace {
-MediaTrack::Kind ToMediaTackKind(sdp::MediaEntry::Kind kind) {
-    switch(kind) {
-    case sdp::MediaEntry::Kind::AUDIO:
-        return MediaTrack::Kind::AUDIO;
-    case sdp::MediaEntry::Kind::VIDEO:
-        return MediaTrack::Kind::VIDEO;
-    default:
-        return MediaTrack::Kind::UNKNOWN;
-    }
-}
-} // namespace
 
 // Offer && Answer
 void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success, 
@@ -473,9 +461,8 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
 
 void PeerConnection::OnIncomingMediaTrack(const sdp::Media& remote_sdp) {
     RTC_RUN_ON(signal_task_queue_);
-    auto kind = ToMediaTackKind(remote_sdp.kind());
-    worker_task_queue_->Async([this, kind, mid=remote_sdp.mid()](){
-        auto media_track = std::make_shared<MediaTrack>(kind, std::move(mid));
+    worker_task_queue_->Async([this, media_sdp=remote_sdp](){
+        auto media_track = std::make_shared<MediaTrack>(std::move(media_sdp));
         // Make sure the current media track dosen't be added before.
         if (media_tracks_.find(media_track->mid()) == media_tracks_.end()) {
             media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));

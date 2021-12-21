@@ -388,6 +388,7 @@ set(LIB_SOURCES
     src/rtc/media/media_track_sdp.cpp
 
     # rtc -> media -> video
+    src/rtc/media/video/common.cpp
     src/rtc/media/video/encoded_frame.cpp
 
     # rtc -> media -> video -> codecs -> h264

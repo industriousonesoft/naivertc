@@ -231,10 +231,6 @@ bool Media::AddFeedback(int payload_type, const std::string feed_back) {
     return true;
 }
 
-void Media::AddRtpMap(RtpMap map) {
-    rtp_maps_.emplace(map.payload_type, std::move(map));
-}
-
 void Media::AddCodec(int payload_type, 
                      Codec cocec,
                      int clock_rate,
@@ -247,8 +243,18 @@ void Media::AddCodec(int payload_type,
     AddRtpMap(rtp_map);
 }
 
-void Media::AddExtraAttribute(std::string attr_value) {
-    extra_attributes_.push_back(std::move(attr_value));
+void Media::AddRtpMap(RtpMap map) {
+    rtp_maps_.emplace(map.payload_type, std::move(map));
+}
+
+void Media::ForEachRtpMap(std::function<void(const RtpMap& rtp_map)>&& handler) const {
+    for (auto& kv : rtp_maps_) {
+        handler(kv.second);
+    }
+}
+
+void Media::ClearRtpMap() {
+    rtp_maps_.clear();
 }
 
 Media Media::ReciprocatedSDP() const {

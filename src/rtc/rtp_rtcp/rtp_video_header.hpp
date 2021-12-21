@@ -16,7 +16,7 @@ public:
     uint16_t frame_width = 0;
     uint16_t frame_height = 0;
     
-    video::FrameType frame_type = video::FrameType::EMPTTY;
+    video::FrameType frame_type = video::FrameType::EMPTY;
     video::CodecType codec_type = video::CodecType::GENERIC;
 
     video::PlayoutDelay playout_delay;

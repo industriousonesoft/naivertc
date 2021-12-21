@@ -10,7 +10,7 @@
 #include <vector>
 #include <optional>
 #include <functional>
-
+#include <map>
 #include <iostream>
 
 namespace naivertc {
@@ -88,12 +88,14 @@ public:
     
 public:
     MediaTrack(const Configuration& config);
-    MediaTrack(Kind kind, std::string mid);
+    MediaTrack(sdp::Media description);
     ~MediaTrack();
 
     bool Reconfig(const Configuration& config);
 
-public:
+    sdp::Media description() const;
+
+private:
     // SdpBuilder
     class SdpBuilder final {
     public:
@@ -105,6 +107,19 @@ public:
         static bool AddSsrcs(const Configuration& config, sdp::Media& media);
         static std::optional<int> NextPayloadType(Kind kind);
     };
+private:
+    void Parse(const Configuration& config);
+
+private:
+    const sdp::Media description_;
+    uint32_t media_ssrc_;
+    std::optional<uint32_t> rtx_ssrc_;
+    std::optional<uint32_t> flex_fec_ssrc_;
+
+    std::map<int, Codec> media_codecs_;
+    std::optional<int> red_payload_type_;
+    std::optional<int> fec_payload_type_;
+    std::map</*rtx_payload_type*/int, /*associated_payload_type*/int> rtx_payload_type_map_;
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec);
