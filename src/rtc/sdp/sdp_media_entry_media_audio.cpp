@@ -4,7 +4,7 @@ namespace naivertc {
 namespace sdp {
 
 void Media::AddAudioCodec(int payload_type, 
-                          const std::string codec, 
+                          Codec codec, 
                           int clock_rate, 
                           int channels, 
                           std::optional<const std::string> profile) {

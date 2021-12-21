@@ -14,7 +14,7 @@ std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Configura
                 media_track = std::make_shared<MediaTrack>(config);
                 this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
                 media_sdp = MediaTrack::SdpBuilder::Build(config);
-            } else if (media_track->IsValidConfig(config)) {
+            } else if (media_track->Reconfig(config)) {
                 media_sdp = MediaTrack::SdpBuilder::Build(config);
             } else {
                 PLOG_WARNING << "Failed to add a media track with invalid configuration.";

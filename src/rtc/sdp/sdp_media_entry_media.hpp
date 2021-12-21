@@ -5,12 +5,43 @@
 
 #include <map>
 #include <functional>
+#include <iostream>
+#include <sstream>
 
 namespace naivertc {
 namespace sdp {
 
 struct RTC_CPP_EXPORT Media : public MediaEntry {
 public:
+    enum class Codec {
+        // Audio codec
+        OPUS,
+        // Video codecs
+        VP8,
+        VP9,
+        H264,
+        // Protection codecs
+        RED,
+        ULP_FEC,
+        FLEX_FEC,
+        RTX
+    };
+    // RtpMap
+    struct RtpMap {
+        int payload_type;
+        Codec codec;
+        int clock_rate;
+        std::optional<std::string> codec_params = std::nullopt;
+        std::vector<std::string> rtcp_feedbacks;
+        std::vector<std::string> fmt_profiles;
+
+        RtpMap(int payload_type, 
+               Codec codec, 
+               int clock_rate, 
+               std::optional<std::string> codec_params = std::nullopt);
+    };
+
+    // SsrcEntry
     struct SsrcEntry {
         enum class Kind { MEDIA, RTX, FEC };
         uint32_t ssrc = 0;
@@ -68,21 +99,23 @@ public:
 
     // Codec
     void AddAudioCodec(int payload_type, 
-                       const std::string codec, 
+                       Codec codec, 
                        int clock_rate = 48000, 
                        int channels = 2, 
                        std::optional<const std::string> profile = std::nullopt);
     void AddVideoCodec(int payload_type, 
-                       const std::string codec,
+                       Codec codec,
                        std::optional<const std::string> profile = std::nullopt);
 
     void AddCodec(int payload_type, 
-                  const std::string codec,
+                  Codec codec,
                   int clock_rate,
                   std::optional<const std::string> codec_params = std::nullopt,
                   std::optional<const std::string> profile = std::nullopt);
     
     bool AddFeedback(int payload_type, const std::string feed_back);
+    void AddRtpMap(RtpMap map);
+    
     bool HasPayloadType(int pt) const;
     std::vector<int> payload_types() const;
 
@@ -93,29 +126,11 @@ public:
 
     Media ReciprocatedSDP() const;
 
-protected:
-    struct RtpMap {
-        int payload_type;
-        std::string codec;
-        int clock_rate;
-        std::optional<std::string> codec_params = std::nullopt;
-        std::vector<std::string> rtcp_feedbacks;
-        std::vector<std::string> fmt_profiles;
-
-        RtpMap(int payload_type, 
-               std::string codec, 
-               int clock_rate, 
-               std::optional<std::string> codec_params = std::nullopt);
-    };
-
-    void AddRtpMap(RtpMap map);
-
 private:
     static std::optional<RtpMap> ParseRtpMap(const std::string_view& attr_value);
     std::string FormatDescription() const override;
     virtual std::string GenerateSDPLines(const std::string eol) const override;
     std::string GenerateSsrcEntrySDPLines(const SsrcEntry& entry, const std::string eol) const;
-    
 private:
     Direction direction_;
     

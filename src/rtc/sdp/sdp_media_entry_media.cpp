@@ -3,17 +3,60 @@
 
 #include <plog/Log.h>
 
-#include <sstream>
-
 namespace naivertc {
 namespace sdp {
+namespace {
+
+std::string ToString(sdp::Media::Codec codec) {
+    switch (codec) {
+    case sdp::Media::Codec::VP8:
+        return "VP8";
+    case sdp::Media::Codec::VP9:
+        return "VP9";
+    case sdp::Media::Codec::H264:
+        return "H264";
+    case sdp::Media::Codec::RED:
+        return "red";
+    case sdp::Media::Codec::ULP_FEC:
+        return "ulpfec";
+    case sdp::Media::Codec::FLEX_FEC:
+        return "flexfec";
+    case sdp::Media::Codec::RTX:
+        return "rtx";
+    default:
+        RTC_NOTREACHED();
+    }
+}
+
+sdp::Media::Codec FromString(const std::string_view& codec_name) {
+    if (codec_name == "VP8") {
+        return sdp::Media::Codec::VP8;
+    } else if (codec_name == "VP9") {
+        return sdp::Media::Codec::VP9;
+    } else if (codec_name == "H264") {
+        return sdp::Media::Codec::H264;
+    } else if (codec_name == "red") {
+        return sdp::Media::Codec::RED;
+    } else if (codec_name == "ulpfec") {
+        return sdp::Media::Codec::ULP_FEC;
+    } else if (codec_name == "flexfec") {
+        return sdp::Media::Codec::FLEX_FEC;
+    } else if (codec_name == "rtx") {
+        return sdp::Media::Codec::RTX;
+    } else {
+        RTC_NOTREACHED();
+    }
+}
+
+} // namespace
+
 // RtpMap
 Media::RtpMap::RtpMap(int payload_type, 
-                     std::string codec, 
+                     Codec codec, 
                      int clock_rate, 
                      std::optional<std::string> codec_params) 
     : payload_type(payload_type),
-      codec(std::move(codec)),
+      codec(codec),
       clock_rate(clock_rate),
       codec_params(codec_params) {}
 
@@ -193,11 +236,11 @@ void Media::AddRtpMap(RtpMap map) {
 }
 
 void Media::AddCodec(int payload_type, 
-                     const std::string codec,
+                     Codec cocec,
                      int clock_rate,
                      std::optional<const std::string> codec_params,
                      std::optional<const std::string> profile) {
-    RtpMap rtp_map(payload_type, codec, clock_rate, codec_params);
+    RtpMap rtp_map(payload_type, cocec, clock_rate, codec_params);
     if (profile.has_value()) {
         rtp_map.fmt_profiles.emplace_back(profile.value());
     }
@@ -421,7 +464,7 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
 
     for (const auto& [key, map] : rtp_maps_) {
         // a=rtpmap
-        oss << "a=rtpmap:" << map.payload_type << sp << map.codec << "/" << map.clock_rate;
+        oss << "a=rtpmap:" << map.payload_type << sp << ToString(map.codec) << "/" << map.clock_rate;
         if (map.codec_params.has_value()) {
             oss << "/" << map.codec_params.value();
         }
@@ -523,7 +566,8 @@ std::optional<Media::RtpMap> Media::ParseRtpMap(const std::string_view& attr_val
         return std::nullopt;
     }
 
-    auto codec = std::string(line.substr(0, spl));
+    auto codec_name = std::string(line.substr(0, spl));
+    auto codec = FromString(codec_name);
 
     line = line.substr(spl + 1);
     spl = line.find('/');
@@ -541,7 +585,7 @@ std::optional<Media::RtpMap> Media::ParseRtpMap(const std::string_view& attr_val
         codec_params.emplace(line.substr(spl + 1));
     }
 
-    return RtpMap(payload_type, std::move(codec), clock_rate, codec_params);
+    return RtpMap(payload_type, codec, clock_rate, codec_params);
 }
 
 } // namespace sdp

@@ -14,7 +14,7 @@ MediaTrack::MediaTrack(Kind kind, std::string mid)
 
 MediaTrack::~MediaTrack() {}
 
-bool MediaTrack::IsValidConfig(const Configuration& config) {
+bool MediaTrack::Reconfig(const Configuration& config) {
     return task_queue_.Sync<bool>([this, &config](){
         if (config.kind() != kind_) {
             PLOG_WARNING << "Failed to reconfig as the incomming kind=" << config.kind()

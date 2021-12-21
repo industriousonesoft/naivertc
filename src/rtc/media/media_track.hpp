@@ -27,7 +27,7 @@ public:
     enum class FecCodec {
         // UlpFec + Red
         ULP_FEC,
-        // FlexFec + Ssrc
+        // FlexFec
         FLEX_FEC
     };
 
@@ -91,7 +91,7 @@ public:
     MediaTrack(Kind kind, std::string mid);
     ~MediaTrack();
 
-    bool IsValidConfig(const Configuration& config);
+    bool Reconfig(const Configuration& config);
 
 public:
     // SdpBuilder
