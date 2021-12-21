@@ -13,6 +13,7 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/report_block.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/loss_notification.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <optional>
 #include <memory>
@@ -43,8 +44,7 @@ public:
         uint32_t remote_sr;
    };
 public:
-    RtcpSender(const RtcpConfiguration& config,
-               std::shared_ptr<TaskQueue> task_queue);
+    RtcpSender(const RtcpConfiguration& config);
 
     RtcpSender() = delete;
     RtcpSender(const RtcpSender&) = delete;
@@ -57,7 +57,7 @@ public:
  
     void set_cname(std::string cname);
     void set_max_rtp_packet_size(size_t max_packet_size);
-    void set_csrcs(const std::vector<uint32_t>& csrcs);
+    void set_csrcs(std::vector<uint32_t> csrcs);
 
     bool Sending() const;
     void SetSendingStatus(const FeedbackState& feedback_state, bool enable);
@@ -166,13 +166,13 @@ private:
     bool AllVolatileFlagsConsumed() const;
 
 private:
+    SequenceChecker sequence_checker_;
     const bool audio_;
     uint32_t local_ssrc_;
     // SSRC that we receive on our RTP channel
     uint32_t remote_ssrc_;
-    std::shared_ptr<Clock> clock_;
-    std::shared_ptr<TaskQueue> task_queue_;  
-
+    Clock* const clock_;
+     
     const TimeDelta report_interval_;
     bool sending_;
 

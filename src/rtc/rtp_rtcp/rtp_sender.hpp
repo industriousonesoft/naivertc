@@ -13,13 +13,13 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 namespace naivertc {
 class RTC_CPP_EXPORT RtpSender {
 public:
     RtpSender(const RtpConfiguration& config, 
-              std::unique_ptr<FecGenerator> fec_generator, 
-              std::shared_ptr<TaskQueue> task_queue);
+              std::unique_ptr<FecGenerator> fec_generator);
     virtual ~RtpSender();
 
     // Generator
@@ -67,10 +67,9 @@ private:
     };
     friend class NonPacedPacketSender;
 private:
+    SequenceChecker sequence_checker_;
     RtxMode rtx_mode_;
-
-    std::shared_ptr<Clock> clock_;
-    std::shared_ptr<TaskQueue> task_queue_;
+    Clock* const clock_;
     std::unique_ptr<FecGenerator> fec_generator_;
 
     RtpPacketSequencer packet_sequencer_;

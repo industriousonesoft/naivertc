@@ -5,6 +5,7 @@
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <memory>
 #include <vector>
@@ -15,8 +16,7 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT RtpPacketGenerator {
 public:
-    RtpPacketGenerator(const RtpConfiguration& config,
-                       std::shared_ptr<TaskQueue> task_queue);
+    RtpPacketGenerator(const RtpConfiguration& config);
     RtpPacketGenerator() = delete;
     RtpPacketGenerator(const RtpPacketGenerator&) = delete;
     RtpPacketGenerator& operator=(const RtpPacketGenerator&) = delete;
@@ -44,6 +44,7 @@ private:
     static void CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend>, RtpPacketToSend* rtx_packet);
 
 private:
+    SequenceChecker sequence_checker_;
     const uint32_t ssrc_;
     std::optional<uint32_t> rtx_ssrc_;
     size_t max_packet_size_;

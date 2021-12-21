@@ -60,143 +60,132 @@ bool RtpPacketSentHistory::StoredPacketCompare::operator()(StoredPacket* lhs,
 
 // RtpPacketSentHistory
 // Public methods
-RtpPacketSentHistory::RtpPacketSentHistory(const RtpConfiguration& config,
-                                           std::shared_ptr<TaskQueue> task_queue) 
-    : task_queue_(task_queue),
-      clock_(config.clock),
+RtpPacketSentHistory::RtpPacketSentHistory(const RtpConfiguration& config) 
+    : clock_(config.clock),
       enable_padding_prio_(config.enable_rtx_padding_prioritization),
       number_to_store_(0),
       mode_(StorageMode::DISABLE),
       rtt_ms_(-1),
-      packets_inserted_(0) {
-    if (task_queue_ == nullptr) {
-        task_queue_ = std::make_shared<TaskQueue>("RtpPacketSentHistory.task.queue");
-    }
-}
+      packets_inserted_(0) {}
 
 RtpPacketSentHistory::~RtpPacketSentHistory() {}
 
 void RtpPacketSentHistory::SetStorePacketsStatus(StorageMode mode, size_t number_to_store) {
-    task_queue_->Async([this, mode, number_to_store]() {
-        if (number_to_store > kMaxCapacity) {
-            PLOG_WARNING << "Number to store is supposed to less than " << kMaxCapacity;
-            return;
-        }
-        if (mode != StorageMode::DISABLE && mode_ != StorageMode::DISABLE) {
-            PLOG_WARNING << "Purging packet history in order to re-set status.";
-        }
-        this->Reset();
-        this->mode_ = mode;
-        this->number_to_store_ = number_to_store;
-    });
+    RTC_RUN_ON(&sequence_checker_);
+     if (number_to_store > kMaxCapacity) {
+        PLOG_WARNING << "Number to store is supposed to less than " << kMaxCapacity;
+        return;
+    }
+    if (mode != StorageMode::DISABLE && mode_ != StorageMode::DISABLE) {
+        PLOG_WARNING << "Purging packet history in order to re-set status.";
+    }
+    Reset();
+    mode_ = mode;
+    number_to_store_ = number_to_store;
 }
 
 RtpPacketSentHistory::StorageMode RtpPacketSentHistory::GetStorageMode() const {
-    return task_queue_->Sync<StorageMode>([this](){
-        return this->mode_;
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    return mode_;
 }
 
 void RtpPacketSentHistory::SetRtt(int64_t rtt_ms) {
-    task_queue_->Async([this, rtt_ms](){
-        if (rtt_ms < 0) {
-            PLOG_WARNING << "Invalid RTT: " << rtt_ms;
-            return;
-        }
-        this->rtt_ms_ = rtt_ms;
-        // If storage is not disabled,  packets will be removed after a timeout
-        // that depends on the RTT. Changing the RTT may thus cause some packets
-        // become "old" and subject to removal.
-        if (this->mode_ != StorageMode::DISABLE) {
-            this->CullOldPackets(clock_->now_ms());
-        }
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    if (rtt_ms < 0) {
+        PLOG_WARNING << "Invalid RTT: " << rtt_ms;
+        return;
+    }
+    rtt_ms_ = rtt_ms;
+    // If storage is not disabled,  packets will be removed after a timeout
+    // that depends on the RTT. Changing the RTT may thus cause some packets
+    // become "old" and subject to removal.
+    if (mode_ != StorageMode::DISABLE) {
+        CullOldPackets(clock_->now_ms());
+    }
 }
 
 void RtpPacketSentHistory::PutRtpPacket(std::shared_ptr<RtpPacketToSend> packet, std::optional<int64_t> send_time_ms) {
-    task_queue_->Async([this, packet=std::move(packet), send_time_ms](){
-        if (packet == nullptr) {
-            PLOG_WARNING << "Invalid packet to send.";
-            return;
-        }
-        int64_t now_ms = clock_->now_ms();
-        if (mode_ == StorageMode::DISABLE) {
-            return;
-        }
+    RTC_RUN_ON(&sequence_checker_);
+    if (packet == nullptr) {
+        PLOG_WARNING << "Invalid packet to send.";
+        return;
+    }
+    int64_t now_ms = clock_->now_ms();
+    if (mode_ == StorageMode::DISABLE) {
+        return;
+    }
 
-        if (!packet->allow_retransmission()) {
-            return;
-        }
-        CullOldPackets(now_ms);
+    if (!packet->allow_retransmission()) {
+        return;
+    }
+    CullOldPackets(now_ms);
 
-        // Store packet.
-        const uint16_t rtp_seq_no = packet->sequence_number();
-        int packet_index = GetPacketIndex(rtp_seq_no);
-        if (packet_index >= 0 &&
-            static_cast<size_t>(packet_index) < packet_history_.size() &&
-            packet_history_[packet_index].packet_ != nullptr) {
-            PLOG_WARNING << "Duplicate packet inserted: " << rtp_seq_no;
-            // Remove previous packet to avoid inconsistent state.
-            RemovePacket(packet_index);
-            packet_index = GetPacketIndex(rtp_seq_no);
-        }
+    // Store packet.
+    const uint16_t rtp_seq_no = packet->sequence_number();
+    int packet_index = GetPacketIndex(rtp_seq_no);
+    if (packet_index >= 0 &&
+        static_cast<size_t>(packet_index) < packet_history_.size() &&
+        packet_history_[packet_index].packet_ != nullptr) {
+        PLOG_WARNING << "Duplicate packet inserted: " << rtp_seq_no;
+        // Remove previous packet to avoid inconsistent state.
+        RemovePacket(packet_index);
+        packet_index = GetPacketIndex(rtp_seq_no);
+    }
 
-        // Packet to be inserted ahead of first packet, expand front.
-        for (; packet_index < 0; ++packet_index) {
-            packet_history_.emplace_front(nullptr, std::nullopt, 0);
-        }
-        // Packet to be inserted behind last packet, expand back.
-        while (static_cast<int>(packet_history_.size()) <= packet_index) {
-            packet_history_.emplace_back(nullptr, std::nullopt, 0);
-        }
+    // Packet to be inserted ahead of first packet, expand front.
+    for (; packet_index < 0; ++packet_index) {
+        packet_history_.emplace_front(nullptr, std::nullopt, 0);
+    }
+    // Packet to be inserted behind last packet, expand back.
+    while (static_cast<int>(packet_history_.size()) <= packet_index) {
+        packet_history_.emplace_back(nullptr, std::nullopt, 0);
+    }
 
-        if (packet_index < 0 || packet_index >= packet_history_.size()) {
-            PLOG_WARNING << "Invalid packet index: " << packet_index;
-            return;
-        }
-        if (packet_history_[packet_index].packet_ != nullptr) {
-            PLOG_WARNING << "Packet for index :" << packet_index << " is already set.";
-            return;
-        }
-        
-        packet_history_[packet_index] = StoredPacket(std::move(packet), send_time_ms, packets_inserted_++);
+    if (packet_index < 0 || packet_index >= packet_history_.size()) {
+        PLOG_WARNING << "Invalid packet index: " << packet_index;
+        return;
+    }
+    if (packet_history_[packet_index].packet_ != nullptr) {
+        PLOG_WARNING << "Packet for index :" << packet_index << " is already set.";
+        return;
+    }
+    
+    packet_history_[packet_index] = StoredPacket(std::move(packet), send_time_ms, packets_inserted_++);
 
-        if (enable_padding_prio_) {
-            if (padding_priority_.size() >= kMaxPaddingtHistory - 1) {
-                padding_priority_.erase(std::prev(padding_priority_.end()));
-            }
-            auto prio_it = padding_priority_.insert(&packet_history_[packet_index]);
-            if (!prio_it.second) {
-                PLOG_WARNING << "Failed to insert packet into prio set.";
-            }
+    if (enable_padding_prio_) {
+        if (padding_priority_.size() >= kMaxPaddingtHistory - 1) {
+            padding_priority_.erase(std::prev(padding_priority_.end()));
         }
-    });
+        auto prio_it = padding_priority_.insert(&packet_history_[packet_index]);
+        if (!prio_it.second) {
+            PLOG_WARNING << "Failed to insert packet into prio set.";
+        }
+    }
 }
 
 std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndSetSendTime(uint16_t sequence_number) {
-    return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, sequence_number](){
-        if (mode_ == StorageMode::DISABLE) {
-            return std::shared_ptr<RtpPacketToSend>(nullptr);;
-        }
-        StoredPacket* stored_packet = GetStoredPacket(sequence_number);
-        if (stored_packet == nullptr) {
-            return std::shared_ptr<RtpPacketToSend>(nullptr);
-        }
+    RTC_RUN_ON(&sequence_checker_);
+    if (mode_ == StorageMode::DISABLE) {
+        return std::shared_ptr<RtpPacketToSend>(nullptr);;
+    }
+    StoredPacket* stored_packet = GetStoredPacket(sequence_number);
+    if (stored_packet == nullptr) {
+        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    }
 
-        int64_t now_ms = clock_->now_ms();
-        if (!VerifyRtt(*stored_packet, now_ms)) {
-            return std::shared_ptr<RtpPacketToSend>(nullptr);
-        } 
+    int64_t now_ms = clock_->now_ms();
+    if (!VerifyRtt(*stored_packet, now_ms)) {
+        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    } 
 
-        if (stored_packet->send_time_ms_) {
-            stored_packet->IncrementTimesRetransmitted(enable_padding_prio_ ? &padding_priority_ : nullptr);
-        }
-        // Update send-time and mark as no long in pacer queue.
-        stored_packet->send_time_ms_ = now_ms;
-        stored_packet->pending_transmission_ = false;
+    if (stored_packet->send_time_ms_) {
+        stored_packet->IncrementTimesRetransmitted(enable_padding_prio_ ? &padding_priority_ : nullptr);
+    }
+    // Update send-time and mark as no long in pacer queue.
+    stored_packet->send_time_ms_ = now_ms;
+    stored_packet->pending_transmission_ = false;
 
-        return stored_packet->packet_;
-    });
+    return stored_packet->packet_;
 }
 
 std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(uint16_t sequence_number) {
@@ -207,83 +196,79 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending
 
 std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
             std::function<std::shared_ptr<RtpPacketToSend>(std::shared_ptr<RtpPacketToSend>)> encapsulate) {
-    return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, sequence_number, encapsulate](){
-        if (mode_ == StorageMode::DISABLE) {
-            return std::shared_ptr<RtpPacketToSend>(nullptr);
-        }
+    RTC_RUN_ON(&sequence_checker_);
+    if (mode_ == StorageMode::DISABLE) {
+        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    }
 
-        StoredPacket* stored_packet = GetStoredPacket(sequence_number);
-        if (stored_packet == nullptr) {
-            return std::shared_ptr<RtpPacketToSend>(nullptr);
-        }
+    StoredPacket* stored_packet = GetStoredPacket(sequence_number);
+    if (stored_packet == nullptr) {
+        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    }
 
-        if (stored_packet->pending_transmission_) {
-            // Packet already in pacer queue, ignore this request.
-            return std::shared_ptr<RtpPacketToSend>(nullptr);
-        }
+    if (stored_packet->pending_transmission_) {
+        // Packet already in pacer queue, ignore this request.
+        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    }
 
-        if (!VerifyRtt(*stored_packet, clock_->now_ms())) {
-            // Packet already resent within too short a time window, ignore.
-            return std::shared_ptr<RtpPacketToSend>(nullptr);
-        }
+    if (!VerifyRtt(*stored_packet, clock_->now_ms())) {
+        // Packet already resent within too short a time window, ignore.
+        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    }
 
-        // Copy and/or encapsulate packet.
-        std::shared_ptr<RtpPacketToSend> encapsulated_packet = encapsulate(stored_packet->packet_);
-        if (encapsulated_packet) {
-            stored_packet->pending_transmission_ = true;
-        }
+    // Copy and/or encapsulate packet.
+    std::shared_ptr<RtpPacketToSend> encapsulated_packet = encapsulate(stored_packet->packet_);
+    if (encapsulated_packet) {
+        stored_packet->pending_transmission_ = true;
+    }
 
-        return encapsulated_packet;
-    });
+    return encapsulated_packet;
 }
 
 void RtpPacketSentHistory::MarkPacketAsSent(uint16_t sequence_number) {
-    task_queue_->Async([this, sequence_number](){
-        if (mode_ == StorageMode::DISABLE) {
-            return;
-        }
+    RTC_RUN_ON(&sequence_checker_);
+    if (mode_ == StorageMode::DISABLE) {
+        return;
+    }
 
-        StoredPacket* stored_packet = GetStoredPacket(sequence_number);
-        if (stored_packet == nullptr) {
-            return;
-        }
+    StoredPacket* stored_packet = GetStoredPacket(sequence_number);
+    if (stored_packet == nullptr) {
+        return;
+    }
 
-        if (!stored_packet->send_time_ms_.has_value()) {
-            PLOG_WARNING << "Invalid packet without sent time.";
-            return;
-        }
+    if (!stored_packet->send_time_ms_.has_value()) {
+        PLOG_WARNING << "Invalid packet without sent time.";
+        return;
+    }
 
-        // Update send-time, mark as no longer in pacer queue, and increment
-        // transmission count.
-        stored_packet->send_time_ms_ = clock_->now_ms();
-        stored_packet->pending_transmission_ = false;
-        stored_packet->IncrementTimesRetransmitted(enable_padding_prio_ ? &padding_priority_ : nullptr);
-    });
+    // Update send-time, mark as no longer in pacer queue, and increment
+    // transmission count.
+    stored_packet->send_time_ms_ = clock_->now_ms();
+    stored_packet->pending_transmission_ = false;
+    stored_packet->IncrementTimesRetransmitted(enable_padding_prio_ ? &padding_priority_ : nullptr);
 }
 
 std::optional<RtpPacketSentHistory::PacketState> RtpPacketSentHistory::GetPacketState(uint16_t sequence_number) const {
-    return task_queue_->Sync<std::optional<RtpPacketSentHistory::PacketState>>([this, sequence_number](){
+    RTC_RUN_ON(&sequence_checker_);
+    if (mode_ == StorageMode::DISABLE) {
+        return std::optional<PacketState>(std::nullopt);
+    }
 
-        if (mode_ == StorageMode::DISABLE) {
-            return std::optional<PacketState>(std::nullopt);
-        }
+    int packet_index = GetPacketIndex(sequence_number);
+    if (packet_index < 0 ||
+        static_cast<size_t>(packet_index) >= packet_history_.size()) {
+        return std::optional<PacketState>(std::nullopt);
+    }
+    const StoredPacket& stored_packet = packet_history_[packet_index];
+    if (stored_packet.packet_ == nullptr) {
+        return std::optional<PacketState>(std::nullopt);
+    }
 
-        int packet_index = GetPacketIndex(sequence_number);
-        if (packet_index < 0 ||
-            static_cast<size_t>(packet_index) >= packet_history_.size()) {
-            return std::optional<PacketState>(std::nullopt);
-        }
-        const StoredPacket& stored_packet = packet_history_[packet_index];
-        if (stored_packet.packet_ == nullptr) {
-            return std::optional<PacketState>(std::nullopt);
-        }
+    if (!VerifyRtt(stored_packet, clock_->now_ms())) {
+        return std::optional<PacketState>(std::nullopt);
+    }
 
-        if (!VerifyRtt(stored_packet, clock_->now_ms())) {
-            return std::optional<PacketState>(std::nullopt);
-        }
-
-        return std::make_optional<PacketState>(StoredPacketToPacketState(stored_packet));
-    });
+    return std::make_optional<PacketState>(StoredPacketToPacketState(stored_packet));
 }
 
 std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket() {
@@ -294,83 +279,78 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket()
 
 std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket(
         std::function<std::shared_ptr<RtpPacketToSend>(std::shared_ptr<RtpPacketToSend>)> encapsulate) {
-    return task_queue_->Sync<std::shared_ptr<RtpPacketToSend>>([this, encapsulate](){
+    RTC_RUN_ON(&sequence_checker_);
+    if (mode_ == StorageMode::DISABLE) {
+        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    }
 
-        if (mode_ == StorageMode::DISABLE) {
-            return std::shared_ptr<RtpPacketToSend>(nullptr);
-        }
-
-        StoredPacket* best_packet = nullptr;
-        if (enable_padding_prio_ && !padding_priority_.empty()) {
-            auto best_packet_it = padding_priority_.begin();
-            best_packet = *best_packet_it;
-        } else if (!enable_padding_prio_ && !packet_history_.empty()) {
-            // Prioritization not available, pick the last packet.
-            for (auto it = packet_history_.rbegin(); it != packet_history_.rend(); ++it) {
-                if (it->packet_ != nullptr) {
-                    best_packet = &(*it);
-                    break;
-                }
+    StoredPacket* best_packet = nullptr;
+    if (enable_padding_prio_ && !padding_priority_.empty()) {
+        auto best_packet_it = padding_priority_.begin();
+        best_packet = *best_packet_it;
+    } else if (!enable_padding_prio_ && !packet_history_.empty()) {
+        // Prioritization not available, pick the last packet.
+        for (auto it = packet_history_.rbegin(); it != packet_history_.rend(); ++it) {
+            if (it->packet_ != nullptr) {
+                best_packet = &(*it);
+                break;
             }
         }
-        if (best_packet == nullptr) {
-            return std::shared_ptr<RtpPacketToSend>(nullptr);
-        }
+    }
+    if (best_packet == nullptr) {
+        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    }
 
-        if (best_packet->pending_transmission_) {
-            // Because PacedSender releases it's lock when it calls
-            // GeneratePadding() there is the potential for a race where a new
-            // packet ends up here instead of the regular transmit path. In such a
-            // case, just return empty and it will be picked up on the next
-            // Process() call.
-            return std::shared_ptr<RtpPacketToSend>(nullptr);
-        }
+    if (best_packet->pending_transmission_) {
+        // Because PacedSender releases it's lock when it calls
+        // GeneratePadding() there is the potential for a race where a new
+        // packet ends up here instead of the regular transmit path. In such a
+        // case, just return empty and it will be picked up on the next
+        // Process() call.
+        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    }
 
-        auto padding_packet = encapsulate(best_packet->packet_);
-        if (!padding_packet) {
-            return std::shared_ptr<RtpPacketToSend>(nullptr);
-        }
+    auto padding_packet = encapsulate(best_packet->packet_);
+    if (!padding_packet) {
+        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    }
 
-        best_packet->send_time_ms_ = clock_->now_ms();
-        best_packet->IncrementTimesRetransmitted(enable_padding_prio_ ? &padding_priority_ : nullptr);
+    best_packet->send_time_ms_ = clock_->now_ms();
+    best_packet->IncrementTimesRetransmitted(enable_padding_prio_ ? &padding_priority_ : nullptr);
 
-        return padding_packet;
-    });
+    return padding_packet;
 }
 
 void RtpPacketSentHistory::CullAcknowledgedPackets(std::vector<const uint16_t> sequence_numbers) {
-    task_queue_->Async([this, sequence_numbers](){
-        for (uint16_t sequence_number : sequence_numbers) {
-            int packet_index = GetPacketIndex(sequence_number);
-            if (packet_index < 0 ||
-                static_cast<size_t>(packet_index) >= packet_history_.size()) {
-                    continue;
-                }
-            RemovePacket(packet_index);
-        }
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    for (uint16_t sequence_number : sequence_numbers) {
+        int packet_index = GetPacketIndex(sequence_number);
+        if (packet_index < 0 ||
+            static_cast<size_t>(packet_index) >= packet_history_.size()) {
+                continue;
+            }
+        RemovePacket(packet_index);
+    }
 }
 
 bool RtpPacketSentHistory::SetPendingTransmission(uint16_t sequence_number) {
-    return task_queue_->Sync<bool>([this, sequence_number](){
-        if (mode_ == StorageMode::DISABLE) {
-            return false;
-        }
+    RTC_RUN_ON(&sequence_checker_);
+    if (mode_ == StorageMode::DISABLE) {
+        return false;
+    }
 
-        StoredPacket* stored_packet = GetStoredPacket(sequence_number);
-        if (stored_packet == nullptr) {
-            return false;
-        }
+    StoredPacket* stored_packet = GetStoredPacket(sequence_number);
+    if (stored_packet == nullptr) {
+        return false;
+    }
 
-        stored_packet->pending_transmission_ = true;
-        return true;
-    });
+    stored_packet->pending_transmission_ = true;
+    return true;
 }
 
 void RtpPacketSentHistory::Clear() {
-    task_queue_->Async([this](){
-        Reset();
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    Reset();
 }
 
 // Private methods
@@ -388,10 +368,8 @@ bool RtpPacketSentHistory::VerifyRtt(const StoredPacket& packet, int64_t now_ms)
 }
 
 void RtpPacketSentHistory::Reset() {
-    task_queue_->Async([this](){
-        this->packet_history_.clear();
-        this->padding_priority_.clear();
-    });
+    packet_history_.clear();
+    padding_priority_.clear();
 }
 
 void RtpPacketSentHistory::CullOldPackets(int64_t now_ms) {

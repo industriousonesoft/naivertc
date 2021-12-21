@@ -27,8 +27,8 @@ public:
 
 public:
     UlpFecReceiver(uint32_t ssrc, 
-                   std::shared_ptr<Clock> clock, 
-                   std::weak_ptr<RecoveredPacketReceiver> recovered_packet_receiver);
+                   Clock* clock, 
+                   RecoveredPacketReceiver* recovered_packet_receiver);
     ~UlpFecReceiver();
 
     bool OnRedPacket(const RtpPacketReceived& rtp_packet, uint8_t ulpfec_payload_type);
@@ -40,8 +40,8 @@ private:
 
 private:
     const uint32_t ssrc_;
-    std::shared_ptr<Clock> clock_;
-    std::weak_ptr<RecoveredPacketReceiver> recovered_packet_receiver_;
+    Clock* const clock_;
+    RecoveredPacketReceiver* recovered_packet_receiver_;
 
     const std::unique_ptr<FecDecoder> fec_decoder_;
 

@@ -12,6 +12,7 @@
 #include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <optional>
 #include <functional>
@@ -25,8 +26,7 @@ class RTC_CPP_EXPORT RtpPacketEgresser {
 public:
     RtpPacketEgresser(const RtpConfiguration& config,
                     RtpPacketSentHistory* const packet_history,
-                    FecGenerator* const fec_generator,
-                    std::shared_ptr<TaskQueue> task_queue);
+                    FecGenerator* const fec_generator);
     ~RtpPacketEgresser();
 
     uint32_t ssrc() const { return ssrc_; }
@@ -58,14 +58,14 @@ private:
 private:
     friend class NonPacedPacketSender;
 
-    std::shared_ptr<Clock> clock_; 
+    SequenceChecker sequence_checker_;
+    Clock* clock_; 
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
     RtpSentStatisticsObserver* rtp_sent_statistics_observer_;
     
     RtpPacketSentHistory* const packet_history_;
     FecGenerator* const fec_generator_;
-    std::shared_ptr<TaskQueue> task_queue_;
 
     std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;
 
@@ -75,7 +75,7 @@ private:
     RtpSentCounters rtx_sent_counters_;
     std::map<RtpPacketType, BitRateStatistics> send_bitrate_map_;
 
-    std::shared_ptr<TaskQueue> worker_queue_;
+    TaskQueueImpl* worker_queue_;
     std::unique_ptr<RepeatingTask> update_task_;
 };
     

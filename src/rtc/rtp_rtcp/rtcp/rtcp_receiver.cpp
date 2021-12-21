@@ -23,13 +23,11 @@ void RtcpReceiver::RttStats::AddRtt(TimeDelta rtt) {
 
 // RTCPReceiver
 RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config, 
-                           Observer* const observer, 
-                           std::shared_ptr<TaskQueue> task_queue) 
+                           Observer* const observer) 
     : clock_(config.clock),
       observer_(observer),
       receiver_only_(false),
-      remote_ssrc_(config.remote_ssrc),
-      task_queue_(task_queue ? task_queue : std::make_shared<TaskQueue>("RtcpReceiver.task.queue")) {
+      remote_ssrc_(config.remote_ssrc) {
     // Registered ssrcs
     registered_ssrcs_[kLocalMediaSsrcIndex] = config.local_media_ssrc;
     if (config.rtx_send_ssrc.has_value()) {
@@ -43,25 +41,22 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config,
 RtcpReceiver::~RtcpReceiver() {}
 
 uint32_t RtcpReceiver::local_media_ssrc() const {
-    return task_queue_->Sync<uint32_t>([this](){
-        return registered_ssrcs_.at(kLocalMediaSsrcIndex);
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    return registered_ssrcs_.at(kLocalMediaSsrcIndex);
 }
 
 uint32_t RtcpReceiver::remote_ssrc() const {
-    return task_queue_->Sync<uint32_t>([this](){
-        return remote_ssrc_;
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    return remote_ssrc_;
 }
 
 void RtcpReceiver::IncomingPacket(CopyOnWriteBuffer packet) {
-    task_queue_->Async([this, packet = std::move(packet)](){
-        if (ParseCompoundPacket(std::move(packet))) {
-            PLOG_WARNING << "Failed to parse incoming packet.";
-            return;
-        }
-    });
-    
+    RTC_RUN_ON(&sequence_checker_);
+    if (ParseCompoundPacket(std::move(packet))) {
+        PLOG_WARNING << "Failed to parse incoming packet.";
+        return;
+    }
+    // TODO: Implement this.
 }
 
 bool RtcpReceiver::NTP(uint32_t* received_ntp_secs,
@@ -72,36 +67,34 @@ bool RtcpReceiver::NTP(uint32_t* received_ntp_secs,
                        uint32_t* remote_sender_packet_count,
                        uint64_t* remote_sender_octet_count,
                        uint64_t* remote_sender_reports_count) const {
-    return task_queue_->Sync<bool>([&](){
-        
-        if (!last_received_sr_ntp_.Valid())
-            return false;
+    RTC_RUN_ON(&sequence_checker_);
+    if (!last_received_sr_ntp_.Valid())
+        return false;
 
-        // NTP from incoming SenderReport.
-        if (received_ntp_secs)
-            *received_ntp_secs = remote_sender_ntp_time_.seconds();
-        if (received_ntp_frac)
-            *received_ntp_frac = remote_sender_ntp_time_.fractions();
-        // Rtp time from incoming SenderReport.
-        if (rtcp_timestamp)
-            *rtcp_timestamp = remote_sender_rtp_time_;
+    // NTP from incoming SenderReport.
+    if (received_ntp_secs)
+        *received_ntp_secs = remote_sender_ntp_time_.seconds();
+    if (received_ntp_frac)
+        *received_ntp_frac = remote_sender_ntp_time_.fractions();
+    // Rtp time from incoming SenderReport.
+    if (rtcp_timestamp)
+        *rtcp_timestamp = remote_sender_rtp_time_;
 
-        // Local NTP time when we received a RTCP packet with a send block.
-        if (rtcp_arrival_time_secs)
-            *rtcp_arrival_time_secs = last_received_sr_ntp_.seconds();
-        if (rtcp_arrival_time_frac)
-            *rtcp_arrival_time_frac = last_received_sr_ntp_.fractions();
+    // Local NTP time when we received a RTCP packet with a send block.
+    if (rtcp_arrival_time_secs)
+        *rtcp_arrival_time_secs = last_received_sr_ntp_.seconds();
+    if (rtcp_arrival_time_frac)
+        *rtcp_arrival_time_frac = last_received_sr_ntp_.fractions();
 
-        // Counters.
-        if (remote_sender_packet_count)
-            *remote_sender_packet_count = remote_sender_packet_count_;
-        if (remote_sender_octet_count)
-            *remote_sender_octet_count = remote_sender_octet_count_;
-        if (remote_sender_reports_count)
-            *remote_sender_reports_count = remote_sender_reports_count_;
+    // Counters.
+    if (remote_sender_packet_count)
+        *remote_sender_packet_count = remote_sender_packet_count_;
+    if (remote_sender_octet_count)
+        *remote_sender_octet_count = remote_sender_octet_count_;
+    if (remote_sender_reports_count)
+        *remote_sender_reports_count = remote_sender_reports_count_;
 
-        return true;
-    });
+    return true;
 }
 
 int32_t RtcpReceiver::RTT(uint32_t remote_ssrc,
@@ -109,29 +102,28 @@ int32_t RtcpReceiver::RTT(uint32_t remote_ssrc,
                           int64_t* avg_rtt_ms,
                           int64_t* min_rtt_ms,
                           int64_t* max_rtt_ms) const {
-    return task_queue_->Sync<int32_t>([&](){ 
-        auto it = rtts_.find(remote_ssrc);
-        if (it == rtts_.end()) {
-            return -1;
-        }
-        if (last_rtt_ms) {
-            *last_rtt_ms = it->second.last_rtt().ms();
-        }
+    RTC_RUN_ON(&sequence_checker_);
+    auto it = rtts_.find(remote_ssrc);
+    if (it == rtts_.end()) {
+        return -1;
+    }
+    if (last_rtt_ms) {
+        *last_rtt_ms = it->second.last_rtt().ms();
+    }
 
-        if (avg_rtt_ms) {
-            *avg_rtt_ms = it->second.average_rtt().ms();
-        }
+    if (avg_rtt_ms) {
+        *avg_rtt_ms = it->second.average_rtt().ms();
+    }
 
-        if (min_rtt_ms) {
-            *min_rtt_ms = it->second.min_rtt().ms();
-        }
+    if (min_rtt_ms) {
+        *min_rtt_ms = it->second.min_rtt().ms();
+    }
 
-        if (max_rtt_ms) {
-            *max_rtt_ms = it->second.max_rtt().ms();
-        }
+    if (max_rtt_ms) {
+        *max_rtt_ms = it->second.max_rtt().ms();
+    }
 
-        return 0;
-    });
+    return 0;
 }
 
 // Private methods

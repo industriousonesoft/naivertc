@@ -8,6 +8,7 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 namespace naivertc {
 
@@ -16,8 +17,7 @@ class RTC_CPP_EXPORT RtcpModule : public RtcpReceiver::Observer,
                                   public NackSender,
                                   public KeyFrameRequestSender {
 public:
-    RtcpModule(const RtcpConfiguration& config, 
-               std::shared_ptr<TaskQueue> task_queue);
+    RtcpModule(const RtcpConfiguration& config);
     ~RtcpModule();
 
     void set_rtt_ms(int64_t rtt_ms);
@@ -66,12 +66,12 @@ private:
     void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) override;
     void OnReceivedRtcpReportBlocks(const ReportBlockList& report_blocks) override;  
 private:
-    std::shared_ptr<Clock> clock_;
-    std::shared_ptr<TaskQueue> task_queue_;
+    Clock* const clock_;
+    SequenceChecker sequence_checker_;
     
     RtcpSender rtcp_sender_;
     RtcpReceiver rtcp_receiver_;
-    TaskQueue work_queue_;
+    TaskQueueImpl* const work_queue_;
 
     RtcpSender::FeedbackState feedback_state_;
 

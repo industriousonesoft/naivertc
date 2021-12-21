@@ -6,24 +6,21 @@
 
 namespace naivertc {
 
-RtpMediaSender::RtpMediaSender(const RtpRtcpConfig rtp_rtcp_config,
-                               std::shared_ptr<Clock> clock,
-                               std::shared_ptr<Transport> send_transport, 
-                               std::shared_ptr<TaskQueue> task_queue) 
-    : rtp_rtcp_config_(rtp_rtcp_config),
-      clock_(clock),
-      task_queue_(task_queue) {
-    InitRtpRtcpModules(rtp_rtcp_config, clock, send_transport, task_queue);
+RtpMediaSender::RtpMediaSender(RtpRtcpConfig rtp_rtcp_config,
+                               Clock* clock,
+                               Transport* send_transport) 
+    : rtp_rtcp_config_(std::move(rtp_rtcp_config)),
+      clock_(clock) {
+    InitRtpRtcpModules(rtp_rtcp_config_, clock, send_transport);
 }
                                          
 RtpMediaSender::~RtpMediaSender() = default;
 
 // Private methods
 void RtpMediaSender::InitRtpRtcpModules(const RtpRtcpConfig& rtp_rtcp_config,
-                                     std::shared_ptr<Clock> clock,
-                                     std::shared_ptr<Transport> send_transport,
-                                     std::shared_ptr<TaskQueue> task_queue) {
-
+                                        Clock* clock,
+                                        Transport* send_transport) {
+    RTC_RUN_ON(&sequence_checker_);
     uint32_t local_media_ssrc = rtp_rtcp_config.local_media_ssrc;
     std::optional<uint32_t> rtx_send_ssrc = rtp_rtcp_config.rtx_send_ssrc;
     auto fec_generator = MaybeCreateFecGenerator(rtp_rtcp_config, local_media_ssrc);
@@ -36,7 +33,7 @@ void RtpMediaSender::InitRtpRtcpModules(const RtpRtcpConfig& rtp_rtcp_config,
     rtcp_config.rtx_send_ssrc = rtx_send_ssrc;
     rtcp_config.fec_ssrc = fec_generator->fec_ssrc();
     rtcp_config.clock = clock;
-    auto rtcp_module = std::make_unique<RtcpModule>(rtcp_config, task_queue);
+    auto rtcp_module = std::make_unique<RtcpModule>(rtcp_config);
 
     // RtpSender
     RtpConfiguration rtp_config;
@@ -47,7 +44,7 @@ void RtpMediaSender::InitRtpRtcpModules(const RtpRtcpConfig& rtp_rtcp_config,
     rtp_config.clock = clock;
     rtp_config.send_transport = send_transport;
     rtp_config.rtp_sent_statistics_observer = rtcp_module.get();
-    auto rtp_sender = std::make_shared<RtpSender>(rtp_config, std::move(fec_generator), task_queue);
+    auto rtp_sender = std::make_unique<RtpSender>(rtp_config, std::move(fec_generator));
     // FIXME: Why do we need to enable NACK here?? What the rtp_config.nack_enabled works for?
     rtp_sender->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
    
@@ -56,6 +53,7 @@ void RtpMediaSender::InitRtpRtcpModules(const RtpRtcpConfig& rtp_rtcp_config,
 }
 
 std::unique_ptr<FecGenerator> RtpMediaSender::MaybeCreateFecGenerator(const RtpRtcpConfig& rtp_config, uint32_t media_ssrc) {
+    RTC_RUN_ON(&sequence_checker_);
     // Flexfec takes priority
     if (rtp_config.flexfec.payload_type >= 0) {
         assert(rtp_config.flexfec.payload_type <= 127);

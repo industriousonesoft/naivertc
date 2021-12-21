@@ -5,6 +5,7 @@
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <optional>
 #include <deque>
@@ -50,8 +51,7 @@ public:
     };
 
 public:
-    RtpPacketSentHistory(const RtpConfiguration& config,
-                         std::shared_ptr<TaskQueue> task_queue);
+    RtpPacketSentHistory(const RtpConfiguration& config);
 
     RtpPacketSentHistory() = delete;
     RtpPacketSentHistory(const RtpPacketSentHistory&) = delete;
@@ -176,9 +176,9 @@ private:
     static PacketState StoredPacketToPacketState(const StoredPacket& stored_packet);
 
 private:
-    std::shared_ptr<TaskQueue> task_queue_;
+    SequenceChecker sequence_checker_;
 
-    std::shared_ptr<Clock> clock_;
+    Clock* const clock_;
     const bool enable_padding_prio_;
     size_t number_to_store_;
     StorageMode mode_;

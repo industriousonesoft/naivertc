@@ -8,11 +8,11 @@ namespace naivertc {
 constexpr uint8_t kRedHeaderSize = 1u;
 
 UlpFecReceiver::UlpFecReceiver(uint32_t ssrc, 
-                               std::shared_ptr<Clock> clock, 
-                               std::weak_ptr<RecoveredPacketReceiver> recovered_packet_receiver) 
+                               Clock* clock, 
+                               RecoveredPacketReceiver* recovered_packet_receiver) 
     : ssrc_(ssrc),
-      clock_(std::move(clock)),
-      recovered_packet_receiver_(std::move(recovered_packet_receiver)),
+      clock_(clock),
+      recovered_packet_receiver_(recovered_packet_receiver),
       fec_decoder_(FecDecoder::CreateUlpFecDecoder(ssrc_)) {
 
     fec_decoder_->OnRecoveredPacket(std::bind(&UlpFecReceiver::OnRecoveredPacket, this, std::placeholders::_1));
@@ -85,8 +85,8 @@ bool UlpFecReceiver::OnRedPacket(const RtpPacketReceived& rtp_packet, uint8_t ul
         encapsulated_packet.Append(red_payload.data() + kRedHeaderSize, red_payload.size() - kRedHeaderSize);
 
         // Send reveived media packet to VCM (Video Coding Module)
-        if (auto receiver = recovered_packet_receiver_.lock()) {
-            receiver->OnRecoveredPacket(encapsulated_packet);
+        if (recovered_packet_receiver_) {
+            recovered_packet_receiver_->OnRecoveredPacket(encapsulated_packet);
         }
 
         // TODO: To zero mutable extensions, but why?
@@ -105,8 +105,8 @@ bool UlpFecReceiver::OnRedPacket(const RtpPacketReceived& rtp_packet, uint8_t ul
 
 void UlpFecReceiver::OnRecoveredPacket(const FecDecoder::RecoveredMediaPacket& recovered_packet) {
     ++packet_counter_.num_recovered_packets;
-    if (auto receiver = recovered_packet_receiver_.lock()) {
-        receiver->OnRecoveredPacket(recovered_packet.pkt);
+    if (recovered_packet_receiver_) {
+        recovered_packet_receiver_->OnRecoveredPacket(recovered_packet.pkt);
     }
 }
     

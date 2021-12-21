@@ -16,7 +16,7 @@ void RtcpModule::RequestKeyFrame() {
 
 // Private methods
 const RtcpSender::FeedbackState& RtcpModule::GetFeedbackState() {
-    assert(work_queue_.IsCurrent());
+    RTC_RUN_ON(work_queue_);
     uint32_t received_ntp_secs = 0;
     uint32_t received_ntp_frac = 0;
     feedback_state_.remote_sr = 0;
@@ -34,7 +34,7 @@ const RtcpSender::FeedbackState& RtcpModule::GetFeedbackState() {
 }
 
 void RtcpModule::MaybeSendRtcp() {
-    assert(work_queue_.IsCurrent());
+    RTC_RUN_ON(work_queue_);
     if (rtcp_sender_.TimeToSendRtcpReport()) {
         rtcp_sender_.SendRtcp(GetFeedbackState(), RtcpPacketType::REPORT);
     }
@@ -42,12 +42,12 @@ void RtcpModule::MaybeSendRtcp() {
 
 void RtcpModule::ScheduleRtcpSendEvaluation(TimeDelta delay) {
     if (delay.IsZero()) {
-        work_queue_.Async([this](){
+        work_queue_->Post([this](){
             this->MaybeSendRtcp();
         });
     } else {
         Timestamp execution_time = clock_->CurrentTime() + delay;
-        work_queue_.AsyncAfter(delay, [this, execution_time](){
+        work_queue_->PostDelayed(delay, [this, execution_time](){
             this->MaybeSendRtcpAtOrAfterTimestamp(execution_time);
         });
     }
@@ -63,7 +63,7 @@ void RtcpModule::MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time) {
     PLOG_WARNING << "TaskQueueBug: Task queue scheduled delayed call too early.";
 
     TimeDelta delay = execution_time - now;
-    work_queue_.AsyncAfter(delay, [this, execution_time](){
+    work_queue_->PostDelayed(delay, [this, execution_time](){
         this->MaybeSendRtcpAtOrAfterTimestamp(execution_time);
     });
 }

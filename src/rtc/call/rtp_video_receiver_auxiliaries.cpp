@@ -5,10 +5,10 @@
 namespace naivertc {
 
 // RtcpFeedbackBuffer
-RtpVideoReceiver::RtcpFeedbackBuffer::RtcpFeedbackBuffer(std::weak_ptr<NackSender> nack_sender, 
-                                                               std::weak_ptr<KeyFrameRequestSender> key_frame_request_sender) 
-    : nack_sender_(std::move(nack_sender)),
-      key_frame_request_sender_(std::move(key_frame_request_sender)),
+RtpVideoReceiver::RtcpFeedbackBuffer::RtcpFeedbackBuffer(NackSender* nack_sender, 
+                                                         KeyFrameRequestSender* key_frame_request_sender) 
+    : nack_sender_(nack_sender),
+      key_frame_request_sender_(key_frame_request_sender),
       request_key_frame_(false) {}
 
 RtpVideoReceiver::RtcpFeedbackBuffer::~RtcpFeedbackBuffer() = default;
@@ -36,14 +36,14 @@ void RtpVideoReceiver::RtcpFeedbackBuffer::SendBufferedRtcpFeedbacks() {
     std::swap(buffered_nack_list_, buffered_nack_list);
 
     if (request_key_frame) {
-        if (auto sender = key_frame_request_sender_.lock()) {
-            sender->RequestKeyFrame();
+        if (key_frame_request_sender_) {
+            key_frame_request_sender_->RequestKeyFrame();
         } else {
             PLOG_WARNING << "No key frame request sender available.";
         }
     } else if (!buffered_nack_list.empty()) {
-        if (auto sender = nack_sender_.lock()) {
-            sender->SendNack(std::move(buffered_nack_list), true);
+        if (nack_sender_) {
+            nack_sender_->SendNack(std::move(buffered_nack_list), true);
         } else {
             PLOG_WARNING << "No NACK sender available.";
         }

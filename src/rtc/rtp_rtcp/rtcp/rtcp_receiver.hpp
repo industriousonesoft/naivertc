@@ -11,6 +11,7 @@
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtcp/report_block_data.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <vector>
 #include <map>
@@ -61,8 +62,7 @@ public:
     };
 public:
     RtcpReceiver(const RtcpConfiguration& config, 
-                 Observer* const observer,
-                 std::shared_ptr<TaskQueue> task_queue);
+                 Observer* const observer);
     ~RtcpReceiver();
 
     uint32_t local_media_ssrc() const;
@@ -103,11 +103,11 @@ private:
     bool IsRegisteredSsrc(uint32_t ssrc) const;
 
 private:
-    std::shared_ptr<Clock> clock_;
+    Clock* const clock_;
     Observer* const observer_;
     bool receiver_only_;
     uint32_t remote_ssrc_;
-    std::shared_ptr<TaskQueue> task_queue_;
+    SequenceChecker sequence_checker_;
 
     std::map<int, uint32_t> registered_ssrcs_;
     std::map<uint32_t, ReportBlockData> received_report_blocks_;

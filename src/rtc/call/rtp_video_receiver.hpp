@@ -14,6 +14,7 @@
 #include "rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp"
 #include "rtc/media/video/common.hpp"
 #include "rtc/media/video/codecs/h264/sps_pps_tracker.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <memory>
 #include <map>
@@ -25,8 +26,7 @@ namespace naivertc {
 class RtpPacketReceived;
 class CopyOnWriteBuffer;
 
-class RTC_CPP_EXPORT RtpVideoReceiver : public RecoveredPacketReceiver,
-                                        public std::enable_shared_from_this<RtpVideoReceiver> {
+class RTC_CPP_EXPORT RtpVideoReceiver : public RecoveredPacketReceiver {
 public:
     struct Configuration {
         // Sender SSRC used for sending RTCP (such as receiver reports).
@@ -57,9 +57,8 @@ public:
 
 public:
     RtpVideoReceiver(Configuration config,
-                           std::shared_ptr<Clock> clock,
-                           std::shared_ptr<TaskQueue> task_queue,
-                           std::weak_ptr<CompleteFrameReceiver> complete_frame_receiver);
+                     Clock* clock,
+                     CompleteFrameReceiver* complete_frame_receiver);
     ~RtpVideoReceiver() override;
 
     void OnRtcpPacket(CopyOnWriteBuffer in_packet);
@@ -76,8 +75,8 @@ private:
     class RtcpFeedbackBuffer : public NackSender,
                                public KeyFrameRequestSender {
     public:
-        RtcpFeedbackBuffer(std::weak_ptr<NackSender> nack_sender, 
-                           std::weak_ptr<KeyFrameRequestSender> key_frame_request_sender);
+        RtcpFeedbackBuffer(NackSender* nack_sender, 
+                           KeyFrameRequestSender* key_frame_request_sender);
 
         ~RtcpFeedbackBuffer() override;
 
@@ -89,8 +88,8 @@ private:
         void SendBufferedRtcpFeedbacks();
 
     private:
-        std::weak_ptr<NackSender> nack_sender_;
-        std::weak_ptr<KeyFrameRequestSender> key_frame_request_sender_;
+        NackSender* nack_sender_;
+        KeyFrameRequestSender* key_frame_request_sender_;
 
         bool request_key_frame_;
         std::vector<uint16_t> buffered_nack_list_;
@@ -115,11 +114,11 @@ private:
     void OnRecoveredPacket(CopyOnWriteBuffer packet) override;
     
 private:
+    SequenceChecker sequence_checker_;
     const Configuration config_;
-    std::shared_ptr<Clock> clock_;
-    std::shared_ptr<TaskQueue> task_queue_;
-    std::weak_ptr<CompleteFrameReceiver> complete_frame_receiver_;
-    std::shared_ptr<RtcpModule> rtcp_module_;
+    Clock* const clock_;
+    CompleteFrameReceiver* complete_frame_receiver_;
+    std::unique_ptr<RtcpModule> rtcp_module_;
     RtcpFeedbackBuffer rtcp_feedback_buffer_;
     std::unique_ptr<NackModule> nack_module_;
 

@@ -9,6 +9,7 @@
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp_video_header.hpp"
 #include "rtc/rtp_rtcp/rtp_sender.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <memory>
 #include <optional>
@@ -18,9 +19,8 @@ namespace naivertc {
 class RTC_CPP_EXPORT RtpSenderVideo {
 public:
     RtpSenderVideo(video::CodecType codec_type,
-                   std::shared_ptr<Clock> clock,
-                   std::shared_ptr<RtpSender> packet_sender,
-                   std::shared_ptr<TaskQueue> task_queue);
+                   Clock* clock,
+                   RtpSender* packet_sender);
     virtual ~RtpSenderVideo();
 
     bool Send(int payload_type,
@@ -37,9 +37,9 @@ private:
     void AddRtpHeaderExtensions(std::shared_ptr<RtpPacketToSend> packet);
 private:
     const video::CodecType codec_type_;
-    std::shared_ptr<Clock> clock_;
-    std::shared_ptr<RtpSender> packet_sender_;
-    std::shared_ptr<TaskQueue> task_queue_;
+    Clock* const clock_;
+    RtpSender* packet_sender_;
+    SequenceChecker sequence_checker_;
 
     video::PlayoutDelay current_playout_delay_;
 

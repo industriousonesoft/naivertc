@@ -36,9 +36,9 @@ struct RTC_CPP_EXPORT RtpConfiguration {
 
     RtpSentStatisticsObserver* rtp_sent_statistics_observer = nullptr;
 
-    std::shared_ptr<Clock> clock;
+    Clock* clock;
     
-    std::shared_ptr<Transport> send_transport;
+    Transport* send_transport;
 };
 
 struct RTC_CPP_EXPORT RtcpConfiguration {
@@ -58,7 +58,7 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
 
     uint32_t remote_ssrc = 0;
 
-    std::shared_ptr<Clock> clock;
+    Clock* clock;
 };
         
 } // namespace naivertc
