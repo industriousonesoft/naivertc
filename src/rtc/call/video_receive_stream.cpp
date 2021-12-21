@@ -2,11 +2,9 @@
 
 namespace naivertc {
 
-VideoReceiveStream::VideoReceiveStream(Configuration config, 
-                                       std::shared_ptr<TaskQueue> task_queue) 
-    : config_(std::move(config)),
-      task_queue_(std::move(task_queue)) {}
+VideoReceiveStream::VideoReceiveStream(Configuration config) 
+    : config_(std::move(config)){}
 
-VideoReceiveStream::~VideoReceiveStream() = default;
+VideoReceiveStream::~VideoReceiveStream() {};
 
 } // namespace naivertc

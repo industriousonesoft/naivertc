@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/call/rtp_video_receiver.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <map>
 
@@ -16,13 +17,12 @@ public:
         Rtp rtp;
     };  
 public:
-    VideoReceiveStream(Configuration config, 
-                       std::shared_ptr<TaskQueue> task_queue);
+    VideoReceiveStream(Configuration config);
     ~VideoReceiveStream();
 
 private:
+    SequenceChecker sequence_checker_;
     const Configuration config_;
-    std::shared_ptr<TaskQueue> task_queue_;
 };
 
 } // namespace naivertc
