@@ -6,12 +6,12 @@
 
 namespace naivertc {
 
-RtpVideoSender::RtpVideoSender(Configuration config,
+RtpVideoSender::RtpVideoSender(const Configuration& config,
                                Clock* clock,
                                MediaTransport* send_transport) 
-    : config_(std::move(config)),
+    : media_payload_type_(config.media_payload_type),
       clock_(clock) {
-    InitRtpRtcpModules(config_, clock, send_transport);
+    InitRtpRtcpModules(config, clock, send_transport);
 }
 
 RtpVideoSender::~RtpVideoSender() {}
@@ -32,7 +32,7 @@ bool RtpVideoSender::OnEncodedFrame(video::EncodedFrame encoded_frame) {
     video_header.frame_width = encoded_frame.width();
     video_header.frame_height = encoded_frame.height();
 
-    bool bRet = sender_video_->Send(config_.media_payload_type, 
+    bool bRet = sender_video_->Send(media_payload_type_, 
                                     rtp_timestamp, 
                                     encoded_frame.capture_time_ms(),
                                     video_header,

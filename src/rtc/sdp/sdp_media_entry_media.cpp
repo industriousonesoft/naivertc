@@ -9,6 +9,8 @@ namespace {
 
 std::string ToString(sdp::Media::Codec codec) {
     switch (codec) {
+    case sdp::Media::Codec::OPUS:
+        return "OPUS";
     case sdp::Media::Codec::VP8:
         return "VP8";
     case sdp::Media::Codec::VP9:
@@ -23,13 +25,13 @@ std::string ToString(sdp::Media::Codec codec) {
         return "flexfec";
     case sdp::Media::Codec::RTX:
         return "rtx";
-    default:
-        RTC_NOTREACHED();
     }
 }
 
 sdp::Media::Codec FromString(const std::string_view& codec_name) {
-    if (codec_name == "VP8") {
+    if (codec_name == "OPUS") {
+        return sdp::Media::Codec::OPUS;
+    } else if (codec_name == "VP8") {
         return sdp::Media::Codec::VP8;
     } else if (codec_name == "VP9") {
         return sdp::Media::Codec::VP9;

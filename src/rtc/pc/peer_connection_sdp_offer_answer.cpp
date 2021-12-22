@@ -91,6 +91,12 @@ void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string
 // Private methods
 void PeerConnection::SetLocalDescription(sdp::Type type) {
     RTC_RUN_ON(signal_task_queue_);
+    if (connection_state_ == ConnectionState::CONNECTED || 
+        connection_state_ == ConnectionState::CONNECTING) {
+        throw std::logic_error("Unable to negotiate with remote peer when the local peer is " + ToString(connection_state_));
+        return;
+    }
+
     PLOG_VERBOSE << "Setting local description, type: " << type;
 
     if (type == sdp::Type::ROLLBACK) {
@@ -148,7 +154,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     }
     default:
         PLOG_WARNING << "Ignore unexpected local sdp type: " <<  type
-                     << " in signaling state: " << ToString(signaling_state_);
+                     << " in signaling state: " << signaling_state_;
         return;
     }
 
@@ -171,6 +177,12 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
 
 void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
     RTC_RUN_ON(signal_task_queue_);
+    if (connection_state_ == ConnectionState::CONNECTED || 
+        connection_state_ == ConnectionState::CONNECTING) {
+        throw std::logic_error("Unable to negotiate with remote peer when the local peer is " + ToString(connection_state_));
+        return;
+    }
+    
     PLOG_VERBOSE << "Setting remote sdp: " << remote_sdp.type();
 
     // This is basically not gonna happen since we accept any offer
@@ -350,12 +362,6 @@ void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
         PLOG_DEBUG << "Start to gather local candidates";
         ice_transport_->StartToGatherLocalCandidate(local_sdp.bundle_id());
     }
-    // Reciprocated tracks might need to be open
-    if (dtls_transport_ && dtls_transport_->state() == DtlsTransport::State::CONNECTED) {
-        worker_task_queue_->Async([this](){
-            OpenMediaTracks();
-        });
-    }
 
     // PLOG_VERBOSE << "Did process local sdp: " << std::string(local_sdp);
 
@@ -389,13 +395,6 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
 
     remote_sdp_ = std::move(remote_sdp);
     
-    // we need to create sctp transport for data channel if we could.
-    if (remote_sdp_->HasApplication()) {
-        if (!sctp_transport_ && dtls_transport_ && 
-            dtls_transport_->state() == Transport::State::CONNECTED) {
-            InitSctpTransport();
-        }
-    }
 }
 
 void PeerConnection::ProcessRemoteCandidates() {

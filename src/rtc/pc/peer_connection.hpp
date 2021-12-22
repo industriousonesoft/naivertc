@@ -5,6 +5,7 @@
 #include "base/certificate.hpp"
 #include "base/thread_annotation.hpp"
 #include "common/proxy.hpp"
+#include "rtc/base/time/clock_real_time.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/pc/peer_connection_configuration.hpp"
 #include "rtc/sdp/candidate.hpp"
@@ -68,11 +69,16 @@ public:
 
     using SDPSetSuccessCallback = std::function<void()>;
     using SDPSetFailureCallback = std::function<void(const std::exception& exp)>;
+
+    static std::string ToString(ConnectionState state);
+    static std::string ToString(GatheringState state);
+    static std::string ToString(SignalingState state);
+    
 public:
     static std::shared_ptr<PeerConnection> Create(const RtcConfiguration& config) {
         return std::shared_ptr<PeerConnection>(new PeerConnection(config));
     }
-    static std::string ToString(SignalingState state);
+    
 public:
     ~PeerConnection() override;
 
@@ -107,9 +113,9 @@ public:
     void OnRemoteMediaTrackReceived(MediaTrackCallback callback);
 
 public:
-    // MediaTransport interfaces
+    // MediaTransportInterface
     int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override;
-    // DataTransport interfaces
+    // DataTransportInterface
     bool Send(SctpMessageToSend message) override;
     
 protected:
@@ -172,7 +178,6 @@ private:
     void OnBufferedAmountChanged(uint16_t stream_id, size_t amount);
     void OnSctpMessageReceived(SctpMessage message);
     void OnSctpReadyToSend();
-
 private:
     const RtcConfiguration rtc_config_ RTC_GUARDED_BY(signal_task_queue_);
     // RFC 5763: The answerer MUST use either a setup attibute value of setup:active or setup:passive.

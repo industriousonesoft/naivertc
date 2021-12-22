@@ -266,90 +266,71 @@ void PeerConnection::CloseTransports() {
 
 }
 
+std::string PeerConnection::ToString(ConnectionState state) {
+    using State = PeerConnection::ConnectionState;
+    switch(state) {
+    case State::NEW:
+        return "new";
+    case State::CONNECTING:
+        return "connecting";
+    case State::CONNECTED:
+        return "connected";
+    case State::DISCONNECTED:
+        return "disconnected";
+    case State::FAILED:
+        return "failed";
+    case State::CLOSED:
+        return "closed";
+    default:
+        RTC_NOTREACHED();
+    }
+}
+
+std::string PeerConnection::ToString(GatheringState state) {
+    using State = PeerConnection::GatheringState;
+    switch(state) {
+    case State::NEW:
+        return "new";
+    case State::GATHERING:
+        return "gathering";
+    case State::COMPLETED:
+        return "completed";
+    default:
+        RTC_NOTREACHED();
+    }
+}
+
 std::string PeerConnection::ToString(SignalingState state) {
+    using State = PeerConnection::SignalingState;
     switch (state) {
-	case SignalingState::STABLE:
+	case State::STABLE:
 		return "stable";
-	case SignalingState::HAVE_LOCAL_OFFER:
+	case State::HAVE_LOCAL_OFFER:
 		return "have-local-offer";
-	case SignalingState::HAVE_REMOTE_OFFER:
+	case State::HAVE_REMOTE_OFFER:
 		return "have-remote-offer";
-	case SignalingState::HAVE_LOCAL_PRANSWER:
+	case State::HAVE_LOCAL_PRANSWER:
 		return "have-local-pranswer";
-	case SignalingState::HAVE_REMOTE_PRANSWER:
+	case State::HAVE_REMOTE_PRANSWER:
 		return "have-remote-pranswer";
 	default:
-		return "unknown";
+		RTC_NOTREACHED();
 	}
 }
 
 // ostream operator << override
 std::ostream& operator<<(std::ostream& out, PeerConnection::ConnectionState state) {
-    using State = PeerConnection::ConnectionState;
-    switch(state) {
-    case State::NEW:
-        out << "new";
-        break;
-    case State::CONNECTING:
-        out << "connecting";
-        break;
-    case State::CONNECTED:
-        out << "connected";
-        break;
-    case State::DISCONNECTED:
-        out << "disconnected";
-        break;
-    case State::FAILED:
-        out << "failed";
-        break;
-    case State::CLOSED:
-        out << "closed";
-        break;
-    default:
-        break;
-    }
+    out << PeerConnection::ToString(state);
     return out;
 }
 
 std::ostream& operator<<(std::ostream& out, PeerConnection::GatheringState state) {
-    using State = PeerConnection::GatheringState;
-    switch(state) {
-    case State::NEW:
-        out << "new";
-        break;
-    case State::GATHERING:
-        out << "gathering";
-        break;
-    case State::COMPLETED:
-        out << "completed";
-        break;
-    default:
-        break;
-    }
+    out << PeerConnection::ToString(state);
     return out;
 }
 
 std::ostream& operator<<(std::ostream& out, PeerConnection::SignalingState state) {
-    using State = PeerConnection::SignalingState;
-    switch(state) {
-    case State::STABLE:
-        out << "stable";
-        break;
-    case State::HAVE_LOCAL_OFFER:
-        out << "has local offer";
-        break;
-    case State::HAVE_LOCAL_PRANSWER:
-        out << "have local pranswer";
-        break;
-    case State::HAVE_REMOTE_OFFER:
-        out << "has remote offer";
-        break;
-    case State::HAVE_REMOTE_PRANSWER:
-        out << "have remote pranswer";
-        break;
-    default:
-        break;
-    }
+    out << PeerConnection::ToString(state);
     return out;
 }
     

@@ -72,7 +72,7 @@ public:
         } flexfec;
     };
 public:
-    RtpVideoSender(Configuration config,
+    RtpVideoSender(const Configuration& config,
                    Clock* clock,
                    MediaTransport* send_transport);
     ~RtpVideoSender();
@@ -88,7 +88,7 @@ private:
 
 private:
     SequenceChecker sequence_checker_;
-    const Configuration config_;
+    const int media_payload_type_;
     Clock* const clock_;
     std::unique_ptr<RtcpModule> rtcp_module_ = nullptr;
     std::unique_ptr<RtpSender> rtp_sender_ = nullptr;
