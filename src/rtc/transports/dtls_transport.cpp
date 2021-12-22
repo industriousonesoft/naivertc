@@ -8,7 +8,7 @@
 
 namespace naivertc {
 
-DtlsTransport::Configuration::Configuration(const Certificate* certificate, std::optional<size_t> mtu) 
+DtlsTransport::Configuration::Configuration(Certificate* certificate, std::optional<size_t> mtu) 
  : certificate(certificate),
    mtu(std::move(mtu)) {}
 

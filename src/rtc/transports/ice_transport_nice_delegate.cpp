@@ -14,7 +14,7 @@ std::string IceTransport::ToString(const NiceAddress& nice_addr) {
     return std::string(buffer) + ":" + std::to_string(port);
 }
 
-void IceTransport::InitNice(const RtcConfiguration& config) {
+void IceTransport::InitNice(const Configuration& config) {
     RTC_RUN_ON(task_queue_);
     PLOG_VERBOSE << "Initializing ICE transport (libnice)";
 
@@ -69,12 +69,8 @@ void IceTransport::InitNice(const RtcConfiguration& config) {
 		g_object_set(G_OBJECT(nice_agent_.get()), "proxy-password", proxy_server.password.c_str(), nullptr);
     }
 
-    // Randomize order
-    auto ice_servers = config.ice_servers;
-    utils::random::shuffle(ice_servers);
-
     // Pick one STUN server
-    for (auto &ice_server : ice_servers) {
+    for (auto &ice_server : config.ice_servers) {
         if (ice_server.hostname().empty()) {
             continue;
         }
@@ -98,7 +94,7 @@ void IceTransport::InitNice(const RtcConfiguration& config) {
     }
 
     // Add TURN servers
-    for (auto &ice_server : ice_servers) {
+    for (auto &ice_server : config.ice_servers) {
         if (ice_server.hostname().empty()) {
             continue;
         }

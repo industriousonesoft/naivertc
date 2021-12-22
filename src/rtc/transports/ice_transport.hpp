@@ -7,6 +7,7 @@
 #include "rtc/sdp/candidate.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/sdp/sdp_description.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 
 #if USE_NICE
 #include <nice/agent.h>
@@ -23,6 +24,23 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT IceTransport final: public Transport {
 public:
+    // Configuration
+    struct Configuration {
+        std::vector<IceServer> ice_servers;
+
+        uint16_t port_range_begin = 1024;
+        uint16_t port_range_end = 65535;
+
+        bool enable_ice_tcp = false;
+        
+    #if USE_NICE
+        std::optional<ProxyServer> proxy_server;
+    #else
+        std::optional<std::string> bind_addresses;
+    #endif
+    };
+
+    // GatheringState
     enum class GatheringState {
         NEW = 0,
         GATHERING,
@@ -35,7 +53,7 @@ public:
     using CandidateGatheredCallback = std::function<void(sdp::Candidate)>;
     using RoleChangedCallback = std::function<void(sdp::Role)>;
 
-public:
+    // Description
     class Description {
     public:
         static Description Parse(std::string sdp, sdp::Type type = sdp::Type::UNSPEC, sdp::Role role = sdp::Role::ACT_PASS);
@@ -60,7 +78,7 @@ public:
         std::optional<std::string> ice_pwd_;
     };
 public:
-    IceTransport(RtcConfiguration config, sdp::Role role, TaskQueue* task_queue);
+    IceTransport(Configuration config, sdp::Role role);
     ~IceTransport() override;
 
     sdp::Role role() const;
@@ -99,7 +117,7 @@ private:
 #if USE_NICE
     static std::string ToString(const NiceAddress& nice_addr);
 
-    void InitNice(const RtcConfiguration& config);
+    void InitNice(const Configuration& config);
     void OnNiceTimeout();
     void OnNiceState(guint state);
     void OnNiceGatheringState(GatheringState state);
@@ -114,7 +132,7 @@ private:
 	static gboolean OnNiceTimeout(gpointer user_data);
 
 #else
-    void InitJuice(const RtcConfiguration& config);
+    void InitJuice(const Configuration& config);
     void OnJuiceState(juice_state_t state);
     void OnJuiceGatheringState(GatheringState state);
     void OnJuiceGatheredCandidate(sdp::Candidate candidate);
@@ -142,6 +160,7 @@ private:
     std::unique_ptr<juice_agent_t, void (*)(juice_agent_t *)> juice_agent_{nullptr, nullptr};
 #endif
 
+    const Configuration config_;
     std::string curr_mid_;
     sdp::Role role_;
     GatheringState gathering_state_ = GatheringState::NEW;

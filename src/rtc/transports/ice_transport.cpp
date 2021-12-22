@@ -9,20 +9,19 @@ namespace naivertc {
 
 using namespace std::chrono_literals;
 
-IceTransport::IceTransport(RtcConfiguration config, sdp::Role role, TaskQueue* task_queue) 
+IceTransport::IceTransport(Configuration config, sdp::Role role, TaskQueue* task_queue) 
     : Transport(nullptr, task_queue),
+      config_(std::move(config)),
       curr_mid_("0"),
       role_(role) {
-    task_queue_->Async([this, config=std::move(config)](){
-    #if !USE_NICE
-        if (config.enable_ice_tcp) {
-            PLOG_WARNING << "ICE-TCP is not supported with libjuice.";
-        }
-        InitJuice(config);
-    #else 
-        InitNice(config);
-    #endif
-    });
+ #if !USE_NICE
+    if (config_.enable_ice_tcp) {
+        PLOG_WARNING << "ICE-TCP is not supported with libjuice.";
+    }
+    InitJuice(config_);
+#else 
+    InitNice(config_);
+#endif
 }
 
 IceTransport::~IceTransport() {

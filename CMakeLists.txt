@@ -117,6 +117,7 @@ set(LIB_HEADERS
     src/rtc/transports/sctp_message.hpp
     src/rtc/transports/dtls_transport.hpp
     src/rtc/transports/dtls_srtp_transport.hpp
+    # src/rtc/transports/rtc_transport.hpp
 
     # rtc -> pc
     src/rtc/pc/peer_connection_configuration.hpp
@@ -351,6 +352,10 @@ set(LIB_SOURCES
     src/rtc/transports/dtls_transport_openssl_delegate.cpp
     src/rtc/transports/dtls_srtp_transport.cpp
     src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
+    # src/rtc/transports/rtc_transport.cpp
+    # src/rtc/transports/rtc_transport_ice_delegate.cpp
+    # src/rtc/transports/rtc_transport_dtls_delegate.cpp
+    # src/rtc/transports/rtc_transport_sctp_delegate.cpp
 
     # rtc -> pc
     src/rtc/pc/peer_connection.cpp

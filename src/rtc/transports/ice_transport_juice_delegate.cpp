@@ -8,7 +8,7 @@ namespace naivertc {
 
 const int kMaxTurnServersCount = 2;
 
-void IceTransport::InitJuice(const RtcConfiguration& config) {
+void IceTransport::InitJuice(const Configuration& config) {
     RTC_RUN_ON(task_queue_);
     PLOG_VERBOSE << "Initializing ICE transport (libjuice)";
 
@@ -48,12 +48,8 @@ void IceTransport::InitJuice(const RtcConfiguration& config) {
     juice_config.cb_recv = IceTransport::OnJuiceDataReceived;
     juice_config.user_ptr = this;
 
-    // Randomize ice servers order
-    auto ice_servers = config.ice_servers;
-    utils::random::shuffle(ice_servers);
-
     // Pick a stun server
-    for (auto& server : ice_servers) {
+    for (auto& server : config.ice_servers) {
         if (!server.hostname().empty() && server.type() == IceServer::Type::STUN) {
             juice_config.stun_server_host = server.hostname().c_str();
             juice_config.stun_server_port = server.port() != 0 ? server.port() : 3478 /* STUN UDP Port */;
@@ -66,7 +62,7 @@ void IceTransport::InitJuice(const RtcConfiguration& config) {
     std::memset(turn_servers, 0, sizeof(turn_servers));
 
     int index = 0;
-    for (auto& server : ice_servers) {
+    for (auto& server : config.ice_servers) {
         if (!server.hostname().empty() && server.type() == IceServer::Type::TURN) {
             turn_servers[index].host = server.hostname().c_str();
             turn_servers[index].username = server.username().c_str();

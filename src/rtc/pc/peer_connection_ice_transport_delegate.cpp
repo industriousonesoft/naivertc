@@ -10,7 +10,17 @@ void PeerConnection::InitIceTransport() {
         return;
     }
     PLOG_VERBOSE << "Init Ice transport";
-    ice_transport_.reset(new IceTransport(rtc_config_, role_, network_task_queue_.get()));
+    auto ice_config = IceTransport::Configuration();
+    ice_config.ice_servers = rtc_config_.ice_servers;
+    ice_config.enable_ice_tcp = rtc_config_.enable_ice_tcp;
+    ice_config.port_range_begin = rtc_config_.port_range_begin;
+    ice_config.port_range_end = rtc_config_.port_range_end;
+#if USE_NICE
+    ice_config.proxy_server = rtc_config_.proxy_server;
+#else
+    ice_config.bind_addresses = rtc_config_.bind_addresses;
+#endif
+    ice_transport_.reset(new IceTransport(std::move(ice_config), role_, network_task_queue_.get()));
     
     ice_transport_->OnStateChanged(std::bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
     ice_transport_->OnGatheringStateChanged(std::bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));

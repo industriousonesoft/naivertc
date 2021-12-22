@@ -7,45 +7,25 @@ namespace naivertc {
 namespace sdp {
 namespace {
 
-std::string ToString(sdp::Media::Codec codec) {
-    switch (codec) {
-    case sdp::Media::Codec::OPUS:
-        return "OPUS";
-    case sdp::Media::Codec::VP8:
-        return "VP8";
-    case sdp::Media::Codec::VP9:
-        return "VP9";
-    case sdp::Media::Codec::H264:
-        return "H264";
-    case sdp::Media::Codec::RED:
-        return "red";
-    case sdp::Media::Codec::ULP_FEC:
-        return "ulpfec";
-    case sdp::Media::Codec::FLEX_FEC:
-        return "flexfec";
-    case sdp::Media::Codec::RTX:
-        return "rtx";
-    }
-}
-
 sdp::Media::Codec FromString(const std::string_view& codec_name) {
-    if (codec_name == "OPUS") {
+    if (codec_name == "OPUS" || codec_name == "opus") {
         return sdp::Media::Codec::OPUS;
-    } else if (codec_name == "VP8") {
+    } else if (codec_name == "VP8" || codec_name == "vp8") {
         return sdp::Media::Codec::VP8;
-    } else if (codec_name == "VP9") {
+    } else if (codec_name == "VP9" || codec_name == "vp9") {
         return sdp::Media::Codec::VP9;
-    } else if (codec_name == "H264") {
+    } else if (codec_name == "H264" || codec_name == "h264") {
         return sdp::Media::Codec::H264;
-    } else if (codec_name == "red") {
+    } else if (codec_name == "RED" || codec_name == "red") {
         return sdp::Media::Codec::RED;
-    } else if (codec_name == "ulpfec") {
+    } else if (codec_name == "ULPFEC" || codec_name == "ulpfec") {
         return sdp::Media::Codec::ULP_FEC;
-    } else if (codec_name == "flexfec") {
+    } else if (codec_name == "FLEXFEC" || codec_name == "flexfec") {
         return sdp::Media::Codec::FLEX_FEC;
-    } else if (codec_name == "rtx") {
+    } else if (codec_name == "RTX" || codec_name == "rtx") {
         return sdp::Media::Codec::RTX;
     } else {
+        PLOG_WARNING << "Unsupport codec: " << codec_name;
         RTC_NOTREACHED();
     }
 }
@@ -594,6 +574,27 @@ std::optional<Media::RtpMap> Media::ParseRtpMap(const std::string_view& attr_val
     }
 
     return RtpMap(payload_type, codec, clock_rate, codec_params);
+}
+
+std::string Media::ToString(Codec codec) {
+    switch (codec) {
+    case sdp::Media::Codec::OPUS:
+        return "OPUS";
+    case sdp::Media::Codec::VP8:
+        return "VP8";
+    case sdp::Media::Codec::VP9:
+        return "VP9";
+    case sdp::Media::Codec::H264:
+        return "H264";
+    case sdp::Media::Codec::RED:
+        return "red";
+    case sdp::Media::Codec::ULP_FEC:
+        return "ulpfec";
+    case sdp::Media::Codec::FLEX_FEC:
+        return "flexfec";
+    case sdp::Media::Codec::RTX:
+        return "rtx";
+    }
 }
 
 } // namespace sdp

@@ -26,6 +26,7 @@ public:
         FLEX_FEC,
         RTX
     };
+
     // RtpMap
     struct RtpMap {
         int payload_type;
@@ -56,6 +57,9 @@ public:
                   std::optional<std::string> msid = std::nullopt, 
                   std::optional<std::string> track_id = std::nullopt);
     };
+
+    static std::string ToString(Codec codec);
+
 public:
     Media(); // For Template in TaskQueue
     Media(Kind kind, 

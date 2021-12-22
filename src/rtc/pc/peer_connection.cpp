@@ -117,7 +117,7 @@ int PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions option
     });
 }
 
-    // DataTransport interfaces
+// DataTransport interfaces
 bool PeerConnection::Send(SctpMessageToSend message) {
     return signal_task_queue_->Sync<bool>([this, message=std::move(message)](){
         if (sctp_transport_) {

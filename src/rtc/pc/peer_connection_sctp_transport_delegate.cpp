@@ -17,12 +17,6 @@ void PeerConnection::InitSctpTransport() {
     assert(remote_sdp_->HasApplication());
 
     uint16_t sctp_port = rtc_config_.local_sctp_port.value_or(kDefaultSctpPort);
-    // FIXME: Is it necessary to make sure the local sctp port is the same as remote sctp port?
-    if (auto remote_app = remote_sdp_->application()) {
-        if (remote_app->sctp_port()) {
-            sctp_port = remote_app->sctp_port().value();
-        }
-    }
     // Create SCTP tansport
     SctpTransport::Configuration sctp_config;
     sctp_config.port = sctp_port;
