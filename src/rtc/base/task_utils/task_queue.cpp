@@ -57,11 +57,11 @@ void TaskQueue::Sync(std::function<void()> handler) const {
     }
 }
 
-void TaskQueue::Async(std::function<void()> handler) {
+void TaskQueue::Async(std::function<void()> handler) const{
     impl_->Post(std::move(handler));
 }
 
-void TaskQueue::AsyncAfter(TimeDelta delay, std::function<void()> handler) {
+void TaskQueue::AsyncAfter(TimeDelta delay, std::function<void()> handler) const{
     impl_->PostDelayed(delay, std::move(handler));
 }
 

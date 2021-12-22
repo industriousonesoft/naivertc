@@ -20,14 +20,21 @@ void PeerConnection::InitIceTransport() {
 #else
     ice_config.bind_addresses = rtc_config_.bind_addresses;
 #endif
-    ice_transport_.reset(new IceTransport(std::move(ice_config), role_, network_task_queue_.get()));
-    
-    ice_transport_->OnStateChanged(std::bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
-    ice_transport_->OnGatheringStateChanged(std::bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));
-    ice_transport_->OnCandidateGathered(std::bind(&PeerConnection::OnCandidateGathered, this, std::placeholders::_1));
-    ice_transport_->OnRoleChanged(std::bind(&PeerConnection::OnRoleChanged, this, std::placeholders::_1));
+    // RFC 5763: The answerer MUST use either a setup attibute value of setup:active or setup:passive.
+    // and, setup::active is RECOMMENDED. See https://tools.ietf.org/html/rfc5763#section-5
+    // Thus, we assume passive role if we are the offerer.
+    sdp::Role role = sdp::Role::ACT_PASS;
 
-    ice_transport_->Start();  
+    network_task_queue_->Async([this, role, config=std::move(ice_config)](){
+        ice_transport_.reset(new IceTransport(std::move(config), role));
+        
+        ice_transport_->OnStateChanged(std::bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
+        ice_transport_->OnGatheringStateChanged(std::bind(&PeerConnection::OnGatheringStateChanged, this, std::placeholders::_1));
+        ice_transport_->OnCandidateGathered(std::bind(&PeerConnection::OnCandidateGathered, this, std::placeholders::_1));
+        ice_transport_->OnRoleChanged(std::bind(&PeerConnection::OnRoleChanged, this, std::placeholders::_1));
+
+        ice_transport_->Start(); 
+    }); 
 }
 
 // IceTransport delegate
@@ -79,7 +86,7 @@ void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gather
 
 void PeerConnection::OnCandidateGathered(sdp::Candidate candidate) {
     RTC_RUN_ON(network_task_queue_);
-    signal_task_queue_->Async([this, candidate = std::move(candidate)](){
+    signal_task_queue_->Async([this, candidate=std::move(candidate)](){
         if (this->candidate_callback_) {
             this->candidate_callback_(std::move(candidate));
         }
@@ -91,8 +98,7 @@ void PeerConnection::OnRoleChanged(sdp::Role role) {
     // If sctp transport is created already, which means we have no chance to change the role any more
     assert(sctp_transport_ == nullptr && "Can not change the DTLS role of data channel after SCTP transport was created.");
     worker_task_queue_->Async([this, role](){
-        role_ = role;
-        // The role of DTLS is not changed(since we assumed as a DTLS server)
+        // The role of DTLS is not changed (since we assumed as a DTLS server).
         if (role != sdp::Role::ACTIVE) {
             return;
         }

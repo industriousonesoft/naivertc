@@ -57,7 +57,9 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
                 // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
                 // See https://tools.ietf.org/html/rfc8832#section-6
                 // The stream id is not equvalent to the mid of application in SDP, which is only used to distinguish the data channel and DTLS role.
-                stream_id = (role_ == sdp::Role::ACTIVE) ? 0 : 1;
+                stream_id = signal_task_queue_->Sync<int>([this](){
+                    return (ice_transport_->role() == sdp::Role::ACTIVE) ? 0 : 1;
+                });
                 // Avoid conflict with existed data channel
                 while (data_channels_.find(stream_id) != data_channels_.end()) {
                     if (stream_id >= kMaxSctpStreamId - 2) {
@@ -69,12 +71,6 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
 
             // We assume the DataChannel is not negotiacted
             auto data_channel = std::make_shared<DataChannel>(init_config, stream_id) ;
-
-            // If sctp transport is connected yet, we open the data channel immidiately
-            if (sctp_transport_ && sctp_transport_->state() == SctpTransport::State::CONNECTED) {
-                data_channel->Open(this);
-            }
-
             data_channels_.emplace(stream_id, data_channel);
 
             signal_task_queue_->Async([this](){
@@ -84,6 +80,15 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
                     this->negotiation_needed_ = true;
                 }
             });
+
+            bool is_connected = network_task_queue_->Sync<bool>([this](){
+                // If sctp transport is connected yet, we open the data channel immidiately
+                return sctp_transport_ && sctp_transport_->state() == SctpTransport::State::CONNECTED;
+            });
+
+            if (is_connected) {
+                data_channel->Open(this);
+            }
 
             return data_channel;
 

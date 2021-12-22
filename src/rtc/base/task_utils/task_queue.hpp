@@ -24,8 +24,8 @@ public:
     TaskQueue(std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> task_queue_impl);
     ~TaskQueue();
 
-    void Async(std::function<void()> handler);
-    void AsyncAfter(TimeDelta delay, std::function<void()> handler);
+    void Async(std::function<void()> handler) const;
+    void AsyncAfter(TimeDelta delay, std::function<void()> handler) const;
    
     void Sync(std::function<void()> handler) const;
     template<typename T>

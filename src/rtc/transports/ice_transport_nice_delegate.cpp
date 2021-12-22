@@ -15,7 +15,7 @@ std::string IceTransport::ToString(const NiceAddress& nice_addr) {
 }
 
 void IceTransport::InitNice(const Configuration& config) {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     PLOG_VERBOSE << "Initializing ICE transport (libnice)";
 
     g_log_set_handler("libnice", G_LOG_LEVEL_MASK, OnNiceLog, this);
@@ -142,7 +142,7 @@ void IceTransport::InitNice(const Configuration& config) {
 }
 
 void IceTransport::OnNiceTimeout() {
-    task_queue_->Async([this](){
+    attached_queue_->Post([this](){
         PLOG_WARNING << "ICE timeout";
         timeout_id_ = 0;
         UpdateState(State::FAILED);
@@ -150,7 +150,7 @@ void IceTransport::OnNiceTimeout() {
 }
 
 void IceTransport::OnNiceState(guint state) {
-    task_queue_->Async([this, state](){
+    attached_queue_->Post([this, state](){
         if (state == NICE_COMPONENT_STATE_FAILED && trickle_timeout_.count() > 0) {
             if (timeout_id_)
                 g_source_remove(timeout_id_);
@@ -184,19 +184,19 @@ void IceTransport::OnNiceState(guint state) {
 }
 
 void IceTransport::OnNiceGatheringState(GatheringState state) {
-    task_queue_->Async([this, state](){
+    attached_queue_->Post([this, state](){
         UpdateGatheringState(state);
     });
 }
 
 void IceTransport::OnNiceGatheredCandidate(sdp::Candidate candidate) {
-    task_queue_->Async([this, candidate=std::move(candidate)](){
+    attached_queue_->Post([this, candidate=std::move(candidate)](){
         OnGatheredCandidate(std::move(candidate));
     });
 }
 
 void IceTransport::OnNiceReceivedData(CopyOnWriteBuffer data) {
-    task_queue_->Async([this, data=std::move(data)](){
+    attached_queue_->Post([this, data=std::move(data)](){
         Incoming(std::move(data));
     });
 }

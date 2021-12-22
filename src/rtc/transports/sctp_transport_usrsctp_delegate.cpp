@@ -111,7 +111,7 @@ void SctpTransport::Cleanup() {
 }
 
 void SctpTransport::OpenSctpSocket() {
-	RTC_RUN_ON(task_queue_);
+	RTC_RUN_ON(&sequence_checker_);
 	if (socket_) {
 		return;
 	}
@@ -132,7 +132,7 @@ void SctpTransport::OpenSctpSocket() {
 }
 
 void SctpTransport::ConfigSctpSocket() {
-	RTC_RUN_ON(task_queue_);
+	RTC_RUN_ON(&sequence_checker_);
 	if (!socket_) {
 		return;
 	}
@@ -285,15 +285,20 @@ void SctpTransport::ConfigSctpSocket() {
 }
 
 void SctpTransport::OnSctpUpCall() {
-	task_queue_->Async([this](){
+	attached_queue_->Post([this](){
 		HandleSctpUpCall();
 	});
 }
 
 bool SctpTransport::OnSctpWrite(CopyOnWriteBuffer data, uint8_t tos, uint8_t set_df) {
-	return task_queue_->Sync<bool>([this, data=std::move(data)](){
-		return HandleSctpWrite(std::move(data));
+	std::unique_lock lock(mutex_);
+	bool bRet = false;
+	attached_queue_->Post([this, data=std::move(data), &bRet](){
+		bRet = HandleSctpWrite(std::move(data));
+		cond_.notify_one();
 	});
+	cond_.wait(lock);
+	return bRet;
 }
 
 // usrsctp callbacks

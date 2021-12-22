@@ -72,6 +72,10 @@ bool DataChannel::is_opened() const {
 
 void DataChannel::HintStreamId(sdp::Role role) {
     task_queue_.Async([this, role](){
+        // FRC 8832: The peer that initiates opening a data channel selects a stream identifier for 
+        // which the corresponding incoming and outgoing streams are unused. If the side is acting as the DTLS client,
+        // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
+        // See https://tools.ietf.org/html/rfc8832#section-6
         if (role == sdp::Role::ACTIVE) {
             if (stream_id_ % 2 == 1) {
                 stream_id_ -= 1;

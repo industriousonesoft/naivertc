@@ -5,11 +5,12 @@
 #include "base/certificate.hpp"
 #include "base/tls.hpp"
 #include "rtc/base/internals.hpp"
-#include "rtc/transports/ice_transport.hpp"
+#include "rtc/transports/transport.hpp"
 
 #include <optional>
-#include <mutex>
 #include <functional>
+#include <mutex>
+#include <condition_variable>
 
 namespace naivertc {
 
@@ -20,20 +21,18 @@ static const openssl_bool openssl_false = 0;
 class RTC_CPP_EXPORT DtlsTransport : public Transport {
 public:
     struct Configuration {
-        Configuration(Certificate* certificate, 
-                      std::optional<size_t> mtu);
-
-        Certificate* certificate;
-        std::optional<size_t> mtu;
+        Certificate* certificate = nullptr;
+        std::optional<size_t> mtu = std::nullopt;
+        bool is_client = false;
     };
 public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsTransport(Configuration config, IceTransport* lower, TaskQueue* task_queue);
+    DtlsTransport(Configuration config, Transport* lower);
     virtual ~DtlsTransport() override;
 
-    bool is_client() const;
+    bool IsClient() const;
 
     using VerifyCallback = std::function<bool(std::string_view fingerprint)>;
     void OnVerify(VerifyCallback callback);
@@ -70,14 +69,12 @@ private:
     static long BioMethodCtrl(BIO* bio, int cmd, long num, void* ptr);
 
     bool HandleVerify(std::string fingerprint);
-    bool IsClient() const;
 
     int OnDtlsWrite(CopyOnWriteBuffer data);
     int HandleDtlsWrite(CopyOnWriteBuffer data);
 
 private:
     const Configuration config_;
-    const bool is_client_;
     
     const PacketOptions handshake_packet_options_;
     std::optional<PacketOptions> user_packet_options_;
@@ -96,6 +93,9 @@ private:
     uint8_t ssl_read_buffer_[DEFAULT_SSL_BUFFER_SIZE];
 
     VerifyCallback verify_callback_ = nullptr;
+
+    std::mutex mutex_;
+    std::condition_variable cond_;
 };
 
 }

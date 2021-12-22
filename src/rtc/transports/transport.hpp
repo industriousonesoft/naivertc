@@ -2,7 +2,7 @@
 #define _RTC_TRANSPORTS_TRANSPORT_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/task_utils/task_queue.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/base/packet_options.hpp"
 
@@ -22,7 +22,7 @@ public:
     };
     
 public:
-    Transport(Transport* lower, TaskQueue* task_queue);
+    Transport(Transport* lower);
 
     bool is_stoped() const;
     State state() const;
@@ -50,8 +50,9 @@ protected:
     int ForwardOutgoingPacket(CopyOnWriteBuffer packet, PacketOptions options);
 
 protected:
+    SequenceChecker sequence_checker_;
+    TaskQueueImpl* const attached_queue_;
     Transport* const lower_;
-    TaskQueue* task_queue_;
 
     bool is_stoped_;
     State state_;

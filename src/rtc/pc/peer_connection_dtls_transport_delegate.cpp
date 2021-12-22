@@ -16,24 +16,32 @@ void PeerConnection::InitDtlsTransport() {
     
     // NOTE: The thread might be blocked here until the certificate has been created.
     auto certificate = certificate_.get();
-    auto dtls_config = DtlsTransport::Configuration(certificate.get(), rtc_config_.mtu);
- 
-    // DTLS-SRTP
-    if (auto local_sdp = local_sdp_; local_sdp && (local_sdp->HasAudio() || local_sdp->HasVideo())) {
-        auto dtls_srtp_transport = std::make_unique<DtlsSrtpTransport>(std::move(dtls_config), ice_transport_.get(), network_task_queue_.get());
-        dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1, std::placeholders::_2));
-        dtls_transport_ = std::move(dtls_srtp_transport);
-    // DTLS only
-    } else {
-        dtls_transport_ = std::make_unique<DtlsTransport>(std::move(dtls_config), ice_transport_.get(), network_task_queue_.get());
-    }
-
-    assert(dtls_transport_ && "Failed to init DTLS transport");
-
-    dtls_transport_->OnStateChanged(std::bind(&PeerConnection::OnDtlsTransportStateChanged, this, std::placeholders::_1));
-    dtls_transport_->OnVerify(std::bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
+    auto dtls_config = DtlsTransport::Configuration();
+    dtls_config.certificate = certificate.get();
+    dtls_config.mtu = rtc_config_.mtu;
+    dtls_config.is_client = ice_transport_->role() == sdp::Role::ACTIVE;
     
-    dtls_transport_->Start();
+    bool has_media = local_sdp_->HasAudio() || local_sdp_->HasVideo();
+    auto lower = ice_transport_.get();
+ 
+    network_task_queue_->Async([this, has_media, lower, config=std::move(dtls_config)](){
+        // DTLS-SRTP
+        if (has_media) {
+            auto dtls_srtp_transport = std::make_unique<DtlsSrtpTransport>(std::move(config), lower);
+            dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1, std::placeholders::_2));
+            dtls_transport_ = std::move(dtls_srtp_transport);
+        // DTLS only
+        } else {
+            dtls_transport_ = std::make_unique<DtlsTransport>(std::move(config), lower);
+        }
+
+        assert(dtls_transport_ && "Failed to init DTLS transport");
+
+        dtls_transport_->OnStateChanged(std::bind(&PeerConnection::OnDtlsTransportStateChanged, this, std::placeholders::_1));
+        dtls_transport_->OnVerify(std::bind(&PeerConnection::OnDtlsVerify, this, std::placeholders::_1));
+        
+        dtls_transport_->Start();
+    });
 }
 
 void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_state) {

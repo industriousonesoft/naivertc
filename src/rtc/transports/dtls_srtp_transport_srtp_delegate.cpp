@@ -26,7 +26,7 @@ void DtlsSrtpTransport::Cleanup() {
 }
 
 void DtlsSrtpTransport::CreateSrtp() {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     if (srtp_err_status_t err = srtp_create(&srtp_in_, nullptr)) {
 		throw std::runtime_error("SRTP create failed, status=" + std::to_string(static_cast<int>(err)));
 	}
@@ -37,13 +37,13 @@ void DtlsSrtpTransport::CreateSrtp() {
 }
 
 void DtlsSrtpTransport::DestroySrtp() {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     srtp_dealloc(srtp_in_);
     srtp_dealloc(srtp_out_);
 }
 
 void DtlsSrtpTransport::InitSrtp() {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     static_assert(SRTP_AES_ICM_128_KEY_LEN_WSALT == SRTP_AES_128_KEY_LEN + SRTP_SALT_LEN);
 
     const size_t material_len = SRTP_AES_ICM_128_KEY_LEN_WSALT * 2;
@@ -69,7 +69,7 @@ void DtlsSrtpTransport::InitSrtp() {
     srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&inbound.rtp);
     srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&inbound.rtcp);
     inbound.ssrc.type = ssrc_any_inbound;
-    inbound.key = is_client() ? server_write_key_ : client_write_key_;
+    inbound.key = IsClient() ? server_write_key_ : client_write_key_;
     inbound.window_size = 1024;
     inbound.allow_repeat_tx = true;
     inbound.next = nullptr;
@@ -82,7 +82,7 @@ void DtlsSrtpTransport::InitSrtp() {
     srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&outbound.rtp);
     srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&outbound.rtcp);
     outbound.ssrc.type = ssrc_any_outbound;
-    outbound.key = is_client() ? client_write_key_ : server_write_key_;
+    outbound.key = IsClient() ? client_write_key_ : server_write_key_;
     outbound.window_size = 1024;
     outbound.allow_repeat_tx = true;
     outbound.next = nullptr;

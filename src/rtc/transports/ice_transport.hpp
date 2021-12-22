@@ -7,7 +7,6 @@
 #include "rtc/sdp/candidate.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/sdp/sdp_description.hpp"
-#include "rtc/base/synchronization/sequence_checker.hpp"
 
 #if USE_NICE
 #include <nice/agent.h>
@@ -47,12 +46,6 @@ public:
         COMPLETED
     };
 
-    using CandidatePair = std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>>;
-
-    using GatheringStateChangedCallback = std::function<void(GatheringState)>;
-    using CandidateGatheredCallback = std::function<void(sdp::Candidate)>;
-    using RoleChangedCallback = std::function<void(sdp::Role)>;
-
     // Description
     class Description {
     public:
@@ -77,6 +70,12 @@ public:
         std::optional<std::string> ice_ufrag_;
         std::optional<std::string> ice_pwd_;
     };
+
+    using CandidatePair = std::pair<std::optional<sdp::Candidate>, std::optional<sdp::Candidate>>;
+    using GatheringStateChangedCallback = std::function<void(GatheringState)>;
+    using CandidateGatheredCallback = std::function<void(sdp::Candidate)>;
+    using RoleChangedCallback = std::function<void(sdp::Role)>;
+
 public:
     IceTransport(Configuration config, sdp::Role role);
     ~IceTransport() override;

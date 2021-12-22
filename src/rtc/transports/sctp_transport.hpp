@@ -11,6 +11,8 @@
 #include <functional>
 #include <optional>
 #include <queue>
+#include <mutex>
+#include <condition_variable>
 
 namespace naivertc {
 
@@ -29,7 +31,7 @@ public:
     static void CustomizeSctp(const SctpCustomizedSettings& settings);
     static void Cleanup();
 public:
-    SctpTransport(Configuration config, Transport* lower, TaskQueue* task_queue);
+    SctpTransport(Configuration config, Transport* lower);
     ~SctpTransport() override;
 
     bool Start() override;
@@ -128,6 +130,9 @@ private:
 
     SctpMessageReceivedCallback sctp_message_received_callback_ = nullptr;
     ReadyToSendCallback ready_to_send_callback_ = nullptr;
+
+    std::mutex mutex_;
+    std::condition_variable cond_;
 };
 
 }

@@ -159,8 +159,10 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     }
 
     // Retrieve the ICE SDP from ICE transport.
-    auto local_ice_sdp = ice_transport_->GetLocalDescription(type);
-
+    auto local_ice_sdp = network_task_queue_->Sync<IceTransport::Description>([this, type](){
+        return ice_transport_->GetLocalDescription(type);
+    });
+    
     auto local_sdp_builder = sdp::Description::Builder(type);
     auto local_sdp = local_sdp_builder
                     .set_role(local_ice_sdp.role())
@@ -360,7 +362,9 @@ void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
     // Start to gather local candidate after local sdp was set.
     if (gathering_state_ == GatheringState::NEW) {
         PLOG_DEBUG << "Start to gather local candidates";
-        ice_transport_->StartToGatherLocalCandidate(local_sdp.bundle_id());
+        network_task_queue_->Async([this, bundle_id=local_sdp.bundle_id()](){
+            ice_transport_->StartToGatherLocalCandidate(std::move(bundle_id));
+        });
     }
 
     // PLOG_VERBOSE << "Did process local sdp: " << std::string(local_sdp);
@@ -391,7 +395,9 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
                                                     remote_sdp.role(), 
                                                     remote_sdp.ice_ufrag(), 
                                                     remote_sdp.ice_pwd());
-    ice_transport_->SetRemoteDescription(std::move(remote_ice_sdp));
+    network_task_queue_->Async([this, remote_sdp=std::move(remote_ice_sdp)](){
+        ice_transport_->SetRemoteDescription(std::move(remote_sdp));
+    });
 
     remote_sdp_ = std::move(remote_sdp);
     
@@ -415,7 +421,9 @@ void PeerConnection::ProcessRemoteCandidate(sdp::Candidate candidate) {
 
     // We might need a lookup
     if (candidate.isResolved() || candidate.Resolve(sdp::Candidate::ResolveMode::LOOK_UP)) {
-        ice_transport_->AddRemoteCandidate(std::move(candidate));
+        network_task_queue_->Async([this, candidate=std::move(candidate)](){
+            ice_transport_->AddRemoteCandidate(std::move(candidate));
+        });
     } else {
         PLOG_WARNING << "Failed to resolve remote candidate: " << std::string(candidate);
     }

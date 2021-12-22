@@ -43,7 +43,7 @@ void DtlsTransport::Cleanup() {
 
 // Init methods
 void DtlsTransport::InitOpenSSL(const Configuration& config) {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     PLOG_DEBUG << "Initializing DTLS transport (OpenSSL)";
 
     if (!config.certificate) {
@@ -90,7 +90,7 @@ void DtlsTransport::InitOpenSSL(const Configuration& config) {
         // pass this pointer to the callback
         SSL_set_ex_data(ssl_, transport_ex_index_, this);
 
-        if (is_client()) {
+        if (IsClient()) {
             SSL_set_connect_state(ssl_);
         } else {
             SSL_set_accept_state(ssl_);
@@ -126,7 +126,7 @@ void DtlsTransport::InitOpenSSL(const Configuration& config) {
 }
 
 void DtlsTransport::DeinitOpenSSL() {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     if (ssl_) {
         SSL_free(ssl_);
     }
@@ -136,7 +136,7 @@ void DtlsTransport::DeinitOpenSSL() {
 }
 
 void DtlsTransport::InitHandshake() {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     if (!ssl_) {
         throw std::runtime_error("SSL instance is not created yet.");
     }
@@ -151,7 +151,7 @@ void DtlsTransport::InitHandshake() {
 }
 
 bool DtlsTransport::TryToHandshake() {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     if (!ssl_) {
         throw std::runtime_error("SSL instance is not created yet.");
     }
@@ -175,7 +175,7 @@ bool DtlsTransport::TryToHandshake() {
 }
 
 bool DtlsTransport::IsHandshakeTimeout() {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     if (!ssl_) {
         throw std::runtime_error("SSL instance is not created yet.");
     }
@@ -208,7 +208,7 @@ bool DtlsTransport::IsHandshakeTimeout() {
 }
 
 void DtlsTransport::DtlsHandshakeDone() {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     // Dummy
 }
 
@@ -216,7 +216,7 @@ bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
                                          const char *label, size_t llen,
                                          const unsigned char *context,
                                          size_t contextlen, bool use_context) {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     if (!ssl_) {
         return false;
     }
@@ -238,9 +238,14 @@ bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
 }
 
 int DtlsTransport::OnDtlsWrite(CopyOnWriteBuffer data) {
-    return task_queue_->Sync<int>([this, data=std::move(data)](){
-        return HandleDtlsWrite(std::move(data));
+    std::unique_lock lock(mutex_);
+    int ret = -1;
+    attached_queue_->Post([this, data=std::move(data), &ret](){
+         ret = HandleDtlsWrite(std::move(data));
+         cond_.notify_one();
     });
+    cond_.wait(lock);
+    return ret;
 }
 
 // Callback methods

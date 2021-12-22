@@ -180,10 +180,6 @@ private:
     void OnSctpReadyToSend();
 private:
     const RtcConfiguration rtc_config_ RTC_GUARDED_BY(signal_task_queue_);
-    // RFC 5763: The answerer MUST use either a setup attibute value of setup:active or setup:passive.
-    // and, setup::active is RECOMMENDED. See https://tools.ietf.org/html/rfc5763#section-5
-    // Thus, we assume passive role if we are the offerer.
-    sdp::Role role_ RTC_GUARDED_BY(signal_task_queue_);
     std::shared_future<std::shared_ptr<Certificate>> certificate_;
     
     ConnectionState connection_state_ RTC_GUARDED_BY(signal_task_queue_) = ConnectionState::CLOSED;

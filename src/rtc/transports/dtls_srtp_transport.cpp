@@ -6,43 +6,36 @@
 namespace naivertc {
 
 DtlsSrtpTransport::DtlsSrtpTransport(DtlsTransport::Configuration config, 
-                                     IceTransport* lower, 
-                                     TaskQueue* task_queue) 
-    : DtlsTransport(std::move(config), lower, task_queue),
+                                     Transport* lower) 
+    : DtlsTransport(std::move(config), lower),
       srtp_init_done_(false) {
-    task_queue_->Async([this](){
-        PLOG_DEBUG << "Initializing DTLS-SRTP transport";
-        CreateSrtp();
-    });
+    PLOG_DEBUG << "Initializing DTLS-SRTP transport";
+    CreateSrtp();
 }
 
 DtlsSrtpTransport::~DtlsSrtpTransport() {
-    task_queue_->Async([this](){
-        DtlsTransport::Stop();
-        DestroySrtp();
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    DtlsTransport::Stop();
+    DestroySrtp();
 }
 
 int DtlsSrtpTransport::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
-    return task_queue_->Sync<int>([this, packet=std::move(packet), options=std::move(options)]() mutable {
-        if (!packet.empty() && EncryptPacket(packet)) {
-            return Outgoing(std::move(packet), std::move(options));
-        } else {
-            return -1;
-        }
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    if (!packet.empty() && EncryptPacket(packet)) {
+        return Outgoing(std::move(packet), std::move(options));
+    } else {
+        return -1;
+    }
 }
 
-
 void DtlsSrtpTransport::OnReceivedRtpPacket(RtpPacketRecvCallback callback) {
-    task_queue_->Async([this, callback=std::move(callback)](){
-        rtp_packet_recv_callback_ = callback;
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    rtp_packet_recv_callback_ = callback;
 }
 
 // Private methods
 bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     if (!srtp_init_done_) {
         PLOG_WARNING << "SRTP not init yet.";
         return false;
@@ -93,7 +86,7 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
 }
 
 void DtlsSrtpTransport::DtlsHandshakeDone() {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     if (srtp_init_done_) {
         return;
     }
@@ -102,7 +95,7 @@ void DtlsSrtpTransport::DtlsHandshakeDone() {
 }
 
 void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     // DTLS handshake is still in progress
     if (!srtp_init_done_) {
         DtlsTransport::Incoming(std::move(in_packet));
@@ -178,7 +171,7 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
 }
 
 int DtlsSrtpTransport::Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) {
-    RTC_RUN_ON(task_queue_);
+    RTC_RUN_ON(&sequence_checker_);
     // Set recommended medium-priority DSCP value
     // See https://datatracker.ietf.org/doc/html/draft-ietf-tsvwg-rtcweb-qos-18
     if (options.dscp == DSCP::DSCP_DF) {

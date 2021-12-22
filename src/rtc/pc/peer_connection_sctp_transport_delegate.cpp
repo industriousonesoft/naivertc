@@ -23,12 +23,15 @@ void PeerConnection::InitSctpTransport() {
     sctp_config.mtu = rtc_config_.mtu.value_or(kDefaultMtuSize);
     sctp_config.max_message_size = rtc_config_.sctp_max_message_size.value_or(kDefaultSctpMaxMessageSize);
 
-    sctp_transport_ = std::make_unique<SctpTransport>(std::move(sctp_config), dtls_transport_.get(), network_task_queue_.get());
-    assert(sctp_transport_ && "Failed to init SCTP transport");
-    sctp_transport_->OnStateChanged(std::bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
-    sctp_transport_->OnSctpMessageReceived(std::bind(&PeerConnection::OnSctpMessageReceived, this, std::placeholders::_1));
+    network_task_queue_->Async([this, config=std::move(sctp_config)](){
+        sctp_transport_ = std::make_unique<SctpTransport>(std::move(config), dtls_transport_.get());
+        assert(sctp_transport_ && "Failed to init SCTP transport");
+        sctp_transport_->OnStateChanged(std::bind(&PeerConnection::OnSctpTransportStateChanged, this, std::placeholders::_1));
+        sctp_transport_->OnSctpMessageReceived(std::bind(&PeerConnection::OnSctpMessageReceived, this, std::placeholders::_1));
 
-    sctp_transport_->Start();
+        sctp_transport_->Start();
+    });
+    
 }
 
 // SctpTransport delegate
@@ -74,7 +77,9 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                 // which the corresponding incoming and outgoing streams are unused. If the side is acting as the DTLS client,
                 // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
                 // See https://tools.ietf.org/html/rfc8832#section-6
-                bool is_remote_a_dtls_server= ice_transport_->role() == sdp::Role::ACTIVE ? true : false;
+                bool is_remote_a_dtls_server = network_task_queue_->Sync<bool>([this](){
+                    return ice_transport_->role() == sdp::Role::ACTIVE ? true : false;
+                });
                 uint16_t remote_parity = is_remote_a_dtls_server ? 1 : 0;
                 if (stream_id % 2 == remote_parity) {
                     // The remote data channel will negotiate later by processing incomming message, 
@@ -91,14 +96,14 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                 } else {
                     PLOG_WARNING << "Failed to response the data channel created by remote peer, since it's stream id [" << stream_id
                                     << "] is not corresponding to the remote role.";
-                    signal_task_queue_->Async([this, stream_id](){
+                    network_task_queue_->Async([this, stream_id](){
                         sctp_transport_->CloseStream(stream_id);
                     });
                     return;
                 }
             } else {
                 PLOG_WARNING << "No data channel found to handle non-opening incoming message with stream id: " << stream_id;
-                signal_task_queue_->Async([this, stream_id](){
+                network_task_queue_->Async([this, stream_id](){
                     sctp_transport_->CloseStream(stream_id);
                 });
                 return;
