@@ -91,8 +91,7 @@ void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string
 // Private methods
 void PeerConnection::SetLocalDescription(sdp::Type type) {
     RTC_RUN_ON(signal_task_queue_);
-    if (connection_state_ == ConnectionState::CONNECTED || 
-        connection_state_ == ConnectionState::CONNECTING) {
+    if (connection_state_ == ConnectionState::CONNECTED) {
         throw std::logic_error("Unable to negotiate with remote peer when the local peer is " + ToString(connection_state_));
         return;
     }
@@ -179,8 +178,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
 
 void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
     RTC_RUN_ON(signal_task_queue_);
-    if (connection_state_ == ConnectionState::CONNECTED || 
-        connection_state_ == ConnectionState::CONNECTING) {
+    if (connection_state_ == ConnectionState::CONNECTED) {
         throw std::logic_error("Unable to negotiate with remote peer when the local peer is " + ToString(connection_state_));
         return;
     }
