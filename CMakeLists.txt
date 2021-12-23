@@ -96,6 +96,12 @@ set(LIB_HEADERS
     src/rtc/base/synchronization/event.hpp
     src/rtc/base/synchronization/yield_policy.hpp
     src/rtc/base/synchronization/sequence_checker.hpp
+
+    # rtc -> api
+    src/rtc/api/media_transport.hpp
+    src/rtc/api/data_transport.hpp
+    src/rtc/api/rtp_packet_sink.hpp
+    src/rtc/api/video_encoded_frame_sink.hpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.hpp
@@ -117,7 +123,6 @@ set(LIB_HEADERS
     src/rtc/transports/sctp_message.hpp
     src/rtc/transports/dtls_transport.hpp
     src/rtc/transports/dtls_srtp_transport.hpp
-    # src/rtc/transports/rtc_transport.hpp
 
     # rtc -> pc
     src/rtc/pc/peer_connection_configuration.hpp
@@ -127,16 +132,13 @@ set(LIB_HEADERS
     src/rtc/channels/channel.hpp
     src/rtc/channels/data_channel.hpp
     src/rtc/channels/media_channel.hpp
-    src/rtc/channels/media_transport_interface.hpp
 
     # rtc -> call
     src/rtc/call/rtp_video_sender.hpp
     src/rtc/call/rtp_utils.hpp
     src/rtc/call/rtp_demuxer.hpp
-    src/rtc/call/rtp_packet_sink.hpp
     src/rtc/call/rtp_video_receiver.hpp
     src/rtc/call/rtx_receive_stream.hpp
-    src/rtc/call/video_receive_stream.hpp
 
     # rtc -> media
     src/rtc/media/media_track.hpp
@@ -144,6 +146,8 @@ set(LIB_HEADERS
     # rtc -> media -> video
     src/rtc/media/video/common.hpp
     src/rtc/media/video/encoded_frame.hpp
+    src/rtc/media/video/receive_stream.hpp
+    src/rtc/media/video/send_stream.hpp
 
     # rtc -> media -> video -> codecs -> h264
     src/rtc/media/video/codecs/h264/common.hpp
@@ -352,10 +356,6 @@ set(LIB_SOURCES
     src/rtc/transports/dtls_transport_openssl_delegate.cpp
     src/rtc/transports/dtls_srtp_transport.cpp
     src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
-    # src/rtc/transports/rtc_transport.cpp
-    # src/rtc/transports/rtc_transport_ice_delegate.cpp
-    # src/rtc/transports/rtc_transport_dtls_delegate.cpp
-    # src/rtc/transports/rtc_transport_sctp_delegate.cpp
 
     # rtc -> pc
     src/rtc/pc/peer_connection.cpp
@@ -382,7 +382,6 @@ set(LIB_SOURCES
     src/rtc/call/rtp_video_receiver.cpp
     src/rtc/call/rtp_video_receiver_auxiliaries.cpp
     src/rtc/call/rtx_receive_stream.cpp
-    src/rtc/call/video_receive_stream.cpp
     
     # rtc -> media
     src/rtc/media/media_track.cpp
@@ -392,6 +391,8 @@ set(LIB_SOURCES
     # rtc -> media -> video
     src/rtc/media/video/common.cpp
     src/rtc/media/video/encoded_frame.cpp
+    src/rtc/media/video/receive_stream.cpp
+    src/rtc/media/video/send_stream.cpp
 
     # rtc -> media -> video -> codecs -> h264
     src/rtc/media/video/codecs/h264/nalunit.cpp

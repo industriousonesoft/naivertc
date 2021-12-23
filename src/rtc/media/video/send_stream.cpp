@@ -1,13 +1,13 @@
-#include "rtc/call/video_send_stream.hpp"
+#include "rtc/media/video/send_stream.hpp"
 
 namespace naivertc {
 
 VideoSendStream::VideoSendStream(const Configuration& config) 
-    : rtp_video_sender_(config.rtp, config.clock, config.send_transport) {}
+    : rtp_video_sender_(std::make_unique<RtpVideoSender>(config.rtp, config.clock, config.send_transport)) {}
 
 VideoSendStream::~VideoSendStream() {}
 
-bool OnEncodedFrame(video::EncodedFrame encoded_frame) {
+bool VideoSendStream::OnEncodedFrame(video::EncodedFrame encoded_frame) {
     RTC_RUN_ON(&sequence_checker_);
     return rtp_video_sender_->OnEncodedFrame(std::move(encoded_frame));
 }

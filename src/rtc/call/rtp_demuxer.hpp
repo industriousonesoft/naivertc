@@ -2,7 +2,7 @@
 #define _RTC_CALL_RTP_DEMUXER_H_
 
 #include "base/defines.hpp"
-#include "rtc/call/rtp_packet_sink.hpp"
+#include "rtc/api/rtp_packet_sink.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 
 #include <unordered_map>

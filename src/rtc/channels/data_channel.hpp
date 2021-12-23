@@ -2,24 +2,17 @@
 #define _RTC_CHANNELS_DATA_CHANNEL_H_
 
 #include "base/defines.hpp"
-#include "rtc/transports/sctp_message.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/channels/channel.hpp"
+#include "rtc/transports/sctp_message.hpp"
+#include "rtc/api/data_transport.hpp"
 
 #include <memory>
 #include <queue>
 #include <functional>
 
 namespace naivertc {
-
-// DataTransport
-class RTC_CPP_EXPORT DataTransport {
-public:
-    virtual bool Send(SctpMessageToSend message) = 0;
-protected:
-    virtual ~DataTransport() = default;
-};
 
 // DataChannel
 class RTC_CPP_EXPORT DataChannel : public Channel, 

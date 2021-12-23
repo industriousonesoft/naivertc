@@ -2,11 +2,10 @@
 #define _RTC_CALL_RTP_PACKET_SINK_H_
 
 #include "base/defines.hpp"
+#include "rtc/base/copy_on_write_buffer.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 namespace naivertc {
-
-class CopyOnWriteBuffer;
-class RtpPacketReceived;
 
 class RTC_CPP_EXPORT RtpPacketSink {
 public:

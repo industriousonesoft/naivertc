@@ -4,19 +4,14 @@
 #include "base/defines.hpp"
 #include "rtc/channels/channel.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
-#include "rtc/call/rtp_packet_sink.hpp"
-#include "rtc/channels/media_transport_interface.hpp"
+#include "rtc/api/media_transport.hpp"
 
 #include <iostream>
 
 namespace naivertc {
 
-class RtpPacketReceived;
-class CopyOnWriteBuffer;
-
 // MediaChannel
-class RTC_CPP_EXPORT MediaChannel : public Channel,
-                                    public RtpPacketSink {
+class RTC_CPP_EXPORT MediaChannel : public Channel {
 public:
     enum class Kind {
         UNKNOWN,
@@ -37,10 +32,6 @@ public:
 
     void OnOpened(OpenedCallback callback) override;
     void OnClosed(ClosedCallback callback) override;
-
-    // RtpPacketSink
-    void OnRtpPacket(RtpPacketReceived in_packet) override;
-    void OnRtcpPacket(CopyOnWriteBuffer in_packet) override;
 
 private:
     void TriggerOpen();

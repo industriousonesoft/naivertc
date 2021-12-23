@@ -80,6 +80,14 @@ bool MediaTrack::Reconfig(const Configuration& config) {
     });
 }
 
+void MediaTrack::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
+
+}
+
+void MediaTrack::OnRtpPacket(RtpPacketReceived in_packet) {
+
+}
+
 // Private methods
 void MediaTrack::Parse(const Configuration& config) {
     auto media_kind = config.kind();

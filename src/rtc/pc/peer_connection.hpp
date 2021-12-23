@@ -16,6 +16,8 @@
 #include "rtc/media/media_track.hpp"
 #include "rtc/channels/data_channel.hpp"
 #include "rtc/call/rtp_demuxer.hpp"
+#include "rtc/api/media_transport.hpp"
+#include "rtc/api/data_transport.hpp"
 
 #include <exception>
 #include <unordered_map>
@@ -113,9 +115,9 @@ public:
     void OnRemoteMediaTrackReceived(MediaTrackCallback callback);
 
 public:
-    // MediaTransportInterface
+    // MediaTransport interfaces
     int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override;
-    // DataTransportInterface
+    // DataTransport interfaces
     bool Send(SctpMessageToSend message) override;
     
 protected:

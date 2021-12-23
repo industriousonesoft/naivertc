@@ -1,5 +1,4 @@
 #include "rtc/channels/media_channel.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 #include <plog/Log.h>
 
@@ -79,14 +78,6 @@ void MediaChannel::TriggerClose() {
     if (closed_callback_) {
         closed_callback_();
     }
-}
-
-void MediaChannel::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
-
-}
-
-void MediaChannel::OnRtpPacket(RtpPacketReceived in_packet) {
-
 }
 
 // ostream

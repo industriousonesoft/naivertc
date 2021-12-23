@@ -1,5 +1,5 @@
-#ifndef _RTC_CHNNELS_MEDIA_TRANSPORT_INTERFACE_H_
-#define _RTC_CHNNELS_MEDIA_TRANSPORT_INTERFACE_H_
+#ifndef _RTC_API_MEDIA_TRANSPORT_INTERFACE_H_
+#define _RTC_API_MEDIA_TRANSPORT_INTERFACE_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
