@@ -42,32 +42,27 @@ void PeerConnection::OnSctpTransportStateChanged(Transport::State state) {
         case SctpTransport::State::CONNECTED:
             PLOG_DEBUG << "SCTP transport connected";
             UpdateConnectionState(ConnectionState::CONNECTED);
+            OpenDataChannels();
             break;
         case SctpTransport::State::FAILED:
             PLOG_WARNING << "SCTP transport failed";
             UpdateConnectionState(ConnectionState::FAILED);
+            RemoteCloseDataChannels();
             break;
         case SctpTransport::State::DISCONNECTED:
             UpdateConnectionState(ConnectionState::DISCONNECTED);
+            RemoteCloseDataChannels();
             PLOG_DEBUG << "SCTP transport disconnected";
             break;
         default:
             break;
         }
     });
-    worker_task_queue_->Async([this, state](){
-        if (state == SctpTransport::State::CONNECTED) {
-            OpenDataChannels();
-        } else if (state == SctpTransport::State::FAILED ||
-                   state == SctpTransport::State::DISCONNECTED) {
-            RemoteCloseDataChannels();
-        }
-    });
 }
 
 void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
     RTC_RUN_ON(network_task_queue_);
-    worker_task_queue_->Async([this, message=std::move(message)](){
+    signal_task_queue_->Async([this, message=std::move(message)](){
         auto stream_id = message.stream_id();
         auto data_channel = FindDataChannel(stream_id);
         if (!data_channel) {
@@ -116,7 +111,7 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
 
 void PeerConnection::OnSctpReadyToSend() {
     RTC_RUN_ON(network_task_queue_);
-    worker_task_queue_->Async([this](){
+    signal_task_queue_->Async([this](){
         for (auto& kv : data_channels_) {
             if (auto dc = kv.second.lock()) {
                 dc->OnReadyToSend();
@@ -127,7 +122,7 @@ void PeerConnection::OnSctpReadyToSend() {
 
 // Helper methods
 void PeerConnection::OpenDataChannels() {
-    RTC_RUN_ON(worker_task_queue_);
+    RTC_RUN_ON(signal_task_queue_);
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->Open(this);
@@ -136,7 +131,7 @@ void PeerConnection::OpenDataChannels() {
 }
 
 void PeerConnection::CloseDataChannels() {
-    RTC_RUN_ON(worker_task_queue_);
+    RTC_RUN_ON(signal_task_queue_);
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->Close();
@@ -146,7 +141,7 @@ void PeerConnection::CloseDataChannels() {
 }
 
 void PeerConnection::RemoteCloseDataChannels() {
-    RTC_RUN_ON(worker_task_queue_);
+    RTC_RUN_ON(signal_task_queue_);
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
             dc->RemoteClose();
@@ -156,7 +151,7 @@ void PeerConnection::RemoteCloseDataChannels() {
 }
 
 void PeerConnection::OnIncomingDataChannel(std::shared_ptr<DataChannel> data_channel) {
-    RTC_RUN_ON(worker_task_queue_);
+    RTC_RUN_ON(signal_task_queue_);
     if (data_channel_callback_) {
         data_channel_callback_(std::move(data_channel));
     } else {

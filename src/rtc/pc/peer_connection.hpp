@@ -160,8 +160,8 @@ private:
     void CloseMediaTracks();
     void FlushPendingMediaTracks();
     std::shared_ptr<MediaTrack> FindMediaTrack(std::string mid) const;
-    void OnMediaTrackNegotiated(const sdp::Media& remote_sdp);
-    void OnIncomingMediaTrack(const sdp::Media& remote_sdp);
+    std::shared_ptr<MediaTrack> OnIncomingMediaTrack(sdp::Media remote_sdp);
+    void OnNegotiatedMediaTrack(const MediaTrack& media_track);
   
 private:
     // IceTransport callbacks
@@ -211,20 +211,18 @@ private:
 
     std::vector<const sdp::Candidate> remote_candidates_ RTC_GUARDED_BY(signal_task_queue_);
 
-    std::unordered_map<std::string, sdp::Media> media_sdps_ RTC_GUARDED_BY(signal_task_queue_);
-
-    DataChannelCallback data_channel_callback_ RTC_GUARDED_BY(worker_task_queue_) = nullptr;
-    MediaTrackCallback media_track_callback_ RTC_GUARDED_BY(worker_task_queue_) = nullptr;
+    DataChannelCallback data_channel_callback_ RTC_GUARDED_BY(signal_task_queue_) = nullptr;
+    MediaTrackCallback media_track_callback_ RTC_GUARDED_BY(signal_task_queue_) = nullptr;
 
     // Keep a weak reference instead of shared one, since the life cycle of 
     // data channels or media tracks should be owned by the one who has created them.
-    std::unordered_map<uint16_t, std::weak_ptr<DataChannel>> data_channels_ RTC_GUARDED_BY(worker_task_queue_);
-    std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_ RTC_GUARDED_BY(worker_task_queue_);
+    std::unordered_map<uint16_t, std::weak_ptr<DataChannel>> data_channels_ RTC_GUARDED_BY(signal_task_queue_);
+    std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_ RTC_GUARDED_BY(signal_task_queue_);
 
     // The pending data channels will be owned by peer connection before 
     // handled by user, that's why we use shared_ptr here.
-    std::vector<std::shared_ptr<DataChannel>> pending_data_channels_ RTC_GUARDED_BY(worker_task_queue_);
-    std::vector<std::shared_ptr<MediaTrack>> pending_media_tracks_ RTC_GUARDED_BY(worker_task_queue_);
+    std::vector<std::shared_ptr<DataChannel>> pending_data_channels_ RTC_GUARDED_BY(signal_task_queue_);
+    std::vector<std::shared_ptr<MediaTrack>> pending_media_tracks_ RTC_GUARDED_BY(signal_task_queue_);
 
     RtpDemuxer rtp_demuxer_ RTC_GUARDED_BY(worker_task_queue_);
     

@@ -23,7 +23,7 @@ public:
     bool ParseSDPLine(std::string_view line) override;
     bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
 
-    Application ReciprocatedSDP() const;
+    Application Reciprocated() const;
 
 private:
     std::string FormatDescription() const override;

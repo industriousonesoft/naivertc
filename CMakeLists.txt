@@ -142,6 +142,8 @@ set(LIB_HEADERS
 
     # rtc -> media
     src/rtc/media/media_track.hpp
+    src/rtc/media/audio_track.hpp
+    src/rtc/media/video_track.hpp
 
     # rtc -> media -> video
     src/rtc/media/video/common.hpp
@@ -387,6 +389,8 @@ set(LIB_SOURCES
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_configuration.cpp
     src/rtc/media/media_track_sdp.cpp
+    src/rtc/media/audio_track.cpp
+    src/rtc/media/video_track.cpp
 
     # rtc -> media -> video
     src/rtc/media/video/common.cpp

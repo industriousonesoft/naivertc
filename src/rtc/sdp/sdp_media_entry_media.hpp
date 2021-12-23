@@ -61,7 +61,6 @@ public:
     static std::string ToString(Codec codec);
 
 public:
-    Media(); // For Template in TaskQueue
     Media(Kind kind, 
           std::string mid, 
           std::string protocols,
@@ -128,7 +127,7 @@ public:
     virtual bool ParseSDPLine(std::string_view line) override;
     virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
 
-    Media ReciprocatedSDP() const;
+    Media Reciprocated() const;
 
 private:
     static std::optional<RtpMap> ParseRtpMap(const std::string_view& attr_value);

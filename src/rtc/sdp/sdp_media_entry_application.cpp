@@ -23,7 +23,7 @@ std::string Application::FormatDescription() const {
     return "webrtc-datachannel";
 }
 
-Application Application::ReciprocatedSDP() const {
+Application Application::Reciprocated() const {
     Application reciprocated(*this);
     // FIXME: I think reserving those properties as default value is better, as we can change them anytime.
     // reciprocated.sctp_port_.reset();

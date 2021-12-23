@@ -14,7 +14,6 @@ namespace naivertc {
 class RTC_CPP_EXPORT MediaChannel : public Channel {
 public:
     enum class Kind {
-        UNKNOWN,
         VIDEO,
         AUDIO
     };

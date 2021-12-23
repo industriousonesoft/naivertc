@@ -280,7 +280,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
                 local_sdp.SetApplication(std::move(local_app));
 
             } else {
-                auto reciprocated = remote_app->ReciprocatedSDP();
+                auto reciprocated = remote_app->Reciprocated();
                 reciprocated.HintSctpPort(local_sctp_port);
                 reciprocated.set_max_message_size(local_max_message_size);
 
@@ -291,27 +291,28 @@ void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
             }
         }
         remote->ForEach([this, &local_sdp](const sdp::Media& remote_media){
-            // Prefer local media track
-            // The local media track will override the remote media track with the same mid
-            auto it = media_sdps_.find(remote_media.mid());
-            if (it != media_sdps_.end()) {
-                auto& local_media = it->second;
-                PLOG_DEBUG << "Adding media to local description, mid=" << local_media.mid()
+            auto media_track = FindMediaTrack(remote_media.mid());
+            // Prefer the local description.
+            if (media_track && media_track->local_description()) {
+                auto local_media = media_track->local_description();
+                PLOG_DEBUG << "Adding media to local description, mid=" << local_media->mid()
                            << ", active=" << std::boolalpha
-                           << (local_media.direction() != sdp::Direction::INACTIVE);
+                           << (local_media->direction() != sdp::Direction::INACTIVE);
+                local_sdp.AddMedia(*local_media);
 
-                local_sdp.AddMedia(local_media);
+                // Negotiated with the remote sdp.
+                media_track->OnNegotiated(remote_media);
             } else {
-                auto reciprocated = remote_media.ReciprocatedSDP();
-                PLOG_DEBUG << "Reciprocating media in local description, mid=" << reciprocated.mid()
+                auto reciprocated = remote_media.Reciprocated();
+                PLOG_DEBUG << "The reciprocated media sdp of remote, mid=" << reciprocated.mid()
                            << ", active=" << std::boolalpha
                            << (reciprocated.direction() != sdp::Direction::INACTIVE);;
+                
+                local_sdp.AddMedia(reciprocated);
                 // Incoming media track with reciprocated SDP. 
-                OnIncomingMediaTrack(reciprocated);
-                local_sdp.AddMedia(std::move(reciprocated));
+                media_track = OnIncomingMediaTrack(std::move(reciprocated));
             }
-            // local media track negotiated with remote
-            OnMediaTrackNegotiated(remote_media);
+            OnNegotiatedMediaTrack(*media_track.get());
         });
 
     } 
@@ -342,16 +343,19 @@ void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
         }
 
         // Add local media tracks
-        for (auto& [mid, media] : media_sdps_) {
+        for (auto& [mid, media_track] : media_tracks_) {
             // Filter existed tracks
             if (local_sdp.HasMid(mid)) {
                 continue;
             }
-            PLOG_DEBUG << "Adding media to local description, mid=" << media.mid()
-                       << ", active=" << std::boolalpha
-                       << (media.direction() != sdp::Direction::INACTIVE);
+            if (auto track = media_track.lock()) {
+                auto media = track->local_description();
+                PLOG_DEBUG << "Adding media to local description, mid=" << media->mid()
+                        << ", active=" << std::boolalpha
+                        << (media->direction() != sdp::Direction::INACTIVE);
 
-            local_sdp.AddMedia(media);
+                local_sdp.AddMedia(*media);
+            }
         }
     } 
 
@@ -376,16 +380,18 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
     // Handle incoming media track in remote SDP.
     if (remote_sdp.type() == sdp::Type::ANSWER) {
         remote_sdp.ForEach([this](const sdp::Media& remote_media) {
-            auto it = media_sdps_.find(remote_media.mid());
-            if (it == media_sdps_.end()) {
-                auto reciprocated = remote_media.ReciprocatedSDP();
-                PLOG_DEBUG << "Reciprocating media in local description, mid=" << reciprocated.mid()
+            auto media_track = FindMediaTrack(remote_media.mid());
+            if (media_track && media_track->local_description()) {
+                media_track->OnNegotiated(remote_media);
+            } else {
+                auto reciprocated = remote_media.Reciprocated();
+                PLOG_DEBUG << "The reciprocated media sdp of remote, mid=" << reciprocated.mid()
                            << ", active=" << std::boolalpha
-                           << (reciprocated.direction() != sdp::Direction::INACTIVE);;
+                           << (reciprocated.direction() != sdp::Direction::INACTIVE);
                 // Incoming media track with reciprocated SDP. 
-                OnIncomingMediaTrack(reciprocated);
+                media_track = OnIncomingMediaTrack(std::move(reciprocated));
             }
-            OnMediaTrackNegotiated(remote_media);
+            OnNegotiatedMediaTrack(*media_track.get());
         });
     }
 
@@ -464,20 +470,45 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
     }
 }
 
-void PeerConnection::OnIncomingMediaTrack(const sdp::Media& remote_sdp) {
+std::shared_ptr<MediaTrack> PeerConnection::OnIncomingMediaTrack(sdp::Media remote_sdp) {
     RTC_RUN_ON(signal_task_queue_);
-    worker_task_queue_->Async([this, media_sdp=remote_sdp](){
-        auto media_track = std::make_shared<MediaTrack>(std::move(media_sdp));
-        // Make sure the current media track dosen't be added before.
-        if (media_tracks_.find(media_track->mid()) == media_tracks_.end()) {
-            media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
-            if (media_track_callback_) {
-                media_track_callback_(std::move(media_track));
-            } else {
-                pending_media_tracks_.push_back(std::move(media_track));
-            }
+    auto media_track = std::make_shared<MediaTrack>(std::move(remote_sdp));
+    // Make sure the current media track dosen't be added before.
+    if (media_tracks_.find(media_track->mid()) == media_tracks_.end()) {
+        media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
+        if (media_track_callback_) {
+            media_track_callback_(std::move(media_track));
+        } else {
+            pending_media_tracks_.push_back(std::move(media_track));
         }
-    });
+    }
+    return media_track;
+}
+
+void PeerConnection::OnNegotiatedMediaTrack(const MediaTrack& media_track) {
+    RTC_RUN_ON(signal_task_queue_);
+    PLOG_DEBUG << __FUNCTION__;
+    // auto mid = remote_sdp.mid();
+    // auto local_sdp_it = media_sdps_.find(mid);
+    // if (local_sdp_it != media_sdps_.end()) {
+    //     // Send SSRCs
+    //     local_sdp_it->second.ForEachSsrc([this, &mid](const sdp::Media::SsrcEntry& ssrc_entry){
+    //         worker_task_queue_->Async([this, mid, ssrc=ssrc_entry.ssrc](){
+    //             if (auto media_track = FindMediaTrack(mid)) {
+    //                 rtp_demuxer_.AddSink(ssrc, media_track);
+    //             }
+    //         });
+    //     });
+    // }
+    
+    // // Receive SSRCs
+    // remote_sdp.ForEachSsrc([this, &mid](const sdp::Media::SsrcEntry& ssrc_entry){
+    //     worker_task_queue_->Async([this, mid, ssrc=ssrc_entry.ssrc](){
+    //         if (auto media_track = FindMediaTrack(mid)) {
+    //             rtp_demuxer_.AddSink(ssrc, media_track);
+    //         }
+    //     });
+    // });
 }
 
 } // namespace naivertc

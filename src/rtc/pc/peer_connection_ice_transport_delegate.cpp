@@ -97,7 +97,7 @@ void PeerConnection::OnRoleChanged(sdp::Role role) {
     RTC_RUN_ON(network_task_queue_);
     // If sctp transport is created already, which means we have no chance to change the role any more
     assert(sctp_transport_ == nullptr && "Can not change the DTLS role of data channel after SCTP transport was created.");
-    worker_task_queue_->Async([this, role](){
+    signal_task_queue_->Async([this, role](){
         // The role of DTLS is not changed (since we assumed as a DTLS server).
         if (role != sdp::Role::ACTIVE) {
             return;

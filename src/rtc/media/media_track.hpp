@@ -5,19 +5,16 @@
 #include "rtc/sdp/sdp_media_entry_media.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/channels/media_channel.hpp"
-#include "rtc/api/rtp_packet_sink.hpp"
 
 #include <string>
 #include <vector>
 #include <optional>
 #include <functional>
-#include <map>
 #include <iostream>
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT MediaTrack : public MediaChannel,
-                                  public RtpPacketSink {
+class RTC_CPP_EXPORT MediaTrack : public MediaChannel {
 public:
     using Direction = sdp::Direction;
     enum class Codec {
@@ -89,21 +86,20 @@ public:
     
 public:
     MediaTrack(const Configuration& config);
-    MediaTrack(sdp::Media description);
+    MediaTrack(sdp::Media remote_description);
     ~MediaTrack();
 
     bool Reconfig(const Configuration& config);
+    bool OnNegotiated(sdp::Media remote_description);
 
-    sdp::Media description() const;
-
-    void OnRtcpPacket(CopyOnWriteBuffer in_packet) override;
-    void OnRtpPacket(RtpPacketReceived in_packet) override;
+    const sdp::Media* local_description() const;
+    const sdp::Media* remote_description() const;
 
 private:
     // SdpBuilder
     class SdpBuilder final {
     public:
-        static std::optional<sdp::Media> Build(const Configuration& config);
+        static sdp::Media Build(const Configuration& config);
     private:
         static bool AddCodecs(const Configuration& config, sdp::Media& media);
         static bool AddMediaCodec(int payload_type, const CodecParams& cp, sdp::Media& media);
@@ -112,18 +108,8 @@ private:
         static std::optional<int> NextPayloadType(Kind kind);
     };
 private:
-    void Parse(const Configuration& config);
-
-private:
-    const sdp::Media description_;
-    uint32_t media_ssrc_;
-    std::optional<uint32_t> rtx_ssrc_;
-    std::optional<uint32_t> flex_fec_ssrc_;
-
-    std::map<int, Codec> media_codecs_;
-    std::optional<int> red_payload_type_;
-    std::optional<int> fec_payload_type_;
-    std::map</*rtx_payload_type*/int, /*associated_payload_type*/int> rtx_payload_type_map_;
+    std::optional<sdp::Media> local_description_;
+    std::optional<sdp::Media> remote_description_;
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec);

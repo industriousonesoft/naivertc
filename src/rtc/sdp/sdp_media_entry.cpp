@@ -18,14 +18,9 @@ MediaEntry MediaEntry::Parse(const std::string& mline, std::string mid) {
     return MediaEntry(ToKind(kind_string), std::move(mid), protocols);
 }
 
-MediaEntry::MediaEntry() 
-    : kind_(Kind::NONE),
-      mid_(""),
-      protocols_("") {}
-
 MediaEntry::MediaEntry(Kind kind, 
                        std::string mid, 
-                       const std::string protocols) 
+                       std::string protocols) 
     : kind_(kind), 
       mid_(std::move(mid)),
       protocols_(protocols) {}

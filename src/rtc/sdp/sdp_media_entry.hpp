@@ -17,7 +17,6 @@ namespace sdp {
 struct RTC_CPP_EXPORT MediaEntry : public Entry {
 public:
     enum class Kind {
-        NONE,
         AUDIO,
         VIDEO,
         APPLICATION,
@@ -34,10 +33,9 @@ public:
     std::string GenerateSDP(const std::string eol, Role role) const override;
 
 protected:
-    MediaEntry();
     MediaEntry(Kind kind, 
                std::string mid, 
-               const std::string protocols);
+               std::string protocols);
 
     virtual std::string FormatDescription() const;
     virtual std::string GenerateSDPLines(const std::string eol) const;   

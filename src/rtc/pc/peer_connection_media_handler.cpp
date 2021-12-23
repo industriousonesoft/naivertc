@@ -6,44 +6,27 @@
 namespace naivertc {
     
 std::shared_ptr<MediaTrack> PeerConnection::AddTrack(const MediaTrack::Configuration& config) {
-    return worker_task_queue_->Sync<std::shared_ptr<MediaTrack>>([this, &config]() -> std::shared_ptr<MediaTrack> {
-        if (config.kind() != MediaTrack::Kind::UNKNOWN) {
-            std::optional<sdp::Media> media_sdp = std::nullopt;
-            std::shared_ptr<MediaTrack> media_track = FindMediaTrack(config.mid());
-            if (!media_track) {
-                media_track = std::make_shared<MediaTrack>(config);
-                this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
-                media_sdp.emplace(media_track->description());
-            } else if (media_track->Reconfig(config)) {
-                media_sdp.emplace(media_track->description());
-            } else {
-                PLOG_WARNING << "Failed to add a media track with invalid configuration.";
-                return nullptr;
-            }
-            if (media_sdp) {
-                signal_task_queue_->Async([this, media_sdp=std::move(*media_sdp)](){
-                    media_sdps_.emplace(std::make_pair(media_sdp.mid(), std::move(media_sdp)));
-                    // Renegotiation is needed for the new or updated media track
-                    negotiation_needed_ = true;
-                });
-                return media_track;
-            } else {
-                PLOG_WARNING << "Failed to add media track ["
-                             << "kind = " << config.kind()
-                             << ", mid = " << config.mid()
-                             << "].";
-                return nullptr;
-            }
-        } else {
-            PLOG_WARNING << "Failed to add a unknown kind media track.";
+    return signal_task_queue_->Sync<std::shared_ptr<MediaTrack>>([this, &config]() -> std::shared_ptr<MediaTrack> {
+        std::shared_ptr<MediaTrack> media_track = FindMediaTrack(config.mid());
+        if (!media_track) {
+            media_track = std::make_shared<MediaTrack>(config);
+            this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
+        } else if (!media_track->Reconfig(config)) {
+            PLOG_WARNING << "Failed to add media track ["
+                         << "kind = " << config.kind()
+                         << ", mid = " << config.mid()
+                         << "].";
             return nullptr;
         }
+        // Renegotiation is needed for the new or updated media track
+        negotiation_needed_ = true;
+        return media_track;
     });
 }
 
 // Data Channels
 std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel::Init& init_config, std::optional<uint16_t> stream_id_opt) {
-    return worker_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, init_config, stream_id_opt=std::move(stream_id_opt)]() -> std::shared_ptr<DataChannel> {
+    return signal_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, init_config, stream_id_opt=std::move(stream_id_opt)]() -> std::shared_ptr<DataChannel> {
         uint16_t stream_id;
         try {
             if (stream_id_opt.has_value()) {
@@ -73,13 +56,11 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
             auto data_channel = std::make_shared<DataChannel>(init_config, stream_id) ;
             data_channels_.emplace(stream_id, data_channel);
 
-            signal_task_queue_->Async([this](){
-                this->data_channel_needed_ = true;
-                // Renegotiation is needed if the curren local description does not have application
-                if (!local_sdp_ || local_sdp_->HasApplication() == false) {
-                    this->negotiation_needed_ = true;
-                }
-            });
+            this->data_channel_needed_ = true;
+            // Renegotiation is needed if the curren local description does not have application
+            if (!local_sdp_ || local_sdp_->HasApplication() == false) {
+                this->negotiation_needed_ = true;
+            }
 
             bool is_connected = network_task_queue_->Sync<bool>([this](){
                 // If sctp transport is connected yet, we open the data channel immidiately

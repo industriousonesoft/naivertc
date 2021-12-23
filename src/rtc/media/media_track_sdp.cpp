@@ -33,26 +33,28 @@ constexpr int kDefaultVideoClockRate = 90000;
 
 namespace naivertc {
 
-std::optional<sdp::Media> MediaTrack::SdpBuilder::Build(const Configuration& config) {
-    std::optional<sdp::Media> media = std::nullopt;
+sdp::Media MediaTrack::SdpBuilder::Build(const Configuration& config) {
     if (config.kind() == MediaTrack::Kind::AUDIO) {
         auto audio = sdp::Media(sdp::MediaEntry::Kind::AUDIO,
                                 config.mid(),
                                 kDefaultTransportPortocols, 
                                 config.direction);
         if (AddCodecs(config, audio) && AddSsrcs(config, audio)) {
-            media.emplace(std::move(audio));
+            
         }
+        return audio;
     } else if (config.kind() == MediaTrack::Kind::VIDEO) {
         auto video = sdp::Media(sdp::MediaEntry::Kind::VIDEO,
                                 config.mid(),
                                 kDefaultTransportPortocols, 
                                 config.direction);
         if (AddCodecs(config, video) && AddSsrcs(config, video)) {
-            media.emplace(std::move(video));
+            
         }
+        return video;
+    } else {
+        RTC_NOTREACHED();
     }
-    return media;
 }
 
 // Private methods

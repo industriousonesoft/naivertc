@@ -56,28 +56,23 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
             } else {
                 this->UpdateConnectionState(ConnectionState::CONNECTED);
             }
+            this->OpenMediaTracks();
             break;
         }
         case DtlsSrtpTransport::State::FAILED: {
             this->UpdateConnectionState(ConnectionState::FAILED);
+            this->CloseMediaTracks();
             PLOG_DEBUG << "DTLS transport failed";
             break;
         }
         case DtlsSrtpTransport::State::DISCONNECTED: {
             this->UpdateConnectionState(ConnectionState::DISCONNECTED);
+            this->CloseMediaTracks();
             PLOG_DEBUG << "DTLS transport dicconnected";
             break;
         }
         default:
             break;
-        }
-    });
-    worker_task_queue_->Async([this, transport_state](){
-        if (transport_state == DtlsSrtpTransport::State::CONNECTED) {
-            this->OpenMediaTracks();
-        } else if (transport_state == DtlsSrtpTransport::State::FAILED ||
-                   transport_state == DtlsSrtpTransport::State::DISCONNECTED) {
-            this->CloseMediaTracks();
         }
     });
 }
@@ -106,7 +101,7 @@ void PeerConnection::OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rt
 }
 
 void PeerConnection::OpenMediaTracks() {
-    RTC_RUN_ON(worker_task_queue_);
+    RTC_RUN_ON(signal_task_queue_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
             if (!media_track->is_opened()) {
@@ -117,7 +112,7 @@ void PeerConnection::OpenMediaTracks() {
 }
 
 void PeerConnection::CloseMediaTracks() {
-    RTC_RUN_ON(worker_task_queue_);
+    RTC_RUN_ON(signal_task_queue_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
             media_track->Close();

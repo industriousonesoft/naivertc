@@ -13,55 +13,36 @@ MediaTrack::Kind ToKind(sdp::MediaEntry::Kind kind) {
     case sdp::MediaEntry::Kind::VIDEO:
         return MediaTrack::Kind::VIDEO;
     default:
-        return MediaTrack::Kind::UNKNOWN;
+        RTC_NOTREACHED();
     }
 }
 
-// Video payload type range: [96, 111]
-constexpr int kVideoPayloadTypeLowerRangeValue = 96;
-constexpr int kVideoPayloadTypeUpperRangeValue = 111;
-// Audio payload type range: [112, 127]
-constexpr int kAudioPayloadTypeLowerRangeValue = 112;
-constexpr int kAudioPayloadTypeUpperRangeValue = 127;
-
-std::optional<int> NextPayloadType(MediaTrack::Kind kind) {
-    if (kind == MediaTrack::Kind::AUDIO) {
-        static int payload_type = kAudioPayloadTypeLowerRangeValue;
-        if (payload_type + 1 <= kAudioPayloadTypeUpperRangeValue) {
-            return payload_type++;
-        } else {
-            PLOG_WARNING << "No more payload type available for Audio codec";
-            return std::nullopt;
-        }
-    } else if (kind == MediaTrack::Kind::VIDEO) {
-        static int payload_type = kVideoPayloadTypeLowerRangeValue;
-        if (payload_type + 1 <= kVideoPayloadTypeUpperRangeValue) {
-            return payload_type++;
-        } else {
-            PLOG_WARNING << "No more payload type available for Video codec";
-            return std::nullopt;
-        }
-    } else {
-        return std::nullopt;
-    }
-}
-    
 } // namespace
 
 // Media track
 MediaTrack::MediaTrack(const Configuration& config) 
     : MediaChannel(config.kind(), config.mid()),
-      description_(SdpBuilder::Build(config).value_or(sdp::Media())) {
+      local_description_(SdpBuilder::Build(config)),
+      remote_description_(std::nullopt) {
 }
 
-MediaTrack::MediaTrack(sdp::Media description) 
-    : MediaChannel(ToKind(description.kind()), description.mid()),
-      description_(std::move(description)) {}
+MediaTrack::MediaTrack(sdp::Media remote_description) 
+    : MediaChannel(ToKind(remote_description.kind()), remote_description.mid()),
+      local_description_(std::nullopt),
+      remote_description_(std::move(remote_description)) {}
 
 MediaTrack::~MediaTrack() {}
 
-sdp::Media MediaTrack::description() const {
-    return description_;
+const sdp::Media* MediaTrack::local_description() const {
+    return task_queue_.Sync<const sdp::Media*>([this](){
+        return local_description_ ? &local_description_.value() : nullptr;
+    });
+}
+
+const sdp::Media* MediaTrack::remote_description() const {
+    return task_queue_.Sync<const sdp::Media*>([this](){
+        return remote_description_ ? &remote_description_.value() : nullptr;
+    });
 }
 
 bool MediaTrack::Reconfig(const Configuration& config) {
@@ -75,68 +56,25 @@ bool MediaTrack::Reconfig(const Configuration& config) {
                          << " is different from local media mid=" << mid_;
             return false;
         }
-        
+        local_description_.emplace(SdpBuilder::Build(config));
         return true;
     });
 }
 
-void MediaTrack::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
-
-}
-
-void MediaTrack::OnRtpPacket(RtpPacketReceived in_packet) {
-
-}
-
-// Private methods
-void MediaTrack::Parse(const Configuration& config) {
-    auto media_kind = config.kind();
-    // Payload types
-    // Media payload types
-    config.ForEachCodec([&](const CodecParams& codec_params){
-        auto payload_type = NextPayloadType(media_kind);
-        if (payload_type) {
-            media_codecs_[*payload_type] = codec_params.codec;
+bool MediaTrack::OnNegotiated(sdp::Media remote_description) {
+    return task_queue_.Sync<bool>([this, remote_description=remote_description]{
+        if (local_description_->kind() != remote_description.kind()) {
+            PLOG_WARNING << "Failed to reconfig as the incomming kind=" << remote_description.kind()
+                         << " is different from media track kind=" << kind_;
+            return false;
+        } else if (local_description_->mid() != remote_description.mid()) {
+            PLOG_WARNING << "Failed to reconfig as the incomming mid=" << remote_description.mid()
+                         << " is different from local media mid=" << mid_;
+            return false;
         }
+        remote_description_.emplace(std::move(remote_description));
+        return true;
     });
-
-    // FEC
-    if (config.fec_codec == FecCodec::ULP_FEC) {
-        // ULP_FEC + RED
-        red_payload_type_ = NextPayloadType(media_kind);
-        fec_payload_type_ = NextPayloadType(media_kind);
-    } else if (config.fec_codec == FecCodec::FLEX_FEC) {
-        fec_payload_type_ = NextPayloadType(media_kind);
-    }
-
-    // RTX
-    if (config.rtx_enabled) {
-        // Protect media packet
-        for (auto& kv : media_codecs_) {
-            auto payload_type = NextPayloadType(media_kind);
-            if (!payload_type) {
-                break;
-            }
-            rtx_payload_type_map_[*payload_type] = kv.first;
-        }
-        // Protect RED packet
-        auto payload_type = NextPayloadType(media_kind);
-        if (red_payload_type_ && payload_type) {
-            rtx_payload_type_map_[*payload_type] = *red_payload_type_;
-        }
-    }
-
-    // SSRCs
-    // Media stream
-    media_ssrc_ = utils::random::generate_random<uint32_t>();
-    // RTX stream
-    if (config.rtx_enabled) {
-        rtx_ssrc_ = utils::random::generate_random<uint32_t>();
-    }
-    // FlexFEC stream
-    if (config.fec_codec == FecCodec::FLEX_FEC) {
-        flex_fec_ssrc_ = utils::random::generate_random<uint32_t>();
-    }
 }
-    
+
 } // namespace naivertc

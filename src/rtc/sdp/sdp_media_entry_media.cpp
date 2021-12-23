@@ -55,10 +55,6 @@ Media::SsrcEntry::SsrcEntry(uint32_t ssrc,
       track_id(track_id) {}
 
 // Media
-Media::Media() 
-    : MediaEntry(),
-      direction_(Direction::INACTIVE) {}
-
 Media::Media(const MediaEntry& entry, Direction direction)
     : MediaEntry(entry),
       direction_(direction) {}
@@ -239,7 +235,7 @@ void Media::ClearRtpMap() {
     rtp_maps_.clear();
 }
 
-Media Media::ReciprocatedSDP() const {
+Media Media::Reciprocated() const {
     Media reciprocated(*this);
 
     // Invert direction
