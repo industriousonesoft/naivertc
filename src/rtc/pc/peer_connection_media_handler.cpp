@@ -57,7 +57,7 @@ std::shared_ptr<DataChannel> PeerConnection::CreateDataChannel(const DataChannel
                 // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
                 // See https://tools.ietf.org/html/rfc8832#section-6
                 // The stream id is not equvalent to the mid of application in SDP, which is only used to distinguish the data channel and DTLS role.
-                stream_id = signal_task_queue_->Sync<int>([this](){
+                stream_id = network_task_queue_->Sync<int>([this](){
                     return (ice_transport_->role() == sdp::Role::ACTIVE) ? 0 : 1;
                 });
                 // Avoid conflict with existed data channel

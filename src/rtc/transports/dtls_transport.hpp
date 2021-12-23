@@ -21,15 +21,14 @@ static const openssl_bool openssl_false = 0;
 class RTC_CPP_EXPORT DtlsTransport : public Transport {
 public:
     struct Configuration {
-        Certificate* certificate = nullptr;
+        std::shared_ptr<Certificate> certificate = nullptr;
         std::optional<size_t> mtu = std::nullopt;
-        bool is_client = false;
     };
 public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsTransport(Configuration config, Transport* lower);
+    DtlsTransport(Configuration config, bool is_client, Transport* lower);
     virtual ~DtlsTransport() override;
 
     bool IsClient() const;
@@ -75,7 +74,7 @@ private:
 
 private:
     const Configuration config_;
-    
+    const bool is_client_;
     const PacketOptions handshake_packet_options_;
     std::optional<PacketOptions> user_packet_options_;
 

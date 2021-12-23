@@ -7,11 +7,19 @@
 #include <future>
 
 namespace naivertc {
+namespace {
 
-DtlsTransport::DtlsTransport(Configuration config, Transport* lower) 
+// Assured Forwarding class 2, low drop precedence, the recommendation for high-priority data in RFC 8837
+constexpr DSCP kHandshakePacketDscp = DSCP::DSCP_AF21;
+    
+} // namespace
+
+
+DtlsTransport::DtlsTransport(Configuration config, bool is_client, Transport* lower) 
     : Transport(lower),
       config_(std::move(config)),
-      handshake_packet_options_(DSCP::DSCP_AF21 /* Assured Forwarding class 2, low drop precedence, the recommendation for high-priority data in RFC 8837 */) {
+      is_client_(is_client),
+      handshake_packet_options_(kHandshakePacketDscp, PacketKind::BINARY) {
     InitOpenSSL(config_);
     WeakPtrManager::SharedInstance()->Register(this);
 }
@@ -34,7 +42,7 @@ bool DtlsTransport::HandleVerify(std::string fingerprint) {
 
 bool DtlsTransport::IsClient() const {
     RTC_RUN_ON(&sequence_checker_);
-    return config_.is_client;
+    return is_client_;
 }
 
 bool DtlsTransport::Start() {

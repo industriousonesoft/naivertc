@@ -106,7 +106,7 @@ void PeerConnection::OnRemoteMediaTrackReceived(MediaTrackCallback callback) {
 
 // MediaTransport interfaces
 int PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
-    return signal_task_queue_->Sync<int>([this, packet=std::move(packet), options=std::move(options)](){
+    return network_task_queue_->Sync<int>([this, packet=std::move(packet), options=std::move(options)](){
         auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
         if (srtp_transport) {
             return srtp_transport->SendRtpPacket(std::move(packet), std::move(options));
@@ -118,7 +118,7 @@ int PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions option
 
 // DataTransport interfaces
 bool PeerConnection::Send(SctpMessageToSend message) {
-    return signal_task_queue_->Sync<bool>([this, message=std::move(message)](){
+    return network_task_queue_->Sync<bool>([this, message=std::move(message)](){
         if (sctp_transport_) {
             return sctp_transport_->Send(std::move(message));
         } else {

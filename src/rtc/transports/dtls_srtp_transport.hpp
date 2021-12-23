@@ -15,7 +15,7 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsSrtpTransport(Configuration config, Transport* lower);
+    DtlsSrtpTransport(Configuration config, bool is_client, Transport* lower);
     ~DtlsSrtpTransport() override;
 
     int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options);

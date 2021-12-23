@@ -45,12 +45,11 @@ void DtlsTransport::Cleanup() {
 void DtlsTransport::InitOpenSSL(const Configuration& config) {
     RTC_RUN_ON(&sequence_checker_);
     PLOG_DEBUG << "Initializing DTLS transport (OpenSSL)";
-
-    if (!config.certificate) {
-        throw std::invalid_argument("DTLS certificate is null.");
-    }
-
     try {
+        if (!config.certificate) {
+            throw std::invalid_argument("DTLS certificate is null.");
+        }
+
         ctx_ = SSL_CTX_new(DTLS_method());
 
         if (!ctx_) {
@@ -121,7 +120,7 @@ void DtlsTransport::InitOpenSSL(const Configuration& config) {
 
     }catch (const std::exception& exp) {
         DeinitOpenSSL();
-        throw exp.what();
+        PLOG_ERROR << exp.what();
     }
 }
 

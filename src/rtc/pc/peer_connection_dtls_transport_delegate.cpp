@@ -15,24 +15,23 @@ void PeerConnection::InitDtlsTransport() {
     PLOG_VERBOSE << "Init DTLS transport";
     
     // NOTE: The thread might be blocked here until the certificate has been created.
-    auto certificate = certificate_.get();
     auto dtls_config = DtlsTransport::Configuration();
-    dtls_config.certificate = certificate.get();
+    dtls_config.certificate = certificate_.get();
     dtls_config.mtu = rtc_config_.mtu;
-    dtls_config.is_client = ice_transport_->role() == sdp::Role::ACTIVE;
-    
+
     bool has_media = local_sdp_->HasAudio() || local_sdp_->HasVideo();
     auto lower = ice_transport_.get();
  
     network_task_queue_->Async([this, has_media, lower, config=std::move(dtls_config)](){
+        bool is_dtls_client = ice_transport_->role() == sdp::Role::ACTIVE;
         // DTLS-SRTP
         if (has_media) {
-            auto dtls_srtp_transport = std::make_unique<DtlsSrtpTransport>(std::move(config), lower);
+            auto dtls_srtp_transport = std::make_unique<DtlsSrtpTransport>(std::move(config), is_dtls_client, lower);
             dtls_srtp_transport->OnReceivedRtpPacket(std::bind(&PeerConnection::OnRtpPacketReceived, this, std::placeholders::_1, std::placeholders::_2));
             dtls_transport_ = std::move(dtls_srtp_transport);
         // DTLS only
         } else {
-            dtls_transport_ = std::make_unique<DtlsTransport>(std::move(config), lower);
+            dtls_transport_ = std::make_unique<DtlsTransport>(std::move(config), is_dtls_client, lower);
         }
 
         assert(dtls_transport_ && "Failed to init DTLS transport");

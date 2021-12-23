@@ -106,19 +106,17 @@ void DataChannel::Open(DataTransport* transport) {
 void DataChannel::Close() {
     task_queue_.Async([this](){
         if (!is_opened_) {
-            PLOG_VERBOSE << "DataChannel:" + std::to_string(stream_id_) + " did close already.";
             return;
         }
-        PLOG_VERBOSE << __FUNCTION__;
         Reset();
         CloseStream();
         TriggerClose();
+        PLOG_VERBOSE << "DataChannel[stream id=" + std::to_string(stream_id_) + "] did close.";
     });
 }
 
 void DataChannel::RemoteClose() {
     task_queue_.Async([this](){
-        PLOG_VERBOSE << __FUNCTION__;
         TriggerClose();
     });
 }
