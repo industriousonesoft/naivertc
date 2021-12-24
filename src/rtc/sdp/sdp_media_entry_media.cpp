@@ -7,7 +7,7 @@ namespace naivertc {
 namespace sdp {
 namespace {
 
-sdp::Media::Codec FromString(const std::string_view& codec_name) {
+std::optional<sdp::Media::Codec> CodecFromString(const std::string_view& codec_name) {
     if (codec_name == "OPUS" || codec_name == "opus") {
         return sdp::Media::Codec::OPUS;
     } else if (codec_name == "VP8" || codec_name == "vp8") {
@@ -26,7 +26,20 @@ sdp::Media::Codec FromString(const std::string_view& codec_name) {
         return sdp::Media::Codec::RTX;
     } else {
         PLOG_WARNING << "Unsupport codec: " << codec_name;
-        RTC_NOTREACHED();
+        return std::nullopt;
+    }
+}
+
+std::optional<sdp::Media::RtcpFeedback> RtcpFeedbackFromString(const std::string_view& feedback_name) {
+    if (feedback_name == "NACK" || feedback_name == "nack") {
+        return sdp::Media::RtcpFeedback::NACK;
+    } else if (feedback_name == "GOOG-REMB" || feedback_name == "goog-remb") {
+        return sdp::Media::RtcpFeedback::GOOG_REMB;
+    } else if (feedback_name == "TRANSPORT-CC" || feedback_name == "transport-cc") {
+        return sdp::Media::RtcpFeedback::TRANSPORT_CC;
+    } else {
+        PLOG_WARNING << "Unsupport RTCP feedback: " << feedback_name;
+        return std::nullopt;
     }
 }
 
@@ -36,11 +49,13 @@ sdp::Media::Codec FromString(const std::string_view& codec_name) {
 Media::RtpMap::RtpMap(int payload_type, 
                      Codec codec, 
                      int clock_rate, 
-                     std::optional<std::string> codec_params) 
+                     std::optional<std::string> codec_params,
+                     std::optional<int> rtx_payload_type) 
     : payload_type(payload_type),
       codec(codec),
       clock_rate(clock_rate),
-      codec_params(codec_params) {}
+      codec_params(codec_params),
+      rtx_payload_type(rtx_payload_type) {}
 
 // SsrcEntry
 Media::SsrcEntry::SsrcEntry(uint32_t ssrc,
@@ -191,7 +206,7 @@ bool Media::HasPayloadType(int pt) const {
     return rtp_maps_.find(pt) != rtp_maps_.end();
 }
 
-std::vector<int> Media::payload_types() const {
+std::vector<int> Media::PayloadTypes() const {
     std::vector<int> payload_types;
     for (const auto& kv : rtp_maps_) {
         payload_types.push_back(kv.first);
@@ -199,17 +214,17 @@ std::vector<int> Media::payload_types() const {
     return payload_types;
 }
 
-bool Media::AddFeedback(int payload_type, const std::string feed_back) {
+bool Media::AddFeedback(int payload_type, RtcpFeedback feed_back) {
     auto it = rtp_maps_.find(payload_type);
     if (it == rtp_maps_.end()) {
-        PLOG_WARNING << "No RTP map found to add feedback with payload type: " << payload_type;
+        PLOG_WARNING << "No RTP map found to add feedback with codec payload type: " << payload_type;
         return false;
     }
     it->second.rtcp_feedbacks.emplace_back(feed_back);
     return true;
 }
 
-void Media::AddCodec(int payload_type, 
+Media::RtpMap* Media::AddCodec(int payload_type, 
                      Codec cocec,
                      int clock_rate,
                      std::optional<const std::string> codec_params,
@@ -218,11 +233,12 @@ void Media::AddCodec(int payload_type,
     if (profile.has_value()) {
         rtp_map.fmt_profiles.emplace_back(profile.value());
     }
-    AddRtpMap(rtp_map);
+    return AddRtpMap(std::move(rtp_map));
 }
 
-void Media::AddRtpMap(RtpMap map) {
-    rtp_maps_.emplace(map.payload_type, std::move(map));
+Media::RtpMap* Media::AddRtpMap(RtpMap map) {
+    auto [it, success] = rtp_maps_.emplace(map.payload_type, std::move(map));
+    return success ? &(it->second) : nullptr;
 }
 
 void Media::ForEachRtpMap(std::function<void(const RtpMap& rtp_map)>&& handler) const {
@@ -330,7 +346,10 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
             PLOG_WARNING << "No RTP map found before parsing 'rtcp-fb' with payload type: " << payload_type;
             return false;
         }
-        it->second.rtcp_feedbacks.emplace_back(value.substr(sp + 1));
+        auto rtcp_feedback = RtcpFeedbackFromString(value.substr(sp + 1));
+        if (rtcp_feedback) {
+            it->second.rtcp_feedbacks.emplace_back(*rtcp_feedback);
+        }
         return true;
     }
     // eg: a=fmtp:107 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
@@ -415,7 +434,7 @@ bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value)
     }
     // TODO: Support more attributes
     else if (key == "extmap" ||
-                key == "rtcp-rsize") {
+             key == "rtcp-rsize") {
         extra_attributes_.push_back(std::string(value));
         return true;
     }
@@ -455,10 +474,8 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
         oss << eol;
 
         // a=rtcp-fb
-        for (const auto& val : map.rtcp_feedbacks) {
-            if (val != "transport-cc") {
-                oss << "a=rtcp-fb:" << map.payload_type << sp << val << eol;
-            }
+        for (const auto& feebback : map.rtcp_feedbacks) {
+            oss << "a=rtcp-fb:" << map.payload_type << sp << ToString(feebback) << eol;
         }
 
         // a=fmtp
@@ -551,7 +568,12 @@ std::optional<Media::RtpMap> Media::ParseRtpMap(const std::string_view& attr_val
     }
 
     auto codec_name = std::string(line.substr(0, spl));
-    auto codec = FromString(codec_name);
+    auto codec = CodecFromString(codec_name);
+
+    // Unsupported codec type.
+    if (!codec) {
+        return std::nullopt;
+    }
 
     line = line.substr(spl + 1);
     spl = line.find('/');
@@ -560,6 +582,7 @@ std::optional<Media::RtpMap> Media::ParseRtpMap(const std::string_view& attr_val
         spl = line.find(' ');
     }
   
+    // clock_rate
     int clock_rate = -1;
     std::optional<std::string> codec_params;
     if (spl == std::string::npos) {
@@ -569,7 +592,7 @@ std::optional<Media::RtpMap> Media::ParseRtpMap(const std::string_view& attr_val
         codec_params.emplace(line.substr(spl + 1));
     }
 
-    return RtpMap(payload_type, codec, clock_rate, codec_params);
+    return RtpMap(payload_type, *codec, clock_rate, codec_params);
 }
 
 std::string Media::ToString(Codec codec) {
@@ -590,6 +613,18 @@ std::string Media::ToString(Codec codec) {
         return "flexfec";
     case sdp::Media::Codec::RTX:
         return "rtx";
+    }
+}
+
+std::string Media::ToString(RtcpFeedback rtcp_feedback) {
+    switch (rtcp_feedback)
+    {
+    case RtcpFeedback::NACK:
+        return "nack";
+    case RtcpFeedback::GOOG_REMB:
+        return "goog-remb";
+    case RtcpFeedback::TRANSPORT_CC:
+        return "transport-cc";
     }
 }
 

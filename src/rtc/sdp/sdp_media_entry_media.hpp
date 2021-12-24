@@ -5,7 +5,6 @@
 
 #include <map>
 #include <functional>
-#include <iostream>
 #include <sstream>
 
 namespace naivertc {
@@ -27,19 +26,27 @@ public:
         RTX
     };
 
+    enum class RtcpFeedback {
+        NACK,
+        GOOG_REMB,
+        TRANSPORT_CC
+    };
+
     // RtpMap
     struct RtpMap {
         int payload_type;
         Codec codec;
         int clock_rate;
         std::optional<std::string> codec_params = std::nullopt;
-        std::vector<std::string> rtcp_feedbacks;
+        std::optional<int> rtx_payload_type = std::nullopt;
+        std::vector<RtcpFeedback> rtcp_feedbacks;
         std::vector<std::string> fmt_profiles;
-
+        
         RtpMap(int payload_type, 
                Codec codec, 
                int clock_rate, 
-               std::optional<std::string> codec_params = std::nullopt);
+               std::optional<std::string> codec_params = std::nullopt,
+               std::optional<int> rtx_payload_type = std::nullopt);
     };
 
     // SsrcEntry
@@ -59,6 +66,7 @@ public:
     };
 
     static std::string ToString(Codec codec);
+    static std::string ToString(RtcpFeedback rtcp_feedback);
 
 public:
     Media(Kind kind, 
@@ -101,28 +109,19 @@ public:
     std::optional<uint32_t> FecSsrcAssociatedWithMediaSsrc(uint32_t ssrc) const;
 
     // Codec
-    void AddAudioCodec(int payload_type, 
-                       Codec codec, 
-                       int clock_rate = 48000, 
-                       int channels = 2, 
-                       std::optional<const std::string> profile = std::nullopt);
-    void AddVideoCodec(int payload_type, 
-                       Codec codec,
-                       std::optional<const std::string> profile = std::nullopt);
-
-    void AddCodec(int payload_type, 
-                  Codec codec,
-                  int clock_rate,
-                  std::optional<const std::string> codec_params = std::nullopt,
-                  std::optional<const std::string> profile = std::nullopt);
+    Media::RtpMap* AddCodec(int payload_type, 
+                            Codec codec,
+                            int clock_rate,
+                            std::optional<const std::string> codec_params = std::nullopt,
+                            std::optional<const std::string> profile = std::nullopt);
     
-    bool AddFeedback(int payload_type, const std::string feed_back);
-    void AddRtpMap(RtpMap map);
+    bool AddFeedback(int payload_type, RtcpFeedback feed_back);
+    RtpMap* AddRtpMap(RtpMap map);
     void ForEachRtpMap(std::function<void(const RtpMap& rtp_map)>&& handler) const;
     void ClearRtpMap();
     
     bool HasPayloadType(int pt) const;
-    std::vector<int> payload_types() const;
+    std::vector<int> PayloadTypes() const;
 
     virtual bool ParseSDPLine(std::string_view line) override;
     virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
@@ -148,6 +147,8 @@ private:
 
     int bandwidth_max_value_ = -1;
 };
+
+
 
 } // namespace sdp
 } // namespace naivert 
