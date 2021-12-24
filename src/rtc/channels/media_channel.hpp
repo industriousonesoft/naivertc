@@ -3,8 +3,9 @@
 
 #include "base/defines.hpp"
 #include "rtc/channels/channel.hpp"
-#include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/api/media_transport.hpp"
+#include "rtc/base/time/clock_real_time.hpp"
+#include "rtc/base/task_utils/task_queue.hpp"
 
 #include <iostream>
 
@@ -18,7 +19,7 @@ public:
         AUDIO
     };
 public:
-    MediaChannel(Kind kind, std::string mid);
+    MediaChannel(Kind kind, std::string mid, TaskQueue* task_queue);
     virtual ~MediaChannel();
 
     Kind kind() const;
@@ -39,13 +40,14 @@ private:
 protected:
     const Kind kind_;
     const std::string mid_;
-    TaskQueue task_queue_;
+    std::unique_ptr<RealTimeClock> clock_;
+    TaskQueue* const task_queue_;
     bool is_opened_ = false;
 
     OpenedCallback opened_callback_ = nullptr;
     ClosedCallback closed_callback_ = nullptr;
-
-    MediaTransport* transport_;
+    
+    MediaTransport* send_transport_ = nullptr;
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaChannel::Kind kind);

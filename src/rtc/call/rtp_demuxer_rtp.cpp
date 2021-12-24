@@ -18,25 +18,27 @@ bool RtpDemuxer::DeliverRtpPacket(CopyOnWriteBuffer in_packet) const {
         return false;
     }
 
-    // MID
-    auto rtp_mid_extension = received_packet.GetExtension<rtp::RtpMid>();
-    // RRID
-    auto rtp_rrid_extension = received_packet.GetExtension<rtp::RepairedRtpStreamId>();
-    // RSID (rtp stream id) and RRID (repaired rtp stream id) are routed to the same sink.
-    // If an RSID is specified on a repaired packet, it should be ignored and the RRID should
-    // be used.
-    if (!rtp_rrid_extension) {
-        auto rtp_rsid_extension = received_packet.GetExtension<rtp::RtpStreamId>();
-    }
 
-    // Deliver rtp packet by mid
-    // TODO: Deliver RTP packet by RRID or RSID
-    if (auto sink = sink_by_mid_.at(rtp_mid_extension->value()).lock()) {
+    // Deliver rtp packet
+    if (auto sink = rtp_sink_by_ssrc_.at(received_packet.ssrc())) {
         sink->OnRtpPacket(std::move(received_packet));
-    } else if (auto sink = sink_by_ssrc_.at(received_packet.ssrc()).lock()) {
-        sink->OnRtpPacket(std::move(received_packet));
-    } else {
-        PLOG_WARNING << "No sink found for RTP packet, ssrc=" << received_packet.ssrc();
+    } else  {
+        // TODO: Deliver RTP packet by RRID or RSID
+        // MID
+        auto rtp_mid_extension = received_packet.GetExtension<rtp::RtpMid>();
+        // RRID
+        auto rtp_rrid_extension = received_packet.GetExtension<rtp::RepairedRtpStreamId>();
+        // RSID (rtp stream id) and RRID (repaired rtp stream id) are routed to the same sink.
+        // If an RSID is specified on a repaired packet, it should be ignored and the RRID should
+        // be used.
+        if (!rtp_rrid_extension) {
+            auto rtp_rsid_extension = received_packet.GetExtension<rtp::RtpStreamId>();
+        }
+        if (auto sink = rtp_sink_by_mid_.at(rtp_mid_extension->value())) {
+            sink->OnRtpPacket(std::move(received_packet));
+        } else {
+            PLOG_WARNING << "No sink found for RTP packet, ssrc=" << received_packet.ssrc();
+        }
     }
 
     return true;

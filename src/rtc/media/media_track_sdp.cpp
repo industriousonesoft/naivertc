@@ -4,6 +4,7 @@
 
 #include <plog/Log.h>
 
+namespace naivertc {
 namespace {
 // Video payload type range: [96, 111]
 constexpr int kVideoPayloadTypeLowerRangeValue = 96;
@@ -31,26 +32,22 @@ constexpr int kDefaultVideoClockRate = 90000;
 
 }
 
-namespace naivertc {
-
 sdp::Media MediaTrack::SdpBuilder::Build(const Configuration& config) {
     if (config.kind() == MediaTrack::Kind::AUDIO) {
         auto audio = sdp::Media(sdp::MediaEntry::Kind::AUDIO,
                                 config.mid(),
                                 kDefaultTransportPortocols, 
                                 config.direction);
-        if (AddCodecs(config, audio) && AddSsrcs(config, audio)) {
-            
-        }
+        AddCodecs(config, audio);;
+        AddSsrcs(config, audio);
         return audio;
     } else if (config.kind() == MediaTrack::Kind::VIDEO) {
         auto video = sdp::Media(sdp::MediaEntry::Kind::VIDEO,
                                 config.mid(),
                                 kDefaultTransportPortocols, 
                                 config.direction);
-        if (AddCodecs(config, video) && AddSsrcs(config, video)) {
-            
-        }
+        AddCodecs(config, video);
+        AddSsrcs(config, video);
         return video;
     } else {
         RTC_NOTREACHED();
@@ -58,122 +55,116 @@ sdp::Media MediaTrack::SdpBuilder::Build(const Configuration& config) {
 }
 
 // Private methods
-bool MediaTrack::SdpBuilder::AddCodecs(const Configuration& config, sdp::Media& media) {
+void MediaTrack::SdpBuilder::AddCodecs(const Configuration& config, sdp::Media& media) {
     // Associated payload types of RTX
     std::vector<int> associated_payload_types;
+    auto kind = config.kind();
     // Media codecs
-    bool error_occured = false;
     config.ForEachCodec([&](const CodecParams& cp){
-        if (auto payload_type_opt = NextPayloadType(config.kind())) {
-            int payload_type = payload_type_opt.value();
-            // Media codec
-            AddMediaCodec(payload_type, cp, media);
-            // Feedbacks
-            config.ForEachFeedback([&](RtcpFeedback fb){
-                AddFeedback(payload_type, fb, media);
-            });
+        int payload_type = NextPayloadType(kind);
+        // Media codec
+        auto rtp_map = AddMediaCodec(payload_type, cp, media);
+        if (rtp_map) {
             // Protected by RTX
             if (config.rtx_enabled) {
-                associated_payload_types.push_back(payload_type);
+                rtp_map->rtx_payload_type = NextPayloadType(kind);
+            }
+            // RTCP feedbacks
+            if (config.nack_enabled) {
+                rtp_map->rtcp_feedbacks.push_back(sdp::Media::RtcpFeedback::NACK);
+            }
+            if (config.congestion_control) {
+                // goog-cc
+                if (config.congestion_control == CongestionControl::GOOG_REMB) {
+                    rtp_map->rtcp_feedbacks.push_back(sdp::Media::RtcpFeedback::GOOG_REMB);
+                // transport-cc
+                } else {
+                    rtp_map->rtcp_feedbacks.push_back(sdp::Media::RtcpFeedback::TRANSPORT_CC);
+                }
             }
         } else {
-            PLOG_WARNING << "No more payload type for video codec:" << cp.codec;
-            error_occured = true;
-            return;
+            PLOG_WARNING << "Failed to add media codec: " << cp.codec;
         }
     });
-    if (error_occured) {
-        return false;
-    }
 
-    int clock_rate = config.kind() == MediaTrack::Kind::AUDIO ? kDefaultAudioSampleRate : kDefaultVideoClockRate;
+    int clock_rate = config.kind() == MediaTrack::Kind::AUDIO ? kDefaultAudioSampleRate 
+                                                              : kDefaultVideoClockRate;
+
     // FEC codec
     // ULP_FEC + RED
     if (config.fec_codec == FecCodec::ULP_FEC) {
         // Codec: RED
-        if (auto payload_type_opt = NextPayloadType(config.kind())) {
-            int payload_type = payload_type_opt.value();
-            media.AddCodec(payload_type, sdp::Media::Codec::RED, clock_rate);
-            // Protected by RTX
-            if (config.rtx_enabled) {
-                associated_payload_types.push_back(payload_type);
-            }
-        } else {
-            PLOG_WARNING << "No more payload type for RED codec";
-            return false;
+        int payload_type = NextPayloadType(kind);
+        auto red_rtp_map = media.AddCodec(payload_type, 
+                                          sdp::Media::Codec::RED, 
+                                          clock_rate);
+        // Protected by RTX
+        if (config.rtx_enabled) {
+            red_rtp_map->rtx_payload_type = NextPayloadType(kind);
         }
+        
         // Codec: ULP_FEC
-        if (auto payload_type = NextPayloadType(config.kind())) {
-            media.AddCodec(payload_type.value(), sdp::Media::Codec::ULP_FEC, clock_rate);
-        } else {
-            PLOG_WARNING << "No more payload type for ULP_FEC codec";
-            return false;
-        }
+        media.AddCodec(payload_type, 
+                       sdp::Media::Codec::ULP_FEC, 
+                       clock_rate);
     }
     // FlexFec + Ssrc
     else if (config.fec_codec == FecCodec::FLEX_FEC) {
         // Codec: FLEX_FEC
-        if (auto payload_type = NextPayloadType(config.kind())) {
-            media.AddCodec(payload_type.value(), sdp::Media::Codec::FLEX_FEC, clock_rate);
-        } else {
-            PLOG_WARNING << "No more payload type for ULP_FEC codec";
-            return false;
-        }
+        media.AddCodec(NextPayloadType(kind), sdp::Media::Codec::FLEX_FEC, clock_rate);
     }
 
-    // RTX codex
+    // RTX Codec
     // a=fmtp:<number> apt=<apt-value>;rtx-time=<rtx-time-val>
     // See https://datatracker.ietf.org/doc/html/rfc4588#section-8
     if (config.rtx_enabled) {
-        for (const auto& apt : associated_payload_types) {
-            if (auto payload_type = NextPayloadType(config.kind())) {
+        media.ForEachRtpMap([&](const sdp::Media::RtpMap& rtp_map){
+            if (rtp_map.rtx_payload_type) {
                 // TODO: Add rtx-time attribute if necessary
-                media.AddCodec(payload_type.value(), sdp::Media::Codec::RTX, clock_rate, std::nullopt, "apt=" + std::to_string(apt));
-            } else {
-                PLOG_WARNING << "No more payload type for RTX codec";
-                return false;
+                // apt (Asssociated payload type)
+                media.AddCodec(rtp_map.rtx_payload_type.value(), 
+                               sdp::Media::Codec::RTX, 
+                               clock_rate, 
+                               /*codec_params=*/std::nullopt, 
+                               "apt=" + std::to_string(rtp_map.payload_type));
             }
-        }
+        });
     }
-    return true;
-
 }
 
-bool MediaTrack::SdpBuilder::AddMediaCodec(int payload_type, const CodecParams& cp, sdp::Media& media) {
+sdp::Media::RtpMap* MediaTrack::SdpBuilder::AddMediaCodec(int payload_type, 
+                                                         const CodecParams& cp,
+                                                         sdp::Media& media) {
     // Audio codecs
     // OPUS
     if (cp.codec == MediaTrack::Codec::OPUS) {
-        media.AddAudioCodec(payload_type, sdp::Media::Codec::OPUS, kDefaultAudioSampleRate, kDefaultAudioChannels, cp.profile.value_or(kDefaultOpusFormatProfile));
-        return true;
+        sdp::Media::RtpMap rtp_map(payload_type, 
+                                   sdp::Media::Codec::OPUS, 
+                                   kDefaultAudioSampleRate, 
+                                   /*codec_params=*/std::to_string(kDefaultAudioChannels));
+        rtp_map.fmt_profiles.emplace_back(cp.profile.value_or(kDefaultOpusFormatProfile));
+        return media.AddRtpMap(rtp_map);
     }
     // Video codecs
     // H264
     else if (cp.codec == MediaTrack::Codec::H264) {
-        media.AddVideoCodec(payload_type, sdp::Media::Codec::H264, cp.profile.value_or(kDefaultH264FormatProfile));
-        return true;
+        sdp::Media::RtpMap rtp_map(payload_type, 
+                                   sdp::Media::Codec::H264, 
+                                   kDefaultVideoClockRate);
+        rtp_map.fmt_profiles.emplace_back(cp.profile.value_or(kDefaultH264FormatProfile));
+        return media.AddRtpMap(rtp_map);
     }
     else {
         PLOG_WARNING << "Unsupported media codec: " << cp.codec;
-        return false;
+        return nullptr;
     }
 }
 
-bool MediaTrack::SdpBuilder::AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media) {
-    switch(fb) {
-    case RtcpFeedback::NACK:
-        media.AddFeedback(payload_type, "nack");
-        break;
-    default:
-        break;
-    }
-    return true;
-}
-
-bool MediaTrack::SdpBuilder::AddSsrcs(const Configuration& config, sdp::Media& media) {
+void MediaTrack::SdpBuilder::AddSsrcs(const Configuration& config, sdp::Media& media) {
     if (media.direction() != sdp::Direction::SEND_ONLY &&
         media.direction() != sdp::Direction::SEND_RECV) {
         PLOG_WARNING << "Inactive or only received media track do not contains send stream.";
-        return false;
+        return;
     }
     // Media ssrc
     media.AddSsrc(utils::random::generate_random<uint32_t>(), 
@@ -191,17 +182,16 @@ bool MediaTrack::SdpBuilder::AddSsrcs(const Configuration& config, sdp::Media& m
                       sdp::Media::SsrcEntry::Kind::FEC, 
                       config.cname, config.msid, config.track_id);
     }
-    return true;
 }
 
-std::optional<int> MediaTrack::SdpBuilder::NextPayloadType(Kind kind) {
+int MediaTrack::SdpBuilder::NextPayloadType(Kind kind) {
     if (kind == Kind::AUDIO) {
         static int payload_type = kAudioPayloadTypeLowerRangeValue;
         if (payload_type + 1 <= kAudioPayloadTypeUpperRangeValue) {
             return payload_type++;
         } else {
             PLOG_WARNING << "No more payload type available for Audio codec";
-            return std::nullopt;
+            RTC_NOTREACHED();
         }
     } else if (kind == Kind::VIDEO) {
         static int payload_type = kVideoPayloadTypeLowerRangeValue;
@@ -209,10 +199,10 @@ std::optional<int> MediaTrack::SdpBuilder::NextPayloadType(Kind kind) {
             return payload_type++;
         } else {
             PLOG_WARNING << "No more payload type available for Video codec";
-            return std::nullopt;
+            RTC_NOTREACHED();
         }
     } else {
-        return std::nullopt;
+        RTC_NOTREACHED();
     }
 }
     

@@ -47,17 +47,19 @@ PeerConnection::~PeerConnection() {
 }
 
 void PeerConnection::Close() {
+    worker_task_queue_->Sync([this](){
+       rtp_demuxer_.Clear();
+    });
+    network_task_queue_->Sync([this](){
+        this->CloseTransports();
+    });
     signal_task_queue_->Sync([this](){
         PLOG_VERBOSE << "Closing PeerConnection";
-        this->UpdateConnectionState(ConnectionState::CLOSED);
         this->negotiation_needed_ = false;
         this->data_channel_needed_ = false;
         this->ResetCallbacks();
         this->CloseDataChannels();
         this->CloseMediaTracks();
-    });
-    network_task_queue_->Sync([this](){
-        this->CloseTransports();
     });
 }
 

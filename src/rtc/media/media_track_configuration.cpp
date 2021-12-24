@@ -61,26 +61,6 @@ void MediaTrack::Configuration::ForEachCodec(std::function<void(const CodecParam
     }
 }
 
-void MediaTrack::Configuration::AddFeedback(RtcpFeedback fb) {
-    rtcp_feedbacks_.push_back(fb);
-}
-
-void MediaTrack::Configuration::RemoveFeedback(RtcpFeedback fb) {
-    for (auto it = rtcp_feedbacks_.begin(); it != rtcp_feedbacks_.end();) {
-        if (*it == fb) {
-            it = rtcp_feedbacks_.erase(it);
-        } else {
-            ++it;
-        }
-    }
-}
-
-void MediaTrack::Configuration::ForEachFeedback(std::function<void(RtcpFeedback cp)>&& handler) const {
-    for (auto fb : rtcp_feedbacks_) {
-        handler(fb);
-    }
-}
-
 // Overload operator<<
 std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec) {
     switch (codec) {

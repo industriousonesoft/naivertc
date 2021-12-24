@@ -29,11 +29,11 @@ public:
         FLEX_FEC
     };
 
-    enum class RtcpFeedback {
-        NACK
-        // TODO: Support more feedback
+    enum class CongestionControl {
         // goog-remb
+        GOOG_REMB,
         // transport-cc
+        TRANSPORT_CC
     };
 
     struct CodecParams {
@@ -61,15 +61,13 @@ public:
         void ForEachCodec(std::function<void(const CodecParams& cp)>&& handler) const;
         std::vector<CodecParams> media_codecs() const { return media_codecs_; }
         
-        // Feedbacks
-        void AddFeedback(RtcpFeedback fb);
-        void RemoveFeedback(RtcpFeedback fb);
-        void ForEachFeedback(std::function<void(RtcpFeedback cp)>&& handler) const;
-        std::vector<RtcpFeedback> rtcp_feedbacks() const { return rtcp_feedbacks_; }
-
     public:
         Direction direction = Direction::SEND_RECV;
         bool rtx_enabled = false;
+        // Feedbacks
+        bool nack_enabled = false;
+        std::optional<CongestionControl> congestion_control = std::nullopt;
+        // FEC codec
         std::optional<FecCodec> fec_codec = std::nullopt;
 
         std::optional<std::string> cname = std::nullopt;
@@ -81,13 +79,12 @@ public:
         std::string mid_;
     
         std::vector<CodecParams> media_codecs_;
-        std::vector<RtcpFeedback> rtcp_feedbacks_;
     };
     
 public:
-    MediaTrack(const Configuration& config);
-    MediaTrack(sdp::Media remote_description);
-    ~MediaTrack();
+    MediaTrack(const Configuration& config, TaskQueue* task_queue);
+    MediaTrack(sdp::Media remote_description, TaskQueue* task_queue);
+    virtual ~MediaTrack() override;
 
     bool Reconfig(const Configuration& config);
     bool OnNegotiated(sdp::Media remote_description);
@@ -95,19 +92,26 @@ public:
     const sdp::Media* local_description() const;
     const sdp::Media* remote_description() const;
 
+protected:
+    bool IsSendable() const;
+    bool IsReceivable() const;
+
 private:
     // SdpBuilder
     class SdpBuilder final {
     public:
         static sdp::Media Build(const Configuration& config);
     private:
-        static bool AddCodecs(const Configuration& config, sdp::Media& media);
-        static bool AddMediaCodec(int payload_type, const CodecParams& cp, sdp::Media& media);
-        static bool AddFeedback(int payload_type, RtcpFeedback fb, sdp::Media& media);
-        static bool AddSsrcs(const Configuration& config, sdp::Media& media);
-        static std::optional<int> NextPayloadType(Kind kind);
+        static void AddCodecs(const Configuration& config, 
+                              sdp::Media& media);
+        static sdp::Media::RtpMap* AddMediaCodec(int payload_type, 
+                                                 const CodecParams& cp,
+                                                 sdp::Media& media);
+        static void AddSsrcs(const Configuration& config, 
+                             sdp::Media& media);
+        static int NextPayloadType(Kind kind);
     };
-private:
+protected:
     std::optional<sdp::Media> local_description_;
     std::optional<sdp::Media> remote_description_;
 };

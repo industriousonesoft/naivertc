@@ -5,7 +5,6 @@
 #include "base/certificate.hpp"
 #include "base/thread_annotation.hpp"
 #include "common/proxy.hpp"
-#include "rtc/base/time/clock_real_time.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/pc/peer_connection_configuration.hpp"
 #include "rtc/sdp/candidate.hpp"
@@ -13,8 +12,9 @@
 #include "rtc/transports/ice_transport.hpp"
 #include "rtc/transports/dtls_transport.hpp"
 #include "rtc/transports/sctp_transport.hpp"
-#include "rtc/media/media_track.hpp"
 #include "rtc/channels/data_channel.hpp"
+#include "rtc/media/audio_track.hpp"
+#include "rtc/media/video_track.hpp"
 #include "rtc/call/rtp_demuxer.hpp"
 #include "rtc/api/media_transport.hpp"
 #include "rtc/api/data_transport.hpp"
@@ -84,8 +84,9 @@ public:
 public:
     ~PeerConnection() override;
 
-    std::shared_ptr<MediaTrack> AddTrack(const MediaTrack::Configuration& config);
-    std::shared_ptr<DataChannel> CreateDataChannel(const DataChannel::Init& config, std::optional<uint16_t> stream_id = std::nullopt);
+    std::shared_ptr<AudioTrack> AddAudioTrack(const MediaTrack::Configuration& config);
+    std::shared_ptr<VideoTrack> AddVideoTrack(const MediaTrack::Configuration& config);
+    std::shared_ptr<DataChannel> AddDataChannel(const DataChannel::Init& config, std::optional<uint16_t> stream_id = std::nullopt);
 
     void CreateOffer(SDPCreateSuccessCallback on_success = nullptr, 
                     SDPCreateFailureCallback on_failure = nullptr);
@@ -161,7 +162,7 @@ private:
     void FlushPendingMediaTracks();
     std::shared_ptr<MediaTrack> FindMediaTrack(std::string mid) const;
     std::shared_ptr<MediaTrack> OnIncomingMediaTrack(sdp::Media remote_sdp);
-    void OnNegotiatedMediaTrack(const MediaTrack& media_track);
+    void OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_track);
   
 private:
     // IceTransport callbacks

@@ -312,7 +312,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
                 // Incoming media track with reciprocated SDP. 
                 media_track = OnIncomingMediaTrack(std::move(reciprocated));
             }
-            OnNegotiatedMediaTrack(*media_track.get());
+            OnNegotiatedMediaTrack(media_track);
         });
 
     } 
@@ -391,7 +391,7 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
                 // Incoming media track with reciprocated SDP. 
                 media_track = OnIncomingMediaTrack(std::move(reciprocated));
             }
-            OnNegotiatedMediaTrack(*media_track.get());
+            OnNegotiatedMediaTrack(media_track);
         });
     }
 
@@ -472,7 +472,7 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
 
 std::shared_ptr<MediaTrack> PeerConnection::OnIncomingMediaTrack(sdp::Media remote_sdp) {
     RTC_RUN_ON(signal_task_queue_);
-    auto media_track = std::make_shared<MediaTrack>(std::move(remote_sdp));
+    auto media_track = std::make_shared<MediaTrack>(std::move(remote_sdp), signal_task_queue_.get());
     // Make sure the current media track dosen't be added before.
     if (media_tracks_.find(media_track->mid()) == media_tracks_.end()) {
         media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
@@ -485,30 +485,32 @@ std::shared_ptr<MediaTrack> PeerConnection::OnIncomingMediaTrack(sdp::Media remo
     return media_track;
 }
 
-void PeerConnection::OnNegotiatedMediaTrack(const MediaTrack& media_track) {
+void PeerConnection::OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_track) {
     RTC_RUN_ON(signal_task_queue_);
-    PLOG_DEBUG << __FUNCTION__;
-    // auto mid = remote_sdp.mid();
-    // auto local_sdp_it = media_sdps_.find(mid);
-    // if (local_sdp_it != media_sdps_.end()) {
-    //     // Send SSRCs
-    //     local_sdp_it->second.ForEachSsrc([this, &mid](const sdp::Media::SsrcEntry& ssrc_entry){
-    //         worker_task_queue_->Async([this, mid, ssrc=ssrc_entry.ssrc](){
-    //             if (auto media_track = FindMediaTrack(mid)) {
-    //                 rtp_demuxer_.AddSink(ssrc, media_track);
-    //             }
-    //         });
-    //     });
-    // }
-    
-    // // Receive SSRCs
-    // remote_sdp.ForEachSsrc([this, &mid](const sdp::Media::SsrcEntry& ssrc_entry){
-    //     worker_task_queue_->Async([this, mid, ssrc=ssrc_entry.ssrc](){
-    //         if (auto media_track = FindMediaTrack(mid)) {
-    //             rtp_demuxer_.AddSink(ssrc, media_track);
-    //         }
-    //     });
-    // });
+    assert(media_track != nullptr);
+    if (media_track->kind() == MediaTrack::Kind::VIDEO) {
+        auto video_track = dynamic_cast<VideoTrack*>(media_track.get());
+        VideoSendStream* video_send_stream = video_track->AddSendStream();
+        if (video_send_stream) {
+            for (const auto& ssrc : video_send_stream->ssrcs()) {
+                worker_task_queue_->Async([this, ssrc, video_send_stream](){
+                    rtp_demuxer_.AddRtcpSink(ssrc, video_send_stream);
+                });
+            }
+        }
+        
+        VideoReceiveStream* video_recv_stream = video_track->AddRecvStream();
+        if (video_recv_stream) {
+            for (const auto& ssrc : video_recv_stream->ssrcs()) {
+                worker_task_queue_->Async([this, ssrc, video_recv_stream](){
+                    rtp_demuxer_.AddRtcpSink(ssrc, video_recv_stream);
+                    rtp_demuxer_.AddRtpSink(ssrc, video_recv_stream);
+                });
+            }
+        }
+    } else if (media_track->kind() == MediaTrack::Kind::AUDIO) {
+        // auto audio_track = dynamic_cast<AudioTrack*>(media_track.get());
+    }
 }
 
 } // namespace naivertc

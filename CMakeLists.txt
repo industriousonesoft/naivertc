@@ -144,12 +144,12 @@ set(LIB_HEADERS
     src/rtc/media/media_track.hpp
     src/rtc/media/audio_track.hpp
     src/rtc/media/video_track.hpp
+    src/rtc/media/video_receive_stream.hpp
+    src/rtc/media/video_send_stream.hpp
 
     # rtc -> media -> video
     src/rtc/media/video/common.hpp
     src/rtc/media/video/encoded_frame.hpp
-    src/rtc/media/video/receive_stream.hpp
-    src/rtc/media/video/send_stream.hpp
 
     # rtc -> media -> video -> codecs -> h264
     src/rtc/media/video/codecs/h264/common.hpp
@@ -344,8 +344,6 @@ set(LIB_SOURCES
     src/rtc/sdp/sdp_session_entry.cpp
     src/rtc/sdp/sdp_media_entry_application.cpp
     src/rtc/sdp/sdp_media_entry_media.cpp
-    src/rtc/sdp/sdp_media_entry_media_audio.cpp
-    src/rtc/sdp/sdp_media_entry_media_video.cpp
 
     # rtc -> transports
     src/rtc/transports/transport.cpp
@@ -391,12 +389,12 @@ set(LIB_SOURCES
     src/rtc/media/media_track_sdp.cpp
     src/rtc/media/audio_track.cpp
     src/rtc/media/video_track.cpp
+    src/rtc/media/video_receive_stream.cpp
+    src/rtc/media/video_send_stream.cpp
 
     # rtc -> media -> video
     src/rtc/media/video/common.cpp
     src/rtc/media/video/encoded_frame.cpp
-    src/rtc/media/video/receive_stream.cpp
-    src/rtc/media/video/send_stream.cpp
 
     # rtc -> media -> video -> codecs -> h264
     src/rtc/media/video/codecs/h264/nalunit.cpp

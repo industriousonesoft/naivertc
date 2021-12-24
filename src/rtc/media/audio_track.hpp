@@ -8,8 +8,9 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT AudioTrack : public MediaTrack {
 public:
-    // AudioTrack();
-    // ~AudioTrack();
+    AudioTrack(const Configuration& config, TaskQueue* task_queue);
+    AudioTrack(sdp::Media remote_description, TaskQueue* task_queue);
+    ~AudioTrack() override;
 };
     
 } // namespace naivertc

@@ -48,7 +48,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     audio_track_config.msid.emplace(media_stream_id);
     audio_track_config.track_id.emplace("audio-track-id-1");
     
-    audio_track_ = peer_conn_->AddTrack(audio_track_config);
+    audio_track_ = peer_conn_->AddAudioTrack(audio_track_config);
     audio_track_->OnOpened([](){
         PLOG_INFO << "Local audio track is opened.";
     });
@@ -60,15 +60,16 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
     MediaTrack::Configuration video_track_config(MediaTrack::Kind::VIDEO, "2");
     video_track_config.direction = MediaTrack::Direction::SEND_ONLY;
     video_track_config.rtx_enabled = true;
+    video_track_config.nack_enabled = true;
+    video_track_config.congestion_control = MediaTrack::CongestionControl::TRANSPORT_CC;
     video_track_config.fec_codec.emplace(MediaTrack::FecCodec::ULP_FEC);
     video_track_config.AddCodec(MediaTrack::Codec::H264);
-    video_track_config.AddFeedback(MediaTrack::RtcpFeedback::NACK);
 
     video_track_config.cname.emplace(cname);
     video_track_config.msid.emplace(media_stream_id);
     video_track_config.track_id.emplace("video-track-id-1");
 
-    video_track_ = peer_conn_->AddTrack(video_track_config);
+    video_track_ = peer_conn_->AddVideoTrack(video_track_config);
     video_track_->OnOpened([](){
         PLOG_INFO << "Local video track is opened.";
     });
@@ -79,7 +80,7 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 
     // Data channel
     DataChannel::Init data_channel_init("naivertc-chat-data-channel");
-    data_channel_ = peer_conn_->CreateDataChannel(data_channel_init);
+    data_channel_ = peer_conn_->AddDataChannel(data_channel_init);
 
     data_channel_->OnOpened([weak_dc=make_weak_ptr(data_channel_)](){
         if (auto dc = weak_dc.lock()) {

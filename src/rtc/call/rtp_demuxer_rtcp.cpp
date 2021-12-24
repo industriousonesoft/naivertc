@@ -120,7 +120,7 @@ bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
     }
     
     for (uint32_t ssrc : ssrcs) {
-        if (auto sink = sink_by_ssrc_.at(ssrc).lock()) {
+        if (auto sink = rtcp_sink_by_ssrc_.at(ssrc)) {
             sink->OnRtcpPacket(in_packet);
         }
     }
