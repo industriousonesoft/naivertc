@@ -82,8 +82,8 @@ public:
     };
     
 public:
-    MediaTrack(const Configuration& config, TaskQueue* task_queue);
-    MediaTrack(sdp::Media remote_description, TaskQueue* task_queue);
+    MediaTrack(const Configuration& config);
+    MediaTrack(sdp::Media remote_description);
     virtual ~MediaTrack() override;
 
     bool Reconfig(const Configuration& config);

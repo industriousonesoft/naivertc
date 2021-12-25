@@ -19,7 +19,7 @@ public:
         AUDIO
     };
 public:
-    MediaChannel(Kind kind, std::string mid, TaskQueue* task_queue);
+    MediaChannel(Kind kind, std::string mid);
     virtual ~MediaChannel();
 
     Kind kind() const;
@@ -41,7 +41,7 @@ protected:
     const Kind kind_;
     const std::string mid_;
     std::unique_ptr<RealTimeClock> clock_;
-    TaskQueue* const task_queue_;
+    std::unique_ptr<TaskQueue> signaling_queue_;
     bool is_opened_ = false;
 
     OpenedCallback opened_callback_ = nullptr;

@@ -14,7 +14,7 @@ namespace naivertc {
 // Offer && Answer
 void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success, 
                                  SDPCreateFailureCallback on_failure) {
-    signal_task_queue_->Async([this, on_success, on_failure](){
+    signaling_task_queue_->Async([this, on_success, on_failure](){
         try {
             if (this->signaling_state_ != SignalingState::HAVE_REMOTE_OFFER) {
                 this->SetLocalDescription(sdp::Type::OFFER);
@@ -33,7 +33,7 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
 
 void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success, 
                                   SDPCreateFailureCallback on_failure) {
-    signal_task_queue_->Async([this, on_success, on_failure](){
+    signaling_task_queue_->Async([this, on_success, on_failure](){
         try {
             if (this->signaling_state_ == SignalingState::HAVE_REMOTE_OFFER) {
                 this->SetLocalDescription(sdp::Type::ANSWER);
@@ -53,7 +53,7 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
 void PeerConnection::SetOffer(const std::string sdp,
                               SDPSetSuccessCallback on_success,
                               SDPSetFailureCallback on_failure) {
-    signal_task_queue_->Async([this, sdp=std::move(sdp), on_success, on_failure](){
+    signaling_task_queue_->Async([this, sdp=std::move(sdp), on_success, on_failure](){
         try {
             auto remote_sdp = sdp::Description::Parser::Parse(sdp, sdp::Type::OFFER);
             this->SetRemoteDescription(std::move(remote_sdp));
@@ -67,7 +67,7 @@ void PeerConnection::SetOffer(const std::string sdp,
 void PeerConnection::SetAnswer(const std::string sdp, 
                                 SDPSetSuccessCallback on_success, 
                                 SDPSetFailureCallback on_failure) {
-    signal_task_queue_->Async([this, sdp=std::move(sdp), on_success, on_failure](){
+    signaling_task_queue_->Async([this, sdp=std::move(sdp), on_success, on_failure](){
         try {
             auto remote_sdp = sdp::Description::Parser::Parse(sdp, sdp::Type::ANSWER);
             this->SetRemoteDescription(std::move(remote_sdp));
@@ -79,7 +79,7 @@ void PeerConnection::SetAnswer(const std::string sdp,
 }
 
 void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string sdp) {
-    signal_task_queue_->Async([this, mid, sdp](){
+    signaling_task_queue_->Async([this, mid, sdp](){
         remote_candidates_.emplace_back(sdp::Candidate(sdp, mid));
         // Start to process remote candidate if the remote sdp is ready and the connection is not done yet.
         if (remote_sdp_ && connection_state_ != ConnectionState::CONNECTED) {
@@ -90,7 +90,7 @@ void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string
 
 // Private methods
 void PeerConnection::SetLocalDescription(sdp::Type type) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (connection_state_ == ConnectionState::CONNECTED) {
         throw std::logic_error("Unable to negotiate with remote peer when the local peer is " + ToString(connection_state_));
         return;
@@ -177,7 +177,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
 }
 
 void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (connection_state_ == ConnectionState::CONNECTED) {
         throw std::logic_error("Unable to negotiate with remote peer when the local peer is " + ToString(connection_state_));
         return;
@@ -257,7 +257,7 @@ void PeerConnection::SetRemoteDescription(sdp::Description remote_sdp) {
 }
 
 void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     const uint16_t local_sctp_port = rtc_config_.local_sctp_port.value_or(kDefaultSctpPort);
     const size_t local_max_message_size = rtc_config_.sctp_max_message_size.value_or(kDefaultSctpMaxMessageSize);
 
@@ -374,7 +374,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
     local_sdp_ = std::move(local_sdp);
 }
 void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     PLOG_VERBOSE << "Did process remote sdp: " << std::string(remote_sdp);
 
     // Handle incoming media track in remote SDP.
@@ -408,7 +408,7 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
 }
 
 void PeerConnection::ProcessRemoteCandidates() {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     assert(remote_sdp_.has_value());
     for (auto candidate : remote_candidates_) {
         ProcessRemoteCandidate(std::move(candidate));
@@ -417,7 +417,7 @@ void PeerConnection::ProcessRemoteCandidates() {
 }
 
 void PeerConnection::ProcessRemoteCandidate(sdp::Candidate candidate) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     PLOG_VERBOSE << "Adding remote candidate: " << std::string(candidate);
     // We assume all medias are multiplex
     candidate.HintMid(remote_sdp_->bundle_id());
@@ -434,7 +434,7 @@ void PeerConnection::ProcessRemoteCandidate(sdp::Candidate candidate) {
 }
 
 void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (!remote_sdp.ice_ufrag()) {
         throw std::invalid_argument("Remote sdp has no ICE user fragment");
     }
@@ -471,8 +471,8 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
 }
 
 std::shared_ptr<MediaTrack> PeerConnection::OnIncomingMediaTrack(sdp::Media remote_sdp) {
-    RTC_RUN_ON(signal_task_queue_);
-    auto media_track = std::make_shared<MediaTrack>(std::move(remote_sdp), signal_task_queue_.get());
+    RTC_RUN_ON(signaling_task_queue_);
+    auto media_track = std::make_shared<MediaTrack>(std::move(remote_sdp));
     // Make sure the current media track dosen't be added before.
     if (media_tracks_.find(media_track->mid()) == media_tracks_.end()) {
         media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
@@ -486,7 +486,7 @@ std::shared_ptr<MediaTrack> PeerConnection::OnIncomingMediaTrack(sdp::Media remo
 }
 
 void PeerConnection::OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_track) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     assert(media_track != nullptr);
     if (media_track->kind() == MediaTrack::Kind::VIDEO) {
         auto video_track = dynamic_cast<VideoTrack*>(media_track.get());

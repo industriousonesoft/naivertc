@@ -2,24 +2,25 @@
 
 namespace naivertc {
 
-VideoTrack::VideoTrack(const Configuration& config, TaskQueue* task_queue) 
-    : MediaTrack(config, task_queue) {}
+VideoTrack::VideoTrack(const Configuration& config) 
+    : MediaTrack(config) {}
 
-VideoTrack::VideoTrack(sdp::Media remote_description, TaskQueue* task_queue) 
-    : MediaTrack(std::move(remote_description), task_queue) {}
+VideoTrack::VideoTrack(sdp::Media remote_description) 
+    : MediaTrack(std::move(remote_description)) {}
 
 VideoTrack::~VideoTrack() {}
 
 VideoSendStream* VideoTrack::AddSendStream() {
-    return task_queue_->Sync<VideoSendStream*>([this](){
-        VideoSendStream* ret = nullptr;
+    return signaling_queue_->Sync<VideoSendStream*>([this](){
+        VideoSendStream* send_stream = nullptr;
         if (IsSendable()) {
             auto config = BuildSendConfig(*local_description_);
-            // TODO: Make sure send stream created in Send queue
-            // send_stream_.reset(new VideoSendStream(config, SendQueue()));
-            // return send_stream_.get();
+            send_stream = SendQueue()->Sync<VideoSendStream*>([this, config=std::move(config)](){
+                send_stream_.reset(new VideoSendStream(config, SendQueue()));
+                return send_stream_.get();
+            });
         }
-        return ret;
+        return send_stream;
     });
 }
 

@@ -20,33 +20,33 @@ MediaTrack::Kind ToKind(sdp::MediaEntry::Kind kind) {
 } // namespace
 
 // Media track
-MediaTrack::MediaTrack(const Configuration& config, TaskQueue* task_queue) 
-    : MediaChannel(config.kind(), config.mid(), task_queue),
+MediaTrack::MediaTrack(const Configuration& config) 
+    : MediaChannel(config.kind(), config.mid()),
       local_description_(SdpBuilder::Build(config)),
       remote_description_(std::nullopt) {
 }
 
-MediaTrack::MediaTrack(sdp::Media remote_description, TaskQueue* task_queue) 
-    : MediaChannel(ToKind(remote_description.kind()), remote_description.mid(), task_queue),
+MediaTrack::MediaTrack(sdp::Media remote_description) 
+    : MediaChannel(ToKind(remote_description.kind()), remote_description.mid()),
       local_description_(std::nullopt),
       remote_description_(std::move(remote_description)) {}
 
 MediaTrack::~MediaTrack() {}
 
 const sdp::Media* MediaTrack::local_description() const {
-    return task_queue_->Sync<const sdp::Media*>([this](){
+    return signaling_queue_->Sync<const sdp::Media*>([this](){
         return local_description_ ? &local_description_.value() : nullptr;
     });
 }
 
 const sdp::Media* MediaTrack::remote_description() const {
-    return task_queue_->Sync<const sdp::Media*>([this](){
+    return signaling_queue_->Sync<const sdp::Media*>([this](){
         return remote_description_ ? &remote_description_.value() : nullptr;
     });
 }
 
 bool MediaTrack::Reconfig(const Configuration& config) {
-    return task_queue_->Sync<bool>([this, &config](){
+    return signaling_queue_->Sync<bool>([this, &config](){
         if (config.kind() != kind_) {
             PLOG_WARNING << "Failed to reconfig as the incomming kind=" << config.kind()
                          << " is different from media track kind=" << kind_;
@@ -62,7 +62,7 @@ bool MediaTrack::Reconfig(const Configuration& config) {
 }
 
 bool MediaTrack::OnNegotiated(sdp::Media remote_description) {
-    return task_queue_->Sync<bool>([this, remote_description=remote_description]{
+    return signaling_queue_->Sync<bool>([this, remote_description=remote_description]{
         if (local_description_->kind() != remote_description.kind()) {
             PLOG_WARNING << "Failed to reconfig as the incomming kind=" << remote_description.kind()
                          << " is different from media track kind=" << kind_;

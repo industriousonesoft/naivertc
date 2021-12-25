@@ -6,7 +6,7 @@
 namespace naivertc {
 
 void PeerConnection::InitDtlsTransport() {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (dtls_transport_) {
         return;
     }
@@ -45,7 +45,7 @@ void PeerConnection::InitDtlsTransport() {
 
 void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_state) {
     RTC_RUN_ON(network_task_queue_);
-    signal_task_queue_->Async([this, transport_state](){
+    signaling_task_queue_->Async([this, transport_state](){
         switch (transport_state)
         {
         case DtlsSrtpTransport::State::CONNECTED: {
@@ -79,7 +79,7 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
 
 bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
     RTC_RUN_ON(network_task_queue_);
-    return signal_task_queue_->Sync<bool>([this, remote_fingerprint=std::move(fingerprint)](){
+    return signaling_task_queue_->Sync<bool>([this, remote_fingerprint=std::move(fingerprint)](){
         // We expect the remote fingerprint received by singaling channel is equal to 
         // the remote fingerprint received by DTLS channel.
         auto expected_remote_fingerprint = this->remote_sdp_.has_value() ? this->remote_sdp_->fingerprint() : std::nullopt;
@@ -101,7 +101,7 @@ void PeerConnection::OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rt
 }
 
 void PeerConnection::OpenMediaTracks() {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
             if (!media_track->is_opened()) {
@@ -112,7 +112,7 @@ void PeerConnection::OpenMediaTracks() {
 }
 
 void PeerConnection::CloseMediaTracks() {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
             media_track->Close();

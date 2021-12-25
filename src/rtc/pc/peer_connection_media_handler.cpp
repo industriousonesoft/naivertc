@@ -6,10 +6,10 @@
 namespace naivertc {
     
 std::shared_ptr<AudioTrack> PeerConnection::AddAudioTrack(const MediaTrack::Configuration& config) {
-    return signal_task_queue_->Sync<std::shared_ptr<AudioTrack>>([this, &config]() -> std::shared_ptr<AudioTrack> {
+    return signaling_task_queue_->Sync<std::shared_ptr<AudioTrack>>([this, &config]() -> std::shared_ptr<AudioTrack> {
         std::shared_ptr<MediaTrack> media_track = FindMediaTrack(config.mid());
         if (!media_track) {
-            media_track = std::make_shared<AudioTrack>(config, signal_task_queue_.get());
+            media_track = std::make_shared<AudioTrack>(config);
             this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
         } else if (!media_track->Reconfig(config)) {
             PLOG_WARNING << "Failed to add media track ["
@@ -25,10 +25,10 @@ std::shared_ptr<AudioTrack> PeerConnection::AddAudioTrack(const MediaTrack::Conf
 }
 
 std::shared_ptr<VideoTrack> PeerConnection::AddVideoTrack(const MediaTrack::Configuration& config) {
-    return signal_task_queue_->Sync<std::shared_ptr<VideoTrack>>([this, &config]() -> std::shared_ptr<VideoTrack> {
+    return signaling_task_queue_->Sync<std::shared_ptr<VideoTrack>>([this, &config]() -> std::shared_ptr<VideoTrack> {
         std::shared_ptr<MediaTrack> media_track = FindMediaTrack(config.mid());
         if (!media_track) {
-            media_track = std::make_shared<VideoTrack>(config, signal_task_queue_.get());
+            media_track = std::make_shared<VideoTrack>(config);
             this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
         } else if (!media_track->Reconfig(config)) {
             PLOG_WARNING << "Failed to add media track ["
@@ -45,7 +45,7 @@ std::shared_ptr<VideoTrack> PeerConnection::AddVideoTrack(const MediaTrack::Conf
 
 // Data Channels
 std::shared_ptr<DataChannel> PeerConnection::AddDataChannel(const DataChannel::Init& init_config, std::optional<uint16_t> stream_id_opt) {
-    return signal_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, init_config, stream_id_opt=std::move(stream_id_opt)]() -> std::shared_ptr<DataChannel> {
+    return signaling_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, init_config, stream_id_opt=std::move(stream_id_opt)]() -> std::shared_ptr<DataChannel> {
         uint16_t stream_id;
         try {
             if (stream_id_opt.has_value()) {

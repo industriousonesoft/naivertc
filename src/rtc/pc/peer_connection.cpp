@@ -28,11 +28,11 @@ PeerConnection::PeerConnection(const RtcConfiguration& config)
         }
     }
 
-    signal_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.signal.task.queue");
+    signaling_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.signal.task.queue");
     network_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.network.task.queue");
     worker_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.worker.task.queue");
 
-    signal_task_queue_->Async([this](){
+    signaling_task_queue_->Async([this](){
         InitIceTransport();
     });
 }
@@ -41,7 +41,7 @@ PeerConnection::~PeerConnection() {
     Close();
     // Those task queues will be blocked until
     // all the tasks in the queue have been done. 
-    signal_task_queue_.reset();
+    signaling_task_queue_.reset();
     network_task_queue_.reset();
     worker_task_queue_.reset();
 }
@@ -53,7 +53,7 @@ void PeerConnection::Close() {
     network_task_queue_->Sync([this](){
         this->CloseTransports();
     });
-    signal_task_queue_->Sync([this](){
+    signaling_task_queue_->Sync([this](){
         PLOG_VERBOSE << "Closing PeerConnection";
         this->negotiation_needed_ = false;
         this->data_channel_needed_ = false;
@@ -65,31 +65,31 @@ void PeerConnection::Close() {
 
 // state && candidate callback
 void PeerConnection::OnConnectionStateChanged(ConnectionStateCallback callback) {
-    signal_task_queue_->Async([this, callback](){
+    signaling_task_queue_->Async([this, callback](){
         this->connection_state_callback_ = callback;
     });
 }
 
 void PeerConnection::OnIceGatheringStateChanged(GatheringStateCallback callback) {
-    signal_task_queue_->Async([this, callback](){
+    signaling_task_queue_->Async([this, callback](){
         this->gathering_state_callback_ = callback;
     });
 }
 
 void PeerConnection::OnIceCandidateGathered(CandidateCallback callback) {
-    signal_task_queue_->Async([this, callback](){
+    signaling_task_queue_->Async([this, callback](){
         this->candidate_callback_ = callback;
     });
 }
 
 void PeerConnection::OnSignalingStateChanged(SignalingStateCallback callback) {
-    signal_task_queue_->Async([this, callback](){
+    signaling_task_queue_->Async([this, callback](){
         this->signaling_state_callback_ = callback;
     });
 }
 
 void PeerConnection::OnRemoteDataChannelReceived(DataChannelCallback callback) {
-    signal_task_queue_->Async([this, callback=std::move(callback)](){
+    signaling_task_queue_->Async([this, callback=std::move(callback)](){
         this->data_channel_callback_ = std::move(callback);
         // Flush pending data channels
         this->FlushPendingDataChannels();
@@ -97,7 +97,7 @@ void PeerConnection::OnRemoteDataChannelReceived(DataChannelCallback callback) {
 }
 
 void PeerConnection::OnRemoteMediaTrackReceived(MediaTrackCallback callback) {
-    signal_task_queue_->Async([this, callback=std::move(callback)](){
+    signaling_task_queue_->Async([this, callback=std::move(callback)](){
         this->media_track_callback_ = std::move(callback);
         // Flush pending media tracks
         this->FlushPendingMediaTracks();
@@ -129,7 +129,7 @@ bool PeerConnection::Send(SctpMessageToSend message) {
 
 // Private methods
 void PeerConnection::FlushPendingDataChannels() {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (this->data_channel_callback_ && this->pending_data_channels_.size() > 0) {
         for (auto dc : this->pending_data_channels_) {
             this->data_channel_callback_(std::move(dc));
@@ -139,7 +139,7 @@ void PeerConnection::FlushPendingDataChannels() {
 }
 
 void PeerConnection::FlushPendingMediaTracks() {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (this->media_track_callback_ && this->pending_media_tracks_.size() > 0) {
         for (auto dc : this->pending_media_tracks_) {
             this->media_track_callback_(std::move(dc));
@@ -149,7 +149,7 @@ void PeerConnection::FlushPendingMediaTracks() {
 }
 
 std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(uint16_t stream_id) const {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (auto it = data_channels_.find(stream_id); it != data_channels_.end()) {
         return it->second.lock();
     }
@@ -157,7 +157,7 @@ std::shared_ptr<DataChannel> PeerConnection::FindDataChannel(uint16_t stream_id)
 }
 
 std::shared_ptr<MediaTrack> PeerConnection::FindMediaTrack(std::string mid) const {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (auto it = this->media_tracks_.find(mid); it != this->media_tracks_.end()) {
         return it->second.lock();
     }
@@ -165,7 +165,7 @@ std::shared_ptr<MediaTrack> PeerConnection::FindMediaTrack(std::string mid) cons
 }
 
 void PeerConnection::ShiftDataChannelIfNeccessary(sdp::Role role) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     decltype(data_channels_) new_data_channels;
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
@@ -178,7 +178,7 @@ void PeerConnection::ShiftDataChannelIfNeccessary(sdp::Role role) {
 
 // Private methods
 bool PeerConnection::UpdateConnectionState(ConnectionState state) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (connection_state_ == state) {
         return false;
     }
@@ -190,7 +190,7 @@ bool PeerConnection::UpdateConnectionState(ConnectionState state) {
 }
 
 bool PeerConnection::UpdateGatheringState(GatheringState state) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (gathering_state_ == state) {
         return false;
     }
@@ -202,7 +202,7 @@ bool PeerConnection::UpdateGatheringState(GatheringState state) {
 }
 
 bool PeerConnection::UpdateSignalingState(SignalingState state) {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     if (signaling_state_ == state) {
         return false;
     }
@@ -214,7 +214,7 @@ bool PeerConnection::UpdateSignalingState(SignalingState state) {
 }
 
 void PeerConnection::ResetCallbacks() {
-    RTC_RUN_ON(signal_task_queue_);
+    RTC_RUN_ON(signaling_task_queue_);
     connection_state_callback_ = nullptr;
     gathering_state_callback_ = nullptr;
     candidate_callback_ = nullptr;

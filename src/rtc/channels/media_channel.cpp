@@ -3,35 +3,42 @@
 #include <plog/Log.h>
 
 namespace naivertc {
+namespace {
 
-MediaChannel::MediaChannel(Kind kind, std::string mid, TaskQueue* task_queue) 
+std::string ToString(MediaChannel::Kind kind) {
+    return kind == MediaChannel::Kind::AUDIO ? "audio" : "video";
+}
+    
+} // namespace
+
+MediaChannel::MediaChannel(Kind kind, std::string mid) 
     : kind_(kind),
       mid_(std::move(mid)),
       clock_(std::make_unique<RealTimeClock>()),
-      task_queue_(task_queue) {}
+      signaling_queue_(std::make_unique<TaskQueue>(ToString(kind_) + ".mediachannel." + mid + "signaling.queue")) {}
 
 MediaChannel::~MediaChannel() {}
 
 MediaChannel::Kind MediaChannel::kind() const {
-    return task_queue_->Sync<Kind>([this](){
+    return signaling_queue_->Sync<Kind>([this](){
         return kind_;
     });
 }
 
 const std::string MediaChannel::mid() const {
-    return task_queue_->Sync<std::string>([this](){
+    return signaling_queue_->Sync<std::string>([this](){
         return mid_;
     });
 }
 
 bool MediaChannel::is_opened() const {
-    return task_queue_->Sync<bool>([this](){
+    return signaling_queue_->Sync<bool>([this](){
         return is_opened_;
     });
 }
 
 void MediaChannel::Open(MediaTransport* transport) {
-    task_queue_->Async([this, transport](){
+    signaling_queue_->Async([this, transport](){
         if (is_opened_) {
             PLOG_VERBOSE << "MediaChannel: " << mid_ << " did open already.";
             return;
@@ -42,20 +49,20 @@ void MediaChannel::Open(MediaTransport* transport) {
 }
 
 void MediaChannel::Close() {
-    task_queue_->Async([this](){
+    signaling_queue_->Async([this](){
         send_transport_ = nullptr;
         TriggerClose();
     });
 }
 
 void MediaChannel::OnOpened(OpenedCallback callback) {
-    task_queue_->Async([this, callback=std::move(callback)](){
+    signaling_queue_->Async([this, callback=std::move(callback)](){
         opened_callback_ = callback;
     });
 }
 
 void MediaChannel::OnClosed(ClosedCallback callback) {
-    task_queue_->Async([this, callback=std::move(callback)](){
+    signaling_queue_->Async([this, callback=std::move(callback)](){
         closed_callback_ = callback;
     });
 }
