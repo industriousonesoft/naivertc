@@ -5,6 +5,7 @@
 #include "base/certificate.hpp"
 #include "base/thread_annotation.hpp"
 #include "common/proxy.hpp"
+#include "rtc/base/time/clock_real_time.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/pc/peer_connection_configuration.hpp"
 #include "rtc/sdp/candidate.hpp"
@@ -115,7 +116,7 @@ public:
     void OnRemoteDataChannelReceived(DataChannelCallback callback);
     void OnRemoteMediaTrackReceived(MediaTrackCallback callback);
 
-public:
+private:
     // MediaTransport interfaces
     int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override;
     // DataTransport interfaces
@@ -163,7 +164,7 @@ private:
     std::shared_ptr<MediaTrack> FindMediaTrack(std::string mid) const;
     std::shared_ptr<MediaTrack> OnIncomingMediaTrack(sdp::Media remote_sdp);
     void OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_track);
-  
+
 private:
     // IceTransport callbacks
     void OnIceTransportStateChanged(Transport::State transport_state);
@@ -183,6 +184,7 @@ private:
     void OnSctpReadyToSend();
 private:
     const RtcConfiguration rtc_config_ RTC_GUARDED_BY(signaling_task_queue_);
+    std::unique_ptr<RealTimeClock> clock_;
     std::shared_future<std::shared_ptr<Certificate>> certificate_;
     
     ConnectionState connection_state_ RTC_GUARDED_BY(signaling_task_queue_) = ConnectionState::CLOSED;
