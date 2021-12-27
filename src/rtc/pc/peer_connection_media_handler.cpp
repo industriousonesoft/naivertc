@@ -11,11 +11,11 @@ std::shared_ptr<AudioTrack> PeerConnection::AddAudioTrack(const MediaTrack::Conf
         if (!media_track) {
             media_track = std::make_shared<AudioTrack>(config);
             this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
-        } else if (!media_track->Reconfig(config)) {
-            PLOG_WARNING << "Failed to add media track ["
+        } else {
+            PLOG_WARNING << "The media track ["
                          << "kind = " << config.kind()
                          << ", mid = " << config.mid()
-                         << "].";
+                         << "] has already existed.";
             return nullptr;
         }
         // Renegotiation is needed for the new or updated media track
@@ -30,11 +30,11 @@ std::shared_ptr<VideoTrack> PeerConnection::AddVideoTrack(const MediaTrack::Conf
         if (!media_track) {
             media_track = std::make_shared<VideoTrack>(config);
             this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
-        } else if (!media_track->Reconfig(config)) {
-            PLOG_WARNING << "Failed to add media track ["
+        } else {
+            PLOG_WARNING << "The media track ["
                          << "kind = " << config.kind()
                          << ", mid = " << config.mid()
-                         << "].";
+                         << "] has already existed.";
             return nullptr;
         }
         // Renegotiation is needed for the new or updated media track

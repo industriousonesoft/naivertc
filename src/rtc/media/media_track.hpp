@@ -83,18 +83,10 @@ public:
     
 public:
     MediaTrack(const Configuration& config);
-    MediaTrack(sdp::Media remote_description);
+    MediaTrack(sdp::Media description);
     virtual ~MediaTrack() override;
 
-    bool Reconfig(const Configuration& config);
-    bool OnNegotiated(sdp::Media remote_description);
-
-    const sdp::Media* local_description() const;
-    const sdp::Media* remote_description() const;
-
-protected:
-    bool IsSendable() const;
-    bool IsReceivable() const;
+    sdp::Media description() const;
 
 private:
     // SdpBuilder
@@ -112,8 +104,7 @@ private:
         static int NextPayloadType(Kind kind);
     };
 protected:
-    std::optional<sdp::Media> local_description_;
-    std::optional<sdp::Media> remote_description_;
+    const sdp::Media description_;
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec);

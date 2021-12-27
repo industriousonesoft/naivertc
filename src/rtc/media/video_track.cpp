@@ -5,21 +5,21 @@ namespace naivertc {
 VideoTrack::VideoTrack(const Configuration& config) 
     : MediaTrack(config) {}
 
-VideoTrack::VideoTrack(sdp::Media remote_description) 
-    : MediaTrack(std::move(remote_description)) {}
+VideoTrack::VideoTrack(sdp::Media description) 
+    : MediaTrack(std::move(description)) {}
 
 VideoTrack::~VideoTrack() {}
 
 VideoSendStream* VideoTrack::AddSendStream() {
     return signaling_queue_->Sync<VideoSendStream*>([this](){
         VideoSendStream* send_stream = nullptr;
-        if (IsSendable()) {
-            auto config = BuildSendConfig(*local_description_);
-            send_stream = SendQueue()->Sync<VideoSendStream*>([this, config=std::move(config)](){
-                send_stream_.reset(new VideoSendStream(config, SendQueue()));
-                return send_stream_.get();
-            });
-        }
+        // if (IsSendable()) {
+        //     auto config = BuildSendConfig(*local_description_);
+        //     send_stream = SendQueue()->Sync<VideoSendStream*>([this, config=std::move(config)](){
+        //         send_stream_.reset(new VideoSendStream(config, SendQueue()));
+        //         return send_stream_.get();
+        //     });
+        // }
         return send_stream;
     });
 }

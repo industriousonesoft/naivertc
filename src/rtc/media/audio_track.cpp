@@ -5,8 +5,8 @@ namespace naivertc {
 AudioTrack::AudioTrack(const Configuration& config) 
     : MediaTrack(config) {}
 
-AudioTrack::AudioTrack(sdp::Media remote_description) 
-    : MediaTrack(std::move(remote_description)) {}
+AudioTrack::AudioTrack(sdp::Media description) 
+    : MediaTrack(std::move(description)) {}
 
 AudioTrack::~AudioTrack() {}
     

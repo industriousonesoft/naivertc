@@ -22,70 +22,17 @@ MediaTrack::Kind ToKind(sdp::MediaEntry::Kind kind) {
 // Media track
 MediaTrack::MediaTrack(const Configuration& config) 
     : MediaChannel(config.kind(), config.mid()),
-      local_description_(SdpBuilder::Build(config)),
-      remote_description_(std::nullopt) {
+      description_(SdpBuilder::Build(config)) {
 }
 
-MediaTrack::MediaTrack(sdp::Media remote_description) 
-    : MediaChannel(ToKind(remote_description.kind()), remote_description.mid()),
-      local_description_(std::nullopt),
-      remote_description_(std::move(remote_description)) {}
+MediaTrack::MediaTrack(sdp::Media description) 
+    : MediaChannel(ToKind(description.kind()), description.mid()),
+      description_(std::move(description)) {}
 
 MediaTrack::~MediaTrack() {}
 
-const sdp::Media* MediaTrack::local_description() const {
-    return signaling_queue_->Sync<const sdp::Media*>([this](){
-        return local_description_ ? &local_description_.value() : nullptr;
-    });
-}
-
-const sdp::Media* MediaTrack::remote_description() const {
-    return signaling_queue_->Sync<const sdp::Media*>([this](){
-        return remote_description_ ? &remote_description_.value() : nullptr;
-    });
-}
-
-bool MediaTrack::Reconfig(const Configuration& config) {
-    return signaling_queue_->Sync<bool>([this, &config](){
-        if (config.kind() != kind_) {
-            PLOG_WARNING << "Failed to reconfig as the incomming kind=" << config.kind()
-                         << " is different from media track kind=" << kind_;
-            return false;
-        } else if (config.mid() != mid_) {
-            PLOG_WARNING << "Failed to reconfig as the incomming mid=" << config.mid()
-                         << " is different from local media mid=" << mid_;
-            return false;
-        }
-        local_description_.emplace(SdpBuilder::Build(config));
-        return true;
-    });
-}
-
-bool MediaTrack::OnNegotiated(sdp::Media remote_description) {
-    return signaling_queue_->Sync<bool>([this, remote_description=remote_description]{
-        if (local_description_->kind() != remote_description.kind()) {
-            PLOG_WARNING << "Failed to reconfig as the incomming kind=" << remote_description.kind()
-                         << " is different from media track kind=" << kind_;
-            return false;
-        } else if (local_description_->mid() != remote_description.mid()) {
-            PLOG_WARNING << "Failed to reconfig as the incomming mid=" << remote_description.mid()
-                         << " is different from local media mid=" << mid_;
-            return false;
-        }
-        remote_description_.emplace(std::move(remote_description));
-        return true;
-    });
-}
-
-// Private methods
-bool MediaTrack::IsSendable() const {
-    return local_description_ && (local_description_->direction() == sdp::Direction::SEND_RECV || 
-                                  local_description_->direction() == sdp::Direction::SEND_ONLY);
-}
-
-bool MediaTrack::IsReceivable() const {
-    return remote_description_ && (remote_description_->direction() == sdp::Direction::SEND_RECV || 
-                                   remote_description_->direction() == sdp::Direction::RECV_ONLY);
+sdp::Media MediaTrack::description() const {
+    return description_;
 }
 
 } // namespace naivertc

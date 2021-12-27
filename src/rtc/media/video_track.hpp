@@ -12,7 +12,7 @@ namespace naivertc {
 class RTC_CPP_EXPORT VideoTrack : public MediaTrack {
 public:
     VideoTrack(const Configuration& config);
-    VideoTrack(sdp::Media remote_description);
+    VideoTrack(sdp::Media description);
     ~VideoTrack() override;
 
     VideoSendStream* AddSendStream();
