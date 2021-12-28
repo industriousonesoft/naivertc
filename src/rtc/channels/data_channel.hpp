@@ -4,7 +4,6 @@
 #include "base/defines.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
-#include "rtc/channels/channel.hpp"
 #include "rtc/transports/sctp_message.hpp"
 #include "rtc/api/data_transport.hpp"
 
@@ -15,8 +14,7 @@
 namespace naivertc {
 
 // DataChannel
-class RTC_CPP_EXPORT DataChannel : public Channel, 
-                                   public std::enable_shared_from_this<DataChannel> {
+class RTC_CPP_EXPORT DataChannel : public std::enable_shared_from_this<DataChannel> {
 public:
     struct RTC_CPP_EXPORT Init {
         std::string label = "";
@@ -48,6 +46,8 @@ public:
         Init(std::string label);
     };
 
+    using OpenedCallback = std::function<void()>;
+    using ClosedCallback = std::function<void()>;
     using BinaryMessageReceivedCallback = std::function<void(const uint8_t* in_data, size_t in_size)>;
     using TextMessageReceivedCallback = std::function<void(const std::string text)>;
     using BufferedAmountChangedCallback = std::function<void(uint64_t previous_amount)>;
@@ -70,14 +70,13 @@ public:
 
     // TODO: Find a better way to set the transport.
     void Open(std::weak_ptr<DataTransport> transport);
-    void Close() override;
-    void RemoteClose();
+    void Close(bool by_remote = false);
 
     void Send(const std::string text);
     void OnIncomingMessage(SctpMessage message);
 
-    void OnOpened(OpenedCallback callback) override;
-    void OnClosed(ClosedCallback callback) override;
+    void OnOpened(OpenedCallback callback);
+    void OnClosed(ClosedCallback callback);
     void OnMessageReceived(BinaryMessageReceivedCallback callback);
     void OnMessageReceived(TextMessageReceivedCallback callback);
     void OnBufferedAmountChanged(BufferedAmountChangedCallback callback);
@@ -117,10 +116,10 @@ private:
     SctpMessageToSend::Reliability user_message_reliability_;
     SctpMessageToSend::Reliability control_message_reliability_;
     
-    TaskQueue task_queue_;
+    std::unique_ptr<TaskQueue> task_queue_;
 
     bool is_opened_ = false;
-    std::weak_ptr<DataTransport> transport_;
+    std::weak_ptr<DataTransport> send_transport_;
 
     std::queue<SctpMessageToSend> pending_outgoing_messages_;
     std::queue<SctpMessage> pending_incoming_messages_;

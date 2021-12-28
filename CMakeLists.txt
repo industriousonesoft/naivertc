@@ -129,9 +129,9 @@ set(LIB_HEADERS
     src/rtc/pc/peer_connection.hpp
 
     # rtc -> channels
-    src/rtc/channels/channel.hpp
     src/rtc/channels/data_channel.hpp
     src/rtc/channels/media_channel.hpp
+    src/rtc/channels/video_channel.hpp
 
     # rtc -> call
     src/rtc/call/rtp_video_sender.hpp
@@ -367,11 +367,11 @@ set(LIB_SOURCES
     src/rtc/pc/peer_connection_media_handler.cpp
 
     # rtc -> channels
-    src/rtc/channels/channel.cpp
     src/rtc/channels/data_channel.cpp
     src/rtc/channels/data_channel_utils.cpp
     src/rtc/channels/data_channel_message.cpp
     src/rtc/channels/media_channel.cpp
+    src/rtc/channels/video_channel.cpp
 
     # rtc -> call
     src/rtc/call/rtp_video_sender.cpp

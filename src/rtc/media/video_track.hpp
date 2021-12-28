@@ -11,26 +11,14 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT VideoTrack : public MediaTrack {
 public:
-    VideoTrack(const Configuration& config);
-    VideoTrack(sdp::Media description);
+    using MediaTrack::MediaTrack;
     ~VideoTrack() override;
 
-    VideoSendStream* AddSendStream();
-    VideoReceiveStream* AddRecvStream();
-
+private:
+    void TriggerOpen() override {};
+    void TriggerClose() override {};
 private:
     VideoSendStream::Configuration BuildSendConfig(const sdp::Media& description) const;
-
-    TaskQueue* SendQueue();
-    TaskQueue* RecvQueue();
-
-private:
-    std::unique_ptr<TaskQueue> send_queue_ = nullptr;
-    std::unique_ptr<TaskQueue> recv_queue_ = nullptr;
-
-    std::unique_ptr<VideoSendStream> send_stream_ = nullptr;
-    std::unique_ptr<VideoReceiveStream> recv_stream_ = nullptr;
-
 };
     
 } // namespace naivertc

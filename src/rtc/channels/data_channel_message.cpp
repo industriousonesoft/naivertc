@@ -99,7 +99,7 @@ struct Close {
 } // namespace message
 
 void DataChannel::OnIncomingMessage(SctpMessage message) {
-    task_queue_.Async([this, message=std::move(message)]() mutable {
+    task_queue_->Async([this, message=std::move(message)]() mutable {
         switch (message.type()) {
             case SctpMessage::Type::CONTROL: {
                 const auto& payload = message.payload();
@@ -133,7 +133,7 @@ void DataChannel::OnIncomingMessage(SctpMessage message) {
 
 void DataChannel::Send(const std::string text) {
     CopyOnWriteBuffer payload(reinterpret_cast<const uint8_t*>(text.c_str()), text.length());
-    task_queue_.Async([this, payload=std::move(payload)](){
+    task_queue_->Async([this, payload=std::move(payload)](){
         Send(SctpMessageToSend(SctpMessage::Type::STRING, stream_id_, std::move(payload), user_message_reliability_));
     });
 }
@@ -174,7 +174,7 @@ void DataChannel::ProcessPendingIncomingMessages() {
         } else {
             // Close message from remote peer
             if (message.type() == SctpMessage::Type::CONTROL && IsCloseMessage(message.payload())) {
-                RemoteClose();
+                Close(/*by_remote=*/true);
             }
         }
         pending_incoming_messages_.pop();
@@ -216,7 +216,7 @@ bool DataChannel::FlushPendingMessages() {
 }
 
 bool DataChannel::TrySend(SctpMessageToSend message) {
-    if (auto transport = transport_.lock()) {
+    if (auto transport = send_transport_.lock()) {
         return transport->Send(std::move(message));
     }
     PLOG_WARNING << "Failed to send message since the data transport is unset or released yet.";

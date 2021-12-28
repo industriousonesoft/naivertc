@@ -506,24 +506,24 @@ void PeerConnection::OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_tr
     assert(media_track != nullptr);
     if (media_track->kind() == MediaTrack::Kind::VIDEO) {
         auto video_track = dynamic_cast<VideoTrack*>(media_track.get());
-        VideoSendStream* video_send_stream = video_track->AddSendStream();
-        if (video_send_stream) {
-            for (const auto& ssrc : video_send_stream->ssrcs()) {
-                worker_task_queue_->Async([this, ssrc, video_send_stream](){
-                    rtp_demuxer_.AddRtcpSink(ssrc, video_send_stream);
-                });
-            }
-        }
-        
-        VideoReceiveStream* video_recv_stream = video_track->AddRecvStream();
-        if (video_recv_stream) {
-            for (const auto& ssrc : video_recv_stream->ssrcs()) {
-                worker_task_queue_->Async([this, ssrc, video_recv_stream](){
-                    rtp_demuxer_.AddRtcpSink(ssrc, video_recv_stream);
-                    rtp_demuxer_.AddRtpSink(ssrc, video_recv_stream);
-                });
-            }
-        }
+        // VideoSendStream* video_send_stream = video_track->AddSendStream();
+        // if (video_send_stream) {
+        //     for (const auto& ssrc : video_send_stream->ssrcs()) {
+        //         worker_task_queue_->Async([this, ssrc, video_send_stream](){
+        //             rtp_demuxer_.AddRtcpSink(ssrc, video_send_stream);
+        //         });
+        //     }
+        // }
+        //
+        // VideoReceiveStream* video_recv_stream = video_track->AddRecvStream();
+        // if (video_recv_stream) {
+        //     for (const auto& ssrc : video_recv_stream->ssrcs()) {
+        //         worker_task_queue_->Async([this, ssrc, video_recv_stream](){
+        //             rtp_demuxer_.AddRtcpSink(ssrc, video_recv_stream);
+        //             rtp_demuxer_.AddRtpSink(ssrc, video_recv_stream);
+        //         });
+        //     }
+        // }
     } else if (media_track->kind() == MediaTrack::Kind::AUDIO) {
         // auto audio_track = dynamic_cast<AudioTrack*>(media_track.get());
     }

@@ -62,6 +62,20 @@ void MediaTrack::Configuration::ForEachCodec(std::function<void(const CodecParam
 }
 
 // Overload operator<<
+std::ostream& operator<<(std::ostream& out, MediaTrack::Kind kind) {
+    switch (kind) {
+    case MediaTrack::Kind::AUDIO:
+        out << "audio";
+        break;
+    case MediaTrack::Kind::VIDEO:
+        out << "video";
+        break;
+    default:
+        RTC_NOTREACHED();
+    }
+    return out;
+}
+
 std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec) {
     switch (codec) {
     case MediaTrack::Codec::H264:
@@ -71,7 +85,7 @@ std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec) {
         out << "Opus";
         break;
     default:
-        break;
+        RTC_NOTREACHED();
     }
     return out;
 }
@@ -85,7 +99,7 @@ std::ostream& operator<<(std::ostream& out, MediaTrack::FecCodec codec) {
         out << "FLEX_FEC";
         break;
     default:
-        break;
+        RTC_NOTREACHED();
     }
     return out;
 }

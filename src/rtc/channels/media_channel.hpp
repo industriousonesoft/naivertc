@@ -2,55 +2,39 @@
 #define _RTC_CHANNELS_MEDIA_CHANNEL_H_
 
 #include "base/defines.hpp"
-#include "rtc/channels/channel.hpp"
 #include "rtc/api/media_transport.hpp"
 #include "rtc/base/time/clock_real_time.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
+#include "rtc/sdp/sdp_media_entry_media.hpp"
+#include "rtc/media/video_send_stream.hpp"
+#include "rtc/media/video_receive_stream.hpp"
 
 #include <iostream>
 
 namespace naivertc {
 
 // MediaChannel
-class RTC_CPP_EXPORT MediaChannel : public Channel {
+class RTC_CPP_EXPORT MediaChannel {
 public:
-    enum class Kind {
-        VIDEO,
-        AUDIO
-    };
-public:
-    MediaChannel(Kind kind, std::string mid);
     virtual ~MediaChannel();
 
-    Kind kind() const;
     const std::string mid() const;
 
-    bool is_opened() const;
+    void Open(std::weak_ptr<MediaTransport> transport);
+    void Close();
 
-    void Open(MediaTransport* transport);
-    void Close() override;
-
-    void OnOpened(OpenedCallback callback) override;
-    void OnClosed(ClosedCallback callback) override;
-
-private:
-    void TriggerOpen();
-    void TriggerClose();
+    virtual void SetLocalMedia(sdp::Media media, sdp::Type type);
+    virtual void SetRemoteMedia(sdp::Media media, sdp::Type type);
 
 protected:
-    const Kind kind_;
+    MediaChannel(std::string mid, TaskQueue* worker_queue);
+
+protected:
     const std::string mid_;
-    std::unique_ptr<RealTimeClock> clock_;
-    std::unique_ptr<TaskQueue> signaling_queue_;
-    bool is_opened_ = false;
+    TaskQueue* worker_queue_;
 
-    OpenedCallback opened_callback_ = nullptr;
-    ClosedCallback closed_callback_ = nullptr;
-    
-    MediaTransport* send_transport_ = nullptr;
+    std::weak_ptr<MediaTransport> send_transport_;
 };
-
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaChannel::Kind kind);
 
 } // nemespace naivertc
 

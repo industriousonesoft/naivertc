@@ -144,7 +144,7 @@ void PeerConnection::RemoteCloseDataChannels() {
     RTC_RUN_ON(signaling_task_queue_);
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
-            dc->RemoteClose();
+            dc->Close(/*by_remote=*/true);
         }
     }
     data_channels_.clear();

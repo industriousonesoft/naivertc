@@ -8,9 +8,12 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT AudioTrack : public MediaTrack {
 public:
-    AudioTrack(const Configuration& config);
-    AudioTrack(sdp::Media description);
+    using MediaTrack::MediaTrack;
     ~AudioTrack() override;
+
+private:
+    void TriggerOpen() override {};
+    void TriggerClose() override {};
 };
     
 } // namespace naivertc

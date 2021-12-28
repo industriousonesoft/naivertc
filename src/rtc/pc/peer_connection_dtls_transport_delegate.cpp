@@ -104,9 +104,7 @@ void PeerConnection::OpenMediaTracks() {
     RTC_RUN_ON(signaling_task_queue_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
-            if (!media_track->is_opened()) {
-                media_track->Open(this);
-            }
+            media_track->TriggerOpen();
         }
     }
 }
@@ -115,7 +113,7 @@ void PeerConnection::CloseMediaTracks() {
     RTC_RUN_ON(signaling_task_queue_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
-            media_track->Close();
+            media_track->TriggerClose();
         }
     }
     media_tracks_.clear();

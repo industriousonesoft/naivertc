@@ -2,52 +2,11 @@
 
 namespace naivertc {
 
-VideoTrack::VideoTrack(const Configuration& config) 
-    : MediaTrack(config) {}
-
-VideoTrack::VideoTrack(sdp::Media description) 
-    : MediaTrack(std::move(description)) {}
-
 VideoTrack::~VideoTrack() {}
-
-VideoSendStream* VideoTrack::AddSendStream() {
-    return signaling_queue_->Sync<VideoSendStream*>([this](){
-        VideoSendStream* send_stream = nullptr;
-        // if (IsSendable()) {
-        //     auto config = BuildSendConfig(*local_description_);
-        //     send_stream = SendQueue()->Sync<VideoSendStream*>([this, config=std::move(config)](){
-        //         send_stream_.reset(new VideoSendStream(config, SendQueue()));
-        //         return send_stream_.get();
-        //     });
-        // }
-        return send_stream;
-    });
-}
-
-VideoReceiveStream* VideoTrack::AddRecvStream() {
-    return nullptr;
-}
-
-// Private methods
-TaskQueue* VideoTrack::SendQueue() {
-    if (!send_queue_) {
-        send_queue_ = std::make_unique<TaskQueue>("VideoTrack.send.queue");
-    }
-    return send_queue_.get();
-}
-   
-TaskQueue* VideoTrack::RecvQueue() {
-    if (!recv_queue_) {
-        recv_queue_ = std::make_unique<TaskQueue>("VideoTrack.recv.queue");
-    }
-    return recv_queue_.get();
-}
 
 VideoSendStream::Configuration VideoTrack::BuildSendConfig(const sdp::Media& description) const {
     VideoSendStream::Configuration send_stream_config;
-    send_stream_config.clock = clock_.get();
-    send_stream_config.send_transport = send_transport_;
-
+  
     auto media_ssrcs = description.media_ssrcs();
     auto rtx_ssrcs = description.rtx_ssrcs();
     auto fec_ssrcs = description.fec_ssrcs();
