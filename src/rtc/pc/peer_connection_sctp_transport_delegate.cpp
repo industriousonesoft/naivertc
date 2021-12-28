@@ -79,7 +79,7 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                 if (stream_id % 2 == remote_parity) {
                     // The remote data channel will negotiate later by processing incomming message, 
                     // so it's unnegotiated.
-                    data_channel = DataChannel::RemoteDataChannel(stream_id, false /* unnegotiated */, this);
+                    data_channel = DataChannel::RemoteDataChannel(stream_id, /*negotiated=*/false, shared_from_this());
                     // We own the data channel temporarily
                     pending_data_channels_.push_back(data_channel);
                     data_channels_.emplace(stream_id, data_channel);
@@ -125,7 +125,7 @@ void PeerConnection::OpenDataChannels() {
     RTC_RUN_ON(signaling_task_queue_);
     for (auto& kv : data_channels_) {
         if (auto dc = kv.second.lock()) {
-            dc->Open(this);
+            dc->Open(shared_from_this());
         }
     }
 }

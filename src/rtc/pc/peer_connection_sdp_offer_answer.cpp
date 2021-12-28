@@ -25,7 +25,7 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
             } else {
                 throw std::runtime_error("Failed to create local offer sdp.");
             }
-        }catch(const std::exception& exp) {
+        }catch(std::exception exp) {
             on_failure(std::move(exp));
         }
     });
@@ -44,8 +44,8 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
             } else {
                 throw std::runtime_error("Failed to create local answer sdp.");
             }
-        }catch(const std::exception& exp) {
-            on_failure(exp);
+        }catch(std::exception exp) {
+            on_failure(std::move(exp));
         }
     });
 }
@@ -58,8 +58,8 @@ void PeerConnection::SetOffer(const std::string sdp,
             auto remote_sdp = sdp::Description::Parser::Parse(sdp, sdp::Type::OFFER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
-        }catch(const std::exception& exp) {
-            on_failure(exp);
+        }catch(std::exception exp) {
+            on_failure(std::move(exp));
         }
     });
 }
@@ -72,7 +72,7 @@ void PeerConnection::SetAnswer(const std::string sdp,
             auto remote_sdp = sdp::Description::Parser::Parse(sdp, sdp::Type::ANSWER);
             this->SetRemoteDescription(std::move(remote_sdp));
             on_success();
-        }catch (const std::exception& exp) {
+        }catch (std::exception exp) {
             on_failure(std::move(exp));
         }
     });        

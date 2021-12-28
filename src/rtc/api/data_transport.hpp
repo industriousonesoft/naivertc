@@ -4,6 +4,8 @@
 #include "base/defines.hpp"
 #include "rtc/transports/sctp_message.hpp"
 
+#include <exception>
+
 namespace naivertc {
 
 // DataTransport

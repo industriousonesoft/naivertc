@@ -132,13 +132,9 @@ void DataChannel::OnIncomingMessage(SctpMessage message) {
 }
 
 void DataChannel::Send(const std::string text) {
-    task_queue_.Async([this, text=std::move(text)](){
-        if (transport_) {
-            CopyOnWriteBuffer payload(reinterpret_cast<const uint8_t*>(text.c_str()), text.length());
-            Send(SctpMessageToSend(SctpMessage::Type::STRING, stream_id_, std::move(payload), user_message_reliability_));
-        } else {
-            PLOG_WARNING << "The data channel is not ready to send data.";
-        }
+    CopyOnWriteBuffer payload(reinterpret_cast<const uint8_t*>(text.c_str()), text.length());
+    task_queue_.Async([this, payload=std::move(payload)](){
+        Send(SctpMessageToSend(SctpMessage::Type::STRING, stream_id_, std::move(payload), user_message_reliability_));
     });
 }
 
@@ -220,11 +216,11 @@ bool DataChannel::FlushPendingMessages() {
 }
 
 bool DataChannel::TrySend(SctpMessageToSend message) {
-    if (!transport_) {
-        PLOG_WARNING << "Failed to send message cause the sctp transport is not set yet.";
-        return false;
+    if (auto transport = transport_.lock()) {
+        return transport->Send(std::move(message));
     }
-    return transport_->Send(std::move(message));;
+    PLOG_WARNING << "Failed to send message since the data transport is unset or released yet.";
+    return false;
 }
     
 } // namespace naivertc

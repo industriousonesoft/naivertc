@@ -28,7 +28,8 @@ namespace naivertc {
 
 // PeerConnection
 class RTC_CPP_EXPORT PeerConnection : public MediaTransport,
-                                      public DataTransport {
+                                      public DataTransport,
+                                      public std::enable_shared_from_this<PeerConnection> {
 public:
     // ConnectionState
     enum class ConnectionState: int {
@@ -68,10 +69,10 @@ public:
     using MediaTrackCallback = std::function<void(std::shared_ptr<MediaTrack>)>;
 
     using SDPCreateSuccessCallback = std::function<void(const sdp::Description sdp)>;
-    using SDPCreateFailureCallback = std::function<void(const std::exception& exp)>;
+    using SDPCreateFailureCallback = std::function<void(std::exception exp)>;
 
     using SDPSetSuccessCallback = std::function<void()>;
-    using SDPSetFailureCallback = std::function<void(const std::exception& exp)>;
+    using SDPSetFailureCallback = std::function<void(std::exception exp)>;
 
     static std::string ToString(ConnectionState state);
     static std::string ToString(GatheringState state);

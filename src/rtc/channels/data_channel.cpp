@@ -11,11 +11,11 @@ DataChannel::Init::Init(std::string label)
 // Implement of DataChannel
 std::shared_ptr<DataChannel> DataChannel::RemoteDataChannel(uint16_t stream_id,
                                                             bool negotiated,
-                                                            DataTransport* transport) {
+                                                            std::weak_ptr<DataTransport> transport) {
     Init init("");
     init.negotiated = negotiated;
     auto dc = std::shared_ptr<DataChannel>(new DataChannel(init, stream_id));
-    dc->transport_ = transport;
+    dc->transport_ = std::move(transport);
     return dc;
 }
 
@@ -90,14 +90,14 @@ void DataChannel::HintStreamId(sdp::Role role) {
     });
 }
 
-void DataChannel::Open(DataTransport* transport) {
+void DataChannel::Open(std::weak_ptr<DataTransport> transport) {
     task_queue_.Async([this, transport](){
         if (is_opened_) {
             PLOG_VERBOSE << "DataChannel: " + std::to_string(stream_id_) + "did open already.";
             return;
         }
         PLOG_VERBOSE << __FUNCTION__;
-        transport_ = transport;
+        transport_ = std::move(transport);
         config_.negotiated ? TriggerOpen() : SendOpenMessage();
     });
     
@@ -192,12 +192,12 @@ void DataChannel::Reset() {
     std::queue<SctpMessageToSend>().swap(pending_outgoing_messages_);
 	std::queue<SctpMessage>().swap(pending_incoming_messages_);
     buffered_amount_ = 0;
-    transport_ = nullptr;
+    transport_.reset();
 }
 
 void DataChannel::CloseStream() {
-    if (transport_) {
-        transport_->Send(SctpMessageToSend(SctpMessage::Type::CLOSE, stream_id_, {}, control_message_reliability_));
+    if (auto transport = transport_.lock()) {
+        transport->Send(SctpMessageToSend(SctpMessage::Type::CLOSE, stream_id_, {}, control_message_reliability_));
     }
 }
 

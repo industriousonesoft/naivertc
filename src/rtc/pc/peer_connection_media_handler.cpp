@@ -87,7 +87,7 @@ std::shared_ptr<DataChannel> PeerConnection::AddDataChannel(const DataChannel::I
             });
 
             if (is_connected) {
-                data_channel->Open(this);
+                data_channel->Open(shared_from_this());
             }
 
             return data_channel;
