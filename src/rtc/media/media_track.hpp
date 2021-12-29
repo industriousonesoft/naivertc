@@ -15,13 +15,8 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT MediaTrack {
+class RTC_CPP_EXPORT MediaTrack : public MediaChannel {
 public:
-    enum class Kind {
-        VIDEO,
-        AUDIO
-    };
-
     using Direction = sdp::Direction;
 
     enum class Codec {
@@ -88,24 +83,12 @@ public:
         std::vector<CodecParams> media_codecs_;
     };
 
-    using OpenedCallback = std::function<void()>;
-    using ClosedCallback = std::function<void()>;
-    
 public:
     MediaTrack(const Configuration& config);
     MediaTrack(sdp::Media description);
     virtual ~MediaTrack();
 
-    Kind kind() const;
-    const std::string mid() const;
     sdp::Media description() const;
-    bool is_opened() const;
-
-    virtual void TriggerOpen();
-    virtual void TriggerClose();
-
-    void OnOpened(OpenedCallback callback);
-    void OnClosed(ClosedCallback callback);
 
 private:
     // SdpBuilder
@@ -124,13 +107,7 @@ private:
     };
 
 protected:
-    const Kind kind_;
     const sdp::Media description_;
-    bool is_opened_ = false;
-    std::unique_ptr<TaskQueue> task_queue_;
-
-    OpenedCallback opened_callback_ = nullptr;
-    ClosedCallback closed_callback_ = nullptr;
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Kind kind);

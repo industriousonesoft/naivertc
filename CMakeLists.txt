@@ -102,6 +102,7 @@ set(LIB_HEADERS
     src/rtc/api/data_transport.hpp
     src/rtc/api/rtp_packet_sink.hpp
     src/rtc/api/video_encoded_frame_sink.hpp
+    src/rtc/api/media_send_stream.hpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.hpp
@@ -131,7 +132,6 @@ set(LIB_HEADERS
     # rtc -> channels
     src/rtc/channels/data_channel.hpp
     src/rtc/channels/media_channel.hpp
-    src/rtc/channels/video_channel.hpp
 
     # rtc -> call
     src/rtc/call/rtp_video_sender.hpp
@@ -371,7 +371,6 @@ set(LIB_SOURCES
     src/rtc/channels/data_channel_utils.cpp
     src/rtc/channels/data_channel_message.cpp
     src/rtc/channels/media_channel.cpp
-    src/rtc/channels/video_channel.cpp
 
     # rtc -> call
     src/rtc/call/rtp_video_sender.cpp

@@ -36,7 +36,9 @@ bool VideoSendStream::OnEncodedFrame(video::EncodedFrame encoded_frame) {
 }
 
 void VideoSendStream::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
-
+    task_queue_->Async([this, in_packet=std::move(in_packet)](){
+        rtp_video_sender_->OnRtcpPacket(std::move(in_packet));
+    });
 }
     
 } // namespace naivertc

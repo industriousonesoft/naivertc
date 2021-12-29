@@ -7,14 +7,14 @@
 #include "rtc/base/time/clock.hpp"
 #include "rtc/api/media_transport.hpp"
 #include "rtc/api/video_encoded_frame_sink.hpp"
-#include "rtc/api/rtp_packet_sink.hpp"
+#include "rtc/api/media_send_stream.hpp"
 
 #include <memory>
 
 namespace naivertc {
 
 class RTC_CPP_EXPORT VideoSendStream : public VideoEncodedFrameSink,
-                                       public RtcpPacketSink {
+                                       public MediaSendStream {
 public:
     struct Configuration {
         using RtpConfig = struct RtpVideoSender::Configuration;
@@ -25,9 +25,9 @@ public:
     };
 public:
     VideoSendStream(Configuration config, TaskQueue* task_queue);
-    ~VideoSendStream();
+    ~VideoSendStream() override;
 
-    std::vector<uint32_t> ssrcs() const;
+    std::vector<uint32_t> ssrcs() const override;
 
     // VideoEncodedFrameSink interfaces
     bool OnEncodedFrame(video::EncodedFrame encoded_frame) override;

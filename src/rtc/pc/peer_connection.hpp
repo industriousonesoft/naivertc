@@ -5,7 +5,6 @@
 #include "base/certificate.hpp"
 #include "base/thread_annotation.hpp"
 #include "common/proxy.hpp"
-#include "rtc/base/time/clock_real_time.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/pc/peer_connection_configuration.hpp"
 #include "rtc/sdp/candidate.hpp"
@@ -16,9 +15,9 @@
 #include "rtc/channels/data_channel.hpp"
 #include "rtc/media/audio_track.hpp"
 #include "rtc/media/video_track.hpp"
-#include "rtc/call/rtp_demuxer.hpp"
 #include "rtc/api/media_transport.hpp"
 #include "rtc/api/data_transport.hpp"
+#include "rtc/call/rtp_demuxer.hpp"
 
 #include <exception>
 #include <unordered_map>
@@ -185,7 +184,6 @@ private:
     void OnSctpReadyToSend();
 private:
     const RtcConfiguration rtc_config_ RTC_GUARDED_BY(signaling_task_queue_);
-    std::unique_ptr<RealTimeClock> clock_;
     std::shared_future<std::shared_ptr<Certificate>> certificate_;
     
     ConnectionState connection_state_ RTC_GUARDED_BY(signaling_task_queue_) = ConnectionState::CLOSED;
@@ -220,8 +218,8 @@ private:
 
     // Keep a weak reference instead of shared one, since the life cycle of 
     // data channels or media tracks should be owned by the one who has created them.
-    std::unordered_map<uint16_t, std::weak_ptr<DataChannel>> data_channels_ RTC_GUARDED_BY(signaling_task_queue_);
-    std::unordered_map<std::string /* mid */, std::weak_ptr<MediaTrack>> media_tracks_ RTC_GUARDED_BY(signaling_task_queue_);
+    std::unordered_map</*streamid*/uint16_t, std::weak_ptr<DataChannel>> data_channels_ RTC_GUARDED_BY(signaling_task_queue_);
+    std::unordered_map</*mid*/std::string, std::weak_ptr<MediaTrack>> media_tracks_ RTC_GUARDED_BY(signaling_task_queue_);
 
     // The pending data channels will be owned by peer connection before 
     // handled by user, that's why we use shared_ptr here.

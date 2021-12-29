@@ -5,14 +5,13 @@
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/call/rtp_video_receiver.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
-#include "rtc/api/rtp_packet_sink.hpp"
+#include "rtc/api/media_receive_stream.hpp"
 
 #include <map>
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT VideoReceiveStream : public RtpPacketSink,
-                                          public RtcpPacketSink {
+class RTC_CPP_EXPORT VideoReceiveStream : public MediaReceiveStream {
 public:
     struct Configuration {
         using RtpConfig = struct RtpVideoReceiver::Configuration;
@@ -20,9 +19,9 @@ public:
     };  
 public:
     VideoReceiveStream(Configuration config, TaskQueue* task_queue);
-    ~VideoReceiveStream();
+    ~VideoReceiveStream() override;
 
-    std::vector<uint32_t> ssrcs() const;
+    std::vector<uint32_t> ssrcs() const override;
 
     // RtpPacketSink interfaces
     void OnRtpPacket(RtpPacketReceived in_packet) override;

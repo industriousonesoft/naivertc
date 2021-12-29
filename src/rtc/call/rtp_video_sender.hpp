@@ -74,6 +74,8 @@ public:
 
     bool OnEncodedFrame(video::EncodedFrame encoded_frame);
 
+    void OnRtcpPacket(CopyOnWriteBuffer in_packet);
+
 private:
     void InitRtpRtcpModules(const Configuration& config,
                             Clock* clock,

@@ -42,6 +42,10 @@ bool RtpVideoSender::OnEncodedFrame(video::EncodedFrame encoded_frame) {
     return bRet;
 }
 
+void RtpVideoSender::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
+    rtcp_module_->IncomingPacket(std::move(in_packet));
+}
+
 // Private methods
 void RtpVideoSender::InitRtpRtcpModules(const Configuration& config,
                                         Clock* clock,
