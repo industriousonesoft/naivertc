@@ -11,6 +11,7 @@
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtcp/report_block_data.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/loss_notification.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <vector>
@@ -91,17 +92,37 @@ public:
                 int64_t* max_rtt_ms) const;
 
 private:
-    bool ParseCompoundPacket(CopyOnWriteBuffer packet);
-    bool ParseSenderReport(const rtcp::CommonHeader& rtcp_block);
-    bool ParseReceiverReport(const rtcp::CommonHeader& rtcp_block);
-    bool ParseSdes(const rtcp::CommonHeader& rtcp_block);
-    bool ParseNack(const rtcp::CommonHeader& rtcp_block);
-    bool ParseBye(const rtcp::CommonHeader& rtcp_block);
-    
-    void HandleReportBlock(const rtcp::ReportBlock& report_block, uint32_t remote_ssrc);
+    struct PacketInfo {
+        // RTCP packet type bit field.
+        uint32_t packet_type_flags = 0;
+        uint32_t remote_ssrc = 0;
+        int64_t rtt_ms = 0;
+        // The receiver estimated max bitrate
+        uint32_t remb_bps = 0;
+
+        std::vector<uint16_t> nack_list;
+        std::vector<ReportBlockData> report_block_datas;
+
+        std::unique_ptr<rtcp::LossNotification> loss_notification;
+    };
+
+    bool ParseCompoundPacket(CopyOnWriteBuffer packet, 
+                             PacketInfo* packet_info);
+    bool ParseSenderReport(const rtcp::CommonHeader& rtcp_block, 
+                           PacketInfo* packet_info);
+    bool ParseReceiverReport(const rtcp::CommonHeader& rtcp_block, 
+                             PacketInfo* packet_info);
+    bool ParseSdes(const rtcp::CommonHeader& rtcp_block, 
+                   PacketInfo* packet_info);
+    bool ParseNack(const rtcp::CommonHeader& rtcp_block, 
+                   PacketInfo* packet_info);
+    bool ParseBye(const rtcp::CommonHeader& rtcp_block, 
+                  PacketInfo* packet_info);
+    void ParseReportBlock(const rtcp::ReportBlock& report_block, 
+                          PacketInfo* packet_info,
+                          uint32_t remote_ssrc);
 
     bool IsRegisteredSsrc(uint32_t ssrc) const;
-
 private:
     Clock* const clock_;
     Observer* const observer_;
@@ -124,7 +145,7 @@ private:
     uint64_t remote_sender_reports_count_ = 0;
 
     // The last time we received an RTCP Report block
-    Timestamp last_time_received_rb_ = Timestamp::PlusInfinity();
+    Timestamp last_received_rb_ = Timestamp::PlusInfinity();
 
     // The time we last received an RTCP RR telling we have successfully
     // delivered RTP packet to the remote side.

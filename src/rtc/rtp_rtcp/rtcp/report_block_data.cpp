@@ -21,7 +21,7 @@ void ReportBlockData::SetReportBlock(RTCPReportBlock report_block,
     report_block_timestamp_utc_us_ = report_block_timestamp_utc_us;
 }
 
-void ReportBlockData::AddRoundTripTimeSample(int64_t rtt_ms) {
+void ReportBlockData::AddRttMs(int64_t rtt_ms) {
     if (rtt_ms > max_rtt_ms_)
         max_rtt_ms_ = rtt_ms;
     if (num_rtts_ == 0 || rtt_ms < min_rtt_ms_)

@@ -23,14 +23,14 @@ int64_t CompactNtpRttToMs(uint32_t compact_ntp_interval) {
     // it might become negative that is indistinguishable from very large values.
     // Since very large rtt/delay are less likely than non-monotonic ntp clock,
     // those values consider to be negative and convert to minimum value of 1ms.
-    if (compact_ntp_interval > 0x80000000)
+    if (compact_ntp_interval > 0x80000000 /*2^31*/)
         return 1;
     // Convert to 64bit value to avoid multiplication overflow.
     int64_t value = static_cast<int64_t>(compact_ntp_interval);
     // To convert to milliseconds need to divide by 2^16 to get seconds,
     // then multiply by 1000 to get milliseconds. To avoid float operations,
     // multiplication and division swapped.
-    int64_t ms = DivideRoundToNearest(value * 1000, 1 << 16);
+    int64_t ms = DivideRoundToNearest(value * 1000, 0x10000 /*2^16*/);
     // Rtt value 0 considered too good to be true and increases to 1.
     return std::max<int64_t>(ms, 1);
 }

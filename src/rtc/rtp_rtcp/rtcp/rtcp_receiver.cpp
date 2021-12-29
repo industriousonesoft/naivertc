@@ -52,10 +52,11 @@ uint32_t RtcpReceiver::remote_ssrc() const {
 
 void RtcpReceiver::IncomingPacket(CopyOnWriteBuffer packet) {
     RTC_RUN_ON(&sequence_checker_);
-    if (ParseCompoundPacket(std::move(packet))) {
-        PLOG_WARNING << "Failed to parse incoming packet.";
+    PacketInfo packet_info;
+    if (!ParseCompoundPacket(std::move(packet), &packet_info)) {
         return;
     }
+
     // TODO: Implement this.
 }
 

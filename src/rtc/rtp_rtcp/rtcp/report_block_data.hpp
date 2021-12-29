@@ -23,8 +23,10 @@ public:
 
     double AvgRttMs() const;
 
-    void SetReportBlock(RTCPReportBlock report_block, int64_t report_block_timestamp_utc_us);
-    void AddRoundTripTimeSample(int64_t rtt_ms);
+    void SetReportBlock(RTCPReportBlock report_block, 
+                        int64_t report_block_timestamp_utc_us);
+                        
+    void AddRttMs(int64_t rtt_ms);
 
 private:
     RTCPReportBlock report_block_;
