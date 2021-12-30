@@ -8,19 +8,6 @@ constexpr int kLocalMediaSsrcIndex = 1;
 constexpr int kRtxSendSsrcIndex = 2;
 constexpr int kFlexFecSsrcIndex = 3;
 
-// RttStats
-void RtcpReceiver::RttStats::AddRtt(TimeDelta rtt) {
-  last_rtt_ = rtt;
-  if (rtt < min_rtt_) {
-    min_rtt_ = rtt;
-  }
-  if (rtt > max_rtt_) {
-    max_rtt_ = rtt;
-  }
-  sum_rtt_ += rtt;
-  ++num_rtts_;
-}
-
 // RTCPReceiver
 RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config, 
                            Observer* const observer) 
@@ -28,7 +15,20 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config,
       observer_(observer),
       receiver_only_(config.receiver_only),
       remote_ssrc_(0),
-      packet_type_counter_observer_(config.packet_type_counter_observer) {
+      remote_sender_rtp_time_(0),
+      remote_sender_packet_count_(0),
+      remote_sender_octet_count_(0),
+      remote_sender_reports_count_(0),
+      last_received_rb_(Timestamp::PlusInfinity()),
+      last_time_increased_sequence_number_(Timestamp::PlusInfinity()),
+      num_skipped_packets_(0),
+      last_skipped_packets_warning_ms_(clock_->now_ms()),
+      packet_type_counter_observer_(config.packet_type_counter_observer),
+      intra_frame_observer_(config.intra_frame_observer),
+      loss_notification_observer_(config.loss_notification_observer),
+      bandwidth_observer_(config.bandwidth_observer),
+      cname_observer_(config.cname_observer) {
+
     // Registered ssrcs
     registered_ssrcs_[kLocalMediaSsrcIndex] = config.local_media_ssrc;
     if (config.rtx_send_ssrc.has_value()) {
@@ -116,19 +116,19 @@ int32_t RtcpReceiver::RTT(uint32_t remote_ssrc,
         return -1;
     }
     if (last_rtt_ms) {
-        *last_rtt_ms = it->second.last_rtt().ms();
+        *last_rtt_ms = it->second.last_rtt_ms();
     }
 
     if (avg_rtt_ms) {
-        *avg_rtt_ms = it->second.average_rtt().ms();
+        *avg_rtt_ms = it->second.avg_rtt_ms();
     }
 
     if (min_rtt_ms) {
-        *min_rtt_ms = it->second.min_rtt().ms();
+        *min_rtt_ms = it->second.min_rtt_ms();
     }
 
     if (max_rtt_ms) {
-        *max_rtt_ms = it->second.max_rtt().ms();
+        *max_rtt_ms = it->second.max_rtt_ms();
     }
 
     return 0;
@@ -137,24 +137,41 @@ int32_t RtcpReceiver::RTT(uint32_t remote_ssrc,
 // Private methods
 void RtcpReceiver::HandleParseResult(const PacketInfo& packet_info) {
     // NACK list.
-    if (!receiver_only_ && (packet_info.packet_type_flags & rtcp::Nack::kPacketType)) {
+    if (!receiver_only_ && (packet_info.packet_type_flags & RtcpPacketType::NACK)) {
         if (!packet_info.nack_list.empty()) {
             PLOG_VERBOSE << "Received NACK list size=" << packet_info.nack_list.size();
             observer_->OnReceivedNack(packet_info.nack_list);
         }
     }
 
-    // REMB
-    if (packet_info.packet_type_flags & rtcp::Remb::kPacketType) {
-        PLOG_VERBOSE << "Received REMB=" << packet_info.remb_bps << " bps.";
+    // Intra frame
+    if (intra_frame_observer_ && 
+        (packet_info.packet_type_flags & RtcpPacketType::PLI ||
+         packet_info.packet_type_flags & RtcpPacketType::FIR)) {
+        intra_frame_observer_->OnReceivedIntraFrameRequest(local_media_ssrc());
+    }
+
+    if (bandwidth_observer_) {
+        // REMB
+        if (packet_info.packet_type_flags & RtcpPacketType::REMB) {
+            PLOG_VERBOSE << "Received REMB=" 
+                         << packet_info.remb_bps 
+                         << " bps.";
+
+            bandwidth_observer_->OnReceivedEstimatedBitrateBps(packet_info.remb_bps);
+        }
+        if ((packet_info.packet_type_flags & RtcpPacketType::SR) ||
+            (packet_info.packet_type_flags & RtcpPacketType::RR)) {
+            bandwidth_observer_->OnReceivedRtcpReceiverReport(packet_info.report_blocks, packet_info.rtt_ms, clock_->now_ms());
+        }
     }
 
     // Report blocks
-    if ((packet_info.packet_type_flags & rtcp::SenderReport::kPacketType) ||
-        (packet_info.packet_type_flags & rtcp::ReceiverReport::kPacketType)) {
+    if ((packet_info.packet_type_flags & RtcpPacketType::SR) ||
+        (packet_info.packet_type_flags & RtcpPacketType::RR)) {
         // int64_t now_ms = clock_->now_ms();
-        PLOG_VERBOSE << "Received report blocks size=" << packet_info.report_block_datas.size();
-        observer_->OnReceivedRtcpReportBlocks(packet_info.report_block_datas);
+        PLOG_VERBOSE << "Received report blocks size=" << packet_info.report_blocks.size();
+        observer_->OnReceivedRtcpReportBlocks(packet_info.report_blocks);
     }
 
 }

@@ -3,15 +3,13 @@
 
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtp_statistics.hpp"
+#include "rtc/rtp_rtcp/rtcp_statistics.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/base/units/data_rate.hpp"
 
 #include <vector>
 
 namespace naivertc {
-
-class ReportBlockData;
-struct RtcpPacketTypeCounter;
 
 // NackSender
 class RTC_CPP_EXPORT NackSender {
@@ -93,22 +91,29 @@ class RTC_CPP_EXPORT RtcpBandwidthObserver {
 public:
     virtual ~RtcpBandwidthObserver() = default;
     // REMB or TMMBR
-    virtual void OnReceivedEstimatedBitrate(uint32_t bitrate) = 0;
-    virtual void OnReceivedRtcpReceiverReport(const std::vector<ReportBlockData>& report_blocks,
+    virtual void OnReceivedEstimatedBitrateBps(uint32_t bitrate_bps) = 0;
+    virtual void OnReceivedRtcpReceiverReport(const std::vector<RtcpReportBlock>& report_blocks,
                                               int64_t rtt,
                                               int64_t now_ms) = 0;
 };
 
 // RtcpPacketTypeCounterObserver
-class RtcpPacketTypeCounterObserver {
+class RTC_CPP_EXPORT RtcpPacketTypeCounterObserver {
 public:
     virtual ~RtcpPacketTypeCounterObserver() = default;
     virtual void RtcpPacketTypesCounterUpdated(uint32_t ssrc,
                                                const RtcpPacketTypeCounter& packet_counter) = 0;
 };
 
+// RtcpCnameObserver
+class RTC_CPP_EXPORT RtcpCnameObserver {
+public:
+    virtual ~RtcpCnameObserver() = default;
+    virtual void OnReceivedCname(uint32_t ssrc, std::string_view cname) = 0;
+};
+
 // TransportFeedbackObserver
-class TransportFeedbackObserver {
+class RTC_CPP_EXPORT TransportFeedbackObserver {
 public:
     virtual ~TransportFeedbackObserver() = default;
     // virtual void OnAddPacket(const RtpPacketSendInfo& packet_info) = 0;

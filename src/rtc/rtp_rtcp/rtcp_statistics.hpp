@@ -2,13 +2,36 @@
 #define _RTC_RTP_RTCP_RTCP_STATISTICS_H_
 
 #include "base/defines.hpp"
+#include "rtc/base/units/time_delta.hpp"
 
 namespace naivertc {
 
-// RTCPReportBlock
-struct RTC_CPP_EXPORT RTCPReportBlock final {
-  RTCPReportBlock();
-  RTCPReportBlock(uint32_t sender_ssrc,
+// RttStats
+class RttStats {
+public:
+    RttStats();
+
+    int64_t last_rtt_ms() const { return last_rtt_ms_; }
+    int64_t min_rtt_ms() const { return min_rtt_ms_; }
+    int64_t max_rtt_ms() const { return max_rtt_ms_; }
+    int64_t sum_rtt_ms() const { return sum_rtt_ms_; }
+    double avg_rtt_ms() const;
+    size_t num_rtts() const { return num_rtts_; }
+   
+    void AddRttMs(int64_t rtt_ms);
+
+private:
+    int64_t last_rtt_ms_;
+    int64_t min_rtt_ms_;
+    int64_t max_rtt_ms_;
+    int64_t sum_rtt_ms_;
+    size_t num_rtts_;
+};
+
+// RtcpReportBlock
+struct RTC_CPP_EXPORT RtcpReportBlock final {
+  RtcpReportBlock();
+  RtcpReportBlock(uint32_t sender_ssrc,
                   uint32_t source_ssrc,
                   uint8_t fraction_lost,
                   int32_t packets_lost,

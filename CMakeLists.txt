@@ -268,7 +268,6 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtcp/rtcp_packet.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_sender.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp
-    src/rtc/rtp_rtcp/rtcp/report_block_data.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
 
     # rtc -> congestion_controller -> goog_cc
@@ -510,7 +509,6 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_sender_auxiliaries.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
-    src/rtc/rtp_rtcp/rtcp/report_block_data.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
 
     # rtc -> congestion_controller -> goog_cc

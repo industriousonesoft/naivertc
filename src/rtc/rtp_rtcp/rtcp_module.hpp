@@ -66,7 +66,7 @@ private:
     void SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) override;
     void OnRequestSendReport() override;
     void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) override;
-    void OnReceivedRtcpReportBlocks(const std::vector<ReportBlockData>& report_block_datas) override;  
+    void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) override;  
 private:
     Clock* const clock_;
     SequenceChecker sequence_checker_;

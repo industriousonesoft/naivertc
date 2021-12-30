@@ -5,11 +5,9 @@
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/base/time/ntp_time.hpp"
 #include "rtc/base/units/timestamp.hpp"
-#include "rtc/base/units/time_delta.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
-#include "rtc/rtp_rtcp/rtcp/report_block_data.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/loss_notification.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.hpp"
@@ -49,30 +47,9 @@ public:
         virtual void SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) = 0;
         virtual void OnRequestSendReport() = 0;
         virtual void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) = 0;
-        virtual void OnReceivedRtcpReportBlocks(const std::vector<ReportBlockData>& report_block_datas) = 0;  
+        virtual void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) = 0;  
     };
 
-    // RttStats
-    class RttStats {
-    public:
-        RttStats() = default;
-        RttStats(const RttStats&) = default;
-        RttStats& operator=(const RttStats&) = default;
-
-        void AddRtt(TimeDelta rtt);
-
-        TimeDelta last_rtt() const { return last_rtt_; }
-        TimeDelta min_rtt() const { return min_rtt_; }
-        TimeDelta max_rtt() const { return max_rtt_; }
-        TimeDelta average_rtt() const { return sum_rtt_ / num_rtts_; }
-
-    private:
-        TimeDelta last_rtt_ = TimeDelta::Zero();
-        TimeDelta min_rtt_ = TimeDelta::PlusInfinity();
-        TimeDelta max_rtt_ = TimeDelta::MinusInfinity();
-        TimeDelta sum_rtt_ = TimeDelta::Zero();
-        size_t num_rtts_ = 0;
-    };
 public:
     RtcpReceiver(const RtcpConfiguration& config, 
                  Observer* const observer);
@@ -114,9 +91,9 @@ private:
         uint32_t remb_bps = 0;
 
         std::vector<uint16_t> nack_list;
-        std::vector<ReportBlockData> report_block_datas;
+        std::vector<RtcpReportBlock> report_blocks;
 
-        std::unique_ptr<rtcp::LossNotification> loss_notification;
+        RttStats rtt_stats;
     };
 
     bool ParseCompoundPacket(CopyOnWriteBuffer packet, 
@@ -129,6 +106,12 @@ private:
                    PacketInfo* packet_info);
     bool ParseNack(const rtcp::CommonHeader& rtcp_block, 
                    PacketInfo* packet_info);
+    bool ParsePli(const rtcp::CommonHeader& rtcp_block,
+                  PacketInfo* packet_info);
+    bool ParseFir(const rtcp::CommonHeader& rtcp_block,
+                  PacketInfo* packet_info);
+    bool ParseAfb(const rtcp::CommonHeader& rtcp_block,
+                  PacketInfo* packet_info);
     bool ParseBye(const rtcp::CommonHeader& rtcp_block, 
                   PacketInfo* packet_info);
     void ParseReportBlock(const rtcp::ReportBlock& report_block, 
@@ -146,34 +129,38 @@ private:
     uint32_t remote_ssrc_;
     
     std::map<int, uint32_t> registered_ssrcs_;
-    std::map<uint32_t, ReportBlockData> received_report_blocks_;
+    std::map<uint32_t, RtcpReportBlock> received_report_blocks_;
     // Round-Trip Time per remote sender ssrc
     std::map<uint32_t, RttStats> rtts_;
 
     // Received sender report.
     NtpTime remote_sender_ntp_time_;
-    uint32_t remote_sender_rtp_time_ = 0;
+    uint32_t remote_sender_rtp_time_;
     // When did we receive the last send report.
     NtpTime last_received_sr_ntp_;
-    uint32_t remote_sender_packet_count_ = 0;
-    uint64_t remote_sender_octet_count_ = 0;
-    uint64_t remote_sender_reports_count_ = 0;
+    uint32_t remote_sender_packet_count_;
+    uint64_t remote_sender_octet_count_;
+    uint64_t remote_sender_reports_count_;
 
     // The last time we received an RTCP Report block
-    Timestamp last_received_rb_ = Timestamp::PlusInfinity();
+    Timestamp last_received_rb_;
 
     // The time we last received an RTCP RR telling we have successfully
     // delivered RTP packet to the remote side.
-    Timestamp last_time_increased_sequence_number_ = Timestamp::PlusInfinity();
+    Timestamp last_time_increased_sequence_number_;
 
     RtcpNackStats nack_stats_;
 
-    size_t num_skipped_packets_ = 0;
-    int64_t last_skipped_packets_warning_ms_ = 0;
+    size_t num_skipped_packets_;
+    int64_t last_skipped_packets_warning_ms_;
 
     RtcpPacketTypeCounter packet_type_counter_;
     
-    RtcpPacketTypeCounterObserver* const packet_type_counter_observer_;
+    RtcpPacketTypeCounterObserver* const packet_type_counter_observer_ = nullptr;
+    RtcpIntraFrameObserver* const intra_frame_observer_ = nullptr;
+    RtcpLossNotificationObserver* const loss_notification_observer_ = nullptr;
+    RtcpBandwidthObserver* const bandwidth_observer_ = nullptr;
+    RtcpCnameObserver* const cname_observer_ = nullptr;
 
 };
     

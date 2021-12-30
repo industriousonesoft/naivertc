@@ -61,6 +61,10 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
 
     // Observers
     RtcpPacketTypeCounterObserver* packet_type_counter_observer = nullptr;
+    RtcpIntraFrameObserver* intra_frame_observer = nullptr;
+    RtcpLossNotificationObserver* loss_notification_observer = nullptr;
+    RtcpBandwidthObserver* bandwidth_observer = nullptr;
+    RtcpCnameObserver* cname_observer = nullptr;
 };
         
 } // namespace naivertc

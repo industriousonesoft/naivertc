@@ -2,8 +2,32 @@
 
 namespace naivertc {
 
-// RTCPReportBlock
-RTCPReportBlock::RTCPReportBlock()
+// RttStats
+
+RttStats::RttStats() 
+    : last_rtt_ms_(0),
+      min_rtt_ms_(0),
+      max_rtt_ms_(0),
+      sum_rtt_ms_(0),
+      num_rtts_(0) {}
+
+void RttStats::AddRttMs(int64_t rtt_ms) {
+    if (rtt_ms > max_rtt_ms_)
+        max_rtt_ms_ = rtt_ms;
+    if (num_rtts_ == 0 || rtt_ms < min_rtt_ms_)
+        min_rtt_ms_ = rtt_ms;
+    last_rtt_ms_ = rtt_ms;
+    sum_rtt_ms_ += rtt_ms;
+    ++num_rtts_;
+}
+
+double RttStats::avg_rtt_ms() const {
+    return num_rtts_ > 0 ? static_cast<double>(sum_rtt_ms_) / num_rtts_ 
+                         : 0.0;
+}
+
+// RtcpReportBlock
+RtcpReportBlock::RtcpReportBlock()
     : sender_ssrc(0),
       source_ssrc(0),
       fraction_lost(0),
@@ -12,23 +36,6 @@ RTCPReportBlock::RTCPReportBlock()
       jitter(0),
       last_sender_report_timestamp(0),
       delay_since_last_sender_report(0) {}
-
-RTCPReportBlock::RTCPReportBlock(uint32_t sender_ssrc,
-                                 uint32_t source_ssrc,
-                                 uint8_t fraction_lost,
-                                 int32_t packets_lost,
-                                 uint32_t extended_highest_sequence_number,
-                                 uint32_t jitter,
-                                 uint32_t last_sender_report_timestamp,
-                                 uint32_t delay_since_last_sender_report)
-    : sender_ssrc(sender_ssrc),
-      source_ssrc(source_ssrc),
-      fraction_lost(fraction_lost),
-      packets_lost(packets_lost),
-      extended_highest_sequence_number(extended_highest_sequence_number),
-      jitter(jitter),
-      last_sender_report_timestamp(last_sender_report_timestamp),
-      delay_since_last_sender_report(delay_since_last_sender_report) {}
 
 // RtcpPacketTypeCounter
 RtcpPacketTypeCounter::RtcpPacketTypeCounter() 
