@@ -20,7 +20,6 @@ std::unique_ptr<RtcpModule> CreateRtcpModule(const RtpVideoReceiver::Configurati
     RtcpConfiguration rtcp_config;
     rtcp_config.audio = false;
     rtcp_config.local_media_ssrc = stream_config.local_ssrc;
-    rtcp_config.remote_ssrc = stream_config.remote_ssrc;
     return std::make_unique<RtcpModule>(rtcp_config);
 }
 
@@ -56,7 +55,10 @@ RtpVideoReceiver::RtpVideoReceiver(Configuration config,
       packet_buffer_(kPacketBufferStartSize, kPacketBufferMaxSize),
       remote_ntp_time_estimator_(clock_),
       ulp_fec_receiver_(config_.remote_ssrc, clock_, this),
-      last_packet_log_ms_(-1) {}
+      last_packet_log_ms_(-1) {
+
+    rtcp_module_->set_remote_ssrc(config.remote_ssrc);
+}
 
 RtpVideoReceiver::~RtpVideoReceiver() {}
 

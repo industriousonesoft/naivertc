@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/rtp_feedback.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/rtpfb.hpp"
 #include "rtc/base/memory/byte_io_reader.hpp"
 #include "rtc/base/memory/byte_io_writer.hpp"
 
@@ -23,7 +23,7 @@ namespace rtcp {
 //   :                                                               :
 
 
-bool RtpFeedback::ParseCommonFeedback(const uint8_t* buffer, size_t size) {
+bool Rtpfb::ParseCommonFeedback(const uint8_t* buffer, size_t size) {
     if (size < kCommonFeedbackSize) {
         PLOG_WARNING << "Too little data remaining in buffer to parse Common Feedback (8 bytes)";
         return false;
@@ -33,7 +33,7 @@ bool RtpFeedback::ParseCommonFeedback(const uint8_t* buffer, size_t size) {
     return true;
 }
 
-bool RtpFeedback::PackCommonFeedbackInto(uint8_t* buffer, size_t size) const {
+bool Rtpfb::PackCommonFeedbackInto(uint8_t* buffer, size_t size) const {
     if (size < kCommonFeedbackSize) {
         PLOG_WARNING << "Too small space left in buffer to pack Common Feedback (8 bytes)";
         return false;

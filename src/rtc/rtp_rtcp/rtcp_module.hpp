@@ -23,6 +23,8 @@ public:
     void set_rtt_ms(int64_t rtt_ms);
     int64_t rtt_ms() const;
 
+    void set_remote_ssrc(uint32_t remote_ssrc);
+
     void IncomingPacket(const uint8_t* packet, size_t packet_size);
     void IncomingPacket(CopyOnWriteBuffer rtcp_packet);
 
@@ -64,7 +66,7 @@ private:
     void SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) override;
     void OnRequestSendReport() override;
     void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) override;
-    void OnReceivedRtcpReportBlocks(const ReportBlockList& report_blocks) override;  
+    void OnReceivedRtcpReportBlocks(const std::vector<ReportBlockData>& report_block_datas) override;  
 private:
     Clock* const clock_;
     SequenceChecker sequence_checker_;

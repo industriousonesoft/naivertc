@@ -173,7 +173,8 @@ set(LIB_HEADERS
     # rtc -> rtp_rtcp
     src/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
     src/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
-    src/rtc/rtp_rtcp/rtp_rtcp_structs.hpp
+    src/rtc/rtp_rtcp/rtp_statistics.hpp
+    src/rtc/rtp_rtcp/rtcp_statistics.hpp
     src/rtc/rtp_rtcp/rtcp_module.hpp
     src/rtc/rtp_rtcp/rtp_sender.hpp
     src/rtc/rtp_rtcp/rtp_sender_video.hpp
@@ -248,7 +249,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/report_block.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/sender_report.hpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/rtp_feedback.hpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/rtpfb.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/sdes.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/receiver_report.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/remb.hpp
@@ -410,7 +411,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.cpp
 
     # rtc -> rtp_rtcp
-    src/rtc/rtp_rtcp/rtp_rtcp_structs.cpp
+    src/rtc/rtp_rtcp/rtp_statistics.cpp
+    src/rtc/rtp_rtcp/rtcp_statistics.cpp
     src/rtc/rtp_rtcp/rtcp_module.cpp
     src/rtc/rtp_rtcp/rtcp_module_sender.cpp
     src/rtc/rtp_rtcp/rtcp_module_receiver.cpp
@@ -486,7 +488,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/report_block.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/sender_report.cpp
-    src/rtc/rtp_rtcp/rtcp/rtcp_packets/rtp_feedback.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packets/rtpfb.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/sdes.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/receiver_report.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packets/remb.cpp

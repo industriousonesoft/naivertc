@@ -12,7 +12,7 @@ constexpr int32_t kDefaultAudioReportIntervalMs = 5000; // 5s
 RtcpSender::RtcpSender(const RtcpConfiguration& config) 
     : audio_(config.audio),
       local_ssrc_(config.local_media_ssrc),
-      remote_ssrc_(config.remote_ssrc),
+      remote_ssrc_(0),
       clock_(config.clock),
       report_interval_(config.rtcp_report_interval_ms > 0 ? TimeDelta::Millis(config.rtcp_report_interval_ms) 
                                                           : (TimeDelta::Millis(config.audio ? kDefaultAudioReportIntervalMs
@@ -32,6 +32,11 @@ uint32_t RtcpSender::local_ssrc() const {
 uint32_t RtcpSender::remote_ssrc() const {
     RTC_RUN_ON(&sequence_checker_);
     return remote_ssrc_;
+}
+
+void RtcpSender::set_remote_ssrc(uint32_t remote_ssrc) {
+    RTC_RUN_ON(&sequence_checker_);
+    remote_ssrc_ = remote_ssrc;
 }
 
 void RtcpSender::set_cname(std::string cname) {

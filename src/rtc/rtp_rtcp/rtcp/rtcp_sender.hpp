@@ -54,6 +54,7 @@ public:
 
     uint32_t local_ssrc() const;
     uint32_t remote_ssrc() const;
+    void set_remote_ssrc(uint32_t remote_ssrc);
  
     void set_cname(std::string cname);
     void set_max_rtp_packet_size(size_t max_packet_size);

@@ -78,7 +78,7 @@ void RtcpModule::OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbe
     RTC_RUN_ON(&sequence_checker_);
 }
 
-void RtcpModule::OnReceivedRtcpReportBlocks(const ReportBlockList& report_blocks) {
+void RtcpModule::OnReceivedRtcpReportBlocks(const std::vector<ReportBlockData>& report_block_datas) {
     RTC_RUN_ON(&sequence_checker_);
 }  
     

@@ -1,17 +1,4 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/sender_report.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/receiver_report.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/sdes.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/rtp_feedback.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/nack.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/psfb.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/pli.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/fir.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbr.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/bye.hpp"
-
 #include "common/utils_time.hpp"
 #include "rtc/base/time/ntp_time_util.hpp"
 #include <plog/Log.h>
@@ -63,7 +50,7 @@ bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet,
             }
             break;
         // Rtp feedback
-        case rtcp::RtpFeedback::kPacketType:
+        case rtcp::Rtpfb::kPacketType:
             switch (rtcp_block.feedback_message_type())
             {
             case rtcp::Nack::kFeedbackMessageType:
@@ -72,8 +59,10 @@ bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet,
                 }
                 break;
             case rtcp::Tmmbr::kFeedbackMessageType:
+                ++num_skipped_packets_;
                 break;
             case rtcp::Tmmbn::kFeedbackMessageType:
+                ++num_skipped_packets_;
                 break;
             default:
                 ++num_skipped_packets_;
@@ -84,10 +73,13 @@ bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet,
         case rtcp::Psfb::kPacketType:
             switch (rtcp_block.feedback_message_type()) {
             case rtcp::Pli::kFeedbackMessageType:
+                ++num_skipped_packets_;
                 break;
             case rtcp::Fir::kFeedbackMessageType:
+                ++num_skipped_packets_;
                 break;
             case rtcp::Psfb::kAfbMessageType:
+                ++num_skipped_packets_;
                 break;
             default:
                 ++num_skipped_packets_;
@@ -252,8 +244,11 @@ bool RtcpReceiver::ParseSdes(const rtcp::CommonHeader& rtcp_block,
         return false;
     }
     for (const auto& chunk : sdes.chunks()) {
+        PLOG_VERBOSE << "Received: ssrc=" << chunk.ssrc
+                     << ", cname=" << chunk.cname;
         // TODO: cname callback
     }
+    packet_info->packet_type_flags |= rtcp::Sdes::kPacketType;
     return true;
 }
 
@@ -270,12 +265,17 @@ bool RtcpReceiver::ParseNack(const rtcp::CommonHeader& rtcp_block,
         return true;
     }
 
+    packet_info->nack_list.insert(packet_info->nack_list.end(), 
+                                  nack.packet_ids().begin(), 
+                                  nack.packet_ids().end());
+
     for (uint16_t packet_id : nack.packet_ids()) {
         nack_stats_.ReportRequest(packet_id);
     }
 
     if (!nack.packet_ids().empty()) {
-        // TODO: packet type counter
+        packet_info->packet_type_flags |= rtcp::Nack::kPacketType;
+        // TODO: update packet_type_counter
     }
 
     return true;

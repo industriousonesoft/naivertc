@@ -26,6 +26,12 @@ int64_t RtcpModule::rtt_ms() const {
     return rtt_ms_;
 }
 
+void RtcpModule::set_remote_ssrc(uint32_t remote_ssrc) {
+    RTC_RUN_ON(&sequence_checker_);
+    rtcp_sender_.set_remote_ssrc(remote_ssrc);
+    rtcp_receiver_.set_remote_ssrc(remote_ssrc);
+}
+
 // Private methods
 // RtpSentStatisticsObserver
 void RtcpModule::RtpSentCountersUpdated(const RtpSentCounters& rtp_stats, const RtpSentCounters& rtx_stats) {

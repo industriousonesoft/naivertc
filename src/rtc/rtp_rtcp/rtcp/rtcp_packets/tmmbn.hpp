@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_RTCP_PACKERTS_TMMBN_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/rtp_feedback.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/rtpfb.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/tmmb_item.hpp"
 
 namespace naivertc {
@@ -12,7 +12,7 @@ class CommonHeader;
 
 // Temporary Maximum Media Stream Bit Rate Notification (TMMBN).
 // RFC 5104, Section 4.2.2.
-class RTC_CPP_EXPORT Tmmbn : public RtpFeedback {
+class RTC_CPP_EXPORT Tmmbn : public Rtpfb {
  public:
     static constexpr uint8_t kFeedbackMessageType = 4;
 

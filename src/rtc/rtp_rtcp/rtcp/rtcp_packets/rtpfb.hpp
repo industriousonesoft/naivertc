@@ -7,12 +7,14 @@
 namespace naivertc {
 namespace rtcp {
 
-class RTC_CPP_EXPORT RtpFeedback : public RtcpPacket {
+// RTPFB: Transport layer feedback message.
+// RFC4585, Section 6.2
+class RTC_CPP_EXPORT Rtpfb : public RtcpPacket {
 public:
     static constexpr uint8_t kPacketType = 205;
 
-    RtpFeedback() = default;
-    ~RtpFeedback() = default;
+    Rtpfb() = default;
+    ~Rtpfb() = default;
 
     uint32_t media_ssrc() const { return media_ssrc_; }
     void set_media_ssrc(uint32_t ssrc) { media_ssrc_ = ssrc; }

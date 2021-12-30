@@ -26,8 +26,9 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config,
                            Observer* const observer) 
     : clock_(config.clock),
       observer_(observer),
-      receiver_only_(false),
-      remote_ssrc_(config.remote_ssrc) {
+      receiver_only_(config.receiver_only),
+      remote_ssrc_(0),
+      packet_type_counter_observer_(config.packet_type_counter_observer) {
     // Registered ssrcs
     registered_ssrcs_[kLocalMediaSsrcIndex] = config.local_media_ssrc;
     if (config.rtx_send_ssrc.has_value()) {
@@ -50,14 +51,20 @@ uint32_t RtcpReceiver::remote_ssrc() const {
     return remote_ssrc_;
 }
 
+void RtcpReceiver::set_remote_ssrc(uint32_t remote_ssrc) {
+    RTC_RUN_ON(&sequence_checker_);
+    // New SSRC reset old reports.
+    last_received_sr_ntp_.Reset();
+    remote_ssrc_ = remote_ssrc;
+}
+
 void RtcpReceiver::IncomingPacket(CopyOnWriteBuffer packet) {
     RTC_RUN_ON(&sequence_checker_);
     PacketInfo packet_info;
     if (!ParseCompoundPacket(std::move(packet), &packet_info)) {
         return;
     }
-
-    // TODO: Implement this.
+    HandleParseResult(packet_info);
 }
 
 bool RtcpReceiver::NTP(uint32_t* received_ntp_secs,
@@ -128,6 +135,30 @@ int32_t RtcpReceiver::RTT(uint32_t remote_ssrc,
 }
 
 // Private methods
+void RtcpReceiver::HandleParseResult(const PacketInfo& packet_info) {
+    // NACK list.
+    if (!receiver_only_ && (packet_info.packet_type_flags & rtcp::Nack::kPacketType)) {
+        if (!packet_info.nack_list.empty()) {
+            PLOG_VERBOSE << "Received NACK list size=" << packet_info.nack_list.size();
+            observer_->OnReceivedNack(packet_info.nack_list);
+        }
+    }
+
+    // REMB
+    if (packet_info.packet_type_flags & rtcp::Remb::kPacketType) {
+        PLOG_VERBOSE << "Received REMB=" << packet_info.remb_bps << " bps.";
+    }
+
+    // Report blocks
+    if ((packet_info.packet_type_flags & rtcp::SenderReport::kPacketType) ||
+        (packet_info.packet_type_flags & rtcp::ReceiverReport::kPacketType)) {
+        // int64_t now_ms = clock_->now_ms();
+        PLOG_VERBOSE << "Received report blocks size=" << packet_info.report_block_datas.size();
+        observer_->OnReceivedRtcpReportBlocks(packet_info.report_block_datas);
+    }
+
+}
+
 bool RtcpReceiver::IsRegisteredSsrc(uint32_t ssrc) const {
     for (const auto& kv : registered_ssrcs_) {
         if (kv.second == ssrc) {

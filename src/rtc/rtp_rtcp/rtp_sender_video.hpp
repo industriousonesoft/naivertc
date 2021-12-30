@@ -39,10 +39,10 @@ private:
                              ArrayView<const uint8_t> payload, 
                              const RtpPacketizer::PayloadSizeLimits& limits);
 private:
+    SequenceChecker sequence_checker_;
     Clock* const clock_;
     RtpSender* packet_sender_;
-    SequenceChecker sequence_checker_;
-
+    
     video::PlayoutDelay current_playout_delay_;
 
     bool playout_delay_pending_;

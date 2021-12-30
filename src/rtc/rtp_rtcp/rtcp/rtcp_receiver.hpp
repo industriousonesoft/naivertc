@@ -12,6 +12,19 @@
 #include "rtc/rtp_rtcp/rtcp/report_block_data.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packets/loss_notification.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/common_header.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/sender_report.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/receiver_report.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/sdes.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/rtpfb.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/nack.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/psfb.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/pli.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/fir.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbr.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/tmmbn.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/bye.hpp"
+#include "rtc/rtp_rtcp/rtcp/rtcp_packets/remb.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <vector>
@@ -33,13 +46,12 @@ public:
     class Observer {
     public:
         virtual ~Observer() = default;
-        
         virtual void SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) = 0;
         virtual void OnRequestSendReport() = 0;
         virtual void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) = 0;
-        virtual void OnReceivedRtcpReportBlocks(const ReportBlockList& report_blocks) = 0;  
+        virtual void OnReceivedRtcpReportBlocks(const std::vector<ReportBlockData>& report_block_datas) = 0;  
     };
-public:
+
     // RttStats
     class RttStats {
     public:
@@ -68,6 +80,7 @@ public:
 
     uint32_t local_media_ssrc() const;
     uint32_t remote_ssrc() const;
+    void set_remote_ssrc(uint32_t remote_ssrc);
 
     void IncomingPacket(const uint8_t* packet, size_t packet_size) {
         IncomingPacket(CopyOnWriteBuffer(packet, packet + packet_size));
@@ -122,14 +135,16 @@ private:
                           PacketInfo* packet_info,
                           uint32_t remote_ssrc);
 
+    void HandleParseResult(const PacketInfo& packet_info);
+
     bool IsRegisteredSsrc(uint32_t ssrc) const;
 private:
+    SequenceChecker sequence_checker_;
     Clock* const clock_;
     Observer* const observer_;
     bool receiver_only_;
     uint32_t remote_ssrc_;
-    SequenceChecker sequence_checker_;
-
+    
     std::map<int, uint32_t> registered_ssrcs_;
     std::map<uint32_t, ReportBlockData> received_report_blocks_;
     // Round-Trip Time per remote sender ssrc
@@ -155,6 +170,11 @@ private:
 
     size_t num_skipped_packets_ = 0;
     int64_t last_skipped_packets_warning_ms_ = 0;
+
+    RtcpPacketTypeCounter packet_type_counter_;
+    
+    RtcpPacketTypeCounterObserver* const packet_type_counter_observer_;
+
 };
     
 } // namespace naivertc

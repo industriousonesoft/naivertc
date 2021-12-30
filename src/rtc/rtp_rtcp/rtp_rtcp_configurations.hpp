@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_structs.hpp"
+#include "rtc/rtp_rtcp/rtp_statistics.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 #include "rtc/api/media_transport.hpp"
 
@@ -45,6 +45,7 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
     // True for a audio version of the RTP/RTCP module object false will create
     // a video version.
     bool audio = false;
+    bool receiver_only = false;
   
     size_t rtcp_report_interval_ms = 0;
     
@@ -56,9 +57,10 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
     std::optional<uint32_t> rtx_send_ssrc = std::nullopt;
     std::optional<uint32_t> fec_ssrc = std::nullopt;
 
-    uint32_t remote_ssrc = 0;
-
     Clock* clock;
+
+    // Observers
+    RtcpPacketTypeCounterObserver* packet_type_counter_observer = nullptr;
 };
         
 } // namespace naivertc
