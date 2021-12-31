@@ -39,9 +39,9 @@ public:
 class T(UlpFecReceiverTest) : public ::testing::Test {
 protected:
     T(UlpFecReceiverTest)() 
-        : clock_(std::make_shared<SimulatedClock>(0x100)),
-          recovered_packet_receiver_(std::make_shared<MockRecoveredPacketReceiver>()),
-          fec_receiver_(std::make_unique<UlpFecReceiver>(kMediaSsrc, clock_, recovered_packet_receiver_)),
+        : clock_(std::make_unique<SimulatedClock>(0x100)),
+          recovered_packet_receiver_(),
+          fec_receiver_(std::make_unique<UlpFecReceiver>(kMediaSsrc, clock_.get(), &recovered_packet_receiver_)),
           fec_encoder_(FecEncoder::CreateUlpFecEncoder()),
           generated_fec_packets_(fec_encoder_->MaxFecPackets()),
           packet_generator_(kMediaSsrc, kVp8PayloadType, kFecPayloadType, kRedPayloadType) {}
@@ -60,12 +60,12 @@ protected:
     void InjectGarbageData(size_t offset, T data);
 
 protected:
-    std::shared_ptr<SimulatedClock> clock_;
-    std::shared_ptr<MockRecoveredPacketReceiver> recovered_packet_receiver_;
+    std::unique_ptr<SimulatedClock> clock_;
     std::unique_ptr<UlpFecReceiver> fec_receiver_;
     std::unique_ptr<FecEncoder> fec_encoder_;
     FecEncoder::FecPacketList generated_fec_packets_;
     UlpFecPacketGenerator packet_generator_;
+    MockRecoveredPacketReceiver recovered_packet_receiver_;
 };
 
 // Implements
@@ -110,7 +110,7 @@ void T(UlpFecReceiverTest)::VerifyRecoveredMediaPacket(const RtpPacket& packet, 
     // content of |packet|, and that the same content is received |times| number
     // of times in a row.
     // NOTE: `EXPECT_CALL` MUST be called before the `OnRecoveredPacket` which is the real call. 
-    EXPECT_CALL(*recovered_packet_receiver_, OnRecoveredPacket(packet)).Times(call_times);
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(packet)).Times(call_times);
 }
 
 template<typename U>
@@ -449,7 +449,7 @@ MY_TEST_F(UlpFecReceiverTest, PacketNotDroppedTooEarly) {
 
     // Encode to FEC packets.
     EXPECT_EQ(kNumFecPacketsBatch1, EncoderFec(media_packets_batch1, kNumFecPacketsBatch1));
-    EXPECT_CALL(*recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
     BuildAndAddRedMediaPacket(**media_packets_batch1.begin());
 
     auto fec_packet_counter = fec_receiver_->packet_counter();
@@ -469,7 +469,7 @@ MY_TEST_F(UlpFecReceiverTest, PacketNotDroppedTooEarly) {
 
     // Add media packet to FEC receiver.
     for (auto it = media_packets_batch2.begin(); it != media_packets_batch2.end(); ++it) {
-        EXPECT_CALL(*recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+        EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
         BuildAndAddRedMediaPacket(**it);
     }
 
@@ -479,7 +479,7 @@ MY_TEST_F(UlpFecReceiverTest, PacketNotDroppedTooEarly) {
     EXPECT_EQ(0u, fec_packet_counter.num_recovered_packets);
 
     // Add the delayed FEC packet to recover the missing media packet.
-    EXPECT_CALL(*recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
     BuildAndAddRedFecPacket(delayed_fec_packet);
 
     fec_packet_counter = fec_receiver_->packet_counter();
@@ -500,7 +500,7 @@ MY_TEST_F(UlpFecReceiverTest, PacketDroppedWhenTooOld) {
 
     // Encode to FEC packets.
     EXPECT_EQ(kNumFecPacketsBatch1, EncoderFec(media_packets_batch1, kNumFecPacketsBatch1));
-    EXPECT_CALL(*recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
     BuildAndAddRedMediaPacket(**media_packets_batch1.begin());
 
     auto fec_packet_counter = fec_receiver_->packet_counter();
@@ -520,7 +520,7 @@ MY_TEST_F(UlpFecReceiverTest, PacketDroppedWhenTooOld) {
 
     // Add media packet to FEC receiver.
     for (auto it = media_packets_batch2.begin(); it != media_packets_batch2.end(); ++it) {
-        EXPECT_CALL(*recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+        EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
         BuildAndAddRedMediaPacket(**it);
     }
 
@@ -531,7 +531,7 @@ MY_TEST_F(UlpFecReceiverTest, PacketDroppedWhenTooOld) {
 
     // Add the delayed FEC packet. No packet should be reconstructed since the
     // first media packet of that frame has been dropped due to being too old.
-    EXPECT_CALL(*recovered_packet_receiver_, OnRecoveredPacket(_)).Times(0);
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(0);
     BuildAndAddRedFecPacket(delayed_fec_packet);
 
     fec_packet_counter = fec_receiver_->packet_counter();
@@ -553,7 +553,7 @@ MY_TEST_F(UlpFecReceiverTest, OldFecPacketDropped) {
         EncoderFec(frame_media_packets, 1);
         for (auto it = generated_fec_packets_.begin(); it != generated_fec_packets_.end(); ++it) {
             // Only FEC packtes inserted, no media packets recoverable at this time.
-            EXPECT_CALL(*recovered_packet_receiver_, OnRecoveredPacket(_)).Times(0);
+            EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(0);
             BuildAndAddRedFecPacket(*it);
         }
         media_packets.insert(media_packets.end(), frame_media_packets.begin(), frame_media_packets.end());
@@ -562,7 +562,7 @@ MY_TEST_F(UlpFecReceiverTest, OldFecPacketDropped) {
     // Insert the oldest media packet. The corresponding FEC packet is too old
     // and should have been dropped. Only the media packet we inserted will be
     // returned.
-    EXPECT_CALL(*recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
+    EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
     BuildAndAddRedMediaPacket(**media_packets.begin());
     
 }

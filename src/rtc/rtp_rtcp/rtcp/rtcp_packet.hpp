@@ -54,7 +54,9 @@ protected:
                                  uint8_t* buffer,
                                  size_t* index);
 
-    bool OnBufferFull(uint8_t* buffer, size_t* index, PacketReadyCallback callback) const;
+    bool OnBufferFull(uint8_t* buffer, 
+                      size_t* index, 
+                      PacketReadyCallback callback) const;
 
     size_t PacketSizeWithoutCommonHeader() const;
     

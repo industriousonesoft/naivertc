@@ -10,9 +10,9 @@
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packet.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/dlrr.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/report_block.hpp"
-#include "rtc/rtp_rtcp/rtcp/rtcp_packets/loss_notification.hpp"
+#include "rtc/rtp_rtcp/rtcp/packets/dlrr.hpp"
+#include "rtc/rtp_rtcp/rtcp/packets/report_block.hpp"
+#include "rtc/rtp_rtcp/rtcp/packets/loss_notification.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <optional>
