@@ -65,6 +65,7 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
     RtcpLossNotificationObserver* loss_notification_observer = nullptr;
     RtcpBandwidthObserver* bandwidth_observer = nullptr;
     RtcpCnameObserver* cname_observer = nullptr;
+    RtcpTransportFeedbackObserver* transport_feedback_observer = nullptr;
 };
         
 } // namespace naivertc

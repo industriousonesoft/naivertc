@@ -303,6 +303,23 @@ bool RtcpReceiver::ParseNack(const rtcp::CommonHeader& rtcp_block,
     return true;
 }
 
+bool RtcpReceiver::ParseTransportFeedback(const rtcp::CommonHeader& rtcp_block, 
+                                          PacketInfo* packet_info) {
+    rtcp::TransportFeedback transport_feedback;
+    if (!transport_feedback.Parse(rtcp_block)) {
+        return false;
+    }
+
+    packet_info->packet_type_flags |= RtcpPacketType::TRANSPORT_FEEDBACK;
+    if (transport_feedback_observer_) {
+        uint32_t media_source_ssrc = transport_feedback.media_ssrc();
+        if (IsRegisteredSsrc(media_source_ssrc)) {
+            transport_feedback_observer_->OnTransportFeedback(transport_feedback);
+        }
+    }
+    return true;
+}
+
 // Pli
 bool RtcpReceiver::ParsePli(const rtcp::CommonHeader& rtcp_block,
                             PacketInfo* packet_info) {

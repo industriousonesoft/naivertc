@@ -27,7 +27,8 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config,
       intra_frame_observer_(config.intra_frame_observer),
       loss_notification_observer_(config.loss_notification_observer),
       bandwidth_observer_(config.bandwidth_observer),
-      cname_observer_(config.cname_observer) {
+      cname_observer_(config.cname_observer),
+      transport_feedback_observer_(config.transport_feedback_observer) {
 
     // Registered ssrcs
     registered_ssrcs_[kLocalMediaSsrcIndex] = config.local_media_ssrc;

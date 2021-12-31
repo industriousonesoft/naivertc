@@ -11,6 +11,10 @@
 
 namespace naivertc {
 
+namespace rtcp {
+class TransportFeedback;
+}
+
 // NackSender
 class RTC_CPP_EXPORT NackSender {
 public:
@@ -112,12 +116,11 @@ public:
     virtual void OnReceivedCname(uint32_t ssrc, std::string_view cname) = 0;
 };
 
-// TransportFeedbackObserver
-class RTC_CPP_EXPORT TransportFeedbackObserver {
+// RtcpTransportFeedbackObserver
+class RTC_CPP_EXPORT RtcpTransportFeedbackObserver {
 public:
-    virtual ~TransportFeedbackObserver() = default;
-    // virtual void OnAddPacket(const RtpPacketSendInfo& packet_info) = 0;
-    // virtual void OnTransportFeedback(const rtcp::TransportFeedback& feedback) = 0;
+    virtual ~RtcpTransportFeedbackObserver() = default;
+    virtual void OnTransportFeedback(const rtcp::TransportFeedback& feedback) = 0;
 };
     
 } // namespace naivertc
