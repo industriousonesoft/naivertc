@@ -90,7 +90,7 @@ public:
 
     sdp::Media description() const;
 
-private:
+public:
     // SdpBuilder
     class SdpBuilder final {
     public:

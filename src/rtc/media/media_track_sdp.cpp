@@ -61,9 +61,8 @@ void MediaTrack::SdpBuilder::AddCodecs(const Configuration& config, sdp::Media& 
     auto kind = config.kind();
     // Media codecs
     config.ForEachCodec([&](const CodecParams& cp){
-        int payload_type = NextPayloadType(kind);
         // Media codec
-        auto rtp_map = AddMediaCodec(payload_type, cp, media);
+        auto rtp_map = AddMediaCodec(NextPayloadType(kind), cp, media);
         if (rtp_map) {
             // Protected by RTX
             if (config.rtx_enabled) {
@@ -94,8 +93,7 @@ void MediaTrack::SdpBuilder::AddCodecs(const Configuration& config, sdp::Media& 
     // ULP_FEC + RED
     if (config.fec_codec == FecCodec::ULP_FEC) {
         // Codec: RED
-        int payload_type = NextPayloadType(kind);
-        auto red_rtp_map = media.AddCodec(payload_type, 
+        auto red_rtp_map = media.AddCodec(NextPayloadType(kind), 
                                           sdp::Media::Codec::RED, 
                                           clock_rate);
         // Protected by RTX
@@ -104,7 +102,7 @@ void MediaTrack::SdpBuilder::AddCodecs(const Configuration& config, sdp::Media& 
         }
         
         // Codec: ULP_FEC
-        media.AddCodec(payload_type, 
+        media.AddCodec(NextPayloadType(kind), 
                        sdp::Media::Codec::ULP_FEC, 
                        clock_rate);
     }
