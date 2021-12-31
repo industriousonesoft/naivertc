@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/packets/sender_report.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/common_header.hpp"
+#include "common/array_view.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -33,8 +34,8 @@ MY_TEST(RtcpSenderReportTest, CreateWithoutReportBlocks) {
     sr.set_sender_packet_count(kPacketCount);
     sr.set_sender_octet_count(kOctetCount);
 
-    BinaryBuffer raw = sr.Build();
-    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
+    auto packet = sr.Build();
+    EXPECT_THAT(ArrayView<const uint8_t>(packet), testing::ElementsAreArray(kPacket));
 }
 
 MY_TEST(RtcpSenderReportTest, ParseWithoutReportBlocks) {

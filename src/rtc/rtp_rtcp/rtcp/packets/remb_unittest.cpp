@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/packets/remb.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/common_header.hpp"
+#include "common/array_view.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -35,8 +36,8 @@ MY_TEST(RtcpRembTest, Create) {
     EXPECT_EQ(kPacketLength, remb.PacketSize());
     EXPECT_EQ(3u, remb.ssrcs().size());
 
-    BinaryBuffer raw = remb.Build();
-    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
+    auto packet = remb.Build();
+    EXPECT_THAT(ArrayView<const uint8_t>(packet), testing::ElementsAreArray(kPacket));
 }
 
 MY_TEST(RtcpRembTest, Parse) {

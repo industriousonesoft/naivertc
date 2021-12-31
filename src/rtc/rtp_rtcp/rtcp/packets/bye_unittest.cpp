@@ -22,9 +22,9 @@ MY_TEST(RtcpPacketByeTest, CreateAndParseWithoutReason) {
     Bye bye;
     bye.set_sender_ssrc(kSenderSsrc);
 
-    BinaryBuffer raw = bye.Build();
+    auto packet = bye.Build();
     CommonHeader common_header;
-    EXPECT_TRUE(common_header.Parse(raw.data(), raw.size()));
+    EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
     Bye parsed_bye;
     EXPECT_TRUE(parsed_bye.Parse(common_header));
 
@@ -39,9 +39,9 @@ MY_TEST(RtcpPacketByeTest, CreateAndParseWithCsrcs) {
     EXPECT_TRUE(bye.set_csrcs({kCsrc1, kCsrc2}));
     EXPECT_TRUE(bye.reason().empty());
 
-    BinaryBuffer raw = bye.Build();
+    auto packet = bye.Build();
     CommonHeader common_header;
-    EXPECT_TRUE(common_header.Parse(raw.data(), raw.size()));
+    EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
     Bye parsed_bye;
     EXPECT_TRUE(parsed_bye.Parse(common_header));
 
@@ -58,9 +58,9 @@ MY_TEST(RtcpPacketByeTest, CreateAndParseWithCsrcsAndAReason) {
     EXPECT_TRUE(bye.set_csrcs({kCsrc1, kCsrc2}));
     bye.set_reason(kReason);
 
-    BinaryBuffer raw = bye.Build();
+    auto packet = bye.Build();
     CommonHeader common_header;
-    EXPECT_TRUE(common_header.Parse(raw.data(), raw.size()));
+    EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
     Bye parsed_bye;
     EXPECT_TRUE(parsed_bye.Parse(common_header));
 
@@ -84,9 +84,9 @@ MY_TEST(RtcpPacketByeTest, CreateAndParseWithAReason) {
     bye.set_sender_ssrc(kSenderSsrc);
     bye.set_reason(kReason);
 
-    BinaryBuffer raw = bye.Build();
+    auto packet = bye.Build();
     CommonHeader common_header;
-    EXPECT_TRUE(common_header.Parse(raw.data(), raw.size()));
+    EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
     Bye parsed_bye;
     EXPECT_TRUE(parsed_bye.Parse(common_header));
 
@@ -105,9 +105,9 @@ MY_TEST(RtcpPacketByeTest, CreateAndParseWithReasons) {
         bye.set_sender_ssrc(kSenderSsrc);
         bye.set_reason(kReason);
 
-        BinaryBuffer raw = bye.Build();
+        auto packet = bye.Build();
         CommonHeader common_header;
-        EXPECT_TRUE(common_header.Parse(raw.data(), raw.size()));
+        EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
         Bye parsed_bye;
         EXPECT_TRUE(parsed_bye.Parse(common_header));
 
@@ -132,10 +132,10 @@ MY_TEST(RtcpPacketByeTest, ParseFailOnInvalidSrcCount) {
     Bye bye;
     bye.set_sender_ssrc(kSenderSsrc);
 
-    BinaryBuffer raw = bye.Build();
-    raw[0]++;  // Damage the packet: increase ssrc count by one.
+    auto packet = bye.Build();
+    packet[0]++;  // Damage the packet: increase ssrc count by one.
     CommonHeader common_header;
-    EXPECT_TRUE(common_header.Parse(raw.data(), raw.size()));
+    EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
     Bye parsed_bye;
     EXPECT_FALSE(parsed_bye.Parse(common_header));
 
@@ -146,13 +146,13 @@ MY_TEST(RtcpPacketByeTest, ParseFailOnInvalidReasonLength) {
     bye.set_sender_ssrc(kSenderSsrc);
     bye.set_reason("18 characters long");
 
-    BinaryBuffer raw = bye.Build();
+    auto packet = bye.Build();
     // Damage the packet: decrease payload size by 4 bytes
-    raw[3]--;
-    raw.resize(raw.size() - 4);
+    packet[3]--;
+    packet.Resize(packet.size() - 4);
 
     CommonHeader common_header;
-    EXPECT_TRUE(common_header.Parse(raw.data(), raw.size()));
+    EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
     Bye parsed_bye;
     EXPECT_FALSE(parsed_bye.Parse(common_header));
 }

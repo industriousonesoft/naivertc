@@ -25,7 +25,7 @@ void RtcpSender::PacketSender::AppendPacket(const RtcpPacket& packet) {
 
 void RtcpSender::PacketSender::Send() {
     if (index_ > 0) {
-        callback_(BinaryBuffer(buffer_, &buffer_[index_]));
+        callback_(CopyOnWriteBuffer(buffer_, &buffer_[index_]));
         index_ = 0;
     }
 }

@@ -125,7 +125,7 @@ bool RtcpSender::SendRtcp(const FeedbackState& feedback_state,
                           const std::vector<uint16_t> nackList) {
     RTC_RUN_ON(&sequence_checker_);
     bool bRet = false;
-    auto callback = [&](BinaryBuffer packet) {
+    auto callback = [&](CopyOnWriteBuffer packet) {
         // TODO: Send RTCP packet by transport
     };
     PacketSender sender(callback, max_packet_size_);
@@ -143,7 +143,7 @@ bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
                                       bool buffering_allowed) {
     RTC_RUN_ON(&sequence_checker_);
     bool bRet = false;
-    auto callback = [&](BinaryBuffer packet) {
+    auto callback = [&](CopyOnWriteBuffer packet) {
         // TODO: Send RTCP packet by transport
     };
     

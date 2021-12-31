@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/packets/receiver_report.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/common_header.hpp"
+#include "common/array_view.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -65,8 +66,8 @@ MY_TEST(RtcpReceiverReportTest, CreateWithOneReportBlock) {
     rb.set_delay_sr_since_last_sr(kDelayLastSr);
     rr.AddReportBlock(rb);
 
-    BinaryBuffer raw = rr.Build();
-    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
+    auto packet = rr.Build();
+    EXPECT_THAT(ArrayView<const uint8_t>(packet), testing::ElementsAreArray(kPacket));
 }
     
 } // namespace test

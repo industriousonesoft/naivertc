@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/packets/tmmbr.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/common_header.hpp"
+#include "common/array_view.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -27,8 +28,8 @@ MY_TEST(RtcpPacketTmmbrTest, Create) {
     tmmbr.set_sender_ssrc(kSenderSsrc);
     tmmbr.AddTmmbr(TmmbItem(kRemoteSsrc, kBitrateBps, kOverhead));
 
-    BinaryBuffer packet = tmmbr.Build();
-    EXPECT_THAT(packet, testing::ElementsAreArray(kPacket));
+    auto packet = tmmbr.Build();
+    EXPECT_THAT(ArrayView<const uint8_t>(packet), testing::ElementsAreArray(kPacket));
 }
 
 MY_TEST(RtcpPacketTmmbrTest, Parse) {
@@ -50,7 +51,7 @@ MY_TEST(RtcpPacketTmmbrTest, CreateAndParseWithTwoEntries) {
     tmmbr.AddTmmbr(TmmbItem(kRemoteSsrc, kBitrateBps, kOverhead));
     tmmbr.AddTmmbr(TmmbItem(kRemoteSsrc + 1, 4 * kBitrateBps, kOverhead + 1));
 
-    BinaryBuffer packet = tmmbr.Build();
+    auto packet = tmmbr.Build();
 
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));

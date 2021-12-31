@@ -20,21 +20,21 @@ static const int kStatusChunkSize = 2;
 static const int kSmallDeltaSize = 1;
 static const int kLargeDeltaSize = 2;
 
-static const int64_t kDeltaLimit = 0xFF * TransportFeedback::kDeltaScaleFactor;
+static const int64_t kDeltaLimitUs = 0xFF * TransportFeedback::kDeltaScaleFactor;
 
 class T(FeedbackTester) {
 public:
     T(FeedbackTester)() : T(FeedbackTester)(true) {}
     explicit T(FeedbackTester)(bool include_timestamps)
         : expected_size_(kAnySize),
-          default_delta_(TransportFeedback::kDeltaScaleFactor * 4),
+          default_delta_us_(TransportFeedback::kDeltaScaleFactor * 4),
           include_timestamps_(include_timestamps) {}
 
     void WithExpectedSize(size_t expected_size) {
         expected_size_ = expected_size;
     }
 
-    void WithDefaultDelta(int64_t delta) { default_delta_ = delta; }
+    void WithDefaultDelta(int64_t delta) { default_delta_us_ = delta; }
 
     void WithInput(const uint16_t received_seq[],
                    const int64_t received_ts[],
@@ -84,21 +84,21 @@ public:
 private:
     void VerifyInternal() {
         if (expected_size_ != kAnySize) {
-        // Round up to whole 32-bit words.
-        size_t expected_size_words = (expected_size_ + 3) / 4;
-        size_t expected_size_bytes = expected_size_words * 4;
-        EXPECT_EQ(expected_size_bytes, serialized_.size());
+            // Round up to whole 32-bit words.
+            size_t expected_size_words = (expected_size_ + 3) / 4;
+            size_t expected_size_bytes = expected_size_words * 4;
+            EXPECT_EQ(expected_size_bytes, serialized_.size());
         }
 
-        std::vector<uint16_t> actual_seq_nos;
+        std::vector<uint16_t> actual_seq_nums;
         std::vector<int64_t> actual_deltas_us;
         for (const auto& packet : feedback_->GetReceivedPackets()) {
-        actual_seq_nos.push_back(packet.sequence_number());
-        actual_deltas_us.push_back(packet.delta_us());
+            actual_seq_nums.push_back(packet.sequence_number());
+            actual_deltas_us.push_back(packet.delta_us());
         }
-        EXPECT_THAT(actual_seq_nos, ElementsAreArray(expected_seq_));
+        EXPECT_THAT(actual_seq_nums, ElementsAreArray(expected_seq_));
         if (include_timestamps_) {
-        EXPECT_THAT(actual_deltas_us, ElementsAreArray(expected_deltas_));
+            EXPECT_THAT(actual_deltas_us, ElementsAreArray(expected_deltas_));
         }
     }
 
@@ -109,11 +109,11 @@ private:
         int64_t offset = 0;
 
         for (size_t i = 0; i < length; ++i) {
-        if (seq[i] < last_seq)
-            offset += 0x10000 * default_delta_;
-        last_seq = seq[i];
+            if (seq[i] < last_seq)
+                offset += 0x10000 * default_delta_us_;
+            last_seq = seq[i];
 
-        timestamps[i] = offset + (last_seq * default_delta_);
+            timestamps[i] = offset + (last_seq * default_delta_us_);
         }
     }
 
@@ -121,9 +121,9 @@ private:
     std::vector<uint16_t> expected_seq_;
     std::vector<int64_t> expected_deltas_;
     size_t expected_size_;
-    int64_t default_delta_;
+    int64_t default_delta_us_;
     std::unique_ptr<TransportFeedback> feedback_;
-    BinaryBuffer serialized_;
+    CopyOnWriteBuffer serialized_;
     bool include_timestamps_;
 };
     

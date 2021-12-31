@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/packets/loss_notification.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/common_header.hpp"
+#include "common/array_view.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -47,9 +48,9 @@ MY_TEST(RtcpPacketLossNotificationTest, CreateProducesExpectedWireFormat) {
     loss_notification.set_media_ssrc(0xabcdef01);
     ASSERT_TRUE(loss_notification.Set(kLastDecoded, kLastReceived, kDecodabilityFlag));
 
-    BinaryBuffer packet = loss_notification.Build();
+    auto packet = loss_notification.Build();
 
-    EXPECT_THAT(packet, testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(ArrayView<const uint8_t>(packet), testing::ElementsAreArray(kPacket));
 }
 
 MY_TEST(RtcpPacketLossNotificationTest, ParseLegalLossNotificationMessagesCorrectly) {

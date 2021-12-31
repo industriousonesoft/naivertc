@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/packets/nack.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/common_header.hpp"
+#include "common/array_view.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -51,8 +52,8 @@ MY_TEST(RtcpNackTest, Create) {
     EXPECT_EQ(5u, nack.packet_ids().size());
     EXPECT_EQ(16u, nack.PacketSize());
 
-    BinaryBuffer raw = nack.Build();
-    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
+    auto packet = nack.Build();
+    EXPECT_THAT(ArrayView<const uint8_t>(packet), testing::ElementsAreArray(kPacket));
 }
 
 MY_TEST(RtcpNackTest, CreateFragment) {
@@ -65,9 +66,9 @@ MY_TEST(RtcpNackTest, CreateFragment) {
 
     // Rtcp common header + Payload-specific feedback common fields + 3 nack items
     const size_t kBufferSize = 4 + 8 + (3 * 4);
-    testing::MockFunction<void(BinaryBuffer)> callback;
+    testing::MockFunction<void(CopyOnWriteBuffer)> callback;
     EXPECT_CALL(callback, Call(testing::_))
-        .WillOnce(testing::Invoke([&](BinaryBuffer packet){
+        .WillOnce(testing::Invoke([&](CopyOnWriteBuffer packet){
             CommonHeader common_header;
             EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
             Nack nack;
@@ -76,7 +77,7 @@ MY_TEST(RtcpNackTest, CreateFragment) {
             EXPECT_EQ(kRemoteSsrc, nack.media_ssrc());
             EXPECT_THAT(nack.packet_ids(), testing::ElementsAre(1, 100, 200));
         }))
-        .WillOnce(testing::Invoke([&](BinaryBuffer packet){
+        .WillOnce(testing::Invoke([&](CopyOnWriteBuffer packet){
             CommonHeader common_header;
             EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
             Nack nack;

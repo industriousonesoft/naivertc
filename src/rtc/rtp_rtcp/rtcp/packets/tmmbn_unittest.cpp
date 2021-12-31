@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/packets/tmmbn.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/common_header.hpp"
+#include "common/array_view.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -27,9 +28,9 @@ MY_TEST(RtcpPacketTmmbnTest, Create) {
     tmmbn.set_sender_ssrc(kSenderSsrc);
     tmmbn.AddTmmbn(TmmbItem(kRemoteSsrc, kBitrateBps, kOverhead));
 
-    BinaryBuffer packet = tmmbn.Build();
+    auto packet = tmmbn.Build();
     EXPECT_EQ(packet.size(), kPacketSize);
-    EXPECT_THAT(packet, testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(ArrayView<const uint8_t>(packet), testing::ElementsAreArray(kPacket));
 }
 
 MY_TEST(RtcpPacketTmmbnTest, Parse) {
@@ -51,7 +52,7 @@ MY_TEST(RtcpPacketTmmbnTest, CreateAndParseWithoutItems) {
     Tmmbn tmmbn;
     tmmbn.set_sender_ssrc(kSenderSsrc);
 
-    BinaryBuffer packet = tmmbn.Build();
+    auto packet = tmmbn.Build();
 
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
@@ -69,7 +70,7 @@ MY_TEST(RtcpPacketTmmbnTest, CreateAndParseWithTwoItems) {
     tmmbn.AddTmmbn(TmmbItem(kRemoteSsrc, kBitrateBps, kOverhead));
     tmmbn.AddTmmbn(TmmbItem(kRemoteSsrc + 1, 4 * kBitrateBps, 40));
 
-    BinaryBuffer packet = tmmbn.Build();
+    auto packet = tmmbn.Build();
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
     Tmmbn parsed;

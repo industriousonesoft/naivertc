@@ -23,7 +23,7 @@ const uint8_t kEmailTag = 3;
 
 MY_TEST(RtcpSdesTest, CreateAndParseWithoutChunks) {
     Sdes sdes;
-    BinaryBuffer packet = sdes.Build();
+    auto packet = sdes.Build();
     
     Sdes parsed;
     CommonHeader common_header;
@@ -40,7 +40,7 @@ MY_TEST(RtcpSdesTest, CreateAndParseWithOneChunk) {
     EXPECT_TRUE(sdes.AddCName(kSenderSsrc, cname));
     EXPECT_EQ(1u, sdes.chunks().size());
 
-    BinaryBuffer packet = sdes.Build();
+    auto packet = sdes.Build();
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
     EXPECT_EQ(Sdes::kPacketType, common_header.type());
@@ -65,7 +65,7 @@ MY_TEST(RtcpSdesTest, CreateAndParseMultipleChunks) {
     EXPECT_TRUE(sdes.AddCName(kSenderSsrc + 5, "abcdef"));
     EXPECT_EQ(6u, sdes.chunks().size());
 
-    BinaryBuffer packet = sdes.Build();
+    auto packet = sdes.Build();
     CommonHeader common_header;
     EXPECT_TRUE(common_header.Parse(packet.data(), packet.size()));
 

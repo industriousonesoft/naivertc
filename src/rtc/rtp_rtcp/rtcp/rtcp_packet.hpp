@@ -2,6 +2,7 @@
 #define _RTC_RTP_RTCP_RTCP_PACKET_H_
 
 #include "base/defines.hpp"
+#include "rtc/base/copy_on_write_buffer.hpp"
 
 #include <functional>
 
@@ -16,7 +17,7 @@ public:
     // may not contain all data in the RtcpPacket; if a packet can not fit in 
     // max_size bytes, it will be fragmented and multiple calls to this 
     // callback will be made.
-    using PacketReadyCallback = std::function<void(BinaryBuffer)>;
+    using PacketReadyCallback = std::function<void(CopyOnWriteBuffer)>;
 
     virtual ~RtcpPacket() = default;
 
@@ -36,7 +37,7 @@ public:
 
     // Convenience method mostly used for test. Creates packet without
     // fragmentation using BlockSize() to allocate big enough buffer.
-    BinaryBuffer Build() const;
+    CopyOnWriteBuffer Build() const;
 
 protected:
     RtcpPacket() {}

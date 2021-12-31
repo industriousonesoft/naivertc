@@ -5,14 +5,14 @@
 
 namespace naivertc {
 
-BinaryBuffer RtcpPacket::Build() const {
-    BinaryBuffer packet(PacketSize());
+CopyOnWriteBuffer RtcpPacket::Build() const {
+    CopyOnWriteBuffer packet(PacketSize());
 
     size_t size = 0;
     bool created = PackInto(packet.data(), &size, packet.capacity(), nullptr);
     if (!created) {
         PLOG_WARNING << "Failed to packet RTCP packet.";
-        packet.resize(0);
+        packet.Resize(0);
     }
     assert(size == packet.size() && "PacketSize mispredicted size used.");
     return packet;
@@ -36,7 +36,7 @@ bool RtcpPacket::OnBufferFull(uint8_t* buffer, size_t* index, PacketReadyCallbac
         PLOG_WARNING << "Fragment not supported.";
         return false;
     }
-    callback(BinaryBuffer(buffer, buffer + *index));
+    callback(CopyOnWriteBuffer(buffer, buffer + *index));
     *index = 0;
     return true;
 }

@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/packets/pli.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/common_header.hpp"
+#include "common/array_view.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -40,9 +41,9 @@ MY_TEST(RtcpPliTest, Create) {
     pli.set_sender_ssrc(kSenderSsrc);
     pli.set_media_ssrc(kRemoteSsrc);
 
-    BinaryBuffer raw = pli.Build();
+    auto packet = pli.Build();
 
-    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(ArrayView<const uint8_t>(packet), testing::ElementsAreArray(kPacket));
 }
 
 } // namespace test

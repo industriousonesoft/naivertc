@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtcp/packets/fir.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/common_header.hpp"
+#include "common/array_view.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -43,9 +44,9 @@ MY_TEST(RtcpFirTest, Create) {
     fir.set_sender_ssrc(kSenderSsrc);
     fir.AddRequest(kRemoteSsrc, kSeqNr);
 
-    BinaryBuffer raw = fir.Build();
+    auto packet = fir.Build();
 
-    EXPECT_THAT(raw, testing::ElementsAreArray(kPacket));
+    EXPECT_THAT(ArrayView<const uint8_t>(packet), testing::ElementsAreArray(kPacket));
 }
     
 } // namespace rtcp
