@@ -753,6 +753,7 @@ set(UNITTEST_SOURCES
     src/rtc/rtp_rtcp/rtcp/packets/bye_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/packets/dlrr_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/packets/transport_feedback_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_receiver_unittest.cpp
 
     # rtc -> transports
     src/rtc/transports/ice_transport_description_unittest.cpp

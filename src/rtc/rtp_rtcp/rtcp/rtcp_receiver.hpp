@@ -45,7 +45,6 @@ public:
     class Observer {
     public:
         virtual ~Observer() = default;
-        virtual void SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) = 0;
         virtual void OnRequestSendReport() = 0;
         virtual void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) = 0;
         virtual void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) = 0;  

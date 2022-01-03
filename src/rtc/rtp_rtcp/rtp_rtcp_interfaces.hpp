@@ -113,7 +113,7 @@ public:
 class RTC_CPP_EXPORT RtcpCnameObserver {
 public:
     virtual ~RtcpCnameObserver() = default;
-    virtual void OnReceivedCname(uint32_t ssrc, std::string_view cname) = 0;
+    virtual void OnCname(uint32_t ssrc, std::string_view cname) = 0;
 };
 
 // RtcpTransportFeedbackObserver

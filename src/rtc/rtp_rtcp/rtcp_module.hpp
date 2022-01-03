@@ -63,7 +63,6 @@ private:
     void MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time);
 private:
     // RtcpReceiver observer methods
-    void SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) override;
     void OnRequestSendReport() override;
     void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) override;
     void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) override;  

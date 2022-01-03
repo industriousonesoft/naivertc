@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 
 using namespace naivertc::rtcp;
@@ -24,10 +24,10 @@ static const int kLargeDeltaSize = 2;
 
 static const int64_t kDeltaLimitUs = 0xFF * TransportFeedback::kDeltaScaleFactor;
 
-class T(TransportFeedbackTest) {
+class TransportFeedbackTest {
 public:
-    T(TransportFeedbackTest)() : T(TransportFeedbackTest)(true) {}
-    explicit T(TransportFeedbackTest)(bool include_timestamps)
+    TransportFeedbackTest() : TransportFeedbackTest(true) {}
+    explicit TransportFeedbackTest(bool include_timestamps)
         : expected_size_(kAnySize),
           default_delta_us_(TransportFeedback::kDeltaScaleFactor * 4),
           include_timestamps_(include_timestamps) {}

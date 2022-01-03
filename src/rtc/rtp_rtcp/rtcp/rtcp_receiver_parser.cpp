@@ -265,7 +265,7 @@ bool RtcpReceiver::ParseSdes(const rtcp::CommonHeader& rtcp_block,
         PLOG_VERBOSE << "Received: ssrc=" << chunk.ssrc
                      << ", cname=" << chunk.cname;
         if (cname_observer_) {
-            cname_observer_->OnReceivedCname(chunk.ssrc, chunk.cname);
+            cname_observer_->OnCname(chunk.ssrc, chunk.cname);
         }
     }
     packet_info->packet_type_flags |= RtcpPacketType::SDES;

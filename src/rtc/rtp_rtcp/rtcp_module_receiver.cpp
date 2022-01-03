@@ -66,10 +66,6 @@ int64_t RtcpModule::ExpectedRestransmissionTimeMs() const {
     return kDefaultExpectedRetransmissionTimeMs;
 }
 
-void RtcpModule::SetTmmbn(std::vector<rtcp::TmmbItem> bounding_set) {
-    RTC_RUN_ON(&sequence_checker_);
-}
-
 void RtcpModule::OnRequestSendReport() {
     RTC_RUN_ON(&sequence_checker_);
 }
