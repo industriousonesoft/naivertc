@@ -135,6 +135,18 @@ int32_t RtcpReceiver::RTT(uint32_t remote_ssrc,
     return 0;
 }
 
+std::vector<RtcpReportBlock> RtcpReceiver::GetLatestReportBlocks() const {
+    std::vector<RtcpReportBlock> result;
+    for (const auto& report : received_report_blocks_) {
+        result.push_back(report.second);
+    }
+    return result;
+}
+
+int64_t RtcpReceiver::LastReceivedReportBlockMs() const {
+    return last_received_rb_.IsFinite() ? last_received_rb_.ms() : 0;
+}
+
 // Private methods
 void RtcpReceiver::HandleParseResult(const PacketInfo& packet_info) {
     // NACK list.

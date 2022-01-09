@@ -81,6 +81,10 @@ public:
                 int64_t* min_rtt_ms,
                 int64_t* max_rtt_ms) const;
 
+    std::vector<RtcpReportBlock> GetLatestReportBlocks() const;
+
+    int64_t LastReceivedReportBlockMs() const;
+
 private:
     struct PacketInfo {
         // RTCP packet type bit field.
@@ -114,8 +118,7 @@ private:
                   PacketInfo* packet_info);
     bool ParseAfb(const rtcp::CommonHeader& rtcp_block,
                   PacketInfo* packet_info);
-    bool ParseBye(const rtcp::CommonHeader& rtcp_block, 
-                  PacketInfo* packet_info);
+    bool ParseBye(const rtcp::CommonHeader& rtcp_block);
     void ParseReportBlock(const rtcp::ReportBlock& report_block, 
                           PacketInfo* packet_info,
                           uint32_t remote_ssrc);

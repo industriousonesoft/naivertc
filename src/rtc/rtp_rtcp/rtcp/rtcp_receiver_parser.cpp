@@ -1,6 +1,7 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
 #include "common/utils_time.hpp"
 #include "rtc/base/time/ntp_time_util.hpp"
+
 #include <plog/Log.h>
 
 namespace naivertc {
@@ -52,6 +53,10 @@ bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet,
             if (!ParseSdes(rtcp_block, packet_info)) {
                 ++num_skipped_packets_;
             }
+            break;
+        // bye
+        case rtcp::Bye::kPacketType:
+            ParseBye(rtcp_block);
             break;
         // Rtp feedback
         case rtcp::Rtpfb::kPacketType:
@@ -401,10 +406,9 @@ bool RtcpReceiver::ParseAfb(const rtcp::CommonHeader& rtcp_block,
 }
 
 // Bye 
-bool RtcpReceiver::ParseBye(const rtcp::CommonHeader& rtcp_block,
-                            PacketInfo* packet_info) {
+bool RtcpReceiver::ParseBye(const rtcp::CommonHeader& rtcp_block) {
     rtcp::Bye bye;
-    if (bye.Parse(rtcp_block)) {
+    if (!bye.Parse(rtcp_block)) {
         return false;
     }
 
@@ -413,7 +417,6 @@ bool RtcpReceiver::ParseBye(const rtcp::CommonHeader& rtcp_block,
     for (auto it = received_report_blocks_.begin(); it != received_report_blocks_.end(); ++it) {
         if (it->second.sender_ssrc == bye.sender_ssrc()) {
             received_report_blocks_.erase(it);
-            break;
         }
     }
     return true;
