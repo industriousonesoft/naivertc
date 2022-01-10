@@ -85,6 +85,16 @@ public:
 
     int64_t LastReceivedReportBlockMs() const;
 
+    // Returns true if we haven't received an RTCP RR for several RTCP
+    // intervals, but only triggers true once.
+    bool RtcpRrTimeout();
+
+    // Returns true if we haven't received an RTCP RR telling the receive side
+    // has not received RTP packets for too long, i.e. extended highest sequence
+    // number hasn't increased for several RTCP intervals. The function only
+    // returns true once until a new RR is received.
+    bool RtcpRrSequenceNumberTimeout();
+
 private:
     struct PacketInfo {
         // RTCP packet type bit field.
@@ -126,12 +136,16 @@ private:
     void HandleParseResult(const PacketInfo& packet_info);
 
     bool IsRegisteredSsrc(uint32_t ssrc) const;
+
+    bool RtcpRrTimeoutLocked(Timestamp now);
+    bool RtcpRrSequenceNumberTimeoutLocked(Timestamp now);
 private:
     SequenceChecker sequence_checker_;
     Clock* const clock_;
     Observer* const observer_;
     bool receiver_only_;
     uint32_t remote_ssrc_;
+    const TimeDelta report_interval_;
     
     std::map<int, uint32_t> registered_ssrcs_;
     std::map<uint32_t, RtcpReportBlock> received_report_blocks_;
@@ -148,7 +162,7 @@ private:
     uint64_t remote_sender_reports_count_;
 
     // The last time we received an RTCP Report block
-    Timestamp last_received_rb_;
+    Timestamp last_time_received_rb_;
 
     // The time we last received an RTCP RR telling we have successfully
     // delivered RTP packet to the remote side.

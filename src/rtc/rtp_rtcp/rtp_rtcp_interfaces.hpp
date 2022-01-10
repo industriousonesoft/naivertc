@@ -96,9 +96,9 @@ public:
     virtual ~RtcpBandwidthObserver() = default;
     // REMB or TMMBR
     virtual void OnReceivedEstimatedBitrateBps(uint32_t bitrate_bps) = 0;
-    virtual void OnReceivedRtcpReceiverReport(const std::vector<RtcpReportBlock>& report_blocks,
-                                              int64_t rtt,
-                                              int64_t now_ms) = 0;
+    virtual void OnReceivedRtcpReceiverReports(const std::vector<RtcpReportBlock>& report_blocks,
+                                               int64_t rtt,
+                                               int64_t now_ms) = 0;
 };
 
 // RtcpPacketTypeCounterObserver

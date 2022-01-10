@@ -47,7 +47,7 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
     bool audio = false;
     bool receiver_only = false;
   
-    size_t rtcp_report_interval_ms = 0;
+    int rtcp_report_interval_ms = 0;
     
     // Corresponds to extmap-allow-mixed in SDP negotiation.
     bool extmap_allow_mixed = false;

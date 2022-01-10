@@ -3,10 +3,34 @@
 #include <plog/Log.h>
 
 namespace naivertc {
+namespace {
 
 constexpr int kLocalMediaSsrcIndex = 1;
 constexpr int kRtxSendSsrcIndex = 2;
 constexpr int kFlexFecSsrcIndex = 3;
+
+// The number of RTCP time intervals needed to trigger a timeout.
+constexpr int kRrTimeoutIntervals = 3;
+
+constexpr TimeDelta kDefaultVideoReportInterval = TimeDelta::Seconds(1);
+constexpr TimeDelta kDefaultAudioReportInterval = TimeDelta::Seconds(5);
+
+// Returns true if the |timestamp| has exceeded the |interval *
+// kRrTimeoutIntervals| period and was reset (set to PlusInfinity()). Returns
+// false if the timer was either already reset or if it has not expired.
+bool ResetTimestampIfExpired(const Timestamp now,
+                             Timestamp& timestamp,
+                             TimeDelta interval) {
+    if (timestamp.IsInfinite() ||
+        now <= timestamp + interval * kRrTimeoutIntervals) {
+        return false;
+    }
+
+    timestamp = Timestamp::PlusInfinity();
+    return true;
+}
+    
+} // namespace
 
 // RTCPReceiver
 RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config, 
@@ -15,11 +39,15 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config,
       observer_(observer),
       receiver_only_(config.receiver_only),
       remote_ssrc_(0),
+      report_interval_(config.rtcp_report_interval_ms > 0
+                           ? TimeDelta::Millis(config.rtcp_report_interval_ms)
+                           : (config.audio ? kDefaultAudioReportInterval
+                                           : kDefaultVideoReportInterval)),
       remote_sender_rtp_time_(0),
       remote_sender_packet_count_(0),
       remote_sender_octet_count_(0),
       remote_sender_reports_count_(0),
-      last_received_rb_(Timestamp::PlusInfinity()),
+      last_time_received_rb_(Timestamp::PlusInfinity()),
       last_time_increased_sequence_number_(Timestamp::PlusInfinity()),
       num_skipped_packets_(0),
       last_skipped_packets_warning_ms_(clock_->now_ms()),
@@ -144,7 +172,15 @@ std::vector<RtcpReportBlock> RtcpReceiver::GetLatestReportBlocks() const {
 }
 
 int64_t RtcpReceiver::LastReceivedReportBlockMs() const {
-    return last_received_rb_.IsFinite() ? last_received_rb_.ms() : 0;
+    return last_time_received_rb_.IsFinite() ? last_time_received_rb_.ms() : 0;
+}
+
+bool RtcpReceiver::RtcpRrTimeout() {
+    return RtcpRrTimeoutLocked(clock_->CurrentTime());
+}
+
+bool RtcpReceiver::RtcpRrSequenceNumberTimeout() {
+    return RtcpRrSequenceNumberTimeoutLocked(clock_->CurrentTime());
 }
 
 // Private methods
@@ -175,7 +211,7 @@ void RtcpReceiver::HandleParseResult(const PacketInfo& packet_info) {
         }
         if ((packet_info.packet_type_flags & RtcpPacketType::SR) ||
             (packet_info.packet_type_flags & RtcpPacketType::RR)) {
-            bandwidth_observer_->OnReceivedRtcpReceiverReport(packet_info.report_blocks, packet_info.rtt_ms, clock_->now_ms());
+            bandwidth_observer_->OnReceivedRtcpReceiverReports(packet_info.report_blocks, packet_info.rtt_ms, clock_->now_ms());
         }
     }
 
@@ -196,6 +232,15 @@ bool RtcpReceiver::IsRegisteredSsrc(uint32_t ssrc) const {
         }
     }
     return false;
+}
+
+bool RtcpReceiver::RtcpRrTimeoutLocked(Timestamp now) {
+    return ResetTimestampIfExpired(now, last_time_received_rb_, report_interval_);
+}
+
+bool RtcpReceiver::RtcpRrSequenceNumberTimeoutLocked(Timestamp now) {
+    return ResetTimestampIfExpired(now, last_time_increased_sequence_number_,
+                                 report_interval_);
 }
 
 } // namespace naivertc

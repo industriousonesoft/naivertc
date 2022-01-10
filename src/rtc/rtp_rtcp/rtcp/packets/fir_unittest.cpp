@@ -42,7 +42,7 @@ MY_TEST(RtcpFirTest, Parse) {
 MY_TEST(RtcpFirTest, Create) {
     Fir fir;
     fir.set_sender_ssrc(kSenderSsrc);
-    fir.AddRequest(kRemoteSsrc, kSeqNr);
+    fir.AddRequestTo(kRemoteSsrc, kSeqNr);
 
     auto packet = fir.Build();
 

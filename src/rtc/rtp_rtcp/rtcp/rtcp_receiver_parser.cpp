@@ -107,6 +107,10 @@ bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet,
         }
     }
 
+    if (packet_type_counter_observer_) {
+        packet_type_counter_observer_->RtcpPacketTypesCounterUpdated(local_media_ssrc(), packet_type_counter_);
+    }
+
     if (num_skipped_packets_ > 0) {
         const int64_t now_ms = clock_->now_ms();
         if (now_ms - last_skipped_packets_warning_ms_ >= kMaxWarningLogIntervalMs) {
@@ -206,31 +210,29 @@ void RtcpReceiver::ParseReportBlock(const rtcp::ReportBlock& report_block,
     }
 
     // Update the last time we received an RTCP report block
-    last_received_rb_ = clock_->CurrentTime();
+    last_time_received_rb_ = clock_->CurrentTime();
 
     auto it = received_report_blocks_.find(source_ssrc);
     // Has old report block
     if (it != received_report_blocks_.end()) {
-        // We have successfully delivered new RTP packets to the remote side after
-        // the last RR was sent from the remote side.
-        if (report_block.extended_high_seq_num() > it->second.extended_highest_sequence_number) {
-            last_time_increased_sequence_number_ = last_received_rb_;
-        }
+        
     }
 
-    RtcpReportBlock rtcp_report_block;
-    rtcp_report_block.sender_ssrc = remote_ssrc;
-    rtcp_report_block.source_ssrc = source_ssrc;
-    rtcp_report_block.fraction_lost = report_block.fraction_lost();
-    rtcp_report_block.packets_lost = report_block.cumulative_packet_lost();    
-    rtcp_report_block.extended_highest_sequence_number = report_block.extended_high_seq_num();
-    rtcp_report_block.jitter = report_block.jitter();
-    rtcp_report_block.delay_since_last_sender_report = report_block.delay_since_last_sr();
-    rtcp_report_block.last_sender_report_timestamp = report_block.last_sr_ntp_timestamp();
+    RtcpReportBlock* rtcp_report_block = &received_report_blocks_[source_ssrc];
 
-    // Replace the old report block with the new one
-    // utils::time::TimeUTCInMicros()
-    received_report_blocks_[source_ssrc] = rtcp_report_block;
+    rtcp_report_block->sender_ssrc = remote_ssrc;
+    rtcp_report_block->source_ssrc = source_ssrc;
+    rtcp_report_block->fraction_lost = report_block.fraction_lost();
+    rtcp_report_block->packets_lost = report_block.cumulative_packet_lost();
+    // We have successfully delivered new RTP packets to the remote side after
+    // the last RR was sent from the remote side.
+    if (report_block.extended_high_seq_num() > rtcp_report_block->extended_highest_sequence_number) {
+        last_time_increased_sequence_number_ = last_time_received_rb_;
+    }
+    rtcp_report_block->extended_highest_sequence_number = report_block.extended_high_seq_num();
+    rtcp_report_block->jitter = report_block.jitter();
+    rtcp_report_block->delay_since_last_sender_report = report_block.delay_since_last_sr();
+    rtcp_report_block->last_sender_report_timestamp = report_block.last_sr_ntp_timestamp();
 
     int rtt_ms = 0;
     uint32_t send_time_ntp = report_block.last_sr_ntp_timestamp();
@@ -242,7 +244,7 @@ void RtcpReceiver::ParseReportBlock(const rtcp::ReportBlock& report_block,
     if (send_time_ntp != 0) {
         uint32_t delay_ntp = report_block.delay_since_last_sr();
         // Local NTP time.
-        uint32_t receive_time_ntp = CompactNtp(clock_->ConvertTimestampToNtpTime(last_received_rb_));
+        uint32_t receive_time_ntp = CompactNtp(clock_->ConvertTimestampToNtpTime(last_time_received_rb_));
 
         // RTT in 1/(2^16) seconds.
         uint32_t rtt_ntp = receive_time_ntp - delay_ntp - send_time_ntp;
@@ -256,7 +258,7 @@ void RtcpReceiver::ParseReportBlock(const rtcp::ReportBlock& report_block,
         packet_info->rtt_ms = rtt_ms;
     }
 
-    packet_info->report_blocks.push_back(std::move(rtcp_report_block));
+    packet_info->report_blocks.push_back(*rtcp_report_block);
 }
 
 // Sdes
@@ -414,9 +416,11 @@ bool RtcpReceiver::ParseBye(const rtcp::CommonHeader& rtcp_block) {
 
     // Clear our lists
     rtts_.erase(bye.sender_ssrc());
-    for (auto it = received_report_blocks_.begin(); it != received_report_blocks_.end(); ++it) {
+    for (auto it = received_report_blocks_.begin(); it != received_report_blocks_.end();) {
         if (it->second.sender_ssrc == bye.sender_ssrc()) {
-            received_report_blocks_.erase(it);
+            it = received_report_blocks_.erase(it);
+        } else {
+            ++it;
         }
     }
     return true;

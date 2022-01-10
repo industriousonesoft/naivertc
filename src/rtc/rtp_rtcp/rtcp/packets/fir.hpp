@@ -25,7 +25,7 @@ public:
     Fir(const Fir&);
     ~Fir() override;
 
-    void AddRequest(uint32_t ssrc, uint8_t seq_num) {
+    void AddRequestTo(uint32_t ssrc, uint8_t seq_num) {
         fci_itmes_.emplace_back(ssrc, seq_num);
     }
     const std::vector<Request>& requests() const { return fci_itmes_; }
