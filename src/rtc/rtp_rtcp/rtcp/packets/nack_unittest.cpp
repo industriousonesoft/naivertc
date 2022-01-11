@@ -19,9 +19,10 @@ constexpr uint32_t kRemoteSsrc = 0x23456789;
 
 constexpr uint16_t kList[] = {0, 1, 3, 8, 16};
 constexpr size_t kListSize = sizeof(kList) / sizeof(kList[0]);
+constexpr uint8_t kVersionBits = 2 << 6;
 // clang-format off
 constexpr uint8_t kPacket[] = {
-    0x81, 206, 0x00, 0x03,
+    kVersionBits | Nack::kFeedbackMessageType, Nack::kPacketType, 0, 3,
     0x12, 0x34, 0x56, 0x78,
     0x23, 0x45, 0x67, 0x89,
     0x00, 0x00, 0x80, 0x85};

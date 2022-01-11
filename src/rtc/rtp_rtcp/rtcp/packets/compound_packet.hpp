@@ -14,6 +14,8 @@ public:
     CompoundPacket();
     ~CompoundPacket() override;
 
+    void Append(std::unique_ptr<RtcpPacket> packet);
+
     size_t PacketSize() const override;
 
     bool PackInto(uint8_t* packet,

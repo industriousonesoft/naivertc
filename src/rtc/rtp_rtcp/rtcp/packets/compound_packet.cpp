@@ -7,6 +7,11 @@ CompoundPacket::CompoundPacket() = default;
 
 CompoundPacket::~CompoundPacket() = default;
 
+void CompoundPacket::Append(std::unique_ptr<RtcpPacket> packet) {
+    assert(packet);
+    appended_packets_.push_back(std::move(packet));
+}
+
 size_t CompoundPacket::PacketSize() const {
     size_t PacketSize = 0;
     for (const auto& appened : appended_packets_) {

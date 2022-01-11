@@ -2,7 +2,7 @@
 #define _RTC_RTCP_NACK_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/rtcp/packets/psfb.hpp"
+#include "rtc/rtp_rtcp/rtcp/packets/rtpfb.hpp"
 
 #include <vector>
 
@@ -11,7 +11,7 @@ namespace rtcp {
 class CommonHeader;
 
 // Negative acknowledgements, RFC 4585, section 6.2.1
-class RTC_CPP_EXPORT Nack : public Psfb {
+class RTC_CPP_EXPORT Nack : public Rtpfb {
 public:
     static constexpr uint8_t kFeedbackMessageType = 1;
 public:

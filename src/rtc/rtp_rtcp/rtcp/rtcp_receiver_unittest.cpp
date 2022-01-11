@@ -1,6 +1,8 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
 #include "testing/simulated_clock.hpp"
 #include "rtc/base/time/ntp_time_util.hpp"
+#include "rtc/rtp_rtcp/rtcp/packets/compound_packet.hpp"
+#include "rtc/base/arraysize.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -707,55 +709,150 @@ MY_TEST(RtcpReceiverTest, ReceiveReportTimeout) {
     EXPECT_TRUE(receiver.RtcpRrTimeout());
 }
 
-// MY_TEST(RtcpReceiverTest,
-//      VerifyBlockAndTimestampObtainedFromReportBlockDataObserver) {
-    // ReceiverMocks mocks;
-    // MockReportBlockDataObserverImpl observer;
-    // RtpRtcpInterface::Configuration config = DefaultConfiguration(&mocks);
-    // config.report_block_data_observer = &observer;
-    // RTCPReceiver receiver(config, &mocks.rtp_rtcp_impl);
-    // receiver.SetRemoteSSRC(kSenderSsrc);
+MY_TEST(RtcpReceiverTest, VerifyBlockAndTimestampObtainedFromReportBlockDataObserver) {
+    ReceiverMocks mocks;
+    RtcpReceiver receiver(DefaultConfiguration(&mocks), &mocks.rtcp_receiver_observer);
+    receiver.set_remote_ssrc(kSenderSsrc);
 
-    // const uint8_t kFractionLoss = 3;
-    // const uint32_t kCumulativeLoss = 7;
-    // const uint32_t kJitter = 9;
-    // const uint16_t kSequenceNumber = 1234;
-    // const int64_t kUtcNowUs = 42;
+    const uint8_t kFractionLoss = 3;
+    const uint32_t kCumulativeLoss = 7;
+    const uint32_t kJitter = 9;
+    const uint16_t kSequenceNumber = 1234;
+    const int64_t kUtcNowUs = 42;
 
-    // // The "report_block_timestamp_utc_us" is obtained from the global UTC clock
-    // // (not the simulcated |mocks.clock|) and requires a scoped fake clock.
-    // rtc::ScopedFakeClock fake_clock;
-    // fake_clock.SetTime(Timestamp::Micros(kUtcNowUs));
+    rtcp::ReportBlock rtcp_block;
+    rtcp_block.set_media_ssrc(kReceiverMainSsrc);
+    rtcp_block.set_extended_highest_sequence_num(kSequenceNumber);
+    rtcp_block.set_fraction_lost(kFractionLoss);
+    rtcp_block.set_cumulative_packet_lost(kCumulativeLoss);
+    rtcp_block.set_jitter(kJitter);
 
-    // rtcp::ReportBlock rtcp_block;
-    // rtcp_block.SetMediaSsrc(kReceiverMainSsrc);
-    // rtcp_block.SetExtHighestSeqNum(kSequenceNumber);
-    // rtcp_block.SetFractionLost(kFractionLoss);
-    // rtcp_block.SetCumulativeLost(kCumulativeLoss);
-    // rtcp_block.SetJitter(kJitter);
+    rtcp::ReceiverReport rtcp_report;
+    rtcp_report.set_sender_ssrc(kSenderSsrc);
+    rtcp_report.AddReportBlock(rtcp_block);
+    EXPECT_CALL(mocks.rtcp_receiver_observer, OnReceivedRtcpReportBlocks)
+        .WillOnce([&](const std::vector<RtcpReportBlock>& report_blocks) {
+            const auto& report_block = report_blocks[0];
+            EXPECT_EQ(rtcp_block.source_ssrc(), report_block.source_ssrc);
+            EXPECT_EQ(kSenderSsrc, report_block.sender_ssrc);
+            EXPECT_EQ(rtcp_block.fraction_lost(), report_block.fraction_lost);
+            EXPECT_EQ(rtcp_block.cumulative_packet_lost(),
+                     report_block.packets_lost);
+            EXPECT_EQ(rtcp_block.extended_high_seq_num(),
+                     report_block.extended_highest_sequence_number);
+            EXPECT_EQ(rtcp_block.jitter(), report_block.jitter);
+        });
+    EXPECT_CALL(mocks.bandwidth_observer, OnReceivedRtcpReceiverReports);
+    receiver.IncomingPacket(rtcp_report.Build());
+}
 
-    // rtcp::ReceiverReport rtcp_report;
-    // rtcp_report.SetSenderSsrc(kSenderSsrc);
-    // rtcp_report.AddReportBlock(rtcp_block);
-    // EXPECT_CALL(observer, OnReportBlockDataUpdated)
-    //     .WillOnce([&](ReportBlockData report_block_data) {
-    //         const auto& report_block = report_block_data.report_block();
-    //         EXPECT_EQ(rtcp_block.source_ssrc(), report_block.source_ssrc);
-    //         EXPECT_EQ(kSenderSsrc, report_block.sender_ssrc);
-    //         EXPECT_EQ(rtcp_block.fraction_lost(), report_block.fraction_lost);
-    //         EXPECT_EQ(rtcp_block.cumulative_lost_signed(),
-    //                 report_block.packets_lost);
-    //         EXPECT_EQ(rtcp_block.extended_high_seq_num(),
-    //                 report_block.extended_highest_sequence_number);
-    //         EXPECT_EQ(rtcp_block.jitter(), report_block.jitter);
-    //         EXPECT_EQ(kUtcNowUs, report_block_data.report_block_timestamp_utc_us());
-    //         // No RTT is calculated in this test.
-    //         EXPECT_EQ(0u, report_block_data.num_rtts());
-    //     });
-    // EXPECT_CALL(mocks.rtp_rtcp_impl, OnReceivedRtcpReportBlocks);
-    // EXPECT_CALL(mocks.bandwidth_observer, OnReceivedRtcpReceiverReports);
-    // receiver.IncomingPacket(rtcp_report.Build());
-// }
+MY_TEST(RtcpReceiverTest, ReceivesTransportFeedback) {
+    ReceiverMocks mocks;
+    RtcpReceiver receiver(DefaultConfiguration(&mocks), &mocks.rtcp_receiver_observer);
+    receiver.set_remote_ssrc(kSenderSsrc);
+
+    rtcp::TransportFeedback packet;
+    packet.set_media_ssrc(kReceiverMainSsrc);
+    packet.set_sender_ssrc(kSenderSsrc);
+    packet.SetBase(1, 1000);
+    packet.AddReceivedPacket(1, 1000);
+
+    EXPECT_CALL(
+        mocks.transport_feedback_observer,
+        OnTransportFeedback(AllOf(
+            Property(&rtcp::TransportFeedback::media_ssrc, kReceiverMainSsrc),
+            Property(&rtcp::TransportFeedback::sender_ssrc, kSenderSsrc))));
+    receiver.IncomingPacket(packet.Build());
+}
+
+MY_TEST(RtcpReceiverTest, ReceivesRemb) {
+    ReceiverMocks mocks;
+    RtcpReceiver receiver(DefaultConfiguration(&mocks), &mocks.rtcp_receiver_observer);
+    receiver.set_remote_ssrc(kSenderSsrc);
+
+    const uint32_t kBitrateBps = 500000;
+    rtcp::Remb remb;
+    remb.set_sender_ssrc(kSenderSsrc);
+    remb.set_bitrate_bps(kBitrateBps);
+
+    EXPECT_CALL(mocks.bandwidth_observer,
+                OnReceivedEstimatedBitrateBps(kBitrateBps));
+    receiver.IncomingPacket(remb.Build());
+}
+
+MY_TEST(RtcpReceiverTest, Nack) {
+    ReceiverMocks mocks;
+    RtcpReceiver receiver(DefaultConfiguration(&mocks), &mocks.rtcp_receiver_observer);
+    receiver.set_remote_ssrc(kSenderSsrc);
+
+    const uint16_t kNackList1[] = {1, 2, 3, 5};
+    const uint16_t kNackList23[] = {5, 7, 30, 40, 41, 58, 59, 61, 63};
+    const size_t kNackListLength2 = 4;
+    const size_t kNackListLength3 = arraysize(kNackList23) - kNackListLength2;
+    std::set<uint16_t> nack_set;
+    nack_set.insert(std::begin(kNackList1), std::end(kNackList1));
+    nack_set.insert(std::begin(kNackList23), std::end(kNackList23));
+
+    auto nack1 = std::make_unique<rtcp::Nack>();
+    nack1->set_sender_ssrc(kSenderSsrc);
+    nack1->set_media_ssrc(kReceiverMainSsrc);
+    nack1->set_packet_ids(kNackList1, arraysize(kNackList1));
+
+    EXPECT_CALL(mocks.rtcp_receiver_observer,
+                OnReceivedNack(ElementsAreArray(kNackList1)));
+    EXPECT_CALL(mocks.packet_type_counter_observer,
+                RtcpPacketTypesCounterUpdated(
+                    kReceiverMainSsrc,
+                    AllOf(Field(&RtcpPacketTypeCounter::nack_requests,
+                                arraysize(kNackList1)),
+                            Field(&RtcpPacketTypeCounter::unique_nack_requests,
+                                arraysize(kNackList1)))));
+    receiver.IncomingPacket(nack1->Build());
+
+    auto nack2 = std::make_unique<rtcp::Nack>();
+    nack2->set_sender_ssrc(kSenderSsrc);
+    nack2->set_media_ssrc(kReceiverMainSsrc);
+    nack2->set_packet_ids(kNackList23, kNackListLength2);
+
+    auto nack3 = std::make_unique<rtcp::Nack>();
+    nack3->set_sender_ssrc(kSenderSsrc);
+    nack3->set_media_ssrc(kReceiverMainSsrc);
+    nack3->set_packet_ids(kNackList23 + kNackListLength2, kNackListLength3);
+
+    rtcp::CompoundPacket two_nacks;
+    two_nacks.Append(std::move(nack2));
+    two_nacks.Append(std::move(nack3));
+
+    EXPECT_CALL(mocks.rtcp_receiver_observer,
+                OnReceivedNack(ElementsAreArray(kNackList23)));
+    EXPECT_CALL(mocks.packet_type_counter_observer,
+                RtcpPacketTypesCounterUpdated(
+                    kReceiverMainSsrc,
+                    AllOf(Field(&RtcpPacketTypeCounter::nack_requests,
+                                arraysize(kNackList1) + arraysize(kNackList23)),
+                            Field(&RtcpPacketTypeCounter::unique_nack_requests,
+                                nack_set.size()))));
+    receiver.IncomingPacket(two_nacks.Build());
+}
+
+MY_TEST(RtcpReceiverTest, NackNotForUsIgnored) {
+    ReceiverMocks mocks;
+    RtcpReceiver receiver(DefaultConfiguration(&mocks), &mocks.rtcp_receiver_observer);
+    receiver.set_remote_ssrc(kSenderSsrc);
+
+    const uint16_t kNackList1[] = {1, 2, 3, 5};
+    const size_t kNackListLength1 = std::end(kNackList1) - std::begin(kNackList1);
+
+    rtcp::Nack nack;
+    nack.set_sender_ssrc(kSenderSsrc);
+    nack.set_media_ssrc(kNotToUsSsrc);
+    nack.set_packet_ids(kNackList1, kNackListLength1);
+
+    EXPECT_CALL(mocks.packet_type_counter_observer,
+                RtcpPacketTypesCounterUpdated(
+                    _, Field(&RtcpPacketTypeCounter::nack_requests, 0)));
+    receiver.IncomingPacket(nack.Build());
+}
     
 } // namespace test
 } // namespace naivertc

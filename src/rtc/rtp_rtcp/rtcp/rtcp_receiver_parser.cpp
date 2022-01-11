@@ -73,6 +73,11 @@ bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet,
             case rtcp::Tmmbn::kFeedbackMessageType:
                 ++num_skipped_packets_;
                 break;
+            case rtcp::TransportFeedback::kFeedbackMessageType:
+                if (!ParseTransportFeedback(rtcp_block, packet_info)) {
+                    ++num_skipped_packets_;
+                }
+                break;
             default:
                 ++num_skipped_packets_;
                 break;
@@ -252,7 +257,7 @@ void RtcpReceiver::ParseReportBlock(const rtcp::ReportBlock& report_block,
         rtt_ms = CompactNtpRttToMs(rtt_ntp);
         rtts_[source_ssrc].AddRttMs(rtt_ms);
         // FIXME: Only record the RTT from local media source, other than RTX or FEC?
-        if (report_block.source_ssrc() == local_media_ssrc()) {
+        if (source_ssrc == local_media_ssrc()) {
             rtts_[remote_ssrc].AddRttMs(rtt_ms);
         }
         packet_info->rtt_ms = rtt_ms;
@@ -289,7 +294,7 @@ bool RtcpReceiver::ParseNack(const rtcp::CommonHeader& rtcp_block,
 
     // Not to us but return true
     if (receiver_only_ || local_media_ssrc() != nack.media_ssrc()) {
-        return true;
+        return false;
     }
 
     packet_info->nack_list.insert(packet_info->nack_list.end(), 

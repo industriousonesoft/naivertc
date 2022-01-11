@@ -68,6 +68,7 @@ set(LIB_HEADERS
     src/rtc/base/dscp.hpp
     src/rtc/base/packet_options.hpp
     src/rtc/base/copy_on_write_buffer.hpp
+    src/rtc/base/arraysize.hpp
     src/rtc/base/memory/byte_io.hpp
     src/rtc/base/memory/byte_io_reader.hpp
     src/rtc/base/memory/byte_io_writer.hpp

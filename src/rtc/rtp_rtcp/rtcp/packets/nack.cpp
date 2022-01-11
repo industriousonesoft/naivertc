@@ -107,7 +107,7 @@ bool Nack::Parse(const CommonHeader& packet) {
         return false;
     }
     size_t fci_item_count = (packet.payload_size() - kCommonFeedbackSize) / kFciItemSize;
-    Psfb::ParseCommonFeedback(packet.payload());
+    Rtpfb::ParseCommonFeedback(packet.payload(), packet.packet_size());
 
     const uint8_t* next_nack = packet.payload() + kCommonFeedbackSize;
     fci_items_.clear();
@@ -144,9 +144,10 @@ bool Nack::PackInto(uint8_t* buffer,
         size_t fci_item_count = std::min((bytes_left_in_buffer - kNackHeaderSize) / kFciItemSize, fci_items_.size() - fci_index);
         size_t curr_payload_size = kCommonFeedbackSize + (fci_item_count * kFciItemSize);
 
+        const size_t index_end = *index + PacketSize();
         // Pack current fci item as a new NACK packet
         RtcpPacket::PackCommonHeader(kFeedbackMessageType, kPacketType, curr_payload_size, buffer, index);
-        Psfb::PackCommonFeedback(&buffer[*index]);
+        Rtpfb::PackCommonFeedbackInto(&buffer[*index], index_end - *index);
         *index += kCommonFeedbackSize;
 
         size_t fci_end_index = fci_index + fci_item_count;

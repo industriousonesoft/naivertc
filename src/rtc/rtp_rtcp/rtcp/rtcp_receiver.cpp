@@ -206,7 +206,6 @@ void RtcpReceiver::HandleParseResult(const PacketInfo& packet_info) {
             PLOG_VERBOSE << "Received REMB=" 
                          << packet_info.remb_bps 
                          << " bps.";
-
             bandwidth_observer_->OnReceivedEstimatedBitrateBps(packet_info.remb_bps);
         }
         if ((packet_info.packet_type_flags & RtcpPacketType::SR) ||
