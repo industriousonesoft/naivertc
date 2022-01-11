@@ -17,7 +17,8 @@ RtcpSender::RtcpSender(const RtcpConfiguration& config)
       report_interval_(config.rtcp_report_interval_ms > 0 ? TimeDelta::Millis(config.rtcp_report_interval_ms) 
                                                           : (TimeDelta::Millis(config.audio ? kDefaultAudioReportIntervalMs
                                                                                             : kDefaultVideoReportIntervalMs))),
-      max_packet_size_(kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */) {
+      max_packet_size_(kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */),
+      sequence_number_fir_(0) {
   
     InitBuilders();
 }

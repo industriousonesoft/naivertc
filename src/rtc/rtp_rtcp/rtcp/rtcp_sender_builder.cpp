@@ -56,6 +56,10 @@ bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
         }
     }
 
+    if (packet_type_counter_.first_packet_time_ms == -1) {
+        packet_type_counter_.first_packet_time_ms = clock_->now_ms();
+    }
+
     // We need to send out NTP even if we haven't received any reports
     RtcpContext context(feedback_state, nack_list, clock_->CurrentTime());
 
@@ -64,7 +68,6 @@ bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
     bool create_bye = false;
     auto it = report_flags_.begin();
     while (it != report_flags_.end()) {
-
         RtcpPacketType rtcp_packet_type = it->type;
 
         if (it->is_volatile) {
@@ -96,6 +99,11 @@ bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
         BuildBYE(context, sender);
     }
 
+    if (packet_type_counter_observer_) {
+        packet_type_counter_observer_->RtcpPacketTypesCounterUpdated(remote_ssrc_, packet_type_counter_);
+    }
+
+    assert(AllVolatileFlagsConsumed());
     return true;
 }
 
@@ -220,12 +228,24 @@ void RtcpSender::BuildSDES(const RtcpContext& ctx, PacketSender& sender) {
     sender.AppendPacket(sdes);
 }
 
-void RtcpSender::BuildFIR(const RtcpContext& ctx, PacketSender& sender) {
+void RtcpSender::BuildPLI(const RtcpContext& ctx, PacketSender& sender) {
+    rtcp::Pli pli;
+    pli.set_sender_ssrc(local_ssrc_);
+    pli.set_media_ssrc(remote_ssrc_);
 
+    ++packet_type_counter_.pli_packets;
+    sender.AppendPacket(pli);
 }
 
-void RtcpSender::BuildPLI(const RtcpContext& ctx, PacketSender& sender) {
+void RtcpSender::BuildFIR(const RtcpContext& ctx, PacketSender& sender) {
+    ++sequence_number_fir_;
 
+    rtcp::Fir fir;
+    fir.set_sender_ssrc(local_ssrc_);
+    fir.AddRequestTo(remote_ssrc_, sequence_number_fir_);
+
+    ++packet_type_counter_.fir_packets;
+    sender.AppendPacket(fir);
 }
 
 void RtcpSender::BuildREMB(const RtcpContext& ctx, PacketSender& sender) {
@@ -260,6 +280,10 @@ void RtcpSender::BuildNACK(const RtcpContext& ctx, PacketSender& sender) {
         nack_stats_.ReportRequest(id);
     }
 
+    packet_type_counter_.nack_requests = nack_stats_.requests();
+    packet_type_counter_.unique_nack_requests = nack_stats_.unique_requests();
+
+    ++packet_type_counter_.nack_packets;
     sender.AppendPacket(nack);
 }
 

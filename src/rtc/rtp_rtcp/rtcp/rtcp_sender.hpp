@@ -199,6 +199,9 @@ private:
     // send CSRCs
     std::vector<uint32_t> csrcs_;
 
+    // Full intra request
+    uint8_t sequence_number_fir_;
+
     rtcp::LossNotification loss_notification_;
 
     typedef void (RtcpSender::*BuilderFunc)(const RtcpContext&, PacketSender&);
@@ -206,6 +209,9 @@ private:
     std::map<RtcpPacketType, BuilderFunc> builders_;
 
     NextSendEvaluationTimeScheduledCallback next_send_evaluation_time_scheduled_callback_;
+
+    RtcpPacketTypeCounterObserver* const packet_type_counter_observer_ = nullptr;
+    RtcpPacketTypeCounter packet_type_counter_;
 };
     
 } // namespace naivert 
