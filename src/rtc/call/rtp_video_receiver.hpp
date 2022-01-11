@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/rtp_rtcp/rtcp_module.hpp"
+#include "rtc/rtp_rtcp/rtcp_responser.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/nack_module.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/ulp/fec_receiver_ulp.hpp"
@@ -118,7 +118,7 @@ private:
     const Configuration config_;
     Clock* const clock_;
     CompleteFrameReceiver* complete_frame_receiver_;
-    std::unique_ptr<RtcpModule> rtcp_module_;
+    std::unique_ptr<RtcpResponser> rtcp_responser_;
     RtcpFeedbackBuffer rtcp_feedback_buffer_;
     std::unique_ptr<NackModule> nack_module_;
 

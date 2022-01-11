@@ -176,7 +176,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
     src/rtc/rtp_rtcp/rtp_statistics.hpp
     src/rtc/rtp_rtcp/rtcp_statistics.hpp
-    src/rtc/rtp_rtcp/rtcp_module.hpp
+    src/rtc/rtp_rtcp/rtcp_responser.hpp
     src/rtc/rtp_rtcp/rtp_sender.hpp
     src/rtc/rtp_rtcp/rtp_sender_video.hpp
     src/rtc/rtp_rtcp/rtp_video_header.hpp
@@ -414,9 +414,9 @@ set(LIB_SOURCES
     # rtc -> rtp_rtcp
     src/rtc/rtp_rtcp/rtp_statistics.cpp
     src/rtc/rtp_rtcp/rtcp_statistics.cpp
-    src/rtc/rtp_rtcp/rtcp_module.cpp
-    src/rtc/rtp_rtcp/rtcp_module_sender.cpp
-    src/rtc/rtp_rtcp/rtcp_module_receiver.cpp
+    src/rtc/rtp_rtcp/rtcp_responser.cpp
+    src/rtc/rtp_rtcp/rtcp_responser_sender.cpp
+    src/rtc/rtp_rtcp/rtcp_responser_receiver.cpp
     src/rtc/rtp_rtcp/rtp_sender.cpp
     src/rtc/rtp_rtcp/rtp_sender_non_paced.cpp
     src/rtc/rtp_rtcp/rtp_sender_video.cpp

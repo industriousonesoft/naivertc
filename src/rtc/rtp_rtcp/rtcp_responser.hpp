@@ -12,13 +12,13 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtcpModule : public RtcpReceiver::Observer,
+class RTC_CPP_EXPORT RtcpResponser : public RtcpReceiver::Observer,
                                   public RtpSentStatisticsObserver,
                                   public NackSender,
                                   public KeyFrameRequestSender {
 public:
-    RtcpModule(const RtcpConfiguration& config);
-    ~RtcpModule();
+    RtcpResponser(const RtcpConfiguration& config);
+    ~RtcpResponser();
 
     void set_rtt_ms(int64_t rtt_ms);
     int64_t rtt_ms() const;

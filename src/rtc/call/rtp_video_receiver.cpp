@@ -15,12 +15,12 @@ constexpr int kPacketBufferMaxSize = 2048;
 
 constexpr int kPacketLogIntervalMs = 10000;
 
-std::unique_ptr<RtcpModule> CreateRtcpModule(const RtpVideoReceiver::Configuration& stream_config,
-                                             Clock* clock) {
+std::unique_ptr<RtcpResponser> CreateRtcpResponser(const RtpVideoReceiver::Configuration& stream_config,
+                                                   Clock* clock) {
     RtcpConfiguration rtcp_config;
     rtcp_config.audio = false;
     rtcp_config.local_media_ssrc = stream_config.local_ssrc;
-    return std::make_unique<RtcpModule>(rtcp_config);
+    return std::make_unique<RtcpResponser>(rtcp_config);
 }
 
 rtp::video::FrameToDecode CreateFrameToDecode(const rtp::video::jitter::PacketBuffer::Frame& assembled_frame, 
@@ -46,8 +46,8 @@ RtpVideoReceiver::RtpVideoReceiver(Configuration config,
     : config_(std::move(config)),
       clock_(clock),
       complete_frame_receiver_(complete_frame_receiver),
-      rtcp_module_(CreateRtcpModule(config_, clock_)),
-      rtcp_feedback_buffer_(rtcp_module_.get(), rtcp_module_.get()),
+      rtcp_responser_(CreateRtcpResponser(config_, clock_)),
+      rtcp_feedback_buffer_(rtcp_responser_.get(), rtcp_responser_.get()),
       nack_module_(config.nack_enabled ? std::make_unique<NackModule>(clock_,
                                                                       &rtcp_feedback_buffer_, 
                                                                       &rtcp_feedback_buffer_)
@@ -57,7 +57,7 @@ RtpVideoReceiver::RtpVideoReceiver(Configuration config,
       ulp_fec_receiver_(config_.remote_ssrc, clock_, this),
       last_packet_log_ms_(-1) {
 
-    rtcp_module_->set_remote_ssrc(config.remote_ssrc);
+    rtcp_responser_->set_remote_ssrc(config.remote_ssrc);
 }
 
 RtpVideoReceiver::~RtpVideoReceiver() {}
@@ -65,10 +65,10 @@ RtpVideoReceiver::~RtpVideoReceiver() {}
 void RtpVideoReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
     RTC_RUN_ON(&sequence_checker_);
     
-    rtcp_module_->IncomingPacket(std::move(in_packet));
+    rtcp_responser_->IncomingPacket(std::move(in_packet));
 
     int64_t last_rtt_ms = 0;
-    rtcp_module_->RTT(config_.remote_ssrc, 
+    rtcp_responser_->RTT(config_.remote_ssrc, 
                         &last_rtt_ms, 
                         nullptr /* avg_rtt_ms */, 
                         nullptr /* min_rtt_ms */, 
@@ -83,7 +83,7 @@ void RtpVideoReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
     uint32_t rtcp_arrival_time_secs = 0;
     uint32_t rtcp_arrival_time_frac = 0;
     uint32_t rtp_timestamp = 0;
-    if (rtcp_module_->RemoteNTP(&received_ntp_secs, 
+    if (rtcp_responser_->RemoteNTP(&received_ntp_secs, 
                                 &received_ntp_frac, 
                                 &rtcp_arrival_time_secs,
                                 &rtcp_arrival_time_frac, 
@@ -140,7 +140,7 @@ void RtpVideoReceiver::UpdateRtt(int64_t max_rtt_ms) {
 
 void RtpVideoReceiver::RequestKeyFrame() {
     RTC_RUN_ON(&sequence_checker_);
-    // TODO: Send PictureLossIndication by rtcp_module
+    // TODO: Send PictureLossIndication by rtcp_responser
 }
 
 // Private methods

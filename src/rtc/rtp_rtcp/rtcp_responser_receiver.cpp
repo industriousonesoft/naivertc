@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtcp_module.hpp"
+#include "rtc/rtp_rtcp/rtcp_responser.hpp"
 
 namespace naivertc {
 namespace {
@@ -7,17 +7,17 @@ const int64_t kDefaultExpectedRetransmissionTimeMs = 125;
 
 }  // namespace
 
-void RtcpModule::IncomingPacket(const uint8_t* packet, size_t packet_size) {
+void RtcpResponser::IncomingPacket(const uint8_t* packet, size_t packet_size) {
     RTC_RUN_ON(&sequence_checker_);
     IncomingPacket(CopyOnWriteBuffer(packet, packet_size));
 }
     
-void RtcpModule::IncomingPacket(CopyOnWriteBuffer rtcp_packet) {
+void RtcpResponser::IncomingPacket(CopyOnWriteBuffer rtcp_packet) {
     RTC_RUN_ON(&sequence_checker_);
     rtcp_receiver_.IncomingPacket(std::move(rtcp_packet));
 }
 
-int32_t RtcpModule::RTT(uint32_t remote_ssrc,
+int32_t RtcpResponser::RTT(uint32_t remote_ssrc,
                         int64_t* last_rtt_ms,
                         int64_t* avg_rtt_ms,
                         int64_t* min_rtt_ms,
@@ -30,7 +30,7 @@ int32_t RtcpModule::RTT(uint32_t remote_ssrc,
     return ret;
 }
 
-int32_t RtcpModule::RemoteNTP(uint32_t* received_ntp_secs,
+int32_t RtcpResponser::RemoteNTP(uint32_t* received_ntp_secs,
                               uint32_t* received_ntp_frac,
                               uint32_t* rtcp_arrival_time_secs,
                               uint32_t* rtcp_arrival_time_frac,
@@ -47,7 +47,7 @@ int32_t RtcpModule::RemoteNTP(uint32_t* received_ntp_secs,
     return bRet ? 0 : -1;
 }
 
-int64_t RtcpModule::ExpectedRestransmissionTimeMs() const {
+int64_t RtcpResponser::ExpectedRestransmissionTimeMs() const {
     RTC_RUN_ON(&sequence_checker_);
     int64_t expected_retransmission_time_ms = rtt_ms_;
     if (expected_retransmission_time_ms > 0) {
@@ -66,15 +66,15 @@ int64_t RtcpModule::ExpectedRestransmissionTimeMs() const {
     return kDefaultExpectedRetransmissionTimeMs;
 }
 
-void RtcpModule::OnRequestSendReport() {
+void RtcpResponser::OnRequestSendReport() {
     RTC_RUN_ON(&sequence_checker_);
 }
 
-void RtcpModule::OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) {
+void RtcpResponser::OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) {
     RTC_RUN_ON(&sequence_checker_);
 }
 
-void RtcpModule::OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) {
+void RtcpResponser::OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) {
     RTC_RUN_ON(&sequence_checker_);
 }  
     

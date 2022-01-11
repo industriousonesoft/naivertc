@@ -1,21 +1,21 @@
-#include "rtc/rtp_rtcp/rtcp_module.hpp"
+#include "rtc/rtp_rtcp/rtcp_responser.hpp"
 
 #include <plog/Log.h>
 
 namespace naivertc {
 
-void RtcpModule::SendNack(std::vector<uint16_t> nack_list,
+void RtcpResponser::SendNack(std::vector<uint16_t> nack_list,
                           bool buffering_allowed) {
     assert(buffering_allowed == true);
     rtcp_sender_.SendRtcp(GetFeedbackState(), RtcpPacketType::NACK, std::move(nack_list));
 }
 
-void RtcpModule::RequestKeyFrame() {
+void RtcpResponser::RequestKeyFrame() {
     rtcp_sender_.SendRtcp(GetFeedbackState(), RtcpPacketType::PLI);
 }
 
 // Private methods
-const RtcpSender::FeedbackState& RtcpModule::GetFeedbackState() {
+const RtcpSender::FeedbackState& RtcpResponser::GetFeedbackState() {
     RTC_RUN_ON(work_queue_);
     uint32_t received_ntp_secs = 0;
     uint32_t received_ntp_frac = 0;
@@ -33,14 +33,14 @@ const RtcpSender::FeedbackState& RtcpModule::GetFeedbackState() {
     return feedback_state_;
 }
 
-void RtcpModule::MaybeSendRtcp() {
+void RtcpResponser::MaybeSendRtcp() {
     RTC_RUN_ON(work_queue_);
     if (rtcp_sender_.TimeToSendRtcpReport()) {
         rtcp_sender_.SendRtcp(GetFeedbackState(), RtcpPacketType::REPORT);
     }
 }
 
-void RtcpModule::ScheduleRtcpSendEvaluation(TimeDelta delay) {
+void RtcpResponser::ScheduleRtcpSendEvaluation(TimeDelta delay) {
     if (delay.IsZero()) {
         work_queue_->Post([this](){
             this->MaybeSendRtcp();
@@ -53,7 +53,7 @@ void RtcpModule::ScheduleRtcpSendEvaluation(TimeDelta delay) {
     }
 }
 
-void RtcpModule::MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time) {
+void RtcpResponser::MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time) {
     Timestamp now = clock_->CurrentTime();
     if (now >= execution_time) {
         MaybeSendRtcp();

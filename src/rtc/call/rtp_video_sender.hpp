@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
-#include "rtc/rtp_rtcp/rtcp_module.hpp"
+#include "rtc/rtp_rtcp/rtcp_responser.hpp"
 #include "rtc/rtp_rtcp/rtp_sender.hpp"
 #include "rtc/rtp_rtcp/rtp_sender_video.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
@@ -87,7 +87,7 @@ private:
     SequenceChecker sequence_checker_;
     const int media_payload_type_;
     Clock* const clock_;
-    std::unique_ptr<RtcpModule> rtcp_module_ = nullptr;
+    std::unique_ptr<RtcpResponser> rtcp_responser_ = nullptr;
     std::unique_ptr<RtpSender> rtp_sender_ = nullptr;
     std::unique_ptr<RtpSenderVideo> sender_video_ = nullptr;
 };
