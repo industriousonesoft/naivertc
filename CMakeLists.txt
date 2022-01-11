@@ -642,6 +642,10 @@ set(TESTING_SOURCES
     src/testing/simulated_time_controller.cpp
     src/testing/simulated_time_controller_unittest.cpp
 
+    # rtc -> rtp_rtcp -> rtcp -> 
+    src/rtc/rtp_rtcp/rtcp/rtcp_packet_parser.hpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_packet_parser.cpp
+
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.hpp
     
@@ -740,6 +744,7 @@ set(UNITTEST_SOURCES
     # rtc -> rtp_rtcp -> rtcp 
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/packets/common_header_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/packets/compound_packet_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/packets/report_block_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/packets/sender_report_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/packets/sdes_unittest.cpp
