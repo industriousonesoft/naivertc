@@ -13,6 +13,7 @@ namespace naivertc {
 
 namespace rtcp {
 class TransportFeedback;
+class ReportBlock;
 }
 
 // NackSender
@@ -121,6 +122,13 @@ class RTC_CPP_EXPORT RtcpTransportFeedbackObserver {
 public:
     virtual ~RtcpTransportFeedbackObserver() = default;
     virtual void OnTransportFeedback(const rtcp::TransportFeedback& feedback) = 0;
+};
+
+// RtcpReportBlockProvider
+class RtcpReportBlockProvider {
+public:
+    virtual ~RtcpReportBlockProvider() = default;
+    virtual std::vector<rtcp::ReportBlock> GetRtcpReportBlocks(size_t max_blocks) = 0;
 };
     
 } // namespace naivertc

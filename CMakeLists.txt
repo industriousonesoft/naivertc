@@ -140,6 +140,8 @@ set(LIB_HEADERS
     src/rtc/call/rtp_demuxer.hpp
     src/rtc/call/rtp_video_receiver.hpp
     src/rtc/call/rtx_receive_stream.hpp
+    src/rtc/call/rtp_receive_statistics.hpp
+    src/rtc/call/rtp_stream_statistician.hpp
 
     # rtc -> media
     src/rtc/media/media_track.hpp
@@ -171,8 +173,6 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtp_sender_video.hpp
     src/rtc/rtp_rtcp/rtp_video_header.hpp
     src/rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp
-    src/rtc/rtp_rtcp/rtp_receive_statistics.hpp
-    src/rtc/rtp_rtcp/rtp_stream_statistician.hpp
 
     # rtp -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.hpp
@@ -385,6 +385,8 @@ set(LIB_SOURCES
     src/rtc/call/rtp_video_receiver.cpp
     src/rtc/call/rtp_video_receiver_auxiliaries.cpp
     src/rtc/call/rtx_receive_stream.cpp
+    src/rtc/call/rtp_receive_statistics.cpp
+    src/rtc/call/rtp_stream_statistician.cpp
     
     # rtc -> media
     src/rtc/media/media_track.cpp
@@ -417,8 +419,6 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp_sender.cpp
     src/rtc/rtp_rtcp/rtp_sender_non_paced.cpp
     src/rtc/rtp_rtcp/rtp_sender_video.cpp
-    src/rtc/rtp_rtcp/rtp_receive_statistics.cpp
-    src/rtc/rtp_rtcp/rtp_stream_statistician.cpp
 
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
@@ -696,6 +696,9 @@ set(UNITTEST_SOURCES
     src/rtc/base/synchronization/yield_policy_unittest.cpp
     src/rtc/base/task_utils/task_queue_unittest.cpp
     src/rtc/base/task_utils/repeating_task_unittest.cpp
+
+    # rtc -> call
+    src/rtc/call/rtp_receive_statistics_unittest.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp
