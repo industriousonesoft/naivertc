@@ -170,6 +170,8 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/components/num_unwrapper_base.hpp
     src/rtc/rtp_rtcp/components/num_unwrapper.hpp
     src/rtc/rtp_rtcp/components/rolling_accumulator.hpp
+    src/rtc/rtp_rtcp/components/rtp_receive_statistics.hpp
+    src/rtc/rtp_rtcp/components/rtp_stream_statistician.hpp
 
     # rtc -> rtp_rtcp
     src/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
@@ -410,6 +412,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.cpp
+    src/rtc/rtp_rtcp/components/rtp_receive_statistics.cpp
+    src/rtc/rtp_rtcp/components/rtp_stream_statistician.cpp
 
     # rtc -> rtp_rtcp
     src/rtc/rtp_rtcp/rtp_statistics.cpp

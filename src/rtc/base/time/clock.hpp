@@ -13,8 +13,11 @@ namespace naivertc {
 // GPS系统使用的基准点是：1980年1月6日0点0分0秒（UTC）。
 // 每个系统都可以根据自己的逻辑定义自己epoch，例如unix epoch的基准点是因为unix操作系统是在1970年左右成型的。
 // 详见 https://www.cnblogs.com/arnoldlu/p/7078179.html
-// Time interval in seconds between 1970 and 1900
-constexpr uint32_t kNtpJan1970 = 2208988800UL;
+
+// Number of seconds since 1900 January 1 00:00 GMT (see
+// https://tools.ietf.org/html/rfc868).
+constexpr uint32_t kNtpJan1970s = 2'208'988'800UL;
+constexpr int64_t kNtpJan1970Ms = 2'208'988'800'000;
 
 // Magic NTP fractional unit
 constexpr double kMagicNtpFractionalUnit = 4.294967296E+9;
