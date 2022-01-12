@@ -11,7 +11,7 @@ int64_t NtpOffsetInUs() {
     // Time interval in seconds between 1970 and 1900
     constexpr int64_t kNtpJan1970Sec = 2208988800;
     int64_t clock_time = utils::time::TimeInMicros();
-    int64_t utc_time =  utils::time::TimeUTCInMicros();
+    int64_t utc_time = utils::time::TimeUTCInMicros();
     return (utc_time - clock_time /* Offset between UTC and system clock */) + kNtpJan1970Sec *  kNumMicrosecsPerSec;
 }
 

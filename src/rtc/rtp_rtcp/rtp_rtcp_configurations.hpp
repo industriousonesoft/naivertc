@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
-#include "rtc/rtp_rtcp/rtp_statistics.hpp"
+#include "rtc/rtp_rtcp/rtp_statistic_structs.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 #include "rtc/api/media_transport.hpp"
 

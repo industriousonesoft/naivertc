@@ -161,6 +161,19 @@ set(LIB_HEADERS
     src/rtc/media/video/codecs/h264/sps_pps_tracker.hpp
     src/rtc/media/video/codecs/h264/sprop_parameter_parser.hpp
 
+    # rtc -> rtp_rtcp
+    src/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
+    src/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
+    src/rtc/rtp_rtcp/rtp_statistic_structs.hpp
+    src/rtc/rtp_rtcp/rtcp_statistic_structs.hpp
+    src/rtc/rtp_rtcp/rtcp_responser.hpp
+    src/rtc/rtp_rtcp/rtp_sender.hpp
+    src/rtc/rtp_rtcp/rtp_sender_video.hpp
+    src/rtc/rtp_rtcp/rtp_video_header.hpp
+    src/rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp
+    src/rtc/rtp_rtcp/rtp_receive_statistics.hpp
+    src/rtc/rtp_rtcp/rtp_stream_statistician.hpp
+
     # rtp -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.hpp
     # src/rtc/rtp_rtcp/components/wrap_around_checker.hpp
@@ -170,19 +183,6 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/components/num_unwrapper_base.hpp
     src/rtc/rtp_rtcp/components/num_unwrapper.hpp
     src/rtc/rtp_rtcp/components/rolling_accumulator.hpp
-    src/rtc/rtp_rtcp/components/rtp_receive_statistics.hpp
-    src/rtc/rtp_rtcp/components/rtp_stream_statistician.hpp
-
-    # rtc -> rtp_rtcp
-    src/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
-    src/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
-    src/rtc/rtp_rtcp/rtp_statistics.hpp
-    src/rtc/rtp_rtcp/rtcp_statistics.hpp
-    src/rtc/rtp_rtcp/rtcp_responser.hpp
-    src/rtc/rtp_rtcp/rtp_sender.hpp
-    src/rtc/rtp_rtcp/rtp_sender_video.hpp
-    src/rtc/rtp_rtcp/rtp_video_header.hpp
-    src/rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp
 
      # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp
@@ -408,22 +408,22 @@ set(LIB_SOURCES
     src/rtc/media/video/codecs/h264/sps_pps_tracker.cpp
     src/rtc/media/video/codecs/h264/sprop_parameter_parser.cpp
 
-    # rtc -> rtp_rtcp -> components
-    src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
-    src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.cpp
-    src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.cpp
-    src/rtc/rtp_rtcp/components/rtp_receive_statistics.cpp
-    src/rtc/rtp_rtcp/components/rtp_stream_statistician.cpp
-
     # rtc -> rtp_rtcp
-    src/rtc/rtp_rtcp/rtp_statistics.cpp
-    src/rtc/rtp_rtcp/rtcp_statistics.cpp
+    src/rtc/rtp_rtcp/rtp_statistic_structs.cpp
+    src/rtc/rtp_rtcp/rtcp_statistic_structs.cpp
     src/rtc/rtp_rtcp/rtcp_responser.cpp
     src/rtc/rtp_rtcp/rtcp_responser_sender.cpp
     src/rtc/rtp_rtcp/rtcp_responser_receiver.cpp
     src/rtc/rtp_rtcp/rtp_sender.cpp
     src/rtc/rtp_rtcp/rtp_sender_non_paced.cpp
     src/rtc/rtp_rtcp/rtp_sender_video.cpp
+    src/rtc/rtp_rtcp/rtp_receive_statistics.cpp
+    src/rtc/rtp_rtcp/rtp_stream_statistician.cpp
+
+    # rtc -> rtp_rtcp -> components
+    src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
+    src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.cpp
+    src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp

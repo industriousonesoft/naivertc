@@ -2,8 +2,8 @@
 #define _RTC_RTP_RTCP_RTP_RTCP_INTERFACES_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/rtp_statistics.hpp"
-#include "rtc/rtp_rtcp/rtcp_statistics.hpp"
+#include "rtc/rtp_rtcp/rtp_statistic_structs.hpp"
+#include "rtc/rtp_rtcp/rtcp_statistic_structs.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/base/units/data_rate.hpp"
 

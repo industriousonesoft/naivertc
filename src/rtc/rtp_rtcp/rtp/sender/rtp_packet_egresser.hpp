@@ -9,7 +9,7 @@
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
-#include "rtc/rtp_rtcp/rtp_statistics.hpp"
+#include "rtc/rtp_rtcp/rtp_statistic_structs.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"

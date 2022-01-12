@@ -18,7 +18,7 @@ public:
 
 // RtpReceiveStatistics
 class RTC_CPP_EXPORT RtpReceiveStatistics : public RtcpReportBlockProvider,
-                                         public RtpPacketSink {
+                                            public RtpPacketSink {
 public:
     RtpReceiveStatistics();
     ~RtpReceiveStatistics() override;

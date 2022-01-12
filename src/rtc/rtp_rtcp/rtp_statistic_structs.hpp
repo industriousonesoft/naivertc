@@ -70,8 +70,8 @@ struct RTC_CPP_EXPORT RtpStreamDataCounters final {
 
     // The time at which th first packet was sent/received.
     int64_t first_packet_time_ms;
-    // The timestamp at which the last packet was received.
-    std::optional<int64_t> last_packet_received_timestamp_ms;
+    // The time at which the last packet was received.
+    std::optional<int64_t> last_packet_received_time_ms;
     RtpPacketCounter transmitted;
     RtpPacketCounter retransmitted;
     RtpPacketCounter fec;
@@ -82,7 +82,7 @@ struct RTC_CPP_EXPORT RtpReceiveStats {
     int32_t packets_lost = 0;
     uint32_t jitter = 0;
 
-    std::optional<int64_t> last_packet_received_timestamp_ms;
+    std::optional<int64_t> last_packet_received_time_ms;
     RtpPacketCounter packet_counter;
 };
 
