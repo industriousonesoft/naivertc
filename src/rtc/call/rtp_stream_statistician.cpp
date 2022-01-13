@@ -97,11 +97,13 @@ std::optional<rtcp::ReportBlock> RtpStreamStatistician::GetReportBlock() {
         report_block.set_fraction_lost(255 * lost_packets_since_last / received_packets_since_last);
     }
 
+    // Cumulative lost packets.
     int packet_lost = cumulative_loss_ + cumulative_loss_rtcp_offset_;
     if (packet_lost < 0) {
         // Clamp to zero in case of the senders will misbehave with 
         // a negative cumulative loss.
         packet_lost = 0;
+        // FIXME: How to understand this?
         cumulative_loss_rtcp_offset_ = -cumulative_loss_;
     }
     

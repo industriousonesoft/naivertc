@@ -18,8 +18,11 @@ RtcpSender::RtcpSender(const RtcpConfiguration& config)
                                                           : (TimeDelta::Millis(config.audio ? kDefaultAudioReportIntervalMs
                                                                                             : kDefaultVideoReportIntervalMs))),
       max_packet_size_(kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */),
-      sequence_number_fir_(0) {
+      sequence_number_fir_(0),
+      packet_type_counter_observer_(config.packet_type_counter_observer),
+      report_block_provider_(config.report_block_provider) {
   
+    // Initialize all builders.
     InitBuilders();
 }
 

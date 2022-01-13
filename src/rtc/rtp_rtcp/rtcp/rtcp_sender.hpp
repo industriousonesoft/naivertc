@@ -96,11 +96,11 @@ private:
     public:
         RtcpContext(const FeedbackState& feedback_state,
                     const std::vector<uint16_t> nack_list,
-                    Timestamp now);
+                    Timestamp now_time);
 
-        const FeedbackState& feedback_state_;
-        const std::vector<uint16_t> nack_list_;
-        const Timestamp now_;
+        const FeedbackState& feedback_state;
+        const std::vector<uint16_t> nack_list;
+        const Timestamp now_time;
     };
 
     // PacketSender
@@ -210,8 +210,10 @@ private:
 
     NextSendEvaluationTimeScheduledCallback next_send_evaluation_time_scheduled_callback_;
 
-    RtcpPacketTypeCounterObserver* const packet_type_counter_observer_ = nullptr;
     RtcpPacketTypeCounter packet_type_counter_;
+
+    RtcpPacketTypeCounterObserver* const packet_type_counter_observer_ = nullptr;
+    RtcpReportBlockProvider* const report_block_provider_ = nullptr;
 };
     
 } // namespace naivert 

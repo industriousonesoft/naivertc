@@ -16,6 +16,11 @@
 #include <plog/Log.h>
 
 namespace naivertc {
+namespace {
+
+constexpr int KMaxRtcpReportBlocksNum = 31;  // RFC 3550 page 37
+    
+} // namespac 
 
 // Private methods
 void RtcpSender::InitBuilders() {
@@ -148,8 +153,11 @@ void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
 
 std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const FeedbackState& feedback_state) {
     std::vector<rtcp::ReportBlock> report_blocks;
+    if (!report_block_provider_) {
+        return report_blocks;
+    }
     
-    // TODO: Retrieve report blocks from Receiver statistics
+    report_blocks = report_block_provider_->GetRtcpReportBlocks(KMaxRtcpReportBlocksNum);
 
     // How to calculate RTT: https://blog.jianchihu.net/webrtc-research-stats-rtt.html
     // Receiver          Network         Sender
@@ -196,10 +204,10 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
         rtp_rate = (audio_ ? kBogusRtpRateForAudioRtcp : kVideoPayloadTypeFrequency) / 1000;
     }
 
-    // Round now_us_ to the closest millisecond, because Ntp time is rounded
+    // Round now time in us to the closest millisecond, because Ntp time is rounded
     // when converted to milliseconds,
     uint32_t rtp_timestamp = timestamp_offset_ + last_rtp_timestamp_ +
-                ((ctx.now_.us() + 500) / 1000 - last_frame_capture_time_->ms()) * rtp_rate;
+                ((ctx.now_time.us() + 500) / 1000 - last_frame_capture_time_->ms()) * rtp_rate;
 
     PLOG_INFO << "timestamp_offset: " << timestamp_offset_ 
               << " last_rtp_timestamp: " << last_rtp_timestamp_ 
@@ -207,18 +215,18 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
 
     rtcp::SenderReport sr;
     sr.set_sender_ssrc(local_ssrc_);
-    sr.set_ntp(clock_->ConvertTimestampToNtpTime(ctx.now_));
+    sr.set_ntp(clock_->ConvertTimestampToNtpTime(ctx.now_time));
     sr.set_rtp_timestamp(rtp_timestamp);
-    sr.set_sender_packet_count(ctx.feedback_state_.packets_sent);
-    sr.set_sender_octet_count(ctx.feedback_state_.media_bytes_sent);
-    sr.SetReportBlocks(CreateReportBlocks(ctx.feedback_state_));
+    sr.set_sender_packet_count(ctx.feedback_state.packets_sent);
+    sr.set_sender_octet_count(ctx.feedback_state.media_bytes_sent);
+    sr.SetReportBlocks(CreateReportBlocks(ctx.feedback_state));
     sender.AppendPacket(sr);
 }
 
 void RtcpSender::BuildRR(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::ReceiverReport rr;
     rr.set_sender_ssrc(local_ssrc_);
-    rr.SetReportBlocks(CreateReportBlocks(ctx.feedback_state_));
+    rr.SetReportBlocks(CreateReportBlocks(ctx.feedback_state));
     sender.AppendPacket(rr);
 }
 
@@ -274,9 +282,9 @@ void RtcpSender::BuildNACK(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::Nack nack;
     nack.set_sender_ssrc(local_ssrc_);
     nack.set_media_ssrc(remote_ssrc_);
-    nack.set_packet_ids(ctx.nack_list_);
+    nack.set_packet_ids(ctx.nack_list);
 
-    for (uint16_t id : ctx.nack_list_) {
+    for (uint16_t id : ctx.nack_list) {
         nack_stats_.ReportRequest(id);
     }
 
