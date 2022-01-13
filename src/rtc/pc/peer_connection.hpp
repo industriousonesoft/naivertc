@@ -119,6 +119,7 @@ public:
 private:
     // MediaTransport interfaces
     int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override;
+    int SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) override;
     // DataTransport interfaces
     bool Send(SctpMessageToSend message) override;
     

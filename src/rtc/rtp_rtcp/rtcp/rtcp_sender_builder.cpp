@@ -37,10 +37,10 @@ void RtcpSender::InitBuilders() {
     builders_[RtcpPacketType::NACK] = &RtcpSender::BuildNACK;
 }
 
-bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
-                                           RtcpPacketType rtcp_packt_type,
-                                           const std::vector<uint16_t> nack_list,
-                                           PacketSender& sender) {
+std::optional<bool> RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
+                                                          RtcpPacketType rtcp_packt_type,
+                                                          const std::vector<uint16_t> nack_list,
+                                                          PacketSender& sender) {
     // Add the flag as volatile. Non volatile entries will not be overwritten.
     // The new volatile flag will be consumed by the end of this call.
     SetFlag(rtcp_packt_type, true);
@@ -109,7 +109,7 @@ bool RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
     }
 
     assert(AllVolatileFlagsConsumed());
-    return true;
+    return std::nullopt;
 }
 
 void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {

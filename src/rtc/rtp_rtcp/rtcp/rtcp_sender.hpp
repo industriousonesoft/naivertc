@@ -107,8 +107,13 @@ private:
     // Helper to put several RTCP packets into lower layer datagram RTCP packet.
     class PacketSender {
     public:
-        PacketSender(RtcpPacket::PacketReadyCallback callback, size_t max_packet_size);
+        PacketSender(MediaTransport* send_transport,
+                     bool is_audio,
+                     size_t max_packet_size);
         ~PacketSender();
+
+        size_t max_packet_size() const;
+        void set_max_packet_size(size_t max_packet_size);
 
         // Appends a packet to pending compound packet.
         // Sends rtcp packet if buffer is full and resets the buffer.
@@ -117,10 +122,16 @@ private:
         // Sends pending rtcp packet.
         void Send();
 
+        void Reset();
+
     private:
-        const RtcpPacket::PacketReadyCallback callback_;
-        const size_t max_packet_size_;
-        size_t index_ = 0;
+        void SendPacket(CopyOnWriteBuffer packet);
+
+    private:
+        MediaTransport* const send_transport_;
+        const bool is_audio_;
+        size_t max_packet_size_;
+        size_t index_;
         uint8_t buffer_[kIpPacketSize];
     };
 
@@ -136,10 +147,10 @@ private:
     };
 
 private:
-    bool ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
-                                    RtcpPacketType rtcp_packt_type,
-                                    const std::vector<uint16_t> nack_list,
-                                    PacketSender& sender);
+    std::optional<bool> ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
+                                                  RtcpPacketType rtcp_packt_type,
+                                                  const std::vector<uint16_t> nack_list,
+                                                  PacketSender& sender);
 
     void PrepareReport(const FeedbackState& feedback_state);
     std::vector<rtcp::ReportBlock> CreateReportBlocks(const FeedbackState& feedback_state);
@@ -173,7 +184,7 @@ private:
     // SSRC that we receive on our RTP channel
     uint32_t remote_ssrc_;
     Clock* const clock_;
-     
+ 
     const TimeDelta report_interval_;
     bool sending_;
 
@@ -193,8 +204,6 @@ private:
     int64_t remb_bitrate_ = 0;
     std::vector<uint32_t> remb_ssrcs_;
 
-    size_t max_packet_size_;
-
     RtcpNackStats nack_stats_;
     // send CSRCs
     std::vector<uint32_t> csrcs_;
@@ -203,6 +212,8 @@ private:
     uint8_t sequence_number_fir_;
 
     rtcp::LossNotification loss_notification_;
+
+    PacketSender packet_sender_;
 
     typedef void (RtcpSender::*BuilderFunc)(const RtcpContext&, PacketSender&);
     // Map from RTCPPacketType to builder.

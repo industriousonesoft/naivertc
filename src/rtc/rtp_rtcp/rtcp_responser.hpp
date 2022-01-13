@@ -49,6 +49,8 @@ public:
 
     int64_t ExpectedRestransmissionTimeMs() const;
 
+    RtcpSender::FeedbackState GetFeedbackState();
+
 private:
     // RtpSentStatistics Observer
     void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, 
@@ -57,7 +59,6 @@ private:
 
 private:
     // RtcpSender
-    const RtcpSender::FeedbackState& GetFeedbackState();
     void MaybeSendRtcp();
     void ScheduleRtcpSendEvaluation(TimeDelta duration);
     void MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time);

@@ -116,6 +116,17 @@ int PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions option
     });
 }
 
+int PeerConnection::SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
+    return network_task_queue_->Sync<int>([this, packet=std::move(packet), options=std::move(options)](){
+        auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
+        if (srtp_transport) {
+            return srtp_transport->SendRtcpPacket(std::move(packet), std::move(options));
+        } else {
+            return -1;
+        }
+    });
+}
+
 // DataTransport interface
 bool PeerConnection::Send(SctpMessageToSend message) {
     return network_task_queue_->Sync<bool>([this, message=std::move(message)](){

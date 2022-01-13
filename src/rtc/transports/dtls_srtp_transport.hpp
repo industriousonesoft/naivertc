@@ -19,6 +19,7 @@ public:
     ~DtlsSrtpTransport() override;
 
     int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options);
+    int SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options);
 
     using RtpPacketRecvCallback = std::function<void(CopyOnWriteBuffer, bool /* is_rtcp */)>;
     void OnReceivedRtpPacket(RtpPacketRecvCallback callback);
@@ -32,7 +33,7 @@ private:
     void Incoming(CopyOnWriteBuffer in_packet) override;
     int Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) override;
 
-    bool EncryptPacket(CopyOnWriteBuffer& packet);
+    bool EncryptPacket(CopyOnWriteBuffer& packet, bool is_rtcp);
 private:
     bool srtp_init_done_;
 

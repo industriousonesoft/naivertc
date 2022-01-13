@@ -59,6 +59,8 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
 
     Clock* clock;
 
+    MediaTransport* send_transport;
+
     // Observers
     RtcpPacketTypeCounterObserver* packet_type_counter_observer = nullptr;
     RtcpIntraFrameObserver* intra_frame_observer = nullptr;

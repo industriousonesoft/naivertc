@@ -15,7 +15,7 @@ void RtcpResponser::RequestKeyFrame() {
 }
 
 // Private methods
-const RtcpSender::FeedbackState& RtcpResponser::GetFeedbackState() {
+RtcpSender::FeedbackState RtcpResponser::GetFeedbackState() {
     RTC_RUN_ON(work_queue_);
     uint32_t received_ntp_secs = 0;
     uint32_t received_ntp_frac = 0;

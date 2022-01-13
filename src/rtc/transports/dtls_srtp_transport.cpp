@@ -22,7 +22,16 @@ DtlsSrtpTransport::~DtlsSrtpTransport() {
 
 int DtlsSrtpTransport::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
     RTC_RUN_ON(&sequence_checker_);
-    if (!packet.empty() && EncryptPacket(packet)) {
+    if (!packet.empty() && EncryptPacket(packet, false)) {
+        return Outgoing(std::move(packet), std::move(options));
+    } else {
+        return -1;
+    }
+}
+
+int DtlsSrtpTransport::SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
+    RTC_RUN_ON(&sequence_checker_);
+    if (!packet.empty() && EncryptPacket(packet, true)) {
         return Outgoing(std::move(packet), std::move(options));
     } else {
         return -1;
@@ -35,7 +44,7 @@ void DtlsSrtpTransport::OnReceivedRtpPacket(RtpPacketRecvCallback callback) {
 }
 
 // Private methods
-bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
+bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet, bool is_rtcp) {
     RTC_RUN_ON(&sequence_checker_);
     if (!srtp_init_done_) {
         PLOG_WARNING << "SRTP not init yet.";
@@ -44,7 +53,7 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
 
     int protectd_data_size = (int)packet.size();
     // Rtcp packet
-    if (IsRtcpPacket(packet)) {
+    if (is_rtcp && IsRtcpPacket(packet)) {
         // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
         // into the location in memory immediately following the RTP packet.
         size_t reserve_packet_size = protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */;
@@ -62,7 +71,7 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet) {
 
         packet.Resize(protectd_data_size);
     // Rtp packet
-    } else if (IsRtpPacket(packet)) {
+    } else if (!is_rtcp && IsRtpPacket(packet)) {
         // srtp_protect() and srtp_protect_rtcp() assume that they can write SRTP_MAX_TRAILER_LEN (for the authentication tag)
         // into the location in memory immediately following the RTP packet.
         size_t reserve_packet_size = protectd_data_size + SRTP_MAX_TRAILER_LEN /* 144 bytes defined in srtp.h */;

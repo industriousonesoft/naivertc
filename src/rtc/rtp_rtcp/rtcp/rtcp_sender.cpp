@@ -15,10 +15,11 @@ RtcpSender::RtcpSender(const RtcpConfiguration& config)
       remote_ssrc_(0),
       clock_(config.clock),
       report_interval_(config.rtcp_report_interval_ms > 0 ? TimeDelta::Millis(config.rtcp_report_interval_ms) 
-                                                          : (TimeDelta::Millis(config.audio ? kDefaultAudioReportIntervalMs
-                                                                                            : kDefaultVideoReportIntervalMs))),
-      max_packet_size_(kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */),
+                                                          : (TimeDelta::Millis(audio_ ? kDefaultAudioReportIntervalMs
+                                                                                      : kDefaultVideoReportIntervalMs))),
+      sending_(false),
       sequence_number_fir_(0),
+      packet_sender_(config.send_transport, audio_, kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */),
       packet_type_counter_observer_(config.packet_type_counter_observer),
       report_block_provider_(config.report_block_provider) {
   
@@ -51,7 +52,7 @@ void RtcpSender::set_cname(std::string cname) {
 
 void RtcpSender::set_max_rtp_packet_size(size_t max_packet_size) {
     RTC_RUN_ON(&sequence_checker_);
-    max_packet_size_ = max_packet_size;
+    packet_sender_.set_max_packet_size(max_packet_size);
 }
 
 void RtcpSender::set_csrcs(std::vector<uint32_t> csrcs) {
@@ -93,11 +94,14 @@ void RtcpSender::SetSendingStatus(const FeedbackState& feedback_state, bool enab
     RTC_RUN_ON(&sequence_checker_);
     bool send_rtcp_bye = false;
     if (enable == false && sending_ == true) {
+        // Trigger RTCP byte.
         send_rtcp_bye = true;
     }
     sending_ = enable;
     if (send_rtcp_bye) {
-        // TODO: send RTCP bye packet
+        if (!SendRtcp(feedback_state, RtcpPacketType::BYE)) {
+            PLOG_WARNING << "Failed to send RTCP bye.";
+        }
     }
 }
 
@@ -128,16 +132,13 @@ bool RtcpSender::SendRtcp(const FeedbackState& feedback_state,
                           RtcpPacketType packet_type,
                           const std::vector<uint16_t> nackList) {
     RTC_RUN_ON(&sequence_checker_);
-    bool bRet = false;
-    auto callback = [&](CopyOnWriteBuffer packet) {
-        // TODO: Send RTCP packet by transport
-    };
-    PacketSender sender(callback, max_packet_size_);
-    bRet = ComputeCompoundRtcpPacket(feedback_state, packet_type, std::move(nackList), sender);
-    if (bRet) {
-        sender.Send();
+    packet_sender_.Reset();
+    auto result = ComputeCompoundRtcpPacket(feedback_state, packet_type, std::move(nackList), packet_sender_);
+    if (result) {
+        return *result;
     }
-    return bRet;
+    packet_sender_.Send();
+    return true;
 }
 
 bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
@@ -146,11 +147,6 @@ bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
                                       bool decodability_flag,
                                       bool buffering_allowed) {
     RTC_RUN_ON(&sequence_checker_);
-    bool bRet = false;
-    auto callback = [&](CopyOnWriteBuffer packet) {
-        // TODO: Send RTCP packet by transport
-    };
-    
     if (!loss_notification_.Set(last_decoded_seq_num, last_received_seq_num, decodability_flag)) {
         return false;
     }
@@ -162,12 +158,13 @@ bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
         return true;
     }
 
-    PacketSender sender(callback, max_packet_size_);
-    bRet = ComputeCompoundRtcpPacket(feedback_state, RtcpPacketType::LOSS_NOTIFICATION, {}, sender);
-    if (bRet) {
-        sender.Send();
+    packet_sender_.Reset();
+    auto result = ComputeCompoundRtcpPacket(feedback_state, RtcpPacketType::LOSS_NOTIFICATION, {}, packet_sender_);
+    if (result) {
+        return *result;
     }
-    return bRet;
+    packet_sender_.Send();
+    return true;
 }
 
 void RtcpSender::OnNextSendEvaluationTimeScheduled(NextSendEvaluationTimeScheduledCallback callback) {
@@ -202,8 +199,9 @@ bool RtcpSender::ConsumeFlag(RtcpPacketType type, bool forced) {
 
 bool RtcpSender::AllVolatileFlagsConsumed() const {
     for (const ReportFlag& flag : report_flags_) {
-        if (flag.is_volatile)
-        return false;
+        if (flag.is_volatile) {
+            return false;
+        }
     }
     return true;
 }

@@ -87,7 +87,7 @@ void RtpSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t a
         const int32_t bytes_sent = ResendPacket(seq_num);
         if (bytes_sent < 0) {
             PLOG_WARNING << "Failed resending RTP packet " << seq_num
-                            << ", Discard rest of packets.";
+                         << ", Discard rest of packets.";
             break;
         }
     }
