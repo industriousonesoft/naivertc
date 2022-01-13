@@ -24,7 +24,8 @@ RtpStreamStatistician::RtpStreamStatistician(uint32_t ssrc, Clock* clock, int ma
       first_received_seq_num_(-1),
       last_received_seq_num_(-1),
       last_report_cumulative_loss_(0),
-      last_report_max_seq_num_(-1) {}
+      last_report_max_seq_num_(-1),
+      bitrate_stats_(kStatisticsProcessIntervalMs) {}
     
 RtpStreamStatistician::~RtpStreamStatistician() = default;
 
@@ -39,6 +40,8 @@ void RtpStreamStatistician::set_enable_retransmit_detection(bool enable) {
 void RtpStreamStatistician::OnRtpPacket(const RtpPacketReceived& packet) {
     assert(ssrc_ == packet.ssrc());
     int64_t now_ms = clock_->now_ms();
+
+    bitrate_stats_.Update(packet.size(), now_ms);
 
     receive_counters_.last_packet_received_time_ms = now_ms;
     receive_counters_.transmitted.AddPacket(packet);
@@ -156,6 +159,10 @@ std::optional<int> RtpStreamStatistician::GetFractionLostInPercent() const {
 
 RtpStreamDataCounters RtpStreamStatistician::GetReceiveStreamDataCounters() const {
     return receive_counters_;
+}
+
+std::optional<DataRate> RtpStreamStatistician::GetReceivedBitrate() {
+    return bitrate_stats_.Rate(clock_->now_ms());
 }
 
 // Private methods

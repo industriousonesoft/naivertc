@@ -7,6 +7,7 @@
 #include "rtc/rtp_rtcp/rtp_statistic_structs.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/report_block.hpp"
+#include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
 
 namespace naivertc {
 
@@ -23,8 +24,8 @@ public:
     std::optional<rtcp::ReportBlock> GetReportBlock();
     RtpReceiveStats GetStates() const;
     std::optional<int> GetFractionLostInPercent() const;
-
     RtpStreamDataCounters GetReceiveStreamDataCounters() const;
+    std::optional<DataRate> GetReceivedBitrate();
 
 private:
     bool HasReceivedRtpPacket() const;
@@ -70,12 +71,12 @@ private:
     // with large jump from received_seq_max_.
     std::optional<uint16_t> received_seq_out_of_order_;
 
-    // Current counter values.
-    RtpStreamDataCounters receive_counters_;
-
     // Counter values when we sent the last report.
     int32_t last_report_cumulative_loss_;
     int64_t last_report_max_seq_num_;
+
+    RtpStreamDataCounters receive_counters_;
+    BitRateStatistics bitrate_stats_;
 };
     
 } // namespace naivertc
