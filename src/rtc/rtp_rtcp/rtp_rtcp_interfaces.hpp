@@ -8,6 +8,7 @@
 #include "rtc/base/units/data_rate.hpp"
 
 #include <vector>
+#include <string>
 
 namespace naivertc {
 

@@ -24,6 +24,8 @@ public:
     RtpReceiveStats GetStates() const;
     std::optional<int> GetFractionLostInPercent() const;
 
+    RtpStreamDataCounters GetReceiveStreamDataCounters() const;
+
 private:
     bool HasReceivedRtpPacket() const;
 

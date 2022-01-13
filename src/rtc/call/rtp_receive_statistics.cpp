@@ -9,6 +9,7 @@ constexpr int kDefaultMaxReorderingThreshold = 5;
 
 RtpReceiveStatistics::RtpReceiveStatistics(Clock* clock) 
     : clock_(clock),
+      last_returned_ssrc_idx_(0),
       max_reordering_threshold_(kDefaultMaxReorderingThreshold) {}
 
 RtpReceiveStatistics::~RtpReceiveStatistics() = default;
@@ -17,8 +18,10 @@ std::vector<rtcp::ReportBlock> RtpReceiveStatistics::GetRtcpReportBlocks(size_t 
     std::vector<rtcp::ReportBlock> report_blocks;
     report_blocks.reserve(std::min(max_blocks, ssrcs_.size()));
 
+    size_t ssrc_idx = 0;
     for (size_t i = 0; i < ssrcs_.size() && report_blocks.size() < max_blocks; ++i) {
-        auto statistician_it = statisticians_.find(ssrcs_[i]);
+        ssrc_idx = (last_returned_ssrc_idx_ + i + 1) % ssrcs_.size();
+        auto statistician_it = statisticians_.find(ssrcs_[ssrc_idx]);
         if (statistician_it == statisticians_.end()) {
             continue;
         }
@@ -27,11 +30,8 @@ std::vector<rtcp::ReportBlock> RtpReceiveStatistics::GetRtcpReportBlocks(size_t 
             report_blocks.push_back(std::move(*report_block));
         }
     }
+    last_returned_ssrc_idx_ = ssrc_idx;
     return report_blocks;
-}
-
-void RtpReceiveStatistics::OnRtpPacket(RtpPacketReceived in_packet) {
-    GetOrCreateStatistician(in_packet.ssrc())->OnRtpPacket(in_packet);
 }
 
 void RtpReceiveStatistics::SetMaxReorderingThreshold(int threshold) {
@@ -48,6 +48,18 @@ void RtpReceiveStatistics::SetMaxReorderingThreshold(uint32_t ssrc,
     
 void RtpReceiveStatistics::EnableRetransmitDetection(uint32_t ssrc, bool enable) {
     GetOrCreateStatistician(ssrc)->set_enable_retransmit_detection(enable);
+}
+
+RtpStreamStatistician* RtpReceiveStatistics::GetStatistician(uint32_t ssrc) const {
+    const auto& it = statisticians_.find(ssrc);
+    if (it == statisticians_.end()) {
+        return nullptr;
+    }
+    return it->second.get();
+}
+
+void RtpReceiveStatistics::OnRtpPacket(const RtpPacketReceived& in_packet) {
+    GetOrCreateStatistician(in_packet.ssrc())->OnRtpPacket(in_packet);
 }
 
 // Private methods

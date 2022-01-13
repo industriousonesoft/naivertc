@@ -152,6 +152,10 @@ std::optional<int> RtpStreamStatistician::GetFractionLostInPercent() const {
     return 100 * static_cast<int64_t>(cumulative_loss_) / expected_packets;
 }
 
+RtpStreamDataCounters RtpStreamStatistician::GetReceiveStreamDataCounters() const {
+    return receive_counters_;
+}
+
 // Private methods
 bool RtpStreamStatistician::HasReceivedRtpPacket() const {
     return first_received_seq_num_ >= 0;
