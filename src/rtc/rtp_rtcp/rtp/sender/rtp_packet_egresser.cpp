@@ -156,7 +156,6 @@ std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketEgresser::FetchFecPackets
 }
 
 // Private methods
-
 const DataRate RtpPacketEgresser::CalcTotalSentBitRate(const int64_t now_ms) {
     int64_t bits_per_sec = 0;
     for (auto& kv : send_bitrate_stats_) {
@@ -207,8 +206,12 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, const RtpPack
     // 1) the RTX stream can send either the retransmitted packets or the padding packets
     // 2) the retransmitted packets can be sent by either the meida stream or the RTX stream
     // see https://blog.csdn.net/sonysuqin/article/details/82021185
-    auto packet_ssrc = packet.ssrc();
-    RtpSentCounters& sent_counters = packet_ssrc == rtx_ssrc_ ? rtx_sent_counters_ : rtp_sent_counters_;
+    auto& sent_counters = send_counters_[packet.ssrc()];
+
+    if (sent_counters.first_packet_time_ms == -1) {
+        sent_counters.first_packet_time_ms = now_ms;
+    }
+
     const RtpPacketCounter packet_counter(packet);
     auto packet_type = packet.packet_type();
     // FEC packet
@@ -220,7 +223,7 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, const RtpPack
     }
     sent_counters.transmitted += packet_counter;
     if (rtp_sent_statistics_observer_) {
-        rtp_sent_statistics_observer_->RtpSentCountersUpdated(rtp_sent_counters_, rtx_sent_counters_);
+        // rtp_sent_statistics_observer_->RtpSentCountersUpdated(rtp_sent_counters_, rtx_sent_counters_);
     }
 
     // Update send bitrate

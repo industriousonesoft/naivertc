@@ -42,8 +42,8 @@ public:
 class RTC_CPP_EXPORT RtpSentStatisticsObserver {
 public:
     virtual ~RtpSentStatisticsObserver() = default;
-    virtual void RtpSentCountersUpdated(const RtpSentCounters& rtp_sent_counters, 
-                                        const RtpSentCounters& rtx_sent_counters) = 0;
+    virtual void RtpSentCountersUpdated(const RtpStreamDataCounters& rtp_sent_counters, 
+                                        const RtpStreamDataCounters& rtx_sent_counters) = 0;
     virtual void RtpSentBitRateUpdated(const DataRate bit_rate) = 0;
 };
 

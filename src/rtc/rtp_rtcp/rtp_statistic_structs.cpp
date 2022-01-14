@@ -68,17 +68,6 @@ size_t RtpPacketCounter::TotalBytes() const {
     return header_bytes + payload_bytes + padding_bytes;
 }
 
-// RtpSentCounters
-RtpSentCounters::RtpSentCounters() = default;
-RtpSentCounters::~RtpSentCounters() = default;
-
-RtpSentCounters& RtpSentCounters::operator+=(const RtpSentCounters& other) {
-    this->transmitted += other.transmitted;
-    this->retransmitted += other.retransmitted;
-    this->fec += other.fec;
-    return *this;
-}
-
 // RtpStreamDataCounters
 RtpStreamDataCounters::RtpStreamDataCounters() = default;
 RtpStreamDataCounters::~RtpStreamDataCounters() = default;

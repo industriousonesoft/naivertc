@@ -17,7 +17,7 @@
 #include <optional>
 #include <functional>
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 namespace naivertc {
 
@@ -71,9 +71,8 @@ private:
 
     bool media_has_been_sent_ = false;
 
-    RtpSentCounters rtp_sent_counters_;
-    RtpSentCounters rtx_sent_counters_;
-    std::map<RtpPacketType, BitRateStatistics> send_bitrate_stats_;
+    std::unordered_map<uint32_t, RtpStreamDataCounters> send_counters_;
+    std::unordered_map<RtpPacketType, BitRateStatistics> send_bitrate_stats_;
 
     TaskQueueImpl* worker_queue_;
     std::unique_ptr<RepeatingTask> update_task_;

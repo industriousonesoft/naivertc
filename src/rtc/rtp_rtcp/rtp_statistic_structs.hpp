@@ -43,18 +43,6 @@ struct RTC_CPP_EXPORT RtpPacketCounter final {
     uint32_t num_packets;  // Number of packets.
 };
 
-// RtpSentCounters
-struct RTC_CPP_EXPORT RtpSentCounters final {
-    RtpSentCounters();
-    ~RtpSentCounters();
-
-    RtpSentCounters& operator+=(const RtpSentCounters& other);
-
-    RtpPacketCounter transmitted;
-    RtpPacketCounter retransmitted;
-    RtpPacketCounter fec;
-};
-
 // RtpStreamDataCounters
 struct RTC_CPP_EXPORT RtpStreamDataCounters final {
     RtpStreamDataCounters();

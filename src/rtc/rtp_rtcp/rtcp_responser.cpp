@@ -34,7 +34,7 @@ void RtcpResponser::set_remote_ssrc(uint32_t remote_ssrc) {
 
 // Private methods
 // RtpSentStatisticsObserver
-void RtcpResponser::RtpSentCountersUpdated(const RtpSentCounters& rtp_stats, const RtpSentCounters& rtx_stats) {
+void RtcpResponser::RtpSentCountersUpdated(const RtpStreamDataCounters& rtp_stats, const RtpStreamDataCounters& rtx_stats) {
     work_queue_->Post([this, &rtp_stats, &rtx_stats](){
         feedback_state_.packets_sent = rtp_stats.transmitted.num_packets + rtx_stats.transmitted.num_packets;
         feedback_state_.media_bytes_sent = rtp_stats.transmitted.payload_bytes + rtx_stats.transmitted.payload_bytes;
