@@ -17,11 +17,12 @@
 
 namespace naivertc {
 class RTC_CPP_EXPORT RtpSender : public RtcpNackListObserver,
-                                 public RtcpReportBlocksObserver {
+                                 public RtcpReportBlocksObserver,
+                                 public RtpSendFeedbackProvider {
 public:
     RtpSender(const RtpConfiguration& config, 
               std::unique_ptr<FecGenerator> fec_generator);
-    virtual ~RtpSender();
+    virtual ~RtpSender() override;
 
     // Generator
     size_t max_rtp_packet_size() const;
@@ -52,6 +53,9 @@ public:
     // Implements RtcpReportBlocksObserver
     void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
                                        int64_t rtt_ms) override;
+
+    // Implements RtpSendFeedbackProvider
+    RtpSendFeedback GetSendFeedback() override;
 
 private:
     int32_t ResendPacket(uint16_t packet_id);

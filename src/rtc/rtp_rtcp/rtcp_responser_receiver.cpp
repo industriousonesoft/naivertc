@@ -38,9 +38,11 @@ int64_t RtcpResponser::ExpectedRestransmissionTimeMs() const {
     return kDefaultExpectedRetransmissionTimeMs;
 }
 
-std::optional<RtcpSenderReportStats> RtcpResponser::GetLastSenderReportStats() const {
+RtcpReceiveFeedback RtcpResponser::GetReceiveFeedback() {
     RTC_RUN_ON(&sequence_checker_);
-    return rtcp_receiver_.GetLastSenderReportStats();
+    RtcpReceiveFeedback receive_feedback;
+    receive_feedback.last_sr_stats = rtcp_receiver_.GetLastSenderReportStats();;
+    return receive_feedback;
 }
 
 } // namespace naivertc

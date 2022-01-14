@@ -2,10 +2,10 @@
 
 namespace naivertc {
 // RtcpContext
-RtcpSender::RtcpContext::RtcpContext(const RtcpSender::FeedbackState& feedback_state,
+RtcpSender::RtcpContext::RtcpContext(RtcpSender::FeedbackState feedback_state,
                                      const std::vector<uint16_t> nack_list,
                                      Timestamp now_time)
-    : feedback_state(feedback_state),
+    : feedback_state(std::move(feedback_state)),
       nack_list(std::move(nack_list)),
       now_time(now_time) {}
 
@@ -52,20 +52,5 @@ void RtcpSender::PacketSender::SendPacket(CopyOnWriteBuffer packet) {
     options.kind = is_audio_ ? PacketKind::AUDIO : PacketKind::VIDEO;
     this->send_transport_->SendRtcpPacket(std::move(packet), std::move(options));
 }
-
-// FeedbackState
-RtcpSender::FeedbackState::FeedbackState()
-    : packets_sent(0),
-      media_bytes_sent(0),
-      send_bitrate(0),
-      last_rr_ntp_secs(0),
-      last_rr_ntp_frac(0),
-      remote_sr(0){}
-
-RtcpSender::FeedbackState::FeedbackState(const FeedbackState&) = default;
-
-RtcpSender::FeedbackState::FeedbackState(FeedbackState&&) = default;
-
-RtcpSender::FeedbackState::~FeedbackState() = default;
     
 } // namespace naivertc

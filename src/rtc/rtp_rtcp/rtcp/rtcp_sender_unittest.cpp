@@ -16,7 +16,7 @@ constexpr uint32_t kRemoteSsrc = 0x22222222;
 constexpr uint32_t kStartRtpTimestamp = 0x34567;
 constexpr uint32_t kRtpTimestamp = 0x45678;
 
-std::unique_ptr<RtcpSender> CreateRtcpSender(const RtcpConfiguration& config, 
+std::unique_ptr<RtcpSender> CreateRtcpSender(const RtcpSender::Configuration& config, 
                                              bool init_timestamps = true) {
     auto rtcp_sender = std::make_unique<RtcpSender>(config);
     rtcp_sender->set_remote_ssrc(kRemoteSsrc);

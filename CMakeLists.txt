@@ -515,6 +515,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_sender.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_sender_builder.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_sender_auxiliaries.cpp
+    src/rtc/rtp_rtcp/rtcp/rtcp_sender_scheduler.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp

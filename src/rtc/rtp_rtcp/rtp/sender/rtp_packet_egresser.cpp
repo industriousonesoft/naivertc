@@ -155,13 +155,29 @@ std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketEgresser::FetchFecPackets
     return packets;
 }
 
+DataRate RtpPacketEgresser::GetSendBitrate() {
+    RTC_RUN_ON(worker_queue_);
+    return CalcTotalSendBitrate(clock_->now_ms());
+}
+
+RtpStreamDataCounters RtpPacketEgresser::GetRtpStreamDataCounter() const {
+    RTC_RUN_ON(worker_queue_);
+    return rtp_send_counter_;
+}
+    
+RtpStreamDataCounters RtpPacketEgresser::GetRtxStreamDataCounter() const {
+    RTC_RUN_ON(worker_queue_);
+    return rtx_send_counter_;
+}
+
 // Private methods
-const DataRate RtpPacketEgresser::CalcTotalSentBitRate(const int64_t now_ms) {
+DataRate RtpPacketEgresser::CalcTotalSendBitrate(const int64_t now_ms) {
     int64_t bits_per_sec = 0;
+    DataRate send_bitrate = DataRate::Zero();
     for (auto& kv : send_bitrate_stats_) {
-        bits_per_sec += kv.second.Rate(now_ms).value_or(DataRate::Zero()).bps();
+        send_bitrate += kv.second.Rate(now_ms).value_or(DataRate::Zero());
     }
-    return DataRate::BitsPerSec(bits_per_sec);
+    return send_bitrate;
 }
 
 bool RtpPacketEgresser::SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet) {
@@ -206,22 +222,22 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, const RtpPack
     // 1) the RTX stream can send either the retransmitted packets or the padding packets
     // 2) the retransmitted packets can be sent by either the meida stream or the RTX stream
     // see https://blog.csdn.net/sonysuqin/article/details/82021185
-    auto& sent_counters = send_counters_[packet.ssrc()];
+    auto sent_counters = packet.ssrc() == rtx_ssrc_ ? &rtx_send_counter_ : &rtp_send_counter_;
 
-    if (sent_counters.first_packet_time_ms == -1) {
-        sent_counters.first_packet_time_ms = now_ms;
+    if (sent_counters->first_packet_time_ms == -1) {
+        sent_counters->first_packet_time_ms = now_ms;
     }
 
     const RtpPacketCounter packet_counter(packet);
     auto packet_type = packet.packet_type();
     // FEC packet
     if (packet_type == RtpPacketType::FEC) {
-        sent_counters.fec += packet_counter;
+        sent_counters->fec += packet_counter;
     // Retransmittion packet
     } else if (packet_type == RtpPacketType::RETRANSMISSION) {
-        sent_counters.retransmitted += packet_counter;
+        sent_counters->retransmitted += packet_counter;
     }
-    sent_counters.transmitted += packet_counter;
+    sent_counters->transmitted += packet_counter;
     if (rtp_sent_statistics_observer_) {
         // rtp_sent_statistics_observer_->RtpSentCountersUpdated(rtp_sent_counters_, rtx_sent_counters_);
     }
@@ -232,14 +248,14 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, const RtpPack
     // So we using "at" instead, since it access specified element with bounds checking.
     send_bitrate_stats_.at(packet_type).Update(packet.size(), now_ms);
     if (rtp_sent_statistics_observer_) {
-        rtp_sent_statistics_observer_->RtpSentBitRateUpdated(CalcTotalSentBitRate(now_ms));
+        rtp_sent_statistics_observer_->RtpSentBitRateUpdated(CalcTotalSendBitrate(now_ms));
     }
 }
 
 void RtpPacketEgresser::PeriodicUpdate() {
     if (rtp_sent_statistics_observer_) {
         const int64_t now_ms = clock_->now_ms();
-        rtp_sent_statistics_observer_->RtpSentBitRateUpdated(CalcTotalSentBitRate(now_ms));
+        rtp_sent_statistics_observer_->RtpSentBitRateUpdated(CalcTotalSendBitrate(now_ms));
     }
 }
     

@@ -18,6 +18,8 @@
 namespace naivertc {
 namespace {
 
+// The field `reception report count(RC)` in RTCP header represented
+// by 5 bits, which means the maximum value of report counter is 31.
 constexpr int KMaxRtcpReportBlocksNum = 31;  // RFC 3550 page 37
     
 } // namespac 
@@ -37,8 +39,7 @@ void RtcpSender::InitBuilders() {
     builders_[RtcpPacketType::NACK] = &RtcpSender::BuildNACK;
 }
 
-std::optional<bool> RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
-                                                          RtcpPacketType rtcp_packt_type,
+std::optional<bool> RtcpSender::ComputeCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
                                                           const std::vector<uint16_t> nack_list,
                                                           PacketSender& sender) {
     // Add the flag as volatile. Non volatile entries will not be overwritten.
@@ -65,8 +66,12 @@ std::optional<bool> RtcpSender::ComputeCompoundRtcpPacket(const FeedbackState& f
         packet_type_counter_.first_packet_time_ms = clock_->now_ms();
     }
 
+    // FeedbackState
+    FeedbackState feedback_state;
+    feedback_state.rtp_send_feedback = rtp_send_feedback_provider_->GetSendFeedback();
+    feedback_state.rtcp_receive_feedback = rtcp_receive_feedback_provider_->GetReceiveFeedback();                                      
     // We need to send out NTP even if we haven't received any reports
-    RtcpContext context(feedback_state, nack_list, clock_->CurrentTime());
+    RtcpContext context(std::move(feedback_state), nack_list, clock_->CurrentTime());
 
     PrepareReport(feedback_state);
 
@@ -127,7 +132,7 @@ void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
     // Send video rtcp packets
     if (!audio_ && sending_) {
         // Calculate bandwidth for video
-        int send_bitrate_kbit = feedback_state.send_bitrate / 1000;
+        int send_bitrate_kbit = feedback_state.rtp_send_feedback.send_bitrate.kbps();
         if (send_bitrate_kbit != 0) {
             // FIXME: Why ? 360 / send bandwidth in kbit/s.
             min_interval = std::min(TimeDelta::Millis(360000 / send_bitrate_kbit), report_interval_);
@@ -137,14 +142,14 @@ void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
     // The interval between RTCP packets is varied randomly over the
     // range [1/2,3/2] times the calculated interval.
     int min_interval_int = utils::numeric::checked_static_cast<int>(min_interval.ms());
-    TimeDelta time_to_next = TimeDelta::Millis(utils::random::random(min_interval_int * 1 / 2, min_interval_int * 3 / 2));
+    TimeDelta delay = TimeDelta::Millis(utils::random::random(min_interval_int * 1 / 2, min_interval_int * 3 / 2));
 
-    if (time_to_next.IsZero()) {
+    if (delay.IsZero()) {
         PLOG_ERROR << "The interval between RTCP packets is not supposed to be zero.";
         return;
     }
 
-    SetNextRtcpSendEvaluationDuration(time_to_next);
+    ScheduleForNextRtcpSend(delay);
 
     // RtcpSender expected to be used for sending either just sender reports
     // or just receiver reports.
@@ -169,20 +174,24 @@ std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const FeedbackStat
     //     |           <----RR----          |
     //     |<----------                     |
     //     |                                |
-    if (!report_blocks.empty() && (feedback_state.last_rr_ntp_secs !=0 || feedback_state.last_rr_ntp_frac != 0)) {
+    auto last_sr_stats = feedback_state.rtcp_receive_feedback.last_sr_stats;
+    if (!report_blocks.empty() && last_sr_stats) {
+        uint32_t last_sr_send_ntp_timestamp = ((last_sr_stats->send_ntp_time.seconds() & 0x0000FFFF) << 16) +
+                                              ((last_sr_stats->send_ntp_time.fractions() & 0xFFFF0000) >> 16);
+
         // Get our NTP as late as possible to avoid a race.
         uint32_t now = CompactNtp(clock_->CurrentNtpTime());
 
         // Convert 64-bits NTP time to 32-bits(compact) NTP
-        uint32_t receive_time = feedback_state.last_rr_ntp_secs & 0x0000FFFF;
+        uint32_t receive_time = last_sr_stats->arrival_ntp_time.seconds() & 0x0000FFFF;
         receive_time <<= 16;
-        receive_time += (feedback_state.last_rr_ntp_frac & 0xffff0000) >> 16;
+        receive_time += (last_sr_stats->arrival_ntp_time.fractions() & 0xffff0000) >> 16;
 
         // Delay since the last RR
         uint32_t delay_since_last_sr = now - receive_time;
 
         for (auto& report_block : report_blocks) {
-            report_block.set_last_sr_ntp_timestamp(feedback_state.remote_sr);
+            report_block.set_last_sr_ntp_timestamp(last_sr_send_ntp_timestamp);
             report_block.set_delay_sr_since_last_sr(delay_since_last_sr);
         }
     }
@@ -216,8 +225,8 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
     sr.set_sender_ssrc(local_ssrc_);
     sr.set_ntp(clock_->ConvertTimestampToNtpTime(ctx.now_time));
     sr.set_rtp_timestamp(rtp_timestamp);
-    sr.set_sender_packet_count(ctx.feedback_state.packets_sent);
-    sr.set_sender_octet_count(ctx.feedback_state.media_bytes_sent);
+    sr.set_sender_packet_count(ctx.feedback_state.rtp_send_feedback.packets_sent);
+    sr.set_sender_octet_count(ctx.feedback_state.rtp_send_feedback.media_bytes_sent);
     sr.SetReportBlocks(CreateReportBlocks(ctx.feedback_state));
     sender.AppendPacket(sr);
 }

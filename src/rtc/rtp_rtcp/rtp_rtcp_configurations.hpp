@@ -46,8 +46,6 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
     // a video version.
     bool audio = false;
     bool receiver_only = false;
-  
-    int rtcp_report_interval_ms = 0;
     
     // Corresponds to extmap-allow-mixed in SDP negotiation.
     bool extmap_allow_mixed = false;
@@ -56,6 +54,8 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
     uint32_t local_media_ssrc = 0;
     std::optional<uint32_t> rtx_send_ssrc = std::nullopt;
     std::optional<uint32_t> fec_ssrc = std::nullopt;
+
+    int rtcp_report_interval_ms = 0;
 
     Clock* clock;
 
@@ -71,6 +71,7 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
     RtcpNackListObserver* nack_list_observer = nullptr;
     RtcpReportBlocksObserver* report_blocks_observer = nullptr;
     RtcpReportBlockProvider* report_block_provider = nullptr;
+    RtpSendFeedbackProvider* rtp_send_feedback_provider = nullptr;
 };
         
 } // namespace naivertc

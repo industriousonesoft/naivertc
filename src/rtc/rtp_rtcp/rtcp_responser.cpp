@@ -1,15 +1,31 @@
 #include "rtc/rtp_rtcp/rtcp_responser.hpp"
 
 namespace naivertc {
+namespace {
+
+RtcpSender::Configuration RtcpConfigurationFromRtpRtcpConfiguration(const RtcpConfiguration& config, 
+                                                                    RtcpReceiveFeedbackProvider* rtcp_receive_feedback_provider) {
+    RtcpSender::Configuration rtcp_sender_config;
+    rtcp_sender_config.audio = config.audio;
+    rtcp_sender_config.local_media_ssrc = config.local_media_ssrc;
+    rtcp_sender_config.clock = config.clock;
+    rtcp_sender_config.rtcp_report_interval_ms = config.rtcp_report_interval_ms;
+    rtcp_sender_config.send_transport = config.send_transport;
+    rtcp_sender_config.packet_type_counter_observer = config.packet_type_counter_observer;
+    rtcp_sender_config.report_block_provider = config.report_block_provider;
+    rtcp_sender_config.rtp_send_feedback_provider = config.rtp_send_feedback_provider;
+    rtcp_sender_config.rtcp_receive_feedback_provider = rtcp_receive_feedback_provider;
+    return rtcp_sender_config;
+}
+
+} // namespace
 
 RtcpResponser::RtcpResponser(const RtcpConfiguration& config)
     : clock_(config.clock),
-      rtcp_sender_(config),
+      rtcp_sender_(RtcpConfigurationFromRtpRtcpConfiguration(config, this)),
       rtcp_receiver_(config),
       work_queue_(TaskQueueImpl::Current()),
       rtt_ms_(0) {
-
-    rtcp_sender_.OnNextSendEvaluationTimeScheduled(std::bind(&RtcpResponser::ScheduleRtcpSendEvaluation, this, std::placeholders::_1));
 
     // TODO: RTT PeriodicUpdate
 }
@@ -30,21 +46,6 @@ void RtcpResponser::set_remote_ssrc(uint32_t remote_ssrc) {
     RTC_RUN_ON(&sequence_checker_);
     rtcp_sender_.set_remote_ssrc(remote_ssrc);
     rtcp_receiver_.set_remote_ssrc(remote_ssrc);
-}
-
-// Private methods
-// RtpSentStatisticsObserver
-void RtcpResponser::RtpSentCountersUpdated(const RtpStreamDataCounters& rtp_stats, const RtpStreamDataCounters& rtx_stats) {
-    work_queue_->Post([this, &rtp_stats, &rtx_stats](){
-        feedback_state_.packets_sent = rtp_stats.transmitted.num_packets + rtx_stats.transmitted.num_packets;
-        feedback_state_.media_bytes_sent = rtp_stats.transmitted.payload_bytes + rtx_stats.transmitted.payload_bytes;
-    });
-}
-
-void RtcpResponser::RtpSentBitRateUpdated(const DataRate bit_rate) {
-    work_queue_->Post([this, bit_rate=std::move(bit_rate)](){
-        feedback_state_.send_bitrate = bit_rate.bps<uint32_t>();
-    });
 }
     
 } // namespace naivertc

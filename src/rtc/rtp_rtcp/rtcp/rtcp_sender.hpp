@@ -26,25 +26,25 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT RtcpSender final {
 public:
-    // FeedbackState
-    struct FeedbackState {
-        FeedbackState();
-        FeedbackState(const FeedbackState&);
-        FeedbackState(FeedbackState&&);
+    struct Configuration {
+        bool audio = false;
 
-        ~FeedbackState();
+        uint32_t local_media_ssrc = 0;
 
-        uint32_t packets_sent;
-        size_t media_bytes_sent;
-        uint32_t send_bitrate;
+        int rtcp_report_interval_ms = 0;
 
-        uint32_t last_rr_ntp_secs;
-        uint32_t last_rr_ntp_frac;
-        // Remote send report NTP timestamp
-        uint32_t remote_sr;
-   };
+        Clock* clock;
+
+        MediaTransport* send_transport;
+
+        // Observers
+        RtcpPacketTypeCounterObserver* packet_type_counter_observer = nullptr;
+        RtcpReportBlockProvider* report_block_provider = nullptr;
+        RtpSendFeedbackProvider* rtp_send_feedback_provider = nullptr;
+        RtcpReceiveFeedbackProvider* rtcp_receive_feedback_provider = nullptr;
+    };
 public:
-    RtcpSender(const RtcpConfiguration& config);
+    RtcpSender(Configuration config);
 
     RtcpSender() = delete;
     RtcpSender(const RtcpSender&) = delete;
@@ -61,7 +61,7 @@ public:
     void set_csrcs(std::vector<uint32_t> csrcs);
 
     bool Sending() const;
-    void SetSendingStatus(const FeedbackState& feedback_state, bool enable);
+    void EnableSending(bool enable);
 
     void SetRtpClockRate(int8_t rtp_payload_type, int rtp_clock_rate_hz);
 
@@ -73,28 +73,24 @@ public:
                         std::optional<int8_t> rtp_payload_type);
 
     bool TimeToSendRtcpReport(bool send_rtcp_before_key_frame = false);
-    bool SendRtcp(const FeedbackState& feedback_state,
-                  RtcpPacketType packet_type,
+    bool SendRtcp(RtcpPacketType packet_type,
                   const std::vector<uint16_t> nackList = {});
 
-    bool SendLossNotification(const FeedbackState& feedback_state,
-                              uint16_t last_decoded_seq_num,
+    bool SendLossNotification(uint16_t last_decoded_seq_num,
                               uint16_t last_received_seq_num,
                               bool decodability_flag,
-                              bool buffering_allowed);
-
-    // Optional callback which, if specified, is used by RTCPSender to schedule
-    // the next time to evaluate if RTCP should be sent by means of
-    // TimeToSendRTCPReport/SendRTCP.
-    // The RTCPSender client still needs to call TimeToSendRTCPReport/SendRTCP
-    // to actually get RTCP sent.
-    using NextSendEvaluationTimeScheduledCallback = std::function<void(TimeDelta)>;
-    void OnNextSendEvaluationTimeScheduled(NextSendEvaluationTimeScheduledCallback callback);
+                              bool buffering_allowed); 
 private:
+    // FeedbackState
+    struct FeedbackState {
+        RtpSendFeedback rtp_send_feedback;
+        RtcpReceiveFeedback rtcp_receive_feedback;
+    };
+
     // RtcpContext
     class RtcpContext {
     public:
-        RtcpContext(const FeedbackState& feedback_state,
+        RtcpContext(FeedbackState feedback_state,
                     const std::vector<uint16_t> nack_list,
                     Timestamp now_time);
 
@@ -147,8 +143,7 @@ private:
     };
 
 private:
-    std::optional<bool> ComputeCompoundRtcpPacket(const FeedbackState& feedback_state,
-                                                  RtcpPacketType rtcp_packt_type,
+    std::optional<bool> ComputeCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
                                                   const std::vector<uint16_t> nack_list,
                                                   PacketSender& sender);
 
@@ -169,13 +164,15 @@ private:
 
     void InitBuilders();
 
-    // |duration| being TimeDelta::Zero() means schedule immediately.
-    void SetNextRtcpSendEvaluationDuration(TimeDelta duration);
-
     void SetFlag(RtcpPacketType type, bool is_volatile);
     bool IsFlagPresent(RtcpPacketType type) const;
     bool ConsumeFlag(RtcpPacketType type, bool forced = false);
     bool AllVolatileFlagsConsumed() const;
+
+    // Rtcp send scheduler
+    void MaybeSendRtcp();
+    void ScheduleForNextRtcpSend(TimeDelta delay);
+    void MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time);
 
 private:
     SequenceChecker sequence_checker_;
@@ -219,12 +216,16 @@ private:
     // Map from RTCPPacketType to builder.
     std::map<RtcpPacketType, BuilderFunc> builders_;
 
-    NextSendEvaluationTimeScheduledCallback next_send_evaluation_time_scheduled_callback_;
-
     RtcpPacketTypeCounter packet_type_counter_;
+
+    TaskQueueImpl* const work_queue_;
 
     RtcpPacketTypeCounterObserver* const packet_type_counter_observer_ = nullptr;
     RtcpReportBlockProvider* const report_block_provider_ = nullptr;
+    RtpSendFeedbackProvider* const rtp_send_feedback_provider_ = nullptr;
+    RtcpReceiveFeedbackProvider* const rtcp_receive_feedback_provider_ = nullptr;
+
+    
 };
     
 } // namespace naivert 

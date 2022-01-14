@@ -73,6 +73,13 @@ public:
 
 };
 
+// RtpSendFeedbackProvider
+class RTC_CPP_EXPORT RtpSendFeedbackProvider {
+public:
+    virtual ~RtpSendFeedbackProvider() = default;
+    virtual RtpSendFeedback GetSendFeedback() = 0;
+};
+
 // RTCP observer
 
 class RTC_CPP_EXPORT RtcpNackListObserver {
@@ -141,6 +148,13 @@ public:
     virtual ~RtcpReportBlocksObserver() = default;
     virtual void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
                                             int64_t rtt_ms) = 0; 
+};
+
+// RtcpReceiveFeedbackProvider
+class RTC_CPP_EXPORT RtcpReceiveFeedbackProvider {
+public:
+    virtual ~RtcpReceiveFeedbackProvider() = default;
+    virtual RtcpReceiveFeedback GetReceiveFeedback() = 0;
 };
     
 } // namespace naivertc

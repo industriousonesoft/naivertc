@@ -154,6 +154,17 @@ void RtpSender::OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& r
     }
 }
 
+RtpSendFeedback RtpSender::GetSendFeedback() {
+    RTC_RUN_ON(&sequence_checker_);
+    RtpSendFeedback send_feedback;
+    RtpStreamDataCounters rtp_stats = packet_egresser_.GetRtpStreamDataCounter();
+    RtpStreamDataCounters rtx_stats = packet_egresser_.GetRtxStreamDataCounter();
+    send_feedback.packets_sent = rtp_stats.transmitted.num_packets + rtx_stats.transmitted.num_packets;
+    send_feedback.media_bytes_sent = rtp_stats.transmitted.payload_bytes + rtx_stats.transmitted.payload_bytes;
+    send_feedback.send_bitrate = packet_egresser_.GetSendBitrate();
+    return send_feedback;
+}
+
 // Private methods
 int32_t RtpSender::ResendPacket(uint16_t packet_id) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 

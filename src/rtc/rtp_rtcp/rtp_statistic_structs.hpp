@@ -2,6 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_RTCP_STRUCTS_H_
 
 #include "base/defines.hpp"
+#include "rtc/base/units/data_rate.hpp"
 
 #include <list>
 #include <map>
@@ -74,6 +75,12 @@ struct RTC_CPP_EXPORT RtpReceiveStats {
     RtpPacketCounter packet_counter;
 };
 
+// RtpSendFeedback
+struct RTC_CPP_EXPORT RtpSendFeedback {
+    uint32_t packets_sent = 0;
+    size_t media_bytes_sent = 0;
+    DataRate send_bitrate = DataRate::Zero();
+};
 
 } // namespace naivertc
 

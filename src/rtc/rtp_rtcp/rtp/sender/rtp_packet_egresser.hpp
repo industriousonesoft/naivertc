@@ -39,6 +39,12 @@ public:
 
     std::vector<std::shared_ptr<RtpPacketToSend>> FetchFecPackets() const;
 
+    // Return the total bitrates for all kind packets so far.
+    DataRate GetSendBitrate();
+
+    RtpStreamDataCounters GetRtpStreamDataCounter() const;
+    RtpStreamDataCounters GetRtxStreamDataCounter() const;
+
 private:
     bool SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet);
 
@@ -50,8 +56,7 @@ private:
 
     void UpdateSentStatistics(const int64_t now_ms, const RtpPacketToSend& packet);
 
-    // Return total bitrates for all kind sent packets for now.
-    const DataRate CalcTotalSentBitRate(const int64_t now_ms);
+    DataRate CalcTotalSendBitrate(const int64_t now_ms);
 
     void PeriodicUpdate();
   
@@ -71,7 +76,8 @@ private:
 
     bool media_has_been_sent_ = false;
 
-    std::unordered_map<uint32_t, RtpStreamDataCounters> send_counters_;
+    RtpStreamDataCounters rtp_send_counter_;
+    RtpStreamDataCounters rtx_send_counter_;
     std::unordered_map<RtpPacketType, BitRateStatistics> send_bitrate_stats_;
 
     TaskQueueImpl* worker_queue_;

@@ -5,6 +5,8 @@
 #include "rtc/base/units/time_delta.hpp"
 #include "rtc/base/time/ntp_time.hpp"
 
+#include <optional>
+
 namespace naivertc {
 
 // RttStats
@@ -77,6 +79,11 @@ struct RTC_CPP_EXPORT RtcpSenderReportStats {
     uint32_t packet_sent = 0;
     uint64_t bytes_sent = 0;
     uint64_t reports_count = 0;
+};
+
+// RtcpReceiveFeedback
+struct RTC_CPP_EXPORT RtcpReceiveFeedback {
+    std::optional<RtcpSenderReportStats> last_sr_stats;
 };
     
 } // namespace naivertc

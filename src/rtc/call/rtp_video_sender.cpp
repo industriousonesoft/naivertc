@@ -55,15 +55,6 @@ void RtpVideoSender::InitRtpRtcpModules(const Configuration& config,
     std::optional<uint32_t> rtx_send_ssrc = config.rtx_send_ssrc;
     auto fec_generator = MaybeCreateFecGenerator(config, local_media_ssrc);
 
-    // RtcpResponser
-    RtcpConfiguration rtcp_config;
-    rtcp_config.audio = false;
-    rtcp_config.rtcp_report_interval_ms = config.rtcp_report_interval_ms;
-    rtcp_config.local_media_ssrc = local_media_ssrc;
-    rtcp_config.rtx_send_ssrc = rtx_send_ssrc;
-    rtcp_config.fec_ssrc = fec_generator->fec_ssrc();
-    rtcp_config.clock = clock;
-    auto rtcp_responser = std::make_unique<RtcpResponser>(rtcp_config);
 
     // RtpSender
     RtpConfiguration rtp_config;
@@ -73,10 +64,20 @@ void RtpVideoSender::InitRtpRtcpModules(const Configuration& config,
     rtp_config.rtx_send_ssrc = rtx_send_ssrc;
     rtp_config.clock = clock;
     rtp_config.send_transport = send_transport;
-    rtp_config.rtp_sent_statistics_observer = rtcp_responser.get();
     auto rtp_sender = std::make_unique<RtpSender>(rtp_config, std::move(fec_generator));
     // FIXME: Why do we need to enable NACK here?? What the rtp_config.nack_enabled works for?
     rtp_sender->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
+
+    // RtcpResponser
+    RtcpConfiguration rtcp_config;
+    rtcp_config.audio = false;
+    rtcp_config.rtcp_report_interval_ms = config.rtcp_report_interval_ms;
+    rtcp_config.local_media_ssrc = local_media_ssrc;
+    rtcp_config.rtx_send_ssrc = rtx_send_ssrc;
+    rtcp_config.fec_ssrc = fec_generator->fec_ssrc();
+    rtcp_config.clock = clock;
+    rtcp_config.rtp_send_feedback_provider = rtp_sender.get();
+    auto rtcp_responser = std::make_unique<RtcpResponser>(rtcp_config);
    
     rtcp_responser_ = std::move(rtcp_responser);
     rtp_sender_ = std::move(rtp_sender);

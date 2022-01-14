@@ -9,7 +9,7 @@ constexpr int32_t kDefaultVideoReportIntervalMs = 1000; // 1s
 constexpr int32_t kDefaultAudioReportIntervalMs = 5000; // 5s
 }  // namespace
 
-RtcpSender::RtcpSender(const RtcpConfiguration& config) 
+RtcpSender::RtcpSender(Configuration config) 
     : audio_(config.audio),
       local_ssrc_(config.local_media_ssrc),
       remote_ssrc_(0),
@@ -19,9 +19,12 @@ RtcpSender::RtcpSender(const RtcpConfiguration& config)
                                                                                       : kDefaultVideoReportIntervalMs))),
       sending_(false),
       sequence_number_fir_(0),
+      work_queue_(TaskQueueImpl::Current()),
       packet_sender_(config.send_transport, audio_, kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */),
       packet_type_counter_observer_(config.packet_type_counter_observer),
-      report_block_provider_(config.report_block_provider) {
+      report_block_provider_(config.report_block_provider),
+      rtp_send_feedback_provider_(config.rtp_send_feedback_provider),
+      rtcp_receive_feedback_provider_(config.rtcp_receive_feedback_provider) {
   
     // Initialize all builders.
     InitBuilders();
@@ -90,7 +93,7 @@ bool RtcpSender::Sending() const {
     return sending_;
 }
     
-void RtcpSender::SetSendingStatus(const FeedbackState& feedback_state, bool enable) {
+void RtcpSender::EnableSending(bool enable) {
     RTC_RUN_ON(&sequence_checker_);
     bool send_rtcp_bye = false;
     if (enable == false && sending_ == true) {
@@ -99,7 +102,7 @@ void RtcpSender::SetSendingStatus(const FeedbackState& feedback_state, bool enab
     }
     sending_ = enable;
     if (send_rtcp_bye) {
-        if (!SendRtcp(feedback_state, RtcpPacketType::BYE)) {
+        if (!SendRtcp(RtcpPacketType::BYE)) {
             PLOG_WARNING << "Failed to send RTCP bye.";
         }
     }
@@ -113,7 +116,7 @@ void RtcpSender::SetRemb(uint64_t bitrate_bps, std::vector<uint32_t> ssrcs) {
     SetFlag(RtcpPacketType::REMB, false);
     // Send a REMB immediately if we have a new REMB. The frequency of REMBs is
     // throttled by the caller.
-    SetNextRtcpSendEvaluationDuration(TimeDelta::Zero());
+    ScheduleForNextRtcpSend(TimeDelta::Zero());
 }
 
 bool RtcpSender::TimeToSendRtcpReport(bool send_rtcp_before_key_frame) {
@@ -128,12 +131,11 @@ bool RtcpSender::TimeToSendRtcpReport(bool send_rtcp_before_key_frame) {
     return now >= next_time_to_send_rtcp_.value();
 }
 
-bool RtcpSender::SendRtcp(const FeedbackState& feedback_state,
-                          RtcpPacketType packet_type,
+bool RtcpSender::SendRtcp(RtcpPacketType packet_type,
                           const std::vector<uint16_t> nackList) {
     RTC_RUN_ON(&sequence_checker_);
     packet_sender_.Reset();
-    auto result = ComputeCompoundRtcpPacket(feedback_state, packet_type, std::move(nackList), packet_sender_);
+    auto result = ComputeCompoundRtcpPacket(packet_type, std::move(nackList), packet_sender_);
     if (result) {
         return *result;
     }
@@ -141,8 +143,7 @@ bool RtcpSender::SendRtcp(const FeedbackState& feedback_state,
     return true;
 }
 
-bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
-                                      uint16_t last_decoded_seq_num,
+bool RtcpSender::SendLossNotification(uint16_t last_decoded_seq_num,
                                       uint16_t last_received_seq_num,
                                       bool decodability_flag,
                                       bool buffering_allowed) {
@@ -159,7 +160,7 @@ bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
     }
 
     packet_sender_.Reset();
-    auto result = ComputeCompoundRtcpPacket(feedback_state, RtcpPacketType::LOSS_NOTIFICATION, {}, packet_sender_);
+    auto result = ComputeCompoundRtcpPacket(RtcpPacketType::LOSS_NOTIFICATION, {}, packet_sender_);
     if (result) {
         return *result;
     }
@@ -167,19 +168,7 @@ bool RtcpSender::SendLossNotification(const FeedbackState& feedback_state,
     return true;
 }
 
-void RtcpSender::OnNextSendEvaluationTimeScheduled(NextSendEvaluationTimeScheduledCallback callback) {
-    RTC_RUN_ON(&sequence_checker_);
-    next_send_evaluation_time_scheduled_callback_ = callback;
-}
-
 // Private methods
-void RtcpSender::SetNextRtcpSendEvaluationDuration(TimeDelta duration) {
-    next_time_to_send_rtcp_ = clock_->CurrentTime() + duration;
-    if (next_send_evaluation_time_scheduled_callback_) {
-        next_send_evaluation_time_scheduled_callback_(duration);
-    }
-}
-
 void RtcpSender::SetFlag(RtcpPacketType type, bool is_volatile) {
     report_flags_.insert(ReportFlag(type, is_volatile));
 }

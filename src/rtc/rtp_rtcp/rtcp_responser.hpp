@@ -12,12 +12,12 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtcpResponser : public RtpSentStatisticsObserver,
-                                     public NackSender,
-                                     public KeyFrameRequestSender {
+class RTC_CPP_EXPORT RtcpResponser : public NackSender,
+                                     public KeyFrameRequestSender,
+                                     public RtcpReceiveFeedbackProvider {
 public:
     RtcpResponser(const RtcpConfiguration& config);
-    ~RtcpResponser();
+    ~RtcpResponser() override;
 
     void set_rtt_ms(int64_t rtt_ms);
     int64_t rtt_ms() const;
@@ -36,23 +36,11 @@ public:
 
     int64_t ExpectedRestransmissionTimeMs() const;
 
-    RtcpSender::FeedbackState GetFeedbackState();
-
-    std::optional<RtcpSenderReportStats> GetLastSenderReportStats() const;
-
     std::optional<RttStats> GetRttStats(uint32_t ssrc) const;
 
-private:
-    // RtpSentStatistics Observer
-    void RtpSentCountersUpdated(const RtpStreamDataCounters& rtp_sent_counters, 
-                                const RtpStreamDataCounters& rtx_sent_counters) override;
-    void RtpSentBitRateUpdated(const DataRate bit_rate) override;
-
-private:
-    // RtcpSender
-    void MaybeSendRtcp();
-    void ScheduleRtcpSendEvaluation(TimeDelta duration);
-    void MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time);
+    // Implements RtcpReceiveFeedbackProvider
+    RtcpReceiveFeedback GetReceiveFeedback() override;
+    
 private:
     Clock* const clock_;
     SequenceChecker sequence_checker_;
@@ -60,8 +48,6 @@ private:
     RtcpSender rtcp_sender_;
     RtcpReceiver rtcp_receiver_;
     TaskQueueImpl* const work_queue_;
-
-    RtcpSender::FeedbackState feedback_state_;
 
     int64_t rtt_ms_;
 };
