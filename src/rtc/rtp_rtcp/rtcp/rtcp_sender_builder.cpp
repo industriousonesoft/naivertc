@@ -160,13 +160,13 @@ std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const FeedbackStat
     report_blocks = report_block_provider_->GetRtcpReportBlocks(KMaxRtcpReportBlocksNum);
 
     // How to calculate RTT: https://blog.jianchihu.net/webrtc-research-stats-rtt.html
-    // Receiver          Network         Sender
+    // Sender           Network          Receiver
     //     |---------->                     |
-    //     |           ----RR---->          |
+    //     |           ----SR---->          |
     //     |                       -------->| t0 (last_rr)
-    //     |                                |     | delay_since_last_sr (for sender)
+    //     |                                |     | delay_since_last_sr
     //     |                       <--------| t1 (new_sr)
-    //     |           <----SR----          |
+    //     |           <----RR----          |
     //     |<----------                     |
     //     |                                |
     if (!report_blocks.empty() && (feedback_state.last_rr_ntp_secs !=0 || feedback_state.last_rr_ntp_frac != 0)) {
@@ -186,7 +186,6 @@ std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const FeedbackStat
             report_block.set_delay_sr_since_last_sr(delay_since_last_sr);
         }
     }
-
     return report_blocks;
 }
 

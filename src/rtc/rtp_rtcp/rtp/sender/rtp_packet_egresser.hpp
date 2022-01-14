@@ -73,7 +73,7 @@ private:
 
     RtpSentCounters rtp_sent_counters_;
     RtpSentCounters rtx_sent_counters_;
-    std::map<RtpPacketType, BitRateStatistics> send_bitrate_map_;
+    std::map<RtpPacketType, BitRateStatistics> send_bitrate_stats_;
 
     TaskQueueImpl* worker_queue_;
     std::unique_ptr<RepeatingTask> update_task_;

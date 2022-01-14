@@ -17,34 +17,9 @@ void RtcpResponser::IncomingPacket(CopyOnWriteBuffer rtcp_packet) {
     rtcp_receiver_.IncomingPacket(std::move(rtcp_packet));
 }
 
-int32_t RtcpResponser::RTT(uint32_t remote_ssrc,
-                        int64_t* last_rtt_ms,
-                        int64_t* avg_rtt_ms,
-                        int64_t* min_rtt_ms,
-                        int64_t* max_rtt_ms) const {
+std::optional<RttStats> RtcpResponser::GetRttStats(uint32_t ssrc) const {
     RTC_RUN_ON(&sequence_checker_);
-    int ret = rtcp_receiver_.RTT(remote_ssrc, last_rtt_ms, avg_rtt_ms, min_rtt_ms, max_rtt_ms);
-    if (last_rtt_ms && *last_rtt_ms == 0) {
-        *last_rtt_ms = rtt_ms_;
-    }
-    return ret;
-}
-
-int32_t RtcpResponser::RemoteNTP(uint32_t* received_ntp_secs,
-                              uint32_t* received_ntp_frac,
-                              uint32_t* rtcp_arrival_time_secs,
-                              uint32_t* rtcp_arrival_time_frac,
-                              uint32_t* rtcp_timestamp) const {
-    RTC_RUN_ON(&sequence_checker_);
-    bool bRet = rtcp_receiver_.NTP(received_ntp_secs, 
-                                   received_ntp_frac,
-                                   rtcp_arrival_time_secs, 
-                                   rtcp_arrival_time_frac,
-                                   rtcp_timestamp,
-                                   /*remote_sender_packet_count=*/nullptr,
-                                   /*remote_sender_octet_count=*/nullptr,
-                                   /*remote_sender_reports_count=*/nullptr);
-    return bRet ? 0 : -1;
+    return rtcp_receiver_.GetRttStats(ssrc);
 }
 
 int64_t RtcpResponser::ExpectedRestransmissionTimeMs() const {
@@ -56,26 +31,16 @@ int64_t RtcpResponser::ExpectedRestransmissionTimeMs() const {
 
     // If no RTT available yet, so try to retrieve avg_rtt_ms directly
     // from RTCP receiver.
-    if (rtcp_receiver_.RTT(/*remote_ssrc=*/rtcp_receiver_.remote_ssrc(),
-                           /*last_rtt_ms=*/nullptr,
-                           /*avg_rtt_ms=*/&expected_retransmission_time_ms,
-                           /*min_rtt_ms=*/nullptr,
-                           /*max_rtt_ms=*/nullptr) == 0) {
-        return expected_retransmission_time_ms;
+    auto rtt_stats = rtcp_receiver_.GetRttStats(rtcp_receiver_.remote_ssrc());
+    if (rtt_stats) {
+        return rtt_stats->avg_rtt_ms();
     }
     return kDefaultExpectedRetransmissionTimeMs;
 }
 
-void RtcpResponser::OnRequestSendReport() {
+std::optional<RtcpSenderReportStats> RtcpResponser::GetLastSenderReportStats() const {
     RTC_RUN_ON(&sequence_checker_);
+    return rtcp_receiver_.GetLastSenderReportStats();
 }
 
-void RtcpResponser::OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) {
-    RTC_RUN_ON(&sequence_checker_);
-}
-
-void RtcpResponser::OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) {
-    RTC_RUN_ON(&sequence_checker_);
-}  
-    
 } // namespace naivertc

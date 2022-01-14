@@ -14,25 +14,23 @@ void RtcpResponser::RequestKeyFrame() {
     rtcp_sender_.SendRtcp(GetFeedbackState(), RtcpPacketType::PLI);
 }
 
-// Private methods
 RtcpSender::FeedbackState RtcpResponser::GetFeedbackState() {
     RTC_RUN_ON(work_queue_);
     uint32_t received_ntp_secs = 0;
     uint32_t received_ntp_frac = 0;
     feedback_state_.remote_sr = 0;
-    if (rtcp_receiver_.NTP(&received_ntp_secs, &received_ntp_frac,
-                            /*rtcp_arrival_time_secs=*/&feedback_state_.last_rr_ntp_secs,
-                            /*rtcp_arrival_time_frac=*/&feedback_state_.last_rr_ntp_frac,
-                            /*rtcp_timestamp=*/nullptr,
-                            /*remote_sender_packet_count=*/nullptr,
-                            /*remote_sender_octet_count=*/nullptr,
-                            /*remote_sender_reports_count=*/nullptr)) {
-        feedback_state_.remote_sr = ((received_ntp_secs & 0x0000ffff) << 16) +
-                                    ((received_ntp_frac & 0xffff0000) >> 16);
+    auto last_sr_stats = rtcp_receiver_.GetLastSenderReportStats();
+    if (last_sr_stats) {
+        feedback_state_.remote_sr = ((last_sr_stats->send_ntp_time.seconds() & 0x0000ffff) << 16) +
+                                    ((last_sr_stats->send_ntp_time.fractions() & 0xffff0000) >> 16);
+
+        feedback_state_.last_rr_ntp_secs = last_sr_stats->arrival_ntp_time.seconds();
+        feedback_state_.last_rr_ntp_frac = last_sr_stats->arrival_ntp_time.fractions();
     }
     return feedback_state_;
 }
 
+// Private methods
 void RtcpResponser::MaybeSendRtcp() {
     RTC_RUN_ON(work_queue_);
     if (rtcp_sender_.TimeToSendRtcpReport()) {

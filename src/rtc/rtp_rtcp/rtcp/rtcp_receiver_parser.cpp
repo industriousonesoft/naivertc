@@ -151,12 +151,12 @@ bool RtcpReceiver::ParseSenderReport(const rtcp::CommonHeader& rtcp_block,
         // Only signal that we have received a SR when we accept one
         packet_info->packet_type_flags |= RtcpPacketType::SR;
 
-        remote_sender_ntp_time_ = sender_report.ntp();
-        remote_sender_rtp_time_ = sender_report.rtp_timestamp();
-        last_received_sr_ntp_ = clock_->CurrentNtpTime();
-        remote_sender_packet_count_ = sender_report.sender_packet_count();
-        remote_sender_octet_count_ = sender_report.sender_octet_count();
-        remote_sender_reports_count_++;
+        last_sr_stats_.send_ntp_time = sender_report.ntp();
+        last_sr_stats_.send_rtp_time = sender_report.rtp_timestamp();
+        last_sr_stats_.arrival_ntp_time = clock_->CurrentNtpTime();
+        last_sr_stats_.packet_sent = sender_report.sender_packet_count();
+        last_sr_stats_.bytes_sent = sender_report.sender_octet_count();
+        last_sr_stats_.reports_count += 1;
     } else {
         // We only store one send report from one source,
         // but we will store all the receive blocks
@@ -216,12 +216,6 @@ void RtcpReceiver::ParseReportBlock(const rtcp::ReportBlock& report_block,
 
     // Update the last time we received an RTCP report block
     last_time_received_rb_ = clock_->CurrentTime();
-
-    auto it = received_report_blocks_.find(source_ssrc);
-    // Has old report block
-    if (it != received_report_blocks_.end()) {
-        
-    }
 
     RtcpReportBlock* rtcp_report_block = &received_report_blocks_[source_ssrc];
 

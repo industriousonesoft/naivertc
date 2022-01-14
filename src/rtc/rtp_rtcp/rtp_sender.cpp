@@ -78,21 +78,6 @@ bool RtpSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> pac
     return true;
 }
 
-// Nack
-void RtpSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt) {
-    RTC_RUN_ON(&sequence_checker_);
-    // FIXME: Why set RTT avg_rrt + 5 ms?
-    packet_history_.SetRtt(5 + avg_rrt);
-    for (uint16_t seq_num : nack_list) {
-        const int32_t bytes_sent = ResendPacket(seq_num);
-        if (bytes_sent < 0) {
-            PLOG_WARNING << "Failed resending RTP packet " << seq_num
-                         << ", Discard rest of packets.";
-            break;
-        }
-    }
-}
-
 void RtpSender::SetStorePacketsStatus(const bool enable, const uint16_t number_to_store) {
     RTC_RUN_ON(&sequence_checker_);
     auto storage_mode = enable ? RtpPacketSentHistory::StorageMode::STORE_AND_CULL
@@ -136,6 +121,37 @@ size_t RtpSender::FecPacketOverhead() const {
         }
     }
     return overhead;
+}
+
+// Nack
+void RtpSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t rrt_ms) {
+    RTC_RUN_ON(&sequence_checker_);
+    // FIXME: Why set RTT rrt_ms + 5 ms?
+    packet_history_.SetRttMs(5 + rrt_ms);
+    for (uint16_t seq_num : nack_list) {
+        const int32_t bytes_sent = ResendPacket(seq_num);
+        if (bytes_sent < 0) {
+            PLOG_WARNING << "Failed resending RTP packet " << seq_num
+                         << ", Discard rest of packets.";
+            break;
+        }
+    }
+}
+
+// Report blocks
+void RtpSender::OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
+                                              int64_t rtt_ms) {
+    RTC_RUN_ON(&sequence_checker_);
+    uint32_t media_ssrc = packet_generator_.ssrc();
+    std::optional<uint32_t> rtx_ssrc = packet_generator_.rtx_ssrc();
+
+    for (const auto& rb : report_blocks) {
+        if (media_ssrc == rb.source_ssrc) {
+            // TODO: Received Ack on media ssrc.
+        } else if (rtx_ssrc && *rtx_ssrc == rb.source_ssrc) {
+            // TODO: Received Ack on rtx ssrc.
+        }
+    }
 }
 
 // Private methods

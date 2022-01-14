@@ -82,6 +82,8 @@ MY_TEST_F(RtpReceiveStatisticsTest, TwoIncomingSsrcs) {
 
     RtpStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
     ASSERT_TRUE(statistician != nullptr);
+    EXPECT_TRUE(statistician->GetReceivedBitrate().has_value());
+    EXPECT_GT(statistician->GetReceivedBitrate().value().bps(), 0u);
     RtpStreamDataCounters counters = statistician->GetReceiveStreamDataCounters();
     EXPECT_EQ(176u, counters.transmitted.payload_bytes);
     EXPECT_EQ(24u, counters.transmitted.header_bytes);
@@ -90,6 +92,8 @@ MY_TEST_F(RtpReceiveStatisticsTest, TwoIncomingSsrcs) {
 
     statistician = receive_statistics_.GetStatistician(kSsrc2);
     ASSERT_TRUE(statistician != nullptr);
+    EXPECT_TRUE(statistician->GetReceivedBitrate().has_value());
+    EXPECT_GT(statistician->GetReceivedBitrate().value().bps(), 0u);
     counters = statistician->GetReceiveStreamDataCounters();
     EXPECT_EQ(576u, counters.transmitted.payload_bytes);
     EXPECT_EQ(24u, counters.transmitted.header_bytes);

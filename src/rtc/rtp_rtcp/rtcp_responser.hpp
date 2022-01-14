@@ -12,10 +12,9 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtcpResponser : public RtcpReceiver::Observer,
-                                  public RtpSentStatisticsObserver,
-                                  public NackSender,
-                                  public KeyFrameRequestSender {
+class RTC_CPP_EXPORT RtcpResponser : public RtpSentStatisticsObserver,
+                                     public NackSender,
+                                     public KeyFrameRequestSender {
 public:
     RtcpResponser(const RtcpConfiguration& config);
     ~RtcpResponser();
@@ -35,21 +34,13 @@ public:
     // KeyFrameRequestSender override methods
     void RequestKeyFrame() override;
 
-    int32_t RTT(uint32_t remote_ssrc,
-                int64_t* last_rtt_ms,
-                int64_t* avg_rtt_ms,
-                int64_t* min_rtt_ms,
-                int64_t* max_rtt_ms) const;
-
-    int32_t RemoteNTP(uint32_t* received_ntp_secs,
-                      uint32_t* received_ntp_frac,
-                      uint32_t* rtcp_arrival_time_secs,
-                      uint32_t* rtcp_arrival_time_frac,
-                      uint32_t* rtcp_timestamp) const;
-
     int64_t ExpectedRestransmissionTimeMs() const;
 
     RtcpSender::FeedbackState GetFeedbackState();
+
+    std::optional<RtcpSenderReportStats> GetLastSenderReportStats() const;
+
+    std::optional<RttStats> GetRttStats(uint32_t ssrc) const;
 
 private:
     // RtpSentStatistics Observer
@@ -62,11 +53,6 @@ private:
     void MaybeSendRtcp();
     void ScheduleRtcpSendEvaluation(TimeDelta duration);
     void MaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time);
-private:
-    // RtcpReceiver observer methods
-    void OnRequestSendReport() override;
-    void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) override;
-    void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) override;  
 private:
     Clock* const clock_;
     SequenceChecker sequence_checker_;

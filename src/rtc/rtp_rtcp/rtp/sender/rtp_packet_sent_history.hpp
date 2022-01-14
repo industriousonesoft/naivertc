@@ -66,7 +66,7 @@ public:
 
     // Set RTT, used to avoid premature retransmission and to prevent over-writing
     // a packet in the history before we are reasonably sure it has been received.
-    void SetRtt(int64_t rtt_ms);
+    void SetRttMs(int64_t rtt_ms);
 
     // If |send_time| is set, packet was sent without using pacer, so state will
     // be set accordingly.

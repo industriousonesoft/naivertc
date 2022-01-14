@@ -68,34 +68,29 @@ void RtpVideoReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
     rtcp_responser_->IncomingPacket(std::move(in_packet));
 
     int64_t last_rtt_ms = 0;
-    rtcp_responser_->RTT(config_.remote_ssrc, 
-                        &last_rtt_ms, 
-                        nullptr /* avg_rtt_ms */, 
-                        nullptr /* min_rtt_ms */, 
-                        nullptr /* max_rtt_ms */);
+    auto rtt_stats = rtcp_responser_->GetRttStats(config_.remote_ssrc);
+    if (rtt_stats) {
+        last_rtt_ms = rtt_stats->last_rtt_ms();
+    } else {
+        last_rtt_ms = rtcp_responser_->rtt_ms();
+    }
     // Waiting for valid rtt.
     if (last_rtt_ms == 0) {
         return;
     }
 
-    uint32_t received_ntp_secs = 0;
-    uint32_t received_ntp_frac = 0;
-    uint32_t rtcp_arrival_time_secs = 0;
-    uint32_t rtcp_arrival_time_frac = 0;
-    uint32_t rtp_timestamp = 0;
-    if (rtcp_responser_->RemoteNTP(&received_ntp_secs, 
-                                &received_ntp_frac, 
-                                &rtcp_arrival_time_secs,
-                                &rtcp_arrival_time_frac, 
-                                &rtp_timestamp) != 0) {
-        // Waiting for RTCP.
+    auto last_sr_stats = rtcp_responser_->GetLastSenderReportStats();
+    if (!last_sr_stats) {
+        // Waiting for the first RTCP sender report.
         return;
     }
-    NtpTime rtcp_arrival_ntp(rtcp_arrival_time_secs, rtcp_arrival_time_frac);
-    int64_t time_since_rtcp_arrival = clock_->now_ntp_time_ms() - rtcp_arrival_ntp.ToMs();
+    int64_t time_since_rtcp_arrival = clock_->now_ntp_time_ms() - last_sr_stats->arrival_ntp_time.ToMs();
     // Don't use old SRs to estimate time.
     if (time_since_rtcp_arrival <= 1 /* 1 ms */) {
-        remote_ntp_time_estimator_.UpdateRtcpTimestamp(last_rtt_ms, received_ntp_secs, received_ntp_frac, rtp_timestamp);
+        remote_ntp_time_estimator_.UpdateRtcpTimestamp(last_rtt_ms, 
+                                                       last_sr_stats->send_ntp_time.seconds(), 
+                                                       last_sr_stats->send_ntp_time.fractions(), 
+                                                       last_sr_stats->send_rtp_time);
         std::optional<int64_t> remote_to_local_clock_offset_ms = remote_ntp_time_estimator_.EstimateRemoteToLocalClockOffsetMs();
         if (remote_to_local_clock_offset_ms) {
             PLOG_INFO << "Estimated offset in ms: " << remote_to_local_clock_offset_ms.value()

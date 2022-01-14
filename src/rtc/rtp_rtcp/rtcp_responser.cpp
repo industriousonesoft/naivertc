@@ -5,7 +5,7 @@ namespace naivertc {
 RtcpResponser::RtcpResponser(const RtcpConfiguration& config)
     : clock_(config.clock),
       rtcp_sender_(config),
-      rtcp_receiver_(config, this),
+      rtcp_receiver_(config),
       work_queue_(TaskQueueImpl::Current()),
       rtt_ms_(0) {
 

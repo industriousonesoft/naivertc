@@ -22,14 +22,14 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           worker_queue_(TaskQueueImpl::Current()) {
     // Init bitrate statistics
     // Audio or video media packet
-    send_bitrate_map_.emplace(config.audio ? RtpPacketType::AUDIO : RtpPacketType::VIDEO, kBitrateStatisticsWindowMs);
+    send_bitrate_stats_.emplace(config.audio ? RtpPacketType::AUDIO : RtpPacketType::VIDEO, kBitrateStatisticsWindowMs);
     // Retranmission packet
-    send_bitrate_map_.emplace(RtpPacketType::RETRANSMISSION, kBitrateStatisticsWindowMs);
+    send_bitrate_stats_.emplace(RtpPacketType::RETRANSMISSION, kBitrateStatisticsWindowMs);
     // Padding packet
-    send_bitrate_map_.emplace(RtpPacketType::PADDING, kBitrateStatisticsWindowMs);
+    send_bitrate_stats_.emplace(RtpPacketType::PADDING, kBitrateStatisticsWindowMs);
     // FEC packet
     if (fec_generator_) {
-        send_bitrate_map_.emplace(RtpPacketType::FEC, kBitrateStatisticsWindowMs);
+        send_bitrate_stats_.emplace(RtpPacketType::FEC, kBitrateStatisticsWindowMs);
     }
 
     if (rtp_sent_statistics_observer_) {
@@ -159,7 +159,7 @@ std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketEgresser::FetchFecPackets
 
 const DataRate RtpPacketEgresser::CalcTotalSentBitRate(const int64_t now_ms) {
     int64_t bits_per_sec = 0;
-    for (auto& kv : send_bitrate_map_) {
+    for (auto& kv : send_bitrate_stats_) {
         bits_per_sec += kv.second.Rate(now_ms).value_or(DataRate::Zero()).bps();
     }
     return DataRate::BitsPerSec(bits_per_sec);
@@ -227,7 +227,7 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, const RtpPack
     // NOTE: "operator[]" is not working here, since "BitRateStatistics" has no parameterless constructor,
     // which is required to create a new one if no element found for the key.
     // So we using "at" instead, since it access specified element with bounds checking.
-    send_bitrate_map_.at(packet_type).Update(packet.size(), now_ms);
+    send_bitrate_stats_.at(packet_type).Update(packet.size(), now_ms);
     if (rtp_sent_statistics_observer_) {
         rtp_sent_statistics_observer_->RtpSentBitRateUpdated(CalcTotalSentBitRate(now_ms));
     }

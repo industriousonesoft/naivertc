@@ -41,18 +41,7 @@ class ReportBlock;
 // RtcpReceiver
 class RTC_CPP_EXPORT RtcpReceiver {
 public:
-    // Observer
-    class Observer {
-    public:
-        virtual ~Observer() = default;
-        virtual void OnRequestSendReport() = 0;
-        virtual void OnReceivedNack(const std::vector<uint16_t>& nack_sequence_numbers) = 0;
-        virtual void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) = 0;  
-    };
-
-public:
-    RtcpReceiver(const RtcpConfiguration& config, 
-                 Observer* const observer);
+    RtcpReceiver(const RtcpConfiguration& config);
     ~RtcpReceiver();
 
     uint32_t local_media_ssrc() const;
@@ -65,21 +54,9 @@ public:
 
     void IncomingPacket(CopyOnWriteBuffer packet);
 
-    // Get received NTP.
-    bool NTP(uint32_t* received_ntp_secs,
-             uint32_t* received_ntp_frac,
-             uint32_t* rtcp_arrival_time_secs,
-             uint32_t* rtcp_arrival_time_frac,
-             uint32_t* rtcp_timestamp,
-             uint32_t* remote_sender_packet_count,
-             uint64_t* remote_sender_octet_count,
-             uint64_t* remote_sender_reports_count) const;
+    std::optional<RtcpSenderReportStats> GetLastSenderReportStats() const;
 
-    int32_t RTT(uint32_t remote_ssrc,
-                int64_t* last_rtt_ms,
-                int64_t* avg_rtt_ms,
-                int64_t* min_rtt_ms,
-                int64_t* max_rtt_ms) const;
+    std::optional<RttStats> GetRttStats(uint32_t ssrc) const;
 
     std::vector<RtcpReportBlock> GetLatestReportBlocks() const;
 
@@ -142,7 +119,6 @@ private:
 private:
     SequenceChecker sequence_checker_;
     Clock* const clock_;
-    Observer* const observer_;
     bool receiver_only_;
     uint32_t remote_ssrc_;
     const TimeDelta report_interval_;
@@ -152,14 +128,8 @@ private:
     // Round-Trip Time per remote sender ssrc
     std::map<uint32_t, RttStats> rtts_;
 
-    // Received sender report.
-    NtpTime remote_sender_ntp_time_;
-    uint32_t remote_sender_rtp_time_;
-    // When did we receive the last send report.
-    NtpTime last_received_sr_ntp_;
-    uint32_t remote_sender_packet_count_;
-    uint64_t remote_sender_octet_count_;
-    uint64_t remote_sender_reports_count_;
+    // The last received RTCP sender report.
+    RtcpSenderReportStats last_sr_stats_;
 
     // The last time we received an RTCP Report block
     Timestamp last_time_received_rb_;
@@ -181,6 +151,9 @@ private:
     RtcpBandwidthObserver* const bandwidth_observer_ = nullptr;
     RtcpCnameObserver* const cname_observer_ = nullptr;
     RtcpTransportFeedbackObserver* transport_feedback_observer_ = nullptr;
+    RtcpNackListObserver* const nack_list_observer_ = nullptr;
+    RtcpReportBlocksObserver* const report_blocks_observer_ = nullptr;
+
 };
     
 } // namespace naivertc

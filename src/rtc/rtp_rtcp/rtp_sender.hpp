@@ -16,7 +16,8 @@
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
 namespace naivertc {
-class RTC_CPP_EXPORT RtpSender {
+class RTC_CPP_EXPORT RtpSender : public RtcpNackListObserver,
+                                 public RtcpReportBlocksObserver {
 public:
     RtpSender(const RtpConfiguration& config, 
               std::unique_ptr<FecGenerator> fec_generator);
@@ -25,14 +26,12 @@ public:
     // Generator
     size_t max_rtp_packet_size() const;
     void set_max_rtp_packet_size(size_t max_size);
-
+ 
     std::shared_ptr<RtpPacketToSend> AllocatePacket() const;
 
     // Send
     bool EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets);
-
-    // NACK
-    void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t avg_rrt);
+    
     // Store the sent packets, needed to answer to Negative acknowledgment requests.
     void SetStorePacketsStatus(const bool enable, const uint16_t number_to_store);
 
@@ -46,6 +45,13 @@ public:
     bool fec_enabled() const;
     bool red_enabled() const;
     size_t FecPacketOverhead() const;
+
+    // Implements RtcpNackListObserver
+    void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t rrt_ms) override;
+
+    // Implements RtcpReportBlocksObserver
+    void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
+                                       int64_t rtt_ms) override;
 
 private:
     int32_t ResendPacket(uint16_t packet_id);

@@ -75,6 +75,12 @@ public:
 
 // RTCP observer
 
+class RTC_CPP_EXPORT RtcpNackListObserver {
+public:
+    virtual ~RtcpNackListObserver() = default;
+    virtual void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t rrt_ms) = 0;
+};
+
 // RtcpIntraFrameObserver
 class RTC_CPP_EXPORT RtcpIntraFrameObserver {
 public:
@@ -98,9 +104,6 @@ public:
     virtual ~RtcpBandwidthObserver() = default;
     // REMB or TMMBR
     virtual void OnReceivedEstimatedBitrateBps(uint32_t bitrate_bps) = 0;
-    virtual void OnReceivedRtcpReceiverReports(const std::vector<RtcpReportBlock>& report_blocks,
-                                               int64_t rtt,
-                                               int64_t now_ms) = 0;
 };
 
 // RtcpPacketTypeCounterObserver
@@ -126,10 +129,18 @@ public:
 };
 
 // RtcpReportBlockProvider
-class RtcpReportBlockProvider {
+class RTC_CPP_EXPORT RtcpReportBlockProvider {
 public:
     virtual ~RtcpReportBlockProvider() = default;
     virtual std::vector<rtcp::ReportBlock> GetRtcpReportBlocks(size_t max_blocks) = 0;
+};
+
+// RtcpReportBlocksObserver 
+class RTC_CPP_EXPORT RtcpReportBlocksObserver {
+public:
+    virtual ~RtcpReportBlocksObserver() = default;
+    virtual void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
+                                            int64_t rtt_ms) = 0; 
 };
     
 } // namespace naivertc

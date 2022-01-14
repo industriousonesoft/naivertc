@@ -89,7 +89,7 @@ RtpPacketSentHistory::StorageMode RtpPacketSentHistory::GetStorageMode() const {
     return mode_;
 }
 
-void RtpPacketSentHistory::SetRtt(int64_t rtt_ms) {
+void RtpPacketSentHistory::SetRttMs(int64_t rtt_ms) {
     RTC_RUN_ON(&sequence_checker_);
     if (rtt_ms < 0) {
         PLOG_WARNING << "Invalid RTT: " << rtt_ms;
