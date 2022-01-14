@@ -41,12 +41,10 @@ public:
     RtcpReceiveFeedback GetReceiveFeedback() override;
 
 private:
-    Clock* const clock_;
     SequenceChecker sequence_checker_;
     
     RtcpSender rtcp_sender_;
     RtcpReceiver rtcp_receiver_;
-    TaskQueueImpl* const work_queue_;
 
 };
     

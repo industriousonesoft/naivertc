@@ -1,7 +1,11 @@
 #include "rtc/rtp_rtcp/rtcp_responser.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
 namespace {
+
+const int64_t kDefaultExpectedRetransmissionTimeMs = 125;
 
 RtcpSender::Configuration RtcpConfigurationFromRtpRtcpConfiguration(const RtcpConfiguration& config, 
                                                                     RtcpReceiveFeedbackProvider* rtcp_receive_feedback_provider) {
@@ -21,13 +25,8 @@ RtcpSender::Configuration RtcpConfigurationFromRtpRtcpConfiguration(const RtcpCo
 } // namespace
 
 RtcpResponser::RtcpResponser(const RtcpConfiguration& config)
-    : clock_(config.clock),
-      rtcp_sender_(RtcpConfigurationFromRtpRtcpConfiguration(config, this)),
-      rtcp_receiver_(config),
-      work_queue_(TaskQueueImpl::Current()) {
-
-    // TODO: RTT PeriodicUpdate
-}
+    : rtcp_sender_(RtcpConfigurationFromRtpRtcpConfiguration(config, this)),
+      rtcp_receiver_(config) {}
 
 RtcpResponser::~RtcpResponser() {}
 
@@ -40,5 +39,54 @@ void RtcpResponser::set_remote_ssrc(uint32_t remote_ssrc) {
 TimeDelta RtcpResponser::rtt() const {
     return rtcp_receiver_.rtt();
 }
+
+void RtcpResponser::IncomingPacket(const uint8_t* packet, size_t packet_size) {
+    RTC_RUN_ON(&sequence_checker_);
+    IncomingPacket(CopyOnWriteBuffer(packet, packet_size));
+}
+    
+void RtcpResponser::IncomingPacket(CopyOnWriteBuffer rtcp_packet) {
+    RTC_RUN_ON(&sequence_checker_);
+    rtcp_receiver_.IncomingPacket(std::move(rtcp_packet));
+}
+
+void RtcpResponser::SendNack(std::vector<uint16_t> nack_list,
+                          bool buffering_allowed) {
+    assert(buffering_allowed == true);
+    rtcp_sender_.SendRtcp(RtcpPacketType::NACK, std::move(nack_list));
+}
+
+void RtcpResponser::RequestKeyFrame() {
+    rtcp_sender_.SendRtcp(RtcpPacketType::PLI);
+}
+
+std::optional<RttStats> RtcpResponser::GetRttStats(uint32_t ssrc) const {
+    RTC_RUN_ON(&sequence_checker_);
+    return rtcp_receiver_.GetRttStats(ssrc);
+}
+
+int64_t RtcpResponser::ExpectedRestransmissionTimeMs() const {
+    RTC_RUN_ON(&sequence_checker_);
+    auto expected_retransmission_time = rtcp_receiver_.rtt();
+    if (expected_retransmission_time.IsFinite()) {
+        return expected_retransmission_time.ms();
+    }
+
+    // If no RTT available yet, so try to retrieve avg_rtt_ms directly
+    // from RTCP receiver.
+    auto rtt_stats = rtcp_receiver_.GetRttStats(rtcp_receiver_.remote_ssrc());
+    if (rtt_stats) {
+        return rtt_stats->avg_rtt().ms();
+    }
+    return kDefaultExpectedRetransmissionTimeMs;
+}
+
+RtcpReceiveFeedback RtcpResponser::GetReceiveFeedback() {
+    RTC_RUN_ON(&sequence_checker_);
+    RtcpReceiveFeedback receive_feedback;
+    receive_feedback.last_sr_stats = rtcp_receiver_.GetLastSenderReportStats();;
+    return receive_feedback;
+}
+
     
 } // namespace naivertc

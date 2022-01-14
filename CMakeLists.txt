@@ -414,8 +414,6 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp_statistic_structs.cpp
     src/rtc/rtp_rtcp/rtcp_statistic_structs.cpp
     src/rtc/rtp_rtcp/rtcp_responser.cpp
-    src/rtc/rtp_rtcp/rtcp_responser_sender.cpp
-    src/rtc/rtp_rtcp/rtcp_responser_receiver.cpp
     src/rtc/rtp_rtcp/rtp_sender.cpp
     src/rtc/rtp_rtcp/rtp_sender_non_paced.cpp
     src/rtc/rtp_rtcp/rtp_sender_video.cpp
