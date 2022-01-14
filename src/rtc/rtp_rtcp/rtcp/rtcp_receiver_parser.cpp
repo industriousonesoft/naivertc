@@ -249,10 +249,10 @@ void RtcpReceiver::ParseReportBlock(const rtcp::ReportBlock& report_block,
         uint32_t rtt_ntp = receive_time_ntp - delay_ntp - send_time_ntp;
         // Convert to 1/1000 seconds (milliseconds).
         rtt_ms = CompactNtpRttToMs(rtt_ntp);
-        rtts_[source_ssrc].AddRttMs(rtt_ms);
+        rtts_[source_ssrc].AddRttMs(TimeDelta::Millis(rtt_ms));
         // FIXME: Only record the RTT from local media source, other than RTX or FEC?
         if (source_ssrc == local_media_ssrc()) {
-            rtts_[remote_ssrc].AddRttMs(rtt_ms);
+            rtts_[remote_ssrc].AddRttMs(TimeDelta::Millis(rtt_ms));
         }
         packet_info->rtt_ms = rtt_ms;
     }

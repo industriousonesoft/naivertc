@@ -67,15 +67,15 @@ void RtpVideoReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
     
     rtcp_responser_->IncomingPacket(std::move(in_packet));
 
-    int64_t last_rtt_ms = 0;
+    TimeDelta last_rtt = TimeDelta::PlusInfinity();
     auto rtt_stats = rtcp_responser_->GetRttStats(config_.remote_ssrc);
     if (rtt_stats) {
-        last_rtt_ms = rtt_stats->last_rtt_ms();
+        last_rtt = rtt_stats->last_rtt();
     } else {
-        last_rtt_ms = rtcp_responser_->rtt_ms();
+        last_rtt = rtcp_responser_->rtt();
     }
     // Waiting for valid rtt.
-    if (last_rtt_ms == 0) {
+    if (last_rtt.IsInfinite()) {
         return;
     }
 
@@ -87,7 +87,7 @@ void RtpVideoReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
     int64_t time_since_rtcp_arrival = clock_->now_ntp_time_ms() - last_sr_stats->arrival_ntp_time.ToMs();
     // Don't use old SRs to estimate time.
     if (time_since_rtcp_arrival <= 1 /* 1 ms */) {
-        remote_ntp_time_estimator_.UpdateRtcpTimestamp(last_rtt_ms, 
+        remote_ntp_time_estimator_.UpdateRtcpTimestamp(last_rtt.ms(), 
                                                        last_sr_stats->send_ntp_time.seconds(), 
                                                        last_sr_stats->send_ntp_time.fractions(), 
                                                        last_sr_stats->send_rtp_time);

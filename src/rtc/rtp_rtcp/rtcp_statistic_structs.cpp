@@ -4,26 +4,21 @@ namespace naivertc {
 
 // RttStats
 
-RttStats::RttStats() 
-    : last_rtt_ms_(0),
-      min_rtt_ms_(0),
-      max_rtt_ms_(0),
-      sum_rtt_ms_(0),
-      num_rtts_(0) {}
+RttStats::RttStats() = default;
 
-void RttStats::AddRttMs(int64_t rtt_ms) {
-    if (rtt_ms > max_rtt_ms_)
-        max_rtt_ms_ = rtt_ms;
-    if (num_rtts_ == 0 || rtt_ms < min_rtt_ms_)
-        min_rtt_ms_ = rtt_ms;
-    last_rtt_ms_ = rtt_ms;
-    sum_rtt_ms_ += rtt_ms;
+void RttStats::AddRttMs(TimeDelta rtt_ms) {
+    if (rtt_ms > max_rtt_)
+        max_rtt_ = rtt_ms;
+    if (num_rtts_ == 0 || rtt_ms < min_rtt_)
+        min_rtt_ = rtt_ms;
+    last_rtt_ = rtt_ms;
+    sum_rtt_ += rtt_ms;
     ++num_rtts_;
 }
 
-double RttStats::avg_rtt_ms() const {
-    return num_rtts_ > 0 ? static_cast<double>(sum_rtt_ms_) / num_rtts_ 
-                         : 0.0;
+TimeDelta RttStats::avg_rtt() const {
+    return TimeDelta::Millis<double>(num_rtts_ > 0 ? static_cast<double>(sum_rtt_.ms()) / num_rtts_ 
+                                                   : 0.0);
 }
 
 // RtcpReportBlock

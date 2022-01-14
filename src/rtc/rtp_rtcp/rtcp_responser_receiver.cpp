@@ -24,16 +24,16 @@ std::optional<RttStats> RtcpResponser::GetRttStats(uint32_t ssrc) const {
 
 int64_t RtcpResponser::ExpectedRestransmissionTimeMs() const {
     RTC_RUN_ON(&sequence_checker_);
-    int64_t expected_retransmission_time_ms = rtt_ms_;
-    if (expected_retransmission_time_ms > 0) {
-        return expected_retransmission_time_ms;
+    auto expected_retransmission_time = rtcp_receiver_.rtt();
+    if (expected_retransmission_time.IsFinite()) {
+        return expected_retransmission_time.ms();
     }
 
     // If no RTT available yet, so try to retrieve avg_rtt_ms directly
     // from RTCP receiver.
     auto rtt_stats = rtcp_receiver_.GetRttStats(rtcp_receiver_.remote_ssrc());
     if (rtt_stats) {
-        return rtt_stats->avg_rtt_ms();
+        return rtt_stats->avg_rtt().ms();
     }
     return kDefaultExpectedRetransmissionTimeMs;
 }

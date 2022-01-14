@@ -215,7 +215,7 @@ MY_TEST(RtcpReceiverTest, InjectSrPacketCalculatesRTT) {
 
     rtt_stats = receiver.GetRttStats(kSenderSsrc);
     EXPECT_TRUE(rtt_stats.has_value());
-    EXPECT_NEAR(kRttMs, rtt_stats->last_rtt_ms(), 1);
+    EXPECT_NEAR(kRttMs, rtt_stats->last_rtt().ms(), 1);
 
 }
 
@@ -248,7 +248,7 @@ MY_TEST(RtcpReceiverTest, InjectSrPacketCalculatesNegativeRTTAsOne) {
 
     rtt_stats = receiver.GetRttStats(kSenderSsrc);
     EXPECT_TRUE(rtt_stats.has_value());
-    EXPECT_EQ(1, rtt_stats->last_rtt_ms());
+    EXPECT_EQ(1, rtt_stats->last_rtt().ms());
 }
 
 MY_TEST(RtcpReceiverTest, TwoReportBlocksWithLastOneWithoutLastSrCalculatesRttForBandwidthObserver) {

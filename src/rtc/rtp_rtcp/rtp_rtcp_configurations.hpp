@@ -67,6 +67,7 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
     RtcpLossNotificationObserver* loss_notification_observer = nullptr;
     RtcpBandwidthObserver* bandwidth_observer = nullptr;
     RtcpCnameObserver* cname_observer = nullptr;
+    RtcpRttObserver* rtt_observer = nullptr;
     RtcpTransportFeedbackObserver* transport_feedback_observer = nullptr;
     RtcpNackListObserver* nack_list_observer = nullptr;
     RtcpReportBlocksObserver* report_blocks_observer = nullptr;

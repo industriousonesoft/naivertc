@@ -25,6 +25,7 @@
 #include "rtc/rtp_rtcp/rtcp/packets/remb.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/transport_feedback.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
+#include "rtc/base/task_utils/repeating_task.hpp"
 
 #include <vector>
 #include <map>
@@ -47,6 +48,8 @@ public:
     uint32_t local_media_ssrc() const;
     uint32_t remote_ssrc() const;
     void set_remote_ssrc(uint32_t remote_ssrc);
+
+    TimeDelta rtt() const;
 
     void IncomingPacket(const uint8_t* packet, size_t packet_size) {
         IncomingPacket(CopyOnWriteBuffer(packet, packet + packet_size));
@@ -114,6 +117,8 @@ private:
 
     bool IsRegisteredSsrc(uint32_t ssrc) const;
 
+    void RttPeriodicUpdate();
+
     bool RtcpRrTimeoutLocked(Timestamp now);
     bool RtcpRrSequenceNumberTimeoutLocked(Timestamp now);
 private:
@@ -122,6 +127,7 @@ private:
     bool receiver_only_;
     uint32_t remote_ssrc_;
     const TimeDelta report_interval_;
+    TimeDelta rtt_;
     
     std::map<int, uint32_t> registered_ssrcs_;
     std::map<uint32_t, RtcpReportBlock> received_report_blocks_;
@@ -144,12 +150,16 @@ private:
     int64_t last_skipped_packets_warning_ms_;
 
     RtcpPacketTypeCounter packet_type_counter_;
+
+    TaskQueueImpl* const work_queue_;
+    std::unique_ptr<RepeatingTask> rtt_update_task_ = nullptr;
     
     RtcpPacketTypeCounterObserver* const packet_type_counter_observer_ = nullptr;
     RtcpIntraFrameObserver* const intra_frame_observer_ = nullptr;
     RtcpLossNotificationObserver* const loss_notification_observer_ = nullptr;
     RtcpBandwidthObserver* const bandwidth_observer_ = nullptr;
     RtcpCnameObserver* const cname_observer_ = nullptr;
+    RtcpRttObserver* const rtt_observer_ = nullptr;
     RtcpTransportFeedbackObserver* transport_feedback_observer_ = nullptr;
     RtcpNackListObserver* const nack_list_observer_ = nullptr;
     RtcpReportBlocksObserver* const report_blocks_observer_ = nullptr;

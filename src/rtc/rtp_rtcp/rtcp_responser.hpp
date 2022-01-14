@@ -19,10 +19,9 @@ public:
     RtcpResponser(const RtcpConfiguration& config);
     ~RtcpResponser() override;
 
-    void set_rtt_ms(int64_t rtt_ms);
-    int64_t rtt_ms() const;
-
     void set_remote_ssrc(uint32_t remote_ssrc);
+
+    TimeDelta rtt() const;
 
     void IncomingPacket(const uint8_t* packet, size_t packet_size);
     void IncomingPacket(CopyOnWriteBuffer rtcp_packet);
@@ -40,7 +39,7 @@ public:
 
     // Implements RtcpReceiveFeedbackProvider
     RtcpReceiveFeedback GetReceiveFeedback() override;
-    
+
 private:
     Clock* const clock_;
     SequenceChecker sequence_checker_;
@@ -49,7 +48,6 @@ private:
     RtcpReceiver rtcp_receiver_;
     TaskQueueImpl* const work_queue_;
 
-    int64_t rtt_ms_;
 };
     
 } // namespace naivertc

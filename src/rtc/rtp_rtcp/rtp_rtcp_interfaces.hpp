@@ -128,6 +128,13 @@ public:
     virtual void OnCname(uint32_t ssrc, std::string_view cname) = 0;
 };
 
+// RtcpRttObserver
+class RTC_CPP_EXPORT RtcpRttObserver {
+public:
+    virtual ~RtcpRttObserver() = 0;
+    virtual void OnRttUpdated(TimeDelta rtt) = 0;
+};
+
 // RtcpTransportFeedbackObserver
 class RTC_CPP_EXPORT RtcpTransportFeedbackObserver {
 public:

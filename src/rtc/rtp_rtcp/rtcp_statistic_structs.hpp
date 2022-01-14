@@ -14,20 +14,20 @@ class RttStats {
 public:
     RttStats();
 
-    int64_t last_rtt_ms() const { return last_rtt_ms_; }
-    int64_t min_rtt_ms() const { return min_rtt_ms_; }
-    int64_t max_rtt_ms() const { return max_rtt_ms_; }
-    int64_t sum_rtt_ms() const { return sum_rtt_ms_; }
-    double avg_rtt_ms() const;
+    TimeDelta last_rtt() const { return last_rtt_; }
+    TimeDelta min_rtt() const { return min_rtt_; }
+    TimeDelta max_rtt() const { return max_rtt_; }
+    TimeDelta sum_rtt() const { return sum_rtt_; }
+    TimeDelta avg_rtt() const;
     size_t num_rtts() const { return num_rtts_; }
    
-    void AddRttMs(int64_t rtt_ms);
+    void AddRttMs(TimeDelta rtt_ms);
 
 private:
-    int64_t last_rtt_ms_ = -1;
-    int64_t min_rtt_ms_ = -1;
-    int64_t max_rtt_ms_ = -1;
-    int64_t sum_rtt_ms_ = -1;
+    TimeDelta last_rtt_ = TimeDelta::Zero();
+    TimeDelta min_rtt_ = TimeDelta::PlusInfinity();
+    TimeDelta max_rtt_ = TimeDelta::MinusInfinity();
+    TimeDelta sum_rtt_ = TimeDelta::Zero();
     size_t num_rtts_ = 0;
 };
 
