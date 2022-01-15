@@ -5,8 +5,15 @@
 #include <plog/Log.h>
 
 namespace naivertc {
+namespace {
 
 constexpr int64_t kMaxWarningLogIntervalMs = 10000;
+
+// Maximum number of received RRTRs that will be stored.
+constexpr size_t kMaxNumberOfStoredRrtrs = 300;
+    
+} // namespace
+
 
 // Compound packet
 bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet, 
@@ -56,7 +63,14 @@ bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet,
             break;
         // bye
         case rtcp::Bye::kPacketType:
-            ParseBye(rtcp_block);
+            if (!ParseBye(rtcp_block)) {
+                ++num_skipped_packets_;
+            }
+            break;
+        case rtcp::ExtendedReports::kPacketType:
+            if (!ParseXr(rtcp_block, packet_info)) {
+                ++num_skipped_packets_;
+            }
             break;
         // Rtp feedback
         case rtcp::Rtpfb::kPacketType:
@@ -165,7 +179,7 @@ bool RtcpReceiver::ParseSenderReport(const rtcp::CommonHeader& rtcp_block,
 
     // Parse all report blocks of the send report.
     for (const auto& report_block : sender_report.report_blocks()) {
-        ParseReportBlock(report_block, packet_info, remote_ssrc);
+        HandleReportBlock(report_block, packet_info, remote_ssrc);
     }
 
     return true;
@@ -188,16 +202,16 @@ bool RtcpReceiver::ParseReceiverReport(const rtcp::CommonHeader& rtcp_block,
 
     // Parse all report blocks of the receive report.
     for (const auto& report_block : receiver_report.report_blocks()) {
-        ParseReportBlock(report_block, packet_info, remote_ssrc);
+        HandleReportBlock(report_block, packet_info, remote_ssrc);
     }
 
     return true;
 }
 
 // Report block
-void RtcpReceiver::ParseReportBlock(const rtcp::ReportBlock& report_block, 
-                                    PacketInfo* packet_info, 
-                                    uint32_t remote_ssrc) {
+void RtcpReceiver::HandleReportBlock(const rtcp::ReportBlock& report_block, 
+                                     PacketInfo* packet_info, 
+                                     uint32_t remote_ssrc) {
     // This will be called once per report block in the RTCP packet.
     // We will filter out all report blocks that are not for us.
     // Each packet has max 31 RR blocks.
@@ -414,6 +428,7 @@ bool RtcpReceiver::ParseBye(const rtcp::CommonHeader& rtcp_block) {
     }
 
     // Clear our lists
+    // Report blocks
     rtts_.erase(bye.sender_ssrc());
     for (auto it = received_report_blocks_.begin(); it != received_report_blocks_.end();) {
         if (it->second.sender_ssrc == bye.sender_ssrc()) {
@@ -422,7 +437,89 @@ bool RtcpReceiver::ParseBye(const rtcp::CommonHeader& rtcp_block) {
             ++it;
         }
     }
+
+    // Rrtr
+    auto it = rrtr_its_.find(bye.sender_ssrc());
+    if (it != rrtr_its_.end()) {
+        rrtrs_.erase(it->second);
+        rrtr_its_.erase(it);
+    }
+    xr_rr_rtt_ms_ = 0;
     return true;
+}
+
+// Xr
+bool RtcpReceiver::ParseXr(const rtcp::CommonHeader& rtcp_block, 
+                           PacketInfo* packet_info) {
+    rtcp::ExtendedReports xr;
+    if (!xr.Parse(rtcp_block)) {
+        return false;
+    }
+
+    // Rrtr
+    if (xr.rrtr()) {
+        HandleXrRrtrBlock(*xr.rrtr(), xr.sender_ssrc());
+    }
+    // Dlrr
+    HandleXrDlrrBlock(xr.dlrr());
+    // TargetBitrate
+    if (xr.target_bitrate()) {
+        HandleXrTargetBitrateBlock(*xr.target_bitrate(), packet_info, xr.sender_ssrc());
+    }
+
+    return true;
+}
+
+// Rrtr: Receiver Reference Time Report block 
+void RtcpReceiver::HandleXrRrtrBlock(const rtcp::Rrtr& rrtr, uint32_t sender_ssrc) {
+    uint32_t received_remote_mid_ntp_time = CompactNtp(rrtr.ntp());
+    uint32_t local_receive_mid_ntp_time = CompactNtp(clock_->CurrentNtpTime());
+
+    auto it = rrtr_its_.find(sender_ssrc);
+    if (it != rrtr_its_.end()) {
+        it->second->received_remote_mid_ntp_time = received_remote_mid_ntp_time;
+        it->second->local_receive_mid_ntp_time = local_receive_mid_ntp_time;
+    } else {
+        if (rrtrs_.size() < kMaxNumberOfStoredRrtrs) {
+            rrtrs_.emplace_back(sender_ssrc, received_remote_mid_ntp_time, local_receive_mid_ntp_time);
+            rrtr_its_[sender_ssrc] = std::prev(rrtrs_.end());
+        } else {
+            PLOG_WARNING << "Reached the maximum number of storted RRTRs, ignoring.";
+        }
+    }
+}
+
+void RtcpReceiver::HandleXrDlrrBlock(const rtcp::Dlrr& dlrr) {
+    if (dlrr.sub_blocks().size()) {
+        return;
+    }
+    for (auto& sub_block : dlrr.sub_blocks()) {
+        if (!IsRegisteredSsrc(sub_block.ssrc)) {
+            // Not to us.
+            continue;
+        }
+        // The send_time and delay_rr fields are in units of 1/2^16 sec.
+        uint32_t send_time_ntp = sub_block.last_rr;
+        // RFC3611, section 4.5, LRR field discription states:
+        // If no such block has been received, the field is set to zero.
+        if (send_time_ntp == 0) {
+            continue;
+        }
+        uint32_t delay_ntp = sub_block.delay_since_last_rr;
+        uint32_t now_ntp = CompactNtp(clock_->CurrentNtpTime());
+
+        uint32_t rtt_ntp = now_ntp - delay_ntp - send_time_ntp;
+        xr_rr_rtt_ms_ = CompactNtpRttToMs(rtt_ntp);
+    }
+}
+
+void RtcpReceiver::HandleXrTargetBitrateBlock(const rtcp::TargetBitrate& target_birate,
+                                              PacketInfo* packet_info, 
+                                              uint32_t ssrc) {
+    if (ssrc != remote_ssrc_) {
+        return;
+    }
+    // VideoBitrateAllocation
 }
     
 } // namespace naivertc

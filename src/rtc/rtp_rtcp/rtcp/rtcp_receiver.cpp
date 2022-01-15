@@ -1,4 +1,5 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
+#include "rtc/base/time/ntp_time_util.hpp"
 
 #include <plog/Log.h>
 
@@ -44,6 +45,7 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config)
                            : (config.audio ? kDefaultAudioReportInterval
                                            : kDefaultVideoReportInterval)),
       rtt_(TimeDelta::PlusInfinity()),
+      xr_rr_rtt_ms_(0),
       last_time_received_rb_(Timestamp::PlusInfinity()),
       last_time_increased_sequence_number_(Timestamp::PlusInfinity()),
       num_skipped_packets_(0),
@@ -143,7 +145,34 @@ std::vector<RtcpReportBlock> RtcpReceiver::GetLatestReportBlocks() const {
 }
 
 int64_t RtcpReceiver::LastReceivedReportBlockMs() const {
+    RTC_RUN_ON(&sequence_checker_);
     return last_time_received_rb_.IsFinite() ? last_time_received_rb_.ms() : 0;
+}
+
+std::optional<int64_t> RtcpReceiver::GetLatestXrRrRtt() const {
+    RTC_RUN_ON(&sequence_checker_);
+    if (xr_rr_rtt_ms_ > 0) {
+        // TODO: Do we need to reset after read?
+        return xr_rr_rtt_ms_;
+    }
+    return std::nullopt;
+}
+
+std::vector<rtcp::Dlrr::SubBlock> RtcpReceiver::ConsumeXrDlrrSubBlocks() {
+    RTC_RUN_ON(&sequence_checker_);
+    const size_t num_sub_blocks = std::min(rrtrs_.size(), rtcp::ExtendedReports::kMaxNumberOfDlrrSubBlocks);
+    std::vector<rtcp::Dlrr::SubBlock> sub_blocks;
+    sub_blocks.reserve(num_sub_blocks);
+
+    const uint32_t now_ntp = CompactNtp(clock_->CurrentNtpTime());
+
+    for (size_t i = 0; i < num_sub_blocks; ++i) {
+        const auto& rrtr = rrtrs_.front();
+        sub_blocks.emplace_back(rrtr.ssrc, rrtr.received_remote_mid_ntp_time, now_ntp - rrtr.local_receive_mid_ntp_time);
+        rrtr_its_.erase(rrtr.ssrc);
+        rrtrs_.pop_front();
+    }
+    return sub_blocks;
 }
 
 bool RtcpReceiver::RtcpRrTimeout() {

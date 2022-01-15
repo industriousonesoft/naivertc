@@ -23,13 +23,15 @@
 #include "rtc/rtp_rtcp/rtcp/packets/tmmbn.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/bye.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/remb.hpp"
+#include "rtc/rtp_rtcp/rtcp/packets/extended_reports.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/transport_feedback.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/base/task_utils/repeating_task.hpp"
 
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <string>
+#include <list>
 
 namespace naivertc {
 
@@ -63,6 +65,10 @@ public:
 
     std::vector<RtcpReportBlock> GetLatestReportBlocks() const;
 
+    std::optional<int64_t> GetLatestXrRrRtt() const;
+
+    std::vector<rtcp::Dlrr::SubBlock> ConsumeXrDlrrSubBlocks();
+
     int64_t LastReceivedReportBlockMs() const;
 
     // Returns true if we haven't received an RTCP RR for several RTCP
@@ -90,6 +96,25 @@ private:
         RttStats rtt_stats;
     };
 
+    struct RrtrInfo {
+        RrtrInfo() 
+            : ssrc(0),
+              received_remote_mid_ntp_time(0),
+              local_receive_mid_ntp_time(0) {}
+
+        RrtrInfo(uint32_t ssrc,
+                 uint32_t received_remote_mid_ntp_time,
+                 uint32_t local_receive_mid_ntp_time) 
+            : ssrc(ssrc),
+              received_remote_mid_ntp_time(received_remote_mid_ntp_time),
+              local_receive_mid_ntp_time(local_receive_mid_ntp_time) {};
+
+        uint32_t ssrc;
+        uint32_t received_remote_mid_ntp_time;
+        // NTP time when the report was received.
+        uint32_t local_receive_mid_ntp_time;
+    };
+
     bool ParseCompoundPacket(CopyOnWriteBuffer packet, 
                              PacketInfo* packet_info);
     bool ParseSenderReport(const rtcp::CommonHeader& rtcp_block, 
@@ -109,9 +134,19 @@ private:
     bool ParseAfb(const rtcp::CommonHeader& rtcp_block,
                   PacketInfo* packet_info);
     bool ParseBye(const rtcp::CommonHeader& rtcp_block);
-    void ParseReportBlock(const rtcp::ReportBlock& report_block, 
-                          PacketInfo* packet_info,
-                          uint32_t remote_ssrc);
+    bool ParseXr(const rtcp::CommonHeader& rtcp_block, 
+                 PacketInfo* packet_info);
+
+    void HandleReportBlock(const rtcp::ReportBlock& report_block, 
+                           PacketInfo* packet_info,
+                           uint32_t remote_ssrc);
+
+    // Blocks in Extended Reports
+    void HandleXrRrtrBlock(const rtcp::Rrtr& rrtr, uint32_t sender_ssrc);
+    void HandleXrDlrrBlock(const rtcp::Dlrr& dlrr);
+    void HandleXrTargetBitrateBlock(const rtcp::TargetBitrate& target_birate, 
+                                    PacketInfo* packet_info, 
+                                    uint32_t ssrc);
 
     void HandleParseResult(const PacketInfo& packet_info);
 
@@ -128,11 +163,15 @@ private:
     uint32_t remote_ssrc_;
     const TimeDelta report_interval_;
     TimeDelta rtt_;
+
+    int64_t xr_rr_rtt_ms_;
     
-    std::map<int, uint32_t> registered_ssrcs_;
-    std::map<uint32_t, RtcpReportBlock> received_report_blocks_;
+    std::unordered_map<int, uint32_t> registered_ssrcs_;
+    std::unordered_map<uint32_t, RtcpReportBlock> received_report_blocks_;
     // Round-Trip Time per remote sender ssrc
-    std::map<uint32_t, RttStats> rtts_;
+    std::unordered_map<uint32_t, RttStats> rtts_;
+    std::list<RrtrInfo> rrtrs_;
+    std::unordered_map<uint32_t, std::list<RrtrInfo>::iterator> rrtr_its_;
 
     // The last received RTCP sender report.
     RtcpSenderReportStats last_sr_stats_;
