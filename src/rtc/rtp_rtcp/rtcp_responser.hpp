@@ -1,5 +1,5 @@
-#ifndef _RTC_RTP_RTCP_RTCP_SENCEIVER_H_
-#define _RTC_RTP_RTCP_RTCP_SENCEIVER_H_
+#ifndef _RTC_RTP_RTCP_RTCP_RESPONSER_H_
+#define _RTC_RTP_RTCP_RTCP_RESPONSER_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"

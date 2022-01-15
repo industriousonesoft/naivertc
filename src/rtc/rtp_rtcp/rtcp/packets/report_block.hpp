@@ -1,5 +1,5 @@
-#ifndef _RTC_RTCP_REPORT_BLOCK_H_
-#define _RTC_RTCP_REPORT_BLOCK_H_
+#ifndef _RTC_RTP_RTCP_RTCP_PACKETS_REPORT_BLOCK_H_
+#define _RTC_RTP_RTCP_RTCP_PACKETS_REPORT_BLOCK_H_
 
 #include "base/defines.hpp"
 

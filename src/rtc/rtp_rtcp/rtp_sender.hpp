@@ -1,5 +1,5 @@
-#ifndef _RTC_RTP_RTCP_RTP_SENDER_RTP_PACKET_SENDER_H_
-#define _RTC_RTP_RTCP_RTP_SENDER_RTP_PACKET_SENDER_H_
+#ifndef _RTC_RTP_RTCP_RTP_SENDER_H_
+#define _RTC_RTP_RTCP_RTP_SENDER_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"

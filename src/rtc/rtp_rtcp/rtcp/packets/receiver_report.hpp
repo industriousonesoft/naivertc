@@ -1,5 +1,5 @@
-#ifndef _RTC_RTCP_RECEIVER_REPORT_H_
-#define _RTC_RTCP_RECEIVER_REPORT_H_
+#ifndef _RTC_RTP_RTCP_RTCP_PACKTES_RECEIVER_REPORT_H_
+#define _RTC_RTP_RTCP_RTCP_PACKTES_RECEIVER_REPORT_H_
 
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packet.hpp"

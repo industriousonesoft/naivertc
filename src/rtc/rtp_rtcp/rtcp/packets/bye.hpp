@@ -1,5 +1,5 @@
-#ifndef _RTC_RTP_RTCP_RTCP_PACKETS_H_
-#define _RTC_RTP_RTCP_RTCP_PACKETS_H_
+#ifndef _RTC_RTP_RTCP_RTCP_PACKETS_BYE_H_
+#define _RTC_RTP_RTCP_RTCP_PACKETS_BYE_H_
 
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packet.hpp"

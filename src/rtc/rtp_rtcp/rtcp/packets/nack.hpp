@@ -1,5 +1,5 @@
-#ifndef _RTC_RTCP_NACK_H_
-#define _RTC_RTCP_NACK_H_
+#ifndef _RTC_RTP_RTCP_RTCP_PACKETS_NACK_H_
+#define _RTC_RTP_RTCP_RTCP_PACKETS_NACK_H_
 
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/rtpfb.hpp"

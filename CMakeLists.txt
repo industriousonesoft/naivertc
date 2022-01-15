@@ -267,6 +267,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtcp/packets/bye.hpp
     src/rtc/rtp_rtcp/rtcp/packets/dlrr.hpp
     src/rtc/rtp_rtcp/rtcp/packets/rrtr.hpp
+    src/rtc/rtp_rtcp/rtcp/packets/extended_reports.hpp
     src/rtc/rtp_rtcp/rtcp/packets/transport_feedback.hpp
 
     # rtc -> rtp_rtcp -> rtcp
@@ -507,6 +508,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/packets/bye.cpp
     src/rtc/rtp_rtcp/rtcp/packets/dlrr.cpp
     src/rtc/rtp_rtcp/rtcp/packets/rrtr.cpp
+    src/rtc/rtp_rtcp/rtcp/packets/extended_reports.cpp
     src/rtc/rtp_rtcp/rtcp/packets/transport_feedback.cpp
     src/rtc/rtp_rtcp/rtcp/packets/transport_feedback_last_chunk.cpp
 
@@ -767,6 +769,7 @@ set(UNITTEST_SOURCES
     src/rtc/rtp_rtcp/rtcp/packets/bye_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/packets/dlrr_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/packets/rrtr_unittest.cpp
+    src/rtc/rtp_rtcp/rtcp/packets/extended_reports_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/packets/transport_feedback_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver_unittest.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_sender_unittest.cpp

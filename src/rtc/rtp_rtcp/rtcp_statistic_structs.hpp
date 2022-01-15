@@ -1,5 +1,5 @@
-#ifndef _RTC_RTP_RTCP_RTCP_STATISTICS_H_
-#define _RTC_RTP_RTCP_RTCP_STATISTICS_H_
+#ifndef _RTC_RTP_RTCP_RTCP_STATISTICS_STRUCTS_H_
+#define _RTC_RTP_RTCP_RTCP_STATISTICS_STRUCTS_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/units/time_delta.hpp"

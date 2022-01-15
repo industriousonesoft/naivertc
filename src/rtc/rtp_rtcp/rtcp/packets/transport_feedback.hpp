@@ -1,5 +1,5 @@
-#ifndef _RTC_RTP_RTCP_RTCP_TRANSPORT_FEEDBACK_H_
-#define _RTC_RTP_RTCP_RTCP_TRANSPORT_FEEDBACK_H_
+#ifndef _RTC_RTP_RTCP_RTCP_PACKETS_TRANSPORT_FEEDBACK_H_
+#define _RTC_RTP_RTCP_RTCP_PACKETS_TRANSPORT_FEEDBACK_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/units/time_delta.hpp"

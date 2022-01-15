@@ -1,5 +1,5 @@
-#ifndef _RTC_RTCP_COMMON_HEADER_H_
-#define _RTC_RTCP_COMMON_HEADER_H_
+#ifndef _RTC_RTP_RTCP_RTCP_PACKETS_COMMON_HEADER_H_
+#define _RTC_RTP_RTCP_RTCP_PACKETS_COMMON_HEADER_H_
 
 #include "base/defines.hpp"
 

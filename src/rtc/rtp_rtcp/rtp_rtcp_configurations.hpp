@@ -1,5 +1,5 @@
-#ifndef _RTC_RTP_RTCP_RTP_RTCP_INTERFACE_H_
-#define _RTC_RTP_RTCP_RTP_RTCP_INTERFACE_H_
+#ifndef _RTC_RTP_RTCP_RTP_RTCP_CONFIGURATION_H_
+#define _RTC_RTP_RTCP_RTP_RTCP_CONFIGURATION_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
