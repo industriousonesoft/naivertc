@@ -28,21 +28,27 @@ Dlrr::Dlrr() = default;
 Dlrr::Dlrr(const Dlrr& other) = default;
 Dlrr::~Dlrr() = default;
 
-bool Dlrr::Parse(const uint8_t* buffer, uint16_t block_length_32bits) {
-    if (buffer[0] != kBlockType) return false;
-    // kReserved = buffer[1];
-    if (block_length_32bits != ByteReader<uint16_t>::ReadBigEndian(&buffer[2])) {
+bool Dlrr::Parse(const uint8_t* buffer, size_t size) {
+    if (size < kBlockHeaderSize || buffer[0] != kBlockType) {
         return false;
     }
-    if (block_length_32bits % 3 != 0) {
-        PLOG_WARNING << "Invalid size for dlrr block.";
+    // kReserved = buffer[1];
+    uint16_t items_count = ByteReader<uint16_t>::ReadBigEndian(&buffer[2]);
+    if (items_count % 3 != 0) {
+        PLOG_WARNING << "Invalid item count for dlrr block.";
         return false;
     }
 
-    size_t blocks_count = block_length_32bits / 3;
+    size_t block_size = kBlockHeaderSize + items_count * 4;
+    if (block_size > size) {
+        PLOG_WARNING << "Invalid size for dlrr block.";
+        return false;
+    }
+    
+    size_t sub_blocks_count = items_count / /* Every subblock has 3 items.*/3;
     const uint8_t* read_at = buffer + kBlockHeaderSize;
-    sub_blocks_.resize(blocks_count);
-    for (ReceiveTimeInfo& sub_block : sub_blocks_) {
+    sub_blocks_.resize(sub_blocks_count);
+    for (auto& sub_block : sub_blocks_) {
         sub_block.ssrc = ByteReader<uint32_t>::ReadBigEndian(&read_at[0]);
         sub_block.last_rr = ByteReader<uint32_t>::ReadBigEndian(&read_at[4]);
         sub_block.delay_since_last_rr = ByteReader<uint32_t>::ReadBigEndian(&read_at[8]);
@@ -70,7 +76,7 @@ void Dlrr::PackInto(uint8_t* buffer, size_t size) const {
     ByteWriter<uint16_t>::WriteBigEndian(&buffer[2], utils::numeric::checked_static_cast<uint16_t>(3 * sub_blocks_.size()));
     // Create sub blocks.
     uint8_t* write_at = buffer + kBlockHeaderSize;
-    for (const ReceiveTimeInfo& sub_block : sub_blocks_) {
+    for (const auto& sub_block : sub_blocks_) {
         ByteWriter<uint32_t>::WriteBigEndian(&write_at[0], sub_block.ssrc);
         ByteWriter<uint32_t>::WriteBigEndian(&write_at[4], sub_block.last_rr);
         ByteWriter<uint32_t>::WriteBigEndian(&write_at[8], sub_block.delay_since_last_rr);

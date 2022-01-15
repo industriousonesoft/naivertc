@@ -27,7 +27,7 @@ MY_TEST(RtcpPacketDlrrTest, Empty) {
 
 MY_TEST(RtcpPacketDlrrTest, Pack) {
     Dlrr dlrr;
-    dlrr.AddDlrrItem(ReceiveTimeInfo(kSsrc, kLastRR, kDelay));
+    dlrr.AddDlrrSubBlock(Dlrr::SubBlock(kSsrc, kLastRR, kDelay));
 
     ASSERT_EQ(kBlockSize, dlrr.BlockSize());
     uint8_t buffer[kBlockSize];
@@ -38,11 +38,10 @@ MY_TEST(RtcpPacketDlrrTest, Pack) {
 
 MY_TEST(RtcpPacketDlrrTest, Parse) {
     Dlrr dlrr;
-    uint16_t block_size = ByteReader<uint16_t>::ReadBigEndian(&kBlock[2]);
-    EXPECT_TRUE(dlrr.Parse(kBlock, block_size));
+    EXPECT_TRUE(dlrr.Parse(kBlock, kBlockSize));
 
     EXPECT_EQ(1u, dlrr.sub_blocks().size());
-    const ReceiveTimeInfo& block = dlrr.sub_blocks().front();
+    const auto& block = dlrr.sub_blocks().front();
     EXPECT_EQ(kSsrc, block.ssrc);
     EXPECT_EQ(kLastRR, block.last_rr);
     EXPECT_EQ(kDelay, block.delay_since_last_rr);
@@ -50,6 +49,7 @@ MY_TEST(RtcpPacketDlrrTest, Parse) {
 
 MY_TEST(RtcpPacketDlrrTest, ParseFailsOnBadSize) {
     const size_t kBigBufferSize = 0x100;  // More than enough.
+    const size_t kDlrrHeaderSize = 4;
     uint8_t buffer[kBigBufferSize];
     buffer[0] = Dlrr::kBlockType;
     buffer[1] = 0;  // Reserved.
@@ -58,7 +58,8 @@ MY_TEST(RtcpPacketDlrrTest, ParseFailsOnBadSize) {
         buffer[3] = size;
         Dlrr dlrr;
         // Parse should be successful only when size is multiple of 3.
-        EXPECT_EQ(size % 3 == 0, dlrr.Parse(buffer, static_cast<uint16_t>(size)));
+        size_t block_size = kDlrrHeaderSize + size * 4;
+        EXPECT_EQ(size % 3 == 0, dlrr.Parse(buffer, block_size));
     }
 }
 
@@ -69,8 +70,9 @@ MY_TEST(RtcpPacketDlrrTest, CreateAndParseManySubBlocks) {
 
     // Create.
     Dlrr dlrr;
-    for (size_t i = 1; i <= kManyDlrrItems; ++i)
-        dlrr.AddDlrrItem(ReceiveTimeInfo(kSsrc + i, kLastRR + i, kDelay + i));
+    for (size_t i = 1; i <= kManyDlrrItems; ++i) {
+        dlrr.AddDlrrSubBlock(Dlrr::SubBlock(kSsrc + i, kLastRR + i, kDelay + i));
+    }
     size_t used_buffer_size = dlrr.BlockSize();
     ASSERT_LE(used_buffer_size, kBufferSize);
     dlrr.PackInto(buffer, kBufferSize);
@@ -79,7 +81,7 @@ MY_TEST(RtcpPacketDlrrTest, CreateAndParseManySubBlocks) {
     Dlrr parsed;
     uint16_t block_size = ByteReader<uint16_t>::ReadBigEndian(&buffer[2]);
     EXPECT_EQ(used_buffer_size, (block_size + 1) * 4u);
-    EXPECT_TRUE(parsed.Parse(buffer, block_size));
+    EXPECT_TRUE(parsed.Parse(buffer, kBufferSize));
     EXPECT_EQ(kManyDlrrItems, parsed.sub_blocks().size());
 }
 
