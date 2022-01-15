@@ -4,6 +4,12 @@
 
 namespace naivertc {
 namespace rtcp {
+namespace {
+
+constexpr size_t kBlockSize = 12;
+    
+} // namespace
+
 
 // Receiver Reference Time Report Block (RFC 3611, section 4.4).
 //
@@ -21,6 +27,10 @@ Rrtr::Rrtr() {}
     
 Rrtr::~Rrtr() {}
 
+size_t Rrtr::BlockSize() const {
+    return kBlockSize;
+}
+
 NtpTime Rrtr::ntp() const {
     return ntp_;
 }
@@ -29,14 +39,15 @@ void Rrtr::set_ntp(NtpTime ntp) {
     ntp_ = ntp;
 }
 
-void Rrtr::Parse(const uint8_t* buffer, size_t size) {
+bool Rrtr::Parse(const uint8_t* buffer, size_t size) {
     if (size < 12 || buffer[0] != kBlockType) {
-        return;
+        return false;
     }
     // uint8_t reserved = buffer[1];
     uint32_t seconds = ByteReader<uint32_t>::ReadBigEndian(&buffer[4]);
     uint32_t fractions = ByteReader<uint32_t>::ReadBigEndian(&buffer[8]);
     ntp_.Set(seconds, fractions);
+    return true;
 }
 
 void Rrtr::PackInto(uint8_t* buffer, size_t size) const {

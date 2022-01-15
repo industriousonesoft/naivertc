@@ -14,6 +14,7 @@
 #include "rtc/rtp_rtcp/rtcp/packets/tmmbn.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/tmmbr.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/transport_feedback.hpp"
+#include "rtc/rtp_rtcp/rtcp/packets/extended_reports.hpp"
 #include "common/array_view.hpp"
 
 namespace naivertc {
@@ -68,7 +69,7 @@ public:
     // PacketCounter<rtcp::App>* app() { return &app_; }
     PacketCounter<rtcp::Bye>* bye() { return &bye_; }
     // PacketCounter<rtcp::ExtendedJitterReport>* ij() { return &ij_; }
-    // PacketCounter<rtcp::ExtendedReports>* xr() { return &xr_; }
+    PacketCounter<rtcp::ExtendedReports>* xr() { return &xr_; }
     PacketCounter<rtcp::Fir>* fir() { return &fir_; }
     PacketCounter<rtcp::Nack>* nack() { return &nack_; }
     PacketCounter<rtcp::Pli>* pli() { return &pli_; }
@@ -94,7 +95,7 @@ private:
     // PacketCounter<rtcp::App> app_;
     PacketCounter<rtcp::Bye> bye_;
     // PacketCounter<rtcp::ExtendedJitterReport> ij_;
-    // PacketCounter<rtcp::ExtendedReports> xr_;
+    PacketCounter<rtcp::ExtendedReports> xr_;
     PacketCounter<rtcp::Fir> fir_;
     PacketCounter<rtcp::Nack> nack_;
     PacketCounter<rtcp::Pli> pli_;

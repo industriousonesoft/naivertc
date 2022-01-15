@@ -30,9 +30,9 @@ bool RtcpPacketParser::Parse(const void* data, size_t length) {
         case rtcp::Bye::kPacketType:
             bye_.Parse(header, &sender_ssrc_);
             break;
-        // case rtcp::ExtendedReports::kPacketType:
-        //     xr_.Parse(header, &sender_ssrc_);
-        //     break;
+        case rtcp::ExtendedReports::kPacketType:
+            xr_.Parse(header, &sender_ssrc_);
+            break;
         // case rtcp::ExtendedJitterReport::kPacketType:
         //     ij_.Parse(header);
         //     break;

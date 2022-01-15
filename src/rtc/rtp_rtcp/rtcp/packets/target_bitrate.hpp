@@ -33,11 +33,13 @@ public:
 
     size_t BlockSize() const;
 
-    void Parse(const uint8_t* buffer, size_t size);
+    bool Parse(const uint8_t* buffer, size_t size);
 
-    void PackInto(uint8_t* buffer, size_t size);
+    void PackInto(uint8_t* buffer, size_t size) const;
 
 private:
+    static const size_t kBlockHeaderSize = 4;
+    
     std::vector<BitrateItem> bitrates_;
 };
 

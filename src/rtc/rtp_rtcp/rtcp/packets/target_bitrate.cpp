@@ -6,7 +6,6 @@ namespace naivertc {
 namespace rtcp {
 namespace {
 
-constexpr size_t kTargetBitrateHeaderSize = 4;
 constexpr size_t kBitrateItemSize = 4;
 
 } // namespace
@@ -74,30 +73,31 @@ void TargetBitrate::AddTargetBitrate(uint8_t spatial_layer,
 }
 
 size_t TargetBitrate::BlockSize() const {
-    return kTargetBitrateHeaderSize + bitrates_.size() * kBitrateItemSize;
+    return kBlockHeaderSize + bitrates_.size() * kBitrateItemSize;
 }
 
-void TargetBitrate::Parse(const uint8_t* buffer, size_t size) {
-    if (buffer[0] != kBlockType || size < 4) {
-        return;
+bool TargetBitrate::Parse(const uint8_t* buffer, size_t size) {
+    if (buffer[0] != kBlockType || size < kBlockHeaderSize) {
+        return false;
     }
     // uint8_t reserved = buffer[1];
     uint16_t item_count = ByteReader<uint16_t>::ReadBigEndian(&buffer[2]);
-    size_t block_size = item_count * 4 + 4;
+    size_t block_size = item_count * 4 + kBlockHeaderSize;
     if (size < block_size) {
-        return;
+        return false;
     }
     bitrates_.clear();
-    size_t offset = kTargetBitrateHeaderSize;
+    size_t offset = kBlockHeaderSize;
     for (size_t i = 0; i < item_count; ++i) {
         uint8_t layers = buffer[offset];
         uint32_t bitrate_kbps = ByteReader<uint32_t, 3>::ReadBigEndian(&buffer[offset + 1]);
         offset += kBitrateItemSize;
         AddTargetBitrate((layers >> 4) & 0x0F, layers & 0x0F, bitrate_kbps);
     }
+    return true;
 }
 
-void TargetBitrate::PackInto(uint8_t* buffer, size_t size) {
+void TargetBitrate::PackInto(uint8_t* buffer, size_t size) const {
     if (size < BlockSize()) {
         return;
     }
@@ -107,7 +107,7 @@ void TargetBitrate::PackInto(uint8_t* buffer, size_t size) {
     uint16_t item_count_words = static_cast<uint16_t>(BlockSize() / 4 - 1);
     ByteWriter<uint16_t>::WriteBigEndian(&buffer[2], item_count_words);
 
-    size_t offset = kTargetBitrateHeaderSize;
+    size_t offset = kBlockHeaderSize;
     for (const auto& item : bitrates_) {
         buffer[offset] = (item.spatial_layer << 4) | item.temporal_layer;
         ByteWriter<uint32_t, 3>::WriteBigEndian(&buffer[offset + 1], item.target_bitrate_kbps);

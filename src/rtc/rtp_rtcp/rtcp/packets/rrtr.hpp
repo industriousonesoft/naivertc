@@ -15,7 +15,9 @@ public:
     Rrtr();
     ~Rrtr();
 
-    void Parse(const uint8_t* buffer, size_t size);
+    size_t BlockSize() const;
+
+    bool Parse(const uint8_t* buffer, size_t size);
     void PackInto(uint8_t* buffer, size_t size) const;
 
     NtpTime ntp() const;

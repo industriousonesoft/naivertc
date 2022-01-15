@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 
 using namespace naivertc::rtcp;
@@ -10,8 +10,6 @@ using namespace naivertc::rtcp;
 namespace naivertc {
 namespace test {
 namespace {
-
-constexpr uint32_t kSsrc = 0x12345678;
 
 // clang-format off
 const uint8_t kPacket[] = {TargetBitrate::kBlockType,  // Block ID.
@@ -46,20 +44,6 @@ MY_TEST(TargetBitrateTest, Parse) {
     target_bitrate.Parse(kPacket, kPacketSize);
     Verify(target_bitrate.GetTargetBitrates());
 }
-
-// TEST(TargetBitrateTest, FullPacket) {
-//   const size_t kXRHeaderSize = 8;  // RTCP header (4) + SSRC (4).
-//   const size_t kTotalSize = kXRHeaderSize + sizeof(kPacket);
-//   uint8_t kRtcpPacket[kTotalSize] = {2 << 6, 207,  0x00, (kTotalSize / 4) - 1,
-//                                      0x12,   0x34, 0x56, 0x78};  // SSRC.
-//   memcpy(&kRtcpPacket[kXRHeaderSize], kPacket, sizeof(kPacket));
-//   rtcp::ExtendedReports xr;
-//   EXPECT_TRUE(ParseSinglePacket(kRtcpPacket, &xr));
-//   EXPECT_EQ(kSsrc, xr.sender_ssrc());
-//   const absl::optional<TargetBitrate>& target_bitrate = xr.target_bitrate();
-//   ASSERT_TRUE(static_cast<bool>(target_bitrate));
-//   CheckBitrateItems(target_bitrate->GetTargetBitrates());
-// }
 
 MY_TEST(TargetBitrateTest, Create) {
     TargetBitrate target_bitrate;
