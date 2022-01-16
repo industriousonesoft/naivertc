@@ -67,6 +67,14 @@ enum RtcpPacketType : uint32_t {
     XR_TARGET_BITRATE = 0x200000
 };
 
+// Rtcp mode
+enum class RtcpMode {
+    OFF,
+    COMPOUND,
+    // ReducedSize: See https://datatracker.ietf.org/doc/html/draft-ietf-rtcweb-rtp-usage-26#section-4.6
+    REDUCED_SIZE
+};
+
 // Rtx mode
 enum class RtxMode : size_t {
     OFF = 0x0,

@@ -60,8 +60,8 @@ public:
     void set_max_rtp_packet_size(size_t max_packet_size);
     void set_csrcs(std::vector<uint32_t> csrcs);
 
-    bool Sending() const;
-    void EnableSending(bool enable);
+    bool sending() const;
+    void set_sending(bool enable);
 
     void SetRtpClockRate(int8_t rtp_payload_type, int rtp_clock_rate_hz);
 
@@ -181,6 +181,7 @@ private:
     // SSRC that we receive on our RTP channel
     uint32_t remote_ssrc_;
     Clock* const clock_;
+    RtcpMode rtcp_mode_;
  
     const TimeDelta report_interval_;
     bool sending_;

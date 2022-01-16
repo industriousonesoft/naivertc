@@ -140,8 +140,6 @@ set(LIB_HEADERS
     src/rtc/call/rtp_demuxer.hpp
     src/rtc/call/rtp_video_receiver.hpp
     src/rtc/call/rtx_receive_stream.hpp
-    src/rtc/call/rtp_receive_statistics.hpp
-    src/rtc/call/rtp_stream_statistician.hpp
 
     # rtc -> media
     src/rtc/media/media_track.hpp
@@ -183,6 +181,8 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/components/num_unwrapper_base.hpp
     src/rtc/rtp_rtcp/components/num_unwrapper.hpp
     src/rtc/rtp_rtcp/components/rolling_accumulator.hpp
+    src/rtc/rtp_rtcp/components/rtp_receive_statistics.hpp
+    src/rtc/rtp_rtcp/components/rtp_stream_statistician.hpp
 
      # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp
@@ -388,8 +388,6 @@ set(LIB_SOURCES
     src/rtc/call/rtp_video_receiver.cpp
     src/rtc/call/rtp_video_receiver_auxiliaries.cpp
     src/rtc/call/rtx_receive_stream.cpp
-    src/rtc/call/rtp_receive_statistics.cpp
-    src/rtc/call/rtp_stream_statistician.cpp
     
     # rtc -> media
     src/rtc/media/media_track.cpp
@@ -425,6 +423,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.cpp
+    src/rtc/rtp_rtcp/components/rtp_receive_statistics.cpp
+    src/rtc/rtp_rtcp/components/rtp_stream_statistician.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
@@ -703,7 +703,6 @@ set(UNITTEST_SOURCES
     src/rtc/base/task_utils/repeating_task_unittest.cpp
 
     # rtc -> call
-    src/rtc/call/rtp_receive_statistics_unittest.cpp
     
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp
@@ -722,6 +721,7 @@ set(UNITTEST_SOURCES
     # src/rtc/rtp_rtcp/components/wrap_around_checker_unittest.cpp
     src/rtc/rtp_rtcp/components/num_unwrapper_unittest.cpp
     src/rtc/rtp_rtcp/components/rolling_accumulator_unittest.cpp
+    src/rtc/rtp_rtcp/components/rtp_receive_statistics_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packets
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_unittest.cpp

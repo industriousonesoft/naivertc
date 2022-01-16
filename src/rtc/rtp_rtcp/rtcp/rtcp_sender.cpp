@@ -14,6 +14,7 @@ RtcpSender::RtcpSender(Configuration config)
       local_ssrc_(config.local_media_ssrc),
       remote_ssrc_(0),
       clock_(config.clock),
+      rtcp_mode_(RtcpMode::OFF),
       report_interval_(config.rtcp_report_interval_ms > 0 ? TimeDelta::Millis(config.rtcp_report_interval_ms) 
                                                           : (TimeDelta::Millis(audio_ ? kDefaultAudioReportIntervalMs
                                                                                       : kDefaultVideoReportIntervalMs))),
@@ -88,12 +89,12 @@ void RtcpSender::SetLastRtpTime(uint32_t rtp_timestamp,
     }
 }
 
-bool RtcpSender::Sending() const {
+bool RtcpSender::sending() const {
     RTC_RUN_ON(&sequence_checker_);
     return sending_;
 }
     
-void RtcpSender::EnableSending(bool enable) {
+void RtcpSender::set_sending(bool enable) {
     RTC_RUN_ON(&sequence_checker_);
     bool send_rtcp_bye = false;
     if (enable == false && sending_ == true) {

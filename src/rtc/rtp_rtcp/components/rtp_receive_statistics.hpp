@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/report_block.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
-#include "rtc/call/rtp_stream_statistician.hpp"
+#include "rtc/rtp_rtcp/components/rtp_stream_statistician.hpp"
 
 #include <vector>
 #include <unordered_map>

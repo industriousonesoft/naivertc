@@ -118,13 +118,24 @@ std::optional<bool> RtcpSender::ComputeCompoundRtcpPacket(RtcpPacketType rtcp_pa
 }
 
 void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
-    // Rtcp Mode: Compund
-    if (!IsFlagPresent(RtcpPacketType::SR) && !IsFlagPresent(RtcpPacketType::RR)) {
-        SetFlag(sending_ ? RtcpPacketType::SR : RtcpPacketType::RR, true);
+    bool generate_report = false;
+    if (IsFlagPresent(RtcpPacketType::SR) || IsFlagPresent(RtcpPacketType::RR)) {
+        generate_report = true;
+        assert(ConsumeFlag(RtcpPacketType::REPORT) == false);
+    } else {
+        if ((ConsumeFlag(RtcpPacketType::REPORT) && rtcp_mode_ == RtcpMode::REDUCED_SIZE) ||
+            rtcp_mode_ == RtcpMode::COMPOUND) {
+            generate_report = true;
+            SetFlag(sending_ ? RtcpPacketType::SR : RtcpPacketType::RR, true);
+        }
     }
 
     if (IsFlagPresent(RtcpPacketType::SR) || (IsFlagPresent(RtcpPacketType::RR) && !cname_.empty())) {
         SetFlag(RtcpPacketType::SDES, true);
+    }
+
+    if (generate_report) {
+        // TODO: Set flag for ExtendedReports
     }
 
     TimeDelta min_interval = report_interval_;
@@ -142,14 +153,14 @@ void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
     // The interval between RTCP packets is varied randomly over the
     // range [1/2,3/2] times the calculated interval.
     int min_interval_int = utils::numeric::checked_static_cast<int>(min_interval.ms());
-    TimeDelta delay = TimeDelta::Millis(utils::random::random(min_interval_int * 1 / 2, min_interval_int * 3 / 2));
+    TimeDelta delay_to_next = TimeDelta::Millis(utils::random::random(min_interval_int * 1 / 2, min_interval_int * 3 / 2));
 
-    if (delay.IsZero()) {
+    if (delay_to_next.IsZero()) {
         PLOG_ERROR << "The interval between RTCP packets is not supposed to be zero.";
         return;
     }
 
-    ScheduleForNextRtcpSend(delay);
+    ScheduleForNextRtcpSend(delay_to_next);
 
     // RtcpSender expected to be used for sending either just sender reports
     // or just receiver reports.

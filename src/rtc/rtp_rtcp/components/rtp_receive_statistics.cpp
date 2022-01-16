@@ -1,4 +1,4 @@
-#include "rtc/call/rtp_receive_statistics.hpp"
+#include "rtc/rtp_rtcp/components/rtp_receive_statistics.hpp"
 
 namespace naivertc {
 namespace {
