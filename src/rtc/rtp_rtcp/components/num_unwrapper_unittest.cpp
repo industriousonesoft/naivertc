@@ -46,7 +46,7 @@ MY_TEST(NumberUnwrapperTest, SeqNumForwardWraps) {
         seq += kMaxIncrease;
     }
 
-    unwrapper.set_last_unwrapped_value(0);
+    unwrapper.UpdateLast(0);
     for (int seq = 0; seq < kNumWraps * 0xFFFF; ++seq) {
         int64_t unwrapped = unwrapper.Unwrap(static_cast<uint16_t>(seq & 0xFFFF));
         EXPECT_EQ(seq, unwrapped);
@@ -59,7 +59,7 @@ MY_TEST(NumberUnwrapperTest, SeqNumBackwardWraps) {
     const int kMaxDecrease = 0x8000 - 1;
     const int kNumWraps = 4;
     int64_t seq = kNumWraps * 2 * kMaxDecrease;
-    unwrapper.set_last_unwrapped_value(seq);
+    unwrapper.UpdateLast(seq);
     for (int i = kNumWraps * 2; i >= 0; --i) {
         int64_t unwrapped = unwrapper.Unwrap(static_cast<uint16_t>(seq & 0xFFFF));
         EXPECT_EQ(seq, unwrapped);
@@ -67,7 +67,7 @@ MY_TEST(NumberUnwrapperTest, SeqNumBackwardWraps) {
     }
 
     seq = kNumWraps * 0xFFFF;
-    unwrapper.set_last_unwrapped_value(seq);
+    unwrapper.UpdateLast(seq);
     for (; seq >= 0; --seq) {
         int64_t unwrapped = unwrapper.Unwrap(static_cast<uint16_t>(seq & 0xFFFF));
         EXPECT_EQ(seq, unwrapped);
@@ -121,7 +121,7 @@ MY_TEST(NumberUnwrapperTest, TimestampBackwardWraps) {
     const int64_t kMaxDecrease = 0x80000000 - 1;
     const int kNumWraps = 4;
     int64_t ts = kNumWraps * 2 * kMaxDecrease;
-    unwrapper.set_last_unwrapped_value(ts);
+    unwrapper.UpdateLast(ts);
     for (int i = 0; i <= kNumWraps * 2; ++i) {
         int64_t unwrapped = unwrapper.Unwrap(static_cast<uint32_t>(ts & 0xFFFFFFFF));
         EXPECT_EQ(ts, unwrapped);

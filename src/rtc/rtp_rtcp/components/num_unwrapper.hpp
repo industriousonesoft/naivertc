@@ -17,8 +17,8 @@ class RTC_CPP_EXPORT NumberUnwrapper {
 public:
     int64_t Unwrap(U value, bool update_last = true);
 
-    std::optional<int64_t> last_unwrapped_value() const { return last_unwrapped_value_; }
-    void set_last_unwrapped_value(int64_t value) { last_unwrapped_value_ = value; }
+    std::optional<int64_t> Last() const { return last_unwrapped_value_; }
+    void UpdateLast(int64_t value) { last_unwrapped_value_ = value; }
 
 private:
     std::optional<int64_t> last_unwrapped_value_;

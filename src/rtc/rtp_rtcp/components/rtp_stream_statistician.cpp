@@ -47,7 +47,7 @@ void RtpStreamStatistician::OnRtpPacket(const RtpPacketReceived& packet) {
     receive_counters_.transmitted.AddPacket(packet);
     --cumulative_loss_;
 
-    int64_t unwrapped_seq_num = seq_unwrapper_.Unwrap(packet.sequence_number(), /*update_last=*/true);
+    int64_t unwrapped_seq_num = seq_unwrapper_.Unwrap(packet.sequence_number(), /*update_last=*/false);
 
     if (!HasReceivedRtpPacket()) {
         // The first packet.
@@ -60,9 +60,10 @@ void RtpStreamStatistician::OnRtpPacket(const RtpPacketReceived& packet) {
         return;
     }
 
-    // The incoming packet is in order.
+    // Update infos if the incoming packet is in order.
     cumulative_loss_ += unwrapped_seq_num - last_received_seq_num_;
     last_received_seq_num_ = unwrapped_seq_num;
+    seq_unwrapper_.UpdateLast(unwrapped_seq_num);
 
     // If a new timestamp and more than one in-order 
     // packet received, calculate the new jitter.
@@ -120,7 +121,13 @@ std::optional<rtcp::ReportBlock> RtpStreamStatistician::GetReportBlock() {
         packet_lost = kPacketLostCappedValue;
     }
     report_block.set_cumulative_packet_lost(packet_lost);
-    // TODO: Is there a auto cast happened between int64_t and uint32?
+
+    // The sequence number of the last packet received in order 
+    // is the max sequence number as default.
+    // The extended highest sequence number received: 32 bits:
+    // the low 16 bits: the highest sequence number received in an RTP data packet from source ssrc.
+    // the most significant 16 bits : the corresponding count of sequence number cycles.
+    // Only use the low 32 bits of `last_received_seq_num_` and ignore the high 32 bits.
     report_block.set_extended_highest_sequence_num(last_received_seq_num_);
     report_block.set_jitter(jitter_q4_ >> 4);
 
