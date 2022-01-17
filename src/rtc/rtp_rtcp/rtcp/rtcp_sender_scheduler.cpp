@@ -13,6 +13,10 @@ void RtcpSender::MaybeSendRtcp() {
 
 void RtcpSender::ScheduleForNextRtcpSend(TimeDelta delay) {
     RTC_RUN_ON(&sequence_checker_);
+#if ENABLE_TESTS
+    // NOTE: The unit tests not supports the task queue so far.
+    return;
+#endif
     next_time_to_send_rtcp_ = clock_->CurrentTime() + delay;
     if (delay.IsZero()) {
         work_queue_->Post([this](){

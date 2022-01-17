@@ -61,14 +61,15 @@ bool RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
         bool consumed_sr_flag = ConsumeFlag(RtcpPacketType::SR);
         bool consumed_report_flag = sending_ && ConsumeFlag(RtcpPacketType::RTCP_REPORT);
         bool sender_report = consumed_report_flag || consumed_sr_flag;
-        // This call was only for Sender Report, 
-        // and all other packets was consumed before this call.
+        
         if (sender_report && AllVolatileFlagsConsumed()) {
+            // This call was only for Sender Report, 
+            // and all other packets was consumed before this call.
             return false;
         } 
         if (sending_ && rtcp_mode_ == RtcpMode::COMPOUND) {
-            // Not allowed to send any RTCP packet without sender report 
-            // if the `rtcp_mode_` is RtcpMode::COMPOUND.
+            // In compound mode no packets are allowed,
+            // since it should start with a sender report.
             return false;
         }
     }
@@ -159,7 +160,9 @@ void RtcpSender::PrepareReport(const RtcpContext& ctx) {
         }
     }
 
-    if (IsFlagPresent(RtcpPacketType::SR) || (IsFlagPresent(RtcpPacketType::RR) && !cname_.empty())) {
+    // FIXME: Why do we need to send Sdes with Sr even the cname is empty?
+    if (!IsFlagPresent(RtcpPacketType::SDES) && 
+        (IsFlagPresent(RtcpPacketType::SR) || (IsFlagPresent(RtcpPacketType::RR) && !cname_.empty()))) {
         SetFlag(RtcpPacketType::SDES, true);
     }
 
@@ -197,9 +200,7 @@ void RtcpSender::PrepareReport(const RtcpContext& ctx) {
         return;
     }
 
-#if !ENABLE_TESTS
     ScheduleForNextRtcpSend(delay_to_next);
-#endif
 
     // RtcpSender expected to be used for sending either just sender reports
     // or just receiver reports.

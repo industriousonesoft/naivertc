@@ -7,7 +7,9 @@
 namespace naivertc {
 namespace rtcp {
 
-// Report Block
+// From RFC 3550, RTP: A Transport Protocol for Real-Time Applications.
+//
+// RTCP report block (RFC 3550).
 // 0                   1                   2                   3
 // 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 // +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
