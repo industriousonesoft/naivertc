@@ -22,7 +22,7 @@ bool operator==(const Rrtr& lhs, const Rrtr& rhs) {
     return lhs.ntp() == rhs.ntp();
 }
 
-bool operator==(const Dlrr::SubBlock& lhs, const Dlrr::SubBlock& rhs) {
+bool operator==(const Dlrr::TimeInfo& lhs, const Dlrr::TimeInfo& rhs) {
     return lhs.ssrc == rhs.ssrc &&
            lhs.last_rr == rhs.last_rr &&
            lhs.delay_since_last_rr == rhs.delay_since_last_rr;
@@ -74,11 +74,11 @@ protected:
 };
 
 template<>
-Dlrr::SubBlock T(RtcpPacketExtendedReportsTest)::Rand<Dlrr::SubBlock>() {
+Dlrr::TimeInfo T(RtcpPacketExtendedReportsTest)::Rand<Dlrr::TimeInfo>() {
     uint32_t ssrc = Rand<uint32_t>();
     uint32_t last_rr = Rand<uint32_t>();
     uint32_t delay_since_last_rr = Rand<uint32_t>();
-    return Dlrr::SubBlock(ssrc, last_rr, delay_since_last_rr);
+    return Dlrr::TimeInfo(ssrc, last_rr, delay_since_last_rr);
 }
 
 template<>
@@ -128,11 +128,11 @@ MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithRrtrBlock) {
     EXPECT_EQ(kRrtr, parsed.rrtr());
 }
 
-MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithDlrrWithOneSubBlock) {
-    const Dlrr::SubBlock kSubBlock = Rand<Dlrr::SubBlock>();
+MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithDlrrWithOneTimeInfo) {
+    const Dlrr::TimeInfo kTimeInfo = Rand<Dlrr::TimeInfo>();
     ExtendedReports xr;
     xr.set_sender_ssrc(kSenderSsrc);
-    EXPECT_TRUE(xr.AddDlrrSubBlock(kSubBlock));
+    EXPECT_TRUE(xr.AddDlrrTimeInfo(kTimeInfo));
 
     auto packet = xr.Build();
 
@@ -141,16 +141,16 @@ MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithDlrrWithOneSubBlock) 
     const ExtendedReports& parsed = mparsed;
 
     EXPECT_EQ(kSenderSsrc, parsed.sender_ssrc());
-    EXPECT_THAT(parsed.dlrr().sub_blocks(), ElementsAre(kSubBlock));
+    EXPECT_THAT(parsed.dlrr().time_infos(), ElementsAre(kTimeInfo));
 }
 
-MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithDlrrWithTwoSubBlocks) {
-    const Dlrr::SubBlock kTimeInfo1 = Rand<Dlrr::SubBlock>();
-    const Dlrr::SubBlock kTimeInfo2 = Rand<Dlrr::SubBlock>();
+MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithDlrrWithTwoTimeInfos) {
+    const Dlrr::TimeInfo kTimeInfo1 = Rand<Dlrr::TimeInfo>();
+    const Dlrr::TimeInfo kTimeInfo2 = Rand<Dlrr::TimeInfo>();
     ExtendedReports xr;
     xr.set_sender_ssrc(kSenderSsrc);
-    xr.AddDlrrSubBlock(kTimeInfo1);
-    xr.AddDlrrSubBlock(kTimeInfo2);
+    xr.AddDlrrTimeInfo(kTimeInfo1);
+    xr.AddDlrrTimeInfo(kTimeInfo2);
 
     auto packet = xr.Build();
 
@@ -159,30 +159,30 @@ MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithDlrrWithTwoSubBlocks)
     const ExtendedReports& parsed = mparsed;
 
     EXPECT_EQ(kSenderSsrc, parsed.sender_ssrc());
-    EXPECT_THAT(parsed.dlrr().sub_blocks(), ElementsAre(kTimeInfo1, kTimeInfo2));
+    EXPECT_THAT(parsed.dlrr().time_infos(), ElementsAre(kTimeInfo1, kTimeInfo2));
 }
 
-MY_TEST_F(RtcpPacketExtendedReportsTest, CreateLimitsTheNumberOfDlrrSubBlocks) {
-    const Dlrr::SubBlock kTimeInfo = Rand<Dlrr::SubBlock>();
+MY_TEST_F(RtcpPacketExtendedReportsTest, CreateLimitsTheNumberOfDlrrTimeInfos) {
+    const Dlrr::TimeInfo kTimeInfo = Rand<Dlrr::TimeInfo>();
     ExtendedReports xr;
 
-    for (size_t i = 0; i < ExtendedReports::kMaxNumberOfDlrrSubBlocks; ++i) {
-        EXPECT_TRUE(xr.AddDlrrSubBlock(kTimeInfo));
+    for (size_t i = 0; i < ExtendedReports::kMaxNumberOfDlrrTimeInfos; ++i) {
+        EXPECT_TRUE(xr.AddDlrrTimeInfo(kTimeInfo));
     }
-    EXPECT_FALSE(xr.AddDlrrSubBlock(kTimeInfo));
+    EXPECT_FALSE(xr.AddDlrrTimeInfo(kTimeInfo));
 
-    EXPECT_THAT(xr.dlrr().sub_blocks(),
-                SizeIs(ExtendedReports::kMaxNumberOfDlrrSubBlocks));
+    EXPECT_THAT(xr.dlrr().time_infos(),
+                SizeIs(ExtendedReports::kMaxNumberOfDlrrTimeInfos));
 }
 
-MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithMaximumDlrrSubBlocks) {
+MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithMaximumDlrrTimeInfos) {
     const Rrtr kRrtr = Rand<Rrtr>();
 
     ExtendedReports xr;
     xr.set_sender_ssrc(kSenderSsrc);
     xr.set_rrtr(kRrtr);
-    for (size_t i = 0; i < ExtendedReports::kMaxNumberOfDlrrSubBlocks; ++i)
-        xr.AddDlrrSubBlock(Rand<Dlrr::SubBlock>());
+    for (size_t i = 0; i < ExtendedReports::kMaxNumberOfDlrrTimeInfos; ++i)
+        xr.AddDlrrTimeInfo(Rand<Dlrr::TimeInfo>());
 
     auto packet = xr.Build();
 
@@ -192,8 +192,8 @@ MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithMaximumDlrrSubBlocks)
 
     EXPECT_EQ(kSenderSsrc, parsed.sender_ssrc());
     EXPECT_EQ(kRrtr, parsed.rrtr());
-    EXPECT_THAT(parsed.dlrr().sub_blocks(),
-                ElementsAreArray(xr.dlrr().sub_blocks()));
+    EXPECT_THAT(parsed.dlrr().time_infos(),
+                ElementsAreArray(xr.dlrr().time_infos()));
 }
 
 MY_TEST_F(RtcpPacketExtendedReportsTest, CreateAndParseWithTargetBitrateBlock) {

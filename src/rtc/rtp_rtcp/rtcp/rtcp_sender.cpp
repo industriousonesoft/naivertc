@@ -4,7 +4,6 @@
 
 namespace naivertc {
 namespace {
-
 constexpr int32_t kDefaultVideoReportIntervalMs = 1000; // 1s
 constexpr int32_t kDefaultAudioReportIntervalMs = 5000; // 5s
 }  // namespace
@@ -97,9 +96,11 @@ bool RtcpSender::sending() const {
 void RtcpSender::set_sending(bool enable) {
     RTC_RUN_ON(&sequence_checker_);
     bool send_rtcp_bye = false;
-    if (enable == false && sending_ == true) {
-        // Trigger RTCP byte.
-        send_rtcp_bye = true;
+    if (rtcp_mode_ != RtcpMode::OFF) {
+        if (enable == false && sending_ == true) {
+            // Trigger RTCP byte.
+            send_rtcp_bye = true;
+        }
     }
     sending_ = enable;
     if (send_rtcp_bye) {
@@ -107,6 +108,21 @@ void RtcpSender::set_sending(bool enable) {
             PLOG_WARNING << "Failed to send RTCP bye.";
         }
     }
+}
+
+RtcpMode RtcpSender::rtcp_mode() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return rtcp_mode_;
+}
+    
+void RtcpSender::set_rtcp_mode(RtcpMode mode) {
+    if (mode == RtcpMode::OFF) {
+        next_time_to_send_rtcp_ = std::nullopt;
+    } else if (rtcp_mode_ == RtcpMode::OFF) {
+        // When the RTCP mode switchs on, reschdule the next packet.
+        ScheduleForNextRtcpSend(report_interval_ / 2);
+    }
+    rtcp_mode_ = mode;
 }
 
 void RtcpSender::SetRemb(uint64_t bitrate_bps, std::vector<uint32_t> ssrcs) {
@@ -122,6 +138,9 @@ void RtcpSender::SetRemb(uint64_t bitrate_bps, std::vector<uint32_t> ssrcs) {
 
 bool RtcpSender::TimeToSendRtcpReport(bool send_rtcp_before_key_frame) {
     RTC_RUN_ON(&sequence_checker_);
+    if (rtcp_mode_ == RtcpMode::OFF) {
+        return false;
+    }
     // RTCP Transmission Interval: https://datatracker.ietf.org/doc/html/rfc3550#section-6.2
     Timestamp now = clock_->CurrentTime();
     if (!audio_ && send_rtcp_before_key_frame) {
@@ -137,9 +156,11 @@ bool RtcpSender::SendRtcp(RtcpPacketType packet_type,
                           size_t nack_size) {
     RTC_RUN_ON(&sequence_checker_);
     packet_sender_.Reset();
-    auto result = BuildCompoundRtcpPacket(packet_type, nack_list, nack_size, packet_sender_);
-    if (result) {
-        return *result;
+    if (!BuildCompoundRtcpPacket(packet_type, 
+                                 nack_list, 
+                                 nack_size, 
+                                 packet_sender_)) {
+        return false;
     }
     packet_sender_.Send();
     return true;
@@ -162,9 +183,11 @@ bool RtcpSender::SendLossNotification(uint16_t last_decoded_seq_num,
     }
 
     packet_sender_.Reset();
-    auto result = BuildCompoundRtcpPacket(RtcpPacketType::LOSS_NOTIFICATION, nullptr, 0, packet_sender_);
-    if (result) {
-        return *result;
+    if (!BuildCompoundRtcpPacket(RtcpPacketType::LOSS_NOTIFICATION, 
+                                 /*nack_list*/nullptr, 
+                                 /*nack_size*/0, 
+                                 packet_sender_)) {
+        return false;
     }
     packet_sender_.Send();
     return true;
@@ -183,6 +206,7 @@ bool RtcpSender::ConsumeFlag(RtcpPacketType type, bool forced) {
     auto it = report_flags_.find(ReportFlag(type, false));
     if (it == report_flags_.end())
         return false;
+    // The volatile packet will be removed after consumed.
     if (it->is_volatile || forced)
         report_flags_.erase((it));
     return true;

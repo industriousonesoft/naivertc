@@ -490,22 +490,22 @@ void RtcpReceiver::HandleXrRrtrBlock(const rtcp::Rrtr& rrtr, uint32_t sender_ssr
 }
 
 void RtcpReceiver::HandleXrDlrrBlock(const rtcp::Dlrr& dlrr) {
-    if (dlrr.sub_blocks().size()) {
+    if (dlrr.time_infos().size()) {
         return;
     }
-    for (auto& sub_block : dlrr.sub_blocks()) {
-        if (!IsRegisteredSsrc(sub_block.ssrc)) {
+    for (auto& time_info : dlrr.time_infos()) {
+        if (!IsRegisteredSsrc(time_info.ssrc)) {
             // Not to us.
             continue;
         }
         // The send_time and delay_rr fields are in units of 1/2^16 sec.
-        uint32_t send_time_ntp = sub_block.last_rr;
+        uint32_t send_time_ntp = time_info.last_rr;
         // RFC3611, section 4.5, LRR field discription states:
         // If no such block has been received, the field is set to zero.
         if (send_time_ntp == 0) {
             continue;
         }
-        uint32_t delay_ntp = sub_block.delay_since_last_rr;
+        uint32_t delay_ntp = time_info.delay_since_last_rr;
         uint32_t now_ntp = CompactNtp(clock_->CurrentNtpTime());
 
         uint32_t rtt_ntp = now_ntp - delay_ntp - send_time_ntp;

@@ -7,7 +7,7 @@ namespace naivertc {
 void RtcpSender::MaybeSendRtcp() {
     RTC_RUN_ON(work_queue_);
     if (TimeToSendRtcpReport()) {
-        SendRtcp(RtcpPacketType::REPORT);
+        SendRtcp(RtcpPacketType::RTCP_REPORT);
     }
 }
 

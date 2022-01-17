@@ -86,7 +86,8 @@ int64_t RtcpResponser::ExpectedRestransmissionTimeMs() const {
 RtcpReceiveFeedback RtcpResponser::GetReceiveFeedback() {
     RTC_RUN_ON(&sequence_checker_);
     RtcpReceiveFeedback receive_feedback;
-    receive_feedback.last_sr_stats = rtcp_receiver_.GetLastSenderReportStats();;
+    receive_feedback.last_sr_stats = rtcp_receiver_.GetLastSenderReportStats();
+    receive_feedback.last_xr_rtis = rtcp_receiver_.ConsumeXrDlrrTimeInfos();
     return receive_feedback;
 }
 

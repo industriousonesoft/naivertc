@@ -158,21 +158,21 @@ std::optional<int64_t> RtcpReceiver::GetLatestXrRrRtt() const {
     return std::nullopt;
 }
 
-std::vector<rtcp::Dlrr::SubBlock> RtcpReceiver::ConsumeXrDlrrSubBlocks() {
+std::vector<rtcp::Dlrr::TimeInfo> RtcpReceiver::ConsumeXrDlrrTimeInfos() {
     RTC_RUN_ON(&sequence_checker_);
-    const size_t num_sub_blocks = std::min(rrtrs_.size(), rtcp::ExtendedReports::kMaxNumberOfDlrrSubBlocks);
-    std::vector<rtcp::Dlrr::SubBlock> sub_blocks;
-    sub_blocks.reserve(num_sub_blocks);
+    const size_t num_time_infos = std::min(rrtrs_.size(), rtcp::ExtendedReports::kMaxNumberOfDlrrTimeInfos);
+    std::vector<rtcp::Dlrr::TimeInfo> time_infos;
+    time_infos.reserve(num_time_infos);
 
     const uint32_t now_ntp = CompactNtp(clock_->CurrentNtpTime());
 
-    for (size_t i = 0; i < num_sub_blocks; ++i) {
+    for (size_t i = 0; i < num_time_infos; ++i) {
         const auto& rrtr = rrtrs_.front();
-        sub_blocks.emplace_back(rrtr.ssrc, rrtr.received_remote_mid_ntp_time, now_ntp - rrtr.local_receive_mid_ntp_time);
+        time_infos.emplace_back(rrtr.ssrc, rrtr.received_remote_mid_ntp_time, now_ntp - rrtr.local_receive_mid_ntp_time);
         rrtr_its_.erase(rrtr.ssrc);
         rrtrs_.pop_front();
     }
-    return sub_blocks;
+    return time_infos;
 }
 
 bool RtcpReceiver::RtcpRrTimeout() {

@@ -63,6 +63,9 @@ public:
     bool sending() const;
     void set_sending(bool enable);
 
+    RtcpMode rtcp_mode() const;
+    void set_rtcp_mode(RtcpMode mode);
+
     void SetRtpClockRate(int8_t rtp_payload_type, int rtp_clock_rate_hz);
 
     void SetRemb(uint64_t bitrate_bps, std::vector<uint32_t> ssrcs);
@@ -134,7 +137,8 @@ private:
     // Report flag
     struct ReportFlag {
         ReportFlag(RtcpPacketType type, bool is_volatile) 
-            : type(type), is_volatile(is_volatile) {}
+            : type(type), 
+              is_volatile(is_volatile) {}
 
         bool operator<(const ReportFlag& flag) const { return type < flag.type; };
         bool operator=(const ReportFlag& flag) const { return type == flag.type; }
@@ -143,25 +147,26 @@ private:
     };
 
 private:
-    std::optional<bool> BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
-                                                  const uint16_t* nack_list,
-                                                  size_t nack_size,
-                                                  PacketSender& sender);
+    bool BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
+                                 const uint16_t* nack_list,
+                                 size_t nack_size,
+                                 PacketSender& sender);
 
-    void PrepareReport(const RtpSendFeedback& rtp_send_feedback);
+    void PrepareReport(const RtcpContext& ctx);
     std::vector<rtcp::ReportBlock> CreateReportBlocks(const RtcpReceiveFeedback rtcp_receive_feedback);
 
-    void BuildSR(const RtcpContext& context, PacketSender& sender);
-    void BuildRR(const RtcpContext& context, PacketSender& sender);
-    void BuildSDES(const RtcpContext& context, PacketSender& sender);
-    void BuildFIR(const RtcpContext& context, PacketSender& sender);
-    void BuildPLI(const RtcpContext& context, PacketSender& sender);
-    void BuildREMB(const RtcpContext& context, PacketSender& sender);
-    void BuildTMMBR(const RtcpContext& context, PacketSender& sender);
-    void BuildTMMBN(const RtcpContext& context, PacketSender& sender);
-    void BuildLossNotification(const RtcpContext& context, PacketSender& sender);
-    void BuildNACK(const RtcpContext& context, PacketSender& sender);
-    void BuildBYE(const RtcpContext& context, PacketSender& sender);
+    void BuildSR(const RtcpContext& ctx, PacketSender& sender);
+    void BuildRR(const RtcpContext& ctx, PacketSender& sender);
+    void BuildSDES(const RtcpContext& ctx, PacketSender& sender);
+    void BuildFIR(const RtcpContext& ctx, PacketSender& sender);
+    void BuildPLI(const RtcpContext& ctx, PacketSender& sender);
+    void BuildREMB(const RtcpContext& ctx, PacketSender& sender);
+    void BuildTMMBR(const RtcpContext& ctx, PacketSender& sender);
+    void BuildTMMBN(const RtcpContext& ctx, PacketSender& sender);
+    void BuildLossNotification(const RtcpContext& ctx, PacketSender& sender);
+    void BuildNACK(const RtcpContext& ctx, PacketSender& sender);
+    void BuildBYE(const RtcpContext& ctx, PacketSender& sender);
+    void BuildExtendedReports(const RtcpContext& ctx, PacketSender& sender);
 
     void InitBuilders();
 

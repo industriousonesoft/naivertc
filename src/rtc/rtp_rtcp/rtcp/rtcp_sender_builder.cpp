@@ -12,6 +12,7 @@
 #include "rtc/rtp_rtcp/rtcp/packets/tmmbr.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/nack.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/bye.hpp"
+#include "rtc/rtp_rtcp/rtcp/packets/extended_reports.hpp"
 
 #include <plog/Log.h>
 
@@ -37,12 +38,19 @@ void RtcpSender::InitBuilders() {
     builders_[RtcpPacketType::TMMBR] = &RtcpSender::BuildTMMBR;
     builders_[RtcpPacketType::TMMBN] = &RtcpSender::BuildTMMBN;
     builders_[RtcpPacketType::NACK] = &RtcpSender::BuildNACK;
+    builders_[RtcpPacketType::XR_RECEIVER_REFERENCE_TIME] = &RtcpSender::BuildExtendedReports;
+    builders_[RtcpPacketType::XR_DLRR_REPORT_BLOCK] = &RtcpSender::BuildExtendedReports;
+    builders_[RtcpPacketType::XR_TARGET_BITRATE] = &RtcpSender::BuildExtendedReports;
 }
 
-std::optional<bool> RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
-                                                          const uint16_t* nack_list,
-                                                          size_t nack_size,
-                                                          PacketSender& sender) {
+bool RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
+                                         const uint16_t* nack_list,
+                                         size_t nack_size,
+                                         PacketSender& sender) {
+    if (rtcp_mode_ == RtcpMode::OFF) {
+        PLOG_WARNING << "Can't send RTCP since the RTCP sender is disabled.";
+        return false;
+    }
     // Add the flag as volatile. Non volatile entries will not be overwritten.
     // The new volatile flag will be consumed by the end of this call.
     SetFlag(rtcp_packt_type, true);
@@ -51,14 +59,16 @@ std::optional<bool> RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_pack
     const bool can_calculate_rtp_timestamp = last_frame_capture_time_.has_value();
     if (!can_calculate_rtp_timestamp) {
         bool consumed_sr_flag = ConsumeFlag(RtcpPacketType::SR);
-        bool consumed_report_flag = sending_ && ConsumeFlag(RtcpPacketType::REPORT);
+        bool consumed_report_flag = sending_ && ConsumeFlag(RtcpPacketType::RTCP_REPORT);
         bool sender_report = consumed_report_flag || consumed_sr_flag;
-        // This call was for Sender Report and nothing else.
+        // This call was only for Sender Report, 
+        // and all other packets was consumed before this call.
         if (sender_report && AllVolatileFlagsConsumed()) {
-            return true;
-        }
-        if (sending_) {
-            // Not allowed to send any RTCP packet without sender report.
+            return false;
+        } 
+        if (sending_ && rtcp_mode_ == RtcpMode::COMPOUND) {
+            // Not allowed to send any RTCP packet without sender report 
+            // if the `rtcp_mode_` is RtcpMode::COMPOUND.
             return false;
         }
     }
@@ -75,13 +85,15 @@ std::optional<bool> RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_pack
                         nack_size,
                         clock_->CurrentTime());
 
-    PrepareReport(context.rtp_send_feedback);
+    PrepareReport(context);
 
     bool create_bye = false;
+    bool create_xr = false;
     auto it = report_flags_.begin();
     while (it != report_flags_.end()) {
         RtcpPacketType rtcp_packet_type = it->type;
-
+ 
+        // Remove the volatile packet after consumed.
         if (it->is_volatile) {
             report_flags_.erase(it++);
         } else {
@@ -92,6 +104,14 @@ std::optional<bool> RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_pack
         // at the end later.
         if (rtcp_packet_type == RtcpPacketType::BYE) {
             create_bye = true;
+            continue;
+        }
+
+        // Pack all the XR blocks into a XR packet later.
+        if (rtcp_packet_type == RtcpPacketType::XR_DLRR_REPORT_BLOCK ||
+            rtcp_packet_type == RtcpPacketType::XR_DLRR_REPORT_BLOCK ||
+            rtcp_packet_type == RtcpPacketType::XR_DLRR_REPORT_BLOCK) {
+            create_xr = true;
             continue;
         }
 
@@ -106,7 +126,12 @@ std::optional<bool> RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_pack
         }
     }
 
-    // Append the BYE now at the end
+    // Create the XR packet.
+    if (create_xr) {
+        BuildExtendedReports(context, sender);
+    }
+
+    // Append the BYE now at the end.
     if (create_bye) {
         BuildBYE(context, sender);
     }
@@ -116,16 +141,18 @@ std::optional<bool> RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_pack
     }
 
     assert(AllVolatileFlagsConsumed());
-    return std::nullopt;
+    return true;
 }
 
-void RtcpSender::PrepareReport(const RtpSendFeedback& rtp_send_feedback) {
+void RtcpSender::PrepareReport(const RtcpContext& ctx) {
     bool generate_report = false;
     if (IsFlagPresent(RtcpPacketType::SR) || IsFlagPresent(RtcpPacketType::RR)) {
+        // Report type already explicitly set, don't automatically populate.
         generate_report = true;
-        assert(ConsumeFlag(RtcpPacketType::REPORT) == false);
+        assert(ConsumeFlag(RtcpPacketType::RTCP_REPORT) == false);
     } else {
-        if ((ConsumeFlag(RtcpPacketType::REPORT) && rtcp_mode_ == RtcpMode::REDUCED_SIZE) ||
+        // RtcpReports + Reduced-Size mode or SR/RR + Compouned mode
+        if ((ConsumeFlag(RtcpPacketType::RTCP_REPORT) && rtcp_mode_ == RtcpMode::REDUCED_SIZE) ||
             rtcp_mode_ == RtcpMode::COMPOUND) {
             generate_report = true;
             SetFlag(sending_ ? RtcpPacketType::SR : RtcpPacketType::RR, true);
@@ -137,7 +164,15 @@ void RtcpSender::PrepareReport(const RtpSendFeedback& rtp_send_feedback) {
     }
 
     if (generate_report) {
-        // TODO: Set flag for ExtendedReports
+        // Rrtr
+        if (!sending_) {
+            SetFlag(RtcpPacketType::XR_RECEIVER_REFERENCE_TIME, true);
+        }
+        // Dlrr
+        if (!ctx.rtcp_receive_feedback.last_xr_rtis.empty()) {
+            SetFlag(RtcpPacketType::XR_DLRR_REPORT_BLOCK, true);
+        }
+        // TODO: Support TargetBirate block.
     }
 
     TimeDelta min_interval = report_interval_;
@@ -145,7 +180,7 @@ void RtcpSender::PrepareReport(const RtpSendFeedback& rtp_send_feedback) {
     // Send video rtcp packets
     if (!audio_ && sending_) {
         // Calculate bandwidth for video
-        int send_bitrate_kbit = rtp_send_feedback.send_bitrate.kbps();
+        int send_bitrate_kbit = ctx.rtp_send_feedback.send_bitrate.kbps();
         if (send_bitrate_kbit != 0) {
             // FIXME: Why ? 360 / send bandwidth in kbit/s.
             min_interval = std::min(TimeDelta::Millis(360000 / send_bitrate_kbit), report_interval_);
@@ -213,6 +248,7 @@ std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const RtcpReceiveF
     return report_blocks;
 }
 
+// SR
 void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
     if (!last_frame_capture_time_.has_value()) {
         PLOG_WARNING << "RTCP SR shouldn't be built before first media frame.";
@@ -246,6 +282,7 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
     sender.AppendPacket(sr);
 }
 
+// RR
 void RtcpSender::BuildRR(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::ReceiverReport rr;
     rr.set_sender_ssrc(local_ssrc_);
@@ -253,12 +290,14 @@ void RtcpSender::BuildRR(const RtcpContext& ctx, PacketSender& sender) {
     sender.AppendPacket(rr);
 }
 
+// SDES
 void RtcpSender::BuildSDES(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::Sdes sdes;
     sdes.AddCName(local_ssrc_, cname_);
     sender.AppendPacket(sdes);
 }
 
+// PLI
 void RtcpSender::BuildPLI(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::Pli pli;
     pli.set_sender_ssrc(local_ssrc_);
@@ -268,6 +307,7 @@ void RtcpSender::BuildPLI(const RtcpContext& ctx, PacketSender& sender) {
     sender.AppendPacket(pli);
 }
 
+// FIR
 void RtcpSender::BuildFIR(const RtcpContext& ctx, PacketSender& sender) {
     ++sequence_number_fir_;
 
@@ -287,20 +327,20 @@ void RtcpSender::BuildREMB(const RtcpContext& ctx, PacketSender& sender) {
     sender.AppendPacket(remb);
 }
 
-void RtcpSender::BuildTMMBR(const RtcpContext& ctx, PacketSender& sender) {
+// TMMBR
+void RtcpSender::BuildTMMBR(const RtcpContext& ctx, PacketSender& sender) {}
 
-}
+// TMMBN
+void RtcpSender::BuildTMMBN(const RtcpContext& ctx, PacketSender& sender) {}
 
-void RtcpSender::BuildTMMBN(const RtcpContext& ctx, PacketSender& sender) {
-
-}
-
+// LossNotification
 void RtcpSender::BuildLossNotification(const RtcpContext& ctx, PacketSender& sender) {
     loss_notification_.set_sender_ssrc(local_ssrc_);
     loss_notification_.set_media_ssrc(remote_ssrc_);
     sender.AppendPacket(loss_notification_);
 }
 
+// Nack
 void RtcpSender::BuildNACK(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::Nack nack;
     nack.set_sender_ssrc(local_ssrc_);
@@ -318,11 +358,34 @@ void RtcpSender::BuildNACK(const RtcpContext& ctx, PacketSender& sender) {
     sender.AppendPacket(nack);
 }
 
+// Bye
 void RtcpSender::BuildBYE(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::Bye bye;
     bye.set_sender_ssrc(local_ssrc_);
     bye.set_csrcs(csrcs_);
     sender.AppendPacket(bye);
+}
+
+// ExtendedReports
+void RtcpSender::BuildExtendedReports(const RtcpContext& ctx, PacketSender& sender) {
+    rtcp::ExtendedReports xr;
+    xr.set_sender_ssrc(local_ssrc_);
+    
+    // Rrtr used for non-sender RTT measurement.
+    if (!sending_) {
+        rtcp::Rrtr rrtr;
+        rrtr.set_ntp(clock_->ConvertTimestampToNtpTime(ctx.now_time));
+        xr.set_rrtr(rrtr);
+    }
+
+    // The receive time infos from sender
+    for (const rtcp::Dlrr::TimeInfo& time_info : ctx.rtcp_receive_feedback.last_xr_rtis) {
+        xr.AddDlrrTimeInfo(time_info);
+    }
+
+    // Send video bitrate allocation
+
+    sender.AppendPacket(xr);
 }
 
 } // namespace naivertc

@@ -19,7 +19,7 @@ class RTC_CPP_EXPORT ExtendedReports : public RtcpPacket {
 public:
     static const uint8_t kPacketType = 207;
     // FIXME: Why the max number of sub blocks is 50? How to calculate it?
-    static const size_t kMaxNumberOfDlrrSubBlocks = 50;
+    static const size_t kMaxNumberOfDlrrTimeInfos = 50;
 public:
     ExtendedReports();
     ~ExtendedReports() override;
@@ -29,7 +29,7 @@ public:
     const std::optional<TargetBitrate>& target_bitrate() const;
 
     void set_rrtr(const Rrtr& rrtr);
-    bool AddDlrrSubBlock(const Dlrr::SubBlock& block);
+    bool AddDlrrTimeInfo(const Dlrr::TimeInfo& block);
     void set_target_bitrate(const TargetBitrate& bitrate);
 
     bool Parse(const CommonHeader& packet);

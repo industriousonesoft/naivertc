@@ -150,9 +150,9 @@ MY_TEST_F(RtcpSenderTest, SetSending) {
 
 MY_TEST_F(RtcpSenderTest, SendSr) {
     const uint32_t kPacketCount = 0x12345;
-    const uint32_t kOctectCount = 0x23456;
+    const uint32_t kOctetCount = 0x23456;
 
-    rtp_send_feedback_provider_.OnRtpPacketSent(kPacketCount, kOctectCount);
+    rtp_send_feedback_provider_.OnRtpPacketSent(kPacketCount, kOctetCount);
 
     auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
     rtcp_sender->set_sending(true);
@@ -163,9 +163,59 @@ MY_TEST_F(RtcpSenderTest, SendSr) {
     EXPECT_EQ(kSenderSsrc, send_report->sender_ssrc());
     EXPECT_EQ(ntp, send_report->ntp());
     EXPECT_EQ(kPacketCount, send_report->sender_packet_count());
-    EXPECT_EQ(kOctectCount, send_report->sender_octet_count());
+    EXPECT_EQ(kOctetCount, send_report->sender_octet_count());
     EXPECT_EQ(kStartRtpTimestamp + kRtpTimestamp, send_report->rtp_timestamp());
     EXPECT_EQ(0u, send_report->report_blocks().size());
+}
+
+MY_TEST_F(RtcpSenderTest, SendConsecutiveSrWithExactSlope) {
+    const uint32_t kPacketCount = 0x12345;
+    const uint32_t kOctetCount = 0x23456;
+    const int kTimeBetweenSRsUs = 10043;  // Not exact value in milliseconds.
+    const int kExtraPackets = 30;
+
+    rtp_send_feedback_provider_.OnRtpPacketSent(kPacketCount, kOctetCount);
+
+    auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
+    rtcp_sender->set_sending(true);
+    clock_.AdvanceTimeUs(kTimeBetweenSRsUs);
+
+    EXPECT_TRUE(rtcp_sender->SendRtcp(RtcpPacketType::SR));
+    auto send_report = parser()->sender_report();
+    NtpTime ntp1 = send_report->ntp();
+    uint32_t rtp1 = send_report->rtp_timestamp();
+
+    // Send more SRs to ensure slope is always exact for different offsets.
+    for (size_t packets = 1; packets <= kExtraPackets; ++packets) {
+        clock_.AdvanceTimeUs(kTimeBetweenSRsUs);
+        EXPECT_TRUE(rtcp_sender->SendRtcp(RtcpPacketType::SR));
+        send_report = parser()->sender_report();
+        EXPECT_EQ(packets + 1, send_report->num_packets());
+
+        NtpTime ntp2 = send_report->ntp();
+        uint32_t rtp2 = send_report->rtp_timestamp();
+
+        uint32_t ntp_diff_in_rtp_uints = (ntp2.ToMs() - ntp1.ToMs()) * (kVideoPayloadTypeFrequency / 1000);
+        EXPECT_EQ(rtp2 - rtp1, ntp_diff_in_rtp_uints);
+    }
+}
+
+MY_TEST_F(RtcpSenderTest, DoNotSendSrBeforeRtp) {
+    const uint32_t kPacketCount = 0x12345;
+    const uint32_t kOctetCount = 0x23456;
+
+    rtp_send_feedback_provider_.OnRtpPacketSent(kPacketCount, kOctetCount);
+
+    auto rtcp_sender = CreateRtcpSender(GetDefaultConfig(), /*init_timestamps=*/false);
+    rtcp_sender->set_sending(true);
+    
+    rtcp_sender->SendRtcp(RtcpPacketType::SR);
+    EXPECT_EQ(0, parser()->sender_report()->num_packets());
+    rtcp_sender->SendRtcp(RtcpPacketType::RTCP_REPORT);
+    EXPECT_EQ(0, parser()->sender_report()->num_packets());
+    // Other packets are allowed, even if useless.
+    rtcp_sender->SendRtcp(RtcpPacketType::PLI);
+    EXPECT_EQ(1, parser()->sender_report()->num_packets());
 }
     
 } // namespace test

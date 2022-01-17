@@ -67,7 +67,7 @@ public:
 
     std::optional<int64_t> GetLatestXrRrRtt() const;
 
-    std::vector<rtcp::Dlrr::SubBlock> ConsumeXrDlrrSubBlocks();
+    std::vector<rtcp::Dlrr::TimeInfo> ConsumeXrDlrrTimeInfos();
 
     int64_t LastReceivedReportBlockMs() const;
 

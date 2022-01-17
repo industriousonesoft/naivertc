@@ -47,7 +47,7 @@ enum class RtpPacketType : size_t {
 
 // Rtcp packet type
 enum RtcpPacketType : uint32_t {
-    REPORT = 0x0001,
+    RTCP_REPORT = 0x0001,
     SR = 0x0002,
     RR = 0x0004,
     SDES = 0x0008,

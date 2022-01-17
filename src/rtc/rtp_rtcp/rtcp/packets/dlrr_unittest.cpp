@@ -27,7 +27,7 @@ MY_TEST(RtcpPacketDlrrTest, Empty) {
 
 MY_TEST(RtcpPacketDlrrTest, Pack) {
     Dlrr dlrr;
-    dlrr.AddDlrrSubBlock(Dlrr::SubBlock(kSsrc, kLastRR, kDelay));
+    dlrr.AddDlrrTimeInfo(Dlrr::TimeInfo(kSsrc, kLastRR, kDelay));
 
     ASSERT_EQ(kBlockSize, dlrr.BlockSize());
     uint8_t buffer[kBlockSize];
@@ -40,8 +40,8 @@ MY_TEST(RtcpPacketDlrrTest, Parse) {
     Dlrr dlrr;
     EXPECT_TRUE(dlrr.Parse(kBlock, kBlockSize));
 
-    EXPECT_EQ(1u, dlrr.sub_blocks().size());
-    const auto& block = dlrr.sub_blocks().front();
+    EXPECT_EQ(1u, dlrr.time_infos().size());
+    const auto& block = dlrr.time_infos().front();
     EXPECT_EQ(kSsrc, block.ssrc);
     EXPECT_EQ(kLastRR, block.last_rr);
     EXPECT_EQ(kDelay, block.delay_since_last_rr);
@@ -63,7 +63,7 @@ MY_TEST(RtcpPacketDlrrTest, ParseFailsOnBadSize) {
     }
 }
 
-MY_TEST(RtcpPacketDlrrTest, CreateAndParseManySubBlocks) {
+MY_TEST(RtcpPacketDlrrTest, CreateAndParseManyTimeInfos) {
     const size_t kBufferSize = 0x1000;  // More than enough.
     const size_t kManyDlrrItems = 50;
     uint8_t buffer[kBufferSize];
@@ -71,7 +71,7 @@ MY_TEST(RtcpPacketDlrrTest, CreateAndParseManySubBlocks) {
     // Create.
     Dlrr dlrr;
     for (size_t i = 1; i <= kManyDlrrItems; ++i) {
-        dlrr.AddDlrrSubBlock(Dlrr::SubBlock(kSsrc + i, kLastRR + i, kDelay + i));
+        dlrr.AddDlrrTimeInfo(Dlrr::TimeInfo(kSsrc + i, kLastRR + i, kDelay + i));
     }
     size_t used_buffer_size = dlrr.BlockSize();
     ASSERT_LE(used_buffer_size, kBufferSize);
@@ -82,7 +82,7 @@ MY_TEST(RtcpPacketDlrrTest, CreateAndParseManySubBlocks) {
     uint16_t block_size = ByteReader<uint16_t>::ReadBigEndian(&buffer[2]);
     EXPECT_EQ(used_buffer_size, (block_size + 1) * 4u);
     EXPECT_TRUE(parsed.Parse(buffer, kBufferSize));
-    EXPECT_EQ(kManyDlrrItems, parsed.sub_blocks().size());
+    EXPECT_EQ(kManyDlrrItems, parsed.time_infos().size());
 }
 
 } // namespace rtcp

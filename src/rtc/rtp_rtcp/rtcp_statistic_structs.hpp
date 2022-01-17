@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/units/time_delta.hpp"
 #include "rtc/base/time/ntp_time.hpp"
+#include "rtc/rtp_rtcp/rtcp/packets/dlrr.hpp"
 
 #include <optional>
 
@@ -83,7 +84,10 @@ struct RTC_CPP_EXPORT RtcpSenderReportStats {
 
 // RtcpReceiveFeedback
 struct RTC_CPP_EXPORT RtcpReceiveFeedback {
+    // The last sender report stats.
     std::optional<RtcpSenderReportStats> last_sr_stats;
+    // The last receive time infos.
+    std::vector<rtcp::Dlrr::TimeInfo> last_xr_rtis;
 };
     
 } // namespace naivertc

@@ -7,7 +7,7 @@
 
 namespace naivertc {
 namespace rtcp {
-constexpr size_t ExtendedReports::kMaxNumberOfDlrrSubBlocks;
+constexpr size_t ExtendedReports::kMaxNumberOfDlrrTimeInfos;
 // From RFC 3611: RTP Control Protocol Extended Reports (RTCP XR).
 //
 // Format for XR packets:
@@ -51,12 +51,12 @@ void ExtendedReports::set_rrtr(const Rrtr& rrtr) {
     rrtr_block_.emplace(rrtr);
 }
 
-bool ExtendedReports::AddDlrrSubBlock(const Dlrr::SubBlock& block) {
-    if (dlrr_block_.sub_blocks().size() >= kMaxNumberOfDlrrSubBlocks) {
+bool ExtendedReports::AddDlrrTimeInfo(const Dlrr::TimeInfo& block) {
+    if (dlrr_block_.time_infos().size() >= kMaxNumberOfDlrrTimeInfos) {
         PLOG_WARNING << "Reached maximum number of DLRR sub blocks.";
         return false;
     }
-    dlrr_block_.AddDlrrSubBlock(block);
+    dlrr_block_.AddDlrrTimeInfo(block);
     return true;
 }
 
