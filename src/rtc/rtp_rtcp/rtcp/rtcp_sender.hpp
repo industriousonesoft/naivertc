@@ -74,28 +74,28 @@ public:
 
     bool TimeToSendRtcpReport(bool send_rtcp_before_key_frame = false);
     bool SendRtcp(RtcpPacketType packet_type,
-                  const std::vector<uint16_t> nackList = {});
+                  const uint16_t* nack_list = nullptr,
+                  size_t nack_size = 0);
 
     bool SendLossNotification(uint16_t last_decoded_seq_num,
                               uint16_t last_received_seq_num,
                               bool decodability_flag,
                               bool buffering_allowed); 
 private:
-    // FeedbackState
-    struct FeedbackState {
-        RtpSendFeedback rtp_send_feedback;
-        RtcpReceiveFeedback rtcp_receive_feedback;
-    };
 
     // RtcpContext
     class RtcpContext {
     public:
-        RtcpContext(FeedbackState feedback_state,
-                    const std::vector<uint16_t> nack_list,
+        RtcpContext(const RtpSendFeedback& rtp_send_feedback,
+                    const RtcpReceiveFeedback& rtcp_receive_feedback,
+                    const uint16_t* nack_list,
+                    size_t nack_size,
                     Timestamp now_time);
 
-        const FeedbackState& feedback_state;
-        const std::vector<uint16_t> nack_list;
+        const RtpSendFeedback& rtp_send_feedback;
+        const RtcpReceiveFeedback& rtcp_receive_feedback;
+        const uint16_t* nack_list;
+        size_t nack_size;
         const Timestamp now_time;
     };
 
@@ -143,12 +143,13 @@ private:
     };
 
 private:
-    std::optional<bool> ComputeCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
-                                                  const std::vector<uint16_t> nack_list,
+    std::optional<bool> BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
+                                                  const uint16_t* nack_list,
+                                                  size_t nack_size,
                                                   PacketSender& sender);
 
-    void PrepareReport(const FeedbackState& feedback_state);
-    std::vector<rtcp::ReportBlock> CreateReportBlocks(const FeedbackState& feedback_state);
+    void PrepareReport(const RtpSendFeedback& rtp_send_feedback);
+    std::vector<rtcp::ReportBlock> CreateReportBlocks(const RtcpReceiveFeedback rtcp_receive_feedback);
 
     void BuildSR(const RtcpContext& context, PacketSender& sender);
     void BuildRR(const RtcpContext& context, PacketSender& sender);
@@ -219,14 +220,12 @@ private:
 
     RtcpPacketTypeCounter packet_type_counter_;
 
-    TaskQueueImpl* const work_queue_;
-
     RtcpPacketTypeCounterObserver* const packet_type_counter_observer_ = nullptr;
     RtcpReportBlockProvider* const report_block_provider_ = nullptr;
     RtpSendFeedbackProvider* const rtp_send_feedback_provider_ = nullptr;
     RtcpReceiveFeedbackProvider* const rtcp_receive_feedback_provider_ = nullptr;
 
-    
+    TaskQueueImpl* const work_queue_;
 };
     
 } // namespace naivert 

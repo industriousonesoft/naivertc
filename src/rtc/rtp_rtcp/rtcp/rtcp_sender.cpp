@@ -20,12 +20,12 @@ RtcpSender::RtcpSender(Configuration config)
                                                                                       : kDefaultVideoReportIntervalMs))),
       sending_(false),
       sequence_number_fir_(0),
-      work_queue_(TaskQueueImpl::Current()),
       packet_sender_(config.send_transport, audio_, kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */),
       packet_type_counter_observer_(config.packet_type_counter_observer),
       report_block_provider_(config.report_block_provider),
       rtp_send_feedback_provider_(config.rtp_send_feedback_provider),
-      rtcp_receive_feedback_provider_(config.rtcp_receive_feedback_provider) {
+      rtcp_receive_feedback_provider_(config.rtcp_receive_feedback_provider),
+      work_queue_(TaskQueueImpl::Current()) {
   
     // Initialize all builders.
     InitBuilders();
@@ -133,10 +133,11 @@ bool RtcpSender::TimeToSendRtcpReport(bool send_rtcp_before_key_frame) {
 }
 
 bool RtcpSender::SendRtcp(RtcpPacketType packet_type,
-                          const std::vector<uint16_t> nackList) {
+                          const uint16_t* nack_list,
+                          size_t nack_size) {
     RTC_RUN_ON(&sequence_checker_);
     packet_sender_.Reset();
-    auto result = ComputeCompoundRtcpPacket(packet_type, std::move(nackList), packet_sender_);
+    auto result = BuildCompoundRtcpPacket(packet_type, nack_list, nack_size, packet_sender_);
     if (result) {
         return *result;
     }
@@ -161,7 +162,7 @@ bool RtcpSender::SendLossNotification(uint16_t last_decoded_seq_num,
     }
 
     packet_sender_.Reset();
-    auto result = ComputeCompoundRtcpPacket(RtcpPacketType::LOSS_NOTIFICATION, {}, packet_sender_);
+    auto result = BuildCompoundRtcpPacket(RtcpPacketType::LOSS_NOTIFICATION, nullptr, 0, packet_sender_);
     if (result) {
         return *result;
     }

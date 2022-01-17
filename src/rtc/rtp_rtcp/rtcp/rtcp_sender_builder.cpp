@@ -39,8 +39,9 @@ void RtcpSender::InitBuilders() {
     builders_[RtcpPacketType::NACK] = &RtcpSender::BuildNACK;
 }
 
-std::optional<bool> RtcpSender::ComputeCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
-                                                          const std::vector<uint16_t> nack_list,
+std::optional<bool> RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
+                                                          const uint16_t* nack_list,
+                                                          size_t nack_size,
                                                           PacketSender& sender) {
     // Add the flag as volatile. Non volatile entries will not be overwritten.
     // The new volatile flag will be consumed by the end of this call.
@@ -66,14 +67,15 @@ std::optional<bool> RtcpSender::ComputeCompoundRtcpPacket(RtcpPacketType rtcp_pa
         packet_type_counter_.first_packet_time_ms = clock_->now_ms();
     }
 
-    // FeedbackState
-    FeedbackState feedback_state;
-    feedback_state.rtp_send_feedback = rtp_send_feedback_provider_->GetSendFeedback();
-    feedback_state.rtcp_receive_feedback = rtcp_receive_feedback_provider_->GetReceiveFeedback();                                      
+    // RtcpContext                                   
     // We need to send out NTP even if we haven't received any reports
-    RtcpContext context(std::move(feedback_state), nack_list, clock_->CurrentTime());
+    RtcpContext context(rtp_send_feedback_provider_->GetSendFeedback(), 
+                        rtcp_receive_feedback_provider_->GetReceiveFeedback(), 
+                        nack_list,
+                        nack_size,
+                        clock_->CurrentTime());
 
-    PrepareReport(feedback_state);
+    PrepareReport(context.rtp_send_feedback);
 
     bool create_bye = false;
     auto it = report_flags_.begin();
@@ -117,7 +119,7 @@ std::optional<bool> RtcpSender::ComputeCompoundRtcpPacket(RtcpPacketType rtcp_pa
     return std::nullopt;
 }
 
-void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
+void RtcpSender::PrepareReport(const RtpSendFeedback& rtp_send_feedback) {
     bool generate_report = false;
     if (IsFlagPresent(RtcpPacketType::SR) || IsFlagPresent(RtcpPacketType::RR)) {
         generate_report = true;
@@ -143,7 +145,7 @@ void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
     // Send video rtcp packets
     if (!audio_ && sending_) {
         // Calculate bandwidth for video
-        int send_bitrate_kbit = feedback_state.rtp_send_feedback.send_bitrate.kbps();
+        int send_bitrate_kbit = rtp_send_feedback.send_bitrate.kbps();
         if (send_bitrate_kbit != 0) {
             // FIXME: Why ? 360 / send bandwidth in kbit/s.
             min_interval = std::min(TimeDelta::Millis(360000 / send_bitrate_kbit), report_interval_);
@@ -160,14 +162,16 @@ void RtcpSender::PrepareReport(const FeedbackState& feedback_state) {
         return;
     }
 
+#if !ENABLE_TESTS
     ScheduleForNextRtcpSend(delay_to_next);
+#endif
 
     // RtcpSender expected to be used for sending either just sender reports
     // or just receiver reports.
     assert(!(IsFlagPresent(RtcpPacketType::SR) && IsFlagPresent(RtcpPacketType::RR)));
 }
 
-std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const FeedbackState& feedback_state) {
+std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const RtcpReceiveFeedback rtcp_receive_feedback) {
     std::vector<rtcp::ReportBlock> report_blocks;
     if (!report_block_provider_) {
         return report_blocks;
@@ -185,7 +189,7 @@ std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const FeedbackStat
     //     |           <----RR----          |
     //     |<----------                     |
     //     |                                |
-    auto last_sr_stats = feedback_state.rtcp_receive_feedback.last_sr_stats;
+    auto last_sr_stats = rtcp_receive_feedback.last_sr_stats;
     if (!report_blocks.empty() && last_sr_stats) {
         uint32_t last_sr_send_ntp_timestamp = ((last_sr_stats->send_ntp_time.seconds() & 0x0000FFFF) << 16) +
                                               ((last_sr_stats->send_ntp_time.fractions() & 0xFFFF0000) >> 16);
@@ -236,16 +240,16 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
     sr.set_sender_ssrc(local_ssrc_);
     sr.set_ntp(clock_->ConvertTimestampToNtpTime(ctx.now_time));
     sr.set_rtp_timestamp(rtp_timestamp);
-    sr.set_sender_packet_count(ctx.feedback_state.rtp_send_feedback.packets_sent);
-    sr.set_sender_octet_count(ctx.feedback_state.rtp_send_feedback.media_bytes_sent);
-    sr.SetReportBlocks(CreateReportBlocks(ctx.feedback_state));
+    sr.set_sender_packet_count(ctx.rtp_send_feedback.packets_sent);
+    sr.set_sender_octet_count(ctx.rtp_send_feedback.media_bytes_sent);
+    sr.SetReportBlocks(CreateReportBlocks(ctx.rtcp_receive_feedback));
     sender.AppendPacket(sr);
 }
 
 void RtcpSender::BuildRR(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::ReceiverReport rr;
     rr.set_sender_ssrc(local_ssrc_);
-    rr.SetReportBlocks(CreateReportBlocks(ctx.feedback_state));
+    rr.SetReportBlocks(CreateReportBlocks(ctx.rtcp_receive_feedback));
     sender.AppendPacket(rr);
 }
 
@@ -301,10 +305,10 @@ void RtcpSender::BuildNACK(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::Nack nack;
     nack.set_sender_ssrc(local_ssrc_);
     nack.set_media_ssrc(remote_ssrc_);
-    nack.set_packet_ids(ctx.nack_list);
+    nack.set_packet_ids(ctx.nack_list, ctx.nack_size);
 
-    for (uint16_t id : ctx.nack_list) {
-        nack_stats_.ReportRequest(id);
+    for (size_t idx = 0; idx < ctx.nack_size; ++idx) {
+        nack_stats_.ReportRequest(ctx.nack_list[idx]);
     }
 
     packet_type_counter_.nack_requests = nack_stats_.requests();

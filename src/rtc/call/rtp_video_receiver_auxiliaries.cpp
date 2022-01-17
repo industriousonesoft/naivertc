@@ -13,8 +13,8 @@ RtpVideoReceiver::RtcpFeedbackBuffer::RtcpFeedbackBuffer(NackSender* nack_sender
 
 RtpVideoReceiver::RtcpFeedbackBuffer::~RtcpFeedbackBuffer() = default;
 
-void RtpVideoReceiver::RtcpFeedbackBuffer::SendNack(std::vector<uint16_t> nack_list,
-                                                          bool buffering_allowed) {
+void RtpVideoReceiver::RtcpFeedbackBuffer::SendNack(const std::vector<uint16_t>& nack_list,
+                                                    bool buffering_allowed) {
     if (nack_list.empty()) {
         return;
     }

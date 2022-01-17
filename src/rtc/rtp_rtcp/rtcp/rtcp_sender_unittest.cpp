@@ -1,6 +1,7 @@
 #include "rtc/rtp_rtcp/rtcp/rtcp_sender.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packet_parser.hpp"
 #include "rtc/rtp_rtcp/components/rtp_receive_statistics.hpp"
+#include "testing/simulated_task_queue.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -156,7 +157,7 @@ MY_TEST_F(RtcpSenderTest, SendSr) {
     auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
     rtcp_sender->set_sending(true);
     NtpTime ntp = clock_.CurrentNtpTime();
-    EXPECT_EQ(0, rtcp_sender->SendRtcp(RtcpPacketType::SR));
+    EXPECT_TRUE(rtcp_sender->SendRtcp(RtcpPacketType::SR));
     auto send_report = parser()->sender_report();
     EXPECT_EQ(1, send_report->num_packets());
     EXPECT_EQ(kSenderSsrc, send_report->sender_ssrc());

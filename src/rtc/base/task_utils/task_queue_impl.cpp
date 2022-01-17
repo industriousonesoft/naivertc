@@ -1,4 +1,5 @@
 #include "rtc/base/task_utils/task_queue_impl.hpp"
+#include "testing/simulated_task_queue.hpp"
 
 namespace naivertc {
 // Support `thread_local`

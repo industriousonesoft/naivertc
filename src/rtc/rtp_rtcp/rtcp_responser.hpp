@@ -27,7 +27,7 @@ public:
     void IncomingPacket(CopyOnWriteBuffer rtcp_packet);
 
     // NackSender override methods
-    void SendNack(std::vector<uint16_t> nack_list,
+    void SendNack(const std::vector<uint16_t>& nack_list,
                   bool buffering_allowed) override;
 
     // KeyFrameRequestSender override methods

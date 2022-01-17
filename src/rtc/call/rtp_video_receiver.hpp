@@ -80,7 +80,7 @@ private:
 
         ~RtcpFeedbackBuffer() override;
 
-        void SendNack(std::vector<uint16_t> nack_list,
+        void SendNack(const std::vector<uint16_t>& nack_list,
                       bool buffering_allowed) override;
 
         void RequestKeyFrame() override;

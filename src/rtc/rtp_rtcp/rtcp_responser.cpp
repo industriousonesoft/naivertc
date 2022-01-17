@@ -50,13 +50,15 @@ void RtcpResponser::IncomingPacket(CopyOnWriteBuffer rtcp_packet) {
     rtcp_receiver_.IncomingPacket(std::move(rtcp_packet));
 }
 
-void RtcpResponser::SendNack(std::vector<uint16_t> nack_list,
-                          bool buffering_allowed) {
+void RtcpResponser::SendNack(const std::vector<uint16_t>& nack_list,
+                             bool buffering_allowed) {
+    RTC_RUN_ON(&sequence_checker_);
     assert(buffering_allowed == true);
-    rtcp_sender_.SendRtcp(RtcpPacketType::NACK, std::move(nack_list));
+    rtcp_sender_.SendRtcp(RtcpPacketType::NACK, nack_list.data(), nack_list.size());
 }
 
 void RtcpResponser::RequestKeyFrame() {
+    RTC_RUN_ON(&sequence_checker_);
     rtcp_sender_.SendRtcp(RtcpPacketType::PLI);
 }
 
