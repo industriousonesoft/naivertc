@@ -25,8 +25,8 @@ namespace naivertc {
 class RTC_CPP_EXPORT RtpPacketEgresser {
 public:
     RtpPacketEgresser(const RtpConfiguration& config,
-                    RtpPacketSentHistory* const packet_history,
-                    FecGenerator* const fec_generator);
+                      RtpPacketSentHistory* const packet_history,
+                      FecGenerator* const fec_generator);
     ~RtpPacketEgresser();
 
     uint32_t ssrc() const { return ssrc_; }
@@ -46,15 +46,32 @@ public:
     RtpStreamDataCounters GetRtxStreamDataCounter() const;
 
 private:
-    bool SendPacketToNetwork(RtpPacketToSend packet);
+    struct SendStats {
+        SendStats(uint32_t ssrc,
+                  size_t packet_size,
+                  RtpPacketType packet_type,
+                  RtpPacketCounter packet_counter)
+            : ssrc(ssrc), 
+              packet_size(packet_size),
+              packet_type(packet_type),
+              packet_counter(std::move(packet_counter)) {}
 
-    bool HasCorrectSsrc(const RtpPacketToSend& packet);
+        uint32_t ssrc;
+        size_t packet_size; 
+        RtpPacketType packet_type;
+        RtpPacketCounter packet_counter;
+    };
+
+private:
+    bool SendPacketToNetwork(RtpPacketToSend packet, PacketOptions options);
+
+    bool VerifySsrcs(const RtpPacketToSend& packet);
 
     void AddPacketToTransportFeedback(uint16_t packet_id, const RtpPacketToSend& packet);
     void UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc);
     void OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc);
 
-    void UpdateSentStatistics(const int64_t now_ms, const RtpPacketToSend& packet);
+    void UpdateSentStatistics(const int64_t now_ms, SendStats send_stats);
 
     DataRate CalcTotalSendBitrate(const int64_t now_ms);
 
@@ -64,9 +81,11 @@ private:
     friend class NonPacedPacketSender;
 
     SequenceChecker sequence_checker_;
-    Clock* clock_; 
+    const bool is_audio_;
+    Clock* const clock_;
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
+    MediaTransport* const send_transport_;
     RtpSentStatisticsObserver* rtp_sent_statistics_observer_;
     
     RtpPacketSentHistory* const packet_history_;

@@ -136,7 +136,7 @@ bool RtpSenderVideo::Send(int payload_type,
 
         // FIXME: Do we really need to build a red packet here, like what the WebRTC does? 
         // and I think we just need to set the red flag.
-        // NOTE: WebRTC中在此处新建伪RED包的作用似乎并不大，此处将为进行RED_FEC封装的包一律视为非RED包
+        // NOTE: WebRTC中在此处新建伪RED包的作用似乎并不大，此处将未使用RED_FEC封装的包一律视为非RED包
         packet->set_is_red(false);
         packet->set_red_protection_need(packet_sender_->red_enabled());
         packet->set_packet_type(RtpPacketType::VIDEO);

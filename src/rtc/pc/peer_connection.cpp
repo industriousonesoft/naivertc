@@ -105,24 +105,24 @@ void PeerConnection::OnRemoteMediaTrackReceived(MediaTrackCallback callback) {
 }
 
 // MediaTransport interface
-int PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
+bool PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
     return network_task_queue_->Sync<int>([this, packet=std::move(packet), options=std::move(options)](){
         auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
         if (srtp_transport) {
-            return srtp_transport->SendRtpPacket(std::move(packet), std::move(options));
+            return srtp_transport->SendRtpPacket(std::move(packet), std::move(options)) > 0;
         } else {
-            return -1;
+            return false;
         }
     });
 }
 
-int PeerConnection::SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
+bool PeerConnection::SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
     return network_task_queue_->Sync<int>([this, packet=std::move(packet), options=std::move(options)](){
         auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
         if (srtp_transport) {
-            return srtp_transport->SendRtcpPacket(std::move(packet), std::move(options));
+            return srtp_transport->SendRtcpPacket(std::move(packet), std::move(options)) > 0;
         } else {
-            return -1;
+            return false;
         }
     });
 }

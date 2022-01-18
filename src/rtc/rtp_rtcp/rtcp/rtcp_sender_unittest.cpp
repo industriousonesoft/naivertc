@@ -54,13 +54,13 @@ class MediaTransportImpl : public MediaTransport {
 public:
     ~MediaTransportImpl() override = default;
 
-    int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
-        return -1;
+    bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
+        return false;
     }
 
-    int SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
+    bool SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
         parser_.Parse(packet.data(), packet.size());
-        return 0;
+        return true;
     }
 
     test::RtcpPacketParser parser_;
@@ -69,8 +69,8 @@ public:
 // MockMediaTransport
 class MockMediaTransport : public MediaTransport {
 public:
-    MOCK_METHOD(int, SendRtpPacket, (CopyOnWriteBuffer, PacketOptions), (override));
-    MOCK_METHOD(int, SendRtcpPacket, (CopyOnWriteBuffer, PacketOptions), (override));
+    MOCK_METHOD(bool, SendRtpPacket, (CopyOnWriteBuffer, PacketOptions), (override));
+    MOCK_METHOD(bool, SendRtcpPacket, (CopyOnWriteBuffer, PacketOptions), (override));
 };
 
 // RtpSendFeedbackProviderImpl
