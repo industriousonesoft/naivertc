@@ -69,6 +69,7 @@ public:
     void SetRtpClockRate(int8_t rtp_payload_type, int rtp_clock_rate_hz);
 
     void SetRemb(uint64_t bitrate_bps, std::vector<uint32_t> ssrcs);
+    void UnsetRemb();
 
     void SetTimestampOffset(uint32_t timestamp_offset);
     void SetLastRtpTime(uint32_t rtp_timestamp,

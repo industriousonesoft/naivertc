@@ -136,12 +136,22 @@ void RtcpSender::SetRemb(uint64_t bitrate_bps, std::vector<uint32_t> ssrcs) {
     ScheduleForNextRtcpSend(TimeDelta::Zero());
 }
 
+void RtcpSender::UnsetRemb() {
+    RTC_RUN_ON(&sequence_checker_);
+    ConsumeFlag(RtcpPacketType::REMB, /*forced=*/true);
+}
+
 bool RtcpSender::TimeToSendRtcpReport(bool send_rtcp_before_key_frame) {
     RTC_RUN_ON(&sequence_checker_);
     if (rtcp_mode_ == RtcpMode::OFF) {
         return false;
     }
-    // RTCP Transmission Interval: https://datatracker.ietf.org/doc/html/rfc3550#section-6.2
+    // RTCP Transmission Interval: 
+    // For audio we use a configurable interval (default: 5 seconds).
+    // For video we use a configurable interval (default: 1 second) for a BW
+    // smaller than 360 kbit/s, technicaly we break the max 5% RTCP BW for
+    // video below 10 kbit/s but that should be extremely rare.
+    // See https://datatracker.ietf.org/doc/html/rfc3550#section-6.2
     Timestamp now = clock_->CurrentTime();
     if (!audio_ && send_rtcp_before_key_frame) {
         // for video key-frames we want to send the RTCP before the large key-frame

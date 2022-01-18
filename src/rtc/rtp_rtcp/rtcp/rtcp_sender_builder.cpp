@@ -80,8 +80,10 @@ bool RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
 
     // RtcpContext                                   
     // We need to send out NTP even if we haven't received any reports
-    RtcpContext context(rtp_send_feedback_provider_->GetSendFeedback(), 
-                        rtcp_receive_feedback_provider_->GetReceiveFeedback(), 
+    auto rtp_send_feedback = rtp_send_feedback_provider_->GetSendFeedback();
+    auto rtcp_receive_feedback = rtcp_receive_feedback_provider_->GetReceiveFeedback();
+    RtcpContext context(rtp_send_feedback, 
+                        rtcp_receive_feedback, 
                         nack_list,
                         nack_size,
                         clock_->CurrentTime());
@@ -110,8 +112,8 @@ bool RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
 
         // Pack all the XR blocks into a XR packet later.
         if (rtcp_packet_type == RtcpPacketType::XR_DLRR_REPORT_BLOCK ||
-            rtcp_packet_type == RtcpPacketType::XR_DLRR_REPORT_BLOCK ||
-            rtcp_packet_type == RtcpPacketType::XR_DLRR_REPORT_BLOCK) {
+            rtcp_packet_type == RtcpPacketType::XR_RECEIVER_REFERENCE_TIME ||
+            rtcp_packet_type == RtcpPacketType::XR_TARGET_BITRATE) {
             create_xr = true;
             continue;
         }
