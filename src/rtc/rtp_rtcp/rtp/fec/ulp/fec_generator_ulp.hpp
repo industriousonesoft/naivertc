@@ -29,9 +29,9 @@ public:
 
     void SetProtectionParameters(const FecProtectionParams& delta_params, const FecProtectionParams& key_params) override;
 
-    void PushMediaPacket(std::shared_ptr<RtpPacketToSend> packet) override;
+    void PushMediaPacket(RtpPacketToSend packet) override;
 
-    std::vector<std::shared_ptr<RtpPacketToSend>> PopFecPackets() override;
+    std::vector<RtpPacketToSend> PopFecPackets() override;
 
 protected:
     const FecProtectionParams& CurrentParams() const;
@@ -54,10 +54,9 @@ private:
     ParamsTuple current_params_;
     std::optional<ParamsTuple> pending_params_;
 
-    std::optional<std::shared_ptr<RtpPacketToSend>> last_protected_media_packet_;
+    std::optional<RtpPacketToSend> last_protected_media_packet_;
     FecEncoder::PacketList media_packets_;
     FecEncoder::FecPacketList generated_fec_packets_;
-    size_t num_generated_fec_packets_;
 };
     
 } // namespace naivert 

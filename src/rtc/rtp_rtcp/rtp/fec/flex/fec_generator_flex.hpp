@@ -22,9 +22,9 @@ public:
 
     void SetProtectionParameters(const FecProtectionParams& delta_params, const FecProtectionParams& key_params) override;
 
-    void PushMediaPacket(std::shared_ptr<RtpPacketToSend> packet) override;
+    void PushMediaPacket(RtpPacketToSend packet) override;
 
-    std::vector<std::shared_ptr<RtpPacketToSend>> PopFecPackets() override;
+    std::vector<RtpPacketToSend> PopFecPackets() override;
 };
     
 } // namespace naivertc

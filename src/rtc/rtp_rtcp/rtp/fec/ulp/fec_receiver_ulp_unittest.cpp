@@ -77,21 +77,21 @@ size_t T(UlpFecReceiverTest)::EncoderFec(const FecEncoder::PacketList& media_pac
     constexpr int kNumImportantPackets = 0;
     constexpr bool kUseUnequalProtection = false;
     constexpr FecMaskType kFecMaskType = FecMaskType::BURSTY;
-    auto [num_generated_fec_packets, success] = fec_encoder_->Encode(media_packets,
-                                                                     protection_factor,
-                                                                     kNumImportantPackets,
-                                                                     kUseUnequalProtection,
-                                                                     kFecMaskType,
-                                                                     generated_fec_packets_);
+    bool success = fec_encoder_->Encode(media_packets,
+                                        protection_factor,
+                                        kNumImportantPackets,
+                                        kUseUnequalProtection,
+                                        kFecMaskType,
+                                        generated_fec_packets_);
     EXPECT_TRUE(success);
-    return num_generated_fec_packets;
+    return generated_fec_packets_.size();
 }
 
 void T(UlpFecReceiverTest)::PacketizeFrame(size_t num_media_packets, FecEncoder::PacketList& media_packets) {
     packet_generator_.NewFrame(num_media_packets);
     for (size_t i = 0; i < num_media_packets; ++i) {
         RtpPacket rtp_packet = packet_generator_.NextRtpPacket(10 /* payload_size */ , 0/* padding_size */);
-        media_packets.push_back(std::make_shared<RtpPacket>(std::move(rtp_packet)));
+        media_packets.push_back(std::move(rtp_packet));
     }
 }
 
@@ -134,14 +134,14 @@ void T(UlpFecReceiverTest)::InjectGarbageData(size_t offset, U data) {
 
     auto media_it = media_packets.begin();
     // the received meida packet will be sent to VCM.
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
     // `VerifyRecoveredMediaPacket` MUST be called before `BuildAndAddRedMediaPacket`.
-    BuildAndAddRedMediaPacket(**media_it);
+    BuildAndAddRedMediaPacket(*media_it);
 
     // Drop one media packet
     ++media_it;
     // Failed to recover media packet from a invalid FEC packet.
-    VerifyRecoveredMediaPacket(**media_it, 0 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 0 /* call_times */);
     BuildAndAddRedFecPacket(*fec_it);
 
     fec_packet_counter = fec_receiver_->packet_counter();
@@ -167,9 +167,9 @@ MY_TEST_F(UlpFecReceiverTest, TwoMediaOneFec) {
 
     auto media_it = media_packets.begin();
     // the received meida packet will be sent to VCM.
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
     // `VerifyRecoveredMediaPacket` MUST be called before `BuildAndAddRedMediaPacket`.
-    BuildAndAddRedMediaPacket(**media_it);
+    BuildAndAddRedMediaPacket(*media_it);
 
     fec_packet_counter = fec_receiver_->packet_counter();
     EXPECT_EQ(1u, fec_packet_counter.num_received_packets);
@@ -180,7 +180,7 @@ MY_TEST_F(UlpFecReceiverTest, TwoMediaOneFec) {
 
     // Drop one media packet
     ++media_it;
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
 
     auto fec_it = generated_fec_packets_.begin();
     BuildAndAddRedFecPacket(*fec_it);
@@ -208,9 +208,9 @@ MY_TEST_F(UlpFecReceiverTest, TwoMediaOneFecNotUsesRecoveredPackets) {
 
     auto media_it = media_packets.begin();
     // the received meida packet will be sent to VCM.
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
     // `VerifyRecoveredMediaPacket` MUST be called before `BuildAndAddRedMediaPacket`.
-    BuildAndAddRedMediaPacket(**media_it, true /* is_recovered */);
+    BuildAndAddRedMediaPacket(*media_it, true /* is_recovered */);
 
     fec_packet_counter = fec_receiver_->packet_counter();
     EXPECT_EQ(1u, fec_packet_counter.num_received_packets);
@@ -221,7 +221,7 @@ MY_TEST_F(UlpFecReceiverTest, TwoMediaOneFecNotUsesRecoveredPackets) {
 
     // Drop one media packet
     ++media_it;
-    VerifyRecoveredMediaPacket(**media_it, 0 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 0 /* call_times */);
 
     auto fec_it = generated_fec_packets_.begin();
     BuildAndAddRedFecPacket(*fec_it);
@@ -267,7 +267,7 @@ MY_TEST_F(UlpFecReceiverTest, TwoMediaTwoFec) {
     auto fec_it = generated_fec_packets_.begin();
     auto media_it = media_packets.begin();
 
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
     BuildAndAddRedFecPacket(*fec_it);
 
     fec_packet_counter = fec_receiver_->packet_counter();
@@ -279,7 +279,7 @@ MY_TEST_F(UlpFecReceiverTest, TwoMediaTwoFec) {
 
     ++fec_it;
     ++media_it;
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
     BuildAndAddRedFecPacket(*fec_it);
 
     fec_packet_counter = fec_receiver_->packet_counter();
@@ -305,9 +305,9 @@ MY_TEST_F(UlpFecReceiverTest, TwoFramesOneFec) {
     EXPECT_EQ(-1, fec_packet_counter.first_packet_arrival_time_ms);
 
     auto media_it = media_packets.begin();
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
     // Add media packet
-    BuildAndAddRedMediaPacket(**media_it);
+    BuildAndAddRedMediaPacket(*media_it);
 
     fec_packet_counter = fec_receiver_->packet_counter();
     EXPECT_EQ(1u, fec_packet_counter.num_received_packets);
@@ -318,7 +318,7 @@ MY_TEST_F(UlpFecReceiverTest, TwoFramesOneFec) {
 
     // Drop one media packet
     ++media_it;
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
     // Recovery
     auto fec_it = generated_fec_packets_.begin();
     // Add FEC packet
@@ -348,9 +348,9 @@ MY_TEST_F(UlpFecReceiverTest, TwoFramesThreePacketOneFec) {
 
     // Add the first frame: one packet.
     auto media_it = media_packets.begin();
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
     // Add media packet
-    BuildAndAddRedMediaPacket(**media_it);
+    BuildAndAddRedMediaPacket(*media_it);
 
     fec_packet_counter = fec_receiver_->packet_counter();
     EXPECT_EQ(1u, fec_packet_counter.num_received_packets);
@@ -358,9 +358,9 @@ MY_TEST_F(UlpFecReceiverTest, TwoFramesThreePacketOneFec) {
     EXPECT_EQ(0u, fec_packet_counter.num_recovered_packets);
 
     ++media_it;
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
     // Add the first packet of second frame.
-    BuildAndAddRedMediaPacket(**media_it);
+    BuildAndAddRedMediaPacket(*media_it);
 
     fec_packet_counter = fec_receiver_->packet_counter();
     EXPECT_EQ(2u, fec_packet_counter.num_received_packets);
@@ -369,7 +369,7 @@ MY_TEST_F(UlpFecReceiverTest, TwoFramesThreePacketOneFec) {
 
     // Drop the second pakcet of second frame.
     ++media_it;
-    VerifyRecoveredMediaPacket(**media_it, 1 /* call_times */);
+    VerifyRecoveredMediaPacket(*media_it, 1 /* call_times */);
 
     // Recovery
     auto fec_it = generated_fec_packets_.begin();
@@ -398,12 +398,12 @@ MY_TEST_F(UlpFecReceiverTest, MaxFramesOneFec) {
 
     // Try to recover.
     auto media_it = media_packets.begin();
-    auto& dropped_media_packet = **media_it;
+    auto& dropped_media_packet = *media_it;
     // Drop first packet.
     ++media_it;
     for (; media_it != media_packets.end(); ++media_it) {
-        VerifyRecoveredMediaPacket(**media_it, 1);
-        BuildAndAddRedMediaPacket(**media_it);
+        VerifyRecoveredMediaPacket(*media_it, 1);
+        BuildAndAddRedMediaPacket(*media_it);
     }
 
     // Add FEC packet to recover the dropped media packet.
@@ -428,13 +428,12 @@ MY_TEST_F(UlpFecReceiverTest, TooManyFrames) {
     constexpr int kNumImportantPackets = 0;
     constexpr bool kUseUnequalProtection = false;
     constexpr FecMaskType kFecMaskType = FecMaskType::BURSTY;
-    auto [num_fec_packets, success]  = fec_encoder_->Encode(media_packets,
-                                                            protection_factor,
-                                                            kNumImportantPackets,
-                                                            kUseUnequalProtection,
-                                                            kFecMaskType,
-                                                            generated_fec_packets_);
-    EXPECT_EQ(0, num_fec_packets);
+    bool success  = fec_encoder_->Encode(media_packets,
+                                         protection_factor,
+                                         kNumImportantPackets,
+                                         kUseUnequalProtection,
+                                         kFecMaskType,
+                                         generated_fec_packets_);
     EXPECT_FALSE(success);
 }
 
@@ -450,7 +449,7 @@ MY_TEST_F(UlpFecReceiverTest, PacketNotDroppedTooEarly) {
     // Encode to FEC packets.
     EXPECT_EQ(kNumFecPacketsBatch1, EncoderFec(media_packets_batch1, kNumFecPacketsBatch1));
     EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
-    BuildAndAddRedMediaPacket(**media_packets_batch1.begin());
+    BuildAndAddRedMediaPacket(*media_packets_batch1.begin());
 
     auto fec_packet_counter = fec_receiver_->packet_counter();
     EXPECT_EQ(1u, fec_packet_counter.num_received_packets);
@@ -470,7 +469,7 @@ MY_TEST_F(UlpFecReceiverTest, PacketNotDroppedTooEarly) {
     // Add media packet to FEC receiver.
     for (auto it = media_packets_batch2.begin(); it != media_packets_batch2.end(); ++it) {
         EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
-        BuildAndAddRedMediaPacket(**it);
+        BuildAndAddRedMediaPacket(*it);
     }
 
     fec_packet_counter = fec_receiver_->packet_counter();
@@ -501,7 +500,7 @@ MY_TEST_F(UlpFecReceiverTest, PacketDroppedWhenTooOld) {
     // Encode to FEC packets.
     EXPECT_EQ(kNumFecPacketsBatch1, EncoderFec(media_packets_batch1, kNumFecPacketsBatch1));
     EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
-    BuildAndAddRedMediaPacket(**media_packets_batch1.begin());
+    BuildAndAddRedMediaPacket(*media_packets_batch1.begin());
 
     auto fec_packet_counter = fec_receiver_->packet_counter();
     EXPECT_EQ(1u, fec_packet_counter.num_received_packets);
@@ -521,7 +520,7 @@ MY_TEST_F(UlpFecReceiverTest, PacketDroppedWhenTooOld) {
     // Add media packet to FEC receiver.
     for (auto it = media_packets_batch2.begin(); it != media_packets_batch2.end(); ++it) {
         EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
-        BuildAndAddRedMediaPacket(**it);
+        BuildAndAddRedMediaPacket(*it);
     }
 
     fec_packet_counter = fec_receiver_->packet_counter();
@@ -563,7 +562,7 @@ MY_TEST_F(UlpFecReceiverTest, OldFecPacketDropped) {
     // and should have been dropped. Only the media packet we inserted will be
     // returned.
     EXPECT_CALL(recovered_packet_receiver_, OnRecoveredPacket(_)).Times(1);
-    BuildAndAddRedMediaPacket(**media_packets.begin());
+    BuildAndAddRedMediaPacket(*media_packets.begin());
     
 }
 
@@ -573,7 +572,7 @@ MY_TEST_F(UlpFecReceiverTest, MediaWithPadding) {
     PacketizeFrame(2, media_packets);
 
     // Append 4 bytes of padding to the first media packet.
-    auto first_media_packet = **media_packets.begin();
+    auto first_media_packet = *media_packets.begin();
     first_media_packet.SetPadding(4);
 
     // Generate one FEC packet.
@@ -581,13 +580,13 @@ MY_TEST_F(UlpFecReceiverTest, MediaWithPadding) {
 
     // Received the first media packet.
     auto media_it = media_packets.begin();
-    VerifyRecoveredMediaPacket(**media_it, 1);
-    BuildAndAddRedMediaPacket(**media_it);
+    VerifyRecoveredMediaPacket(*media_it, 1);
+    BuildAndAddRedMediaPacket(*media_it);
 
     // Missing the second media packet.
     ++media_it;
     // Received FEC packet to recover the missing media packet.
-    VerifyRecoveredMediaPacket(**media_it, 1);
+    VerifyRecoveredMediaPacket(*media_it, 1);
     BuildAndAddRedFecPacket(*generated_fec_packets_.begin());
 }
 

@@ -57,18 +57,18 @@ FecEncoder::FecEncoder(std::unique_ptr<FecHeaderWriter> fec_header_writer)
 
 FecEncoder::~FecEncoder() = default;
 
-std::pair<size_t, bool> FecEncoder::Encode(const PacketList& media_packets, 
-                                           uint8_t protection_factor, 
-                                           size_t num_important_packets, 
-                                           bool use_unequal_protection, 
-                                           FecMaskType fec_mask_type,
-                                           FecPacketList& generated_fec_packets) {
+bool FecEncoder::Encode(const PacketList& media_packets, 
+                        uint8_t protection_factor, 
+                        size_t num_important_packets, 
+                        bool use_unequal_protection, 
+                        FecMaskType fec_mask_type,
+                        FecPacketList& generated_fec_packets) {
     const size_t num_media_packets = media_packets.size();
     if (num_media_packets == 0) {
-        return {0, false};
+        return false;
     }
     if (num_important_packets > num_media_packets) {
-        return {0, false};
+        return false;
     }
 
     const size_t max_media_packets = fec_header_writer_->max_media_packets();
@@ -76,20 +76,20 @@ std::pair<size_t, bool> FecEncoder::Encode(const PacketList& media_packets,
         PLOG_WARNING << "Can not protect " << num_media_packets
                      << " media packets per frame greater than "
                      << max_media_packets << ".";
-        return {0, false};
+        return false;
     }
     
     // Sanity check for media packets
     for (const auto& media_packet : media_packets) {
-        if (media_packet->size() < kRtpHeaderSize) {
-            PLOG_WARNING << "Media packet size " << media_packet->size()
+        if (media_packet.size() < kRtpHeaderSize) {
+            PLOG_WARNING << "Media packet size " << media_packet.size()
                          << " is smaller than RTP fixed header size.";
-            return {0, false};
+            return false;
         }
 
         // Ensure the FEC packets will fit in a typical MTU
-        if (media_packet->size() + fec_header_writer_->max_packet_overhead() + kTransportOverhead > kIpPacketSize) {
-            PLOG_WARNING << "Media packet size " << media_packet->size()
+        if (media_packet.size() + fec_header_writer_->max_packet_overhead() + kTransportOverhead > kIpPacketSize) {
+            PLOG_WARNING << "Media packet size " << media_packet.size()
                          << " bytes with overhead is larger than "
                          << kIpPacketSize << " bytes.";
         }
@@ -98,9 +98,10 @@ std::pair<size_t, bool> FecEncoder::Encode(const PacketList& media_packets,
     // Prepare generated FEC packets
     size_t num_fec_packets = CalcNumFecPackets(num_media_packets, protection_factor);
     if (num_fec_packets == 0) {
-        return {0, true};
+        return true;
     }
- 
+    // Resize
+    generated_fec_packets.resize(num_fec_packets);
     packet_mask_size_ = FecPacketMaskGenerator::PacketMaskSize(num_fec_packets);
     memset(packet_masks_, 0, num_fec_packets * packet_mask_size_);
     packet_mask_generator_->GeneratePacketMasks(fec_mask_type, 
@@ -112,19 +113,19 @@ std::pair<size_t, bool> FecEncoder::Encode(const PacketList& media_packets,
     size_t num_mask_bits = InsertZeroInPacketMasks(media_packets, num_fec_packets);
     if (num_mask_bits < 0) {
         PLOG_INFO << "Due to sequence number gap, cannot protect media packets with a single block of FEC packets";
-        return {0, false};
+        return false;
     }
     // One mask bit to a media packet
     packet_mask_size_ = FecPacketMaskGenerator::PacketMaskSize(num_mask_bits);
 
     GenerateFecPayload(media_packets, num_fec_packets, generated_fec_packets);
 
-    auto first_madia_packet = media_packets.front();
-    const uint32_t media_ssrc = first_madia_packet->ssrc();
-    const uint16_t seq_num_base = first_madia_packet->sequence_number();
+    const auto& first_madia_packet = media_packets.front();
+    const uint32_t media_ssrc = first_madia_packet.ssrc();
+    const uint16_t seq_num_base = first_madia_packet.sequence_number();
     FinalizeFecHeaders(packet_mask_size_, media_ssrc, seq_num_base, num_fec_packets, generated_fec_packets);
     
-    return {num_fec_packets, true};
+    return true;
 }
 
 size_t FecEncoder::MaxFecPackets() const {
@@ -179,11 +180,11 @@ void FecEncoder::GenerateFecPayload(const PacketList& media_packets,
         size_t media_pkt_idx = 0;
         size_t media_packet_payload_size = 0;
         auto media_packets_it = media_packets.cbegin();
-        uint16_t prev_seq_num = media_packets_it->get()->sequence_number();
+        uint16_t prev_seq_num = media_packets_it->sequence_number();
         while (media_packets_it != media_packets.end()) {
-            RtpPacket* const media_packet = media_packets_it->get();
+            auto& media_packet = *media_packets_it;
             // Rtp header extensons + csrcs + payload data
-            media_packet_payload_size = media_packet->size() - media_header_size;
+            media_packet_payload_size = media_packet.size() - media_header_size;
 
             // The current media packet is protected by FEC packets
             if (packet_masks_[pkt_mask_idx] & (1 << (7 - media_pkt_idx))) {
@@ -197,7 +198,7 @@ void FecEncoder::GenerateFecPayload(const PacketList& media_packets,
                 // Initialized the fec packet for the current row
                 // with the first protected media packet.
                 if (is_first_protected_packet) {
-                    const uint8_t* media_packet_data = media_packet->data();
+                    const uint8_t* media_packet_data = media_packet.data();
                     uint8_t* fec_packet_data = fec_packet.data();
                     // Write fec header
                     // Write P, X, CC, M, and PT recovery fields.
@@ -213,17 +214,17 @@ void FecEncoder::GenerateFecPayload(const PacketList& media_packets,
                         memcpy(&fec_packet_data[fec_header_size], &media_packet_data[media_header_size], media_packet_payload_size);
                     }
                 } else {
-                    XorHeader(*media_packets_it->get(), media_packet_payload_size, fec_packet);
+                    XorHeader(media_packet, media_packet_payload_size, fec_packet);
                     XorPayload(media_header_size, 
                                media_packet_payload_size, 
-                               *media_packets_it->get(), 
+                               media_packet, 
                                fec_header_size,
                                fec_packet);
                 }
             }
             media_packets_it++;
             if (media_packets_it != media_packets.end()) {
-                uint16_t curr_seq_num = media_packets_it->get()->sequence_number();
+                uint16_t curr_seq_num = media_packets_it->sequence_number();
                 // Skip the missing media packets
                 media_pkt_idx += curr_seq_num - prev_seq_num;
                 prev_seq_num = curr_seq_num;
@@ -258,8 +259,8 @@ ssize_t FecEncoder::InsertZeroInPacketMasks(const PacketList& media_packets, siz
         return num_media_packets;
     }
 
-    uint16_t last_seq_num = media_packets.back()->sequence_number();
-    uint16_t first_seq_num = media_packets.front()->sequence_number();
+    uint16_t last_seq_num = media_packets.back().sequence_number();
+    uint16_t first_seq_num = media_packets.front().sequence_number();
 
     // missing packets = logic packets - real packets
     const size_t missing_seq_nums = static_cast<uint16_t>(last_seq_num - first_seq_num + 1) - num_media_packets;
@@ -295,7 +296,7 @@ ssize_t FecEncoder::InsertZeroInPacketMasks(const PacketList& media_packets, siz
         if (new_bit_index == max_media_packets) {
             break;
         }
-        curr_seq_num = media_packet_it->get()->sequence_number();
+        curr_seq_num = media_packet_it->sequence_number();
         num_zero_to_insert = curr_seq_num - prev_seq_num - 1;
 
         if (num_zero_to_insert > 0) {

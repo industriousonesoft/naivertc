@@ -40,6 +40,10 @@ public:
         : UlpFecGenerator(kRedPayloadType, kFecPayloadType) {}
 };
 
+// Verifies bug found via fuzzing, where a gap in the packet sequence caused us
+// to move past the end of the current FEC packet mask byte without moving to
+// the next byte. That likely caused us to repeatedly read from the same byte,
+// and if that byte didn't protect packets we would generate empty FEC.
 MY_TEST_F(UlpFecGeneratorTest, NoEmptyFecWithSeqNumGaps) {
     struct Packet {
         size_t header_size;
@@ -61,10 +65,10 @@ MY_TEST_F(UlpFecGeneratorTest, NoEmptyFecWithSeqNumGaps) {
     FecProtectionParams params = {117, 3, FecMaskType::BURSTY};
     SetProtectionParameters(params, params);
     for (auto& p : protected_packets) {
-        auto rtp_packet = std::make_shared<RtpPacketToSend>(nullptr);
-        rtp_packet->set_marker(p.marker);
-        rtp_packet->set_sequence_number(p.seq_num);
-        rtp_packet->AllocatePayload(p.payload_size);
+        RtpPacketToSend rtp_packet(nullptr);
+        rtp_packet.set_marker(p.marker);
+        rtp_packet.set_sequence_number(p.seq_num);
+        rtp_packet.AllocatePayload(p.payload_size);
         PushMediaPacket(std::move(rtp_packet));
 
         auto fec_packets = PopFecPackets();
@@ -83,25 +87,25 @@ MY_TEST_F(UlpFecGeneratorTest, OneFrameFec) {
     SetProtectionParameters(params, params);
     uint32_t last_timestamp = 0;
     for (size_t i = 0; i < kNumMediaPackets; ++i) {
-        auto media_packet = std::make_shared<RtpPacketToSend>(nullptr);
-        media_packet->set_sequence_number(i + 100);
-        media_packet->set_timestamp(1000 + i);
-        media_packet->set_payload_type(kVideoPayloadType);
-        media_packet->SetPayloadSize(100);
-        media_packet->set_marker(i == kNumMediaPackets - 1);
-        last_timestamp = media_packet->timestamp();
+        RtpPacketToSend media_packet(nullptr);
+        media_packet.set_sequence_number(i + 100);
+        media_packet.set_timestamp(1000 + i);
+        media_packet.set_payload_type(kVideoPayloadType);
+        media_packet.SetPayloadSize(100);
+        media_packet.set_marker(i == kNumMediaPackets - 1);
+        last_timestamp = media_packet.timestamp();
         PushMediaPacket(std::move(media_packet));
     }
 
     auto fec_packets = PopFecPackets();
-    EXPECT_EQ(fec_packets.size(), 1u);
+    ASSERT_EQ(fec_packets.size(), 1u);
     uint16_t seq_num = kNumMediaPackets + 100;
-    fec_packets[0]->set_sequence_number(seq_num);
+    fec_packets[0].set_sequence_number(seq_num);
     EXPECT_TRUE(PopFecPackets().empty());
 
-    EXPECT_EQ(fec_packets[0]->header_size(), kRtpHeaderSize);
+    EXPECT_EQ(fec_packets[0].header_size(), kRtpHeaderSize);
 
-    VerifyRtpHeader(seq_num, last_timestamp, kRedPayloadType, kFecPayloadType, false, kRtpHeaderSize, fec_packets[0]->data());
+    VerifyRtpHeader(seq_num, last_timestamp, kRedPayloadType, kFecPayloadType, false, kRtpHeaderSize, fec_packets[0].data());
 }
 
 MY_TEST_F(UlpFecGeneratorTest, TwoFrameFec) {
@@ -113,25 +117,25 @@ MY_TEST_F(UlpFecGeneratorTest, TwoFrameFec) {
     uint32_t last_timestamp = 0;
     for (size_t frame_i = 0; frame_i < kNumMediaFrames; ++frame_i) {
         for (size_t i = 0; i < kNumMediaPackets; ++i) {
-            auto media_packet = std::make_shared<RtpPacketToSend>(nullptr);
-            media_packet->set_sequence_number(seq_num++);
-            media_packet->set_timestamp(1000 + i);
-            media_packet->set_payload_type(kVideoPayloadType);
-            media_packet->SetPayloadSize(100);
-            media_packet->set_marker(i == kNumMediaPackets - 1);
-            last_timestamp = media_packet->timestamp();
+            RtpPacketToSend media_packet(nullptr);
+            media_packet.set_sequence_number(seq_num++);
+            media_packet.set_timestamp(1000 + i);
+            media_packet.set_payload_type(kVideoPayloadType);
+            media_packet.SetPayloadSize(100);
+            media_packet.set_marker(i == kNumMediaPackets - 1);
+            last_timestamp = media_packet.timestamp();
             PushMediaPacket(std::move(media_packet));
         }
     }
     
     auto fec_packets = PopFecPackets();
-    EXPECT_EQ(fec_packets.size(), 1u);
-    fec_packets[0]->set_sequence_number(seq_num);
+    ASSERT_EQ(fec_packets.size(), 1u);
+    fec_packets[0].set_sequence_number(seq_num);
     EXPECT_TRUE(PopFecPackets().empty());
 
-    EXPECT_EQ(fec_packets[0]->header_size(), kRtpHeaderSize);
+    EXPECT_EQ(fec_packets[0].header_size(), kRtpHeaderSize);
 
-    VerifyRtpHeader(seq_num, last_timestamp, kRedPayloadType, kFecPayloadType, false, kRtpHeaderSize, fec_packets[0]->data());
+    VerifyRtpHeader(seq_num, last_timestamp, kRedPayloadType, kFecPayloadType, false, kRtpHeaderSize, fec_packets[0].data());
 }
 
 MY_TEST_F(UlpFecGeneratorTest, UpdateProtectionParameters) {
@@ -143,13 +147,13 @@ MY_TEST_F(UlpFecGeneratorTest, UpdateProtectionParameters) {
     EXPECT_EQ(CurrentParams().max_fec_frames, 0);
     uint16_t seq_num = 100;
     auto add_frame = [&](bool is_key_frame, uint16_t seq_num) {
-        auto media_packet = std::make_shared<RtpPacketToSend>(nullptr);
-        media_packet->set_sequence_number(seq_num++);
-        media_packet->set_timestamp(seq_num);
-        media_packet->set_payload_type(kVideoPayloadType);
-        media_packet->SetPayloadSize(10);
-        media_packet->set_is_key_frame(is_key_frame);
-        media_packet->set_marker(true);
+        RtpPacketToSend media_packet(nullptr);
+        media_packet.set_sequence_number(seq_num++);
+        media_packet.set_timestamp(seq_num);
+        media_packet.set_payload_type(kVideoPayloadType);
+        media_packet.SetPayloadSize(10);
+        media_packet.set_is_key_frame(is_key_frame);
+        media_packet.set_marker(true);
         PushMediaPacket(std::move(media_packet));
     };
 

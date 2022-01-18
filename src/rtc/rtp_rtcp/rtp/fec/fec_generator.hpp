@@ -9,7 +9,6 @@
 
 namespace naivertc {
 
-// TODO: ULP和FLEX 在FEC编码上基本上是共用一套逻辑，可以抽象出来在FecGenerator中实现
 class RTC_CPP_EXPORT FecGenerator {
 public:
     enum class FecType {
@@ -28,14 +27,15 @@ public:
 
     virtual size_t MaxPacketOverhead() const  = 0;
 
-    virtual void SetProtectionParameters(const FecProtectionParams& delta_params, const FecProtectionParams& key_params) = 0;
+    virtual void SetProtectionParameters(const FecProtectionParams& delta_params, 
+                                         const FecProtectionParams& key_params) = 0;
 
     // Push a packt to be protected, and the generated FEC packets will be stored inside
-    virtual void PushMediaPacket(std::shared_ptr<RtpPacketToSend> packet) = 0;
+    virtual void PushMediaPacket(RtpPacketToSend packet) = 0;
 
     // Pop out FEC packets pending in the generator.
     // TODO: To assign sequnce number for FEC packets internally 
-    virtual std::vector<std::shared_ptr<RtpPacketToSend>> PopFecPackets() = 0;
+    virtual std::vector<RtpPacketToSend> PopFecPackets() = 0;
 };
     
 } // namespace naivertc
