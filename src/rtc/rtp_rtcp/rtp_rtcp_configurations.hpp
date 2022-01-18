@@ -3,7 +3,6 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp_statistic_structs.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 #include "rtc/api/media_transport.hpp"
@@ -13,6 +12,8 @@
 #include <memory>
 
 namespace naivertc {
+
+class FecGenerator;
 
 struct RTC_CPP_EXPORT RtpConfiguration {
     // True for a audio version of the RTP/RTCP module object false will create
@@ -34,11 +35,13 @@ struct RTC_CPP_EXPORT RtpConfiguration {
     // overhead.
     bool enable_rtx_padding_prioritization = true;
 
-    RtpSentStatisticsObserver* rtp_sent_statistics_observer = nullptr;
-
     Clock* clock;
     
-    MediaTransport* send_transport;
+    MediaTransport* send_transport = nullptr;
+
+    FecGenerator* fec_generator = nullptr;
+
+    RtpSentStatisticsObserver* rtp_sent_statistics_observer = nullptr;
 };
 
 struct RTC_CPP_EXPORT RtcpConfiguration {

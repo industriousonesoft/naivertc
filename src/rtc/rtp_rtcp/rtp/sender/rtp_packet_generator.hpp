@@ -6,6 +6,7 @@
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 
 #include <memory>
 #include <vector>
@@ -27,12 +28,12 @@ public:
     size_t max_rtp_packet_size() const;
     void set_max_rtp_packet_size(size_t max_size);
     
-    std::shared_ptr<RtpPacketToSend> AllocatePacket() const;
+    RtpPacketToSend AllocatePacket() const;
 
     // RTX
     std::optional<uint32_t> rtx_ssrc() const;
     void SetRtxPayloadType(int payload_type, int associated_payload_type);
-    std::shared_ptr<RtpPacketToSend> BuildRtxPacket(std::shared_ptr<const RtpPacketToSend>);
+    std::optional<RtpPacketToSend> BuildRtxPacket(const RtpPacketToSend& packet);
 
     // Maximum header overhead per fec/padding packet.
     size_t FecOrPaddingPacketMaxRtpHeaderSize() const;
@@ -41,7 +42,8 @@ private:
     void UpdateHeaderSizes();
 
     int32_t ResendPacket(uint16_t packet_id);
-    static void CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend>, RtpPacketToSend* rtx_packet);
+    static void CopyHeaderAndExtensionsToRtxPacket(const RtpPacketToSend& packet, 
+                                                   RtpPacketToSend* rtx_packet);
 
 private:
     SequenceChecker sequence_checker_;

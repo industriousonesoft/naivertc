@@ -28,10 +28,10 @@ public:
     size_t max_rtp_packet_size() const;
     void set_max_rtp_packet_size(size_t max_size);
  
-    std::shared_ptr<RtpPacketToSend> AllocatePacket() const;
+    RtpPacketToSend AllocatePacket() const;
 
     // Send
-    bool EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets);
+    bool EnqueuePackets(std::vector<RtpPacketToSend> packets);
     
     // Store the sent packets, needed to answer to Negative acknowledgment requests.
     void SetStorePacketsStatus(const bool enable, const uint16_t number_to_store);
@@ -67,10 +67,10 @@ private:
         NonPacedPacketSender(RtpSender* const sender);
         ~NonPacedPacketSender();
 
-        void EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets);
+        void EnqueuePackets(std::vector<RtpPacketToSend> packets);
 
     private:
-        void PrepareForSend(std::shared_ptr<RtpPacketToSend> packet);
+        void PrepareForSend(RtpPacketToSend& packet);
     private:
         uint16_t transport_sequence_number_;
         RtpSender* const sender_;

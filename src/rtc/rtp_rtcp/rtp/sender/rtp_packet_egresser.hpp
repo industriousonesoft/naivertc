@@ -35,9 +35,9 @@ public:
     void SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                     const FecProtectionParams& key_params);
 
-    void SendPacket(std::shared_ptr<RtpPacketToSend> packet);
+    void SendPacket(RtpPacketToSend packet);
 
-    std::vector<std::shared_ptr<RtpPacketToSend>> FetchFecPackets() const;
+    std::vector<RtpPacketToSend> FetchFecPackets() const;
 
     // Return the total bitrates for all kind packets so far.
     DataRate GetSendBitrate();
@@ -46,11 +46,11 @@ public:
     RtpStreamDataCounters GetRtxStreamDataCounter() const;
 
 private:
-    bool SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet);
+    bool SendPacketToNetwork(RtpPacketToSend packet);
 
-    bool HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet);
+    bool HasCorrectSsrc(const RtpPacketToSend& packet);
 
-    void SendPacketToNetworkFeedback(uint16_t packet_id, std::shared_ptr<RtpPacketToSend> packet);
+    void AddPacketToTransportFeedback(uint16_t packet_id, const RtpPacketToSend& packet);
     void UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc);
     void OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc);
 

@@ -16,7 +16,7 @@ public:
     SequenceNumberAssigner() = default;
     virtual ~SequenceNumberAssigner() = default;
 
-    virtual bool AssignSequenceNumber(std::shared_ptr<RtpPacketToSend> packet) = 0;
+    virtual bool Sequence(RtpPacketToSend& packet) = 0;
 };
 
 // NOTE: This class is not thread safe, the caller must provide that.
@@ -28,23 +28,23 @@ public:
     RtpPacketSequencer(const RtpConfiguration& config);
     ~RtpPacketSequencer();
 
-    uint16_t media_sequence_num() const { return media_sequence_num_; }
-    void set_media_sequence_num(uint16_t sequence_num) { media_sequence_num_ = sequence_num; }
+    uint16_t media_seq_num() const { return media_seq_num_; }
+    void set_media_seq_num(uint16_t sequence_num) { media_seq_num_ = sequence_num; }
 
-    uint16_t rtx_sequence_num() const { return rtx_sequence_num_; }
-    void set_rtx_sequence_num(uint16_t sequence_num) { rtx_sequence_num_ = sequence_num; }
+    uint16_t rtx_seq_num() const { return rtx_seq_num_; }
+    void set_rtx_seq_num(uint16_t sequence_num) { rtx_seq_num_ = sequence_num; }
 
     // Assigns sequence number, and in the case of non-RTX padding also timestamps and payload type.
     // Returns false if sequencing failed, which it can do for instance if the packet to sequence
     // is padding on the media ssrc, but the media is mid frame (the last marker bit is false).
-    bool AssignSequenceNumber(std::shared_ptr<RtpPacketToSend> packet) override;
+    bool Sequence(RtpPacketToSend& packet) override;
 
     void SetRtpState(const RtpState& state);
     void PupulateRtpState(RtpState& state);
 
 private:
-    void UpdateLastPacketState(std::shared_ptr<const RtpPacketToSend> packet);
-    bool PopulatePaddingFields(std::shared_ptr<RtpPacketToSend> packet);
+    void UpdateLastPacketState(const RtpPacketToSend& packet);
+    bool PopulatePaddingFields(RtpPacketToSend& packet);
 
 private:
     const uint32_t media_ssrc_;
@@ -52,8 +52,8 @@ private:
     const bool require_marker_before_media_padding_;
     std::shared_ptr<Clock> clock_;
 
-    uint16_t media_sequence_num_;
-    uint16_t rtx_sequence_num_;
+    uint16_t media_seq_num_;
+    uint16_t rtx_seq_num_;
 
     int8_t last_payload_type_;
     uint32_t last_rtp_timestamp_;

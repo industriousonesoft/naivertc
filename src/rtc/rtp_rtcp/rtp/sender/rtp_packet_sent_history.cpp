@@ -11,16 +11,22 @@ RtpPacketSentHistory::PacketState::PacketState(const PacketState&) = default;
 RtpPacketSentHistory::PacketState::~PacketState() = default;
 
 // StoredPacket
+RtpPacketSentHistory::StoredPacket::StoredPacket() 
+    : send_time_ms_(std::nullopt),
+      packet_(std::nullopt),
+      pending_transmission_(false),
+      insert_order_(0),
+      times_retransmitted_(0) {}
+
 RtpPacketSentHistory::StoredPacket::StoredPacket(
-    std::shared_ptr<RtpPacketToSend> packet,
+    RtpPacketToSend packet,
     std::optional<int64_t> send_time_ms,
     uint64_t insert_order)
     : send_time_ms_(send_time_ms),
       packet_(std::move(packet)),
       // No send time indicates packet is not sent immediately, but instead will
-      // be put in the pacer queue and later retrieved via
-      // GetPacketAndSetSendTime().
-      pending_transmission_(!send_time_ms.has_value()),
+      // be put in the pacer queue and later retrieved via GetPacketAndSetSendTime().
+      pending_transmission_(send_time_ms.has_value() == false),
       insert_order_(insert_order),
       times_retransmitted_(0) {}
 
@@ -104,9 +110,9 @@ void RtpPacketSentHistory::SetRttMs(int64_t rtt_ms) {
     }
 }
 
-void RtpPacketSentHistory::PutRtpPacket(std::shared_ptr<RtpPacketToSend> packet, std::optional<int64_t> send_time_ms) {
+void RtpPacketSentHistory::PutRtpPacket(RtpPacketToSend packet, std::optional<int64_t> send_time_ms) {
     RTC_RUN_ON(&sequence_checker_);
-    if (packet == nullptr) {
+    if (packet.empty()) {
         PLOG_WARNING << "Invalid packet to send.";
         return;
     }
@@ -115,17 +121,17 @@ void RtpPacketSentHistory::PutRtpPacket(std::shared_ptr<RtpPacketToSend> packet,
         return;
     }
 
-    if (!packet->allow_retransmission()) {
+    if (!packet.allow_retransmission()) {
         return;
     }
     CullOldPackets(now_ms);
 
     // Store packet.
-    const uint16_t rtp_seq_no = packet->sequence_number();
+    const uint16_t rtp_seq_no = packet.sequence_number();
     int packet_index = GetPacketIndex(rtp_seq_no);
     if (packet_index >= 0 &&
         static_cast<size_t>(packet_index) < packet_history_.size() &&
-        packet_history_[packet_index].packet_ != nullptr) {
+        packet_history_[packet_index].packet_) {
         PLOG_WARNING << "Duplicate packet inserted: " << rtp_seq_no;
         // Remove previous packet to avoid inconsistent state.
         RemovePacket(packet_index);
@@ -134,18 +140,18 @@ void RtpPacketSentHistory::PutRtpPacket(std::shared_ptr<RtpPacketToSend> packet,
 
     // Packet to be inserted ahead of first packet, expand front.
     for (; packet_index < 0; ++packet_index) {
-        packet_history_.emplace_front(nullptr, std::nullopt, 0);
+        packet_history_.emplace_front();
     }
     // Packet to be inserted behind last packet, expand back.
     while (static_cast<int>(packet_history_.size()) <= packet_index) {
-        packet_history_.emplace_back(nullptr, std::nullopt, 0);
+        packet_history_.emplace_back();
     }
 
     if (packet_index < 0 || packet_index >= packet_history_.size()) {
         PLOG_WARNING << "Invalid packet index: " << packet_index;
         return;
     }
-    if (packet_history_[packet_index].packet_ != nullptr) {
+    if (packet_history_[packet_index].packet_) {
         PLOG_WARNING << "Packet for index :" << packet_index << " is already set.";
         return;
     }
@@ -163,19 +169,19 @@ void RtpPacketSentHistory::PutRtpPacket(std::shared_ptr<RtpPacketToSend> packet,
     }
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndSetSendTime(uint16_t sequence_number) {
+std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndSetSendTime(uint16_t sequence_number) {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
-        return std::shared_ptr<RtpPacketToSend>(nullptr);;
+        return std::nullopt;
     }
     StoredPacket* stored_packet = GetStoredPacket(sequence_number);
     if (stored_packet == nullptr) {
-        return std::shared_ptr<RtpPacketToSend>(nullptr);
+        return std::nullopt;
     }
 
     int64_t now_ms = clock_->now_ms();
     if (!VerifyRtt(*stored_packet, now_ms)) {
-        return std::shared_ptr<RtpPacketToSend>(nullptr);
+        return std::nullopt;
     } 
 
     if (stored_packet->send_time_ms_) {
@@ -185,39 +191,40 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndSetSendTime(u
     stored_packet->send_time_ms_ = now_ms;
     stored_packet->pending_transmission_ = false;
 
+    // Return copy of packet instance since it may need to be retransmitted.
     return stored_packet->packet_;
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(uint16_t sequence_number) {
-    return GetPacketAndMarkAsPending(sequence_number, [](std::shared_ptr<RtpPacketToSend> packet){
+std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(uint16_t sequence_number) {
+    return GetPacketAndMarkAsPending(sequence_number, [](const RtpPacketToSend& packet){
         return packet;
     });
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
-            std::function<std::shared_ptr<RtpPacketToSend>(std::shared_ptr<RtpPacketToSend>)> encapsulate) {
+std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
+            std::function<std::optional<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate) {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
-        return std::shared_ptr<RtpPacketToSend>(nullptr);
+        return std::nullopt;
     }
 
     StoredPacket* stored_packet = GetStoredPacket(sequence_number);
-    if (stored_packet == nullptr) {
-        return std::shared_ptr<RtpPacketToSend>(nullptr);
+    if (stored_packet == nullptr || stored_packet->packet_.has_value() == false) {
+        return std::nullopt;
     }
 
     if (stored_packet->pending_transmission_) {
         // Packet already in pacer queue, ignore this request.
-        return std::shared_ptr<RtpPacketToSend>(nullptr);
+        return std::nullopt;
     }
 
     if (!VerifyRtt(*stored_packet, clock_->now_ms())) {
         // Packet already resent within too short a time window, ignore.
-        return std::shared_ptr<RtpPacketToSend>(nullptr);
+        return std::nullopt;
     }
 
     // Copy and/or encapsulate packet.
-    std::shared_ptr<RtpPacketToSend> encapsulated_packet = encapsulate(stored_packet->packet_);
+    auto encapsulated_packet = encapsulate(*stored_packet->packet_);
     if (encapsulated_packet) {
         stored_packet->pending_transmission_ = true;
     }
@@ -251,37 +258,38 @@ void RtpPacketSentHistory::MarkPacketAsSent(uint16_t sequence_number) {
 std::optional<RtpPacketSentHistory::PacketState> RtpPacketSentHistory::GetPacketState(uint16_t sequence_number) const {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
-        return std::optional<PacketState>(std::nullopt);
+        return std::nullopt;
     }
 
     int packet_index = GetPacketIndex(sequence_number);
     if (packet_index < 0 ||
         static_cast<size_t>(packet_index) >= packet_history_.size()) {
-        return std::optional<PacketState>(std::nullopt);
+        return std::nullopt;
     }
     const StoredPacket& stored_packet = packet_history_[packet_index];
-    if (stored_packet.packet_ == nullptr) {
-        return std::optional<PacketState>(std::nullopt);
+    if (!stored_packet.packet_) {
+        return std::nullopt;
     }
 
     if (!VerifyRtt(stored_packet, clock_->now_ms())) {
-        return std::optional<PacketState>(std::nullopt);
+        return std::nullopt;
     }
 
-    return std::make_optional<PacketState>(StoredPacketToPacketState(stored_packet));
+    return StoredPacketToPacketState(stored_packet);
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket() {
-    return GetPayloadPaddingPacket([](std::shared_ptr<RtpPacketToSend> packet){
+std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket() {
+    return GetPayloadPaddingPacket([](const RtpPacketToSend& packet){
+        // Just returns a copy of the packet.
         return packet;
     });
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket(
-        std::function<std::shared_ptr<RtpPacketToSend>(std::shared_ptr<RtpPacketToSend>)> encapsulate) {
+std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket(
+        std::function<std::optional<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate) {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
-        return std::shared_ptr<RtpPacketToSend>(nullptr);
+        return std::nullopt;
     }
 
     StoredPacket* best_packet = nullptr;
@@ -291,14 +299,14 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket(
     } else if (!enable_padding_prio_ && !packet_history_.empty()) {
         // Prioritization not available, pick the last packet.
         for (auto it = packet_history_.rbegin(); it != packet_history_.rend(); ++it) {
-            if (it->packet_ != nullptr) {
+            if (it->packet_) {
                 best_packet = &(*it);
                 break;
             }
         }
     }
     if (best_packet == nullptr) {
-        return std::shared_ptr<RtpPacketToSend>(nullptr);
+        return std::nullopt;
     }
 
     if (best_packet->pending_transmission_) {
@@ -307,12 +315,12 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket(
         // packet ends up here instead of the regular transmit path. In such a
         // case, just return empty and it will be picked up on the next
         // Process() call.
-        return std::shared_ptr<RtpPacketToSend>(nullptr);
+        return std::nullopt;
     }
 
-    auto padding_packet = encapsulate(best_packet->packet_);
+    auto padding_packet = encapsulate(*best_packet->packet_);
     if (!padding_packet) {
-        return std::shared_ptr<RtpPacketToSend>(nullptr);
+        return std::nullopt;
     }
 
     best_packet->send_time_ms_ = clock_->now_ms();
@@ -405,10 +413,15 @@ void RtpPacketSentHistory::CullOldPackets(int64_t now_ms) {
     
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::RemovePacket(int packet_index) {
+std::optional<RtpPacketToSend> RtpPacketSentHistory::RemovePacket(int packet_index) {
     // Move the packet out from the StoredPacket container.
-    std::shared_ptr<RtpPacketToSend> rtp_packet = std::move(packet_history_[packet_index].packet_);
+    std::optional<RtpPacketToSend> rtp_packet = std::nullopt;
 
+    auto& packet_to_remove = packet_history_[packet_index].packet_;
+    if (packet_to_remove) {
+        rtp_packet = std::move(*packet_to_remove);
+        packet_to_remove.reset();
+    }
     // Erase from padding priority set, if eligible.
     if (enable_padding_prio_) {
         padding_priority_.erase(&packet_history_[packet_index]);
@@ -416,7 +429,7 @@ std::shared_ptr<RtpPacketToSend> RtpPacketSentHistory::RemovePacket(int packet_i
 
     if (packet_index == 0) {
         while (!packet_history_.empty() &&
-                packet_history_.front().packet_ == nullptr) {
+                packet_history_.front().packet_.has_value() == false) {
             packet_history_.pop_front();
         }
     }
@@ -429,7 +442,7 @@ int RtpPacketSentHistory::GetPacketIndex(uint16_t sequence_number) const {
         return 0;
     }
 
-    assert(packet_history_.front().packet_ != nullptr);
+    assert(packet_history_.front().packet_);
     int first_seq = packet_history_.front().packet_->sequence_number();
     if (first_seq == sequence_number) {
         return 0;
@@ -453,8 +466,9 @@ int RtpPacketSentHistory::GetPacketIndex(uint16_t sequence_number) const {
 
 RtpPacketSentHistory::StoredPacket* RtpPacketSentHistory::GetStoredPacket(uint16_t sequence_number) {
     int index = GetPacketIndex(sequence_number);
-    if (index < 0 || static_cast<size_t>(index) >= packet_history_.size() ||
-        packet_history_[index].packet_ == nullptr) {
+    if (index < 0 || 
+        static_cast<size_t>(index) >= packet_history_.size() ||
+        packet_history_[index].packet_.has_value() == false) {
         return nullptr;
     }
     return &packet_history_[index];

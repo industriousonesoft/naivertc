@@ -55,15 +55,15 @@ void RtpPacketGenerator::set_max_rtp_packet_size(size_t max_size) {
     max_packet_size_ = max_size;
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketGenerator::AllocatePacket() const {
+RtpPacketToSend RtpPacketGenerator::AllocatePacket() const {
     RTC_RUN_ON(&sequence_checker_);
     // While sending slightly oversized packet increase chance of dropped packet,
     // it is better than crash on drop packet without trying to send it.
     // TODO: Find better motivator and value for extra capacity.
     static constexpr int kExtraCapacity = 16;
-    auto packet = std::make_shared<RtpPacketToSend>(extension_manager_, max_packet_size_ + kExtraCapacity);
-    packet->set_ssrc(ssrc_);
-    packet->set_csrcs(csrcs_);
+    auto packet = RtpPacketToSend(extension_manager_, max_packet_size_ + kExtraCapacity);
+    packet.set_ssrc(ssrc_);
+    packet.set_csrcs(csrcs_);
     // TODO: Reserve extensions if registered
     return packet;
 }
@@ -94,35 +94,35 @@ void RtpPacketGenerator::SetRtxPayloadType(int payload_type, int associated_payl
     rtx_payload_type_map_[associated_payload_type] = payload_type;
 }
 
-std::shared_ptr<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(std::shared_ptr<const RtpPacketToSend> packet) {
+std::optional<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(const RtpPacketToSend& packet) {
     RTC_RUN_ON(&sequence_checker_);
     if (!rtx_ssrc_.has_value()) {
         PLOG_WARNING << "Failed to build RTX packet withou RTX ssrc.";
-        return nullptr;
+        return std::nullopt;
     }
-    auto kv = rtx_payload_type_map_.find(packet->payload_type());
+    auto kv = rtx_payload_type_map_.find(packet.payload_type());
     if (kv == rtx_payload_type_map_.end()) {
-        return nullptr;
+        return std::nullopt;
     }
 
-    auto rtx_packet = std::make_shared<RtpPacketToSend>(max_packet_size_);
-    rtx_packet->set_payload_type(kv->second);
-    rtx_packet->set_ssrc(rtx_ssrc_.value());
+    auto rtx_packet = RtpPacketToSend(max_packet_size_);
+    rtx_packet.set_payload_type(kv->second);
+    rtx_packet.set_ssrc(rtx_ssrc_.value());
 
-    CopyHeaderAndExtensionsToRtxPacket(packet, rtx_packet.get());
+    CopyHeaderAndExtensionsToRtxPacket(packet, &rtx_packet);
 
-    uint8_t* rtx_payload = rtx_packet->AllocatePayload(packet->payload_size() + kRtxHeaderSize);
+    uint8_t* rtx_payload = rtx_packet.AllocatePayload(packet.payload_size() + kRtxHeaderSize);
 
-    // Add original sequence number
-    ByteWriter<uint16_t>::WriteBigEndian(rtx_payload, packet->sequence_number());
+    // Add OSN (original sequence number)
+    ByteWriter<uint16_t>::WriteBigEndian(rtx_payload, packet.sequence_number());
 
     // Copy original payload data
-    memcpy(rtx_payload + kRtxHeaderSize, packet->payload().data(), packet->payload_size());
+    memcpy(rtx_payload + kRtxHeaderSize, packet.payload().data(), packet.payload_size());
 
-    // TODO: To set addtional data if necessary
+    // TODO: To add original addtional data if necessary
 
     // FIXME: Copy capture time so e.g. TransmissionOffset is correctly set. Why?
-    rtx_packet->set_capture_time_ms(packet->capture_time_ms());
+    rtx_packet.set_capture_time_ms(packet.capture_time_ms());
     
     return rtx_packet;
 }
@@ -136,19 +136,19 @@ void RtpPacketGenerator::UpdateHeaderSizes() {
     // TODO: To calculate the maximum size of media packet header
 }
 
-void RtpPacketGenerator::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<const RtpPacketToSend> packet, RtpPacketToSend* rtx_packet) {
+void RtpPacketGenerator::CopyHeaderAndExtensionsToRtxPacket(const RtpPacketToSend& packet, RtpPacketToSend* rtx_packet) {
     // Set the relevant fixed fields in the packet headers.
     // The following are not set:
     // - Payload type: it is replaced in RTX packet.
     // - Sequence number: RTX has a seperate sequence numbering.
     // - SSRC: RTX stream has its own SSRC
-    rtx_packet->set_marker(packet->marker());
-    rtx_packet->set_timestamp(packet->timestamp());
+    rtx_packet->set_marker(packet.marker());
+    rtx_packet->set_timestamp(packet.timestamp());
 
     // Set the variable fields in the packet header
     // - CSRCs: must be set before header extensions
     // - Header extensions: repalce Rid header with RepairedRid header
-    const std::vector<uint32_t> csrcs = packet->csrcs();
+    const std::vector<uint32_t> csrcs = packet.csrcs();
     rtx_packet->set_csrcs(csrcs);
 
     for (int index = int(RtpExtensionType::NONE) + 1; index < int(RtpExtensionType::NUMBER_OF_EXTENSIONS); ++index) {
@@ -162,11 +162,11 @@ void RtpPacketGenerator::CopyHeaderAndExtensionsToRtxPacket(std::shared_ptr<cons
             continue;
         }
 
-        if (!packet->HasExtension(extension_type)) {
+        if (!packet.HasExtension(extension_type)) {
             continue;
         }
 
-        ArrayView<const uint8_t> source = packet->FindExtension(extension_type);
+        ArrayView<const uint8_t> source = packet.FindExtension(extension_type);
         ArrayView<uint8_t> destination = rtx_packet->AllocateExtension(extension_type, source.size());
         
         // Could happen if any:

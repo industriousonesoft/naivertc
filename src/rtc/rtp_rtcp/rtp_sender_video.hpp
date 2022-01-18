@@ -33,7 +33,9 @@ public:
 private:
     void MaybeUpdateCurrentPlayoutDelay(const RtpVideoHeader& header);
 
-    void AddRtpHeaderExtensions(std::shared_ptr<RtpPacketToSend> packet);
+    void AddRtpHeaderExtensions(bool first_packet, 
+                                bool last_packet, 
+                                RtpPacketToSend& packet);
 
     RtpPacketizer* Packetize(video::CodecType codec_type, 
                              ArrayView<const uint8_t> payload, 

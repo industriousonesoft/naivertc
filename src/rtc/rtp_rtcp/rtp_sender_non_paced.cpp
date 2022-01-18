@@ -9,7 +9,7 @@ RtpSender::NonPacedPacketSender::NonPacedPacketSender(RtpSender* const sender)
 
 RtpSender::NonPacedPacketSender::~NonPacedPacketSender() = default;
 
-void RtpSender::NonPacedPacketSender::EnqueuePackets(std::vector<std::shared_ptr<RtpPacketToSend>> packets) {
+void RtpSender::NonPacedPacketSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
     for (auto& packet : packets) {
         PrepareForSend(packet);
         sender_->packet_egresser_.SendPacket(packet);
@@ -25,7 +25,7 @@ void RtpSender::NonPacedPacketSender::EnqueuePackets(std::vector<std::shared_ptr
         const bool fec_red_enabled = sender_->fec_generator_->fec_ssrc().has_value() == false;
         for (auto& packet : fec_packets) {
             if (fec_red_enabled) {
-                sender_->packet_sequencer_.AssignSequenceNumber(packet);
+                sender_->packet_sequencer_.Sequence(packet);
             }
             PrepareForSend(packet);
         }
@@ -34,13 +34,13 @@ void RtpSender::NonPacedPacketSender::EnqueuePackets(std::vector<std::shared_ptr
 }
 
 // Private methods
-void RtpSender::NonPacedPacketSender::PrepareForSend(std::shared_ptr<RtpPacketToSend> packet) {
-    if (!packet->SetExtension<rtp::TransportSequenceNumber>(++transport_sequence_number_)) {
+void RtpSender::NonPacedPacketSender::PrepareForSend(RtpPacketToSend& packet) {
+    if (!packet.SetExtension<rtp::TransportSequenceNumber>(++transport_sequence_number_)) {
         --transport_sequence_number_;
     }
     // TODO: Why do we need to reserver extension here??
-    packet->ReserveExtension<rtp::TransmissionTimeOffset>();
-    packet->ReserveExtension<rtp::AbsoluteSendTime>();
+    packet.ReserveExtension<rtp::TransmissionTimeOffset>();
+    packet.ReserveExtension<rtp::AbsoluteSendTime>();
 }
     
 } // namespace naivertc

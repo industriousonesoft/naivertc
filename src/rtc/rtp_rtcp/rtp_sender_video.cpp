@@ -51,36 +51,36 @@ bool RtpSenderVideo::Send(int payload_type,
         packet_capacity -= kRtxHeaderSize;
     }
 
-    std::shared_ptr<RtpPacketToSend> single_packet = packet_sender_->AllocatePacket();
-    if (packet_capacity > single_packet->capacity()) {
+    RtpPacketToSend single_packet = packet_sender_->AllocatePacket();
+    if (packet_capacity > single_packet.capacity()) {
         PLOG_WARNING << "The maximum RTP packet capacity without FEC or RTX overhead should less than the capacity of allocated RTP packet.";
         return false;
     }
 
-    single_packet->set_payload_type(payload_type);
-    single_packet->set_timestamp(rtp_timestamp);
-    single_packet->set_capture_time_ms(capture_time_ms);
+    single_packet.set_payload_type(payload_type);
+    single_packet.set_timestamp(rtp_timestamp);
+    single_packet.set_capture_time_ms(capture_time_ms);
 
     // TODO: To calculate absolute capture time and add to extension
 
-    auto first_packet = std::make_shared<RtpPacketToSend>(*single_packet);
-    auto middle_packet = std::make_shared<RtpPacketToSend>(*single_packet);
-    auto last_packet = std::make_shared<RtpPacketToSend>(*single_packet);
+    RtpPacketToSend first_packet = single_packet;
+    RtpPacketToSend middle_packet = single_packet;
+    RtpPacketToSend last_packet = single_packet;
 
-    AddRtpHeaderExtensions(single_packet);
-    assert(packet_capacity > single_packet->header_size());
-    AddRtpHeaderExtensions(first_packet);
-    assert(packet_capacity > first_packet->header_size());
-    AddRtpHeaderExtensions(middle_packet);
-    assert(packet_capacity > middle_packet->header_size());
-    AddRtpHeaderExtensions(last_packet);
-    assert(packet_capacity > last_packet->header_size());
+    AddRtpHeaderExtensions(/*first_packet=*/true, /*last_packet=*/true, single_packet);
+    assert(packet_capacity > single_packet.header_size());
+    AddRtpHeaderExtensions(/*first_packet=*/true, /*last_packet=*/false, first_packet);
+    assert(packet_capacity > first_packet.header_size());
+    AddRtpHeaderExtensions(/*first_packet=*/false, /*last_packet=*/false, middle_packet);
+    assert(packet_capacity > middle_packet.header_size());
+    AddRtpHeaderExtensions(/*first_packet=*/false, /*last_packet=*/true, last_packet);
+    assert(packet_capacity > last_packet.header_size());
 
     RtpPacketizer::PayloadSizeLimits limits;
-    limits.max_payload_size = packet_capacity - middle_packet->header_size();
-    limits.single_packet_reduction_size = single_packet->header_size() - middle_packet->header_size();
-    limits.first_packet_reduction_size = first_packet->header_size() - middle_packet->header_size();
-    limits.last_packet_reduction_size = last_packet->header_size() - middle_packet->header_size();
+    limits.max_payload_size = packet_capacity - middle_packet.header_size();
+    limits.single_packet_reduction_size = single_packet.header_size() - middle_packet.header_size();
+    limits.first_packet_reduction_size = first_packet.header_size() - middle_packet.header_size();
+    limits.last_packet_reduction_size = last_packet.header_size() - middle_packet.header_size();
 
     auto packetizer = Packetize(video_header.codec_type, payload, limits);
 
@@ -98,10 +98,10 @@ bool RtpSenderVideo::Send(int payload_type,
     }
 
     size_t packetized_payload_size = 0;
-    std::vector<std::shared_ptr<RtpPacketToSend>> rtp_packets;
+    std::vector<RtpPacketToSend> rtp_packets;
 
     for (size_t i = 0; i < num_of_packets; ++i) {
-        std::shared_ptr<RtpPacketToSend> packet;
+        std::optional<RtpPacketToSend> packet = std::nullopt;
         int expected_payload_capacity;
         if (num_of_packets == 1) {
             packet = std::move(single_packet);
@@ -113,14 +113,15 @@ bool RtpSenderVideo::Send(int payload_type,
             packet = std::move(last_packet);
             expected_payload_capacity = limits.max_payload_size - limits.last_packet_reduction_size;
         } else {
-            // There are more than one middle packet, so we need to create a new one instead of std::move
-            packet = std::make_shared<RtpPacketToSend>(*middle_packet);
+            // Multiple packets in middle size will be created.
+            packet = middle_packet;
             expected_payload_capacity = limits.max_payload_size;
         }
+        assert(packet);
 
         packet->set_is_first_packet_of_frame(i == 0);
 
-        if (!packetizer->NextPacket(packet.get())) {
+        if (!packetizer->NextPacket(&packet.value())) {
             return false;
         }
 
@@ -140,7 +141,7 @@ bool RtpSenderVideo::Send(int payload_type,
         packet->set_red_protection_need(packet_sender_->red_enabled());
         packet->set_packet_type(RtpPacketType::VIDEO);
         packetized_payload_size += packet->payload_size();
-        rtp_packets.emplace_back(std::move(packet));
+        rtp_packets.emplace_back(std::move(*packet));
 
     } // end of for
 
@@ -162,9 +163,12 @@ bool RtpSenderVideo::Send(int payload_type,
 }
 
 // Private methods
-void RtpSenderVideo::AddRtpHeaderExtensions(std::shared_ptr<RtpPacketToSend> packet) {
+void RtpSenderVideo::AddRtpHeaderExtensions(bool first_packet, 
+                                            bool last_packet, 
+                                            RtpPacketToSend& packet) {
     if (playout_delay_pending_) {
-        packet->SetExtension<rtp::PlayoutDelayLimits>(current_playout_delay_.min_ms, current_playout_delay_.max_ms);
+        packet.SetExtension<rtp::PlayoutDelayLimits>(current_playout_delay_.min_ms, 
+                                                     current_playout_delay_.max_ms);
     }
     // TODO: Support more extensions
 }

@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 
 #include <plog/Log.h>
 
@@ -51,23 +52,23 @@ RtpPacketEgresser::~RtpPacketEgresser() {
     pending_fec_params_.emplace(delta_params, key_params);
 }
 
-void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
+void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     RTC_RUN_ON(worker_queue_);
-    if (!packet) {
+    if (!packet.empty()) {
         return;
     }
     if (!HasCorrectSsrc(packet)) {
         return;
     }
 
-    if (packet->packet_type() == RtpPacketType::RETRANSMISSION && !packet->retransmitted_sequence_number().has_value()) {
+    if (packet.packet_type() == RtpPacketType::RETRANSMISSION && !packet.retransmitted_sequence_number().has_value()) {
         PLOG_WARNING << "Retransmission RTP packet can not send without retransmitted sequence number.";
         return;
     }
 
     // TODO: Update sequence number info map
 
-    if (fec_generator_ && packet->fec_protection_need()) {
+    if (fec_generator_ && packet.fec_protection_need()) {
         
         std::optional<std::pair<FecProtectionParams, FecProtectionParams>> new_fec_params;
         new_fec_params.swap(pending_fec_params_);
@@ -76,7 +77,7 @@ void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
         }
 
         // TODO: To generate FEC(ULP or FLEX) packet packetized in RED or sent by new ssrc stream
-        if (packet->red_protection_need()) {
+        if (packet.red_protection_need()) {
             fec_generator_->PushMediaPacket(packet);
         } else {
             fec_generator_->PushMediaPacket(packet);
@@ -84,7 +85,7 @@ void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
         
     }  
 
-    const uint32_t packet_ssrc = packet->ssrc();
+    const uint32_t packet_ssrc = packet.ssrc();
     const int64_t now_ms = clock_->now_ms();
 
     // Bug webrtc:7859. While FEC is invoked from rtp_sender_video, and not after
@@ -95,30 +96,30 @@ void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
     // In case of VideoTimingExtension, since it's present not in every packet,
     // data after rtp header may be corrupted if these packets are protected by
     // the FEC.
-    int64_t diff_ms = now_ms - packet->capture_time_ms();
-    if (packet->HasExtension<rtp::TransmissionTimeOffset>()) {
-        packet->SetExtension<rtp::TransmissionTimeOffset>(kTimestampTicksPerMs * diff_ms);
+    int64_t diff_ms = now_ms - packet.capture_time_ms();
+    if (packet.HasExtension<rtp::TransmissionTimeOffset>()) {
+        packet.SetExtension<rtp::TransmissionTimeOffset>(kTimestampTicksPerMs * diff_ms);
     }
 
-    if (packet->HasExtension<rtp::AbsoluteSendTime>()) {
-        packet->SetExtension<rtp::AbsoluteSendTime>(rtp::AbsoluteSendTime::MsTo24Bits(now_ms));
+    if (packet.HasExtension<rtp::AbsoluteSendTime>()) {
+        packet.SetExtension<rtp::AbsoluteSendTime>(rtp::AbsoluteSendTime::MsTo24Bits(now_ms));
     }
 
     // TODO: Update VideoTimingExtension?
 
-    const bool is_media = packet->packet_type() == RtpPacketType::AUDIO ||
-                        packet->packet_type() == RtpPacketType::VIDEO;
+    const bool is_media = packet.packet_type() == RtpPacketType::AUDIO ||
+                        packet.packet_type() == RtpPacketType::VIDEO;
     
-    auto transport_seq_num_ext = packet->GetExtension<rtp::TransportSequenceNumber>();
+    auto transport_seq_num_ext = packet.GetExtension<rtp::TransportSequenceNumber>();
     if (transport_seq_num_ext) {
-        SendPacketToNetworkFeedback(transport_seq_num_ext->transport_sequence_number(), packet);
+        AddPacketToTransportFeedback(transport_seq_num_ext->transport_sequence_number(), packet);
     }
 
-    if (packet->packet_type() != RtpPacketType::PADDING &&
-        packet->packet_type() != RtpPacketType::RETRANSMISSION) {
-        UpdateDelayStatistics(packet->capture_time_ms(), now_ms, packet_ssrc);
+    if (packet.packet_type() != RtpPacketType::PADDING &&
+        packet.packet_type() != RtpPacketType::RETRANSMISSION) {
+        UpdateDelayStatistics(packet.capture_time_ms(), now_ms, packet_ssrc);
         if (transport_seq_num_ext) {
-            OnSendPacket(transport_seq_num_ext->transport_sequence_number(), packet->capture_time_ms(), packet_ssrc);
+            OnSendPacket(transport_seq_num_ext->transport_sequence_number(), packet.capture_time_ms(), packet_ssrc);
         }
     }
 
@@ -126,10 +127,10 @@ void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
 
     // Put packet in retransmission history or update pending status even if
     // actual sending fails.
-    if (is_media && packet->allow_retransmission()) {
+    if (is_media && packet.allow_retransmission()) {
         packet_history_->PutRtpPacket(packet, now_ms);
-    } else if (packet->retransmitted_sequence_number()) {
-        packet_history_->MarkPacketAsSent(*packet->retransmitted_sequence_number());
+    } else if (packet.retransmitted_sequence_number()) {
+        packet_history_->MarkPacketAsSent(*packet.retransmitted_sequence_number());
     }
 
     if (send_success) {
@@ -141,16 +142,16 @@ void RtpPacketEgresser::SendPacket(std::shared_ptr<RtpPacketToSend> packet) {
         // TODO(sprang): Add support for FEC protecting all header extensions, add media packet to generator here instead.
         
         worker_queue_->Post([this, now_ms, packet](){
-            UpdateSentStatistics(now_ms, *packet.get());
+            UpdateSentStatistics(now_ms, packet);
         });
     } else {
         // TODO: We should clear the FEC packets if send failed?
     }
 }
 
-std::vector<std::shared_ptr<RtpPacketToSend>> RtpPacketEgresser::FetchFecPackets() const {
+std::vector<RtpPacketToSend> RtpPacketEgresser::FetchFecPackets() const {
     RTC_RUN_ON(worker_queue_);
-    std::vector<std::shared_ptr<RtpPacketToSend>> packets;
+    std::vector<RtpPacketToSend> packets;
     // TODO: Fetch FEC packets from FEC generator
     return packets;
 }
@@ -180,30 +181,30 @@ DataRate RtpPacketEgresser::CalcTotalSendBitrate(const int64_t now_ms) {
     return send_bitrate;
 }
 
-bool RtpPacketEgresser::SendPacketToNetwork(std::shared_ptr<RtpPacketToSend> packet) {
+bool RtpPacketEgresser::SendPacketToNetwork(RtpPacketToSend packet) {
     // TODO: Send packet to network by transport
     return false;
 }
 
-bool RtpPacketEgresser::HasCorrectSsrc(std::shared_ptr<RtpPacketToSend> packet) {
-    switch (packet->packet_type())
+bool RtpPacketEgresser::HasCorrectSsrc(const RtpPacketToSend& packet) {
+    switch (packet.packet_type())
     {
     case RtpPacketType::AUDIO:
     case RtpPacketType::VIDEO:
-        return packet->ssrc() == ssrc_;
+        return packet.ssrc() == ssrc_;
     case RtpPacketType::RETRANSMISSION:
     case RtpPacketType::PADDING:
         // Both padding and retransmission must be on either the media
         // or the RTX stream.
-        return packet->ssrc() == ssrc_ || packet->ssrc() == rtx_ssrc_;
+        return packet.ssrc() == ssrc_ || packet.ssrc() == rtx_ssrc_;
     case RtpPacketType::FEC:
         // FlexFEC is on separate SSRC, ULPFEC uses media SSRC.
-        return packet->ssrc() == ssrc_ || packet->ssrc() == fec_generator_->fec_ssrc();
+        return packet.ssrc() == ssrc_ || packet.ssrc() == fec_generator_->fec_ssrc();
     }
     return false;
 }
 
-void RtpPacketEgresser::SendPacketToNetworkFeedback(uint16_t packet_id, std::shared_ptr<RtpPacketToSend> packet) {
+void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id, const RtpPacketToSend& packet) {
 
 }
 
