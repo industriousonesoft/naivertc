@@ -51,7 +51,7 @@ public:
     };
 
 public:
-    RtpPacketSentHistory(const RtpConfiguration& config);
+    RtpPacketSentHistory(Clock* clock, bool enable_padding_prio);
 
     RtpPacketSentHistory() = delete;
     RtpPacketSentHistory(const RtpPacketSentHistory&) = delete;

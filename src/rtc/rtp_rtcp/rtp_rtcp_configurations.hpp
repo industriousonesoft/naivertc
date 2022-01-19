@@ -41,7 +41,9 @@ struct RTC_CPP_EXPORT RtpConfiguration {
 
     FecGenerator* fec_generator = nullptr;
 
-    RtpSentStatisticsObserver* rtp_sent_statistics_observer = nullptr;
+    RtpSendDelayObserver* send_side_delay_observer = nullptr;
+    RtpSendBitratesObserver* send_bitrates_observer = nullptr;
+    RtpStreamDataCountersObserver* stream_data_counters_observer = nullptr;
 };
 
 struct RTC_CPP_EXPORT RtcpConfiguration {

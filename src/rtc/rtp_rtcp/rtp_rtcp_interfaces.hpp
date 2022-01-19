@@ -38,15 +38,6 @@ public:
 
 // RTP observers
 
-// RtpSentStatisticsObserver
-class RTC_CPP_EXPORT RtpSentStatisticsObserver {
-public:
-    virtual ~RtpSentStatisticsObserver() = default;
-    virtual void RtpSentCountersUpdated(const RtpStreamDataCounters& rtp_sent_counters, 
-                                        const RtpStreamDataCounters& rtx_sent_counters) = 0;
-    virtual void RtpSentBitRateUpdated(const DataRate bit_rate) = 0;
-};
-
 // RecoveredPacketReceiver
 // Callback interface for packets recovered by FlexFEC or ULPFEC. In
 // the FlexFEC case, the implementation should be able to demultiplex
@@ -71,6 +62,33 @@ public:
                                              int min_playout_delay_ms,
                                              int render_delay_ms) = 0;
 
+};
+
+// RtpSendDelayObserver
+class RtpSendDelayObserver {
+public:
+    virtual ~RtpSendDelayObserver() = default;
+    virtual void OnSendDelayUpdated(int64_t avg_delay_ms,
+                                    int64_t max_delay_ms,
+                                    int64_t total_delay_ms,
+                                    uint32_t ssrc) = 0;
+};
+
+// RtpSendBitratesObserver
+class RtpSendBitratesObserver {
+public:
+    virtual ~RtpSendBitratesObserver() = default;
+    virtual void OnSendBitratesUpdated(uint32_t total_bitrate_bps,
+                                       uint32_t retransmit_bitrate_bps,
+                                       uint32_t ssrc) = 0;
+};
+
+// RtpStreamDataCountersObserver
+class RtpStreamDataCountersObserver {
+public:
+    virtual ~RtpStreamDataCountersObserver() = default;
+    virtual void OnStreamDataCountersUpdated(const RtpStreamDataCounters& counters,
+                                             uint32_t ssrc) = 0;
 };
 
 // RtpSendFeedbackProvider

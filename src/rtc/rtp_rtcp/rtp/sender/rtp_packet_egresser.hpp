@@ -40,7 +40,7 @@ public:
     std::vector<RtpPacketToSend> FetchFecPackets() const;
 
     // Return the total bitrates for all kind packets so far.
-    DataRate GetSendBitrate();
+    DataRate GetTotalSendBitrate();
 
     RtpStreamDataCounters GetRtpStreamDataCounter() const;
     RtpStreamDataCounters GetRtxStreamDataCounter() const;
@@ -63,22 +63,37 @@ private:
     };
 
 private:
-    bool SendPacketToNetwork(RtpPacketToSend packet, PacketOptions options);
+    bool SendPacketToNetwork(RtpPacketToSend packet, 
+                             PacketOptions options);
 
     bool VerifySsrcs(const RtpPacketToSend& packet);
 
-    void AddPacketToTransportFeedback(uint16_t packet_id, const RtpPacketToSend& packet);
-    void UpdateDelayStatistics(int64_t capture_time_ms, int64_t now_ms, uint32_t ssrc);
-    void OnSendPacket(uint16_t packet_id, int64_t capture_time_ms, uint32_t ssrc);
+    void AddPacketToTransportFeedback(uint16_t packet_id, 
+                                      const RtpPacketToSend& packet);
+    
+    void OnSendPacket(uint16_t packet_id, 
+                      int64_t capture_time_ms, 
+                      uint32_t ssrc);
 
-    void UpdateSentStatistics(const int64_t now_ms, SendStats send_stats);
+    void UpdateSentStatistics(const int64_t now_ms, 
+                              SendStats send_stats);
+    void UpdateDelayStatistics(int64_t capture_time_ms, 
+                               int64_t now_ms, 
+                               uint32_t ssrc);
 
     DataRate CalcTotalSendBitrate(const int64_t now_ms);
+
+    DataRate GetSendBitrate(RtpPacketType packet_type);
+
+    int CalcMaxDelay() const;
 
     void PeriodicUpdate();
   
 private:
     friend class NonPacedPacketSender;
+
+    // The send-side delay is the difference between transmission time and capture time.
+    using SendDelayMap = std::map</*now_ms=*/int64_t, /*delay_ms*/int64_t>;
 
     SequenceChecker sequence_checker_;
     const bool is_audio_;
@@ -86,7 +101,6 @@ private:
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
     MediaTransport* const send_transport_;
-    RtpSentStatisticsObserver* rtp_sent_statistics_observer_;
     
     RtpPacketSentHistory* const packet_history_;
     FecGenerator* const fec_generator_;
@@ -99,8 +113,18 @@ private:
     RtpStreamDataCounters rtx_send_counter_;
     std::unordered_map<RtpPacketType, BitRateStatistics> send_bitrate_stats_;
 
+    // The sum of delays over a sliding window.
+    int64_t sliding_sum_delay_ms_;
+    uint64_t accumulated_delay_ms_;
+    int64_t max_delay_ms_;
+    SendDelayMap send_delays_;
+
     TaskQueueImpl* worker_queue_;
     std::unique_ptr<RepeatingTask> update_task_;
+
+    RtpSendDelayObserver* const send_delay_observer_;
+    RtpSendBitratesObserver* const send_bitrates_observer_;
+    RtpStreamDataCountersObserver* const stream_data_counters_observer_;
 };
     
 } // namespace naivertc

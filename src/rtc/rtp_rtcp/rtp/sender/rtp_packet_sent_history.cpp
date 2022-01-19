@@ -66,9 +66,9 @@ bool RtpPacketSentHistory::StoredPacketCompare::operator()(StoredPacket* lhs,
 
 // RtpPacketSentHistory
 // Public methods
-RtpPacketSentHistory::RtpPacketSentHistory(const RtpConfiguration& config) 
-    : clock_(config.clock),
-      enable_padding_prio_(config.enable_rtx_padding_prioritization),
+RtpPacketSentHistory::RtpPacketSentHistory(Clock* clock, bool enable_padding_prio) 
+    : clock_(clock),
+      enable_padding_prio_(enable_padding_prio),
       number_to_store_(0),
       mode_(StorageMode::DISABLE),
       rtt_ms_(-1),

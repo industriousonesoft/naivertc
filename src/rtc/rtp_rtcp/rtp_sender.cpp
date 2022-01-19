@@ -14,7 +14,7 @@ RtpSender::RtpSender(const RtpConfiguration& config,
       clock_(config.clock),
       fec_generator_(std::move(fec_generator)),
       packet_sequencer_(config),
-      packet_history_(config),
+      packet_history_(config.clock, config.enable_rtx_padding_prioritization),
       packet_egresser_(config, &packet_history_, fec_generator_.get()), 
       packet_generator_(config),
       non_paced_sender_(this) {
@@ -161,7 +161,7 @@ RtpSendFeedback RtpSender::GetSendFeedback() {
     RtpStreamDataCounters rtx_stats = packet_egresser_.GetRtxStreamDataCounter();
     send_feedback.packets_sent = rtp_stats.transmitted.num_packets + rtx_stats.transmitted.num_packets;
     send_feedback.media_bytes_sent = rtp_stats.transmitted.payload_bytes + rtx_stats.transmitted.payload_bytes;
-    send_feedback.send_bitrate = packet_egresser_.GetSendBitrate();
+    send_feedback.send_bitrate = packet_egresser_.GetTotalSendBitrate();
     return send_feedback;
 }
 
