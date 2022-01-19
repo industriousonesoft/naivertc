@@ -46,9 +46,11 @@ public:
         uint32_t ssrc = 0;
         size_t packet_size = 0;
         // Number of times retransmitted, and not including the first transmission.
-        size_t times_retransmitted = 0;
+        size_t num_retransmitted = 0;
         bool pending_transmission = false;
     };
+
+    using EncapsulateCallback = std::function<std::optional<RtpPacketToSend>(const RtpPacketToSend&)>;
 
 public:
     RtpPacketSentHistory(Clock* clock, bool enable_padding_prio);
@@ -70,7 +72,7 @@ public:
 
     // If |send_time| is set, packet was sent without using pacer, so state will
     // be set accordingly.
-    void PutRtpPacket(RtpPacketToSend packet, std::optional<int64_t> send_time_ms);
+    void PutRtpPacket(RtpPacketToSend packet, std::optional<int64_t> send_time_ms = std::nullopt);
 
     // Gets stored RTP packet corresponding to the input |sequence number|.
     // Returns nullptr if packet is not found or was (re)sent too recently.
@@ -88,7 +90,7 @@ public:
     // If the the encapsulator returns nullptr, the retransmit is aborted and the
     // packet will not be marked as pending.
     std::optional<RtpPacketToSend> GetPacketAndMarkAsPending(uint16_t sequence_number, 
-            std::function<std::optional<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate);
+                                                             EncapsulateCallback encapsulate_callback);
 
     // Updates the send time for the given packet and increments the transmission
     // counter. Marks the packet as no longer being in the pacer queue.
@@ -108,7 +110,7 @@ public:
     // that can be used for instance to encapsulate the packet in an RTX
     // container, or to abort getting the packet if the function returns
     // nullptr.
-    std::optional<RtpPacketToSend> GetPayloadPaddingPacket(std::function<std::optional<RtpPacketToSend>(const RtpPacketToSend&)> encapsulate);
+    std::optional<RtpPacketToSend> GetPayloadPaddingPacket(EncapsulateCallback encapsulate_callback);
 
     // Cull packets that have been acknowledged as received by the remote end.
     void CullAcknowledgedPackets(std::vector<const uint16_t> sequence_numbers);
@@ -123,25 +125,19 @@ public:
     void Clear();
 
 private:
-    struct StoredPacketCompare;
-    class StoredPacket;
-    using PacketPrioritySet = std::set<StoredPacket*, StoredPacketCompare>;
-
     // StoredPacket
     class StoredPacket {
+    public:
+        struct Compare {
+            bool operator()(StoredPacket* lhs, StoredPacket* rhs) const;
+        };
     public:
         StoredPacket();
         StoredPacket(RtpPacketToSend packet,
                      std::optional<int64_t> send_time_ms,
                      uint64_t insert_order);
-        StoredPacket(StoredPacket&&);
-        StoredPacket& operator=(StoredPacket&&);
-        ~StoredPacket();
-
-        uint64_t insert_order() const { return insert_order_; }
-        size_t times_retransmitted() const { return times_retransmitted_; }
-        void IncrementTimesRetransmitted(PacketPrioritySet* priority_set);
-
+    private:
+        friend class RtpPacketSentHistory;
         // The time of last transmission, including retransmissions.
         std::optional<int64_t> send_time_ms_ = std::nullopt;
 
@@ -151,22 +147,20 @@ private:
         // True if the packet is currently in the pacer queue pending transmission.
         bool pending_transmission_ = false;
 
-    private:
         // Unique number per StoredPacket, incremented by one for each added
         // packet. Used to sort on insert order.
         uint64_t insert_order_ = 0;
 
-        // Number of times RE-transmitted, ie excluding the first transmission.
-        size_t times_retransmitted_ = 0;
-    };
-    struct StoredPacketCompare {
-        bool operator()(StoredPacket* lhs, StoredPacket* rhs) const;
+        // Number of retransmission, ie excluding the first transmission.
+        size_t num_retransmitted_ = 0;
     };
 
+    using PacketPrioritySet = std::set<StoredPacket*, StoredPacket::Compare>;
+
 private:
-    // Helper method used by GetPacketAndSetSendTime() and GetPacketState() to
-    // check if packet has too recently been sent.
-    bool VerifyRtt(const StoredPacket& packet, int64_t now_ms) const;
+    // Check if packet is sendable or not.
+    bool IsSendable(const StoredPacket& packet) const;
+
     void Reset();
     void CullOldPackets(int64_t now_ms);
     // Removes the packet from the history, and context/mapping that has been
@@ -175,6 +169,8 @@ private:
     int GetPacketIndex(uint16_t sequence_number) const;
     StoredPacket* GetStoredPacket(uint16_t sequence_number);
     static PacketState StoredPacketToPacketState(const StoredPacket& stored_packet);
+
+    void Retransmitted(StoredPacket& stored_packet);
 
 private:
     SequenceChecker sequence_checker_;

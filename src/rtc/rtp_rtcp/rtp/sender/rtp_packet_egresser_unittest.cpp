@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 #include "testing/simulated_clock.hpp"
 #include "testing/simulated_time_controller.hpp"

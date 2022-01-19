@@ -755,6 +755,7 @@ set(UNITTEST_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> sender
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtcp 
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp
