@@ -25,7 +25,7 @@ public:
     static constexpr size_t kMaxPaddingtHistory = 63;
     // Don't remove packets within max(1000ms, 3x RTT).
     static constexpr int64_t kMinPacketDurationMs = 1000;
-    static constexpr int kMinPacketDurationRtt = 3;
+    static constexpr int kMinPacketDurationRttFactor = 3;
     // With kStoreAndCull, always remove packets after 3x max(1000ms, 3x rtt).
     static constexpr int kPacketCullingDelayFactor = 3;
 
@@ -113,7 +113,7 @@ public:
     std::optional<RtpPacketToSend> GetPayloadPaddingPacket(EncapsulateCallback encapsulate_callback);
 
     // Cull packets that have been acknowledged as received by the remote end.
-    void CullAcknowledgedPackets(std::vector<const uint16_t> sequence_numbers);
+    void CullAckedPackets(ArrayView<const uint16_t> acked_seq_nums);
 
     // Mark packet as queued for transmission. This will prevent premature
     // removal or duplicate retransmissions in the pacer queue.
@@ -126,51 +126,59 @@ public:
 
 private:
     // StoredPacket
-    class StoredPacket {
-    public:
+    struct StoredPacket {
         struct Compare {
             bool operator()(StoredPacket* lhs, StoredPacket* rhs) const;
         };
-    public:
-        StoredPacket();
+
         StoredPacket(RtpPacketToSend packet,
                      std::optional<int64_t> send_time_ms,
                      uint64_t insert_order);
-    private:
-        friend class RtpPacketSentHistory;
+
         // The time of last transmission, including retransmissions.
-        std::optional<int64_t> send_time_ms_ = std::nullopt;
+        std::optional<int64_t> send_time_ms = std::nullopt;
 
         // The actual packet.
-        std::optional<RtpPacketToSend> packet_ = std::nullopt;
+        RtpPacketToSend packet;
 
         // True if the packet is currently in the pacer queue pending transmission.
-        bool pending_transmission_ = false;
+        bool pending_transmission = false;
+
+        // Number of retransmission, ie excluding the first transmission.
+        size_t num_retransmitted = 0;
 
         // Unique number per StoredPacket, incremented by one for each added
         // packet. Used to sort on insert order.
-        uint64_t insert_order_ = 0;
-
-        // Number of retransmission, ie excluding the first transmission.
-        size_t num_retransmitted_ = 0;
+        uint64_t insert_order = 0;
     };
 
     using PacketPrioritySet = std::set<StoredPacket*, StoredPacket::Compare>;
 
 private:
     // Check if packet is sendable or not.
-    bool IsSendable(const StoredPacket& packet) const;
+    bool CanBeTransmitted(const StoredPacket& packet) const;
 
-    void Reset();
+    bool IsTimedOut(int64_t send_time_ms, 
+                    int64_t duration_ms, 
+                    int64_t now_ms);
+
     void CullOldPackets(int64_t now_ms);
+
     // Removes the packet from the history, and context/mapping that has been
     // stored. Returns the RTP packet instance contained within the StoredPacket.
     std::optional<RtpPacketToSend> RemovePacket(int packet_index);
+
     int GetPacketIndex(uint16_t sequence_number) const;
+
     StoredPacket* GetStoredPacket(uint16_t sequence_number);
+
+    StoredPacket* GetLastAvailablePacket();
+
     static PacketState StoredPacketToPacketState(const StoredPacket& stored_packet);
 
     void Retransmitted(StoredPacket& stored_packet);
+
+    void Reset();
 
 private:
     SequenceChecker sequence_checker_;
@@ -182,12 +190,12 @@ private:
     int64_t rtt_ms_;
 
     // Queue of stored packets, ordered by sequence number, with older packets in
-    // the front and new packets being added to the back. Note that there may be
-    // wrap-arounds so the back may have a lower sequence number.
+    // the front and new packets being added to the back.
+    // NOTE: that there may be wrap-arounds so the back may have a lower sequence number.
     // Packets may also be removed out-of-order, in which case there will be
-    // instances of StoredPacket with |packet_| set to nullptr. The first and last
-    // entry in the queue will however always be populated.
-    std::deque<StoredPacket> packet_history_;
+    // instances of |StoredPacket| set to nullopt.
+    // The first and last entry in the queue will however always be populated.
+    std::deque<std::optional<StoredPacket>> packet_history_;
 
     // Total number of packets with inserted.
     uint64_t packets_inserted_;
