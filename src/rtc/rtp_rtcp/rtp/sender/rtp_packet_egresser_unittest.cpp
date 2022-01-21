@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -22,13 +23,6 @@ constexpr uint16_t kStartSequenceNumber = 33;
 constexpr uint32_t kSsrc = 725242;
 constexpr uint32_t kRtxSsrc = 12345;
 constexpr uint32_t kFlexFecSsrc = 23456;
-
-// TestConfig
-struct TestConfig {
-    explicit TestConfig(bool with_overhead) 
-        : with_overhead(with_overhead) {}
-    bool with_overhead = false;
-};
 
 // MockStreamDataCountersObserver
 class MockStreamDataCountersObserver : public RtpStreamDataCountersObserver {
@@ -64,6 +58,10 @@ public:
         : total_bytes_sent_(0) {}
 
     bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
+        total_bytes_sent_ += packet.size();
+        RtpPacketReceived recv_packet;
+        EXPECT_TRUE(recv_packet.Parse(std::move(packet)));
+        last_recv_packet_.emplace(std::move(recv_packet));
         return true;
     }
 
@@ -73,18 +71,54 @@ public:
 
 private:
     int64_t total_bytes_sent_;
+    std::optional<RtpPacketReceived> last_recv_packet_;
 };
 
 } // namespace
 
-class RtpPacketEgresserTest : public ::testing::TestWithParam<TestConfig> {
+class T(RtpPacketEgresserTest) : public ::testing::Test {
 protected:
-    RtpPacketEgresserTest() 
+    T(RtpPacketEgresserTest)() 
         : time_controller_(kStartTime),
           clock_(time_controller_.Clock()),
           send_transport_(),
           packet_history_(clock_, /*enable_rtx_padding_prioritization=*/true),
           seq_num_(kStartSequenceNumber) {};
+
+    std::unique_ptr<RtpPacketEgresser> CreateRtpSenderEgresser() {
+        return std::make_unique<RtpPacketEgresser>(DefaultConfig(), &packet_history_, nullptr);
+    } 
+
+    RtpConfiguration DefaultConfig() {
+        RtpConfiguration config;
+        config.audio = false;
+        config.clock = clock_;
+        config.local_media_ssrc = kSsrc;
+        config.rtx_send_ssrc = kRtxSsrc;
+        config.fec_generator = nullptr;
+        config.send_transport = &send_transport_;
+        config.send_bitrates_observer = &send_bitrate_observer_;
+        config.send_side_delay_observer = &send_delay_observer_;
+        config.stream_data_counters_observer = &stream_data_counters_observer_;
+        return config;
+    }
+
+    RtpPacketToSend BuildRtpPacket(bool marker_bit,
+                                   int64_t capture_time_ms) {
+        RtpPacketToSend packet(nullptr);
+        packet.set_ssrc(kSsrc);
+        packet.set_payload_type(kDefaultPayloadType);
+        packet.set_packet_type(RtpPacketType::VIDEO);
+        packet.set_marker(marker_bit);
+        packet.set_timestamp(capture_time_ms * 90);
+        packet.set_capture_time_ms(capture_time_ms);
+        packet.set_sequence_number(seq_num_++);
+        return packet;
+    }
+
+    RtpPacketToSend BuildRtpPacket() {
+        return BuildRtpPacket(true, clock_->now_ms());
+    }
 
 protected:
     SimulatedTimeController time_controller_;

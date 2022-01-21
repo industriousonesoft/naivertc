@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/units/data_rate.hpp"
+#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
 
 #include <list>
 #include <map>
@@ -64,6 +65,17 @@ struct RTC_CPP_EXPORT RtpStreamDataCounters final {
     RtpPacketCounter transmitted;
     RtpPacketCounter retransmitted;
     RtpPacketCounter fec;
+};
+
+// RtpPacketSendStats
+struct RTC_CPP_EXPORT RtpPacketSendStats {
+    uint32_t ssrc = 0;
+    uint16_t packet_id = 0;
+    uint16_t seq_num = 0;
+    uint32_t rtp_timestamp = 0;
+    size_t packet_size = 0;
+    std::optional<RtpPacketType> packet_type;
+    std::optional<uint16_t> retransmitted_seq_num;
 };
 
 // RtpReceiveStats

@@ -23,6 +23,9 @@ struct RTC_CPP_EXPORT RtpConfiguration {
     // Corresponds to extmap-allow-mixed in SDP negotiation.
     bool extmap_allow_mixed = false;
 
+    // Indicates to estimate the send-side bandwidth with overhead or not.
+    bool send_side_bwe_with_overhead = false;
+
     // SSRCs for media and retransmission(RTX), respectively.
     // FlexFec SSRC is fetched from |flexfec_sender|.
     uint32_t local_media_ssrc = 0;
@@ -43,6 +46,7 @@ struct RTC_CPP_EXPORT RtpConfiguration {
 
     RtpSendDelayObserver* send_side_delay_observer = nullptr;
     RtpSendBitratesObserver* send_bitrates_observer = nullptr;
+    RtpPacketSendStatsObserver* packet_send_stats_observer = nullptr;
     RtpStreamDataCountersObserver* stream_data_counters_observer = nullptr;
 };
 

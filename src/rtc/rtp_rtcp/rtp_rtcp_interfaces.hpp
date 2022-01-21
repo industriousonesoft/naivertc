@@ -91,6 +91,13 @@ public:
                                              uint32_t ssrc) = 0;
 };
 
+// RtpSendStatsObserver
+class RtpPacketSendStatsObserver {
+public:
+    virtual ~RtpPacketSendStatsObserver() = default;
+    virtual void OnPacketSent(const RtpPacketSendStats& send_stats);
+};
+
 // RtpSendFeedbackProvider
 class RTC_CPP_EXPORT RtpSendFeedbackProvider {
 public:

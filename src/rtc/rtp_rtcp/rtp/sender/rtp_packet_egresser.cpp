@@ -16,6 +16,7 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
                                  RtpPacketSentHistory* const packet_history,
                                  FecGenerator* const fec_generator) 
         : is_audio_(config.audio),
+          send_side_bwe_with_overhead_(config.send_side_bwe_with_overhead),
           clock_(config.clock),
           ssrc_(config.local_media_ssrc),
           rtx_ssrc_(config.rtx_send_ssrc),
@@ -28,6 +29,7 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           worker_queue_(TaskQueueImpl::Current()),
           send_delay_observer_(config.send_side_delay_observer),
           send_bitrates_observer_(config.send_bitrates_observer),
+          packet_send_stats_observer_(config.packet_send_stats_observer),
           stream_data_counters_observer_(config.stream_data_counters_observer) {
     // Init bitrate statistics
     // Audio or video media packet
@@ -121,16 +123,13 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     
     auto packet_id_ext = packet.GetExtension<rtp::TransportSequenceNumber>();
     if (packet_id_ext) {
-        AddPacketToTransportFeedback(packet_id_ext->transport_sequence_number(), packet);
+        OnPacketSent(packet_id_ext->transport_sequence_number(), packet);
     }
 
     if (packet_type != RtpPacketType::PADDING &&
         packet_type != RtpPacketType::RETRANSMISSION) {
         // No include Padding or Retransmission packet.
         UpdateDelayStatistics(packet.capture_time_ms(), now_ms, packet_ssrc);
-        if (packet_id_ext) {
-            OnSendPacket(packet_id_ext->transport_sequence_number(), packet.capture_time_ms(), packet_ssrc);
-        }
     }
 
     // Put packet in retransmission history or update pending status even if
@@ -241,14 +240,39 @@ bool RtpPacketEgresser::VerifySsrcs(const RtpPacketToSend& packet) {
     return false;
 }
 
-void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id, 
-                                                     const RtpPacketToSend& packet) {}
+void RtpPacketEgresser::OnPacketSent(uint16_t packet_id, 
+                                     const RtpPacketToSend& packet) {
+    if (packet_send_stats_observer_) {
+        const size_t packet_size = send_side_bwe_with_overhead_ ? packet.size() 
+                                                                : packet.payload_size() + packet.padding_size();
+        
+        RtpPacketSendStats send_stats;
+        send_stats.packet_id = packet_id;
+        send_stats.rtp_timestamp = packet.timestamp();
+        send_stats.packet_size = packet_size;
+        send_stats.packet_type = packet.packet_type();
+        send_stats.ssrc = packet.ssrc();
 
-void RtpPacketEgresser::OnSendPacket(uint16_t packet_id, 
-                                     int64_t capture_time_ms, 
-                                     uint32_t ssrc) {
-    if (capture_time_ms <= 0) {
-        return;
+        switch (packet.packet_type())
+        {
+        case RtpPacketType::AUDIO:
+        case RtpPacketType::VIDEO:
+            break;
+        case RtpPacketType::RETRANSMISSION:
+            // For retransmissions, we're want to remove the original media packet
+            // if the rentrasmit arrives, so populate that in the packet send statistics.
+            send_stats.retransmitted_seq_num = packet.retransmitted_sequence_number();
+            break;
+        case RtpPacketType::PADDING:
+        case RtpPacketType::FEC:
+            // We're not interested in feedback about these packets being received
+            // or lost.
+            break;
+        default:
+            break;
+        }
+
+        packet_send_stats_observer_->OnPacketSent(std::move(send_stats));
     }
 }
 

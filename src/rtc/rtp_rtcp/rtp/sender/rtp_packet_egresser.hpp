@@ -68,12 +68,8 @@ private:
 
     bool VerifySsrcs(const RtpPacketToSend& packet);
 
-    void AddPacketToTransportFeedback(uint16_t packet_id, 
-                                      const RtpPacketToSend& packet);
-    
-    void OnSendPacket(uint16_t packet_id, 
-                      int64_t capture_time_ms, 
-                      uint32_t ssrc);
+    void OnPacketSent(uint16_t packet_id, 
+                      const RtpPacketToSend& packet);
 
     void UpdateSentStatistics(const int64_t now_ms, 
                               SendStats send_stats);
@@ -97,6 +93,7 @@ private:
 
     SequenceChecker sequence_checker_;
     const bool is_audio_;
+    const bool send_side_bwe_with_overhead_;
     Clock* const clock_;
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
@@ -124,6 +121,7 @@ private:
 
     RtpSendDelayObserver* const send_delay_observer_;
     RtpSendBitratesObserver* const send_bitrates_observer_;
+    RtpPacketSendStatsObserver* const packet_send_stats_observer_;
     RtpStreamDataCountersObserver* const stream_data_counters_observer_;
 };
     
