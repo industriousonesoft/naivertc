@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/base/task_utils/repeating_task.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
@@ -25,7 +25,7 @@ namespace naivertc {
 class RTC_CPP_EXPORT RtpPacketEgresser {
 public:
     RtpPacketEgresser(const RtpConfiguration& config,
-                      RtpPacketSentHistory* const packet_history,
+                      RtpPacketHistory* const packet_history,
                       FecGenerator* const fec_generator);
     ~RtpPacketEgresser();
 
@@ -99,7 +99,7 @@ private:
     const std::optional<uint32_t> rtx_ssrc_;
     MediaTransport* const send_transport_;
     
-    RtpPacketSentHistory* const packet_history_;
+    RtpPacketHistory* const packet_history_;
     FecGenerator* const fec_generator_;
 
     std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;

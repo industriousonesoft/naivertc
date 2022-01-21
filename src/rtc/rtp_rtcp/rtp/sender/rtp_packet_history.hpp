@@ -17,7 +17,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacketSentHistory {
+class RTC_CPP_EXPORT RtpPacketHistory {
 public:
     // Maximum number of packets we ever allow in the history.
     static constexpr size_t kMaxCapacity = 9600;
@@ -53,13 +53,13 @@ public:
     using EncapsulateCallback = std::function<std::optional<RtpPacketToSend>(const RtpPacketToSend&)>;
 
 public:
-    RtpPacketSentHistory(Clock* clock, bool enable_padding_prio);
+    RtpPacketHistory(Clock* clock, bool enable_padding_prio);
 
-    RtpPacketSentHistory() = delete;
-    RtpPacketSentHistory(const RtpPacketSentHistory&) = delete;
-    RtpPacketSentHistory& operator=(const RtpPacketSentHistory&) = delete;
+    RtpPacketHistory() = delete;
+    RtpPacketHistory(const RtpPacketHistory&) = delete;
+    RtpPacketHistory& operator=(const RtpPacketHistory&) = delete;
 
-    ~RtpPacketSentHistory();
+    ~RtpPacketHistory();
 
     // Set/get storage mode. Note that setting the state will clear the history,
     // even if setting the same state as is currently used.

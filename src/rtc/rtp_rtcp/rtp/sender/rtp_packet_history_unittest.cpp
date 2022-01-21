@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -23,12 +23,12 @@ uint16_t Unwrap(size_t seq_num) {
 
 } // namespace
 
-using StorageMode = RtpPacketSentHistory::StorageMode;
+using StorageMode = RtpPacketHistory::StorageMode;
 
-// RtpPacketSentHistoryTest
-class T(RtpPacketSentHistoryTest) : public ::testing::TestWithParam<bool> {
+// RtpPacketHistoryTest
+class T(RtpPacketHistoryTest) : public ::testing::TestWithParam<bool> {
 protected:
-    T(RtpPacketSentHistoryTest)() 
+    T(RtpPacketHistoryTest)() 
         : clock_(123456),
           packet_hist_(&clock_, /*enable_padding_prio=*/GetParam()) {}
 
@@ -42,12 +42,12 @@ protected:
 
 protected:
     SimulatedClock clock_;
-    RtpPacketSentHistory packet_hist_;
+    RtpPacketHistory packet_hist_;
 };
 
-MY_INSTANTIATE_TEST_SUITE_P(WithAndWithoutPaddingPrio, RtpPacketSentHistoryTest, ::testing::Bool());
+MY_INSTANTIATE_TEST_SUITE_P(WithAndWithoutPaddingPrio, RtpPacketHistoryTest, ::testing::Bool());
 
-MY_TEST_P(RtpPacketSentHistoryTest, SetStorageStatus) {
+MY_TEST_P(RtpPacketHistoryTest, SetStorageStatus) {
     EXPECT_EQ(StorageMode::DISABLE, packet_hist_.GetStorageMode());
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 10);
     EXPECT_EQ(StorageMode::STORE_AND_CULL, packet_hist_.GetStorageMode());
@@ -57,7 +57,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, SetStorageStatus) {
     EXPECT_EQ(StorageMode::DISABLE, packet_hist_.GetStorageMode());
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, ClearHistoryAfterSetStorageStatus) {
+MY_TEST_P(RtpPacketHistoryTest, ClearHistoryAfterSetStorageStatus) {
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 0);
     packet_hist_.PutRtpPacket(CreateRtpPacket(kStartSeqNum));
     EXPECT_TRUE(packet_hist_.GetPacketState(kStartSeqNum));
@@ -67,7 +67,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, ClearHistoryAfterSetStorageStatus) {
     EXPECT_FALSE(packet_hist_.GetPacketState(kStartSeqNum));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, StartSeqNumResetAfterReset) {
+MY_TEST_P(RtpPacketHistoryTest, StartSeqNumResetAfterReset) {
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 10);
     uint16_t seq_num = kStartSeqNum;
     packet_hist_.PutRtpPacket(CreateRtpPacket(seq_num));
@@ -83,7 +83,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, StartSeqNumResetAfterReset) {
     EXPECT_TRUE(packet_hist_.GetPacketState(seq_num));
 
     // Advance time past where packet expires.
-    clock_.AdvanceTimeMs(RtpPacketSentHistory::kPacketCullingDelayFactor * RtpPacketSentHistory::kMinPacketDurationMs);
+    clock_.AdvanceTimeMs(RtpPacketHistory::kPacketCullingDelayFactor * RtpPacketHistory::kMinPacketDurationMs);
 
     seq_num = Unwrap(seq_num + 1);
     packet_hist_.PutRtpPacket(CreateRtpPacket(seq_num));
@@ -92,26 +92,26 @@ MY_TEST_P(RtpPacketSentHistoryTest, StartSeqNumResetAfterReset) {
     EXPECT_TRUE(packet_hist_.GetPacketState(Unwrap(kStartSeqNum + 2)));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, NoStoreStatus) {
+MY_TEST_P(RtpPacketHistoryTest, NoStoreStatus) {
     EXPECT_EQ(StorageMode::DISABLE, packet_hist_.GetStorageMode());
     packet_hist_.PutRtpPacket(CreateRtpPacket(kStartSeqNum));
     // Packet should not be stored.
     EXPECT_FALSE(packet_hist_.GetPacketState(kStartSeqNum));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, GetRtpPacketNotStored) {
+MY_TEST_P(RtpPacketHistoryTest, GetRtpPacketNotStored) {
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 10);
     EXPECT_FALSE(packet_hist_.GetPacketState(0));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, PutRtpPacket) {
+MY_TEST_P(RtpPacketHistoryTest, PutRtpPacket) {
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 10);
     EXPECT_FALSE(packet_hist_.GetPacketState(kStartSeqNum));
     packet_hist_.PutRtpPacket(CreateRtpPacket(kStartSeqNum));
     EXPECT_TRUE(packet_hist_.GetPacketState(kStartSeqNum));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, GetRtpPacket) {
+MY_TEST_P(RtpPacketHistoryTest, GetRtpPacket) {
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 0);
     int64_t capture_time_ms = clock_.now_ms();
     auto packet = CreateRtpPacket(kStartSeqNum, capture_time_ms);
@@ -124,7 +124,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, GetRtpPacket) {
     EXPECT_EQ(capture_time_ms, packet_out->capture_time_ms());
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, PacketStateIsCorrect) {
+MY_TEST_P(RtpPacketHistoryTest, PacketStateIsCorrect) {
     const uint32_t kSsrc = 9876543;
     const int64_t kRttMs = 100;
     
@@ -159,7 +159,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, PacketStateIsCorrect) {
     EXPECT_EQ(state->num_retransmitted, 1);
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, MinResendTimeWithPacer) {
+MY_TEST_P(RtpPacketHistoryTest, MinResendTimeWithPacer) {
     static const int64_t kMinRetransmitIntervalMs = 100;
 
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 10);
@@ -198,7 +198,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, MinResendTimeWithPacer) {
     EXPECT_TRUE(packet_hist_.GetPacketAndSetSendTime(kStartSeqNum));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, MinResendTimeWithoutPacer) {
+MY_TEST_P(RtpPacketHistoryTest, MinResendTimeWithoutPacer) {
     static const int64_t kMinRetransmitIntervalMs = 100;
 
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 10);
@@ -226,13 +226,13 @@ MY_TEST_P(RtpPacketSentHistoryTest, MinResendTimeWithoutPacer) {
     EXPECT_TRUE(packet_hist_.GetPacketAndSetSendTime(kStartSeqNum));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, RemovesOldestSentPacketWhenAtMaxSize) {
+MY_TEST_P(RtpPacketHistoryTest, RemovesOldestSentPacketWhenAtMaxSize) {
     const size_t kMaxNumPackets = 10;
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, kMaxNumPackets);
     
     // |packet_hist_| does not allow removing packets within kMinPacketDurationMs,
     // So in order to test capacity, make sure insetion spans this time.
-    const int64_t kPacketIntervalMs = RtpPacketSentHistory::kMinPacketDurationMs / kMaxNumPackets;
+    const int64_t kPacketIntervalMs = RtpPacketHistory::kMinPacketDurationMs / kMaxNumPackets;
 
     // Add packets until the buffer is full.
     for (size_t i = 0; i < kMaxNumPackets; ++i) {
@@ -251,8 +251,8 @@ MY_TEST_P(RtpPacketSentHistoryTest, RemovesOldestSentPacketWhenAtMaxSize) {
     EXPECT_TRUE(packet_hist_.GetPacketState(Unwrap(kStartSeqNum + 1)));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, RemovesOldestSentPacketWhenAtMaxCapacity) {
-    const size_t kMaxNumPackets = RtpPacketSentHistory::kMaxCapacity;
+MY_TEST_P(RtpPacketHistoryTest, RemovesOldestSentPacketWhenAtMaxCapacity) {
+    const size_t kMaxNumPackets = RtpPacketHistory::kMaxCapacity;
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, kMaxNumPackets);
     
     // Add packets until the buffer is full.
@@ -272,7 +272,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, RemovesOldestSentPacketWhenAtMaxCapacity) {
     EXPECT_TRUE(packet_hist_.GetPacketState(Unwrap(kStartSeqNum + 1)));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, RemovesLowestPrioPaddingWhenAtMaxCapacity) {
+MY_TEST_P(RtpPacketHistoryTest, RemovesLowestPrioPaddingWhenAtMaxCapacity) {
     if (!GetParam()) {
         return;
     }
@@ -280,7 +280,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, RemovesLowestPrioPaddingWhenAtMaxCapacity) {
     const int64_t kRttMs = 1;
     // Test the absolute upper bound on number of packets in the prioritized set
     // of potential padding packets.
-    const size_t kMaxPaddingPackets = RtpPacketSentHistory::kMaxPaddingtHistory;
+    const size_t kMaxPaddingPackets = RtpPacketHistory::kMaxPaddingtHistory;
     // Make sure there has enough space for all the potential padding packets.
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, kMaxPaddingPackets * 2);
     packet_hist_.SetRttMs(kRttMs);
@@ -307,7 +307,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, RemovesLowestPrioPaddingWhenAtMaxCapacity) {
     EXPECT_EQ(packet->sequence_number(), Unwrap(kStartSeqNum + kMaxPaddingPackets));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, DontRemoveUnsentPacket) {
+MY_TEST_P(RtpPacketHistoryTest, DontRemoveUnsentPacket) {
     const size_t kMaxNumPackets = 10;
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, kMaxNumPackets);
 
@@ -316,7 +316,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, DontRemoveUnsentPacket) {
         // Mark packets as unsent.
         packet_hist_.PutRtpPacket(CreateRtpPacket(Unwrap(kStartSeqNum + i)));
     }
-    clock_.AdvanceTimeMs(RtpPacketSentHistory::kMinPacketDurationMs);
+    clock_.AdvanceTimeMs(RtpPacketHistory::kMinPacketDurationMs);
 
     // First packet should still be there.
     EXPECT_TRUE(packet_hist_.GetPacketState(kStartSeqNum));
@@ -331,7 +331,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, DontRemoveUnsentPacket) {
         EXPECT_TRUE(packet_hist_.GetPacketAndSetSendTime(Unwrap(kStartSeqNum + i)));
     }
     // Advance time past min packet duration time.
-    clock_.AdvanceTimeMs(RtpPacketSentHistory::kMinPacketDurationMs);
+    clock_.AdvanceTimeMs(RtpPacketHistory::kMinPacketDurationMs);
 
     // Add a new packet which means the two oldest packets will be culled.
     packet_hist_.PutRtpPacket(CreateRtpPacket(Unwrap(kStartSeqNum + kMaxNumPackets + 1)), clock_.now_ms());
@@ -342,9 +342,9 @@ MY_TEST_P(RtpPacketSentHistoryTest, DontRemoveUnsentPacket) {
 
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, DontRemoveTooRecentlyTransmittedPackets) {
+MY_TEST_P(RtpPacketHistoryTest, DontRemoveTooRecentlyTransmittedPackets) {
     // The RTT is set to zero as default, so the packet duration will be |kMinPacketDurationMs|.
-    const int64_t kPacketDurationMs = RtpPacketSentHistory::kMinPacketDurationMs;
+    const int64_t kPacketDurationMs = RtpPacketHistory::kMinPacketDurationMs;
     // Set size to remove old packets as soon as possible.
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 1);
 
@@ -367,10 +367,10 @@ MY_TEST_P(RtpPacketSentHistoryTest, DontRemoveTooRecentlyTransmittedPackets) {
     EXPECT_TRUE(packet_hist_.GetPacketState(Unwrap(kStartSeqNum + 1)));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, DontRemoveTooRecentlyTransmittedPacketsWithHighRtt) {
-    const int64_t kRttMs = RtpPacketSentHistory::kMinPacketDurationMs * 2;
+MY_TEST_P(RtpPacketHistoryTest, DontRemoveTooRecentlyTransmittedPacketsWithHighRtt) {
+    const int64_t kRttMs = RtpPacketHistory::kMinPacketDurationMs * 2;
     // As the RTT is too high enough, the packet duration will be calculated with RTT.
-    const int64_t kPacketDurationMs = kRttMs * RtpPacketSentHistory::kMinPacketDurationRttFactor;
+    const int64_t kPacketDurationMs = kRttMs * RtpPacketHistory::kMinPacketDurationRttFactor;
 
     // Set size to remove old packets as soon as possible.
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 1);
@@ -395,7 +395,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, DontRemoveTooRecentlyTransmittedPacketsWithH
     EXPECT_TRUE(packet_hist_.GetPacketState(Unwrap(kStartSeqNum + 1)));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, RemoveOldWithCulling) {
+MY_TEST_P(RtpPacketHistoryTest, RemoveOldWithCulling) {
     const size_t kMaxNumPackets = 10;
     // Enable culling. Even without feedback, this can trigger early removal.
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, kMaxNumPackets);
@@ -403,7 +403,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, RemoveOldWithCulling) {
     // Add a packet and mark as sent.
     packet_hist_.PutRtpPacket(CreateRtpPacket(kStartSeqNum), clock_.now_ms());
 
-    int64_t kMaxPacketDurationMs = RtpPacketSentHistory::kMinPacketDurationMs * RtpPacketSentHistory::kPacketCullingDelayFactor;
+    int64_t kMaxPacketDurationMs = RtpPacketHistory::kMinPacketDurationMs * RtpPacketHistory::kPacketCullingDelayFactor;
      // Advance time to just before removal time.
     clock_.AdvanceTimeMs(kMaxPacketDurationMs - 1);
 
@@ -420,9 +420,9 @@ MY_TEST_P(RtpPacketSentHistoryTest, RemoveOldWithCulling) {
     EXPECT_FALSE(packet_hist_.GetPacketState(kStartSeqNum));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, RemoveOldWithCullingWithHighRtt) {
+MY_TEST_P(RtpPacketHistoryTest, RemoveOldWithCullingWithHighRtt) {
     const size_t kMaxNumPackets = 10;
-    const int64_t kRttMs = RtpPacketSentHistory::kMinPacketDurationMs * 2;
+    const int64_t kRttMs = RtpPacketHistory::kMinPacketDurationMs * 2;
     // Enable culling. Even without feedback, this can trigger early removal.
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, kMaxNumPackets);
     packet_hist_.SetRttMs(kRttMs);
@@ -431,8 +431,8 @@ MY_TEST_P(RtpPacketSentHistoryTest, RemoveOldWithCullingWithHighRtt) {
     packet_hist_.PutRtpPacket(CreateRtpPacket(kStartSeqNum), clock_.now_ms());
 
     int64_t kPacketLifeTimeMs = kRttMs * 
-                                RtpPacketSentHistory::kMinPacketDurationRttFactor * 
-                                RtpPacketSentHistory::kPacketCullingDelayFactor;
+                                RtpPacketHistory::kMinPacketDurationRttFactor * 
+                                RtpPacketHistory::kPacketCullingDelayFactor;
      // Advance time to just before removal time.
     clock_.AdvanceTimeMs(kPacketLifeTimeMs - 1);
 
@@ -449,8 +449,8 @@ MY_TEST_P(RtpPacketSentHistoryTest, RemoveOldWithCullingWithHighRtt) {
     EXPECT_FALSE(packet_hist_.GetPacketState(kStartSeqNum));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, CullWithAcks) {
-    const int64_t kPacketLifeTimeMs = RtpPacketSentHistory::kMinPacketDurationMs * RtpPacketSentHistory::kPacketCullingDelayFactor;
+MY_TEST_P(RtpPacketHistoryTest, CullWithAcks) {
+    const int64_t kPacketLifeTimeMs = RtpPacketHistory::kMinPacketDurationMs * RtpPacketHistory::kPacketCullingDelayFactor;
 
     const int64_t start_time = clock_.now_ms();
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 10);
@@ -482,8 +482,8 @@ MY_TEST_P(RtpPacketSentHistoryTest, CullWithAcks) {
     EXPECT_TRUE(packet_hist_.GetPacketState(Unwrap(kStartSeqNum + 2)));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, SetPendingTransmisstionState) {
-    const int64_t kRttMs = RtpPacketSentHistory::kMinPacketDurationMs * 2;
+MY_TEST_P(RtpPacketHistoryTest, SetPendingTransmisstionState) {
+    const int64_t kRttMs = RtpPacketHistory::kMinPacketDurationMs * 2;
     // Set size to remove old packets as soon as possible.
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 1);
     packet_hist_.SetRttMs(kRttMs);
@@ -520,8 +520,8 @@ MY_TEST_P(RtpPacketSentHistoryTest, SetPendingTransmisstionState) {
     EXPECT_FALSE(state->pending_transmission);
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, GetPacketAndSetSent) {
-    const int64_t kRttMs = RtpPacketSentHistory::kMinPacketDurationMs * 2;
+MY_TEST_P(RtpPacketHistoryTest, GetPacketAndSetSent) {
+    const int64_t kRttMs = RtpPacketHistory::kMinPacketDurationMs * 2;
     packet_hist_.SetRttMs(kRttMs);
 
     // Set size to remove old packets as soon as possible.
@@ -546,10 +546,10 @@ MY_TEST_P(RtpPacketSentHistoryTest, GetPacketAndSetSent) {
     EXPECT_TRUE(packet_hist_.GetPacketAndMarkAsPending(kStartSeqNum));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, GetPacketWithEncapsulation) {
+MY_TEST_P(RtpPacketHistoryTest, GetPacketWithEncapsulation) {
     const uint32_t kSsrc = 123456;
     const uint32_t kRetransmitSsrc = 234567;
-    const int64_t kRttMs = RtpPacketSentHistory::kMinPacketDurationMs * 2;
+    const int64_t kRttMs = RtpPacketHistory::kMinPacketDurationMs * 2;
     packet_hist_.SetRttMs(kRttMs);
 
     // Set size to remove old packets as soon as possible.
@@ -571,7 +571,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, GetPacketWithEncapsulation) {
     EXPECT_EQ(retransmit_packet->ssrc(), kRetransmitSsrc);
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, GetPacketWithEncapsulationAbortOnNullptr) {
+MY_TEST_P(RtpPacketHistoryTest, GetPacketWithEncapsulationAbortOnNullptr) {
     // Set size to remove old packets as soon as possible.
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 1);
 
@@ -588,9 +588,9 @@ MY_TEST_P(RtpPacketSentHistoryTest, GetPacketWithEncapsulationAbortOnNullptr) {
     EXPECT_TRUE(packet_hist_.GetPacketAndMarkAsPending(kStartSeqNum));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, DontRemovePendingTransmissions) {
-    const int64_t kRttMs = RtpPacketSentHistory::kMinPacketDurationMs * 2;
-    const int64_t kPacketTimeoutMs = kRttMs * RtpPacketSentHistory::kMinPacketDurationRttFactor;
+MY_TEST_P(RtpPacketHistoryTest, DontRemovePendingTransmissions) {
+    const int64_t kRttMs = RtpPacketHistory::kMinPacketDurationMs * 2;
+    const int64_t kPacketTimeoutMs = kRttMs * RtpPacketHistory::kMinPacketDurationRttFactor;
 
     // Set size to remove old packets as soon as possible.
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 1);
@@ -617,7 +617,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, DontRemovePendingTransmissions) {
     ASSERT_FALSE(packet_hist_.GetPacketState(kStartSeqNum));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, PrioritizedPayloadPadding) {
+MY_TEST_P(RtpPacketHistoryTest, PrioritizedPayloadPadding) {
     if (!GetParam()) {
         return;
     }
@@ -651,7 +651,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, PrioritizedPayloadPadding) {
     EXPECT_FALSE(packet_hist_.GetPayloadPaddingPacket());
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, NoPendingPacketAsPadding) {
+MY_TEST_P(RtpPacketHistoryTest, NoPendingPacketAsPadding) {
     // Set size to remove old packets as soon as possible.
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 1);
 
@@ -670,7 +670,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, NoPendingPacketAsPadding) {
     EXPECT_EQ(packet_hist_.GetPayloadPaddingPacket()->sequence_number(), kStartSeqNum);
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, PayloadPaddingWithEncapsulation) {
+MY_TEST_P(RtpPacketHistoryTest, PayloadPaddingWithEncapsulation) {
     // Set size to remove old packets as soon as possible.
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 1);
 
@@ -691,7 +691,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, PayloadPaddingWithEncapsulation) {
     EXPECT_EQ(padding_packet->sequence_number(), padding_seq_num);
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, NackAfterAckIsNoop) {
+MY_TEST_P(RtpPacketHistoryTest, NackAfterAckIsNoop) {
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 2);
 
     // Add two sent packets.
@@ -706,7 +706,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, NackAfterAckIsNoop) {
     EXPECT_FALSE(packet_hist_.GetPacketAndMarkAsPending(seq_num));
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, OutOfOrderInsertAndRemoval) {
+MY_TEST_P(RtpPacketHistoryTest, OutOfOrderInsertAndRemoval) {
     packet_hist_.SetStorePacketsStatus(StorageMode::STORE_AND_CULL, 10);
 
     // Insert packets, out of order, including both forwards and backwards
@@ -740,7 +740,7 @@ MY_TEST_P(RtpPacketSentHistoryTest, OutOfOrderInsertAndRemoval) {
     }
 }
 
-MY_TEST_P(RtpPacketSentHistoryTest, LastPacketAsPaddingWithPrioOff) {
+MY_TEST_P(RtpPacketHistoryTest, LastPacketAsPaddingWithPrioOff) {
     if (GetParam()) {
         return;
     }

@@ -192,7 +192,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp
 
      # rtc -> rtp_rtcp -> rtp -> sender
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp
@@ -434,7 +434,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.cpp
 
     # rtc -> rtp_rtcp -> rtp -> sender
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_history.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.cpp
@@ -755,7 +755,7 @@ set(UNITTEST_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> sender
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser_unittest.cpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history_unittest.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_history_unittest.cpp
 
     # rtc -> rtp_rtcp -> rtcp 
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats_unittest.cpp

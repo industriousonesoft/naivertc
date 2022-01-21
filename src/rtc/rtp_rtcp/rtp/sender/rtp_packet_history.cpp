@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 #include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 
 #include <plog/Log.h>
@@ -6,12 +6,12 @@
 namespace naivertc {
 
 // PacketState
-RtpPacketSentHistory::PacketState::PacketState() = default;
-RtpPacketSentHistory::PacketState::PacketState(const PacketState&) = default;
-RtpPacketSentHistory::PacketState::~PacketState() = default;
+RtpPacketHistory::PacketState::PacketState() = default;
+RtpPacketHistory::PacketState::PacketState(const PacketState&) = default;
+RtpPacketHistory::PacketState::~PacketState() = default;
 
 // StoredPacket
-RtpPacketSentHistory::StoredPacket::StoredPacket(
+RtpPacketHistory::StoredPacket::StoredPacket(
     RtpPacketToSend packet,
     std::optional<int64_t> send_time_ms,
     uint64_t insert_order)
@@ -23,8 +23,8 @@ RtpPacketSentHistory::StoredPacket::StoredPacket(
       num_retransmitted(0),
       insert_order(insert_order) {}
 
-// RtpPacketSentHistory
-bool RtpPacketSentHistory::StoredPacket::Compare::operator()(StoredPacket* lhs,
+// RtpPacketHistory
+bool RtpPacketHistory::StoredPacket::Compare::operator()(StoredPacket* lhs,
                                                              StoredPacket* rhs) const {
     // Prefer to send packets we haven't already sent as padding.
     if (lhs->num_retransmitted != rhs->num_retransmitted) {
@@ -34,9 +34,9 @@ bool RtpPacketSentHistory::StoredPacket::Compare::operator()(StoredPacket* lhs,
     return lhs->insert_order > rhs->insert_order;
 }
 
-// RtpPacketSentHistory
+// RtpPacketHistory
 // Public methods
-RtpPacketSentHistory::RtpPacketSentHistory(Clock* clock, bool enable_padding_prio) 
+RtpPacketHistory::RtpPacketHistory(Clock* clock, bool enable_padding_prio) 
     : clock_(clock),
       enable_padding_prio_(enable_padding_prio),
       number_to_store_(0),
@@ -44,9 +44,9 @@ RtpPacketSentHistory::RtpPacketSentHistory(Clock* clock, bool enable_padding_pri
       rtt_ms_(-1),
       packets_inserted_(0) {}
 
-RtpPacketSentHistory::~RtpPacketSentHistory() {}
+RtpPacketHistory::~RtpPacketHistory() {}
 
-void RtpPacketSentHistory::SetStorePacketsStatus(StorageMode mode, size_t number_to_store) {
+void RtpPacketHistory::SetStorePacketsStatus(StorageMode mode, size_t number_to_store) {
     RTC_RUN_ON(&sequence_checker_);
     if (number_to_store > kMaxCapacity) {
         PLOG_WARNING << "Number to store is supposed to less than " << kMaxCapacity;
@@ -60,12 +60,12 @@ void RtpPacketSentHistory::SetStorePacketsStatus(StorageMode mode, size_t number
     number_to_store_ = number_to_store;
 }
 
-RtpPacketSentHistory::StorageMode RtpPacketSentHistory::GetStorageMode() const {
+RtpPacketHistory::StorageMode RtpPacketHistory::GetStorageMode() const {
     RTC_RUN_ON(&sequence_checker_);
     return mode_;
 }
 
-void RtpPacketSentHistory::SetRttMs(int64_t rtt_ms) {
+void RtpPacketHistory::SetRttMs(int64_t rtt_ms) {
     RTC_RUN_ON(&sequence_checker_);
     if (rtt_ms < 0) {
         PLOG_WARNING << "Invalid RTT: " << rtt_ms;
@@ -80,7 +80,7 @@ void RtpPacketSentHistory::SetRttMs(int64_t rtt_ms) {
     }
 }
 
-void RtpPacketSentHistory::PutRtpPacket(RtpPacketToSend packet, std::optional<int64_t> send_time_ms) {
+void RtpPacketHistory::PutRtpPacket(RtpPacketToSend packet, std::optional<int64_t> send_time_ms) {
     RTC_RUN_ON(&sequence_checker_);
     if (packet.empty()) {
         PLOG_WARNING << "Invalid packet to send.";
@@ -136,7 +136,7 @@ void RtpPacketSentHistory::PutRtpPacket(RtpPacketToSend packet, std::optional<in
     }
 }
 
-std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndSetSendTime(uint16_t sequence_number) {
+std::optional<RtpPacketToSend> RtpPacketHistory::GetPacketAndSetSendTime(uint16_t sequence_number) {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
         return std::nullopt;
@@ -162,13 +162,13 @@ std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndSetSendTime(uin
     return stored_packet->packet;
 }
 
-std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(uint16_t sequence_number) {
+std::optional<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number) {
     return GetPacketAndMarkAsPending(sequence_number, [](const RtpPacketToSend& packet){
         return packet;
     });
 }
 
-std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
+std::optional<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
                                                                                EncapsulateCallback encapsulate) {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
@@ -200,7 +200,7 @@ std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPacketAndMarkAsPending(u
     return encapsulated_packet;
 }
 
-void RtpPacketSentHistory::MarkPacketAsSent(uint16_t sequence_number) {
+void RtpPacketHistory::MarkPacketAsSent(uint16_t sequence_number) {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
         return;
@@ -223,7 +223,7 @@ void RtpPacketSentHistory::MarkPacketAsSent(uint16_t sequence_number) {
     Retransmitted(*stored_packet);
 }
 
-std::optional<RtpPacketSentHistory::PacketState> RtpPacketSentHistory::GetPacketState(uint16_t sequence_number) const {
+std::optional<RtpPacketHistory::PacketState> RtpPacketHistory::GetPacketState(uint16_t sequence_number) const {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
         return std::nullopt;
@@ -247,14 +247,14 @@ std::optional<RtpPacketSentHistory::PacketState> RtpPacketSentHistory::GetPacket
     return StoredPacketToPacketState(*stored_packet);
 }
 
-std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket() {
+std::optional<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket() {
     return GetPayloadPaddingPacket([](const RtpPacketToSend& packet){
         // Just returns a copy of the packet.
         return packet;
     });
 }
 
-std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket(EncapsulateCallback encapsulate) {
+std::optional<RtpPacketToSend> RtpPacketHistory::GetPayloadPaddingPacket(EncapsulateCallback encapsulate) {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
         return std::nullopt;
@@ -295,7 +295,7 @@ std::optional<RtpPacketToSend> RtpPacketSentHistory::GetPayloadPaddingPacket(Enc
     return padding_packet;
 }
 
-void RtpPacketSentHistory::CullAckedPackets(ArrayView<const uint16_t> acked_seq_nums) {
+void RtpPacketHistory::CullAckedPackets(ArrayView<const uint16_t> acked_seq_nums) {
     RTC_RUN_ON(&sequence_checker_);
     for (uint16_t acked_seq_num : acked_seq_nums) {
         int packet_index = GetPacketIndex(acked_seq_num);
@@ -307,7 +307,7 @@ void RtpPacketSentHistory::CullAckedPackets(ArrayView<const uint16_t> acked_seq_
     }
 }
 
-bool RtpPacketSentHistory::SetPendingTransmission(uint16_t sequence_number) {
+bool RtpPacketHistory::SetPendingTransmission(uint16_t sequence_number) {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
         return false;
@@ -322,13 +322,13 @@ bool RtpPacketSentHistory::SetPendingTransmission(uint16_t sequence_number) {
     return true;
 }
 
-void RtpPacketSentHistory::Clear() {
+void RtpPacketHistory::Clear() {
     RTC_RUN_ON(&sequence_checker_);
     Reset();
 }
 
 // Private methods
-bool RtpPacketSentHistory::CanBeTransmitted(const StoredPacket& packet) const {
+bool RtpPacketHistory::CanBeTransmitted(const StoredPacket& packet) const {
     if (packet.send_time_ms.has_value()) {
         // Check if the packet has too recently been sent.
         if (packet.num_retransmitted > 0 && clock_->now_ms() - *packet.send_time_ms < rtt_ms_) {
@@ -341,12 +341,12 @@ bool RtpPacketSentHistory::CanBeTransmitted(const StoredPacket& packet) const {
     return true;
 }
 
-void RtpPacketSentHistory::Reset() {
+void RtpPacketHistory::Reset() {
     packet_history_.clear();
     padding_priority_.clear();
 }
 
-void RtpPacketSentHistory::CullOldPackets(int64_t now_ms) {
+void RtpPacketHistory::CullOldPackets(int64_t now_ms) {
     int64_t packet_duration_ms = std::max(kMinPacketDurationRttFactor * rtt_ms_, kMinPacketDurationMs);
     while (!packet_history_.empty()) {
         if (packet_history_.size() >= kMaxCapacity) {
@@ -377,7 +377,9 @@ void RtpPacketSentHistory::CullOldPackets(int64_t now_ms) {
         }
 
         if (packet_history_.size() >= number_to_store_ ||
-            IsTimedOut(*stored_packet->send_time_ms, packet_duration_ms, now_ms)) {
+            IsTimedOut(*stored_packet->send_time_ms, 
+                        packet_duration_ms, 
+                        now_ms)) {
             // Remove it and continue: 
             // 1. Too many packets in history.
             // 2. This packet has timed out.
@@ -390,7 +392,7 @@ void RtpPacketSentHistory::CullOldPackets(int64_t now_ms) {
     
 }
 
-std::optional<RtpPacketToSend> RtpPacketSentHistory::RemovePacket(int packet_index) {
+std::optional<RtpPacketToSend> RtpPacketHistory::RemovePacket(int packet_index) {
     // Move the packet out from the StoredPacket container.
     std::optional<RtpPacketToSend> rtp_packet = std::nullopt;
 
@@ -415,7 +417,7 @@ std::optional<RtpPacketToSend> RtpPacketSentHistory::RemovePacket(int packet_ind
     return rtp_packet;
 }
 
-int RtpPacketSentHistory::GetPacketIndex(uint16_t sequence_number) const {
+int RtpPacketHistory::GetPacketIndex(uint16_t sequence_number) const {
     if (packet_history_.empty()) {
         return 0;
     }
@@ -443,7 +445,7 @@ int RtpPacketSentHistory::GetPacketIndex(uint16_t sequence_number) const {
     return packet_index;
 }
 
-RtpPacketSentHistory::StoredPacket* RtpPacketSentHistory::GetStoredPacket(uint16_t sequence_number) {
+RtpPacketHistory::StoredPacket* RtpPacketHistory::GetStoredPacket(uint16_t sequence_number) {
     int index = GetPacketIndex(sequence_number);
     if (index < 0 || 
         static_cast<size_t>(index) >= packet_history_.size() ||
@@ -453,7 +455,7 @@ RtpPacketSentHistory::StoredPacket* RtpPacketSentHistory::GetStoredPacket(uint16
     return &packet_history_[index].value();
 }
 
-RtpPacketSentHistory::StoredPacket* RtpPacketSentHistory::GetLastAvailablePacket() {
+RtpPacketHistory::StoredPacket* RtpPacketHistory::GetLastAvailablePacket() {
     StoredPacket* result = nullptr;
     for (auto it = packet_history_.rbegin(); it != packet_history_.rend(); ++it) {
         if (it->has_value()) {
@@ -464,8 +466,8 @@ RtpPacketSentHistory::StoredPacket* RtpPacketSentHistory::GetLastAvailablePacket
     return result;
 }
 
-RtpPacketSentHistory::PacketState RtpPacketSentHistory::StoredPacketToPacketState(const StoredPacket& stored_packet) {
-    RtpPacketSentHistory::PacketState state;
+RtpPacketHistory::PacketState RtpPacketHistory::StoredPacketToPacketState(const StoredPacket& stored_packet) {
+    RtpPacketHistory::PacketState state;
     state.rtp_sequence_number = stored_packet.packet.sequence_number();
     state.send_time_ms = stored_packet.send_time_ms;
     state.capture_time_ms = stored_packet.packet.capture_time_ms();
@@ -476,7 +478,7 @@ RtpPacketSentHistory::PacketState RtpPacketSentHistory::StoredPacketToPacketStat
     return state;
 }
 
-void RtpPacketSentHistory::Retransmitted(StoredPacket& stored_packet) {
+void RtpPacketHistory::Retransmitted(StoredPacket& stored_packet) {
     // Check if this StoredPacket is in the priority set. If so, we need to remove
     // it before updating |num_retransmitted_| since that is used in sorting,
     // and then add it back.
@@ -495,10 +497,10 @@ void RtpPacketSentHistory::Retransmitted(StoredPacket& stored_packet) {
     }
 }
 
-bool RtpPacketSentHistory::IsTimedOut(int64_t send_time_ms, 
-                                      int64_t duration_ms, 
-                                      int64_t now_ms) {
-    return (send_time_ms + duration_ms * kPacketCullingDelayFactor) <= now_ms;
+bool RtpPacketHistory::IsTimedOut(int64_t send_time_ms, 
+                                  int64_t duration_ms, 
+                                  int64_t now_ms) {
+    return (send_time_ms + /*max_packet_lifespan=*/duration_ms * kPacketCullingDelayFactor) <= now_ms;
 }
     
 } // namespace naivertc

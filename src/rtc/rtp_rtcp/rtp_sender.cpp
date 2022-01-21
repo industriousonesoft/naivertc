@@ -80,8 +80,8 @@ bool RtpSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
 
 void RtpSender::SetStorePacketsStatus(const bool enable, const uint16_t number_to_store) {
     RTC_RUN_ON(&sequence_checker_);
-    auto storage_mode = enable ? RtpPacketSentHistory::StorageMode::STORE_AND_CULL
-                               : RtpPacketSentHistory::StorageMode::DISABLE;
+    auto storage_mode = enable ? RtpPacketHistory::StorageMode::STORE_AND_CULL
+                               : RtpPacketHistory::StorageMode::DISABLE;
     packet_history_.SetStorePacketsStatus(storage_mode, number_to_store);
 }
 
@@ -169,7 +169,7 @@ RtpSendFeedback RtpSender::GetSendFeedback() {
 int32_t RtpSender::ResendPacket(uint16_t packet_id) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
     // so that we don't retransmit too often.
-    std::optional<RtpPacketSentHistory::PacketState> stored_packet = packet_history_.GetPacketState(packet_id);
+    std::optional<RtpPacketHistory::PacketState> stored_packet = packet_history_.GetPacketState(packet_id);
     if (!stored_packet.has_value() || stored_packet->pending_transmission) {
         // Packet not found or already queued for retransmission, ignore.
         return 0;

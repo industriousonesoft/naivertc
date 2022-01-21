@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 #include <gtest/gtest.h>
@@ -145,7 +145,7 @@ protected:
     NiceMock<MockSendDelayObserver> send_delay_observer_;
     NiceMock<MockPacketSendStatsObserver> packet_send_stats_observer_;
     SendTransportImpl send_transport_;
-    RtpPacketSentHistory packet_history_;
+    RtpPacketHistory packet_history_;
     rtp::HeaderExtensionManager header_extension_mgr_;
     uint16_t seq_num_;
 };

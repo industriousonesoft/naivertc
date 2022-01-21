@@ -9,7 +9,7 @@
 #include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sent_history.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp"
@@ -83,7 +83,7 @@ private:
     std::unique_ptr<FecGenerator> fec_generator_;
 
     RtpPacketSequencer packet_sequencer_;
-    RtpPacketSentHistory packet_history_;
+    RtpPacketHistory packet_history_;
     RtpPacketEgresser packet_egresser_;
     RtpPacketGenerator packet_generator_;
     NonPacedPacketSender non_paced_sender_;

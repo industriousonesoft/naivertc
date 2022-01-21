@@ -13,7 +13,7 @@ constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(kBitrateStatisticsWindow
 } // namespace
 
 RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
-                                 RtpPacketSentHistory* const packet_history,
+                                 RtpPacketHistory* const packet_history,
                                  FecGenerator* const fec_generator) 
         : is_audio_(config.audio),
           send_side_bwe_with_overhead_(config.send_side_bwe_with_overhead),
