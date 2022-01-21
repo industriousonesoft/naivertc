@@ -307,7 +307,8 @@ bool RtpPacket::Parse(CopyOnWriteBuffer buffer) {
 
 // Private methods
 inline void RtpPacket::WriteAt(size_t offset, uint8_t byte) {
-    at(offset) = byte;
+    assert(offset < capacity());
+    data()[offset] = byte;
 }
 
 inline uint8_t* RtpPacket::WriteAt(size_t offset) {

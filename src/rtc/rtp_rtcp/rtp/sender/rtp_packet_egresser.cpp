@@ -53,7 +53,9 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
  
 RtpPacketEgresser::~RtpPacketEgresser() {
     RTC_RUN_ON(&sequence_checker_);
-    update_task_->Stop();
+    if (update_task_ && update_task_->Running()) {
+        update_task_->Stop();
+    }
 }
 
  void RtpPacketEgresser::SetFecProtectionParameters(const FecProtectionParams& delta_params,
@@ -64,7 +66,7 @@ RtpPacketEgresser::~RtpPacketEgresser() {
 
 void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     RTC_RUN_ON(&sequence_checker_);
-    if (!packet.empty()) {
+    if (packet.empty()) {
         return;
     }
     if (!VerifySsrcs(packet)) {
@@ -121,9 +123,9 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     const bool is_media = packet_type == RtpPacketType::AUDIO ||
                           packet_type == RtpPacketType::VIDEO;
     
-    auto packet_id_ext = packet.GetExtension<rtp::TransportSequenceNumber>();
-    if (packet_id_ext) {
-        OnPacketSent(packet_id_ext->transport_sequence_number(), packet);
+    auto transport_seq_num = packet.GetExtension<rtp::TransportSequenceNumber>();
+    if (transport_seq_num) {
+        OnPacketToSend(*transport_seq_num, packet);
     }
 
     if (packet_type != RtpPacketType::PADDING &&
@@ -163,12 +165,10 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
         // In those cases media must be sent first to set a reference timestamp.
         media_has_been_sent_ = true;
 
-        // TODO(sprang): Add support for FEC protecting all header extensions, 
+        // TODO: Add support for FEC protecting all header extensions, 
         // add media packet to generator here instead.
         
-        worker_queue_->Post([this, now_ms, send_stats=std::move(send_stats)](){
-            UpdateSentStatistics(now_ms, std::move(send_stats));
-        });
+        UpdateSentStatistics(now_ms, std::move(send_stats));
     }
 }
 
@@ -240,8 +240,8 @@ bool RtpPacketEgresser::VerifySsrcs(const RtpPacketToSend& packet) {
     return false;
 }
 
-void RtpPacketEgresser::OnPacketSent(uint16_t packet_id, 
-                                     const RtpPacketToSend& packet) {
+void RtpPacketEgresser::OnPacketToSend(uint16_t packet_id, 
+                                       const RtpPacketToSend& packet) {
     if (packet_send_stats_observer_) {
         const size_t packet_size = send_side_bwe_with_overhead_ ? packet.size() 
                                                                 : packet.payload_size() + packet.padding_size();
@@ -252,6 +252,7 @@ void RtpPacketEgresser::OnPacketSent(uint16_t packet_id,
         send_stats.packet_size = packet_size;
         send_stats.packet_type = packet.packet_type();
         send_stats.ssrc = packet.ssrc();
+        send_stats.seq_num = packet.sequence_number();
 
         switch (packet.packet_type())
         {
@@ -272,7 +273,7 @@ void RtpPacketEgresser::OnPacketSent(uint16_t packet_id,
             break;
         }
 
-        packet_send_stats_observer_->OnPacketSent(std::move(send_stats));
+        packet_send_stats_observer_->OnPacketToSend(send_stats);
     }
 }
 

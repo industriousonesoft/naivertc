@@ -22,7 +22,6 @@ public:
 
     using ExtensionType = RtpExtensionType;
     using HeaderExtensionManager = rtp::HeaderExtensionManager;
-    using HeaderExtension = rtp::HeaderExtension;
 public:
     RtpPacket();
     RtpPacket(size_t capacity);
@@ -94,7 +93,7 @@ public:
     bool IsRegistered() const;
 
     template <typename Extension>
-    std::shared_ptr<Extension> GetExtension() const;
+    std::optional<typename Extension::ValueType> GetExtension() const;
 
     template <typename Extension, typename... Values>
     bool SetExtension(const Values&... values);
@@ -158,13 +157,13 @@ bool RtpPacket::IsRegistered() const {
 }
 
 template <typename Extension>
-std::shared_ptr<Extension> RtpPacket::GetExtension() const {
-    std::shared_ptr<Extension> result = std::make_shared<Extension>();
+std::optional<typename Extension::ValueType> RtpPacket::GetExtension() const {
+    std::optional<typename Extension::ValueType> result;
     auto raw = FindExtension(Extension::kType);
-    if (raw.empty() || result->Parse(raw.data(), raw.size())) {
-        return nullptr;
+    if (raw.empty() || !Extension::Parse(raw.data(), raw.size(), &result.emplace())) {
+        return std::nullopt;
     }
-    return std::move(result);
+    return result;
 }
 
 template <typename Extension, typename... Values>

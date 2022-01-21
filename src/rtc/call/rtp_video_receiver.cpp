@@ -177,8 +177,8 @@ void RtpVideoReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized
     video_header.is_last_packet_in_frame |= rtp_packet.marker();
 
     if (auto extension = rtp_packet.GetExtension<rtp::PlayoutDelayLimits>()) {
-        video_header.playout_delay.min_ms = extension->min_ms();
-        video_header.playout_delay.max_ms = extension->max_ms();
+        video_header.playout_delay.min_ms = extension->min_ms;
+        video_header.playout_delay.max_ms = extension->max_ms;
     }
 
     // TODO: Support more RTP header extensions

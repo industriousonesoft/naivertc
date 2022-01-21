@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define ENABLE_UNIT_TESTS 0
+#define ENABLE_UNIT_TESTS 1
 #include "testing/defines.hpp"
 #include "testing/simulated_clock.hpp"
 #include "testing/simulated_time_controller.hpp"
@@ -23,6 +23,13 @@ constexpr uint16_t kStartSequenceNumber = 33;
 constexpr uint32_t kSsrc = 725242;
 constexpr uint32_t kRtxSsrc = 12345;
 constexpr uint32_t kFlexFecSsrc = 23456;
+
+enum HeaderExtensionIds : int {
+    TRANSPORT_SEQENCE_NUMBER = 1,
+    ABSOLUTE_SEND_TIME,
+    TRANSMISSION_OFFSET,
+    VIDEO_TIMING,
+};
 
 // MockStreamDataCountersObserver
 class MockStreamDataCountersObserver : public RtpStreamDataCountersObserver {
@@ -51,6 +58,15 @@ public:
                 (override));
 };
 
+// MockPacketSendStatsObserver 
+class MockPacketSendStatsObserver : public RtpPacketSendStatsObserver {
+public:
+    MOCK_METHOD(void, 
+                OnPacketToSend, 
+                (const RtpPacketSendStats&), 
+                (override));
+};
+
 // SendTransportImpl
 class SendTransportImpl : public MediaTransport {
 public:
@@ -76,7 +92,7 @@ private:
 
 } // namespace
 
-class T(RtpPacketEgresserTest) : public ::testing::Test {
+class T(RtpPacketEgresserTest) : public ::testing::TestWithParam<bool> {
 protected:
     T(RtpPacketEgresserTest)() 
         : time_controller_(kStartTime),
@@ -93,19 +109,21 @@ protected:
         RtpConfiguration config;
         config.audio = false;
         config.clock = clock_;
+        config.send_side_bwe_with_overhead = GetParam();
         config.local_media_ssrc = kSsrc;
         config.rtx_send_ssrc = kRtxSsrc;
         config.fec_generator = nullptr;
         config.send_transport = &send_transport_;
-        config.send_bitrates_observer = &send_bitrate_observer_;
+        config.send_bitrates_observer = nullptr; // Disable the repeating task.
         config.send_side_delay_observer = &send_delay_observer_;
+        config.packet_send_stats_observer = &packet_send_stats_observer_;
         config.stream_data_counters_observer = &stream_data_counters_observer_;
         return config;
     }
 
     RtpPacketToSend BuildRtpPacket(bool marker_bit,
                                    int64_t capture_time_ms) {
-        RtpPacketToSend packet(nullptr);
+        RtpPacketToSend packet(&header_extension_mgr_);
         packet.set_ssrc(kSsrc);
         packet.set_payload_type(kDefaultPayloadType);
         packet.set_packet_type(RtpPacketType::VIDEO);
@@ -124,12 +142,42 @@ protected:
     SimulatedTimeController time_controller_;
     Clock* const clock_;
     NiceMock<MockStreamDataCountersObserver> stream_data_counters_observer_;
-    NiceMock<MockSendBitratesObserver> send_bitrate_observer_;
     NiceMock<MockSendDelayObserver> send_delay_observer_;
+    NiceMock<MockPacketSendStatsObserver> packet_send_stats_observer_;
     SendTransportImpl send_transport_;
     RtpPacketSentHistory packet_history_;
+    rtp::HeaderExtensionManager header_extension_mgr_;
     uint16_t seq_num_;
 };
+
+MY_INSTANTIATE_TEST_SUITE_P(WithOrWithoutOverhead, RtpPacketEgresserTest, ::testing::Bool());
+
+MY_TEST_P(RtpPacketEgresserTest, PacketSendStatsObserverGetsCorrectByteCount) {
+    const size_t kRtpOverheadBytesPerPacket = 12 + 8;
+    const size_t kPayloadSize = 1400;
+    const uint16_t kTransportSeqNum = 17;
+
+    header_extension_mgr_.RegisterByUri(HeaderExtensionIds::TRANSPORT_SEQENCE_NUMBER, 
+                                        rtp::TransportSequenceNumber::kUri);
+
+    const size_t expected_bytes = GetParam() ? kPayloadSize + kRtpOverheadBytesPerPacket
+                                             : kPayloadSize;
+
+    EXPECT_CALL(packet_send_stats_observer_, 
+                OnPacketToSend(AllOf(
+                    Field(&RtpPacketSendStats::ssrc, kSsrc),
+                    Field(&RtpPacketSendStats::packet_id, kTransportSeqNum),
+                    Field(&RtpPacketSendStats::seq_num, kStartSequenceNumber),
+                    Field(&RtpPacketSendStats::packet_size, expected_bytes)
+                )));
+
+    auto packet = BuildRtpPacket();
+    packet.SetExtension<rtp::TransportSequenceNumber>(kTransportSeqNum);
+    packet.AllocatePayload(kPayloadSize);
+
+    auto sender = CreateRtpSenderEgresser();
+    sender->SendPacket(std::move(packet));
+}
 
 } // namespace test
 } // namespace naivertc

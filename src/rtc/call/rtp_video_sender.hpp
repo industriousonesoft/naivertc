@@ -34,9 +34,7 @@ public:
 
         // Corresponds to the SDP attribute extmap-allow-mixed
         bool extmap_allow_mixed = false;
-
-        std::vector<rtp::HeaderExtension> extensions;
-
+        
         // The default time interval between RTCP report for video: 1000 ms
         // The default time interval between RTCP report for audio: 5000 ms
         size_t rtcp_report_interval_ms = 1000;

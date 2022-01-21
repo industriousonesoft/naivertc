@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/media/video/common.hpp"
 
 #include <vector>
 #include <string>
@@ -11,22 +12,10 @@
 namespace naivertc {
 namespace rtp {
 
-// HeaderExtension
-class RTC_CPP_EXPORT HeaderExtension {
-public:
-    HeaderExtension() {}
-    virtual ~HeaderExtension() = default;
-
-    virtual size_t size() const { return 0; }
-    virtual RtpExtensionType type() const { return RtpExtensionType::NONE; };
-
-    virtual bool Parse(const uint8_t* data, size_t size) { return false; };
-    virtual bool PackInto(uint8_t* data, size_t size) const { return false; };
-};
-
 // AbsoluteSendTime
-class RTC_CPP_EXPORT AbsoluteSendTime final : public HeaderExtension {
+class RTC_CPP_EXPORT AbsoluteSendTime final {
 public:
+    using ValueType = uint32_t;
     static constexpr RtpExtensionType kType = RtpExtensionType::ABSOLUTE_SEND_TIME;
     static constexpr uint8_t kValueSizeBytes = 3;
     static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
@@ -34,23 +23,10 @@ public:
     static constexpr uint32_t MsTo24Bits(int64_t time_ms) {
         return static_cast<uint32_t>(((time_ms << 18) + 500) / 1000) & 0x00FFFFFF;
     }
-public:
-    AbsoluteSendTime();
-    AbsoluteSendTime(uint32_t time_24bits);
-    ~AbsoluteSendTime();
-    
-    uint32_t time_24bits() const { return time_24bits_; }
 
-    size_t size() const override { return kValueSizeBytes; }
-    RtpExtensionType type() const override { return kType; };
-
-    bool Parse(const uint8_t* buffer, size_t buffer_size) override;
-    bool PackInto(uint8_t* buffer, size_t buffer_size) const override;
-
+    static bool Parse(const uint8_t* buffer, size_t buffer_size, uint32_t* time_24bits);
     static bool PackInto(uint8_t* buffer, size_t buffer_size, uint32_t time_24bits);
     static size_t ValueSize(uint32_t time_24bits) { return kValueSizeBytes; };
-private:
-    uint32_t time_24bits_;
 };
 
 // AbsoluteCaptureTime
@@ -60,116 +36,80 @@ private:
 // accomplish audio-to-video synchronization when RTCP-terminating intermediate
 // systems (e.g. mixers) are involved. See:
 // http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time
-class AbsoluteCaptureTime final : public HeaderExtension {
+class AbsoluteCaptureTime final {
 public:
+    struct TimeInfo {
+        // Absolute capture timestamp is the NTP timestamp of when the first frame in
+        // a packet was originally captured. This timestamp MUST be based on the same
+        // clock as the clock used to generate NTP timestamps for RTCP sender reports
+        // on the capture system.
+        //
+        // It’s not always possible to do an NTP clock readout at the exact moment of
+        // when a media frame is captured. A capture system MAY postpone the readout
+        // until a more convenient time. A capture system SHOULD have known delays
+        // (e.g. from hardware buffers) subtracted from the readout to make the final
+        // timestamp as close to the actual capture time as possible.
+        //
+        // This field is encoded as a 64-bit unsigned fixed-point number with the high
+        // 32 bits for the timestamp in seconds and low 32 bits for the fractional
+        // part. This is also known as the UQ32.32 format and is what the RTP
+        // specification defines as the canonical format to represent NTP timestamps.
+        uint64_t absolute_capture_timestamp = 0;
+
+        // Estimated capture clock offset is the sender’s estimate of the offset
+        // between its own NTP clock and the capture system’s NTP clock. The sender is
+        // here defined as the system that owns the NTP clock used to generate the NTP
+        // timestamps for the RTCP sender reports on this stream. The sender system is
+        // typically either the capture system or a mixer.
+        //
+        // This field is encoded as a 64-bit two’s complement signed fixed-point
+        // number with the high 32 bits for the seconds and low 32 bits for the
+        // fractional part. It’s intended to make it easy for a receiver, that knows
+        // how to estimate the sender system’s NTP clock, to also estimate the capture
+        // system’s NTP clock:
+        //
+        // Capture NTP Clock = Sender NTP Clock + Capture Clock Offset
+        std::optional<int64_t> estimated_capture_clock_offset;
+    };
+    
+public:
+    using ValueType = TimeInfo;
     static constexpr RtpExtensionType kType = RtpExtensionType::ABSOLUTE_CAPTURE_TIME;
     static constexpr uint8_t kValueSizeBytes = 16;
     static constexpr uint8_t kValueSizeBytesWithoutEstimatedCaptureClockOffset = 8;
     static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time";
 
-public:
-    AbsoluteCaptureTime();
-    AbsoluteCaptureTime(uint64_t absolute_capture_timestamp, std::optional<int64_t> estimated_capture_clock_offset);
-    ~AbsoluteCaptureTime();
-    
-    uint64_t absolute_capture_timestamp() const { return absolute_capture_timestamp_; }
-    std::optional<int64_t> estimated_capture_clock_offset() const { return estimated_capture_clock_offset_; }
-
-    size_t size() const override;
-    RtpExtensionType type() const override { return kType; };
-
-    bool Parse(const uint8_t* buffer, size_t buffer_size) override;
-    bool PackInto(uint8_t* buffer, size_t buffer_size) const override;
-
-    static bool PackInto(uint8_t* buffer, size_t buffer_size, 
-                         uint64_t absolute_capture_timestamp,
-                         std::optional<int64_t> estimated_capture_clock_offset);
-    static size_t ValueSize(uint64_t absolute_capture_timestamp,
-                            std::optional<int64_t> estimated_capture_clock_offset);
+    static bool Parse(const uint8_t* buffer, size_t buffer_size, TimeInfo* time_info);
+    static bool PackInto(uint8_t* buffer, size_t buffer_size, const TimeInfo& time_info);
+    static size_t ValueSize(const TimeInfo& time_info);
 private:
-    // Absolute capture timestamp is the NTP timestamp of when the first frame in
-    // a packet was originally captured. This timestamp MUST be based on the same
-    // clock as the clock used to generate NTP timestamps for RTCP sender reports
-    // on the capture system.
-    //
-    // It’s not always possible to do an NTP clock readout at the exact moment of
-    // when a media frame is captured. A capture system MAY postpone the readout
-    // until a more convenient time. A capture system SHOULD have known delays
-    // (e.g. from hardware buffers) subtracted from the readout to make the final
-    // timestamp as close to the actual capture time as possible.
-    //
-    // This field is encoded as a 64-bit unsigned fixed-point number with the high
-    // 32 bits for the timestamp in seconds and low 32 bits for the fractional
-    // part. This is also known as the UQ32.32 format and is what the RTP
-    // specification defines as the canonical format to represent NTP timestamps.
-    uint64_t absolute_capture_timestamp_;
 
-    // Estimated capture clock offset is the sender’s estimate of the offset
-    // between its own NTP clock and the capture system’s NTP clock. The sender is
-    // here defined as the system that owns the NTP clock used to generate the NTP
-    // timestamps for the RTCP sender reports on this stream. The sender system is
-    // typically either the capture system or a mixer.
-    //
-    // This field is encoded as a 64-bit two’s complement signed fixed-point
-    // number with the high 32 bits for the seconds and low 32 bits for the
-    // fractional part. It’s intended to make it easy for a receiver, that knows
-    // how to estimate the sender system’s NTP clock, to also estimate the capture
-    // system’s NTP clock:
-    //
-    // Capture NTP Clock = Sender NTP Clock + Capture Clock Offset
-    std::optional<int64_t> estimated_capture_clock_offset_;
 };
 
 // TransmissionTimeOffset
-class TransmissionTimeOffset final : public HeaderExtension {
+class TransmissionTimeOffset final {
 public:
+    using ValueType = int32_t;
     static constexpr RtpExtensionType kType = RtpExtensionType::TRANSMISSTION_TIME_OFFSET;
     static constexpr uint8_t kValueSizeBytes = 3;
     static constexpr const char kUri[] = "urn:ietf:params:rtp-hdrext:toffset";
 
-public:
-    TransmissionTimeOffset();
-    TransmissionTimeOffset(int32_t rtp_time_24bits);
-    ~TransmissionTimeOffset();
-
-    int32_t rtp_time_24bits() const { return rtp_time_24bits_; }
-
-    size_t size() const override { return kValueSizeBytes; }
-    RtpExtensionType type() const override { return kType; };
-
-    bool Parse(const uint8_t* buffer, size_t buffer_size) override;
-    bool PackInto(uint8_t* buffer, size_t buffer_size) const override;
-
+    static bool Parse(const uint8_t* buffer, size_t buffer_size, int32_t* rtp_time_24bits);
     static bool PackInto(uint8_t* buffer, size_t buffer_size, int32_t rtp_time_24bits);
     static size_t ValueSize(int32_t rtp_time_24bits) { return kValueSizeBytes; };
-private:
-    int32_t rtp_time_24bits_;
 };
 
 // TransportSequenceNumber
-class TransportSequenceNumber final : public HeaderExtension {
+class TransportSequenceNumber final {
 public:
+    using ValueType = uint16_t;
     static constexpr RtpExtensionType kType = RtpExtensionType::TRANSPORT_SEQUENCE_NUMBER;
     static constexpr uint8_t kValueSizeBytes = 2;
     static constexpr const char kUri[] = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
 
-public:
-    TransportSequenceNumber();
-    TransportSequenceNumber(uint16_t transport_sequence_number);
-    ~TransportSequenceNumber();
-
-    uint16_t transport_sequence_number() const { return transport_sequence_number_; }
-
-    size_t size() const override { return kValueSizeBytes; }  
-    RtpExtensionType type() const override { return kType; };
-
-    bool Parse(const uint8_t* buffer, size_t buffer_size) override;
-    bool PackInto(uint8_t* buffer, size_t buffer_size) const override;
-
+    static bool Parse(const uint8_t* buffer, size_t buffer_size, uint16_t* transport_sequence_number);
     static bool PackInto(uint8_t* buffer, size_t buffer_size, uint16_t transport_sequence_number);
     static size_t ValueSize(uint16_t transport_sequence_number) { return kValueSizeBytes; };
-private:
-    uint16_t transport_sequence_number_;
 };
 
 // PlayoutDelayLimits
@@ -183,8 +123,9 @@ private:
 //
 // min = x, max = y indicates that the receiver is free to adapt
 // in the range (x, y) based on network jitter.
-class PlayoutDelayLimits final : public HeaderExtension {
+class PlayoutDelayLimits final {
 public:
+    using ValueType = naivertc::video::PlayoutDelay;
     static constexpr RtpExtensionType kType = RtpExtensionType::PLAYOUT_DELAY_LIMITS;
     static constexpr uint8_t kValueSizeBytes = 3;
     static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay";
@@ -196,56 +137,23 @@ public:
     // Maximum playout delay value in milliseconds.
     static constexpr int kMaxMs = 0xfff * kGranularityMs;  // 40950.
 
-public:
-    PlayoutDelayLimits();
-    PlayoutDelayLimits(int min_ms, int max_ms);
-    ~PlayoutDelayLimits();
-    
-    int min_ms() const { return min_ms_; }
-    int max_ms() const { return max_ms_; }
-
-    size_t size() const override { return kValueSizeBytes; }
-    RtpExtensionType type() const override { return kType; };
-
-    bool Parse(const uint8_t* buffer, size_t buffer_size) override;
-    bool PackInto(uint8_t* buffer, size_t buffer_size) const override;
-
-    static bool PackInto(uint8_t* buffer, size_t buffer_size, int min_ms, int max_ms);
-    static size_t ValueSize(int min_ms, int max_ms) { return kValueSizeBytes; };
-
-    bool operator==(const PlayoutDelayLimits& rhs) const {
-        return min_ms_ == rhs.min_ms_ && max_ms_ == rhs.max_ms_;
-    }
-
-private:
-    int min_ms_ = -1;
-    int max_ms_ = -1;
+    static bool Parse(const uint8_t* buffer, size_t buffer_size, ValueType* playout_delay);
+    static bool PackInto(uint8_t* buffer, size_t buffer_size, const ValueType& playout_delay);
+    static size_t ValueSize(const ValueType& playout_delay) { return kValueSizeBytes; };
 };
 
 // Base extension class for RTP header extensions which are strings.
 // Subclasses must defined kId and kUri static constexpr members.
-class BaseRtpString : public HeaderExtension {
+class BaseRtpString {
 public:
+    using ValueType = std::string;
     // String RTP header extensions are limited to 16 bytes because it is the
     // maximum length that can be encoded with one-byte header extensions.
     static constexpr uint8_t kMaxValueSizeBytes = 16;
-public:
-    BaseRtpString();
-    BaseRtpString(const std::string str);
-    virtual ~BaseRtpString();
-
-    std::string value() const { return value_; }
-
-    size_t size() const override { return value_.size(); }
-    virtual RtpExtensionType type() const override = 0;
-
-    bool Parse(const uint8_t* buffer, size_t buffer_size) override;
-    bool PackInto(uint8_t* buffer, size_t buffer_size) const override;
-
-    static bool PackInto(uint8_t* buffer, size_t buffer_size, const std::string value);
+    static bool Parse(const uint8_t* buffer, size_t buffer_size, std::string* value);
+    static bool PackInto(uint8_t* buffer, size_t buffer_size, const std::string& value);
     static size_t ValueSize(const std::string value) { return value.size(); };
-private:
-    std::string value_;
+
 };
 
 // RtpMid
@@ -253,26 +161,14 @@ class RtpMid final : public BaseRtpString {
 public:
     static constexpr RtpExtensionType kType = RtpExtensionType::MID;
     static constexpr const char kUri[] = "urn:ietf:params:rtp-hdrext:sdes:mid";
-public:
-    RtpMid();
-    RtpMid(const std::string value);
-    ~RtpMid();
-
-    RtpExtensionType type() const override { return kType; };
 };
 
 // RtpStreamId
 class RtpStreamId : public BaseRtpString {
 public:
-  static constexpr RtpExtensionType kType = RtpExtensionType::RTP_STREAM_ID;
-  static constexpr const char kUri[] =
+    static constexpr RtpExtensionType kType = RtpExtensionType::RTP_STREAM_ID;
+    static constexpr const char kUri[] =
       "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id";
-public:
-    RtpStreamId();
-    RtpStreamId(const std::string value);
-    ~RtpStreamId();
-
-    RtpExtensionType type() const override { return kType; };
 };
 
 // RepairedRtpStreamId
@@ -281,13 +177,6 @@ class RepairedRtpStreamId : public BaseRtpString {
   static constexpr RtpExtensionType kType = RtpExtensionType::REPAIRED_RTP_STREAM_ID;
   static constexpr const char kUri[] =
       "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id";
-
-public:
-    RepairedRtpStreamId();
-    RepairedRtpStreamId(const std::string value);
-    ~RepairedRtpStreamId();
-
-    RtpExtensionType type() const override { return kType; };
 };
     
 } // namespace rtp

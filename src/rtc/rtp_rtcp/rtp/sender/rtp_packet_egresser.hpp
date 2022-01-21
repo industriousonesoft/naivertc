@@ -68,8 +68,8 @@ private:
 
     bool VerifySsrcs(const RtpPacketToSend& packet);
 
-    void OnPacketSent(uint16_t packet_id, 
-                      const RtpPacketToSend& packet);
+    void OnPacketToSend(uint16_t packet_id, 
+                        const RtpPacketToSend& packet);
 
     void UpdateSentStatistics(const int64_t now_ms, 
                               SendStats send_stats);

@@ -95,7 +95,7 @@ public:
 class RtpPacketSendStatsObserver {
 public:
     virtual ~RtpPacketSendStatsObserver() = default;
-    virtual void OnPacketSent(const RtpPacketSendStats& send_stats);
+    virtual void OnPacketToSend(const RtpPacketSendStats& send_stats) = 0;
 };
 
 // RtpSendFeedbackProvider

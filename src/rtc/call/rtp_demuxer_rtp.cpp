@@ -25,19 +25,21 @@ bool RtpDemuxer::DeliverRtpPacket(CopyOnWriteBuffer in_packet) const {
     } else  {
         // TODO: Deliver RTP packet by RRID or RSID
         // MID
-        auto rtp_mid_extension = received_packet.GetExtension<rtp::RtpMid>();
+        auto rtp_mid = received_packet.GetExtension<rtp::RtpMid>();
         // RRID
-        auto rtp_rrid_extension = received_packet.GetExtension<rtp::RepairedRtpStreamId>();
+        auto rtp_rrid = received_packet.GetExtension<rtp::RepairedRtpStreamId>();
         // RSID (rtp stream id) and RRID (repaired rtp stream id) are routed to the same sink.
         // If an RSID is specified on a repaired packet, it should be ignored and the RRID should
         // be used.
-        if (!rtp_rrid_extension) {
-            auto rtp_rsid_extension = received_packet.GetExtension<rtp::RtpStreamId>();
+        if (!rtp_rrid) {
+            rtp_rrid = received_packet.GetExtension<rtp::RtpStreamId>();
         }
-        if (auto sink = rtp_sink_by_mid_.at(rtp_mid_extension->value())) {
-            sink->OnRtpPacket(std::move(received_packet));
-        } else {
-            PLOG_WARNING << "No sink found for RTP packet, ssrc=" << received_packet.ssrc();
+        if (rtp_mid) {
+            if (auto sink = rtp_sink_by_mid_.at(*rtp_mid)) {
+                sink->OnRtpPacket(std::move(received_packet));
+            } else {
+                PLOG_WARNING << "No sink found for RTP packet, ssrc=" << received_packet.ssrc();
+            }
         }
     }
 

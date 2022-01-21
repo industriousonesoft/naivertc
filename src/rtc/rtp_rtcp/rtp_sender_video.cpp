@@ -167,8 +167,7 @@ void RtpSenderVideo::AddRtpHeaderExtensions(bool first_packet,
                                             bool last_packet, 
                                             RtpPacketToSend& packet) {
     if (playout_delay_pending_) {
-        packet.SetExtension<rtp::PlayoutDelayLimits>(current_playout_delay_.min_ms, 
-                                                     current_playout_delay_.max_ms);
+        packet.SetExtension<rtp::PlayoutDelayLimits>(current_playout_delay_);
     }
     // TODO: Support more extensions
 }

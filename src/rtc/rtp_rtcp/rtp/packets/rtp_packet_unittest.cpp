@@ -13,7 +13,7 @@ namespace {
 constexpr uint8_t kPayload_type = 0x0Fu;
 constexpr uint16_t kSequence_num = 0x06FDu;
 constexpr uint32_t kTimestamp = 0xF6E8F500u;
-constexpr uint32_t kSsrc = 0x00123445u;
+constexpr uint32_t kSsrc = 0x0123445u;
 
 constexpr uint8_t kPacket[] = {
     // Header
