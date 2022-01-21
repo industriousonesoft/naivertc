@@ -13,7 +13,7 @@ namespace naivertc {
 namespace rtp {
 
 // Extension manager
-class RTC_CPP_EXPORT ExtensionManager {
+class RTC_CPP_EXPORT HeaderExtensionManager {
 public:
     static constexpr RtpExtensionType kInvalidType = RtpExtensionType::NONE;
     static constexpr int kInvalidId = 0;
@@ -24,10 +24,10 @@ public:
     static constexpr int kOneByteHeaderExtensionMaxValueSize = 16;
 
 public:
-    ExtensionManager();
-    explicit ExtensionManager(bool extmap_allow_mixed);
-    // explicit ExtensionManager(ArrayView<const HeaderExtension> extensions);
-    ~ExtensionManager();
+    HeaderExtensionManager();
+    explicit HeaderExtensionManager(bool extmap_allow_mixed);
+    // explicit HeaderExtensionManager(ArrayView<const HeaderExtension> extensions);
+    ~HeaderExtensionManager();
 
     bool extmap_allow_mixed() const { return extmap_allow_mixed_; }
     void set_extmap_allow_mixed(bool allow_mixed) { extmap_allow_mixed_ = allow_mixed; };
@@ -73,7 +73,7 @@ struct RTC_CPP_EXPORT ExtensionSize {
 };
 
 size_t CalculateRegisteredExtensionSize(ArrayView<const ExtensionSize> extensions, 
-                                        std::shared_ptr<const ExtensionManager> registered_extensions);
+                                        const HeaderExtensionManager& registered_extensions);
     
 } // namespace rtp
 } // namespace naivertc

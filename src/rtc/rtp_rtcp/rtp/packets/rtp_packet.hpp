@@ -21,14 +21,14 @@ public:
     }
 
     using ExtensionType = RtpExtensionType;
-    using ExtensionManager = rtp::ExtensionManager;
+    using HeaderExtensionManager = rtp::HeaderExtensionManager;
     using HeaderExtension = rtp::HeaderExtension;
 public:
     RtpPacket();
     RtpPacket(size_t capacity);
     RtpPacket(const RtpPacket&);
-    explicit RtpPacket(std::shared_ptr<ExtensionManager> extension_manager);
-    RtpPacket(std::shared_ptr<ExtensionManager> extension_manager, size_t capacity);
+    explicit RtpPacket(const HeaderExtensionManager* extension_manager);
+    RtpPacket(const HeaderExtensionManager* extension_manager, size_t capacity);
     virtual ~RtpPacket();
 
     // Header
@@ -143,7 +143,7 @@ private:
     size_t payload_size_;
 
     size_t extensions_size_ = 0;
-    std::shared_ptr<ExtensionManager> extension_manager_;
+    HeaderExtensionManager extension_manager_;
     std::vector<ExtensionInfo> extension_entries_;
 };
 
@@ -154,7 +154,7 @@ bool RtpPacket::HasExtension() const {
 
 template <typename Extension>
 bool RtpPacket::IsRegistered() const {
-   return extension_manager_->IsRegistered(Extension::kId);
+   return extension_manager_.IsRegistered(Extension::kId);
 }
 
 template <typename Extension>

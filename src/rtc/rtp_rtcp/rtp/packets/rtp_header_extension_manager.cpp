@@ -28,25 +28,25 @@ constexpr ExtensionInfo kExtensions[] = {
 
 }  // namespace
 
-ExtensionManager::ExtensionManager() : ExtensionManager(false) {}
+HeaderExtensionManager::HeaderExtensionManager() : HeaderExtensionManager(false) {}
 
-ExtensionManager::ExtensionManager(bool extmap_allow_mixed) 
+HeaderExtensionManager::HeaderExtensionManager(bool extmap_allow_mixed) 
     : extmap_allow_mixed_(extmap_allow_mixed) {
     for (auto& id : extension_ids_) {
         id = kInvalidId;
     }
 }
 
-// ExtensionManager::ExtensionManager(ArrayView<const HeaderExtension> extensions) 
-//     : ExtensionManager(false) {
+// HeaderExtensionManager::HeaderExtensionManager(ArrayView<const HeaderExtension> extensions) 
+//     : HeaderExtensionManager(false) {
 //     for (const auto& extension : extensions) {
 //         RegisterByUri(extension.id, extension.uri);
 //     }
 // }
 
-ExtensionManager::~ExtensionManager() = default;
+HeaderExtensionManager::~HeaderExtensionManager() = default;
 
-RtpExtensionType ExtensionManager::GetType(int id) const {
+RtpExtensionType HeaderExtensionManager::GetType(int id) const {
     if (id < kMinId || id > kMaxId) {
         return RtpExtensionType::NONE;
     }
@@ -59,7 +59,7 @@ RtpExtensionType ExtensionManager::GetType(int id) const {
     return kInvalidType;
 }
 
-bool ExtensionManager::RegisterByType(int id, RtpExtensionType type) {
+bool HeaderExtensionManager::RegisterByType(int id, RtpExtensionType type) {
     for (const ExtensionInfo& extension : kExtensions) {
         if (type == extension.type) {
             return Register(id, extension.type, extension.uri);
@@ -68,7 +68,7 @@ bool ExtensionManager::RegisterByType(int id, RtpExtensionType type) {
     return false;
 }
 
-bool ExtensionManager::RegisterByUri(int id, std::string_view uri) {
+bool HeaderExtensionManager::RegisterByUri(int id, std::string_view uri) {
     for (const ExtensionInfo& extension : kExtensions) {
         if (uri == extension.uri) {
             return Register(id, extension.type, extension.uri);
@@ -79,7 +79,7 @@ bool ExtensionManager::RegisterByUri(int id, std::string_view uri) {
     return false;
 }
 
-int ExtensionManager::Deregister(RtpExtensionType type) {
+int HeaderExtensionManager::Deregister(RtpExtensionType type) {
     int registered_id = kInvalidId;
     if (IsRegistered(type)) {
         registered_id = extension_ids_[int(type)];
@@ -88,7 +88,7 @@ int ExtensionManager::Deregister(RtpExtensionType type) {
     return registered_id;
 }
 
-int ExtensionManager::Deregister(std::string_view uri) {
+int HeaderExtensionManager::Deregister(std::string_view uri) {
     int registered_id = kInvalidId;
     for (const ExtensionInfo& extension : kExtensions) {
         if (extension.uri == uri) {
@@ -101,7 +101,7 @@ int ExtensionManager::Deregister(std::string_view uri) {
 }
 
 // Private methods
-bool ExtensionManager::Register(int id, RtpExtensionType type, const char* uri) {
+bool HeaderExtensionManager::Register(int id, RtpExtensionType type, const char* uri) {
     if (type <= RtpExtensionType::NONE || type >= RtpExtensionType::NUMBER_OF_EXTENSIONS) {
         PLOG_WARNING << "Invalid RTP extension type: " << int(type);
         return false;
@@ -133,7 +133,7 @@ bool ExtensionManager::Register(int id, RtpExtensionType type, const char* uri) 
 
 // Calculate registered extensions size
 size_t CalculateRegisteredExtensionSize(ArrayView<const ExtensionSize> extensions, 
-                                        std::shared_ptr<const ExtensionManager> registered_extensions) {
+                                        const HeaderExtensionManager& registered_extensions) {
     // RFC3350 Section 5.3.1
     static constexpr size_t kExtensionBlockHeaderSize = 4;
 
@@ -141,14 +141,14 @@ size_t CalculateRegisteredExtensionSize(ArrayView<const ExtensionSize> extension
     size_t num_extensions = 0;
     size_t each_extension_header_size = 1;
     for (const auto& extension : extensions) {
-        size_t id = registered_extensions->GetId(extension.type);
-        if (id != ExtensionManager::kInvalidId) {
+        size_t id = registered_extensions.GetId(extension.type);
+        if (id != HeaderExtensionManager::kInvalidId) {
             continue;
         }
         // All extensions should use same size header. Check if the |extension|
         // forces to switch to two byte header that allows larger id and value size.
-        if (id > ExtensionManager::kOneByteHeaderExtensionMaxId ||
-            extension.size > ExtensionManager::kOneByteHeaderExtensionMaxValueSize) {
+        if (id > HeaderExtensionManager::kOneByteHeaderExtensionMaxId ||
+            extension.size > HeaderExtensionManager::kOneByteHeaderExtensionMaxValueSize) {
             each_extension_header_size = 2;
         }
         extension_size += extension.size;

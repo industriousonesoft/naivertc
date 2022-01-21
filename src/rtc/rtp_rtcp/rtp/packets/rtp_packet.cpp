@@ -45,16 +45,16 @@ RtpPacket::RtpPacket()
     : RtpPacket(kIpPacketSize) {}
 
 RtpPacket::RtpPacket(size_t capacity) 
-    : RtpPacket(std::make_shared<ExtensionManager>(), capacity) {}
+    : RtpPacket(nullptr, capacity) {}
 
 RtpPacket::RtpPacket(const RtpPacket&) = default;
 
-RtpPacket::RtpPacket(std::shared_ptr<ExtensionManager> extension_manager) 
-    : RtpPacket(std::move(extension_manager), kIpPacketSize) {}
+RtpPacket::RtpPacket(const HeaderExtensionManager* extension_manager) 
+    : RtpPacket(extension_manager, kIpPacketSize) {}
 
-RtpPacket::RtpPacket(std::shared_ptr<ExtensionManager> extension_manager, size_t capacity) 
+RtpPacket::RtpPacket(const HeaderExtensionManager* extension_manager, size_t capacity) 
     : Packet(capacity),
-      extension_manager_(std::move(extension_manager)) {
+      extension_manager_(extension_manager != nullptr ? *extension_manager : HeaderExtensionManager()) {
     assert(capacity <= kIpPacketSize);
     Reset();
 }
@@ -222,8 +222,8 @@ void RtpPacket::Reset() {
 }
 
 bool RtpPacket::HasExtension(ExtensionType type) const {
-    uint8_t id = extension_manager_->GetId(type);
-    if (id == ExtensionManager::kInvalidId) {
+    uint8_t id = extension_manager_.GetId(type);
+    if (id == HeaderExtensionManager::kInvalidId) {
         // Extension not registered
         return false;
     }
@@ -231,13 +231,13 @@ bool RtpPacket::HasExtension(ExtensionType type) const {
 }
 
 bool RtpPacket::RemoveExtension(ExtensionType type) {
-    uint8_t id_to_remove = extension_manager_->GetId(type);
-    if (id_to_remove == ExtensionManager::kInvalidId) {
+    uint8_t id_to_remove = extension_manager_.GetId(type);
+    if (id_to_remove == HeaderExtensionManager::kInvalidId) {
         // Extension not registered.
         PLOG_WARNING << "Extension not registered, type: " << int(type);
         return false;
     }
-    RtpPacket* new_packet = new RtpPacket(extension_manager_);
+    RtpPacket* new_packet = new RtpPacket(&extension_manager_);
     new_packet->set_marker(marker());
     new_packet->set_payload_type(payload_type());
     new_packet->set_sequence_number(sequence_number());
@@ -341,29 +341,29 @@ RtpPacket::ExtensionInfo& RtpPacket::FindOrCreateExtensionInfo(int id) {
 
 // Build
 ArrayView<uint8_t> RtpPacket::AllocateExtension(ExtensionType type, size_t size) {
-    if (size == 0 || size > ExtensionManager::kMaxValueSize ||
-        (!extension_manager_->extmap_allow_mixed() &&
-        size > ExtensionManager::kOneByteHeaderExtensionMaxValueSize)) {
+    if (size == 0 || size > HeaderExtensionManager::kMaxValueSize ||
+        (!extension_manager_.extmap_allow_mixed() &&
+        size > HeaderExtensionManager::kOneByteHeaderExtensionMaxValueSize)) {
         return nullptr;
     }
 
-    uint8_t id = extension_manager_->GetId(type);
-    if (id == ExtensionManager::kInvalidId) {
+    uint8_t id = extension_manager_.GetId(type);
+    if (id == HeaderExtensionManager::kInvalidId) {
         // Extension not registered.
         return nullptr;
     }
-    if (!extension_manager_->extmap_allow_mixed() &&
-        id > ExtensionManager::kOneByteHeaderExtensionMaxId) {
+    if (!extension_manager_.extmap_allow_mixed() &&
+        id > HeaderExtensionManager::kOneByteHeaderExtensionMaxId) {
         return nullptr;
     }
     return AllocateRawExtension(id, size);
 }
 
 ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
-    if (id < ExtensionManager::kMinId || id > ExtensionManager::kMaxId) {
+    if (id < HeaderExtensionManager::kMinId || id > HeaderExtensionManager::kMaxId) {
         return nullptr;
     }
-    if (size < 1 || size > ExtensionManager::kMaxValueSize) {
+    if (size < 1 || size > HeaderExtensionManager::kMaxValueSize) {
         return nullptr;
     }
     const ExtensionInfo* extension_entry = FindExtensionInfo(id);
@@ -398,10 +398,10 @@ ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
     // Determine if two-byte header is required for the extension based on id and
     // length. Please note that a length of 0 also requires two-byte header
     // extension. See RFC8285 Section 4.2-4.3.
-    const bool two_byte_header_required = id > ExtensionManager::kOneByteHeaderExtensionMaxId ||
-                                          size > ExtensionManager::kOneByteHeaderExtensionMaxValueSize ||
+    const bool two_byte_header_required = id > HeaderExtensionManager::kOneByteHeaderExtensionMaxId ||
+                                          size > HeaderExtensionManager::kOneByteHeaderExtensionMaxValueSize ||
                                           size == 0;
-    if (two_byte_header_required && !extension_manager_->extmap_allow_mixed()) {
+    if (two_byte_header_required && !extension_manager_.extmap_allow_mixed()) {
         PLOG_WARNING << "Two bytes header required, but mixed extension is not allowed.";
         return nullptr;
     }
@@ -474,8 +474,8 @@ ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
 }
 
 ArrayView<const uint8_t> RtpPacket::FindExtension(ExtensionType type) const {
-    uint8_t id = extension_manager_->GetId(type);
-    if (id == ExtensionManager::kInvalidId) {
+    uint8_t id = extension_manager_.GetId(type);
+    if (id == HeaderExtensionManager::kInvalidId) {
         // Extension not registered.
         return nullptr;
     }
