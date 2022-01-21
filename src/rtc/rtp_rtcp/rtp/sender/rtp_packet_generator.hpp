@@ -52,9 +52,7 @@ private:
     size_t max_packet_size_;
     size_t max_padding_fec_packet_header_;
 
-    std::shared_ptr<TaskQueue> task_queue_;
-
-    std::shared_ptr<rtp::ExtensionManager> extension_manager_;
+    rtp::HeaderExtensionManager extension_manager_;
 
     std::map<int8_t, int8_t> rtx_payload_type_map_;
     std::vector<uint32_t> csrcs_;

@@ -32,7 +32,7 @@ RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config)
     : ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),
       max_packet_size_(kIpPacketSize - kTransportOverhead), // Default is UDP/IPv4.
-      extension_manager_(std::make_shared<rtp::ExtensionManager>(config.extmap_allow_mixed)) {
+      extension_manager_(config.extmap_allow_mixed) {
     UpdateHeaderSizes();
 }
 
@@ -61,7 +61,7 @@ RtpPacketToSend RtpPacketGenerator::AllocatePacket() const {
     // it is better than crash on drop packet without trying to send it.
     // TODO: Find better motivator and value for extra capacity.
     static constexpr int kExtraCapacity = 16;
-    auto packet = RtpPacketToSend(extension_manager_, max_packet_size_ + kExtraCapacity);
+    auto packet = RtpPacketToSend(&extension_manager_, max_packet_size_ + kExtraCapacity);
     packet.set_ssrc(ssrc_);
     packet.set_csrcs(csrcs_);
     // TODO: Reserve extensions if registered
