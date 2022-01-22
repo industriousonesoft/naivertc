@@ -2,19 +2,19 @@
 #define _RTC_RTP_RTCP_RTP_VIDEO_SENDER_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/task_utils/task_queue.hpp"
-#include "rtc/base/time/clock.hpp"
 #include "rtc/media/video/common.hpp"
 #include "rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp"
-#include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/rtp_video_header.hpp"
-#include "rtc/rtp_rtcp/rtp_sender.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
 #include <memory>
 #include <optional>
+#include <unordered_map>
 
 namespace naivertc {
+
+class Clock;
+class RtpSender;
 
 class RTC_CPP_EXPORT RtpSenderVideo {
 public:
@@ -49,7 +49,7 @@ private:
 
     bool playout_delay_pending_;
 
-    std::map<video::CodecType, std::unique_ptr<RtpPacketizer>> rtp_packetizers_;
+    std::unordered_map<video::CodecType, std::unique_ptr<RtpPacketizer>> rtp_packetizers_;
     
 };
     
