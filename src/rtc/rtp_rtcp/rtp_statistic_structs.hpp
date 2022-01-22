@@ -67,8 +67,8 @@ struct RTC_CPP_EXPORT RtpStreamDataCounters final {
     RtpPacketCounter fec;
 };
 
-// RtpPacketSendStats
-struct RTC_CPP_EXPORT RtpPacketSendStats {
+// RtpTransportFeedback
+struct RTC_CPP_EXPORT RtpTransportFeedback {
     uint32_t ssrc = 0;
     uint16_t packet_id = 0;
     uint16_t seq_num = 0;

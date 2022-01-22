@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtp_sender.hpp"
 #include "common/utils_random.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 
 #include <plog/Log.h>
 
@@ -15,7 +16,7 @@ RtpSender::RtpSender(const RtpConfiguration& config,
       fec_generator_(std::move(fec_generator)),
       packet_sequencer_(config),
       packet_history_(config.clock, config.enable_rtx_padding_prioritization),
-      packet_egresser_(config, &packet_history_, fec_generator_.get()), 
+      packet_egresser_(config, &packet_history_, fec_generator_.get()),
       packet_generator_(config),
       non_paced_sender_(this) {
       

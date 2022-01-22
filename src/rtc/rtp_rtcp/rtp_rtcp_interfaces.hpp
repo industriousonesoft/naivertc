@@ -83,6 +83,15 @@ public:
                                        uint32_t ssrc) = 0;
 };
 
+// RtpSendPacketObserver
+class RtpSendPacketObserver {
+public:
+    virtual ~RtpSendPacketObserver() = default;
+    virtual void OnSendPacket(uint16_t packet_id,
+                              int64_t capture_time_ms,
+                              uint32_t ssrc) = 0;
+};
+
 // RtpStreamDataCountersObserver
 class RtpStreamDataCountersObserver {
 public:
@@ -91,11 +100,11 @@ public:
                                              uint32_t ssrc) = 0;
 };
 
-// RtpSendStatsObserver
-class RtpPacketSendStatsObserver {
+// RtpTransportFeedbackObserver
+class RtpTransportFeedbackObserver {
 public:
-    virtual ~RtpPacketSendStatsObserver() = default;
-    virtual void OnPacketToSend(const RtpPacketSendStats& send_stats) = 0;
+    virtual ~RtpTransportFeedbackObserver() = default;
+    virtual void OnAddPacket(const RtpTransportFeedback& feedback) = 0;
 };
 
 // RtpSendFeedbackProvider

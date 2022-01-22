@@ -1,20 +1,20 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
-#include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 
 #include <plog/Log.h>
 
 namespace naivertc {
 namespace {
 constexpr uint32_t kTimestampTicksPerMs = 90;
-constexpr int kBitrateStatisticsWindowMs = 1000; // 1s
+
 constexpr int kSendSideDelayWindowMs = 1000; // 1s
-constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(kBitrateStatisticsWindowMs);
+constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(BitRateStatistics::kDefauleWindowSizeMs);
 } // namespace
 
 RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
-                                 RtpPacketHistory* const packet_history,
-                                 FecGenerator* const fec_generator) 
+                                     RtpPacketHistory* const packet_history,
+                                     FecGenerator* const fec_generator) 
         : is_audio_(config.audio),
           send_side_bwe_with_overhead_(config.send_side_bwe_with_overhead),
           clock_(config.clock),
@@ -25,30 +25,22 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           fec_generator_(fec_generator),
           sliding_sum_delay_ms_(0),
           accumulated_delay_ms_(0),
-          max_delay_ms_(-1),
+          max_delay_it_(send_delays_.end()),
           worker_queue_(TaskQueueImpl::Current()),
-          send_delay_observer_(config.send_side_delay_observer),
+          send_delay_observer_(config.send_delay_observer),
+          send_packet_observer_(config.send_packet_observer),
           send_bitrates_observer_(config.send_bitrates_observer),
-          packet_send_stats_observer_(config.packet_send_stats_observer),
+          transport_feedback_observer_(config.transport_feedback_observer),
           stream_data_counters_observer_(config.stream_data_counters_observer) {
-    // Init bitrate statistics
-    // Audio or video media packet
-    send_bitrate_stats_.emplace(config.audio ? RtpPacketType::AUDIO : RtpPacketType::VIDEO, kBitrateStatisticsWindowMs);
-    // Retranmission packet
-    send_bitrate_stats_.emplace(RtpPacketType::RETRANSMISSION, kBitrateStatisticsWindowMs);
-    // Padding packet
-    send_bitrate_stats_.emplace(RtpPacketType::PADDING, kBitrateStatisticsWindowMs);
-    // FEC packet
-    if (fec_generator_) {
-        send_bitrate_stats_.emplace(RtpPacketType::FEC, kBitrateStatisticsWindowMs);
-    }
 
+#if !ENABLE_TESTS
     if (send_bitrates_observer_) {
         update_task_ = RepeatingTask::DelayedStart(clock_, worker_queue_, kUpdateInterval, [this](){
             PeriodicUpdate();
             return kUpdateInterval;
         });
     }
+#endif
 }
  
 RtpPacketEgresser::~RtpPacketEgresser() {
@@ -125,13 +117,16 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     
     auto transport_seq_num = packet.GetExtension<rtp::TransportSequenceNumber>();
     if (transport_seq_num) {
-        OnPacketToSend(*transport_seq_num, packet);
+        AddPacketToTransportFeedback(*transport_seq_num, packet);
     }
 
     if (packet_type != RtpPacketType::PADDING &&
         packet_type != RtpPacketType::RETRANSMISSION) {
         // No include Padding or Retransmission packet.
         UpdateDelayStatistics(packet.capture_time_ms(), now_ms, packet_ssrc);
+        if (transport_seq_num) {
+            send_packet_observer_->OnSendPacket(*transport_seq_num, packet.capture_time_ms(), packet_ssrc);
+        }
     }
 
     // Put packet in retransmission history or update pending status even if
@@ -145,17 +140,7 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     // Send statistics
     SendStats send_stats(packet.ssrc(), packet.size(), packet_type, RtpPacketCounter(packet));
 
-    PacketOptions options;
-    // Set recommended medium-priority DSCP value
-    // See https://datatracker.ietf.org/doc/html/draft-ietf-tsvwg-rtcweb-qos-18
-    if (is_audio_) {
-        options.kind = PacketKind::AUDIO;
-        options.dscp = DSCP::DSCP_EF; // EF: Expedited Forwarding
-    } else {
-        options.kind = PacketKind::VIDEO;
-        options.dscp = DSCP::DSCP_AF42; // AF42: Assured Forwarding class 4, medium drop probability
-    }
-    const bool send_success = SendPacketToNetwork(std::move(packet), std::move(options));
+    const bool send_success = SendPacketToNetwork(std::move(packet));
 
     // NOTE: The `packet` was moved to other, DO NOT use it any more.
 
@@ -168,6 +153,7 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
         // TODO: Add support for FEC protecting all header extensions, 
         // add media packet to generator here instead.
         
+        // TODO: Call on the worker queue.
         UpdateSentStatistics(now_ms, std::move(send_stats));
     }
 }
@@ -195,11 +181,16 @@ RtpStreamDataCounters RtpPacketEgresser::GetRtxStreamDataCounter() const {
     return rtx_send_counter_;
 }
 
-// Private methods
 DataRate RtpPacketEgresser::GetSendBitrate(RtpPacketType packet_type) {
+    RTC_RUN_ON(&sequence_checker_);
+    return CalcSendBitrate(packet_type, clock_->now_ms());
+}
+
+// Private methods
+DataRate RtpPacketEgresser::CalcSendBitrate(RtpPacketType packet_type, const int64_t now_ms) {
     auto it = send_bitrate_stats_.find(packet_type);
     if (it != send_bitrate_stats_.end()) {
-        return it->second.Rate(clock_->now_ms()).value_or(DataRate::Zero());
+        return it->second.Rate(now_ms).value_or(DataRate::Zero());
     }
     return DataRate::Zero();
 }
@@ -212,8 +203,18 @@ DataRate RtpPacketEgresser::CalcTotalSendBitrate(const int64_t now_ms) {
     return send_bitrate;
 }
 
-bool RtpPacketEgresser::SendPacketToNetwork(RtpPacketToSend packet, PacketOptions options) {
+bool RtpPacketEgresser::SendPacketToNetwork(RtpPacketToSend packet) {
     if (send_transport_) {
+        PacketOptions options;
+        // Set recommended medium-priority DSCP value
+        // See https://datatracker.ietf.org/doc/html/draft-ietf-tsvwg-rtcweb-qos-18
+        if (is_audio_) {
+            options.kind = PacketKind::AUDIO;
+            options.dscp = DSCP::DSCP_EF; // EF: Expedited Forwarding
+        } else {
+            options.kind = PacketKind::VIDEO;
+            options.dscp = DSCP::DSCP_AF42; // AF42: Assured Forwarding class 4, medium drop probability
+        }
         if (!send_transport_->SendRtpPacket(std::move(packet), std::move(options))) {
             PLOG_WARNING << "Transport faild to send packet.";
             return false;
@@ -240,19 +241,19 @@ bool RtpPacketEgresser::VerifySsrcs(const RtpPacketToSend& packet) {
     return false;
 }
 
-void RtpPacketEgresser::OnPacketToSend(uint16_t packet_id, 
-                                       const RtpPacketToSend& packet) {
-    if (packet_send_stats_observer_) {
+void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id, 
+                                                     const RtpPacketToSend& packet) {
+    if (transport_feedback_observer_) {
         const size_t packet_size = send_side_bwe_with_overhead_ ? packet.size() 
                                                                 : packet.payload_size() + packet.padding_size();
         
-        RtpPacketSendStats send_stats;
-        send_stats.packet_id = packet_id;
-        send_stats.rtp_timestamp = packet.timestamp();
-        send_stats.packet_size = packet_size;
-        send_stats.packet_type = packet.packet_type();
-        send_stats.ssrc = packet.ssrc();
-        send_stats.seq_num = packet.sequence_number();
+        RtpTransportFeedback stats;
+        stats.packet_id = packet_id;
+        stats.rtp_timestamp = packet.timestamp();
+        stats.packet_size = packet_size;
+        stats.packet_type = packet.packet_type();
+        stats.ssrc = packet.ssrc();
+        stats.seq_num = packet.sequence_number();
 
         switch (packet.packet_type())
         {
@@ -262,7 +263,7 @@ void RtpPacketEgresser::OnPacketToSend(uint16_t packet_id,
         case RtpPacketType::RETRANSMISSION:
             // For retransmissions, we're want to remove the original media packet
             // if the rentrasmit arrives, so populate that in the packet send statistics.
-            send_stats.retransmitted_seq_num = packet.retransmitted_sequence_number();
+            stats.retransmitted_seq_num = packet.retransmitted_sequence_number();
             break;
         case RtpPacketType::PADDING:
         case RtpPacketType::FEC:
@@ -273,7 +274,7 @@ void RtpPacketEgresser::OnPacketToSend(uint16_t packet_id,
             break;
         }
 
-        packet_send_stats_observer_->OnPacketToSend(send_stats);
+        transport_feedback_observer_->OnAddPacket(stats);
     }
 }
 
@@ -302,10 +303,16 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, SendStats sen
     }
   
     // Update send bitrate
-    // NOTE: "operator[]" is not working here, since "BitRateStatistics" has no parameterless constructor,
-    // which is required to create a new one if no element found for the key.
-    // So we using "at" instead, since it access specified element with bounds checking.
-    send_bitrate_stats_.at(send_stats.packet_type).Update(send_stats.packet_size, now_ms);
+    send_bitrate_stats_[send_stats.packet_type].Update(send_stats.packet_size, now_ms);
+
+    if (send_bitrates_observer_) {
+        if (send_bitrates_observer_) {
+            const int64_t now_ms = clock_->now_ms();
+            send_bitrates_observer_->OnSendBitratesUpdated(CalcTotalSendBitrate(now_ms).bps(),
+                                                           CalcSendBitrate(RtpPacketType::RETRANSMISSION, now_ms).bps(), 
+                                                           ssrc_);
+        }
+    }
 }
 
 void RtpPacketEgresser::UpdateDelayStatistics(int64_t capture_time_ms, 
@@ -315,55 +322,62 @@ void RtpPacketEgresser::UpdateDelayStatistics(int64_t capture_time_ms,
         return;
     }
 
+    // TODO: Create a helper class named RtpSendDelayStatistics.
+
     // Remove elements older than kSendSideDelayWindowMs
     auto lower_bound = send_delays_.lower_bound(now_ms - kSendSideDelayWindowMs);
     for (auto it = send_delays_.begin(); it != lower_bound; ++it) {
-        if (max_delay_ms_ == it->second) {
-            max_delay_ms_ = -1;
+        if (max_delay_it_->second == it->second) {
+            max_delay_it_ = send_delays_.end();
         }
         sliding_sum_delay_ms_ -= it->second;
     }
     send_delays_.erase(send_delays_.begin(), lower_bound);
     // The previous max was removed, we need to recompute.
-    if (max_delay_ms_ < 0) {
-        max_delay_ms_ = CalcMaxDelay();
+    if (max_delay_it_ == send_delays_.end()) {
+        RecalculateMaxDelay();
     }
     int64_t new_delay_ms = now_ms - capture_time_ms;
-    assert(new_delay_ms > 0);
+    assert(new_delay_ms >= 0);
     auto [it, inserted] = send_delays_.insert({now_ms, new_delay_ms});
+    // Repalce the old one with the resent one.
     if (!inserted) {
         // Keep the most resent one if we have multiple delay meansurements
         // during the same time.
         int previous_delay_ms = it->second;
         sliding_sum_delay_ms_ -= previous_delay_ms;
         it->second = new_delay_ms;
+        if (max_delay_it_ == it && new_delay_ms < previous_delay_ms) {
+            RecalculateMaxDelay();
+        }
     }
-    if (max_delay_ms_ < new_delay_ms) {
-        max_delay_ms_ = new_delay_ms;
+    if (max_delay_it_ == send_delays_.end() || 
+        max_delay_it_->second < new_delay_ms) {
+        max_delay_it_ = it;
     }
     sliding_sum_delay_ms_ += new_delay_ms;
     accumulated_delay_ms_ += new_delay_ms;
     size_t num_delays = send_delays_.size();
     int64_t avg_delay_ms = (sliding_sum_delay_ms_ + num_delays / 2) / num_delays;
-    assert(avg_delay_ms > 0);
-    send_delay_observer_->OnSendDelayUpdated(avg_delay_ms, max_delay_ms_, accumulated_delay_ms_, ssrc);
+    assert(avg_delay_ms >= 0);
+    assert(max_delay_it_ != send_delays_.end());
+    send_delay_observer_->OnSendDelayUpdated(avg_delay_ms, max_delay_it_->second, accumulated_delay_ms_, ssrc);
 }
 
-int RtpPacketEgresser::CalcMaxDelay() const {
-    int max_delay_ms = -1;
-    for (const auto& kv : send_delays_) {
-        if (kv.second > max_delay_ms) {
-            max_delay_ms = kv.second;
+void RtpPacketEgresser::RecalculateMaxDelay() {
+    max_delay_it_ = send_delays_.begin();
+    for (auto it = send_delays_.begin(); it != send_delays_.end(); ++it) {
+        if (it->second >= max_delay_it_->second) {
+            max_delay_it_ = it;
         }
     }
-    return max_delay_ms;
 }
 
 void RtpPacketEgresser::PeriodicUpdate() {
     if (send_bitrates_observer_) {
         const int64_t now_ms = clock_->now_ms();
         send_bitrates_observer_->OnSendBitratesUpdated(CalcTotalSendBitrate(now_ms).bps(),
-                                                       GetSendBitrate(RtpPacketType::RETRANSMISSION).bps(), 
+                                                       CalcSendBitrate(RtpPacketType::RETRANSMISSION, now_ms).bps(), 
                                                        ssrc_);
     }
 }

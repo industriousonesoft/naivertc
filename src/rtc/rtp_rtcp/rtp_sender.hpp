@@ -12,10 +12,12 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
 namespace naivertc {
+
 class RTC_CPP_EXPORT RtpSender : public RtcpNackListObserver,
                                  public RtcpReportBlocksObserver,
                                  public RtpSendFeedbackProvider {

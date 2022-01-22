@@ -7,6 +7,7 @@ namespace naivertc {
 // The window size of a single bucket is 1ms
 constexpr int64_t kSingleBucketWindowSizeMs = 1;
 constexpr int64_t kInvalidTimestamp = -1;
+constexpr size_t kMinNumSimplesRequired = 2;
 
 // Bucket
 BitRateStatistics::Bucket::Bucket(const int64_t timestamp) 
@@ -18,6 +19,9 @@ BitRateStatistics::Bucket::Bucket(const int64_t timestamp)
 BitRateStatistics::Bucket::~Bucket() = default;
 
 // BitRateStatistics
+BitRateStatistics::BitRateStatistics() 
+    : BitRateStatistics(kDefauleWindowSizeMs) {}
+
 BitRateStatistics::BitRateStatistics(const int64_t max_window_size_ms) 
     : total_accumulated_bytes_(0),
       total_num_samples_(0),
@@ -86,7 +90,8 @@ std::optional<DataRate> BitRateStatistics::Rate(int64_t now_ms) {
         } else {
             active_window_size_ms = now_ms - begin_timestamp_ms_ + kSingleBucketWindowSizeMs;
             // Only one single samples and not full window size are not enough for valid estimate.
-            if (total_num_samples_ == 1 && active_window_size_ms < current_window_size_ms_) {
+            if (total_num_samples_ < kMinNumSimplesRequired && 
+                active_window_size_ms < current_window_size_ms_) {
                 return std::nullopt;
             } 
         }

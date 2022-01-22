@@ -13,8 +13,10 @@ namespace naivertc {
 // This class is not thread safe, the caller must provide that.
 class RTC_CPP_EXPORT BitRateStatistics {
 public:
+    static const int kDefauleWindowSizeMs = 1000; // 1s
+public:
     // We need the max_window_size_ms be specified.
-    BitRateStatistics() = delete; 
+    BitRateStatistics(); 
     BitRateStatistics(const int64_t max_window_size_ms);
     BitRateStatistics(const BitRateStatistics&);
     BitRateStatistics(BitRateStatistics&&);
