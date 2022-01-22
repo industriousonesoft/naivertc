@@ -11,10 +11,10 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpStreamStatistician {
+class RTC_CPP_EXPORT RtpReceiveStreamStatistician {
 public:
-    RtpStreamStatistician(uint32_t ssrc, Clock* clock, int max_reordering_threshold);
-    ~RtpStreamStatistician();
+    RtpReceiveStreamStatistician(uint32_t ssrc, Clock* clock, int max_reordering_threshold);
+    ~RtpReceiveStreamStatistician();
 
     void set_max_reordering_threshold(int threshold);
     void set_enable_retransmit_detection(bool enable);

@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/components/rtp_stream_statistician.hpp"
+#include "rtc/rtp_rtcp/components/rtp_receive_stream_statistician.hpp"
 
 #include <plog/Log.h>
 
@@ -9,7 +9,7 @@ constexpr int64_t kStatisticsProcessIntervalMs = 1000; // 1s
 
 }  // namespace
 
-RtpStreamStatistician::RtpStreamStatistician(uint32_t ssrc, Clock* clock, int max_reordering_threshold) 
+RtpReceiveStreamStatistician::RtpReceiveStreamStatistician(uint32_t ssrc, Clock* clock, int max_reordering_threshold) 
     : ssrc_(ssrc),
       clock_(clock),
       delta_internal_unix_epoch_ms_(/*time based on Unix epoch*/(clock_->now_ntp_time_ms() - kNtpJan1970Ms) - clock_->now_ms()),
@@ -27,17 +27,17 @@ RtpStreamStatistician::RtpStreamStatistician(uint32_t ssrc, Clock* clock, int ma
       last_report_max_seq_num_(-1),
       bitrate_stats_(kStatisticsProcessIntervalMs) {}
     
-RtpStreamStatistician::~RtpStreamStatistician() = default;
+RtpReceiveStreamStatistician::~RtpReceiveStreamStatistician() = default;
 
-void RtpStreamStatistician::set_max_reordering_threshold(int threshold) {
+void RtpReceiveStreamStatistician::set_max_reordering_threshold(int threshold) {
     max_reordering_threshold_ = threshold;
 }
     
-void RtpStreamStatistician::set_enable_retransmit_detection(bool enable) {
+void RtpReceiveStreamStatistician::set_enable_retransmit_detection(bool enable) {
     enable_retransmit_detection_ = enable;
 }
 
-void RtpStreamStatistician::OnRtpPacket(const RtpPacketReceived& packet) {
+void RtpReceiveStreamStatistician::OnRtpPacket(const RtpPacketReceived& packet) {
     assert(ssrc_ == packet.ssrc());
     int64_t now_ms = clock_->now_ms();
 
@@ -75,7 +75,7 @@ void RtpStreamStatistician::OnRtpPacket(const RtpPacketReceived& packet) {
     last_receive_time_ms_ = now_ms;
 }
 
-std::optional<rtcp::ReportBlock> RtpStreamStatistician::GetReportBlock() {
+std::optional<rtcp::ReportBlock> RtpReceiveStreamStatistician::GetReportBlock() {
     int64_t now_ms = clock_->now_ms();
     if (now_ms - last_receive_time_ms_ >= kStatisticsTimeoutMs) {
         // The statistician is not active any more.
@@ -137,7 +137,7 @@ std::optional<rtcp::ReportBlock> RtpStreamStatistician::GetReportBlock() {
     return report_block;
 }
 
-RtpReceiveStats RtpStreamStatistician::GetStates() const {
+RtpReceiveStats RtpReceiveStreamStatistician::GetStates() const {
     RtpReceiveStats stats;
     stats.packets_lost = cumulative_loss_;
     stats.jitter = jitter_q4_ >> 4;
@@ -150,7 +150,7 @@ RtpReceiveStats RtpStreamStatistician::GetStates() const {
     return stats;
 }
 
-std::optional<int> RtpStreamStatistician::GetFractionLostInPercent() const {
+std::optional<int> RtpReceiveStreamStatistician::GetFractionLostInPercent() const {
     if (!HasReceivedRtpPacket()) {
         return std::nullopt;
     }
@@ -164,20 +164,20 @@ std::optional<int> RtpStreamStatistician::GetFractionLostInPercent() const {
     return 100 * static_cast<int64_t>(cumulative_loss_) / expected_packets;
 }
 
-RtpStreamDataCounters RtpStreamStatistician::GetReceiveStreamDataCounters() const {
+RtpStreamDataCounters RtpReceiveStreamStatistician::GetReceiveStreamDataCounters() const {
     return receive_counters_;
 }
 
-std::optional<DataRate> RtpStreamStatistician::GetReceivedBitrate() {
+std::optional<DataRate> RtpReceiveStreamStatistician::GetReceivedBitrate() {
     return bitrate_stats_.Rate(clock_->now_ms());
 }
 
 // Private methods
-bool RtpStreamStatistician::HasReceivedRtpPacket() const {
+bool RtpReceiveStreamStatistician::HasReceivedRtpPacket() const {
     return first_received_seq_num_ >= 0;
 }
 
-bool RtpStreamStatistician::IsRetransmitedPacket(const RtpPacketReceived& packet, 
+bool RtpReceiveStreamStatistician::IsRetransmitedPacket(const RtpPacketReceived& packet, 
                                                  int64_t receive_time_ms) const {
     uint32_t frequency_khz = packet.payload_type_frequency() / 1000;
     assert(frequency_khz > 0);
@@ -203,7 +203,7 @@ bool RtpStreamStatistician::IsRetransmitedPacket(const RtpPacketReceived& packet
     return receive_time_diff_ms > send_time_diff_ms + max_delay_ms;
 }
 
-void RtpStreamStatistician::UpdateJitter(const RtpPacketReceived& packet, int64_t receive_time_ms) {
+void RtpReceiveStreamStatistician::UpdateJitter(const RtpPacketReceived& packet, int64_t receive_time_ms) {
     int64_t receive_diff_ms = receive_time_ms - last_receive_time_ms_;
     assert(receive_diff_ms > 0);
 
@@ -232,7 +232,7 @@ void RtpStreamStatistician::UpdateJitter(const RtpPacketReceived& packet, int64_
     }
 }
 
-bool RtpStreamStatistician::IsOutOfOrderPacket(const RtpPacketReceived& packet, 
+bool RtpReceiveStreamStatistician::IsOutOfOrderPacket(const RtpPacketReceived& packet, 
                                                int64_t unwrapped_seq_num, 
                                                int64_t receive_time_ms) {
     // Check if `packet` is second packet of a restarted stream.

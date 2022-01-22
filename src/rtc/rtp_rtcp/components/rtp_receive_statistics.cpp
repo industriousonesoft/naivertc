@@ -50,7 +50,7 @@ void RtpReceiveStatistics::EnableRetransmitDetection(uint32_t ssrc, bool enable)
     GetOrCreateStatistician(ssrc)->set_enable_retransmit_detection(enable);
 }
 
-RtpStreamStatistician* RtpReceiveStatistics::GetStatistician(uint32_t ssrc) const {
+RtpReceiveStreamStatistician* RtpReceiveStatistics::GetStatistician(uint32_t ssrc) const {
     const auto& it = statisticians_.find(ssrc);
     if (it == statisticians_.end()) {
         return nullptr;
@@ -63,10 +63,10 @@ void RtpReceiveStatistics::OnRtpPacket(const RtpPacketReceived& in_packet) {
 }
 
 // Private methods
-RtpStreamStatistician* RtpReceiveStatistics::GetOrCreateStatistician(uint32_t ssrc) {
+RtpReceiveStreamStatistician* RtpReceiveStatistics::GetOrCreateStatistician(uint32_t ssrc) {
     auto& statistician = statisticians_[ssrc];
     if (!statistician) {
-        statistician = std::make_unique<RtpStreamStatistician>(ssrc, clock_, max_reordering_threshold_);
+        statistician = std::make_unique<RtpReceiveStreamStatistician>(ssrc, clock_, max_reordering_threshold_);
         ssrcs_.push_back(ssrc);
     }
     return statistician.get();

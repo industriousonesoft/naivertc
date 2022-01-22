@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/report_block.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
-#include "rtc/rtp_rtcp/components/rtp_stream_statistician.hpp"
+#include "rtc/rtp_rtcp/components/rtp_receive_stream_statistician.hpp"
 
 #include <vector>
 #include <unordered_map>
@@ -23,7 +23,7 @@ public:
     void EnableRetransmitDetection(uint32_t ssrc, 
                                    bool enable);
 
-    RtpStreamStatistician* GetStatistician(uint32_t ssrc) const;
+    RtpReceiveStreamStatistician* GetStatistician(uint32_t ssrc) const;
 
     void OnRtpPacket(const RtpPacketReceived& in_packet);
 
@@ -31,14 +31,14 @@ public:
     std::vector<rtcp::ReportBlock> GetRtcpReportBlocks(size_t max_blocks) override;
 
 private:
-    RtpStreamStatistician* GetOrCreateStatistician(uint32_t ssrc);
+    RtpReceiveStreamStatistician* GetOrCreateStatistician(uint32_t ssrc);
 
 private:
     Clock* const clock_;
     size_t last_returned_ssrc_idx_;
     int max_reordering_threshold_;
     std::vector<uint32_t> ssrcs_;
-    std::unordered_map<uint32_t, std::unique_ptr<RtpStreamStatistician>> statisticians_;
+    std::unordered_map<uint32_t, std::unique_ptr<RtpReceiveStreamStatistician>> statisticians_;
 };
     
 } // namespace naivertc

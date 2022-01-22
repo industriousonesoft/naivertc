@@ -80,7 +80,7 @@ MY_TEST_F(RtpReceiveStatisticsTest, TwoIncomingSsrcs) {
     receive_statistics_.OnRtpPacket(packet2_);
     IncrementSeqNum(&packet2_);
 
-    RtpStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
+    RtpReceiveStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
     ASSERT_TRUE(statistician != nullptr);
     EXPECT_TRUE(statistician->GetReceivedBitrate().has_value());
     EXPECT_GT(statistician->GetReceivedBitrate().value().bps(), 0u);
@@ -181,7 +181,7 @@ MY_TEST_F(RtpReceiveStatisticsTest, ActiveStatisticians) {
     IncrementSeqNum(&packet1_);
     // kSsrc1 should be active again and the data counters should have survived.
     EXPECT_EQ(1u, receive_statistics_.GetRtcpReportBlocks(3).size());
-    RtpStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
+    RtpReceiveStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
     ASSERT_TRUE(statistician != NULL);
     RtpStreamDataCounters counters = statistician->GetReceiveStreamDataCounters();
     EXPECT_EQ(176u, counters.transmitted.payload_bytes);
@@ -202,7 +202,7 @@ MY_TEST_F(RtpReceiveStatisticsTest, DoesntCreateRtcpReportBlockUntilFirstReceive
 
 MY_TEST_F(RtpReceiveStatisticsTest, GetReceiveStreamDataCounters) {
     receive_statistics_.OnRtpPacket(packet1_);
-    RtpStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
+    RtpReceiveStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
     ASSERT_TRUE(statistician != NULL);
 
     RtpStreamDataCounters counters = statistician->GetReceiveStreamDataCounters();
@@ -233,7 +233,7 @@ MY_TEST_F(RtpReceiveStatisticsTest, SimpleLossComputation) {
     // 20% = 51/255.
     EXPECT_EQ(51u, report_blocks[0].fraction_lost());
     EXPECT_EQ(1, report_blocks[0].cumulative_packet_lost());
-    RtpStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
+    RtpReceiveStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
     EXPECT_EQ(20, statistician->GetFractionLostInPercent());
 }
 
@@ -255,7 +255,7 @@ MY_TEST_F(RtpReceiveStatisticsTest, LossComputationWithReordering) {
     // 20% = 51/255.
     EXPECT_EQ(51u, report_blocks[0].fraction_lost());
     EXPECT_EQ(1, report_blocks[0].cumulative_packet_lost());
-    RtpStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
+    RtpReceiveStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
     EXPECT_EQ(20, statistician->GetFractionLostInPercent());
 }
 
@@ -278,7 +278,7 @@ MY_TEST_F(RtpReceiveStatisticsTest, LossComputationWithDuplicates) {
     // 20% = 51/255.
     EXPECT_EQ(51u, report_blocks[0].fraction_lost());
     EXPECT_EQ(1, report_blocks[0].cumulative_packet_lost());
-    RtpStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
+    RtpReceiveStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
     EXPECT_EQ(20, statistician->GetFractionLostInPercent());
 }
 
@@ -302,7 +302,7 @@ MY_TEST_F(RtpReceiveStatisticsTest, LossComputationWithSequenceNumberWrapping) {
     // 20% = 51/255.
     EXPECT_EQ(51u, report_blocks[0].fraction_lost());
     EXPECT_EQ(1, report_blocks[0].cumulative_packet_lost());
-    RtpStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
+    RtpReceiveStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
     EXPECT_EQ(20, statistician->GetFractionLostInPercent());
 
     // Now test losing one packet *after* the rollover.
@@ -338,7 +338,7 @@ MY_TEST_F(RtpReceiveStatisticsTest, StreamRestartDoesntCountAsLoss) {
 
     EXPECT_EQ(0, report_blocks[0].fraction_lost());
     EXPECT_EQ(0, report_blocks[0].cumulative_packet_lost());
-    RtpStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
+    RtpReceiveStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
     EXPECT_EQ(0, statistician->GetFractionLostInPercent());
 
     packet1_.set_sequence_number(401);
@@ -376,7 +376,7 @@ MY_TEST_F(RtpReceiveStatisticsTest, CountsLossAfterStreamRestart) {
     EXPECT_EQ(63u, report_blocks[0].fraction_lost());
     EXPECT_EQ(1, report_blocks[0].cumulative_packet_lost());
 
-    RtpStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
+    RtpReceiveStreamStatistician* statistician = receive_statistics_.GetStatistician(kSsrc1);
     // Actual value: 1 / 404 ~= 0.00248 = 0.248%
     EXPECT_EQ(0, statistician->GetFractionLostInPercent());
 }
