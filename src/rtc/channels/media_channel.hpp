@@ -6,12 +6,15 @@
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/sdp/sdp_media_entry_media.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
-#include "rtc/media/video_send_stream.hpp"
 #include "rtc/base/time/clock_real_time.hpp"
 
 #include <iostream>
 
 namespace naivertc {
+
+// NOTE: Using forward declaration instead of including files 
+// to speed up compilation.
+class MediaSendStream;
 
 // MediaChannel
 class RTC_CPP_EXPORT MediaChannel {
@@ -48,8 +51,6 @@ protected:
 private:
     void TriggerOpen();
     void TriggerClose();
-
-    void ParseSendRtpParameters(const sdp::Media& media, VideoSendStream::Configuration& config);
 
     TaskQueue* SendQueue();
 

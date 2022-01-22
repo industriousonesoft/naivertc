@@ -1,4 +1,5 @@
 #include "rtc/channels/media_channel.hpp"
+#include "rtc/media/video_send_stream.hpp"
 
 #include <plog/Log.h>
 
@@ -15,6 +16,53 @@ std::string ToString(MediaChannel::Kind kind) {
         RTC_NOTREACHED();
     }
 }
+
+void ParseRtpSendParameters(const sdp::Media& media, VideoSendStream::Configuration& config) {
+    // Ssrcs
+    // Media ssrc
+    if (!media.media_ssrcs().empty()) {
+        config.rtp.local_media_ssrc = media.media_ssrcs()[0];
+    }
+    // Rtx ssrc
+    if (!media.rtx_ssrcs().empty()) {
+        config.rtp.rtx_send_ssrc = media.rtx_ssrcs()[0];
+    }
+    // FlexFec ssrc
+    if (!media.fec_ssrcs().empty()) {
+        config.rtp.flexfec.ssrc = media.fec_ssrcs()[0];
+    }
+    
+    // Payload types
+    media.ForEachRtpMap([&](const sdp::Media::RtpMap& rtp_map){
+        switch (rtp_map.codec)
+        {
+        case sdp::Media::Codec::H264: {
+            config.rtp.media_payload_type = rtp_map.payload_type;
+            config.rtp.media_rtx_payload_type = rtp_map.rtx_payload_type;
+            for (const auto& rtcp_feedback : rtp_map.rtcp_feedbacks) {
+                // NACK enabled
+                if (rtcp_feedback == sdp::Media::RtcpFeedback::NACK) {
+                    config.rtp.nack_enabled = true;
+                }
+            }
+            break;
+        }
+        case sdp::Media::Codec::RED: {
+            config.rtp.ulpfec.red_payload_type = rtp_map.payload_type;
+            config.rtp.ulpfec.red_rtx_payload_type = rtp_map.rtx_payload_type;
+            break;
+        }
+        case sdp::Media::Codec::ULP_FEC: {
+            config.rtp.ulpfec.ulpfec_payload_type = rtp_map.payload_type;
+            break;
+        }
+        default:
+            // TODO: Support more codecs.
+            break;
+        }
+    });
+}
+
     
 } // namespace
 
@@ -76,21 +124,8 @@ void MediaChannel::OnMediaNegotiated(const sdp::Media& local_media,
             VideoSendStream::Configuration send_config;
             send_config.clock = clock_.get();
             send_config.send_transport = send_transport_.lock().get();
-            // Ssrcs
-            // Media ssrc
-            if (!local_media.media_ssrcs().empty()) {
-                send_config.rtp.local_media_ssrc = local_media.media_ssrcs()[0];
-            }
-            // Rtx ssrc
-            if (!local_media.rtx_ssrcs().empty()) {
-                send_config.rtp.rtx_send_ssrc = local_media.rtx_ssrcs()[0];
-            }
-            // FlexFec ssrc
-            if (!local_media.fec_ssrcs().empty()) {
-                send_config.rtp.flexfec.ssrc = local_media.fec_ssrcs()[0];
-            }
-
-            ParseSendRtpParameters(local_media, send_config);
+        
+            ParseRtpSendParameters(local_media, send_config);
 
             SendQueue()->Async([this, config=std::move(send_config)](){
                 send_stream_ = std::unique_ptr<MediaSendStream>(new VideoSendStream(std::move(config), SendQueue()));
@@ -142,39 +177,5 @@ TaskQueue* MediaChannel::SendQueue() {
     }
     return send_queue_.get();
 }
-
-void MediaChannel::ParseSendRtpParameters(const sdp::Media& media, VideoSendStream::Configuration& config) {
-    // Payload types
-    media.ForEachRtpMap([&](const sdp::Media::RtpMap& rtp_map){
-        switch (rtp_map.codec)
-        {
-        case sdp::Media::Codec::H264: {
-            config.rtp.media_payload_type = rtp_map.payload_type;
-            config.rtp.media_rtx_payload_type = rtp_map.rtx_payload_type;
-            for (const auto& rtcp_feedback : rtp_map.rtcp_feedbacks) {
-                // NACK enabled
-                if (rtcp_feedback == sdp::Media::RtcpFeedback::NACK) {
-                    config.rtp.nack_enabled = true;
-                }
-            }
-            break;
-        }
-        case sdp::Media::Codec::RED: {
-            config.rtp.ulpfec.red_payload_type = rtp_map.payload_type;
-            config.rtp.ulpfec.red_rtx_payload_type = rtp_map.rtx_payload_type;
-            break;
-        }
-        case sdp::Media::Codec::ULP_FEC: {
-            config.rtp.ulpfec.ulpfec_payload_type = rtp_map.payload_type;
-            break;
-        }
-        default:
-            // TODO: Support more codecs.
-            break;
-        }
-    });
-}
-
-// Private methods
 
 } // namespace naivertc
