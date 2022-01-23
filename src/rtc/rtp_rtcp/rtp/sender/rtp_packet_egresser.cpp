@@ -13,8 +13,7 @@ constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(BitRateStatistics::kDefa
 } // namespace
 
 RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
-                                     RtpPacketHistory* const packet_history,
-                                     FecGenerator* const fec_generator) 
+                                     RtpPacketHistory* const packet_history) 
         : is_audio_(config.audio),
           send_side_bwe_with_overhead_(config.send_side_bwe_with_overhead),
           clock_(config.clock),
@@ -22,7 +21,7 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           rtx_ssrc_(config.rtx_send_ssrc),
           send_transport_(config.send_transport),
           packet_history_(packet_history),
-          fec_generator_(fec_generator),
+          fec_generator_(config.fec_generator),
           sliding_sum_delay_ms_(0),
           accumulated_delay_ms_(0),
           max_delay_it_(send_delays_.end()),
@@ -259,10 +258,12 @@ void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id,
         {
         case RtpPacketType::AUDIO:
         case RtpPacketType::VIDEO:
+            stats.media_ssrc = ssrc_;
             break;
         case RtpPacketType::RETRANSMISSION:
             // For retransmissions, we're want to remove the original media packet
             // if the rentrasmit arrives, so populate that in the packet send statistics.
+            stats.media_ssrc = ssrc_;
             stats.retransmitted_seq_num = packet.retransmitted_sequence_number();
             break;
         case RtpPacketType::PADDING:
@@ -283,7 +284,7 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, SendStats sen
     // 1) the RTX stream can send either the retransmitted packets or the padding packets
     // 2) the retransmitted packets can be sent by either the meida stream or the RTX stream
     // see https://blog.csdn.net/sonysuqin/article/details/82021185
-    auto send_counters = send_stats.ssrc == rtx_ssrc_ ? &rtx_send_counter_ : &rtp_send_counter_;
+    RtpStreamDataCounters* send_counters = send_stats.ssrc == rtx_ssrc_ ? &rtx_send_counter_ : &rtp_send_counter_;
 
     if (send_counters->first_packet_time_ms == -1) {
         send_counters->first_packet_time_ms = now_ms;

@@ -9,14 +9,13 @@ namespace {
     constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
 } // namespace
 
-RtpSender::RtpSender(const RtpConfiguration& config,
-                     std::unique_ptr<FecGenerator> fec_generator)
+RtpSender::RtpSender(const RtpConfiguration& config)
     : rtx_mode_(RtxMode::OFF),
       clock_(config.clock),
-      fec_generator_(std::move(fec_generator)),
+      fec_generator_(config.fec_generator),
       packet_sequencer_(config),
       packet_history_(config.clock, config.enable_rtx_padding_prioritization),
-      packet_egresser_(config, &packet_history_, fec_generator_.get()),
+      packet_egresser_(config, &packet_history_),
       packet_generator_(config),
       non_paced_sender_(this) {
       

@@ -2,7 +2,12 @@
 
 namespace naivertc {
 
-FlexfecGenerator::FlexfecGenerator() {}
+FlexfecGenerator::FlexfecGenerator(int payload_type,
+                                   uint32_t ssrc,
+                                   uint32_t protected_media_ssrc) 
+    : payload_type_(payload_type),
+      ssrc_(ssrc),
+      protected_media_ssrc_(protected_media_ssrc) {}
 
 FlexfecGenerator::~FlexfecGenerator() = default;
 

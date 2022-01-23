@@ -74,6 +74,7 @@ struct RTC_CPP_EXPORT RtpTransportFeedback {
     uint16_t seq_num = 0;
     uint32_t rtp_timestamp = 0;
     size_t packet_size = 0;
+    std::optional<uint32_t> media_ssrc;
     std::optional<RtpPacketType> packet_type;
     std::optional<uint16_t> retransmitted_seq_num;
 };

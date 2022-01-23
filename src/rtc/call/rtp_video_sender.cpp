@@ -53,8 +53,7 @@ void RtpVideoSender::InitRtpRtcpModules(const Configuration& config,
     RTC_RUN_ON(&sequence_checker_);
     uint32_t local_media_ssrc = config.local_media_ssrc;
     std::optional<uint32_t> rtx_send_ssrc = config.rtx_send_ssrc;
-    auto fec_generator = MaybeCreateFecGenerator(config, local_media_ssrc);
-
+    fec_generator_ = MaybeCreateFecGenerator(config, local_media_ssrc);
 
     // RtpSender
     RtpConfiguration rtp_config;
@@ -64,7 +63,8 @@ void RtpVideoSender::InitRtpRtcpModules(const Configuration& config,
     rtp_config.rtx_send_ssrc = rtx_send_ssrc;
     rtp_config.clock = clock;
     rtp_config.send_transport = send_transport;
-    auto rtp_sender = std::make_unique<RtpSender>(rtp_config, std::move(fec_generator));
+    rtp_config.fec_generator = fec_generator_.get();
+    auto rtp_sender = std::make_unique<RtpSender>(rtp_config);
     // FIXME: Why do we need to enable NACK here?? What the rtp_config.nack_enabled works for?
     rtp_sender->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
 
@@ -74,7 +74,7 @@ void RtpVideoSender::InitRtpRtcpModules(const Configuration& config,
     rtcp_config.rtcp_report_interval_ms = config.rtcp_report_interval_ms;
     rtcp_config.local_media_ssrc = local_media_ssrc;
     rtcp_config.rtx_send_ssrc = rtx_send_ssrc;
-    rtcp_config.fec_ssrc = fec_generator->fec_ssrc();
+    rtcp_config.fec_ssrc = fec_generator_ ? fec_generator_->fec_ssrc() : std::nullopt;
     rtcp_config.clock = clock;
     rtcp_config.rtp_send_feedback_provider = rtp_sender.get();
     auto rtcp_responser = std::make_unique<RtcpResponser>(rtcp_config);
@@ -106,7 +106,7 @@ std::unique_ptr<FecGenerator> RtpVideoSender::MaybeCreateFecGenerator(const Conf
             return nullptr;
         }
 
-        return std::make_unique<FlexfecGenerator>();
+        return std::make_unique<FlexfecGenerator>(config.flexfec.payload_type, config.flexfec.ssrc, media_ssrc);
 
     } else if (config.ulpfec.red_payload_type >= 0 && 
                config.ulpfec.ulpfec_payload_type >= 0) {

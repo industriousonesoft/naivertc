@@ -22,8 +22,7 @@ class RTC_CPP_EXPORT RtpSender : public RtcpNackListObserver,
                                  public RtcpReportBlocksObserver,
                                  public RtpSendFeedbackProvider {
 public:
-    RtpSender(const RtpConfiguration& config, 
-              std::unique_ptr<FecGenerator> fec_generator);
+    RtpSender(const RtpConfiguration& config);
     virtual ~RtpSender() override;
 
     // Generator
@@ -82,7 +81,7 @@ private:
     SequenceChecker sequence_checker_;
     RtxMode rtx_mode_;
     Clock* const clock_;
-    std::unique_ptr<FecGenerator> fec_generator_;
+    FecGenerator* fec_generator_;
 
     RtpPacketSequencer packet_sequencer_;
     RtpPacketHistory packet_history_;

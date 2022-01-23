@@ -88,6 +88,7 @@ private:
     std::unique_ptr<RtcpResponser> rtcp_responser_ = nullptr;
     std::unique_ptr<RtpSender> rtp_sender_ = nullptr;
     std::unique_ptr<RtpSenderVideo> sender_video_ = nullptr;
+    std::unique_ptr<FecGenerator> fec_generator_ = nullptr;
 };
 
 } // namespace naivertc

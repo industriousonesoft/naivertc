@@ -26,8 +26,7 @@ class FecGenerator;
 class RTC_CPP_EXPORT RtpPacketEgresser {
 public:
     RtpPacketEgresser(const RtpConfiguration& config,
-                      RtpPacketHistory* const packet_history,
-                      FecGenerator* const fec_generator);
+                      RtpPacketHistory* const packet_history);
     ~RtpPacketEgresser();
 
     uint32_t ssrc() const { return ssrc_; }

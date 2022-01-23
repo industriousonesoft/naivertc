@@ -9,12 +9,14 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT FlexfecGenerator : public FecGenerator {
 public:
-    FlexfecGenerator();
+    FlexfecGenerator(int payload_type,
+                     uint32_t ssrc,
+                     uint32_t protected_media_ssrc);
     ~FlexfecGenerator();
 
     FecType fec_type() const override { return FecGenerator::FecType::FLEX_FEC; };
 
-    std::optional<uint32_t> fec_ssrc() override { return std::nullopt; };
+    std::optional<uint32_t> fec_ssrc() override { return ssrc_; };
 
     std::optional<int> red_payload_type() override { return std::nullopt; };
 
@@ -25,6 +27,11 @@ public:
     void PushMediaPacket(RtpPacketToSend packet) override;
 
     std::vector<RtpPacketToSend> PopFecPackets() override;
+
+private:
+    const int payload_type_;
+    const uint32_t ssrc_;
+    const uint32_t protected_media_ssrc_;
 };
     
 } // namespace naivertc
