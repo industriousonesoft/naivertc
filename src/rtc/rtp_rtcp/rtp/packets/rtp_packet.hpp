@@ -113,7 +113,7 @@ private:
 
     // Extension methods
     ArrayView<uint8_t> AllocateRawExtension(int id, size_t size);
-    uint16_t UpdateaExtensionSizeByAddZeroPadding(size_t extensions_offset);
+    uint16_t UpdateExtensionSizeByPaddingZero(size_t extensions_offset);
     void PromoteToTwoByteHeaderExtension();
 
 private:

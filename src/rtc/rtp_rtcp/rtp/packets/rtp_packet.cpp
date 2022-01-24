@@ -393,6 +393,11 @@ ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
         return nullptr;
     }
 
+    // Hack: Setting size to capacity temporarily that we can write extensions 
+    // before calculating the exact size of extensions. And we will reset the
+    // correct size at the end.
+    Resize(capacity());
+
     const size_t num_csrc = data()[0] & 0x0F;
     const size_t extensions_offset = kFixedHeaderSize + (num_csrc * 4) + 4;
 
@@ -430,12 +435,11 @@ ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
         // Profile specific ID, set to OneByteExtensionHeader unless
         // TwoByteExtensionHeader is required.
         profile_id = two_byte_header_required ? kTwoByteExtensionProfileId
-                                            : kOneByteExtensionProfileId;
+                                              : kOneByteExtensionProfileId;
     }
 
-    const size_t extension_header_size = profile_id == kOneByteExtensionProfileId
-                                                    ? kOneByteExtensionHeaderSize
-                                                    : kTwoByteExtensionHeaderSize;
+    const size_t extension_header_size = profile_id == kOneByteExtensionProfileId ? kOneByteExtensionHeaderSize
+                                                                                  : kTwoByteExtensionHeaderSize;
 
     size_t new_extensions_size = extensions_size_ + extension_header_size + size;
     if (extensions_offset + new_extensions_size > capacity()) {
@@ -468,7 +472,7 @@ ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
 
     extensions_size_ = new_extensions_size;
 
-    uint16_t extensions_size_padded = UpdateaExtensionSizeByAddZeroPadding(extensions_offset);
+    uint16_t extensions_size_padded = UpdateExtensionSizeByPaddingZero(extensions_offset);
     payload_offset_ = extensions_offset + extensions_size_padded;
     Resize(payload_offset_);
     return ArrayView<uint8_t>(WriteAt(extension_info_offset), extension_info_length);
@@ -487,7 +491,7 @@ ArrayView<const uint8_t> RtpPacket::FindExtension(ExtensionType type) const {
     return ArrayView<const uint8_t>(ReadAt(extension_info->offset), extension_info->size);
 }
 
-uint16_t RtpPacket::UpdateaExtensionSizeByAddZeroPadding(size_t extensions_offset) {
+uint16_t RtpPacket::UpdateExtensionSizeByPaddingZero(size_t extensions_offset) {
     // Wrap extension size up to 32bit.
     uint16_t extensions_words = utils::numeric::checked_static_cast<uint16_t>((extensions_size_ + 3) / 4); 
     // Update header length field.
@@ -535,7 +539,7 @@ void RtpPacket::PromoteToTwoByteHeaderExtension() {
     ByteWriter<uint16_t>::WriteBigEndian(WriteAt(extensions_offset - 4), kTwoByteExtensionProfileId);
 
     extensions_size_ += extension_entries_.size();
-    uint16_t extensions_size_padded = UpdateaExtensionSizeByAddZeroPadding(extensions_offset);
+    uint16_t extensions_size_padded = UpdateExtensionSizeByPaddingZero(extensions_offset);
     payload_offset_ = extensions_offset + extensions_size_padded;
     Resize(payload_offset_);
 }
@@ -591,7 +595,8 @@ bool RtpPacket::ParseInternal(const uint8_t* buffer, size_t size) {
             (profile_id & kTwoByteExtensionProfileIdAppBitsFilter) != kTwoByteExtensionProfileId) {
             PLOG_WARNING << "Unsupported RTP extension: " << profile_id;
         } else {
-            size_t extension_header_length = profile_id == kOneByteExtensionProfileId ? kOneByteExtensionHeaderSize : kTwoByteExtensionHeaderSize;
+            size_t extension_header_length = profile_id == kOneByteExtensionProfileId ? kOneByteExtensionHeaderSize 
+                                                                                      : kTwoByteExtensionHeaderSize;
             constexpr uint8_t kPaddingByte = 0;
             constexpr uint8_t kPaddingId = 0;
             constexpr uint8_t kOneByteHeaderExtensionReservedId = 15;
