@@ -13,7 +13,7 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
 namespace naivertc {
@@ -62,32 +62,16 @@ private:
     int32_t ResendPacket(uint16_t packet_id);
 
 private:
-    // NonPacedPacketSender
-    class NonPacedPacketSender {
-    public:
-        NonPacedPacketSender(RtpSender* const sender);
-        ~NonPacedPacketSender();
-
-        void EnqueuePackets(std::vector<RtpPacketToSend> packets);
-
-    private:
-        void PrepareForSend(RtpPacketToSend& packet);
-    private:
-        uint16_t transport_sequence_number_;
-        RtpSender* const sender_;
-    };
-    friend class NonPacedPacketSender;
-private:
     SequenceChecker sequence_checker_;
     RtxMode rtx_mode_;
     Clock* const clock_;
-    FecGenerator* fec_generator_;
+    FecGenerator* const fec_generator_;
 
-    RtpPacketSequencer packet_sequencer_;
-    RtpPacketHistory packet_history_;
-    RtpPacketEgresser packet_egresser_;
-    RtpPacketGenerator packet_generator_;
-    NonPacedPacketSender non_paced_sender_;
+    std::unique_ptr<RtpPacketSequencer> packet_sequencer_;
+    std::unique_ptr<RtpPacketHistory> packet_history_;
+    std::unique_ptr<RtpPacketEgresser> packet_egresser_;
+    std::unique_ptr<RtpPacketGenerator> packet_generator_;
+    std::unique_ptr<RtpPacketSender> packet_sender_;
 
 };
     

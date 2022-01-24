@@ -9,6 +9,7 @@
 #include "rtc/rtp_rtcp/rtp_statistic_structs.hpp"
 #include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
 #include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
@@ -20,17 +21,36 @@
 namespace naivertc {
 
 class RtpPacketHistory;
-class FecGenerator;
+class RtpPacketSequencer;
 
-// NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketEgresser发送数据，不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
 class RTC_CPP_EXPORT RtpPacketEgresser {
+public:
+    // NonPacedPacketSender
+    // NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketEgresser发送数据，
+    // 不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
+    class NonPacedPacketSender final : public RtpPacketSender {
+    public:
+        NonPacedPacketSender(RtpPacketSequencer* packet_sequencer, 
+                             RtpPacketEgresser* const sender);
+        ~NonPacedPacketSender() override;
+
+        void EnqueuePackets(std::vector<RtpPacketToSend> packets) override;
+
+    private:
+        void PrepareForSend(RtpPacketToSend& packet);
+    private:
+        uint16_t transport_sequence_number_;
+        RtpPacketSequencer* const packet_sequencer_;
+        RtpPacketEgresser* const sender_;
+    };
 public:
     RtpPacketEgresser(const RtpConfiguration& config,
                       RtpPacketHistory* const packet_history);
     ~RtpPacketEgresser();
 
-    uint32_t ssrc() const { return ssrc_; }
-    std::optional<uint32_t> rtx_ssrc() const { return rtx_ssrc_; }
+    uint32_t ssrc() const;
+    std::optional<uint32_t> rtx_ssrc() const;
+    std::optional<uint32_t> flex_fec_ssrc() const;
    
     void SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                     const FecProtectionParams& key_params);
@@ -97,6 +117,7 @@ private:
     Clock* const clock_;
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
+    const std::optional<uint32_t> flex_fec_ssrc_;
     MediaTransport* const send_transport_;
     
     RtpPacketHistory* const packet_history_;

@@ -196,7 +196,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_pacer.hpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver
     src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.hpp
@@ -416,7 +416,6 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp_statistic_structs.cpp
     src/rtc/rtp_rtcp/rtcp_responser.cpp
     src/rtc/rtp_rtcp/rtp_sender.cpp
-    src/rtc/rtp_rtcp/rtp_sender_non_paced.cpp
     src/rtc/rtp_rtcp/rtp_sender_video.cpp
 
     # rtc -> rtp_rtcp -> components
@@ -438,6 +437,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.cpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.cpp
+    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser_non_paced.cpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver
     src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.cpp

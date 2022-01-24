@@ -1,19 +1,22 @@
-#include "rtc/rtp_rtcp/rtp_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 
 namespace naivertc {
 
-RtpSender::NonPacedPacketSender::NonPacedPacketSender(RtpSender* const sender) 
+RtpPacketEgresser::NonPacedPacketSender::NonPacedPacketSender(RtpPacketSequencer* packet_sequencer, 
+                                                              RtpPacketEgresser* sender) 
         : transport_sequence_number_(0),
+          packet_sequencer_(packet_sequencer),
           sender_(sender) {}
 
-RtpSender::NonPacedPacketSender::~NonPacedPacketSender() = default;
+RtpPacketEgresser::NonPacedPacketSender::~NonPacedPacketSender() = default;
 
-void RtpSender::NonPacedPacketSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
+void RtpPacketEgresser::NonPacedPacketSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
     for (auto& packet : packets) {
         PrepareForSend(packet);
-        sender_->packet_egresser_.SendPacket(packet);
+        sender_->SendPacket(packet);
     }
-    auto fec_packets = sender_->packet_egresser_.FetchFecPackets();
+    auto fec_packets = sender_->FetchFecPackets();
     if (!fec_packets.empty()) {
         // Don't generate sequence numbers for flexfec, they are already running on
         // an internally maintained sequence.
@@ -21,10 +24,10 @@ void RtpSender::NonPacedPacketSender::EnqueuePackets(std::vector<RtpPacketToSend
         // FEC包有两种传输方式：1）另开一路流(ssrc区分)传输，2）使用RED封装作为冗余编码传输
         // webRTC中的实现FlexFEX有独立的SSRC(意味着sequence number也是独立的)
         // 而UlpFEX则是和原媒体流共用SSRC，因此需要给生成的fec包设置新的sequence number
-        const bool fec_red_enabled = sender_->fec_generator_->fec_ssrc().has_value() == false;
+        const bool fec_red_enabled = !sender_->flex_fec_ssrc();
         for (auto& packet : fec_packets) {
             if (fec_red_enabled) {
-                sender_->packet_sequencer_.Sequence(packet);
+                packet_sequencer_->Sequence(packet);
             }
             PrepareForSend(packet);
         }
@@ -33,7 +36,7 @@ void RtpSender::NonPacedPacketSender::EnqueuePackets(std::vector<RtpPacketToSend
 }
 
 // Private methods
-void RtpSender::NonPacedPacketSender::PrepareForSend(RtpPacketToSend& packet) {
+void RtpPacketEgresser::NonPacedPacketSender::PrepareForSend(RtpPacketToSend& packet) {
     if (!packet.SetExtension<rtp::TransportSequenceNumber>(++transport_sequence_number_)) {
         --transport_sequence_number_;
     }

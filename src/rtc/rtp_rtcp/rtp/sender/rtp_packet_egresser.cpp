@@ -10,6 +10,7 @@ constexpr uint32_t kTimestampTicksPerMs = 90;
 
 constexpr int kSendSideDelayWindowMs = 1000; // 1s
 constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(BitRateStatistics::kDefauleWindowSizeMs);
+
 } // namespace
 
 RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
@@ -19,6 +20,7 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           clock_(config.clock),
           ssrc_(config.local_media_ssrc),
           rtx_ssrc_(config.rtx_send_ssrc),
+          flex_fec_ssrc_(config.fec_generator ? config.fec_generator->fec_ssrc() : std::nullopt),
           send_transport_(config.send_transport),
           packet_history_(packet_history),
           fec_generator_(config.fec_generator),
@@ -47,6 +49,21 @@ RtpPacketEgresser::~RtpPacketEgresser() {
     if (update_task_ && update_task_->Running()) {
         update_task_->Stop();
     }
+}
+
+uint32_t RtpPacketEgresser::ssrc() const { 
+    RTC_RUN_ON(&sequence_checker_);
+    return ssrc_; 
+}
+    
+std::optional<uint32_t> RtpPacketEgresser::rtx_ssrc() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return rtx_ssrc_; 
+}
+   
+std::optional<uint32_t> RtpPacketEgresser::flex_fec_ssrc() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return flex_fec_ssrc_;
 }
 
  void RtpPacketEgresser::SetFecProtectionParameters(const FecProtectionParams& delta_params,

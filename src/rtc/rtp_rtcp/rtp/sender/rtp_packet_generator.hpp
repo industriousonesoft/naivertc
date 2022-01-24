@@ -15,15 +15,20 @@
 
 namespace naivertc {
 
+class RtpPacketSequencer;
+
 class RTC_CPP_EXPORT RtpPacketGenerator {
 public:
-    RtpPacketGenerator(const RtpConfiguration& config);
+    RtpPacketGenerator(const RtpConfiguration& config, 
+                       RtpPacketSequencer* packet_sequencer);
     RtpPacketGenerator() = delete;
     RtpPacketGenerator(const RtpPacketGenerator&) = delete;
     RtpPacketGenerator& operator=(const RtpPacketGenerator&) = delete;
     ~RtpPacketGenerator();
 
     uint32_t ssrc() const;
+    
+    void set_csrcs(const std::vector<uint32_t>& csrcs);
 
     size_t max_rtp_packet_size() const;
     void set_max_rtp_packet_size(size_t max_size);
@@ -53,6 +58,8 @@ private:
     size_t max_padding_fec_packet_header_;
 
     rtp::HeaderExtensionManager extension_manager_;
+
+    RtpPacketSequencer* const packet_sequencer_;
 
     std::map<int8_t, int8_t> rtx_payload_type_map_;
     std::vector<uint32_t> csrcs_;

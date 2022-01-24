@@ -1,5 +1,6 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "rtc/base/memory/byte_io_writer.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 
 #include <plog/Log.h>
 
@@ -28,11 +29,13 @@ constexpr rtp::ExtensionSize kFecOrPaddingExtensionSizes[] = {
 
 } // namespace 
 
-RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config) 
+RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config, 
+                                       RtpPacketSequencer* packet_sequencer) 
     : ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),
       max_packet_size_(kIpPacketSize - kTransportOverhead), // Default is UDP/IPv4.
-      extension_manager_(config.extmap_allow_mixed) {
+      extension_manager_(config.extmap_allow_mixed),
+      packet_sequencer_(packet_sequencer) {
     UpdateHeaderSizes();
 }
 
@@ -41,6 +44,11 @@ RtpPacketGenerator::~RtpPacketGenerator() {}
 uint32_t RtpPacketGenerator::ssrc() const {
     RTC_RUN_ON(&sequence_checker_);
     return ssrc_;
+}
+
+void RtpPacketGenerator::set_csrcs(const std::vector<uint32_t>& csrcs) {
+    RTC_RUN_ON(&sequence_checker_);
+    csrcs_ = csrcs;
 }
 
 size_t RtpPacketGenerator::max_rtp_packet_size() const {
@@ -100,14 +108,19 @@ std::optional<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(const RtpPacke
         PLOG_WARNING << "Failed to build RTX packet withou RTX ssrc.";
         return std::nullopt;
     }
+    // Check if the incoming packet is protected by RTX or not.
     auto kv = rtx_payload_type_map_.find(packet.payload_type());
     if (kv == rtx_payload_type_map_.end()) {
         return std::nullopt;
     }
 
     auto rtx_packet = RtpPacketToSend(max_packet_size_);
+    // Replace with RTX payload type
     rtx_packet.set_payload_type(kv->second);
+    // Replace with RTX ssrc
     rtx_packet.set_ssrc(rtx_ssrc_.value());
+    // Replace with RTX sequence number.
+    packet_sequencer_->Sequence(rtx_packet);
 
     CopyHeaderAndExtensionsToRtxPacket(packet, &rtx_packet);
 
