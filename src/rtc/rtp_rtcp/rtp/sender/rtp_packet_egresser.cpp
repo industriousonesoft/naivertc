@@ -116,9 +116,9 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     // In case of VideoTimingExtension, since it's present not in every packet,
     // data after rtp header may be corrupted if these packets are protected by
     // the FEC.
-    int64_t diff_ms = now_ms - packet.capture_time_ms();
+    int64_t send_delay_ms = now_ms - packet.capture_time_ms();
     if (packet.HasExtension<rtp::TransmissionTimeOffset>()) {
-        packet.SetExtension<rtp::TransmissionTimeOffset>(kTimestampTicksPerMs * diff_ms);
+        packet.SetExtension<rtp::TransmissionTimeOffset>(kTimestampTicksPerMs * send_delay_ms);
     }
 
     if (packet.HasExtension<rtp::AbsoluteSendTime>()) {
@@ -139,7 +139,7 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     if (packet_type != RtpPacketType::PADDING &&
         packet_type != RtpPacketType::RETRANSMISSION) {
         // No include Padding or Retransmission packet.
-        UpdateDelayStatistics(packet.capture_time_ms(), now_ms, packet_ssrc);
+        UpdateDelayStatistics(send_delay_ms, now_ms, packet_ssrc);
         if (transport_seq_num) {
             send_packet_observer_->OnSendPacket(*transport_seq_num, packet.capture_time_ms(), packet_ssrc);
         }
@@ -333,10 +333,10 @@ void RtpPacketEgresser::UpdateSentStatistics(const int64_t now_ms, SendStats sen
     }
 }
 
-void RtpPacketEgresser::UpdateDelayStatistics(int64_t capture_time_ms, 
-                                              int64_t now_ms, 
+void RtpPacketEgresser::UpdateDelayStatistics(int64_t new_delay_ms,
+                                              int64_t now_ms,
                                               uint32_t ssrc) {
-    if (!send_delay_observer_ || capture_time_ms <= 0) {
+    if (!send_delay_observer_ || new_delay_ms < 0) {
         return;
     }
 
@@ -355,8 +355,6 @@ void RtpPacketEgresser::UpdateDelayStatistics(int64_t capture_time_ms,
     if (max_delay_it_ == send_delays_.end()) {
         RecalculateMaxDelay();
     }
-    int64_t new_delay_ms = now_ms - capture_time_ms;
-    assert(new_delay_ms >= 0);
     auto [it, inserted] = send_delays_.insert({now_ms, new_delay_ms});
     // Repalce the old one with the resent one.
     if (!inserted) {

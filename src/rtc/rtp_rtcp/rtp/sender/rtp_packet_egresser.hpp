@@ -93,8 +93,8 @@ private:
 
     void UpdateSentStatistics(const int64_t now_ms, 
                               SendStats send_stats);
-    void UpdateDelayStatistics(int64_t capture_time_ms, 
-                               int64_t now_ms, 
+    void UpdateDelayStatistics(int64_t send_delay_ms,
+                               int64_t now_ms,
                                uint32_t ssrc);
 
     DataRate CalcTotalSendBitrate(const int64_t now_ms);

@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 #include "testing/simulated_clock.hpp"
 
@@ -79,12 +79,13 @@ public:
 // SendTransportImpl
 class SendTransportImpl : public MediaTransport {
 public:
-    SendTransportImpl() 
-        : total_bytes_sent_(0) {}
+    SendTransportImpl(rtp::HeaderExtensionManager* header_extension_mgr) 
+        : total_bytes_sent_(0),
+          header_extension_mgr_(header_extension_mgr) {}
 
     bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
         total_bytes_sent_ += packet.size();
-        RtpPacketReceived recv_packet;
+        RtpPacketReceived recv_packet(header_extension_mgr_);
         EXPECT_TRUE(recv_packet.Parse(std::move(packet)));
         last_recv_packet_.emplace(std::move(recv_packet));
         return true;
@@ -94,9 +95,14 @@ public:
         RTC_NOTREACHED();
     }
 
+    std::optional<RtpPacketReceived> last_packet() const {
+        return last_recv_packet_;
+    };
+
 private:
     int64_t total_bytes_sent_;
     std::optional<RtpPacketReceived> last_recv_packet_;
+    rtp::HeaderExtensionManager* const header_extension_mgr_;
 };
 
 } // namespace
@@ -105,7 +111,7 @@ class T(RtpPacketEgresserTest) : public ::testing::TestWithParam<bool> {
 protected:
     T(RtpPacketEgresserTest)() 
         : clock_(123456),
-          send_transport_(),
+          send_transport_(&header_extension_mgr_),
           packet_history_(&clock_, /*enable_rtx_padding_prioritization=*/true),
           seq_num_(kStartSequenceNumber) {};
 
@@ -135,6 +141,9 @@ protected:
                                    int64_t capture_time_ms) {
         RtpPacketToSend packet(&header_extension_mgr_);
         packet.set_ssrc(kSsrc);
+        packet.ReserveExtension<rtp::AbsoluteSendTime>();
+        packet.ReserveExtension<rtp::TransmissionTimeOffset>();
+
         packet.set_payload_type(kDefaultPayloadType);
         packet.set_packet_type(RtpPacketType::VIDEO);
         packet.set_marker(marker_bit);
@@ -343,6 +352,31 @@ MY_TEST_P(RtpPacketEgresserTest, PutsRetransmittablePacketsInHistory) {
 
     EXPECT_THAT(packet_history_.GetPacketState(seq_num), 
                 Optional(Field(&RtpPacketHistory::PacketState::pending_transmission, false)));
+}
+
+MY_TEST_P(RtpPacketEgresserTest, UpdateExtenstionWhenSendingPacket) {
+    auto sender = CreateRtpPacketEgresser();
+
+    header_extension_mgr_.RegisterByUri(kAbsoluteSendTimeExtensionId, rtp::AbsoluteSendTime::kUri);
+    header_extension_mgr_.RegisterByUri(kTransmissionOffsetExtensionId, rtp::TransmissionTimeOffset::kUri);
+    // TODO: Add VideoTimingExtension
+
+    const int64_t capture_time_ms = clock_.now_ms();
+    auto packet = BuildRtpPacket(true, capture_time_ms);
+    ASSERT_TRUE(packet.HasExtension<rtp::AbsoluteSendTime>());
+    ASSERT_TRUE(packet.HasExtension<rtp::TransmissionTimeOffset>());
+
+    const int64_t kDiffMs = 10;
+    clock_.AdvanceTimeMs(kDiffMs);
+
+    sender->SendPacket(std::move(packet));
+
+    auto recv_packet = send_transport_.last_packet();
+    ASSERT_TRUE(recv_packet);
+    ASSERT_TRUE(recv_packet->HasExtension<rtp::AbsoluteSendTime>());
+    ASSERT_TRUE(recv_packet->HasExtension<rtp::TransmissionTimeOffset>());
+    EXPECT_EQ(recv_packet->GetExtension<rtp::AbsoluteSendTime>(), rtp::AbsoluteSendTime::MsTo24Bits(clock_.now_ms()));
+    EXPECT_EQ(recv_packet->GetExtension<rtp::TransmissionTimeOffset>(), kDiffMs * 90);
 }
 
 MY_TEST_P(RtpPacketEgresserTest, DoseNotPutNonMediaPacketInHistory) {
