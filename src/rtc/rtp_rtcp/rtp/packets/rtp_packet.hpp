@@ -5,7 +5,7 @@
 #include "common/array_view.hpp"
 #include "rtc/base/packet.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
 
 #include <memory>
 
@@ -21,13 +21,13 @@ public:
     }
 
     using ExtensionType = RtpExtensionType;
-    using HeaderExtensionManager = rtp::HeaderExtensionManager;
+    using HeaderExtensionMap = rtp::HeaderExtensionMap;
 public:
     RtpPacket();
     RtpPacket(size_t capacity);
     RtpPacket(const RtpPacket&);
-    explicit RtpPacket(const HeaderExtensionManager* extension_manager);
-    RtpPacket(const HeaderExtensionManager* extension_manager, size_t capacity);
+    explicit RtpPacket(const HeaderExtensionMap* extension_map);
+    RtpPacket(const HeaderExtensionMap* extension_map, size_t capacity);
     virtual ~RtpPacket();
 
     // Header
@@ -142,7 +142,7 @@ private:
     size_t payload_size_;
 
     size_t extensions_size_ = 0;
-    HeaderExtensionManager extension_manager_;
+    HeaderExtensionMap extension_map_;
     std::vector<ExtensionInfo> extension_entries_;
 };
 
@@ -153,7 +153,7 @@ bool RtpPacket::HasExtension() const {
 
 template <typename Extension>
 bool RtpPacket::IsRegistered() const {
-   return extension_manager_.IsRegistered(Extension::kId);
+   return extension_map_.IsRegistered(Extension::kId);
 }
 
 template <typename Extension>

@@ -14,8 +14,8 @@ public:
     RtpPacketToSend(size_t capacity);
     RtpPacketToSend(const RtpPacketToSend& packet);
     RtpPacketToSend(RtpPacketToSend&& packet);
-    explicit RtpPacketToSend(const HeaderExtensionManager* extension_manager);
-    RtpPacketToSend(const HeaderExtensionManager* extension_manager, size_t capacity);
+    explicit RtpPacketToSend(const HeaderExtensionMap* extension_map);
+    RtpPacketToSend(const HeaderExtensionMap* extension_map, size_t capacity);
 
     RtpPacketToSend& operator=(const RtpPacketToSend& packet);
     RtpPacketToSend& operator=(RtpPacketToSend&& packet);

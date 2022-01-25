@@ -79,13 +79,13 @@ public:
 // SendTransportImpl
 class SendTransportImpl : public MediaTransport {
 public:
-    SendTransportImpl(rtp::HeaderExtensionManager* header_extension_mgr) 
+    SendTransportImpl(rtp::HeaderExtensionMap* header_extension_map) 
         : total_bytes_sent_(0),
-          header_extension_mgr_(header_extension_mgr) {}
+          header_extension_map_(header_extension_map) {}
 
     bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
         total_bytes_sent_ += packet.size();
-        RtpPacketReceived recv_packet(header_extension_mgr_);
+        RtpPacketReceived recv_packet(header_extension_map_);
         EXPECT_TRUE(recv_packet.Parse(std::move(packet)));
         last_recv_packet_.emplace(std::move(recv_packet));
         return true;
@@ -102,7 +102,7 @@ public:
 private:
     int64_t total_bytes_sent_;
     std::optional<RtpPacketReceived> last_recv_packet_;
-    rtp::HeaderExtensionManager* const header_extension_mgr_;
+    rtp::HeaderExtensionMap* const header_extension_map_;
 };
 
 } // namespace
@@ -111,7 +111,7 @@ class T(RtpPacketEgresserTest) : public ::testing::TestWithParam<bool> {
 protected:
     T(RtpPacketEgresserTest)() 
         : clock_(123456),
-          send_transport_(&header_extension_mgr_),
+          send_transport_(&header_extension_map_),
           packet_history_(&clock_, /*enable_rtx_padding_prioritization=*/true),
           seq_num_(kStartSequenceNumber) {};
 
@@ -139,7 +139,7 @@ protected:
 
     RtpPacketToSend BuildRtpPacket(bool marker_bit,
                                    int64_t capture_time_ms) {
-        RtpPacketToSend packet(&header_extension_mgr_);
+        RtpPacketToSend packet(&header_extension_map_);
         packet.set_ssrc(kSsrc);
         packet.ReserveExtension<rtp::AbsoluteSendTime>();
         packet.ReserveExtension<rtp::TransmissionTimeOffset>();
@@ -166,7 +166,7 @@ protected:
     NiceMock<MockTransportFeedbackObserver> transport_feedback_observer_;
     SendTransportImpl send_transport_;
     RtpPacketHistory packet_history_;
-    rtp::HeaderExtensionManager header_extension_mgr_;
+    rtp::HeaderExtensionMap header_extension_map_;
     uint16_t seq_num_;
 };
 
@@ -177,7 +177,7 @@ MY_TEST_P(RtpPacketEgresserTest, PacketSendStatsObserverGetsCorrectByteCount) {
     const size_t kPayloadSize = 1400;
     const uint16_t kTransportSeqNum = 17;
 
-    header_extension_mgr_.RegisterByUri(kTransportSequenceNumberExtensionId, 
+    header_extension_map_.RegisterByUri(kTransportSequenceNumberExtensionId, 
                                         rtp::TransportSequenceNumber::kUri);
 
     const size_t expected_bytes = GetParam() ? kPayloadSize + kRtpOverheadBytesPerPacket
@@ -236,7 +236,7 @@ MY_TEST_P(RtpPacketEgresserTest, OnSendDelayUpdated) {
 MY_TEST_P(RtpPacketEgresserTest, OnSendPacketUpdated) {
     auto sender = CreateRtpPacketEgresser();
 
-    header_extension_mgr_.RegisterByUri(kTransportSequenceNumberExtensionId, rtp::TransportSequenceNumber::kUri);
+    header_extension_map_.RegisterByUri(kTransportSequenceNumberExtensionId, rtp::TransportSequenceNumber::kUri);
 
     const uint16_t kTransportSeqNum = 123;
     const int64_t capture_time_ms = clock_.now_ms();
@@ -250,7 +250,7 @@ MY_TEST_P(RtpPacketEgresserTest, OnSendPacketUpdated) {
 MY_TEST_P(RtpPacketEgresserTest, OnSendPacketNotUpdatedForRetransmission) {
     auto sender = CreateRtpPacketEgresser();
 
-    header_extension_mgr_.RegisterByUri(kTransportSequenceNumberExtensionId, rtp::TransportSequenceNumber::kUri);
+    header_extension_map_.RegisterByUri(kTransportSequenceNumberExtensionId, rtp::TransportSequenceNumber::kUri);
 
     const uint16_t kTransportSeqNum = 123;
     EXPECT_CALL(send_packet_observer_, OnSendPacket).Times(0);
@@ -357,8 +357,8 @@ MY_TEST_P(RtpPacketEgresserTest, PutsRetransmittablePacketsInHistory) {
 MY_TEST_P(RtpPacketEgresserTest, UpdateExtenstionWhenSendingPacket) {
     auto sender = CreateRtpPacketEgresser();
 
-    header_extension_mgr_.RegisterByUri(kAbsoluteSendTimeExtensionId, rtp::AbsoluteSendTime::kUri);
-    header_extension_mgr_.RegisterByUri(kTransmissionOffsetExtensionId, rtp::TransmissionTimeOffset::kUri);
+    header_extension_map_.RegisterByUri(kAbsoluteSendTimeExtensionId, rtp::AbsoluteSendTime::kUri);
+    header_extension_map_.RegisterByUri(kTransmissionOffsetExtensionId, rtp::TransmissionTimeOffset::kUri);
     // TODO: Add VideoTimingExtension
 
     const int64_t capture_time_ms = clock_.now_ms();
@@ -610,7 +610,7 @@ MY_TEST_P(RtpPacketEgresserTest, SendPacketUpdatesStats) {
     config.fec_generator = &ulp_fec_generator;
     auto sender = std::make_unique<RtpPacketEgresser>(config, &packet_history_);
 
-    header_extension_mgr_.RegisterByUri(kTransportSequenceNumberExtensionId,
+    header_extension_map_.RegisterByUri(kTransportSequenceNumberExtensionId,
                                         rtp::TransportSequenceNumber::kUri);
 
     const int64_t capture_time_ms = clock_.now_ms();
@@ -666,7 +666,7 @@ MY_TEST_P(RtpPacketEgresserTest, SendPacketUpdatesStats) {
 
 MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverWithRetransmission) {
     const uint16_t kTransportSequenceNumber = 17;
-    header_extension_mgr_.RegisterByUri(kTransportSequenceNumberExtensionId,
+    header_extension_map_.RegisterByUri(kTransportSequenceNumberExtensionId,
                                         rtp::TransportSequenceNumber::kUri);
     auto retransmission = BuildRtpPacket();
     retransmission.set_packet_type(RtpPacketType::RETRANSMISSION);
@@ -687,7 +687,7 @@ MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverWithRetransmission) {
 
 MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverWithRtxRetransmission) {
     const uint16_t kTransportSequenceNumber = 17;
-    header_extension_mgr_.RegisterByUri(kTransportSequenceNumberExtensionId,
+    header_extension_map_.RegisterByUri(kTransportSequenceNumberExtensionId,
                                         rtp::TransportSequenceNumber::kUri);
     auto retransmission = BuildRtpPacket();
     retransmission.set_packet_type(RtpPacketType::RETRANSMISSION);
@@ -709,7 +709,7 @@ MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverWithRtxRetransmission)
 
 MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverRtxPadding) {
     const uint16_t kTransportSequenceNumber = 17;
-    header_extension_mgr_.RegisterByUri(kTransportSequenceNumberExtensionId,
+    header_extension_map_.RegisterByUri(kTransportSequenceNumberExtensionId,
                                         rtp::TransportSequenceNumber::kUri);
     auto rtx_padding = BuildRtpPacket();
     rtx_padding.set_packet_type(RtpPacketType::PADDING);
@@ -729,7 +729,7 @@ MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverRtxPadding) {
 
 MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverFEC) {
     const uint16_t kTransportSequenceNumber = 17;
-    header_extension_mgr_.RegisterByUri(kTransportSequenceNumberExtensionId,
+    header_extension_map_.RegisterByUri(kTransportSequenceNumberExtensionId,
                                         rtp::TransportSequenceNumber::kUri);
     auto fec = BuildRtpPacket();
     fec.set_packet_type(RtpPacketType::FEC);

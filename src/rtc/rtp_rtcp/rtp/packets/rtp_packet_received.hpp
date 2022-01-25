@@ -10,7 +10,7 @@ namespace naivertc {
 class RTC_CPP_EXPORT RtpPacketReceived : public RtpPacket {
 public:
     RtpPacketReceived();
-    RtpPacketReceived(const HeaderExtensionManager* extension_manager, 
+    RtpPacketReceived(const HeaderExtensionMap* extension_map, 
                       Timestamp arrival_time = Timestamp::PlusInfinity());
     RtpPacketReceived(const RtpPacketReceived& other);
     RtpPacketReceived(RtpPacketReceived&& other);

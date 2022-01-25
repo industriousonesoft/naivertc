@@ -18,8 +18,8 @@ struct RTC_CPP_EXPORT ExtensionSize {
     size_t size;
 };
 
-// Extension manager
-class RTC_CPP_EXPORT HeaderExtensionManager {
+// Header extension map
+class RTC_CPP_EXPORT HeaderExtensionMap {
 public:
     static constexpr RtpExtensionType kInvalidType = RtpExtensionType::NONE;
     static constexpr int kInvalidId = 0;
@@ -30,10 +30,10 @@ public:
     static constexpr int kOneByteHeaderExtensionMaxValueSize = 16;
 
 public:
-    HeaderExtensionManager();
-    explicit HeaderExtensionManager(bool extmap_allow_mixed);
-    // explicit HeaderExtensionManager(ArrayView<const HeaderExtension> extensions);
-    ~HeaderExtensionManager();
+    HeaderExtensionMap();
+    explicit HeaderExtensionMap(bool extmap_allow_mixed);
+    // explicit HeaderExtensionMap(ArrayView<const HeaderExtension> extensions);
+    ~HeaderExtensionMap();
 
     bool extmap_allow_mixed() const { return extmap_allow_mixed_; }
     void set_extmap_allow_mixed(bool allow_mixed) { extmap_allow_mixed_ = allow_mixed; };

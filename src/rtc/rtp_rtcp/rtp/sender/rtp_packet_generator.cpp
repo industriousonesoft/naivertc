@@ -68,7 +68,7 @@ RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config)
       max_packet_size_(kIpPacketSize - kTransportOverhead), // Default is UDP/IPv4.
       max_media_packet_header_size_(kRtpHeaderSize),
       max_fec_or_padding_packet_header_size_(kRtpHeaderSize),
-      extension_manager_(config.extmap_allow_mixed),
+      header_extension_map_(config.extmap_allow_mixed),
       packet_sequencer_(std::make_unique<RtpPacketSequencer>(config)) {
 
     // Random start, 16bits, can not be 0.
@@ -105,19 +105,19 @@ void RtpPacketGenerator::set_max_rtp_packet_size(size_t max_size) {
 
 bool RtpPacketGenerator::Register(std::string_view uri, int id) {
     RTC_RUN_ON(&sequence_checker_);
-    bool bRet = extension_manager_.RegisterByUri(id, uri);
+    bool bRet = header_extension_map_.RegisterByUri(id, uri);
     UpdateHeaderSizes();
     return bRet;
 }
 
 bool RtpPacketGenerator::IsRegistered(RtpExtensionType type) {
     RTC_RUN_ON(&sequence_checker_);
-    return extension_manager_.IsRegistered(type);
+    return header_extension_map_.IsRegistered(type);
 }
 
 void RtpPacketGenerator::Deregister(std::string_view uri) {
     RTC_RUN_ON(&sequence_checker_);
-    extension_manager_.Deregister(uri);
+    header_extension_map_.Deregister(uri);
 }
 
 RtpPacketToSend RtpPacketGenerator::GeneratePacket() const {
@@ -129,7 +129,7 @@ RtpPacketToSend RtpPacketGenerator::GeneratePacket() const {
     // While sending slightly oversized packet increase chance of dropped packet,
     // it is better than crash on drop packet without trying to send it.
     static constexpr int kExtraCapacity = 16;
-    auto packet = RtpPacketToSend(&extension_manager_, max_packet_size_ + kExtraCapacity);
+    auto packet = RtpPacketToSend(&header_extension_map_, max_packet_size_ + kExtraCapacity);
     packet.set_ssrc(ssrc_);
     packet.set_csrcs(csrcs_);
     
@@ -222,7 +222,7 @@ void RtpPacketGenerator::UpdateHeaderSizes() {
     const size_t rtp_header_size = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
     // Calculate the maximum size of FEC/Padding packet.
     max_fec_or_padding_packet_header_size_ = rtp_header_size + 
-                                             extension_manager_.CalculateSize(kFecOrPaddingExtensionSizes);
+                                             header_extension_map_.CalculateSize(kFecOrPaddingExtensionSizes);
 
     // TODO: Calculate the maximum header size of media packet.
 }

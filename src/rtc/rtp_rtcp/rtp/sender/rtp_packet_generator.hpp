@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
@@ -69,7 +69,7 @@ private:
     size_t max_packet_size_;
     size_t max_media_packet_header_size_;
     size_t max_fec_or_padding_packet_header_size_;
-    rtp::HeaderExtensionManager extension_manager_;
+    rtp::HeaderExtensionMap header_extension_map_;
 
     std::unique_ptr<RtpPacketSequencer> packet_sequencer_;
 

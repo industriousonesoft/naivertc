@@ -9,11 +9,11 @@ RtpPacketToSend::RtpPacketToSend(RtpPacketToSend&& packet) = default;
 RtpPacketToSend& RtpPacketToSend::operator=(const RtpPacketToSend& packet) = default;
 RtpPacketToSend& RtpPacketToSend::operator=(RtpPacketToSend&& packet) = default;
 
-RtpPacketToSend::RtpPacketToSend(const HeaderExtensionManager* extension_manager) 
-    : RtpPacket(extension_manager) {}
+RtpPacketToSend::RtpPacketToSend(const HeaderExtensionMap* extension_map) 
+    : RtpPacket(extension_map) {}
 
-RtpPacketToSend::RtpPacketToSend(const HeaderExtensionManager* extension_manager, size_t capacity) 
-    : RtpPacket(extension_manager, capacity) {}
+RtpPacketToSend::RtpPacketToSend(const HeaderExtensionMap* extension_map, size_t capacity) 
+    : RtpPacket(extension_map, capacity) {}
 
 RtpPacketToSend::~RtpPacketToSend() = default;
     

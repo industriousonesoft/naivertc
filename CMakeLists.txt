@@ -189,7 +189,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp
-    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp
 
      # rtc -> rtp_rtcp -> rtp -> sender
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp
@@ -431,7 +431,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet_received.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.cpp
     src/rtc/rtp_rtcp/rtp/packets/rtp_header_extensions_utils.cpp
-    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.cpp
+    src/rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.cpp
 
     # rtc -> rtp_rtcp -> rtp -> sender
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_history.cpp

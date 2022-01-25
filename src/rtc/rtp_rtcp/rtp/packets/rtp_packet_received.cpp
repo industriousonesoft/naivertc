@@ -3,8 +3,8 @@
 namespace naivertc {
 
 RtpPacketReceived::RtpPacketReceived() = default;
-RtpPacketReceived::RtpPacketReceived(const HeaderExtensionManager* extension_manager, Timestamp arrival_time) 
-    : RtpPacket(extension_manager),
+RtpPacketReceived::RtpPacketReceived(const HeaderExtensionMap* extension_map, Timestamp arrival_time) 
+    : RtpPacket(extension_map),
       arrival_time_(arrival_time) {}
 RtpPacketReceived::RtpPacketReceived(const RtpPacketReceived& other) = default;
 RtpPacketReceived::RtpPacketReceived(RtpPacketReceived&& other) = default;
