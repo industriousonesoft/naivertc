@@ -12,6 +12,12 @@
 namespace naivertc {
 namespace rtp {
 
+// Extension size
+struct RTC_CPP_EXPORT ExtensionSize {
+    RtpExtensionType type;
+    size_t size;
+};
+
 // Extension manager
 class RTC_CPP_EXPORT HeaderExtensionManager {
 public:
@@ -57,6 +63,8 @@ public:
     int Deregister(RtpExtensionType type);
     // Return kInvalid if not registered, otherwise the registered id
     int Deregister(std::string_view uri);
+
+    size_t CalculateSize(ArrayView<const ExtensionSize> extensions);
     
 private:
     bool Register(int id, RtpExtensionType type, const char* uri);
@@ -65,15 +73,6 @@ private:
     uint8_t extension_ids_[int(RtpExtensionType::NUMBER_OF_EXTENSIONS)];
     bool extmap_allow_mixed_;
 };
-
-// Extension size
-struct RTC_CPP_EXPORT ExtensionSize {
-    RtpExtensionType type;
-    size_t size;
-};
-
-size_t CalculateRegisteredExtensionSize(ArrayView<const ExtensionSize> extensions, 
-                                        const HeaderExtensionManager& registered_extensions);
     
 } // namespace rtp
 } // namespace naivertc

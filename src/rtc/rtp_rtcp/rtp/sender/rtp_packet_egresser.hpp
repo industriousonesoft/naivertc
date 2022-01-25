@@ -30,8 +30,8 @@ public:
     // 不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
     class NonPacedPacketSender final : public RtpPacketSender {
     public:
-        NonPacedPacketSender(RtpPacketSequencer* packet_sequencer, 
-                             RtpPacketEgresser* const sender);
+        NonPacedPacketSender(RtpPacketEgresser* const sender, 
+                             SequenceNumberAssigner* seq_num_assigner);
         ~NonPacedPacketSender() override;
 
         void EnqueuePackets(std::vector<RtpPacketToSend> packets) override;
@@ -40,8 +40,8 @@ public:
         void PrepareForSend(RtpPacketToSend& packet);
     private:
         uint16_t transport_sequence_number_;
-        RtpPacketSequencer* const packet_sequencer_;
         RtpPacketEgresser* const sender_;
+        SequenceNumberAssigner* const seq_num_assigner_;
     };
 public:
     RtpPacketEgresser(const RtpConfiguration& config,

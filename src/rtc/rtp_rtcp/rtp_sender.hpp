@@ -12,7 +12,6 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
@@ -29,10 +28,14 @@ public:
     size_t max_rtp_packet_size() const;
     void set_max_rtp_packet_size(size_t max_size);
  
-    RtpPacketToSend AllocatePacket() const;
+    RtpPacketToSend GeneratePacket() const;
 
     // Send
     bool EnqueuePackets(std::vector<RtpPacketToSend> packets);
+
+    // Sequence number
+    bool AssignSequenceNumber(RtpPacketToSend& packet);
+    bool AssignSequenceNumbers(ArrayView<RtpPacketToSend> packets);
     
     // Store the sent packets, needed to answer to Negative acknowledgment requests.
     void SetStorePacketsStatus(const bool enable, const uint16_t number_to_store);
@@ -67,7 +70,6 @@ private:
     Clock* const clock_;
     FecGenerator* const fec_generator_;
 
-    std::unique_ptr<RtpPacketSequencer> packet_sequencer_;
     std::unique_ptr<RtpPacketHistory> packet_history_;
     std::unique_ptr<RtpPacketEgresser> packet_egresser_;
     std::unique_ptr<RtpPacketGenerator> packet_generator_;

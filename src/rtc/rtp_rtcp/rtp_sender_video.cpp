@@ -52,7 +52,7 @@ bool RtpSenderVideo::Send(int payload_type,
         packet_capacity -= kRtxHeaderSize;
     }
 
-    RtpPacketToSend single_packet = packet_sender_->AllocatePacket();
+    RtpPacketToSend single_packet = packet_sender_->GeneratePacket();
     if (packet_capacity > single_packet.capacity()) {
         PLOG_WARNING << "The maximum RTP packet capacity without FEC or RTX overhead should less than the capacity of allocated RTP packet.";
         return false;
@@ -131,7 +131,7 @@ bool RtpSenderVideo::Send(int payload_type,
         packet->set_allow_retransmission(allow_retransmission);
         packet->set_is_key_frame(video_header.frame_type == video::FrameType::KEY);
 
-        // TODO: Put packetization finish timestap into extension
+        // TODO: Put packetization finish timestamp into extension
 
         packet->set_fec_protection_need(fec_enabled);
 
@@ -146,11 +146,16 @@ bool RtpSenderVideo::Send(int payload_type,
 
     } // end of for
 
-    // AV1 and H264 packetizers may produce less packetized bytes than unpacketized.
-    if (packetized_payload_size >= payload.size() /* unpacketized payload size */) {
-        // TODO: Calculate packetization overhead bitrate.
+    // Assign sequence number.
+    if (!packet_sender_->AssignSequenceNumbers(rtp_packets)) {
+        PLOG_WARNING << "Failed to assign sequence number to RTP packet before sending.";
+        return false;
     }
 
+    // Packtization overhead.
+    CalcPacketizationOverhead(rtp_packets, /*unpacketized_payload_size=*/payload.size());
+    
+    // Send to network.
     if (!packet_sender_->EnqueuePackets(std::move(rtp_packets))) {
         PLOG_WARNING << "Failed to enqueue packets into packet sender.";
         return false;
@@ -230,6 +235,20 @@ void RtpSenderVideo::MaybeUpdateCurrentPlayoutDelay(const RtpVideoHeader& header
 
     current_playout_delay_ = requested_delay;
     playout_delay_pending_ = true;
+}
+
+void RtpSenderVideo::CalcPacketizationOverhead(ArrayView<const RtpPacketToSend> packets, 
+                                               size_t unpacketized_payload_size) {
+    size_t packetized_payload_size = 0;
+    for (auto& packet : packets) {
+        if (packet.packet_type() == RtpPacketType::VIDEO) {
+            packetized_payload_size += packet.size();
+        }
+    }
+    // AV1 and H264 packetizers may produce less packetized bytes than unpacketized.
+    if (packetized_payload_size >= unpacketized_payload_size) {
+        // TODO: Notify packetization overhead observer.
+    }
 }
     
 } // namespace naivertc

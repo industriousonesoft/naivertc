@@ -40,6 +40,10 @@ private:
     RtpPacketizer* Packetize(video::CodecType codec_type, 
                              ArrayView<const uint8_t> payload, 
                              const RtpPacketizer::PayloadSizeLimits& limits);
+
+    void CalcPacketizationOverhead(ArrayView<const RtpPacketToSend> packets, 
+                                   size_t unpacketized_payload_size);
+
 private:
     SequenceChecker sequence_checker_;
     Clock* const clock_;

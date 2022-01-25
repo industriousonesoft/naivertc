@@ -1,28 +1,18 @@
 #include "rtc/rtp_rtcp/rtp_sender.hpp"
-#include "common/utils_random.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 
 #include <plog/Log.h>
 
 namespace naivertc {
-namespace {
-    constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
-} // namespace
 
 RtpSender::RtpSender(const RtpConfiguration& config)
     : rtx_mode_(RtxMode::OFF),
       clock_(config.clock),
       fec_generator_(config.fec_generator),
-      packet_sequencer_(std::make_unique<RtpPacketSequencer>(config)),
       packet_history_(std::make_unique<RtpPacketHistory>(config.clock, config.enable_rtx_padding_prioritization)),
       packet_egresser_(std::make_unique<RtpPacketEgresser>(config, packet_history_.get())),
-      packet_generator_(std::make_unique<RtpPacketGenerator>(config, packet_sequencer_.get())),
-      packet_sender_(std::make_unique<RtpPacketEgresser::NonPacedPacketSender>(packet_sequencer_.get(), packet_egresser_.get())) {
-      
-    // Random start, 16bits, can not be 0.
-    packet_sequencer_->set_rtx_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
-    packet_sequencer_->set_media_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
-}
+      packet_generator_(std::make_unique<RtpPacketGenerator>(config)),
+      packet_sender_(std::make_unique<RtpPacketEgresser::NonPacedPacketSender>(packet_egresser_.get(), packet_generator_.get())) {}
 
 RtpSender::~RtpSender() = default;
 
@@ -56,17 +46,17 @@ void RtpSender::SetRtxPayloadType(int payload_type, int associated_payload_type)
     packet_generator_->SetRtxPayloadType(payload_type, associated_payload_type);
 }
 
-RtpPacketToSend RtpSender::AllocatePacket() const {
+RtpPacketToSend RtpSender::GeneratePacket() const {
     RTC_RUN_ON(&sequence_checker_);
-    return packet_generator_->AllocatePacket();
+    return packet_generator_->GeneratePacket();
 }
 
 bool RtpSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
     RTC_RUN_ON(&sequence_checker_);
     int64_t now_ms = clock_->now_ms();
     for (auto& packet : packets) {
-        // Assign sequence for per packet
-        if (!packet_sequencer_->Sequence(packet)) {
+        // Assign sequence number for per packet
+        if (!packet_generator_->AssignSequenceNumber(packet)) {
             PLOG_WARNING << "Failed to assign sequence number for packet with type : " << int(packet.packet_type());
             return false;
         }
@@ -75,6 +65,21 @@ bool RtpSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
         }
     }
     packet_sender_->EnqueuePackets(std::move(packets));
+    return true;
+}
+
+bool RtpSender::AssignSequenceNumber(RtpPacketToSend& packet) {
+    RTC_RUN_ON(&sequence_checker_);
+    return packet_generator_->AssignSequenceNumber(packet);
+}
+
+bool RtpSender::AssignSequenceNumbers(ArrayView<RtpPacketToSend> packets) {
+    RTC_RUN_ON(&sequence_checker_);
+    for (auto& packet : packets) {
+        if (!packet_generator_->AssignSequenceNumber(packet)) {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -117,7 +122,7 @@ size_t RtpSender::FecPacketOverhead() const {
             // This reason for the header extensions to be included here is that
             // from an FEC viewpoint, they are part of the payload to be protected.
             // and the base RTP header is already protected by the FEC header.
-            overhead += packet_generator_->FecOrPaddingPacketMaxRtpHeaderSize() - kRtpHeaderSize;
+            overhead += packet_generator_->MaxFecOrPaddingPacketHeaderSize() - kRtpHeaderSize;
         }
     }
     return overhead;

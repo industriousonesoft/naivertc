@@ -178,6 +178,14 @@ class RepairedRtpStreamId : public BaseRtpString {
   static constexpr const char kUri[] =
       "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id";
 };
+
+// Utils methods
+
+// Non-volatile extensions can be expected on all packets, if registered.
+// Volatile ones, such as VideoContentTypeExtension which is only set on
+// key-frames, are removed to simplify overhead calculations at the expense of
+// some accuracy.
+bool IsNonVolatile(RtpExtensionType type);
     
 } // namespace rtp
 } // namespace naivertc

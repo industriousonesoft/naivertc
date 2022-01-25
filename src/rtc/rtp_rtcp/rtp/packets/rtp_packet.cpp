@@ -181,13 +181,13 @@ void RtpPacket::set_csrcs(ArrayView<const uint32_t> csrcs) {
     assert(kFixedHeaderSize + 4 * csrcs.size() <= capacity());
 
     payload_offset_ = kFixedHeaderSize + 4 * csrcs.size();
+    Resize(payload_offset_);
     WriteAt(0, (data()[0] & 0xF0) | static_cast<uint8_t>(csrcs.size()));
     size_t offset = kFixedHeaderSize;
     for (uint32_t csrc : csrcs) {
         ByteWriter<uint32_t>::WriteBigEndian(WriteAt(offset), csrc);
         offset += 4;
     }
-    Resize(payload_offset_);
 }
 
 void RtpPacket::CopyHeaderFrom(const RtpPacket& other) {
@@ -503,9 +503,6 @@ uint16_t RtpPacket::UpdateExtensionSizeByPaddingZero(size_t extensions_offset) {
 }
 
 void RtpPacket::PromoteToTwoByteHeaderExtension() {
-    size_t num_csrc = data()[0] & 0x0F;
-    size_t extensions_offset = kFixedHeaderSize + (num_csrc * 4) + 4;
-
     if (extension_entries_.size() == 0){
         return;
     }
@@ -513,10 +510,19 @@ void RtpPacket::PromoteToTwoByteHeaderExtension() {
         PLOG_WARNING << "Can't resize extension fields after payload was set.";
         return;
     }
+
+    size_t num_csrc = data()[0] & 0x0F;
+    size_t extensions_offset = kFixedHeaderSize + (num_csrc * 4) + 4;
     // Not one-byte header extensions
     if (kOneByteExtensionProfileId != ByteReader<uint16_t>::ReadBigEndian(data() + extensions_offset - 4)) {
         return;
     }
+
+    // Hack: Setting size to capacity temporarily that we can write extensions 
+    // before calculating the exact size of extensions. And we will reset the
+    // correct size at the end.
+    Resize(capacity());
+
     // Rewrite data.
     // Each extension adds one to the offset. The write-read delta for the last
     // extension is therefore the same as the number of extension entries.

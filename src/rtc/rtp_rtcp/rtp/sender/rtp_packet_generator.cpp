@@ -1,11 +1,14 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "rtc/base/memory/byte_io_writer.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
+#include "common/utils_random.hpp"
 
 #include <plog/Log.h>
 
 namespace naivertc {
 namespace {
+
+constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
+
 template <typename Extension>
 constexpr rtp::ExtensionSize CreateExtensionSize() {
   return {Extension::kType, Extension::kValueSizeBytes};
@@ -26,16 +29,53 @@ constexpr rtp::ExtensionSize kFecOrPaddingExtensionSizes[] = {
     // CreateExtensionSize<VideoTimingExtension>(),
 };
 
+// Size info for header extensions that might be used in video packets.
+constexpr rtp::ExtensionSize kVideoExtensionSizes[] = {
+    CreateExtensionSize<rtp::AbsoluteCaptureTime>(),
+    CreateExtensionSize<rtp::AbsoluteCaptureTime>(),
+    CreateExtensionSize<rtp::TransmissionTimeOffset>(),
+    CreateExtensionSize<rtp::TransportSequenceNumber>(),
+    CreateExtensionSize<rtp::PlayoutDelayLimits>(),
+    // CreateExtensionSize<rtp::VideoOrientation>(),
+    // CreateExtensionSize<rtp::VideoContentTypeExtension>(),
+    // CreateExtensionSize<rtp::VideoTimingExtension>(),
+    CreateMaxExtensionSize<rtp::RtpStreamId>(),
+    CreateMaxExtensionSize<rtp::RepairedRtpStreamId>(),
+    CreateMaxExtensionSize<rtp::RtpMid>(),
+    // {RtpGenericFrameDescriptorExtension00::kId,
+    //  RtpGenericFrameDescriptorExtension00::kMaxSizeBytes},
+};
+
+// Size info for header extensions that might be used in audio packets.
+constexpr rtp::ExtensionSize kAudioExtensionSizes[] = {
+    CreateExtensionSize<rtp::AbsoluteSendTime>(),
+    CreateExtensionSize<rtp::AbsoluteCaptureTime>(),
+    // CreateExtensionSize<rtp::AudioLevel>(),
+    // CreateExtensionSize<rtp::InbandComfortNoiseExtension>(),
+    CreateExtensionSize<rtp::TransmissionTimeOffset>(),
+    CreateExtensionSize<rtp::TransportSequenceNumber>(),
+    CreateMaxExtensionSize<rtp::RtpStreamId>(),
+    CreateMaxExtensionSize<rtp::RepairedRtpStreamId>(),
+    CreateMaxExtensionSize<rtp::RtpMid>(),
+};
 
 } // namespace 
 
-RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config, 
-                                       RtpPacketSequencer* packet_sequencer) 
-    : ssrc_(config.local_media_ssrc),
+RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config) 
+    : is_audio_(config.audio),
+      ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),
       max_packet_size_(kIpPacketSize - kTransportOverhead), // Default is UDP/IPv4.
+      max_media_packet_header_size_(kRtpHeaderSize),
+      max_fec_or_padding_packet_header_size_(kRtpHeaderSize),
       extension_manager_(config.extmap_allow_mixed),
-      packet_sequencer_(packet_sequencer) {
+      packet_sequencer_(std::make_unique<RtpPacketSequencer>(config)) {
+
+    // Random start, 16bits, can not be 0.
+    packet_sequencer_->set_rtx_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
+    packet_sequencer_->set_media_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
+
+    // Update media and fec/padding header sizes.
     UpdateHeaderSizes();
 }
 
@@ -63,22 +103,59 @@ void RtpPacketGenerator::set_max_rtp_packet_size(size_t max_size) {
     max_packet_size_ = max_size;
 }
 
-RtpPacketToSend RtpPacketGenerator::AllocatePacket() const {
+bool RtpPacketGenerator::Register(std::string_view uri, int id) {
     RTC_RUN_ON(&sequence_checker_);
+    bool bRet = extension_manager_.RegisterByUri(id, uri);
+    UpdateHeaderSizes();
+    return bRet;
+}
+
+bool RtpPacketGenerator::IsRegistered(RtpExtensionType type) {
+    RTC_RUN_ON(&sequence_checker_);
+    return extension_manager_.IsRegistered(type);
+}
+
+void RtpPacketGenerator::Deregister(std::string_view uri) {
+    RTC_RUN_ON(&sequence_checker_);
+    extension_manager_.Deregister(uri);
+}
+
+RtpPacketToSend RtpPacketGenerator::GeneratePacket() const {
+    RTC_RUN_ON(&sequence_checker_);
+    // TODO: Find better motivator and value for extra capacity.
+    // RtpPacketizer might slightly miscalulate needed size,
+    // SRTP may benefit from extra space in the buffer and do encryption in place
+    // saving reallocation.
     // While sending slightly oversized packet increase chance of dropped packet,
     // it is better than crash on drop packet without trying to send it.
-    // TODO: Find better motivator and value for extra capacity.
     static constexpr int kExtraCapacity = 16;
     auto packet = RtpPacketToSend(&extension_manager_, max_packet_size_ + kExtraCapacity);
     packet.set_ssrc(ssrc_);
     packet.set_csrcs(csrcs_);
-    // TODO: Reserve extensions if registered
+    
+    // Reserver extensions below if registered, those will be set 
+    // befeore sent to network in RtpPacketEgresser.
+    packet.ReserveExtension<rtp::AbsoluteSendTime>();
+    packet.ReserveExtension<rtp::TransmissionTimeOffset>();
+    packet.ReserveExtension<rtp::TransportSequenceNumber>();
+
+    // TODO: Add RtpMid and RtpStreamId extension if necessary.
+
     return packet;
 }
-
-size_t RtpPacketGenerator::FecOrPaddingPacketMaxRtpHeaderSize() const {
+size_t RtpPacketGenerator::MaxMediaPacketHeaderSize() const {
     RTC_RUN_ON(&sequence_checker_);
-    return max_padding_fec_packet_header_;
+    return max_media_packet_header_size_;
+}
+
+size_t RtpPacketGenerator::MaxFecOrPaddingPacketHeaderSize() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return max_fec_or_padding_packet_header_size_;
+}
+
+bool RtpPacketGenerator::AssignSequenceNumber(RtpPacketToSend& packet) {
+    RTC_RUN_ON(&sequence_checker_);
+    return packet_sequencer_->Sequence(packet);
 }
 
 // RTX
@@ -134,7 +211,7 @@ std::optional<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(const RtpPacke
 
     // TODO: To add original addtional data if necessary
 
-    // FIXME: Copy capture time so e.g. TransmissionOffset is correctly set. Why?
+    // Copy capture time for setting TransmissionOffset correctly.
     rtx_packet.set_capture_time_ms(packet.capture_time_ms());
     
     return rtx_packet;
@@ -142,11 +219,12 @@ std::optional<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(const RtpPacke
 
 // Private methods
 void RtpPacketGenerator::UpdateHeaderSizes() {
-    const size_t rtp_header_size_without_extenions = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
-    max_padding_fec_packet_header_ = rtp_header_size_without_extenions + 
-                                     rtp::CalculateRegisteredExtensionSize(kFecOrPaddingExtensionSizes, extension_manager_);
-    
-    // TODO: To calculate the maximum size of media packet header
+    const size_t rtp_header_size = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
+    // Calculate the maximum size of FEC/Padding packet.
+    max_fec_or_padding_packet_header_size_ = rtp_header_size + 
+                                             extension_manager_.CalculateSize(kFecOrPaddingExtensionSizes);
+
+    // TODO: Calculate the maximum header size of media packet.
 }
 
 void RtpPacketGenerator::CopyHeaderAndExtensionsToRtxPacket(const RtpPacketToSend& packet, RtpPacketToSend* rtx_packet) {

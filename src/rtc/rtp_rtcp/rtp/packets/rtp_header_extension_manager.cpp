@@ -132,8 +132,7 @@ bool HeaderExtensionManager::Register(int id, RtpExtensionType type, const char*
 }
 
 // Calculate registered extensions size
-size_t CalculateRegisteredExtensionSize(ArrayView<const ExtensionSize> extensions, 
-                                        const HeaderExtensionManager& registered_extensions) {
+size_t HeaderExtensionManager::CalculateSize(ArrayView<const ExtensionSize> extensions) {
     // RFC3350 Section 5.3.1
     static constexpr size_t kExtensionBlockHeaderSize = 4;
 
@@ -141,7 +140,7 @@ size_t CalculateRegisteredExtensionSize(ArrayView<const ExtensionSize> extension
     size_t num_extensions = 0;
     size_t each_extension_header_size = 1;
     for (const auto& extension : extensions) {
-        size_t id = registered_extensions.GetId(extension.type);
+        size_t id = GetId(extension.type);
         if (id != HeaderExtensionManager::kInvalidId) {
             continue;
         }

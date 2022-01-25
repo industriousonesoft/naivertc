@@ -3,11 +3,11 @@
 
 namespace naivertc {
 
-RtpPacketEgresser::NonPacedPacketSender::NonPacedPacketSender(RtpPacketSequencer* packet_sequencer, 
-                                                              RtpPacketEgresser* sender) 
+RtpPacketEgresser::NonPacedPacketSender::NonPacedPacketSender(RtpPacketEgresser* const sender, 
+                                                              SequenceNumberAssigner* seq_num_assigner) 
         : transport_sequence_number_(0),
-          packet_sequencer_(packet_sequencer),
-          sender_(sender) {}
+          sender_(sender),
+          seq_num_assigner_(seq_num_assigner) {}
 
 RtpPacketEgresser::NonPacedPacketSender::~NonPacedPacketSender() = default;
 
@@ -29,7 +29,7 @@ void RtpPacketEgresser::NonPacedPacketSender::EnqueuePackets(std::vector<RtpPack
         const bool fec_red_enabled = !sender_->flex_fec_ssrc();
         for (auto& packet : fec_packets) {
             if (fec_red_enabled) {
-                packet_sequencer_->Sequence(packet);
+                seq_num_assigner_->AssignSequenceNumber(packet);
             }
             PrepareForSend(packet);
         }

@@ -12,10 +12,20 @@
 
 namespace naivertc {
 
+class RtpPacketToSend;
+
 namespace rtcp {
 class TransportFeedback;
 class ReportBlock;
 }
+
+// SequenceNumberAssigner: a class that can assign RTP sequence numbers for a packet
+// to be sent.
+class SequenceNumberAssigner {
+public:
+    virtual ~SequenceNumberAssigner() = default;
+    virtual bool AssignSequenceNumber(RtpPacketToSend& packet) = 0;
+};
 
 // NackSender
 class RTC_CPP_EXPORT NackSender {
