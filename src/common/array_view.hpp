@@ -24,7 +24,7 @@ public:
     ArrayView(U (&buffer)[N]) noexcept : ArrayView(buffer, N) {}
 
     // ArrayView<T> to ArraryView<const T>
-    // std::vector<T> to ArraryView<const T> or ArraryView<T>
+    // std::vector<T> to ArraryView<const T>
     template <
         typename U,
         // Container has data and size
@@ -35,6 +35,17 @@ public:
     >
     // FIXME: 通过右值引用实现T to const T的转换？
     ArrayView(const U& u) noexcept : ArrayView(u.data(), u.size()) {}
+
+    // std::vector<T> to ArraryView<T>
+    template <
+        typename U,
+        // Container has data and size
+        typename std::enable_if<
+            std::is_convertible<decltype(std::declval<U>().data()), T*>::value &&
+            std::is_convertible<decltype(std::declval<U>().size()), std::size_t>::value
+        >::type* = nullptr
+    >
+    ArrayView(U& u) noexcept : ArrayView(u.data(), u.size()) {}
 
     T& operator[](int i) noexcept { return ptr_[i]; }
     const T& operator[](int i) const noexcept { return  ptr_[i]; }
