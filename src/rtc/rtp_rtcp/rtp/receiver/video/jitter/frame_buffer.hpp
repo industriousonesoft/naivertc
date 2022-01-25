@@ -11,7 +11,7 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/decoded_frames_history.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_defines.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/jitter_estimator.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/base/task_utils/repeating_task.hpp"
 
 #include <optional>

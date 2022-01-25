@@ -2,7 +2,7 @@
 #define _RTC_RTP_RTCP_RTP_HEADER_EXTENSIONS_H_
 
 #include "base/defines.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 #include "rtc/media/video/common.hpp"
 
 #include <vector>

@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "common/array_view.hpp"
 #include "rtc/base/packet.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp"
 
 #include <memory>

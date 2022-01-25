@@ -6,7 +6,7 @@
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_decoder.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_defines.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 
 namespace naivertc {
 

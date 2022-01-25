@@ -1,7 +1,7 @@
-#include "rtc/call/rtp_video_receiver.hpp"
+#include "rtc/rtp_rtcp/rtp_video_receiver.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
 
 #include <plog/Log.h>

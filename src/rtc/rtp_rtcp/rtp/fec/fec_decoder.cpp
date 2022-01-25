@@ -1,6 +1,6 @@
 #include "rtc/rtp_rtcp/rtp/fec/fec_decoder.hpp"
 #include "rtc/base/numerics/modulo_operator.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 #include "rtc/base/memory/byte_io_reader.hpp"
 #include "rtc/base/memory/byte_io_writer.hpp"
 

@@ -6,8 +6,8 @@
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_sender.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
 namespace naivertc {

@@ -1,5 +1,5 @@
-#include "rtc/call/rtp_demuxer.hpp"
-#include "rtc/call/rtp_utils.hpp"
+#include "rtc/rtp_rtcp/components/rtp_demuxer.hpp"
+#include "rtc/rtp_rtcp/base/rtp_utils.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 #include <plog/Log.h>

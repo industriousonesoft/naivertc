@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/report_block.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/components/rtp_receive_stream_statistician.hpp"
 
 #include <vector>

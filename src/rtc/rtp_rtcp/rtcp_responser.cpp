@@ -59,6 +59,8 @@ bool RtcpResponser::SendNack(const std::vector<uint16_t>& nack_list) {
     if (nack_list.empty()) {
         return false;
     }
+    // FIXME: How to make sure that the incoming list 
+    // is the same with the last one?
     int64_t now_ms = clock_->now_ms();
     size_t nack_size = nack_list.size();
     size_t offset = 0;

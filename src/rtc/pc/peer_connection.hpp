@@ -17,7 +17,7 @@
 #include "rtc/media/video_track.hpp"
 #include "rtc/api/media_transport.hpp"
 #include "rtc/api/data_transport.hpp"
-#include "rtc/call/rtp_demuxer.hpp"
+#include "rtc/rtp_rtcp/components/rtp_demuxer.hpp"
 
 #include <exception>
 #include <unordered_map>

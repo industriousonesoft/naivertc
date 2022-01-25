@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/fec/fec_codec.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 
 namespace naivertc {
 

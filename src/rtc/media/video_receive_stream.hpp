@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
-#include "rtc/call/rtp_video_receiver.hpp"
+#include "rtc/rtp_rtcp/rtp_video_receiver.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/api/media_receive_stream.hpp"
 

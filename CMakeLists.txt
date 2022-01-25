@@ -134,13 +134,6 @@ set(LIB_HEADERS
     src/rtc/channels/data_channel.hpp
     src/rtc/channels/media_channel.hpp
 
-    # rtc -> call
-    src/rtc/call/rtp_video_sender.hpp
-    src/rtc/call/rtp_utils.hpp
-    src/rtc/call/rtp_demuxer.hpp
-    src/rtc/call/rtp_video_receiver.hpp
-    src/rtc/call/rtx_receive_stream.hpp
-
     # rtc -> media
     src/rtc/media/media_track.hpp
     src/rtc/media/audio_track.hpp
@@ -162,15 +155,21 @@ set(LIB_HEADERS
     src/rtc/media/video/codecs/h264/sprop_parameter_parser.hpp
 
     # rtc -> rtp_rtcp
-    src/rtc/rtp_rtcp/rtp_rtcp_configurations.hpp
-    src/rtc/rtp_rtcp/rtp_rtcp_defines.hpp
-    src/rtc/rtp_rtcp/rtp_statistic_structs.hpp
-    src/rtc/rtp_rtcp/rtcp_statistic_structs.hpp
     src/rtc/rtp_rtcp/rtcp_responser.hpp
     src/rtc/rtp_rtcp/rtp_sender.hpp
     src/rtc/rtp_rtcp/rtp_sender_video.hpp
     src/rtc/rtp_rtcp/rtp_video_header.hpp
-    src/rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp
+    src/rtc/rtp_rtcp/rtp_video_sender.hpp
+    src/rtc/rtp_rtcp/rtp_video_receiver.hpp
+    src/rtc/rtp_rtcp/rtx_receive_stream.hpp
+
+    # rtc -> rtp_rtcp -> base
+    src/rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp
+    src/rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp
+    src/rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp
+    src/rtc/rtp_rtcp/base/rtp_statistic_structs.hpp
+    src/rtc/rtp_rtcp/base/rtcp_statistic_structs.hpp
+    src/rtc/rtp_rtcp/base/rtp_utils.hpp
 
     # rtp -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.hpp
@@ -183,6 +182,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/components/rolling_accumulator.hpp
     src/rtc/rtp_rtcp/components/rtp_receive_statistics.hpp
     src/rtc/rtp_rtcp/components/rtp_receive_stream_statistician.hpp
+    src/rtc/rtp_rtcp/components/rtp_demuxer.hpp
 
      # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp
@@ -379,16 +379,6 @@ set(LIB_SOURCES
     src/rtc/channels/data_channel_message.cpp
     src/rtc/channels/media_channel.cpp
 
-    # rtc -> call
-    src/rtc/call/rtp_video_sender.cpp
-    src/rtc/call/rtp_utils.cpp
-    src/rtc/call/rtp_demuxer.cpp
-    src/rtc/call/rtp_demuxer_rtp.cpp
-    src/rtc/call/rtp_demuxer_rtcp.cpp
-    src/rtc/call/rtp_video_receiver.cpp
-    src/rtc/call/rtp_video_receiver_auxiliaries.cpp
-    src/rtc/call/rtx_receive_stream.cpp
-    
     # rtc -> media
     src/rtc/media/media_track.cpp
     src/rtc/media/media_track_configuration.cpp
@@ -412,11 +402,18 @@ set(LIB_SOURCES
     src/rtc/media/video/codecs/h264/sprop_parameter_parser.cpp
 
     # rtc -> rtp_rtcp
-    src/rtc/rtp_rtcp/rtp_statistic_structs.cpp
-    src/rtc/rtp_rtcp/rtcp_statistic_structs.cpp
     src/rtc/rtp_rtcp/rtcp_responser.cpp
     src/rtc/rtp_rtcp/rtp_sender.cpp
     src/rtc/rtp_rtcp/rtp_sender_video.cpp
+    src/rtc/rtp_rtcp/rtp_video_sender.cpp
+    src/rtc/rtp_rtcp/rtp_video_receiver.cpp
+    src/rtc/rtp_rtcp/rtp_video_receiver_auxiliaries.cpp
+    src/rtc/rtp_rtcp/rtx_receive_stream.cpp
+
+    # rtc -> rtp_rtcp -> base
+    src/rtc/rtp_rtcp/base/rtp_utils.cpp
+    src/rtc/rtp_rtcp/base/rtp_statistic_structs.cpp
+    src/rtc/rtp_rtcp/base/rtcp_statistic_structs.cpp
 
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
@@ -424,6 +421,9 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.cpp
     src/rtc/rtp_rtcp/components/rtp_receive_statistics.cpp
     src/rtc/rtp_rtcp/components/rtp_receive_stream_statistician.cpp
+    src/rtc/rtp_rtcp/components/rtp_demuxer.cpp
+    src/rtc/rtp_rtcp/components/rtp_demuxer_rtp.cpp
+    src/rtc/rtp_rtcp/components/rtp_demuxer_rtcp.cpp
 
     # rtc -> rtp_rtcp -> rtp -> packet
     src/rtc/rtp_rtcp/rtp/packets/rtp_packet.cpp
@@ -702,8 +702,6 @@ set(UNITTEST_SOURCES
     src/rtc/base/task_utils/task_queue_unittest.cpp
     src/rtc/base/task_utils/repeating_task_unittest.cpp
 
-    # rtc -> call
-    
     # rtc -> sdp
     src/rtc/sdp/sdp_media_entry_unittest.cpp
     src/rtc/sdp/candidate_unittest.cpp

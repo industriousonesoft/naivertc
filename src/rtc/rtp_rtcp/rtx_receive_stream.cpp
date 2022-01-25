@@ -1,5 +1,5 @@
-#include "rtc/call/rtx_receive_stream.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/rtx_receive_stream.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 
 #include <plog/Log.h>
 

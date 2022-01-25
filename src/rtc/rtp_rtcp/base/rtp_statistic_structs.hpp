@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/units/data_rate.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 
 #include <list>
 #include <map>

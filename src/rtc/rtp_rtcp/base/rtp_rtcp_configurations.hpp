@@ -3,8 +3,8 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/rtp_rtcp/rtp_statistic_structs.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
+#include "rtc/rtp_rtcp/base/rtp_statistic_structs.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/api/media_transport.hpp"
 
 #include <optional>

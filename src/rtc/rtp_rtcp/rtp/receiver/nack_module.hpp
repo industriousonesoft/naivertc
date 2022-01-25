@@ -6,7 +6,7 @@
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/base/task_utils/repeating_task.hpp"
 #include "rtc/rtp_rtcp/rtp/receiver/nack_module_impl.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_interfaces.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 
 namespace naivertc {
 

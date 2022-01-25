@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_manager.hpp"
-#include "rtc/rtp_rtcp/rtp_rtcp_configurations.hpp"
+#include "rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 
