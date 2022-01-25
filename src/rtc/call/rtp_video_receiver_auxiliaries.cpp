@@ -5,9 +5,9 @@
 namespace naivertc {
 
 // RtcpFeedbackBuffer
-RtpVideoReceiver::RtcpFeedbackBuffer::RtcpFeedbackBuffer(NackSender* nack_sender, 
+RtpVideoReceiver::RtcpFeedbackBuffer::RtcpFeedbackBuffer(RtcpResponser* sender, 
                                                          KeyFrameRequestSender* key_frame_request_sender) 
-    : nack_sender_(nack_sender),
+    : sender_(sender),
       key_frame_request_sender_(key_frame_request_sender),
       request_key_frame_(false) {}
 
@@ -42,8 +42,8 @@ void RtpVideoReceiver::RtcpFeedbackBuffer::SendBufferedRtcpFeedbacks() {
             PLOG_WARNING << "No key frame request sender available.";
         }
     } else if (!buffered_nack_list.empty()) {
-        if (nack_sender_) {
-            nack_sender_->SendNack(std::move(buffered_nack_list), true);
+        if (sender_) {
+            sender_->SendNack(std::move(buffered_nack_list));
         } else {
             PLOG_WARNING << "No NACK sender available.";
         }

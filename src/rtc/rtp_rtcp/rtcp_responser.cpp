@@ -5,7 +5,8 @@
 namespace naivertc {
 namespace {
 
-const int64_t kDefaultExpectedRetransmissionTimeMs = 125;
+constexpr int64_t kDefaultExpectedRetransmissionTimeMs = 125;
+constexpr size_t kRtcpMaxNackSizeToSend = 253;
 
 RtcpSender::Configuration RtcpConfigurationFromRtpRtcpConfiguration(const RtcpConfiguration& config, 
                                                                     RtcpReceiveFeedbackProvider* rtcp_receive_feedback_provider) {
@@ -25,8 +26,11 @@ RtcpSender::Configuration RtcpConfigurationFromRtpRtcpConfiguration(const RtcpCo
 } // namespace
 
 RtcpResponser::RtcpResponser(const RtcpConfiguration& config)
-    : rtcp_sender_(RtcpConfigurationFromRtpRtcpConfiguration(config, this)),
-      rtcp_receiver_(config) {}
+    : clock_(config.clock),
+      rtcp_sender_(RtcpConfigurationFromRtpRtcpConfiguration(config, this)),
+      rtcp_receiver_(config),
+      nack_last_time_sent_full_ms_(0),
+      nack_last_seq_num_sent_(0) {}
 
 RtcpResponser::~RtcpResponser() {}
 
@@ -50,11 +54,39 @@ void RtcpResponser::IncomingPacket(CopyOnWriteBuffer rtcp_packet) {
     rtcp_receiver_.IncomingPacket(std::move(rtcp_packet));
 }
 
-void RtcpResponser::SendNack(const std::vector<uint16_t>& nack_list,
-                             bool buffering_allowed) {
+bool RtcpResponser::SendNack(const std::vector<uint16_t>& nack_list) {
     RTC_RUN_ON(&sequence_checker_);
-    assert(buffering_allowed == true);
-    rtcp_sender_.SendRtcp(RtcpPacketType::NACK, nack_list.data(), nack_list.size());
+    if (nack_list.empty()) {
+        return false;
+    }
+    int64_t now_ms = clock_->now_ms();
+    size_t nack_size = nack_list.size();
+    size_t offset = 0;
+    // Check if it's time to send full NACK list.
+    if (TimeToSendFullNackList(now_ms)) {
+        nack_last_time_sent_full_ms_ = now_ms;
+    } else {
+        // Only send extended list.
+        if (nack_last_seq_num_sent_ == nack_list.back()) {
+            // Last sequence number is the same, don't send list.
+            return true;
+        }
+        for (size_t i = 0; i < nack_list.size(); ++i) {
+            if (nack_last_seq_num_sent_ == nack_list[i]) {
+                offset = i + 1;
+                break;
+            }
+        }
+        nack_size = nack_list.size() - offset;
+    }
+
+    if (nack_size > kRtcpMaxNackSizeToSend) {
+        nack_size = kRtcpMaxNackSizeToSend;
+    }
+    nack_last_seq_num_sent_ = nack_list[offset + nack_size - 1];
+    rtcp_sender_.SendRtcp(RtcpPacketType::NACK, &nack_list.data()[offset], nack_size);
+
+    return true;
 }
 
 void RtcpResponser::RequestKeyFrame() {
@@ -91,5 +123,15 @@ RtcpReceiveFeedback RtcpResponser::GetReceiveFeedback() {
     return receive_feedback;
 }
 
+// Private methods
+bool RtcpResponser::TimeToSendFullNackList(int64_t now_ms) const {
+    const int64_t kStartUpRttMs = 100;
+    auto rtt_stats = rtcp_receiver_.GetRttStats(rtcp_receiver_.remote_ssrc());
+
+    int64_t wait_time_ms = rtt_stats ? 5 + ((rtt_stats->last_rtt().ms() * 3) >> 1)
+                                     : kStartUpRttMs;
+    // Send a full NACK list once within every |wait_time_ms|
+    return now_ms - nack_last_time_sent_full_ms_ > wait_time_ms;
+}
     
 } // namespace naivertc

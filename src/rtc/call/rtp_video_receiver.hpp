@@ -75,7 +75,7 @@ private:
     class RtcpFeedbackBuffer : public NackSender,
                                public KeyFrameRequestSender {
     public:
-        RtcpFeedbackBuffer(NackSender* nack_sender, 
+        RtcpFeedbackBuffer(RtcpResponser* sender, 
                            KeyFrameRequestSender* key_frame_request_sender);
 
         ~RtcpFeedbackBuffer() override;
@@ -88,7 +88,7 @@ private:
         void SendBufferedRtcpFeedbacks();
 
     private:
-        NackSender* nack_sender_;
+        RtcpResponser* const sender_;
         KeyFrameRequestSender* key_frame_request_sender_;
 
         bool request_key_frame_;

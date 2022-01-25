@@ -126,7 +126,13 @@ size_t RtpSender::FecPacketOverhead() const {
 // Nack
 void RtpSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t rrt_ms) {
     RTC_RUN_ON(&sequence_checker_);
-    // FIXME: Why set RTT rrt_ms + 5 ms?
+    if (nack_list.empty()) {
+        return;
+    }
+    if (packet_history_->GetStorageMode() == RtpPacketHistory::StorageMode::DISABLE) {
+        return;
+    }
+    // FIXME: Set RTT rrt_ms + 5 ms for keeping more packets in history?
     packet_history_->SetRttMs(5 + rrt_ms);
     for (uint16_t seq_num : nack_list) {
         const int32_t bytes_sent = ResendPacket(seq_num);

@@ -12,8 +12,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtcpResponser : public NackSender,
-                                     public KeyFrameRequestSender,
+class RTC_CPP_EXPORT RtcpResponser : public KeyFrameRequestSender,
                                      public RtcpReceiveFeedbackProvider {
 public:
     RtcpResponser(const RtcpConfiguration& config);
@@ -26,9 +25,7 @@ public:
     void IncomingPacket(const uint8_t* packet, size_t packet_size);
     void IncomingPacket(CopyOnWriteBuffer rtcp_packet);
 
-    // NackSender override methods
-    void SendNack(const std::vector<uint16_t>& nack_list,
-                  bool buffering_allowed) override;
+    bool SendNack(const std::vector<uint16_t>& nack_list);
 
     // KeyFrameRequestSender override methods
     void RequestKeyFrame() override;
@@ -41,10 +38,17 @@ public:
     RtcpReceiveFeedback GetReceiveFeedback() override;
 
 private:
+    bool TimeToSendFullNackList(int64_t now_ms) const;
+
+private:
     SequenceChecker sequence_checker_;
-    
+    Clock* const clock_;
+
     RtcpSender rtcp_sender_;
     RtcpReceiver rtcp_receiver_;
+
+    int64_t nack_last_time_sent_full_ms_;
+    uint16_t nack_last_seq_num_sent_;
 
 };
     

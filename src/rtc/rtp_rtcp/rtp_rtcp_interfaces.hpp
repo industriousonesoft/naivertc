@@ -21,7 +21,7 @@ class ReportBlock;
 class RTC_CPP_EXPORT NackSender {
 public:
     virtual ~NackSender() = default;
-    // If |buffering_allowed|, other feedback messages (e.g. key frame requests)
+    // If |buffering_allowed||buffering_allowed|, other feedback messages (e.g. key frame requests)
     // may be added to the same outgoing feedback message. In that case, it's up
     // to the user of the interface to ensure that when all buffer-able messages
     // have been added, the feedback message is triggered.

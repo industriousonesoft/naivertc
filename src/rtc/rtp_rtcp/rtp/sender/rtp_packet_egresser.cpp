@@ -169,8 +169,13 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
         // TODO: Add support for FEC protecting all header extensions, 
         // add media packet to generator here instead.
         
-        // TODO: Call on the worker queue.
+#if ENABLE_TESTS
         UpdateSentStatistics(now_ms, std::move(send_stats));
+#else
+        worker_queue_->Post([this, now_ms, send_stats=std::move(send_stats)](){
+            UpdateSentStatistics(now_ms, std::move(send_stats));
+        });
+#endif
     }
 }
 
