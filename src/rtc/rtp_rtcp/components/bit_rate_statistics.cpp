@@ -10,19 +10,19 @@ constexpr int64_t kInvalidTimestamp = -1;
 constexpr size_t kMinNumSimplesRequired = 2;
 
 // Bucket
-BitRateStatistics::Bucket::Bucket(const int64_t timestamp) 
+BitrateStatistics::Bucket::Bucket(const int64_t timestamp) 
     : accumulated_bytes(0),
       num_samples(0),
       timestamp(std::move(timestamp)),
       is_overflow(false) {}
 
-BitRateStatistics::Bucket::~Bucket() = default;
+BitrateStatistics::Bucket::~Bucket() = default;
 
-// BitRateStatistics
-BitRateStatistics::BitRateStatistics() 
-    : BitRateStatistics(kDefauleWindowSizeMs) {}
+// BitrateStatistics
+BitrateStatistics::BitrateStatistics() 
+    : BitrateStatistics(kDefauleWindowSizeMs) {}
 
-BitRateStatistics::BitRateStatistics(const int64_t max_window_size_ms) 
+BitrateStatistics::BitrateStatistics(const int64_t max_window_size_ms) 
     : total_accumulated_bytes_(0),
       total_num_samples_(0),
       begin_timestamp_ms_(kInvalidTimestamp),
@@ -30,7 +30,7 @@ BitRateStatistics::BitRateStatistics(const int64_t max_window_size_ms)
       max_window_size_ms_(max_window_size_ms),
       current_window_size_ms_(max_window_size_ms_) {}
 
-BitRateStatistics::BitRateStatistics(const BitRateStatistics& other) 
+BitrateStatistics::BitrateStatistics(const BitrateStatistics& other) 
     : buckets_(other.buckets_),
       total_accumulated_bytes_(other.total_accumulated_bytes_),
       total_num_samples_(other.total_num_samples_),
@@ -39,11 +39,11 @@ BitRateStatistics::BitRateStatistics(const BitRateStatistics& other)
       max_window_size_ms_(other.max_window_size_ms_),
       current_window_size_ms_(other.current_window_size_ms_) {}
 
-BitRateStatistics::BitRateStatistics(BitRateStatistics&& other) = default;
+BitrateStatistics::BitrateStatistics(BitrateStatistics&& other) = default;
 
-BitRateStatistics::~BitRateStatistics() {}
+BitrateStatistics::~BitrateStatistics() {}
 
-void BitRateStatistics::Reset() {
+void BitrateStatistics::Reset() {
     total_accumulated_bytes_ = 0;
     total_num_samples_ = 0;
     begin_timestamp_ms_ = kInvalidTimestamp;
@@ -52,7 +52,7 @@ void BitRateStatistics::Reset() {
     buckets_.clear();
 }
 
-void BitRateStatistics::Update(int64_t bytes, int64_t now_ms) {
+void BitrateStatistics::Update(int64_t bytes, int64_t now_ms) {
     EraseObsoleteBuckets(now_ms);
 
     if (begin_timestamp_ms_ == kInvalidTimestamp) {
@@ -76,7 +76,7 @@ void BitRateStatistics::Update(int64_t bytes, int64_t now_ms) {
     ++total_num_samples_;
 }
 
-std::optional<DataRate> BitRateStatistics::Rate(int64_t now_ms) {
+std::optional<DataRate> BitrateStatistics::Rate(int64_t now_ms) {
     // Erase the obsolete buckets
     EraseObsoleteBuckets(now_ms);
 
@@ -107,7 +107,7 @@ std::optional<DataRate> BitRateStatistics::Rate(int64_t now_ms) {
     return DataRate::BitsPerSec(static_cast<int64_t>(bits_per_sec));
 }
 
-bool BitRateStatistics::SetWindowSize(int64_t window_size_ms, int64_t now_ms) {
+bool BitrateStatistics::SetWindowSize(int64_t window_size_ms, int64_t now_ms) {
     if (window_size_ms == 0 || window_size_ms > max_window_size_ms_) {
         return false;
     }
@@ -120,7 +120,7 @@ bool BitRateStatistics::SetWindowSize(int64_t window_size_ms, int64_t now_ms) {
 }
 
 // Private methods
-void BitRateStatistics::EraseObsoleteBuckets(int64_t now_ms) {
+void BitrateStatistics::EraseObsoleteBuckets(int64_t now_ms) {
     // The result maybe lower than begin_timestamp_ms_ or a negative value, it still works.
     const int64_t obsolete_timestamp = now_ms - current_window_size_ms_;
     while (!buckets_.empty() && buckets_.front().timestamp <= obsolete_timestamp) {

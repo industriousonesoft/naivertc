@@ -711,6 +711,10 @@ set(UNITTEST_SOURCES
     # rtc -> pc
     src/rtc/pc/peer_connection_configuration_unittest.cpp
 
+    # rtc -> rtp_rtcp
+    src/rtc/rtp_rtcp/rtp_sender_unittest.cpp
+    src/rtc/rtp_rtcp/rtp_sender_video_unittest.cpp
+
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics_unittest.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator_unittest.cpp

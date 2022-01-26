@@ -76,7 +76,7 @@ private:
     int64_t last_report_max_seq_num_;
 
     RtpStreamDataCounters receive_counters_;
-    BitRateStatistics bitrate_stats_;
+    BitrateStatistics bitrate_stats_;
 };
     
 } // namespace naivertc

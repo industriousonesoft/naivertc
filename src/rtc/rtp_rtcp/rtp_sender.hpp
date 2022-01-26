@@ -22,7 +22,7 @@ class RTC_CPP_EXPORT RtpSender : public RtcpNackListObserver,
                                  public RtpSendFeedbackProvider {
 public:
     RtpSender(const RtpConfiguration& config);
-    virtual ~RtpSender() override;
+    ~RtpSender() override;
 
     // Generator
     size_t max_rtp_packet_size() const;
@@ -32,6 +32,11 @@ public:
 
     // Send
     bool EnqueuePackets(std::vector<RtpPacketToSend> packets);
+
+    // Rtp header extensions
+    bool Register(std::string_view uri, int id);
+    bool IsRegistered(RtpExtensionType type);
+    void Deregister(std::string_view uri);
 
     // Sequence number
     bool AssignSequenceNumber(RtpPacketToSend& packet);
@@ -62,7 +67,7 @@ public:
     RtpSendFeedback GetSendFeedback() override;
 
 private:
-    int32_t ResendPacket(uint16_t packet_id);
+    int32_t ResendPacket(uint16_t seq_num);
 
 private:
     SequenceChecker sequence_checker_;

@@ -6,8 +6,7 @@
 
 namespace naivertc {
 
-RtpSenderVideo::RtpSenderVideo(Clock* clock,
-                               RtpSender* packet_sender) 
+RtpSenderVideo::RtpSenderVideo(Clock* clock, RtpSender* packet_sender) 
     : clock_(clock),
       packet_sender_(packet_sender),
       current_playout_delay_{-1, -1},
@@ -26,15 +25,6 @@ bool RtpSenderVideo::Send(int payload_type,
     
     if (payload.empty()) {
         return false;
-    }
-
-    MaybeUpdateCurrentPlayoutDelay(video_header);
-    // Key frame
-    if (video_header.frame_type == video::FrameType::KEY) {
-        // Force playout delay on key frame, if set.
-        if (current_playout_delay_.IsAvailable()) {
-            playout_delay_pending_ = true;
-        }
     }
 
     // TODO: No FEC protection for upper temporal layers, if used
@@ -58,11 +48,28 @@ bool RtpSenderVideo::Send(int payload_type,
         return false;
     }
 
+    const bool allow_retransmission = expected_retransmission_time_ms.has_value();
+
     single_packet.set_payload_type(payload_type);
     single_packet.set_timestamp(rtp_timestamp);
     single_packet.set_capture_time_ms(capture_time_ms);
+    single_packet.set_is_key_frame(video_header.frame_type == video::FrameType::KEY);
+    single_packet.set_allow_retransmission(allow_retransmission);
+    single_packet.set_fec_protection_need(fec_enabled);
 
     // TODO: To calculate absolute capture time and add to extension
+
+    // Force playout delay on key frame, if set.
+    UpdateCurrentPlayoutDelay(video_header.playout_delay);
+    if (video_header.frame_type == video::FrameType::KEY) {
+        if (current_playout_delay_.IsValid()) {
+            playout_delay_pending_ = true;
+        }
+    }
+    // Set palyout delay extension
+    if (playout_delay_pending_) {
+        single_packet.SetExtension<rtp::PlayoutDelayLimits>(current_playout_delay_);
+    }
 
     RtpPacketToSend first_packet = single_packet;
     RtpPacketToSend middle_packet = single_packet;
@@ -86,10 +93,8 @@ bool RtpSenderVideo::Send(int payload_type,
     auto packetizer = Packetize(video_header.codec_type, payload, limits);
 
     if (packetizer == nullptr) {
-       return false; 
+        return false; 
     }
-
-    const bool allow_retransmission = expected_retransmission_time_ms.has_value();
 
     const size_t num_of_packets = packetizer->NumberOfPackets();
 
@@ -118,22 +123,18 @@ bool RtpSenderVideo::Send(int payload_type,
             packet = middle_packet;
             expected_payload_capacity = limits.max_payload_size;
         }
-        assert(packet);
+        assert(packet != std::nullopt);
 
         packet->set_is_first_packet_of_frame(i == 0);
 
         if (!packetizer->NextPacket(&packet.value())) {
+            assert(false);
             return false;
         }
 
         assert(packet->payload_size() <= expected_payload_capacity);
 
-        packet->set_allow_retransmission(allow_retransmission);
-        packet->set_is_key_frame(video_header.frame_type == video::FrameType::KEY);
-
         // TODO: Put packetization finish timestamp into extension
-
-        packet->set_fec_protection_need(fec_enabled);
 
         // FIXME: Do we really need to build a red packet here, like what the WebRTC does? 
         // and I think we just need to set the red flag.
@@ -161,20 +162,25 @@ bool RtpSenderVideo::Send(int payload_type,
         return false;
     }
 
-    // FIXME: H264 maybe reset always?
+    // TODO: Check if the base layer of VP8 frame, which is the same as the key frame of H264.
     if (video_header.frame_type == video::FrameType::KEY) {
+        // This frame will likely be delivered, no need to populate playout
+        // delay extensions until it changes again.
         playout_delay_pending_ = false;
     }
+
     return true;
+}
+
+DataRate RtpSenderVideo::PacktizationOverheadBitrate() {
+    RTC_RUN_ON(&sequence_checker_);
+    return packetization_overhead_bitrate_stats_.Rate(clock_->now_ms()).value_or(DataRate::Zero());
 }
 
 // Private methods
 void RtpSenderVideo::AddRtpHeaderExtensions(bool first_packet, 
                                             bool last_packet, 
                                             RtpPacketToSend& packet) {
-    if (playout_delay_pending_) {
-        packet.SetExtension<rtp::PlayoutDelayLimits>(current_playout_delay_);
-    }
     // TODO: Support more extensions
 }
 
@@ -194,9 +200,8 @@ RtpPacketizer* RtpSenderVideo::Packetize(video::CodecType codec_type,
     }
 }
 
-void RtpSenderVideo::MaybeUpdateCurrentPlayoutDelay(const RtpVideoHeader& header) {
-    auto requested_delay = header.playout_delay;
-    if (!requested_delay.IsAvailable()) {
+void RtpSenderVideo::UpdateCurrentPlayoutDelay(const video::PlayoutDelay& requested_delay) {
+    if (!requested_delay.IsValid()) {
         return;
     }
 
@@ -212,28 +217,24 @@ void RtpSenderVideo::MaybeUpdateCurrentPlayoutDelay(const RtpVideoHeader& header
         return;
     }
 
-    if (!playout_delay_pending_) {
+    if (!current_playout_delay_.IsValid()) {
         current_playout_delay_ = requested_delay;
         playout_delay_pending_ = true;
         return;
     }
 
-    if ((requested_delay.min_ms == -1 ||
-        requested_delay.min_ms == current_playout_delay_.min_ms) &&
-       (requested_delay.max_ms == -1 ||
-        requested_delay.max_ms == current_playout_delay_.max_ms)) {
+    if (requested_delay == current_playout_delay_) {
         // No change, ignore.
         return;
     }
 
     if (requested_delay.min_ms == -1 && requested_delay.max_ms >= 0) {
-        requested_delay.min_ms = std::min(current_playout_delay_.min_ms, requested_delay.max_ms);
+        current_playout_delay_.min_ms = std::min(current_playout_delay_.min_ms, requested_delay.max_ms);
     }
     if (requested_delay.max_ms == -1) {
-        requested_delay.max_ms = std::max(current_playout_delay_.max_ms, requested_delay.min_ms);
+        current_playout_delay_.max_ms = std::max(current_playout_delay_.max_ms, requested_delay.min_ms);
     }
 
-    current_playout_delay_ = requested_delay;
     playout_delay_pending_ = true;
 }
 
@@ -247,7 +248,7 @@ void RtpSenderVideo::CalcPacketizationOverhead(ArrayView<const RtpPacketToSend> 
     }
     // AV1 and H264 packetizers may produce less packetized bytes than unpacketized.
     if (packetized_payload_size >= unpacketized_payload_size) {
-        // TODO: Notify packetization overhead observer.
+        packetization_overhead_bitrate_stats_.Update(packetized_payload_size - unpacketized_payload_size, clock_->now_ms());
     }
 }
     

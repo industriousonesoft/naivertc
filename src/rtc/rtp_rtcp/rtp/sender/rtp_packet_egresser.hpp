@@ -129,7 +129,7 @@ private:
 
     RtpStreamDataCounters rtp_send_counter_;
     RtpStreamDataCounters rtx_send_counter_;
-    std::unordered_map<RtpPacketType, BitRateStatistics> send_bitrate_stats_;
+    std::unordered_map<RtpPacketType, BitrateStatistics> send_bitrate_stats_;
 
     // The sum of delays over a sliding window.
     int64_t sliding_sum_delay_ms_;

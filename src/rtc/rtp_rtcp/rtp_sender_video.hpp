@@ -6,6 +6,7 @@
 #include "rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp"
 #include "rtc/rtp_rtcp/rtp_video_header.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
+#include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
 
 #include <memory>
 #include <optional>
@@ -18,8 +19,7 @@ class RtpSender;
 
 class RTC_CPP_EXPORT RtpSenderVideo {
 public:
-    RtpSenderVideo(Clock* clock,
-                   RtpSender* packet_sender);
+    RtpSenderVideo(Clock* clock, RtpSender* packet_sender);
     virtual ~RtpSenderVideo();
 
     bool Send(int payload_type,
@@ -30,8 +30,14 @@ public:
               std::optional<int64_t> expected_retransmission_time_ms,
               std::optional<int64_t> estimated_capture_clock_offset_ms = 0);
 
+
+    // Returns the current packetization overhead rate.
+    // NOTE: this is is the RTP payload overhead, not 
+    // including the RTP header or extendions.
+    DataRate PacktizationOverheadBitrate();
+
 private:
-    void MaybeUpdateCurrentPlayoutDelay(const RtpVideoHeader& header);
+    void UpdateCurrentPlayoutDelay(const video::PlayoutDelay& playout_delay);
 
     void AddRtpHeaderExtensions(bool first_packet, 
                                 bool last_packet, 
@@ -48,7 +54,9 @@ private:
     SequenceChecker sequence_checker_;
     Clock* const clock_;
     RtpSender* packet_sender_;
-    
+
+    BitrateStatistics packetization_overhead_bitrate_stats_;
+
     video::PlayoutDelay current_playout_delay_;
 
     bool playout_delay_pending_;

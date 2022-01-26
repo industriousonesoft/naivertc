@@ -46,7 +46,7 @@ struct RTC_CPP_EXPORT PlayoutDelay {
         return min_ms == rhs.min_ms && max_ms == rhs.max_ms;
     }
 
-    bool IsAvailable() const { return min_ms >= 0 || max_ms >= 0; }
+    bool IsValid() const { return min_ms >= 0 || max_ms >= 0; }
 };
     
 std::ostream& operator<<(std::ostream& out, FrameType type);

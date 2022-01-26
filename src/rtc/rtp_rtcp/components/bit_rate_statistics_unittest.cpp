@@ -12,14 +12,14 @@ using namespace naivertc;
 
 constexpr int64_t KWindowSizeMs = 500; 
 
-class T(BitRateStatisticsTest) : public ::testing::Test {
+class T(BitrateStatisticsTest) : public ::testing::Test {
 protected:
-    T(BitRateStatisticsTest)() : stats_(KWindowSizeMs) {};
+    T(BitrateStatisticsTest)() : stats_(KWindowSizeMs) {};
 protected:
-    BitRateStatistics stats_;
+    BitrateStatistics stats_;
 };
 
-MY_TEST_F(BitRateStatisticsTest, TestStrictMode) {
+MY_TEST_F(BitrateStatisticsTest, TestStrictMode) {
     int64_t now_ms = 0;
     EXPECT_FALSE(stats_.Rate(now_ms).has_value());
 
@@ -69,7 +69,7 @@ MY_TEST_F(BitRateStatisticsTest, TestStrictMode) {
     EXPECT_EQ(stats_.num_bucket(), 0);
 }
 
-MY_TEST_F(BitRateStatisticsTest, IncreasingThenDecreasingBitrate) {
+MY_TEST_F(BitrateStatisticsTest, IncreasingThenDecreasingBitrate) {
     int64_t now_ms = 0;
     stats_.Reset();
     // Expecting 0 after init.
@@ -115,7 +115,7 @@ MY_TEST_F(BitRateStatisticsTest, IncreasingThenDecreasingBitrate) {
 }
 
 
-MY_TEST_F(BitRateStatisticsTest, ResetAfterSilence) {
+MY_TEST_F(BitrateStatisticsTest, ResetAfterSilence) {
     int64_t now_ms = 0;
     stats_.Reset();
     // Expecting 0 after init.
@@ -162,7 +162,7 @@ MY_TEST_F(BitRateStatisticsTest, ResetAfterSilence) {
     EXPECT_EQ(kExpectedBitrate, stats_.Rate(now_ms)->bps());
 }
 
-MY_TEST_F(BitRateStatisticsTest, HandlesChangingWindowSize) {
+MY_TEST_F(BitrateStatisticsTest, HandlesChangingWindowSize) {
     int64_t now_ms = 0;
     stats_.Reset();
 
@@ -196,7 +196,7 @@ MY_TEST_F(BitRateStatisticsTest, HandlesChangingWindowSize) {
     EXPECT_EQ(static_cast<uint32_t>((8000 * 3) / 2), stats_.Rate(now_ms)->bps());
 }
 
-MY_TEST_F(BitRateStatisticsTest, RespectsWindowSizeEdges) {
+MY_TEST_F(BitrateStatisticsTest, RespectsWindowSizeEdges) {
     int64_t now_ms = 0;
     stats_.Reset();
     // Expecting 0 after init.
@@ -227,7 +227,7 @@ MY_TEST_F(BitRateStatisticsTest, RespectsWindowSizeEdges) {
     EXPECT_EQ(1000 * 8u, bitrate->bps());
 }
 
-MY_TEST_F(BitRateStatisticsTest, HandlesZeroCounts) {
+MY_TEST_F(BitrateStatisticsTest, HandlesZeroCounts) {
     int64_t now_ms = 0;
     stats_.Reset();
     // Expecting 0 after init.
@@ -252,7 +252,7 @@ MY_TEST_F(BitRateStatisticsTest, HandlesZeroCounts) {
     EXPECT_EQ(0u, bitrate->bps());
 }
 
-MY_TEST_F(BitRateStatisticsTest, HandlesQuietPeriods) {
+MY_TEST_F(BitrateStatisticsTest, HandlesQuietPeriods) {
     int64_t now_ms = 0;
     stats_.Reset();
     // Expecting 0 after init.
@@ -278,7 +278,7 @@ MY_TEST_F(BitRateStatisticsTest, HandlesQuietPeriods) {
 }
 
 
-MY_TEST_F(BitRateStatisticsTest, HandlesBigNumbers) {
+MY_TEST_F(BitrateStatisticsTest, HandlesBigNumbers) {
     int64_t large_number = 0x100000000u;
     int64_t now_ms = 0;
     stats_.Update(large_number, now_ms++);
@@ -288,7 +288,7 @@ MY_TEST_F(BitRateStatisticsTest, HandlesBigNumbers) {
     EXPECT_EQ(large_number * 8000, bitrate->bps());
 }
 
-MY_TEST_F(BitRateStatisticsTest, HandlesTooLargeNumbers) {
+MY_TEST_F(BitrateStatisticsTest, HandlesTooLargeNumbers) {
     int64_t very_large_number = std::numeric_limits<int64_t>::max();
     int64_t now_ms = 0;
     stats_.Update(very_large_number, now_ms++);
@@ -297,7 +297,7 @@ MY_TEST_F(BitRateStatisticsTest, HandlesTooLargeNumbers) {
     EXPECT_FALSE(stats_.Rate(now_ms).has_value());
 }
 
-MY_TEST_F(BitRateStatisticsTest, HandlesSomewhatLargeNumbers) {
+MY_TEST_F(BitrateStatisticsTest, HandlesSomewhatLargeNumbers) {
     int64_t very_large_number = std::numeric_limits<int64_t>::max();
     int64_t now_ms = 0;
     stats_.Update(very_large_number / 4, now_ms++);

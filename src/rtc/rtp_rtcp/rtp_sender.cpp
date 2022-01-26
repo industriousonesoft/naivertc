@@ -12,9 +12,13 @@ RtpSender::RtpSender(const RtpConfiguration& config)
       packet_history_(std::make_unique<RtpPacketHistory>(config.clock, config.enable_rtx_padding_prioritization)),
       packet_egresser_(std::make_unique<RtpPacketEgresser>(config, packet_history_.get())),
       packet_generator_(std::make_unique<RtpPacketGenerator>(config)),
-      packet_sender_(std::make_unique<RtpPacketEgresser::NonPacedPacketSender>(packet_egresser_.get(), packet_generator_.get())) {}
+      packet_sender_(std::make_unique<RtpPacketEgresser::NonPacedPacketSender>(packet_egresser_.get(), packet_generator_.get())) {
+    RTC_RUN_ON(&sequence_checker_);
+}
 
-RtpSender::~RtpSender() = default;
+RtpSender::~RtpSender() {
+    RTC_RUN_ON(&sequence_checker_);
+};
 
 size_t RtpSender::max_rtp_packet_size() const {
     RTC_RUN_ON(&sequence_checker_);
@@ -55,17 +59,33 @@ bool RtpSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
     RTC_RUN_ON(&sequence_checker_);
     int64_t now_ms = clock_->now_ms();
     for (auto& packet : packets) {
-        // Assign sequence number for per packet
+        // Assigns sequence number for per packet.
         if (!packet_generator_->AssignSequenceNumber(packet)) {
             PLOG_WARNING << "Failed to assign sequence number for packet with type : " << int(packet.packet_type());
             return false;
         }
+        // Sets capture time if necessary.
         if (packet.capture_time_ms() <= 0) {
             packet.set_capture_time_ms(now_ms);
         }
     }
     packet_sender_->EnqueuePackets(std::move(packets));
     return true;
+}
+
+bool RtpSender::Register(std::string_view uri, int id) {
+    RTC_RUN_ON(&sequence_checker_);
+    return packet_generator_->Register(uri, id);
+}
+
+bool RtpSender::IsRegistered(RtpExtensionType type) {
+    RTC_RUN_ON(&sequence_checker_);
+    return packet_generator_->IsRegistered(type);
+}
+
+void RtpSender::Deregister(std::string_view uri) {
+    RTC_RUN_ON(&sequence_checker_);
+    packet_generator_->Deregister(uri);
 }
 
 bool RtpSender::AssignSequenceNumber(RtpPacketToSend& packet) {
@@ -177,10 +197,10 @@ RtpSendFeedback RtpSender::GetSendFeedback() {
 }
 
 // Private methods
-int32_t RtpSender::ResendPacket(uint16_t packet_id) {
+int32_t RtpSender::ResendPacket(uint16_t seq_num) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
     // so that we don't retransmit too often.
-    std::optional<RtpPacketHistory::PacketState> stored_packet = packet_history_->GetPacketState(packet_id);
+    std::optional<RtpPacketHistory::PacketState> stored_packet = packet_history_->GetPacketState(seq_num);
     if (!stored_packet.has_value() || stored_packet->pending_transmission) {
         // Packet not found or already queued for retransmission, ignore.
         return 0;
@@ -189,7 +209,7 @@ int32_t RtpSender::ResendPacket(uint16_t packet_id) {
     const int32_t packet_size = static_cast<int32_t>(stored_packet->packet_size);
     const bool rtx_enabled = (rtx_mode_ == RtxMode::RETRANSMITTED);
 
-    auto packet = packet_history_->GetPacketAndMarkAsPending(packet_id, [&](const RtpPacketToSend& stored_packet){
+    auto packet = packet_history_->GetPacketAndMarkAsPending(seq_num, [&](const RtpPacketToSend& stored_packet){
         // TODO: Check if we're overusing retransmission bitrate.
         std::optional<RtpPacketToSend> retransmit_packet;
         // Retransmitted by the RTX stream.

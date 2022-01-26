@@ -9,7 +9,7 @@ namespace {
 constexpr uint32_t kTimestampTicksPerMs = 90;
 
 constexpr int kSendSideDelayWindowMs = 1000; // 1s
-constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(BitRateStatistics::kDefauleWindowSizeMs);
+constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(BitrateStatistics::kDefauleWindowSizeMs);
 
 } // namespace
 
