@@ -41,8 +41,8 @@ struct RTC_CPP_EXPORT RtpConfiguration {
     Clock* clock;
     
     MediaTransport* send_transport = nullptr;
-
     FecGenerator* fec_generator = nullptr;
+    RtpPacketSender* packet_sender = nullptr;
 
     RtpSendDelayObserver* send_delay_observer = nullptr;
     RtpSendPacketObserver* send_packet_observer = nullptr;

@@ -19,9 +19,17 @@ class TransportFeedback;
 class ReportBlock;
 }
 
-// SequenceNumberAssigner: a class that can assign RTP sequence numbers for a packet
-// to be sent.
-class SequenceNumberAssigner {
+// RtpPacketSender
+class RTC_CPP_EXPORT RtpPacketSender {
+public:
+    virtual ~RtpPacketSender() = default;
+    virtual void EnqueuePackets(std::vector<RtpPacketToSend> packets) = 0;
+};
+
+// SequenceNumberAssigner 
+// A class that can assign RTP sequence numbers 
+// for a packet to be sent.
+class RTC_CPP_EXPORT SequenceNumberAssigner {
 public:
     virtual ~SequenceNumberAssigner() = default;
     virtual bool AssignSequenceNumber(RtpPacketToSend& packet) = 0;

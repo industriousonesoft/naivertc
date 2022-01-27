@@ -59,7 +59,7 @@ RtpExtensionType HeaderExtensionMap::GetType(int id) const {
     return kInvalidType;
 }
 
-bool HeaderExtensionMap::RegisterByType(int id, RtpExtensionType type) {
+bool HeaderExtensionMap::RegisterByType(RtpExtensionType type, int id) {
     for (const ExtensionInfo& extension : kExtensions) {
         if (type == extension.type) {
             return Register(id, extension.type, extension.uri);
@@ -68,7 +68,7 @@ bool HeaderExtensionMap::RegisterByType(int id, RtpExtensionType type) {
     return false;
 }
 
-bool HeaderExtensionMap::RegisterByUri(int id, std::string_view uri) {
+bool HeaderExtensionMap::RegisterByUri(std::string_view uri, int id) {
     for (const ExtensionInfo& extension : kExtensions) {
         if (uri == extension.uri) {
             return Register(id, extension.type, extension.uri);

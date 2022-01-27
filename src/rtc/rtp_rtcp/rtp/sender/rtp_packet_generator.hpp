@@ -4,10 +4,8 @@
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 
 #include <memory>
 #include <vector>
@@ -16,11 +14,16 @@
 
 namespace naivertc {
 
-class RtpPacketSequencer;
+class SequenceNumberAssigner;
 
-class RTC_CPP_EXPORT RtpPacketGenerator : public SequenceNumberAssigner {
+namespace rtp {
+class HeaderExtensionMap;
+}
+
+class RTC_CPP_EXPORT RtpPacketGenerator {
 public:
-    RtpPacketGenerator(const RtpConfiguration& config);
+    RtpPacketGenerator(const RtpConfiguration& config, 
+                       rtp::HeaderExtensionMap* header_extension_map);
     RtpPacketGenerator() = delete;
     RtpPacketGenerator(const RtpPacketGenerator&) = delete;
     RtpPacketGenerator& operator=(const RtpPacketGenerator&) = delete;
@@ -32,16 +35,8 @@ public:
 
     size_t max_rtp_packet_size() const;
     void set_max_rtp_packet_size(size_t max_size);
-
-    // Rtp header extensions
-    bool Register(std::string_view uri, int id);
-    bool IsRegistered(RtpExtensionType type);
-    void Deregister(std::string_view uri);
     
     RtpPacketToSend GeneratePacket() const;
-
-    // Implments SequenceNumberAssigner
-    bool AssignSequenceNumber(RtpPacketToSend& packet) override;
 
     // RTX
     std::optional<uint32_t> rtx_ssrc() const;
@@ -69,9 +64,7 @@ private:
     size_t max_packet_size_;
     size_t max_media_packet_header_size_;
     size_t max_fec_or_padding_packet_header_size_;
-    rtp::HeaderExtensionMap header_extension_map_;
-
-    std::unique_ptr<RtpPacketSequencer> packet_sequencer_;
+    rtp::HeaderExtensionMap* const header_extension_map_;
 
     std::map<int8_t, int8_t> rtx_payload_type_map_;
     std::vector<uint32_t> csrcs_;

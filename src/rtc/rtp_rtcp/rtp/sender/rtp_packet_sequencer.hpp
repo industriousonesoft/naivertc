@@ -10,7 +10,7 @@
 namespace naivertc {
 
 // NOTE: This class is not thread safe, the caller must provide that.
-class RTC_CPP_EXPORT RtpPacketSequencer {
+class RTC_CPP_EXPORT RtpPacketSequencer : public SequenceNumberAssigner{
 public:
     RtpPacketSequencer(const RtpConfiguration& config);
     ~RtpPacketSequencer();
@@ -24,7 +24,7 @@ public:
     // Assigns sequence number, and in the case of non-RTX padding also timestamps and payload type.
     // Returns false if sequencing failed, which it can do for instance if the packet to sequence
     // is padding on the media ssrc, but the media is mid frame (the last marker bit is false).
-    bool Sequence(RtpPacketToSend& packet);
+    bool AssignSequenceNumber(RtpPacketToSend& packet) override;
 
     void SetRtpState(const RtpState& state);
     void PupulateRtpState(RtpState& state);

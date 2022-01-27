@@ -31,7 +31,7 @@ enum : int {
 class MediaTransportImpl : public MediaTransport {
 public:
     MediaTransportImpl() {
-        header_extension_map_.RegisterByUri(kPlayoutDelayExtensionId, rtp::PlayoutDelayLimits::kUri);
+        header_extension_map_.Register<rtp::PlayoutDelayLimits>(kPlayoutDelayExtensionId);
     }
     ~MediaTransportImpl() override = default;
 

@@ -52,8 +52,8 @@ public:
     bool Register(int id) {
         return Register(id, Extension::kType, Extension::kUri);
     }
-    bool RegisterByType(int id, RtpExtensionType type);
-    bool RegisterByUri(int id, std::string_view uri);
+    bool RegisterByType(RtpExtensionType type, int id);
+    bool RegisterByUri(std::string_view uri, int id);
 
     bool IsRegistered(RtpExtensionType type) const {
         return GetId(type) != kInvalidId;

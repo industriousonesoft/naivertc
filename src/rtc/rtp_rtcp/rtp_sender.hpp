@@ -8,11 +8,12 @@
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
 namespace naivertc {
@@ -31,6 +32,7 @@ public:
     RtpPacketToSend GeneratePacket() const;
 
     // Send
+    bool EnqueuePacket(RtpPacketToSend packet);
     bool EnqueuePackets(std::vector<RtpPacketToSend> packets);
 
     // Rtp header extensions
@@ -38,10 +40,9 @@ public:
     bool IsRegistered(RtpExtensionType type);
     void Deregister(std::string_view uri);
 
-    // Sequence number
-    bool AssignSequenceNumber(RtpPacketToSend& packet);
-    bool AssignSequenceNumbers(ArrayView<RtpPacketToSend> packets);
-    
+    // Change the first sequence number of |RtpPacketSequencer|
+    void SetSequenceNumberOffset(uint16_t seq_num);
+
     // Store the sent packets, needed to answer to Negative acknowledgment requests.
     void SetStorePacketsStatus(const bool enable, const uint16_t number_to_store);
 
@@ -61,7 +62,7 @@ public:
 
     // Implements RtcpReportBlocksObserver
     void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
-                                       int64_t rtt_ms) override;
+                                    int64_t rtt_ms) override;
 
     // Implements RtpSendFeedbackProvider
     RtpSendFeedback GetSendFeedback() override;
@@ -70,16 +71,28 @@ private:
     int32_t ResendPacket(uint16_t seq_num);
 
 private:
+    // RtpSenderContext
+    struct RtpSenderContext {
+        RtpSenderContext(const RtpConfiguration& config, 
+                         rtp::HeaderExtensionMap* header_extension_map);
+
+        RtpPacketSequencer packet_sequencer;
+        RtpPacketGenerator packet_generator;
+        RtpPacketHistory packet_history;
+        RtpPacketEgresser packet_egresser;
+        RtpPacketEgresser::NonPacedPacketSender non_paced_sender;
+    };
+private:
     SequenceChecker sequence_checker_;
     RtxMode rtx_mode_;
     Clock* const clock_;
+
+    rtp::HeaderExtensionMap header_extension_map_;
+
+    std::unique_ptr<RtpSenderContext> ctx_;
+
     FecGenerator* const fec_generator_;
-
-    std::unique_ptr<RtpPacketHistory> packet_history_;
-    std::unique_ptr<RtpPacketEgresser> packet_egresser_;
-    std::unique_ptr<RtpPacketGenerator> packet_generator_;
-    std::unique_ptr<RtpPacketSender> packet_sender_;
-
+    RtpPacketSender* const paced_sender_;
 };
     
 } // namespace naivertc

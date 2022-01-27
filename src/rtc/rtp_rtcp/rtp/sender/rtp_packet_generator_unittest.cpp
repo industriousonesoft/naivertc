@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
 
 #include <gtest/gtest.h>
 
@@ -33,7 +33,8 @@ public:
         : clock_(1000) {};
 
     void SetUp() override {
-        packet_generator_ = std::make_unique<RtpPacketGenerator>(GetDefaultConfig());
+        auto config = GetDefaultConfig();
+        packet_generator_ = std::make_unique<RtpPacketGenerator>(config, &header_extension_map_);
     }
 
     RtpConfiguration GetDefaultConfig() {
@@ -47,6 +48,7 @@ public:
 
 protected:
     SimulatedClock clock_;
+    rtp::HeaderExtensionMap header_extension_map_;
     std::unique_ptr<RtpPacketGenerator> packet_generator_;
 };
 
@@ -61,12 +63,11 @@ MY_TEST_F(RtpPacketGeneratorTest, GeneratePacketSetSsrc) {
 }
 
 MY_TEST_F(RtpPacketGeneratorTest, GeneratePacketReserveExtensions) {
-    packet_generator_->Register(rtp::AbsoluteSendTime::kUri, kAbsoluteSendTimeExtensionId);
-    packet_generator_->Register(rtp::TransmissionTimeOffset::kUri, kTransmissionOffsetExtensionId);
-    packet_generator_->Register(rtp::TransportSequenceNumber::kUri, kTransportSequenceNumberExtensionId);
-
-    packet_generator_->Register(rtp::AbsoluteCaptureTime::kUri, kAbsolutedCaptureTimeExtensionId);
-    packet_generator_->Register(rtp::PlayoutDelayLimits::kUri, kPlayoutDelayLimitsExtensionId);
+    header_extension_map_.Register<rtp::AbsoluteSendTime>(kAbsoluteSendTimeExtensionId);
+    header_extension_map_.Register<rtp::TransmissionTimeOffset>(kTransmissionOffsetExtensionId);
+    header_extension_map_.Register<rtp::TransportSequenceNumber>(kTransportSequenceNumberExtensionId);
+    header_extension_map_.Register<rtp::AbsoluteCaptureTime>(kAbsolutedCaptureTimeExtensionId);
+    header_extension_map_.Register<rtp::PlayoutDelayLimits>(kPlayoutDelayLimitsExtensionId);
 
     auto new_packet = packet_generator_->GeneratePacket();
 
@@ -82,23 +83,30 @@ MY_TEST_F(RtpPacketGeneratorTest, GeneratePacketReserveExtensions) {
 MY_TEST_F(RtpPacketGeneratorTest, BuildRtxPacket) {
     const uint8_t kMediaPayloadType = 98;
     const uint8_t kRtxPayloadType = 99;
+    const uint16_t kSeqNum = 123;
     std::vector<uint32_t> csrcs;
     csrcs.push_back(12345);
     packet_generator_->set_csrcs(csrcs);
 
     auto media_packet = packet_generator_->GeneratePacket();
     media_packet.set_payload_type(kMediaPayloadType);
+    media_packet.set_sequence_number(kSeqNum);
     
     // No RTX packet built before setting RTX payload type.
     auto rtx_packet = packet_generator_->BuildRtxPacket(media_packet);
     ASSERT_FALSE(rtx_packet);
 
+    // Associated media payload with RTX payload type.
     packet_generator_->SetRtxPayloadType(kRtxPayloadType, kMediaPayloadType);
+
+    // Build RTX packet from media packet
     rtx_packet = packet_generator_->BuildRtxPacket(media_packet);
     ASSERT_TRUE(rtx_packet);
     EXPECT_EQ(kRtxPayloadType, rtx_packet->payload_type());
     EXPECT_EQ(packet_generator_->rtx_ssrc(), rtx_packet->ssrc());
     EXPECT_EQ(csrcs, rtx_packet->csrcs());
+    // The sequence number of RTX packet is not the same with media one.
+    EXPECT_NE(kSeqNum, rtx_packet->sequence_number());
 }
     
 } // namespace test

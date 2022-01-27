@@ -147,12 +147,6 @@ bool RtpSenderVideo::Send(int payload_type,
 
     } // end of for
 
-    // Assign sequence number.
-    if (!packet_sender_->AssignSequenceNumbers(rtp_packets)) {
-        PLOG_WARNING << "Failed to assign sequence number to RTP packet before sending.";
-        return false;
-    }
-
     // Packtization overhead.
     CalcPacketizationOverhead(rtp_packets, /*unpacketized_payload_size=*/payload.size());
     
@@ -243,7 +237,7 @@ void RtpSenderVideo::CalcPacketizationOverhead(ArrayView<const RtpPacketToSend> 
     size_t packetized_payload_size = 0;
     for (auto& packet : packets) {
         if (packet.packet_type() == RtpPacketType::VIDEO) {
-            packetized_payload_size += packet.size();
+            packetized_payload_size += packet.payload_size();
         }
     }
     // AV1 and H264 packetizers may produce less packetized bytes than unpacketized.

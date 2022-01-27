@@ -14,7 +14,7 @@ MY_TEST(RtpHeaderExtensionTest, RegisterByType) {
     HeaderExtensionMap map;
     EXPECT_FALSE(map.IsRegistered(TransmissionTimeOffset::kType));
 
-    EXPECT_TRUE(map.RegisterByType(3, TransmissionTimeOffset::kType));
+    EXPECT_TRUE(map.RegisterByType(TransmissionTimeOffset::kType, 3));
 
     EXPECT_TRUE(map.IsRegistered(TransmissionTimeOffset::kType));
     EXPECT_EQ(3, map.GetId(TransmissionTimeOffset::kType));
@@ -25,7 +25,7 @@ MY_TEST(RtpHeaderExtensionTest, RegisterByType) {
 MY_TEST(RtpHeaderExtensionTest, RegisterByUri) {
     HeaderExtensionMap map;
 
-    EXPECT_TRUE(map.RegisterByUri(3, TransmissionTimeOffset::kUri));
+    EXPECT_TRUE(map.RegisterByUri(TransmissionTimeOffset::kUri, 3));
 
     EXPECT_TRUE(map.IsRegistered(TransmissionTimeOffset::kType));
     EXPECT_EQ(3, map.GetId(TransmissionTimeOffset::kType));

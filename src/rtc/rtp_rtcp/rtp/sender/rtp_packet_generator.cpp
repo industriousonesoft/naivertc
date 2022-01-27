@@ -1,13 +1,12 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "rtc/base/memory/byte_io_writer.hpp"
-#include "common/utils_random.hpp"
+#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
+
 
 #include <plog/Log.h>
 
 namespace naivertc {
 namespace {
-
-constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
 
 template <typename Extension>
 constexpr rtp::ExtensionSize CreateExtensionSize() {
@@ -61,19 +60,17 @@ constexpr rtp::ExtensionSize kAudioExtensionSizes[] = {
 
 } // namespace 
 
-RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config) 
+RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config, 
+                                       rtp::HeaderExtensionMap* header_extension_map) 
     : is_audio_(config.audio),
       ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),
       max_packet_size_(kIpPacketSize - kTransportOverhead), // Default is UDP/IPv4.
       max_media_packet_header_size_(kRtpHeaderSize),
       max_fec_or_padding_packet_header_size_(kRtpHeaderSize),
-      header_extension_map_(config.extmap_allow_mixed),
-      packet_sequencer_(std::make_unique<RtpPacketSequencer>(config)) {
+      header_extension_map_(header_extension_map) {
 
-    // Random start, 16bits, can not be 0.
-    packet_sequencer_->set_rtx_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
-    packet_sequencer_->set_media_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
+    assert(header_extension_map_ != nullptr);
 
     // Update media and fec/padding header sizes.
     UpdateHeaderSizes();
@@ -103,23 +100,6 @@ void RtpPacketGenerator::set_max_rtp_packet_size(size_t max_size) {
     max_packet_size_ = max_size;
 }
 
-bool RtpPacketGenerator::Register(std::string_view uri, int id) {
-    RTC_RUN_ON(&sequence_checker_);
-    bool bRet = header_extension_map_.RegisterByUri(id, uri);
-    UpdateHeaderSizes();
-    return bRet;
-}
-
-bool RtpPacketGenerator::IsRegistered(RtpExtensionType type) {
-    RTC_RUN_ON(&sequence_checker_);
-    return header_extension_map_.IsRegistered(type);
-}
-
-void RtpPacketGenerator::Deregister(std::string_view uri) {
-    RTC_RUN_ON(&sequence_checker_);
-    header_extension_map_.Deregister(uri);
-}
-
 RtpPacketToSend RtpPacketGenerator::GeneratePacket() const {
     RTC_RUN_ON(&sequence_checker_);
     // TODO: Find better motivator and value for extra capacity.
@@ -129,7 +109,7 @@ RtpPacketToSend RtpPacketGenerator::GeneratePacket() const {
     // While sending slightly oversized packet increase chance of dropped packet,
     // it is better than crash on drop packet without trying to send it.
     static constexpr int kExtraCapacity = 16;
-    auto packet = RtpPacketToSend(&header_extension_map_, max_packet_size_ + kExtraCapacity);
+    auto packet = RtpPacketToSend(header_extension_map_, max_packet_size_ + kExtraCapacity);
     packet.set_ssrc(ssrc_);
     packet.set_csrcs(csrcs_);
     
@@ -151,11 +131,6 @@ size_t RtpPacketGenerator::MaxMediaPacketHeaderSize() const {
 size_t RtpPacketGenerator::MaxFecOrPaddingPacketHeaderSize() const {
     RTC_RUN_ON(&sequence_checker_);
     return max_fec_or_padding_packet_header_size_;
-}
-
-bool RtpPacketGenerator::AssignSequenceNumber(RtpPacketToSend& packet) {
-    RTC_RUN_ON(&sequence_checker_);
-    return packet_sequencer_->Sequence(packet);
 }
 
 // RTX
@@ -196,8 +171,6 @@ std::optional<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(const RtpPacke
     rtx_packet.set_payload_type(kv->second);
     // Replace with RTX ssrc
     rtx_packet.set_ssrc(rtx_ssrc_.value());
-    // Replace with RTX sequence number.
-    packet_sequencer_->Sequence(rtx_packet);
 
     CopyHeaderAndExtensionsToRtxPacket(packet, &rtx_packet);
 
@@ -222,7 +195,7 @@ void RtpPacketGenerator::UpdateHeaderSizes() {
     const size_t rtp_header_size = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
     // Calculate the maximum size of FEC/Padding packet.
     max_fec_or_padding_packet_header_size_ = rtp_header_size + 
-                                             header_extension_map_.CalculateSize(kFecOrPaddingExtensionSizes);
+                                             header_extension_map_->CalculateSize(kFecOrPaddingExtensionSizes);
 
     // TODO: Calculate the maximum header size of media packet.
 }

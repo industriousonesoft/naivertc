@@ -196,7 +196,6 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp
     src/rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp
-    src/rtc/rtp_rtcp/rtp/sender/rtp_packet_sender.hpp
 
     # rtc -> rtp_rtcp -> rtp -> receiver
     src/rtc/rtp_rtcp/rtp/receiver/nack_module_impl.hpp

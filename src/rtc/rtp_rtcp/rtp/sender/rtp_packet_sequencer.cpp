@@ -25,13 +25,11 @@ RtpPacketSequencer::RtpPacketSequencer(const RtpConfiguration& config)
       last_rtp_timestamp_(0),
       last_capture_time_ms_(0),
       last_timestamp_time_ms_(0),
-      last_packet_marker_bit_(false) {
-
-}
+      last_packet_marker_bit_(false) {}
 
 RtpPacketSequencer::~RtpPacketSequencer() {}
 
-bool RtpPacketSequencer::Sequence(RtpPacketToSend& packet) {
+bool RtpPacketSequencer::AssignSequenceNumber(RtpPacketToSend& packet) {
     if (packet.packet_type() == RtpPacketType::PADDING && !PopulatePaddingFields(packet)) {
         // This padding packet can't be sent with current state, return without
         // updating the sequence number.
