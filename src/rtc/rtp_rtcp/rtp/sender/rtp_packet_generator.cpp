@@ -86,6 +86,7 @@ uint32_t RtpPacketGenerator::ssrc() const {
 void RtpPacketGenerator::set_csrcs(const std::vector<uint32_t>& csrcs) {
     RTC_RUN_ON(&sequence_checker_);
     csrcs_ = csrcs;
+    UpdateHeaderSizes();
 }
 
 size_t RtpPacketGenerator::max_rtp_packet_size() const {
@@ -198,6 +199,8 @@ void RtpPacketGenerator::UpdateHeaderSizes() {
                                              header_extension_map_->CalculateSize(kFecOrPaddingExtensionSizes);
 
     // TODO: Calculate the maximum header size of media packet.
+
+    max_media_packet_header_size_ = rtp_header_size;
 }
 
 void RtpPacketGenerator::CopyHeaderAndExtensionsToRtxPacket(const RtpPacketToSend& packet, RtpPacketToSend* rtx_packet) {

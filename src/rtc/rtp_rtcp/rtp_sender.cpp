@@ -184,6 +184,13 @@ size_t RtpSender::FecPacketOverhead() const {
     return overhead;
 }
 
+std::vector<RtpPacketToSend> RtpSender::GeneratePadding(size_t target_packet_size, 
+                                                        bool media_has_been_sent) {
+    std::vector<RtpPacketToSend> paddings;
+
+    return paddings;
+}
+
 // Nack
 void RtpSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t rrt_ms) {
     RTC_RUN_ON(&sequence_checker_);

@@ -108,6 +108,16 @@ MY_TEST_F(RtpPacketGeneratorTest, BuildRtxPacket) {
     // The sequence number of RTX packet is not the same with media one.
     EXPECT_NE(kSeqNum, rtx_packet->sequence_number());
 }
+
+MY_TEST_F(RtpPacketGeneratorTest, UpdateCsrcsUpdateOverhead) {
+    // Base RTP overhead is 12 bytes
+    EXPECT_EQ(packet_generator_->MaxMediaPacketHeaderSize(), 12);
+
+    // Add three csrcs add 3 * 4 bytes to the header
+    packet_generator_->set_csrcs({12, 22, 33});
+
+    EXPECT_EQ(packet_generator_->MaxMediaPacketHeaderSize(), 24);
+}
     
 } // namespace test
 } // namespace naivertc

@@ -57,6 +57,10 @@ public:
     bool red_enabled() const;
     size_t FecPacketOverhead() const;
 
+    // Padding
+    std::vector<RtpPacketToSend> GeneratePadding(size_t target_packet_size, 
+                                                 bool media_has_been_sent);
+
     // Implements RtcpNackListObserver
     void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t rrt_ms) override;
 
