@@ -2,16 +2,16 @@
 
 namespace naivertc {
 
-VideoReceiveStream::VideoReceiveStream(Configuration config, TaskQueue* task_queue) 
-    : config_(std::move(config)),
-      task_queue_(task_queue) {}
+VideoReceiveStream::VideoReceiveStream(Configuration config) 
+    : config_(std::move(config)) {}
 
-VideoReceiveStream::~VideoReceiveStream() {};
+VideoReceiveStream::~VideoReceiveStream() {
+    RTC_RUN_ON(&sequence_checker_);
+};
 
 std::vector<uint32_t> VideoReceiveStream::ssrcs() const {
-    return task_queue_->Sync<std::vector<uint32_t>>([this](){
-        return ssrcs_;
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    return ssrcs_;
 }
 
 void VideoReceiveStream::OnRtpPacket(RtpPacketReceived in_packet) {}

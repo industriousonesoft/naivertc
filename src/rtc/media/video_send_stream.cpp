@@ -3,8 +3,7 @@
 namespace naivertc {
 
 VideoSendStream::VideoSendStream(Configuration config, TaskQueue* task_queue) 
-    : task_queue_(task_queue),
-      rtp_video_sender_(std::make_unique<RtpVideoSender>(config.rtp, 
+    : rtp_video_sender_(std::make_unique<RtpVideoSender>(config.rtp, 
                                                          config.clock, 
                                                          config.send_transport)) {
     // Media ssrc
@@ -21,24 +20,23 @@ VideoSendStream::VideoSendStream(Configuration config, TaskQueue* task_queue)
     }
 }
 
-VideoSendStream::~VideoSendStream() {}
+VideoSendStream::~VideoSendStream() {
+    RTC_RUN_ON(&sequence_checker_);
+}
 
 std::vector<uint32_t> VideoSendStream::ssrcs() const {
-    return task_queue_->Sync<std::vector<uint32_t>>([this](){
-        return ssrcs_;
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    return ssrcs_;
 }
 
 bool VideoSendStream::OnEncodedFrame(video::EncodedFrame encoded_frame) {
-    return task_queue_->Sync<bool>([this, encoded_frame=std::move(encoded_frame)](){
-        return rtp_video_sender_->OnEncodedFrame(std::move(encoded_frame));
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    return rtp_video_sender_->OnEncodedFrame(std::move(encoded_frame));
 }
 
 void VideoSendStream::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
-    task_queue_->Async([this, in_packet=std::move(in_packet)](){
-        rtp_video_sender_->OnRtcpPacket(std::move(in_packet));
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    rtp_video_sender_->OnRtcpPacket(std::move(in_packet));
 }
     
 } // namespace naivertc

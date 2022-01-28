@@ -2,7 +2,6 @@
 #define _RTC_MEDIA_VIDEO_VIDEO_RECEIVE_STREAM_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp_video_receiver.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/api/media_receive_stream.hpp"
@@ -18,7 +17,7 @@ public:
         RtpConfig rtp;
     };  
 public:
-    VideoReceiveStream(Configuration config, TaskQueue* task_queue);
+    VideoReceiveStream(Configuration config);
     ~VideoReceiveStream() override;
 
     std::vector<uint32_t> ssrcs() const override;
@@ -31,8 +30,7 @@ public:
 private:
     SequenceChecker sequence_checker_;
     const Configuration config_;
-    TaskQueue* const task_queue_;
-
+   
     std::vector<uint32_t> ssrcs_;
 };
 
