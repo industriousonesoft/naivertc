@@ -65,7 +65,7 @@ RtpVideoReceiver::~RtpVideoReceiver() {}
 void RtpVideoReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
     RTC_RUN_ON(&sequence_checker_);
     
-    rtcp_responser_->IncomingPacket(std::move(in_packet));
+    rtcp_responser_->IncomingRtcpPacket(std::move(in_packet));
 
     TimeDelta last_rtt = TimeDelta::PlusInfinity();
     auto rtt_stats = rtcp_responser_->GetRttStats(config_.remote_ssrc);

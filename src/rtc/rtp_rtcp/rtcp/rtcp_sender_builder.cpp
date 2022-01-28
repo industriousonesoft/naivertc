@@ -56,8 +56,8 @@ bool RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
     SetFlag(rtcp_packt_type, true);
 
     // Prevent sending streams to send SR before any media has been sent.
-    const bool can_calculate_rtp_timestamp = last_frame_capture_time_.has_value();
-    if (!can_calculate_rtp_timestamp) {
+    const bool has_sent_media = last_frame_capture_time_ms_.has_value();
+    if (!has_sent_media) {
         bool consumed_sr_flag = ConsumeFlag(RtcpPacketType::SR);
         bool consumed_report_flag = sending_ && ConsumeFlag(RtcpPacketType::RTCP_REPORT);
         bool sender_report = consumed_report_flag || consumed_sr_flag;
@@ -253,7 +253,7 @@ std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const RtcpReceiveF
 
 // SR
 void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
-    if (!last_frame_capture_time_.has_value()) {
+    if (!last_frame_capture_time_ms_.has_value()) {
         PLOG_WARNING << "RTCP SR shouldn't be built before first media frame.";
         return;
     }
@@ -268,11 +268,10 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
 
     // Round now time in us to the closest millisecond, because Ntp time is rounded
     // when converted to milliseconds,
-    uint32_t rtp_timestamp = timestamp_offset_ + last_rtp_timestamp_ +
-                ((ctx.now_time.us() + 500) / 1000 - last_frame_capture_time_->ms()) * rtp_rate;
+    uint32_t rtp_timestamp = last_rtp_timestamp_ +
+                ((ctx.now_time.us() + 500) / 1000 - last_frame_capture_time_ms_.value()) * rtp_rate;
 
-    PLOG_INFO << "timestamp_offset: " << timestamp_offset_ 
-              << " last_rtp_timestamp: " << last_rtp_timestamp_ 
+    PLOG_INFO << " last_rtp_timestamp: " << last_rtp_timestamp_ 
               << " rtp_timestamp: " << rtp_timestamp;
 
     rtcp::SenderReport sr;

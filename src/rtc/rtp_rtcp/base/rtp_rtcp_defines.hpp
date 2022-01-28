@@ -76,7 +76,7 @@ enum class RtcpMode {
 };
 
 // Rtx mode
-enum class RtxMode : size_t {
+enum RtxMode : int {
     OFF = 0x0,
     RETRANSMITTED = 0x1,     // Only send retransmissions over RTX.
     REDUNDANT_PAYLOADS = 0x2  // Preventively send redundant payloads instead of padding.

@@ -40,18 +40,39 @@ void RtcpResponser::set_remote_ssrc(uint32_t remote_ssrc) {
     rtcp_receiver_.set_remote_ssrc(remote_ssrc);
 }
 
+void RtcpResponser::set_sending(bool enable) {
+    RTC_RUN_ON(&sequence_checker_);
+    rtcp_sender_.set_sending(enable);
+}
+
+RtcpMode RtcpResponser::rtcp_mode() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return rtcp_sender_.rtcp_mode();
+}
+    
+void RtcpResponser::set_rtcp_mode(RtcpMode mode) {
+    RTC_RUN_ON(&sequence_checker_);
+    rtcp_sender_.set_rtcp_mode(mode);
+}
+
+void RtcpResponser::RegisterPayloadFrequency(int payload_type,
+                                             int payload_frequency) {
+    RTC_RUN_ON(&sequence_checker_);
+    rtcp_sender_.SetRtpClockRate(payload_type, payload_frequency);
+ }
+
 TimeDelta RtcpResponser::rtt() const {
     return rtcp_receiver_.rtt();
 }
 
-void RtcpResponser::IncomingPacket(const uint8_t* packet, size_t packet_size) {
+void RtcpResponser::IncomingRtcpPacket(const uint8_t* packet, size_t packet_size) {
     RTC_RUN_ON(&sequence_checker_);
-    IncomingPacket(CopyOnWriteBuffer(packet, packet_size));
+    IncomingRtcpPacket(CopyOnWriteBuffer(packet, packet_size));
 }
     
-void RtcpResponser::IncomingPacket(CopyOnWriteBuffer rtcp_packet) {
+void RtcpResponser::IncomingRtcpPacket(CopyOnWriteBuffer rtcp_packet) {
     RTC_RUN_ON(&sequence_checker_);
-    rtcp_receiver_.IncomingPacket(std::move(rtcp_packet));
+    rtcp_receiver_.IncomingRtcpPacket(std::move(rtcp_packet));
 }
 
 bool RtcpResponser::SendNack(const std::vector<uint16_t>& nack_list) {
@@ -91,14 +112,34 @@ bool RtcpResponser::SendNack(const std::vector<uint16_t>& nack_list) {
     return true;
 }
 
-void RtcpResponser::RequestKeyFrame() {
-    RTC_RUN_ON(&sequence_checker_);
-    rtcp_sender_.SendRtcp(RtcpPacketType::PLI);
-}
-
 std::optional<RttStats> RtcpResponser::GetRttStats(uint32_t ssrc) const {
     RTC_RUN_ON(&sequence_checker_);
     return rtcp_receiver_.GetRttStats(ssrc);
+}
+
+bool RtcpResponser::OnReadyToSendRtpFrame(uint32_t timestamp,
+                                          int64_t capture_time_ms,
+                                          int payload_type,
+                                          bool send_sr_before_key_frame) {
+    RTC_RUN_ON(&sequence_checker_);
+    if (!rtcp_sender_.sending()) {
+        return false;
+    }
+
+    std::optional<int64_t> capture_time_ms_opt = std::nullopt;
+    if (capture_time_ms > 0) {
+        capture_time_ms_opt = capture_time_ms;
+    }
+    std::optional<int> payload_type_opt = std::nullopt;
+    if (payload_type >= 0) {
+        payload_type_opt = payload_type;
+    }
+    rtcp_sender_.SetLastRtpTime(timestamp, capture_time_ms_opt, payload_type_opt);
+    // Make sure an RTCP report isn't queued behind a key frame.
+    if (rtcp_sender_.TimeToSendRtcpReport(send_sr_before_key_frame)) {
+        rtcp_sender_.SendRtcp(RtcpPacketType::RTCP_REPORT);
+    }
+    return true;
 }
 
 int64_t RtcpResponser::ExpectedRestransmissionTimeMs() const {
@@ -115,6 +156,11 @@ int64_t RtcpResponser::ExpectedRestransmissionTimeMs() const {
         return rtt_stats->avg_rtt().ms();
     }
     return kDefaultExpectedRetransmissionTimeMs;
+}
+
+void RtcpResponser::RequestKeyFrame() {
+    RTC_RUN_ON(&sequence_checker_);
+    rtcp_sender_.SendRtcp(RtcpPacketType::PLI);
 }
 
 RtcpReceiveFeedback RtcpResponser::GetReceiveFeedback() {

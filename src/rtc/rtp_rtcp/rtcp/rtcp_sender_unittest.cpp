@@ -18,7 +18,6 @@ namespace {
 
 constexpr uint32_t kSenderSsrc = 0x11111111;
 constexpr uint32_t kRemoteSsrc = 0x22222222;
-constexpr uint32_t kStartRtpTimestamp = 0x34567;
 constexpr uint32_t kRtpTimestamp = 0x45678;
 
 std::unique_ptr<RtcpSender> CreateRtcpSender(const RtcpSender::Configuration& config, 
@@ -26,8 +25,7 @@ std::unique_ptr<RtcpSender> CreateRtcpSender(const RtcpSender::Configuration& co
     auto rtcp_sender = std::make_unique<RtcpSender>(config);
     rtcp_sender->set_remote_ssrc(kRemoteSsrc);
     if (init_timestamps) {
-        rtcp_sender->SetTimestampOffset(kStartRtpTimestamp);
-        rtcp_sender->SetLastRtpTime(kRtpTimestamp, config.clock->CurrentTime(), 0);
+        rtcp_sender->SetLastRtpTime(kRtpTimestamp, config.clock->now_ms(), 0);
     }
     return rtcp_sender;
 }
@@ -184,7 +182,7 @@ MY_TEST_F(RtcpSenderTest, SendSr) {
     EXPECT_EQ(ntp, received_sr->ntp());
     EXPECT_EQ(kPacketCount, received_sr->sender_packet_count());
     EXPECT_EQ(kOctetCount, received_sr->sender_octet_count());
-    EXPECT_EQ(kStartRtpTimestamp + kRtpTimestamp, received_sr->rtp_timestamp());
+    EXPECT_EQ(kRtpTimestamp, received_sr->rtp_timestamp());
     EXPECT_EQ(0u, received_sr->report_blocks().size());
 }
 
@@ -550,8 +548,7 @@ MY_TEST_F(RtcpSenderTest, ByeMustBeTheLastToSend) {
     config.send_transport = &mock_transport;
 
     auto rtcp_sender = CreateRtcpSender(config);
-    rtcp_sender->SetTimestampOffset(kStartRtpTimestamp);
-    rtcp_sender->SetLastRtpTime(kRtpTimestamp, clock_.CurrentTime(), /*paylaod_type=*/98);
+    rtcp_sender->SetLastRtpTime(kRtpTimestamp, clock_.now_ms(), /*paylaod_type=*/98);
 
     rtcp_sender->set_rtcp_mode(RtcpMode::COMPOUND);
     rtcp_sender->SetRemb(1234, {});

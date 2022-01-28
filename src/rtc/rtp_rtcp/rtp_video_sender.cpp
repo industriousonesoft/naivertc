@@ -9,9 +9,9 @@ namespace naivertc {
 RtpVideoSender::RtpVideoSender(const Configuration& config,
                                Clock* clock,
                                MediaTransport* send_transport) 
-    : media_payload_type_(config.media_payload_type),
-      clock_(clock) {
-    InitRtpRtcpModules(config, clock, send_transport);
+    : clock_(clock),
+      media_payload_type_(config.media_payload_type) {
+    CreateAndInitRtpRtcpModules(config, clock, send_transport);    
 }
 
 RtpVideoSender::~RtpVideoSender() {}
@@ -19,7 +19,14 @@ RtpVideoSender::~RtpVideoSender() {}
 bool RtpVideoSender::OnEncodedFrame(video::EncodedFrame encoded_frame) {
     RTC_RUN_ON(&sequence_checker_);
     // rtp timestamp
-    uint32_t rtp_timestamp = encoded_frame.timestamp();
+    uint32_t rtp_timestamp = rtp_sender_->timestamp_offset() + encoded_frame.timestamp();
+
+    if (rtcp_responser_->OnReadyToSendRtpFrame(rtp_timestamp, 
+                                               encoded_frame.capture_time_ms(),
+                                               media_payload_type_,
+                                               encoded_frame.frame_type() == video::FrameType::KEY)) {
+        return false;
+    }
 
     std::optional<int64_t> expected_restransmission_time_ms;
     if (encoded_frame.retransmission_allowed()) {
@@ -43,13 +50,14 @@ bool RtpVideoSender::OnEncodedFrame(video::EncodedFrame encoded_frame) {
 }
 
 void RtpVideoSender::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
-    rtcp_responser_->IncomingPacket(std::move(in_packet));
+    RTC_RUN_ON(&sequence_checker_);
+    rtcp_responser_->IncomingRtcpPacket(std::move(in_packet));
 }
 
 // Private methods
-void RtpVideoSender::InitRtpRtcpModules(const Configuration& config,
-                                        Clock* clock,
-                                        MediaTransport* send_transport) {
+void RtpVideoSender::CreateAndInitRtpRtcpModules(const Configuration& config,
+                                                 Clock* clock,
+                                                  MediaTransport* send_transport) {
     RTC_RUN_ON(&sequence_checker_);
     uint32_t local_media_ssrc = config.local_media_ssrc;
     std::optional<uint32_t> rtx_send_ssrc = config.rtx_send_ssrc;
@@ -65,23 +73,47 @@ void RtpVideoSender::InitRtpRtcpModules(const Configuration& config,
     rtp_config.send_transport = send_transport;
     rtp_config.fec_generator = fec_generator_.get();
     auto rtp_sender = std::make_unique<RtpSender>(rtp_config);
-    // FIXME: Why do we need to enable NACK here?? What the rtp_config.nack_enabled works for?
-    rtp_sender->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
 
     // RtcpResponser
     RtcpConfiguration rtcp_config;
     rtcp_config.audio = false;
+    rtcp_config.receiver_only = false;
     rtcp_config.rtcp_report_interval_ms = config.rtcp_report_interval_ms;
     rtcp_config.local_media_ssrc = local_media_ssrc;
     rtcp_config.rtx_send_ssrc = rtx_send_ssrc;
     rtcp_config.fec_ssrc = fec_generator_ ? fec_generator_->fec_ssrc() : std::nullopt;
     rtcp_config.clock = clock;
+    rtcp_config.send_transport = send_transport;
     rtcp_config.rtp_send_feedback_provider = rtp_sender.get();
     auto rtcp_responser = std::make_unique<RtcpResponser>(rtcp_config);
-   
+    
     rtcp_responser_ = std::move(rtcp_responser);
     rtp_sender_ = std::move(rtp_sender);
     sender_video_ = std::make_unique<RtpSenderVideo>(clock, rtp_sender_.get());
+
+    // Init
+    InitRtpRtcpModules(config);
+}
+
+void RtpVideoSender::InitRtpRtcpModules(const Configuration& config) {
+    // RTP sender
+    // RTX
+    if (config.media_rtx_payload_type) {
+        rtp_sender_->SetRtxPayloadType(*config.media_rtx_payload_type, config.media_payload_type);
+        rtp_sender_->set_rtx_mode(RtxMode::RETRANSMITTED | RtxMode::REDUNDANT_PAYLOADS);
+    }
+    // RED + RTX
+    if (config.ulpfec.red_rtx_payload_type) {
+        rtp_sender_->SetRtxPayloadType(*config.ulpfec.red_rtx_payload_type, config.ulpfec.red_payload_type);
+    }
+    // Packet History
+    rtp_sender_->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
+    rtp_sender_->set_max_rtp_packet_size(config.max_packet_size);
+
+    // RTCP responser
+    rtcp_responser_->set_sending(true);
+    rtcp_responser_->set_rtcp_mode(RtcpMode::COMPOUND);
+    rtcp_responser_->RegisterPayloadFrequency(config.media_payload_type, kVideoPayloadTypeFrequency);
 }
 
 std::unique_ptr<FecGenerator> RtpVideoSender::MaybeCreateFecGenerator(const Configuration& config, uint32_t media_ssrc) {

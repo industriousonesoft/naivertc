@@ -71,9 +71,9 @@ public:
     void SetRemb(uint64_t bitrate_bps, std::vector<uint32_t> ssrcs);
     void UnsetRemb();
 
-    void SetTimestampOffset(uint32_t timestamp_offset);
+    
     void SetLastRtpTime(uint32_t rtp_timestamp,
-                        std::optional<Timestamp> capture_time,
+                        std::optional<int64_t> capture_time_ms,
                         std::optional<int8_t> rtp_payload_type);
 
     bool TimeToSendRtcpReport(bool send_rtcp_before_key_frame = false);
@@ -198,9 +198,8 @@ private:
     
     int8_t last_rtp_payload_type_ = -1;
     uint32_t last_rtp_timestamp_ = 0;
-    uint32_t timestamp_offset_ = 0;
 
-    std::optional<Timestamp> last_frame_capture_time_;
+    std::optional<int64_t> last_frame_capture_time_ms_;
     std::optional<Timestamp> next_time_to_send_rtcp_;
     
     std::string cname_;

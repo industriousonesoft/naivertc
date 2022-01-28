@@ -31,6 +31,8 @@ RtpSender::RtpSender(const RtpConfiguration& config)
       paced_sender_(config.packet_sender ? config.packet_sender : &ctx_->non_paced_sender) {
     RTC_RUN_ON(&sequence_checker_);
 
+    timestamp_offset_ = utils::random::generate_random<uint32_t>();
+
     // Random start, 16bits, can not be 0.
     ctx_->packet_sequencer.set_rtx_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
     ctx_->packet_sequencer.set_media_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
@@ -39,6 +41,11 @@ RtpSender::RtpSender(const RtpConfiguration& config)
 RtpSender::~RtpSender() {
     RTC_RUN_ON(&sequence_checker_);
 };
+
+uint32_t RtpSender::timestamp_offset() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return timestamp_offset_;
+}
 
 size_t RtpSender::max_rtp_packet_size() const {
     RTC_RUN_ON(&sequence_checker_);
@@ -50,12 +57,12 @@ void RtpSender::set_max_rtp_packet_size(size_t max_size) {
     ctx_->packet_generator.set_max_rtp_packet_size(max_size);
 }
 
-RtxMode RtpSender::rtx_mode() const {
+int RtpSender::rtx_mode() const {
     RTC_RUN_ON(&sequence_checker_);
     return rtx_mode_;
 }
     
-void RtpSender::set_rtx_mode(RtxMode mode) {
+void RtpSender::set_rtx_mode(int mode) {
     RTC_RUN_ON(&sequence_checker_);
     rtx_mode_ = mode;
 }
@@ -250,7 +257,7 @@ int32_t RtpSender::ResendPacket(uint16_t seq_num) {
     }
 
     const int32_t packet_size = static_cast<int32_t>(stored_packet->packet_size);
-    const bool rtx_enabled = (rtx_mode_ == RtxMode::RETRANSMITTED);
+    const bool rtx_enabled = (rtx_mode_ & RtxMode::RETRANSMITTED);
 
     auto packet = ctx_->packet_history.GetPacketAndMarkAsPending(seq_num, [&](const RtpPacketToSend& stored_packet){
         // TODO: Check if we're overusing retransmission bitrate.

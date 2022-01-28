@@ -18,21 +18,34 @@ public:
     RtcpResponser(const RtcpConfiguration& config);
     ~RtcpResponser() override;
 
-    void set_remote_ssrc(uint32_t remote_ssrc);
-
     TimeDelta rtt() const;
+    
+    void set_remote_ssrc(uint32_t remote_ssrc);
+    void set_sending(bool enable);
 
-    void IncomingPacket(const uint8_t* packet, size_t packet_size);
-    void IncomingPacket(CopyOnWriteBuffer rtcp_packet);
+    RtcpMode rtcp_mode() const;
+    void set_rtcp_mode(RtcpMode mode);
+    
+    void RegisterPayloadFrequency(int payload_type,
+                                  int payload_frequency);
+    
+
+    void IncomingRtcpPacket(const uint8_t* packet, size_t packet_size);
+    void IncomingRtcpPacket(CopyOnWriteBuffer rtcp_packet);
 
     bool SendNack(const std::vector<uint16_t>& nack_list);
-
-    // KeyFrameRequestSender override methods
-    void RequestKeyFrame() override;
 
     int64_t ExpectedRestransmissionTimeMs() const;
 
     std::optional<RttStats> GetRttStats(uint32_t ssrc) const;
+
+    bool OnReadyToSendRtpFrame(uint32_t timestamp,
+                               int64_t capture_time_ms,
+                               int payload_type,
+                               bool send_sr_before_key_frame);
+
+    // KeyFrameRequestSender override methods
+    void RequestKeyFrame() override;
 
     // Implements RtcpReceiveFeedbackProvider
     RtcpReceiveFeedback GetReceiveFeedback() override;

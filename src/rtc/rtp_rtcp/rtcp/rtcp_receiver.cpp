@@ -109,7 +109,7 @@ TimeDelta RtcpReceiver::rtt() const {
     return rtt_;
 }
 
-void RtcpReceiver::IncomingPacket(CopyOnWriteBuffer packet) {
+void RtcpReceiver::IncomingRtcpPacket(CopyOnWriteBuffer packet) {
     RTC_RUN_ON(&sequence_checker_);
     PacketInfo packet_info;
     if (!ParseCompoundPacket(std::move(packet), &packet_info)) {

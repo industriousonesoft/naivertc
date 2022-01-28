@@ -25,6 +25,8 @@ public:
     RtpSender(const RtpConfiguration& config);
     ~RtpSender() override;
 
+    uint32_t timestamp_offset() const;
+
     // Generator
     size_t max_rtp_packet_size() const;
     void set_max_rtp_packet_size(size_t max_size);
@@ -47,8 +49,8 @@ public:
     void SetStorePacketsStatus(const bool enable, const uint16_t number_to_store);
 
     // RTX
-    RtxMode rtx_mode() const;
-    void set_rtx_mode(RtxMode mode);
+    int rtx_mode() const;
+    void set_rtx_mode(int mode);
     std::optional<uint32_t> rtx_ssrc() const;
     void SetRtxPayloadType(int payload_type, int associated_payload_type);
 
@@ -88,7 +90,7 @@ private:
     };
 private:
     SequenceChecker sequence_checker_;
-    RtxMode rtx_mode_;
+    int rtx_mode_;
     Clock* const clock_;
 
     rtp::HeaderExtensionMap header_extension_map_;
@@ -97,6 +99,8 @@ private:
 
     FecGenerator* const fec_generator_;
     RtpPacketSender* const paced_sender_;
+
+    uint32_t timestamp_offset_;
 };
     
 } // namespace naivertc

@@ -75,16 +75,19 @@ public:
     void OnRtcpPacket(CopyOnWriteBuffer in_packet);
 
 private:
-    void InitRtpRtcpModules(const Configuration& config,
-                            Clock* clock,
-                            MediaTransport* send_transport);
+    void CreateAndInitRtpRtcpModules(const Configuration& config,
+                                     Clock* clock,
+                                     MediaTransport* send_transport);
+
+    void InitRtpRtcpModules(const Configuration& config);
 
     std::unique_ptr<FecGenerator> MaybeCreateFecGenerator(const Configuration& config, uint32_t media_ssrc);
 
 private:
     SequenceChecker sequence_checker_;
-    const int media_payload_type_;
     Clock* const clock_;
+    const int media_payload_type_;
+
     std::unique_ptr<RtcpResponser> rtcp_responser_ = nullptr;
     std::unique_ptr<RtpSender> rtp_sender_ = nullptr;
     std::unique_ptr<RtpSenderVideo> sender_video_ = nullptr;

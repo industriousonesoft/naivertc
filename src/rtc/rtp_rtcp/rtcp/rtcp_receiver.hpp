@@ -53,11 +53,7 @@ public:
 
     TimeDelta rtt() const;
 
-    void IncomingPacket(const uint8_t* packet, size_t packet_size) {
-        IncomingPacket(CopyOnWriteBuffer(packet, packet + packet_size));
-    }
-
-    void IncomingPacket(CopyOnWriteBuffer packet);
+    void IncomingRtcpPacket(CopyOnWriteBuffer packet);
 
     std::optional<RtcpSenderReportStats> GetLastSenderReportStats() const;
 

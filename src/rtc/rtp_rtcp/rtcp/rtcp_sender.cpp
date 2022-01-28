@@ -68,23 +68,18 @@ void RtcpSender::SetRtpClockRate(int8_t rtp_payload_type, int rtp_clock_rate_hz)
     rtp_clock_rates_khz_[rtp_payload_type] = rtp_clock_rate_hz / 1000;
 }
 
-void RtcpSender::SetTimestampOffset(uint32_t timestamp_offset) {
-    RTC_RUN_ON(&sequence_checker_);
-    timestamp_offset_ = timestamp_offset;
-}
-
 void RtcpSender::SetLastRtpTime(uint32_t rtp_timestamp,
-                                std::optional<Timestamp> capture_time,
+                                std::optional<int64_t> capture_time_ms,
                                 std::optional<int8_t> rtp_payload_type) {
     RTC_RUN_ON(&sequence_checker_);
     if (rtp_payload_type.has_value()) {
         last_rtp_payload_type_ = rtp_payload_type.value();
     }
     last_rtp_timestamp_ = rtp_timestamp;
-    if (!capture_time.has_value()) {
-        last_frame_capture_time_ = clock_->CurrentTime();
+    if (!capture_time_ms.has_value()) {
+        last_frame_capture_time_ms_ = clock_->now_ms();
     } else {
-        last_frame_capture_time_ = capture_time;
+        last_frame_capture_time_ms_ = capture_time_ms;
     }
 }
 

@@ -136,7 +136,7 @@ MY_TEST(RtcpReceiverTest, BrokenPacketIsIgnored) {
 
     const uint8_t bad_packet[] = {0, 0, 0, 0};
     EXPECT_CALL(mocks.packet_type_counter_observer, RtcpPacketTypesCounterUpdated).Times(0);
-    receiver.IncomingPacket(bad_packet);
+    receiver.IncomingRtcpPacket(bad_packet);
 }
 
 MY_TEST(RtcpReceiverTest, InvalidFeedbackIsIgnored) {
@@ -150,7 +150,7 @@ MY_TEST(RtcpReceiverTest, InvalidFeedbackIsIgnored) {
                 RtcpPacketTypesCounterUpdated(kReceiverMainSsrc, 
                                               Field(&RtcpPacketTypeCounter::pli_packets, 0)));
     EXPECT_CALL(mocks.transport_feedback_observer, OnTransportFeedback).Times(0);
-    receiver.IncomingPacket(bad_packet);
+    receiver.IncomingRtcpPacket(bad_packet);
 }
 
 MY_TEST(RtcpReceiverTest, InjectSrPacket) {
@@ -166,7 +166,7 @@ MY_TEST(RtcpReceiverTest, InjectSrPacket) {
 
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(IsEmpty(), _));
-    receiver.IncomingPacket(sr.Build());
+    receiver.IncomingRtcpPacket(sr.Build());
 
     EXPECT_TRUE(receiver.GetLastSenderReportStats().has_value());
 }
@@ -182,7 +182,7 @@ MY_TEST(RtcpReceiverTest, InjectSrPacketFromUnknownSender) {
 
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(_, _));
-    receiver.IncomingPacket(sr.Build());
+    receiver.IncomingRtcpPacket(sr.Build());
 
     EXPECT_FALSE(receiver.GetLastSenderReportStats().has_value());
 }
@@ -211,7 +211,7 @@ MY_TEST(RtcpReceiverTest, InjectSrPacketCalculatesRTT) {
     sr.AddReportBlock(block);
 
     EXPECT_CALL(mocks.report_blocks_observer, OnReceivedRtcpReportBlocks);
-    receiver.IncomingPacket(sr.Build());
+    receiver.IncomingRtcpPacket(sr.Build());
 
     rtt_stats = receiver.GetRttStats(kSenderSsrc);
     EXPECT_TRUE(rtt_stats.has_value());
@@ -244,7 +244,7 @@ MY_TEST(RtcpReceiverTest, InjectSrPacketCalculatesNegativeRTTAsOne) {
 
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(SizeIs(1), _));
-    receiver.IncomingPacket(sr.Build());
+    receiver.IncomingRtcpPacket(sr.Build());
 
     rtt_stats = receiver.GetRttStats(kSenderSsrc);
     EXPECT_TRUE(rtt_stats.has_value());
@@ -276,7 +276,7 @@ MY_TEST(RtcpReceiverTest, TwoReportBlocksWithLastOneWithoutLastSrCalculatesRttFo
     
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(SizeIs(2), kRttMs));
-    receiver.IncomingPacket(sr.Build());
+    receiver.IncomingRtcpPacket(sr.Build());
 }
 
 MY_TEST(RtcpReceiverTest, InjectRrPacket) {
@@ -290,7 +290,7 @@ MY_TEST(RtcpReceiverTest, InjectRrPacket) {
 
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(IsEmpty(), _));
-    receiver.IncomingPacket(rr.Build());
+    receiver.IncomingRtcpPacket(rr.Build());
     EXPECT_THAT(receiver.GetLatestReportBlocks(), IsEmpty());
 }
 
@@ -308,7 +308,7 @@ MY_TEST(RtcpReceiverTest, InjectRrPacketWithReportBlockNotToUsIgnored) {
 
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(IsEmpty(), _));
-    receiver.IncomingPacket(rr.Build());
+    receiver.IncomingRtcpPacket(rr.Build());
 
     EXPECT_EQ(0, receiver.LastReceivedReportBlockMs());
     EXPECT_THAT(receiver.GetLatestReportBlocks(), IsEmpty());
@@ -329,7 +329,7 @@ MY_TEST(RtcpReceiverTest, InjectRrPacketWithOneReportBlock) {
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(SizeIs(1), _));
 
-    receiver.IncomingPacket(rr.Build());
+    receiver.IncomingRtcpPacket(rr.Build());
     EXPECT_EQ(now_ms, receiver.LastReceivedReportBlockMs());
     EXPECT_THAT(receiver.GetLatestReportBlocks(), SizeIs(1));
 }
@@ -349,7 +349,7 @@ MY_TEST(RtcpReceiverTest, InjectSrPacketWithOneReportBlock) {
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(SizeIs(1), _));
 
-    receiver.IncomingPacket(sr.Build());
+    receiver.IncomingRtcpPacket(sr.Build());
     EXPECT_EQ(now_ms, receiver.LastReceivedReportBlockMs());
     EXPECT_THAT(receiver.GetLatestReportBlocks(), SizeIs(1));
 }
@@ -380,7 +380,7 @@ MY_TEST(RtcpReceiverTest, InjectRrPacketWithTwoReportBlocks) {
 
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(SizeIs(2), _));
-    receiver.IncomingPacket(rr1.Build());
+    receiver.IncomingRtcpPacket(rr1.Build());
     EXPECT_EQ(now_ms, receiver.LastReceivedReportBlockMs());
     EXPECT_THAT(receiver.GetLatestReportBlocks(),
                 UnorderedElementsAre(
@@ -409,7 +409,7 @@ MY_TEST(RtcpReceiverTest, InjectRrPacketWithTwoReportBlocks) {
 
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(SizeIs(2), _));
-    receiver.IncomingPacket(rr2.Build());
+    receiver.IncomingRtcpPacket(rr2.Build());
     EXPECT_THAT(
         receiver.GetLatestReportBlocks(),
         UnorderedElementsAre(
@@ -448,7 +448,7 @@ MY_TEST(RtcpReceiverTest, InjectRrPacketsFromTwoRemoteSsrcsReturnsLatestReportBl
     int64_t now_ms = mocks.clock.now_ms();
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(SizeIs(1), _));
-    receiver.IncomingPacket(rr1.Build());
+    receiver.IncomingRtcpPacket(rr1.Build());
 
     EXPECT_EQ(now_ms, receiver.LastReceivedReportBlockMs());
     EXPECT_THAT(
@@ -472,7 +472,7 @@ MY_TEST(RtcpReceiverTest, InjectRrPacketsFromTwoRemoteSsrcsReturnsLatestReportBl
 
     EXPECT_CALL(mocks.report_blocks_observer,
                 OnReceivedRtcpReportBlocks(SizeIs(1), _));
-    receiver.IncomingPacket(rr2.Build());
+    receiver.IncomingRtcpPacket(rr2.Build());
 
     EXPECT_THAT(
         receiver.GetLatestReportBlocks(),
@@ -506,7 +506,7 @@ MY_TEST(RtcpReceiverTest, GetRtt) {
     int64_t now_ms = mocks.clock.now_ms();
 
     EXPECT_CALL(mocks.report_blocks_observer, OnReceivedRtcpReportBlocks);
-    receiver.IncomingPacket(rr.Build());
+    receiver.IncomingRtcpPacket(rr.Build());
 
     EXPECT_EQ(now_ms, receiver.LastReceivedReportBlockMs());
     EXPECT_TRUE(receiver.GetRttStats(kSenderSsrc).has_value());
@@ -526,7 +526,7 @@ MY_TEST(RtcpReceiverTest, InjectSdesWithOneChunk) {
     sdes.AddCName(kSenderSsrc, kCname);
 
     EXPECT_CALL(cname_observer, OnCname(kSenderSsrc, StrEq(kCname)));
-    receiver.IncomingPacket(sdes.Build());
+    receiver.IncomingRtcpPacket(sdes.Build());
 }
 
 MY_TEST(RtcpReceiverTest, InjectByePacket_RemovesReportBlocks) {
@@ -544,18 +544,18 @@ MY_TEST(RtcpReceiverTest, InjectByePacket_RemovesReportBlocks) {
     rr.AddReportBlock(rb2);
 
     EXPECT_CALL(mocks.report_blocks_observer, OnReceivedRtcpReportBlocks);
-    receiver.IncomingPacket(rr.Build());
+    receiver.IncomingRtcpPacket(rr.Build());
 
     EXPECT_THAT(receiver.GetLatestReportBlocks(), SizeIs(2));
     // Verify that BYE removes the report blocks.
     rtcp::Bye bye;
     bye.set_sender_ssrc(kSenderSsrc);
-    receiver.IncomingPacket(bye.Build());
+    receiver.IncomingRtcpPacket(bye.Build());
 
     EXPECT_THAT(receiver.GetLatestReportBlocks(), IsEmpty());
     // Inject packet again.
     EXPECT_CALL(mocks.report_blocks_observer, OnReceivedRtcpReportBlocks);
-    receiver.IncomingPacket(rr.Build());
+    receiver.IncomingRtcpPacket(rr.Build());
 
     EXPECT_THAT(receiver.GetLatestReportBlocks(), SizeIs(2));
 }
@@ -574,7 +574,7 @@ MY_TEST(RtcpReceiverTest, InjectPliPacket) {
 
     EXPECT_CALL(mocks.intra_frame_observer,
                 OnReceivedIntraFrameRequest(kReceiverMainSsrc));
-    receiver.IncomingPacket(pli.Build());
+    receiver.IncomingRtcpPacket(pli.Build());
 }
 
 MY_TEST(RtcpReceiverTest, PliPacketNotToUsIgnored) {
@@ -590,7 +590,7 @@ MY_TEST(RtcpReceiverTest, PliPacketNotToUsIgnored) {
                                               Field(&RtcpPacketTypeCounter::pli_packets, 0)));
 
     EXPECT_CALL(mocks.intra_frame_observer, OnReceivedIntraFrameRequest).Times(0);
-    receiver.IncomingPacket(pli.Build());
+    receiver.IncomingRtcpPacket(pli.Build());
 }
 
 MY_TEST(RtcpReceiverTest, InjectFirPacket) {
@@ -606,7 +606,7 @@ MY_TEST(RtcpReceiverTest, InjectFirPacket) {
                 
     EXPECT_CALL(mocks.intra_frame_observer,
                 OnReceivedIntraFrameRequest(kReceiverMainSsrc));
-    receiver.IncomingPacket(fir.Build());
+    receiver.IncomingRtcpPacket(fir.Build());
 }
 
 MY_TEST(RtcpReceiverTest, FirPacketNotToUsIgnored) {
@@ -618,7 +618,7 @@ MY_TEST(RtcpReceiverTest, FirPacketNotToUsIgnored) {
     fir.AddRequestTo(kNotToUsSsrc, 13);
 
     EXPECT_CALL(mocks.intra_frame_observer, OnReceivedIntraFrameRequest).Times(0);
-    receiver.IncomingPacket(fir.Build());
+    receiver.IncomingRtcpPacket(fir.Build());
 }
 
 MY_TEST(RtcpReceiverTest, ReceiveReportTimeout) {
@@ -642,7 +642,7 @@ MY_TEST(RtcpReceiverTest, ReceiveReportTimeout) {
     rr1.AddReportBlock(rb1);
 
     EXPECT_CALL(mocks.report_blocks_observer, OnReceivedRtcpReportBlocks);
-    receiver.IncomingPacket(rr1.Build());
+    receiver.IncomingRtcpPacket(rr1.Build());
 
     mocks.clock.AdvanceTimeMs(3 * kRtcpIntervalMs - 1);
     EXPECT_FALSE(receiver.RtcpRrTimeout());
@@ -651,7 +651,7 @@ MY_TEST(RtcpReceiverTest, ReceiveReportTimeout) {
     // Add a RR with the same extended max as the previous RR to trigger a
     // sequence number timeout, but not a RR timeout.
     EXPECT_CALL(mocks.report_blocks_observer, OnReceivedRtcpReportBlocks);
-    receiver.IncomingPacket(rr1.Build());
+    receiver.IncomingRtcpPacket(rr1.Build());
 
     mocks.clock.AdvanceTimeMs(2);
     EXPECT_FALSE(receiver.RtcpRrTimeout());
@@ -675,7 +675,7 @@ MY_TEST(RtcpReceiverTest, ReceiveReportTimeout) {
     rr2.AddReportBlock(rb2);
 
     EXPECT_CALL(mocks.report_blocks_observer, OnReceivedRtcpReportBlocks);
-    receiver.IncomingPacket(rr2.Build());
+    receiver.IncomingRtcpPacket(rr2.Build());
 
     EXPECT_FALSE(receiver.RtcpRrTimeout());
     EXPECT_FALSE(receiver.RtcpRrSequenceNumberTimeout());
@@ -683,7 +683,7 @@ MY_TEST(RtcpReceiverTest, ReceiveReportTimeout) {
     // Verify we can get a timeout again once we've received new RR.
     mocks.clock.AdvanceTimeMs(2 * kRtcpIntervalMs);
     EXPECT_CALL(mocks.report_blocks_observer, OnReceivedRtcpReportBlocks);
-    receiver.IncomingPacket(rr2.Build());
+    receiver.IncomingRtcpPacket(rr2.Build());
 
     mocks.clock.AdvanceTimeMs(kRtcpIntervalMs + 1);
     EXPECT_FALSE(receiver.RtcpRrTimeout());
@@ -726,7 +726,7 @@ MY_TEST(RtcpReceiverTest, VerifyBlockAndTimestampObtainedFromReportBlockDataObse
                      report_block.extended_highest_sequence_number);
             EXPECT_EQ(rtcp_block.jitter(), report_block.jitter);
         });
-    receiver.IncomingPacket(rtcp_report.Build());
+    receiver.IncomingRtcpPacket(rtcp_report.Build());
 }
 
 MY_TEST(RtcpReceiverTest, ReceivesTransportFeedback) {
@@ -745,7 +745,7 @@ MY_TEST(RtcpReceiverTest, ReceivesTransportFeedback) {
         OnTransportFeedback(AllOf(
             Property(&rtcp::TransportFeedback::media_ssrc, kReceiverMainSsrc),
             Property(&rtcp::TransportFeedback::sender_ssrc, kSenderSsrc))));
-    receiver.IncomingPacket(packet.Build());
+    receiver.IncomingRtcpPacket(packet.Build());
 }
 
 MY_TEST(RtcpReceiverTest, ReceivesRemb) {
@@ -760,7 +760,7 @@ MY_TEST(RtcpReceiverTest, ReceivesRemb) {
 
     EXPECT_CALL(mocks.bandwidth_observer,
                 OnReceivedEstimatedBitrateBps(kBitrateBps));
-    receiver.IncomingPacket(remb.Build());
+    receiver.IncomingRtcpPacket(remb.Build());
 }
 
 MY_TEST(RtcpReceiverTest, Nack) {
@@ -790,7 +790,7 @@ MY_TEST(RtcpReceiverTest, Nack) {
                                 arraysize(kNackList1)),
                             Field(&RtcpPacketTypeCounter::unique_nack_requests,
                                 arraysize(kNackList1)))));
-    receiver.IncomingPacket(nack1->Build());
+    receiver.IncomingRtcpPacket(nack1->Build());
 
     auto nack2 = std::make_unique<rtcp::Nack>();
     nack2->set_sender_ssrc(kSenderSsrc);
@@ -815,7 +815,7 @@ MY_TEST(RtcpReceiverTest, Nack) {
                                 arraysize(kNackList1) + arraysize(kNackList23)),
                             Field(&RtcpPacketTypeCounter::unique_nack_requests,
                                 nack_set.size()))));
-    receiver.IncomingPacket(two_nacks.Build());
+    receiver.IncomingRtcpPacket(two_nacks.Build());
 }
 
 MY_TEST(RtcpReceiverTest, NackNotForUsIgnored) {
@@ -834,7 +834,7 @@ MY_TEST(RtcpReceiverTest, NackNotForUsIgnored) {
     EXPECT_CALL(mocks.packet_type_counter_observer,
                 RtcpPacketTypesCounterUpdated(
                     _, Field(&RtcpPacketTypeCounter::nack_requests, 0)));
-    receiver.IncomingPacket(nack.Build());
+    receiver.IncomingRtcpPacket(nack.Build());
 }
     
 } // namespace test
