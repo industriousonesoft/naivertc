@@ -16,7 +16,7 @@ VideoSendStream::VideoSendStream(Configuration config, TaskQueue* task_queue)
         ssrcs_.push_back(*config.rtp.rtx_send_ssrc);
     }
     // FLEX_FEC ssrc
-    if (config.rtp.flexfec.ssrc >= 0) {
+    if (config.rtp.flexfec.payload_type >= 0) {
         ssrcs_.push_back(config.rtp.flexfec.ssrc);
     }
 }

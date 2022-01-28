@@ -85,7 +85,6 @@ private:
 
 private:
     SequenceChecker sequence_checker_;
-    Clock* const clock_;
     const int media_payload_type_;
 
     std::unique_ptr<RtcpResponser> rtcp_responser_ = nullptr;

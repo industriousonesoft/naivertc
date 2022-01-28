@@ -9,8 +9,7 @@ namespace naivertc {
 RtpVideoSender::RtpVideoSender(const Configuration& config,
                                Clock* clock,
                                MediaTransport* send_transport) 
-    : clock_(clock),
-      media_payload_type_(config.media_payload_type) {
+    : media_payload_type_(config.media_payload_type) {
     CreateAndInitRtpRtcpModules(config, clock, send_transport);    
 }
 
@@ -21,7 +20,7 @@ bool RtpVideoSender::OnEncodedFrame(video::EncodedFrame encoded_frame) {
     // rtp timestamp
     uint32_t rtp_timestamp = rtp_sender_->timestamp_offset() + encoded_frame.timestamp();
 
-    if (rtcp_responser_->OnReadyToSendRtpFrame(rtp_timestamp, 
+    if (!rtcp_responser_->OnReadyToSendRtpFrame(rtp_timestamp, 
                                                encoded_frame.capture_time_ms(),
                                                media_payload_type_,
                                                encoded_frame.frame_type() == video::FrameType::KEY)) {

@@ -5,7 +5,7 @@
 #include "base/thread_annotation.hpp"
 #include "rtc/base/task_utils/task_queue_impl.hpp"
 
-// #include <mutex>
+#include <mutex>
 
 namespace naivertc {
 
@@ -24,12 +24,12 @@ public:
     // Changes the task queue or thread that is checked for in IsCurrent. This can
     // be useful when an object may be created on one task queue / thread and then
     // used exclusively on another thread.
-    // void Detach();
+    void Detach();
 
 private:
-    // mutable std::mutex lock_;
-    // mutable bool attached_ RTC_GUARDED_BY(lock_);
-    const TaskQueueImpl* attached_queue_ ;//RTC_GUARDED_BY(lock_);
+    mutable std::mutex lock_;
+    mutable bool attached_ RTC_GUARDED_BY(lock_);
+    mutable const TaskQueueImpl* attached_queue_ RTC_GUARDED_BY(lock_);
 };
     
 } // namespace naivertc

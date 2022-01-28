@@ -508,17 +508,13 @@ void PeerConnection::OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_tr
     if (media_track->kind() == MediaTrack::Kind::VIDEO) {
         const auto mid = media_track->mid();
 
-        auto local_media = local_sdp_->media(mid);
-        auto remote_media = remote_sdp_->media(mid);
+        const sdp::Media local_media = *local_sdp_->media(mid);
+        const sdp::Media remote_media = *remote_sdp_->media(mid);
 
-        // auto video_track = dynamic_cast<VideoTrack*>(media_track.get());      
-        media_track->OnMediaNegotiated(*local_media, *remote_media, remote_sdp_->type());
-
-        auto send_stream = media_track->send_stream();
-
-        worker_task_queue_->Async([this, send_stream](){
-            for (const auto& ssrc : send_stream->ssrcs()) {
-                rtp_demuxer_.AddRtcpSink(ssrc, send_stream);
+        worker_task_queue_->Async([this, media_track, local_media, remote_media](){
+            media_track->OnMediaNegotiated(local_media, remote_media, remote_sdp_->type());
+            for (const auto& ssrc : media_track->send_ssrcs()) {
+                rtp_demuxer_.AddRtcpSink(ssrc, media_track.get());
             }
         });
 

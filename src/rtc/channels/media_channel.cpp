@@ -71,7 +71,9 @@ MediaChannel::MediaChannel(Kind kind, std::string mid)
     : kind_(kind),
       mid_(std::move(mid)),
       clock_(std::make_unique<RealTimeClock>()),
-      signaling_queue_(TaskQueueImpl::Current()) {}
+      signaling_queue_(TaskQueueImpl::Current()) {
+    worker_queue_checker_.Detach();
+}
 
 MediaChannel::~MediaChannel() {}
 
@@ -112,11 +114,11 @@ void MediaChannel::Close() {
     send_transport_.reset();
 }
 
-void MediaChannel::OnMediaNegotiated(const sdp::Media& local_media, 
-                                     const sdp::Media& remote_media, 
+void MediaChannel::OnMediaNegotiated(sdp::Media local_media, 
+                                     sdp::Media remote_media, 
                                      sdp::Type remote_sdp_type) {
-    RTC_RUN_ON(signaling_queue_);
-    // TODO: Find the negotiated codecs.
+    RTC_RUN_ON(&worker_queue_checker_);
+   
     if (kind_ == Kind::VIDEO) {
         // Sendable
         if (local_media.direction() == sdp::Direction::SEND_ONLY ||
@@ -126,6 +128,19 @@ void MediaChannel::OnMediaNegotiated(const sdp::Media& local_media,
             send_config.send_transport = send_transport_.lock().get();
         
             ParseRtpSendParameters(local_media, send_config);
+
+            // Media ssrc
+            if (send_config.rtp.local_media_ssrc >= 0) {
+                send_ssrcs_.push_back(send_config.rtp.local_media_ssrc);
+            }
+            // RTX ssrc
+            if (send_config.rtp.rtx_send_ssrc) {
+                send_ssrcs_.push_back(*send_config.rtp.rtx_send_ssrc);
+            }
+            // FLEX_FEC ssrc
+            if (send_config.rtp.flexfec.payload_type >= 0) {
+                send_ssrcs_.push_back(send_config.rtp.flexfec.ssrc);
+            }
 
             SendQueue()->Async([this, config=std::move(send_config)](){
                 send_stream_ = std::unique_ptr<MediaSendStream>(new VideoSendStream(std::move(config), SendQueue()));
@@ -142,10 +157,17 @@ void MediaChannel::OnMediaNegotiated(const sdp::Media& local_media,
     }
 }
 
-MediaSendStream* MediaChannel::send_stream() {
-    return SendQueue()->Sync<MediaSendStream*>([this](){
-        return send_stream_.get();
-    });
+std::vector<uint32_t> MediaChannel::send_ssrcs() const {
+    RTC_RUN_ON(&worker_queue_checker_);
+    return send_ssrcs_;
+}
+
+void MediaChannel::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
+    RTC_RUN_ON(&worker_queue_checker_);
+}
+
+void MediaChannel::OnRtpPacket(RtpPacketReceived in_packet) {
+    RTC_RUN_ON(&worker_queue_checker_);
 }
 
 // Private methods
