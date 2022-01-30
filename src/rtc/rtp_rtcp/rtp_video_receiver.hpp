@@ -25,6 +25,7 @@ namespace naivertc {
 
 class RtpPacketReceived;
 class CopyOnWriteBuffer;
+class RtpReceiveStatistics;
 
 class RTC_CPP_EXPORT RtpVideoReceiver : public RecoveredPacketReceiver {
 public:
@@ -58,6 +59,7 @@ public:
 public:
     RtpVideoReceiver(Configuration config,
                      Clock* clock,
+                     RtpReceiveStatistics* rtp_recv_stats,
                      CompleteFrameReceiver* complete_frame_receiver);
     ~RtpVideoReceiver() override;
 

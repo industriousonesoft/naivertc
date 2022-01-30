@@ -160,6 +160,8 @@ int64_t RtcpResponser::ExpectedRestransmissionTimeMs() const {
 
 void RtcpResponser::RequestKeyFrame() {
     RTC_RUN_ON(&sequence_checker_);
+    // Requests new key frame.
+    // using PLI, https://tools.ietf.org/html/rfc4585#section-6.3.1.1
     rtcp_sender_.SendRtcp(RtcpPacketType::PLI);
 }
 
