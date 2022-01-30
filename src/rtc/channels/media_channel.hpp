@@ -57,8 +57,6 @@ private:
     void TriggerOpen();
     void TriggerClose();
 
-    TaskQueue* SendQueue();
-
 protected:
     const Kind kind_;
     const std::string mid_;
@@ -74,11 +72,7 @@ protected:
 
     std::weak_ptr<MediaTransport> send_transport_;
 
-    std::unique_ptr<TaskQueue> send_queue_;
-
     std::unique_ptr<MediaSendStream> send_stream_;
-
-    std::vector<uint32_t> send_ssrcs_;
 };
 
 } // nemespace naivertc

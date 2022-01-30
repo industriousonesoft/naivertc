@@ -2,7 +2,7 @@
 
 namespace naivertc {
 
-VideoSendStream::VideoSendStream(Configuration config, TaskQueue* task_queue) 
+VideoSendStream::VideoSendStream(Configuration config) 
     : rtp_video_sender_(std::make_unique<RtpVideoSender>(config.rtp, 
                                                          config.clock, 
                                                          config.send_transport)) {

@@ -129,22 +129,7 @@ void MediaChannel::OnMediaNegotiated(sdp::Media local_media,
         
             ParseRtpSendParameters(local_media, send_config);
 
-            // Media ssrc
-            if (send_config.rtp.local_media_ssrc >= 0) {
-                send_ssrcs_.push_back(send_config.rtp.local_media_ssrc);
-            }
-            // RTX ssrc
-            if (send_config.rtp.rtx_send_ssrc) {
-                send_ssrcs_.push_back(*send_config.rtp.rtx_send_ssrc);
-            }
-            // FLEX_FEC ssrc
-            if (send_config.rtp.flexfec.payload_type >= 0) {
-                send_ssrcs_.push_back(send_config.rtp.flexfec.ssrc);
-            }
-
-            SendQueue()->Async([this, config=std::move(send_config)](){
-                send_stream_ = std::unique_ptr<MediaSendStream>(new VideoSendStream(std::move(config), SendQueue()));
-            });
+            send_stream_ = std::unique_ptr<MediaSendStream>(new VideoSendStream(std::move(send_config)));
         }
 
         // Receivable
@@ -159,11 +144,14 @@ void MediaChannel::OnMediaNegotiated(sdp::Media local_media,
 
 std::vector<uint32_t> MediaChannel::send_ssrcs() const {
     RTC_RUN_ON(&worker_queue_checker_);
-    return send_ssrcs_;
+    return send_stream_ ? send_stream_->ssrcs() : std::vector<uint32_t>();
 }
 
 void MediaChannel::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
     RTC_RUN_ON(&worker_queue_checker_);
+    if (send_stream_) {
+        send_stream_->OnRtcpPacket(in_packet);
+    }
 }
 
 void MediaChannel::OnRtpPacket(RtpPacketReceived in_packet) {
@@ -191,13 +179,6 @@ void MediaChannel::TriggerClose() {
     if (closed_callback_) {
         closed_callback_();
     }
-}
-
-TaskQueue* MediaChannel::SendQueue() {
-    if (!send_queue_) {
-        send_queue_ = std::make_unique<TaskQueue>(ToString(kind_) + ".channel.send.queue");
-    }
-    return send_queue_.get();
 }
 
 } // namespace naivertc

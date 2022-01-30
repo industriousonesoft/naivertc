@@ -24,7 +24,7 @@ public:
         MediaTransport* send_transport = nullptr;
     };
 public:
-    VideoSendStream(Configuration config, TaskQueue* task_queue);
+    VideoSendStream(Configuration config);
     ~VideoSendStream() override;
 
     std::vector<uint32_t> ssrcs() const override;
