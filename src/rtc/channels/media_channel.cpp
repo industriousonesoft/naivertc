@@ -6,17 +6,6 @@
 namespace naivertc {
 namespace {
 
-std::string ToString(MediaChannel::Kind kind) {
-    switch(kind) {
-    case MediaChannel::Kind::AUDIO:
-        return "audio";
-    case MediaChannel::Kind::VIDEO:
-        return "video";
-    default:
-        RTC_NOTREACHED();
-    }
-}
-
 void ParseRtpSendParameters(const sdp::Media& media, VideoSendStream::Configuration& config) {
     // Ssrcs
     // Media ssrc

@@ -38,14 +38,15 @@ public:
     
     virtual void Open(std::weak_ptr<MediaTransport> transport);
     virtual void Close();
-    virtual void OnMediaNegotiated(const sdp::Media local_media, 
-                                   const sdp::Media remote_media, 
-                                   sdp::Type remote_sdp_type);
 
     std::vector<uint32_t> send_ssrcs() const;
 
     void OnOpened(OpenedCallback callback);
     void OnClosed(ClosedCallback callback);
+
+    void OnMediaNegotiated(const sdp::Media local_media, 
+                           const sdp::Media remote_media, 
+                           sdp::Type remote_sdp_type);
 
     void OnRtcpPacket(CopyOnWriteBuffer in_packet) override;
     void OnRtpPacket(RtpPacketReceived in_packet) override;

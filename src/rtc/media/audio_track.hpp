@@ -14,9 +14,6 @@ public:
 private:
     void Open(std::weak_ptr<MediaTransport> transport) override {};
     void Close() override {};
-    void OnMediaNegotiated(const sdp::Media local_media, 
-                           const sdp::Media remote_media, 
-                           sdp::Type remote_type) override {}
 };
     
 } // namespace naivertc
