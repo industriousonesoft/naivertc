@@ -48,13 +48,23 @@ MY_TEST(NalUnitTest, Parse) {
 
 }
 
-MY_TEST(NalUnitTest, FindNaluIndices) {
+MY_TEST(NalUnitTest, FindNaluIndicesWithShortStartSequence) {
     const uint8_t h264_encoded_buffer[] = {0, 0, 1, uint8_t(h264::NaluType::IDR), 0xFF};
 
     std::vector<NaluIndex> nalu_indices = NalUnit::FindNaluIndices(h264_encoded_buffer, 5);
     EXPECT_EQ(nalu_indices.size(), 1u);
     EXPECT_EQ(nalu_indices[0].start_offset, 0);
     EXPECT_EQ(nalu_indices[0].payload_start_offset, 3);
+    EXPECT_EQ(nalu_indices[0].payload_size, 2);
+}
+
+MY_TEST(NalUnitTest, FindNaluIndicesWithLongStartSequence) {
+    const uint8_t h264_encoded_buffer[] = {0, 0, 0, 1, uint8_t(h264::NaluType::IDR), 0xFF};
+
+    std::vector<NaluIndex> nalu_indices = NalUnit::FindNaluIndices(h264_encoded_buffer, 6, NalUnit::Separator::LONG_START_SEQUENCE);
+    EXPECT_EQ(nalu_indices.size(), 1u);
+    EXPECT_EQ(nalu_indices[0].start_offset, 0);
+    EXPECT_EQ(nalu_indices[0].payload_start_offset, 4);
     EXPECT_EQ(nalu_indices[0].payload_size, 2);
 }
 

@@ -3,47 +3,54 @@
 namespace naivertc {
 namespace h264 {
 
-std::vector<NaluIndex> NalUnit::FindNaluIndices(const uint8_t* buffer, size_t size) {
+std::vector<NaluIndex> NalUnit::FindNaluIndices(const uint8_t* buffer, size_t size, Separator separator) {
     // This is sorta like Boyer-Moore, but with only the first optimization step:
     // given a 3-byte sequence we are looking at, if the 3rd byte isn't 1 or 0, skip
     // ahead to the next 3-byte sequence. 0 and 1 are relatively rate, so this will
     // skip the majority of reads/checks
     std::vector<NaluIndex> indices;
-    if (size < kNaluShortStartSequenceSize) {
-        return indices;
-    }
-    const size_t end = size - kNaluShortStartSequenceSize;
-    for (size_t i = 0; i < end;) {
-        if (buffer[i + 2] > 1) {
-            i += 3;
-        } else if (buffer[i + 2] == 1) {
-            // Found a start sequence, now check if it was a 3 or 4 byte one.
-            if (buffer[i + 1] == 0 && buffer[i] == 0) {
-                NaluIndex index = {i, i + 3, 0};
-                // If the index is not the first one, and the byte in front of the start offet is 0
-                if (index.start_offset > 0 && buffer[index.start_offset - 1] == 0) {
-                    --index.start_offset;
-                }
+    if (separator == Separator::LENGTH) {
 
-                // Update length of previous nalu index
-                auto it = indices.rbegin();
-                if (it != indices.rend()) {
-                    it->payload_size = index.start_offset - it->payload_start_offset;
-                }
+    } else {
+        const size_t start_sequence_size = separator == Separator::SHORT_START_SEQUENCE ? kNaluShortStartSequenceSize 
+                                                                                        : kNaluLongStartSequenceSize;
+        if (size < start_sequence_size) {
+            return indices;
+        }
+        const size_t end = size - start_sequence_size;
+        for (size_t i = 0; i < end;) {
+            if (buffer[i + start_sequence_size - 1] > 1) {
+                i += start_sequence_size;
+            } else if (buffer[i + start_sequence_size - 1] == 1) {
+                // Found a start sequence, now check if it was a 3 or 4 byte one.
+                if (buffer[i + 1] == 0 && buffer[i] == 0 && (separator == Separator::SHORT_START_SEQUENCE || buffer[i + 2] == 0)) {
+                    NaluIndex index = {i, i + start_sequence_size, 0};
+                    // If the index is not the first one, and the byte in front of the start offet is 0
+                    if (index.start_offset > 0 && buffer[index.start_offset - 1] == 0) {
+                        --index.start_offset;
+                    }
 
-                indices.push_back(index);
+                    // Update length of previous nalu index
+                    auto it = indices.rbegin();
+                    if (it != indices.rend()) {
+                        it->payload_size = index.start_offset - it->payload_start_offset;
+                    }
+
+                    indices.push_back(index);
+                }
+                i += start_sequence_size;
+            } else {
+                ++i;
             }
-            i += 3;
-        } else {
-            ++i;
+        }
+
+        // Update length of the last index, if any.
+        auto it = indices.rbegin();
+        if (it != indices.rend()) {
+            it->payload_size = size - it->payload_start_offset;
         }
     }
-
-    // Update length of the last index, if any.
-    auto it = indices.rbegin();
-    if (it != indices.rend()) {
-        it->payload_size = size - it->payload_start_offset;
-    }
+    
     return indices;
 }
 
