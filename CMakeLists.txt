@@ -121,6 +121,7 @@ set(LIB_HEADERS
     src/rtc/transports/dtls_srtp_transport.hpp
 
     # rtc -> pc
+    src/rtc/pc/ice_server.hpp
     src/rtc/pc/peer_connection_configuration.hpp
     src/rtc/pc/peer_connection.hpp
 
@@ -353,8 +354,8 @@ set(LIB_SOURCES
     src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
 
     # rtc -> pc
+    src/rtc/pc/ice_server.cpp
     src/rtc/pc/peer_connection.cpp
-    src/rtc/pc/peer_connection_configuration.cpp
     src/rtc/pc/peer_connection_ice_transport_delegate.cpp
     src/rtc/pc/peer_connection_dtls_transport_delegate.cpp
     src/rtc/pc/peer_connection_sctp_transport_delegate.cpp

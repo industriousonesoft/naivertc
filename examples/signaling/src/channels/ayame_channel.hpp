@@ -2,7 +2,7 @@
 #define _AYAME_CHANNEL_H_
 
 #include "base/websocket.hpp"
-#include <rtc/pc/peer_connection_configuration.hpp>
+#include <rtc/pc/ice_server.hpp>
 
 // nlohmann/json
 #include <nlohmann/json.hpp>

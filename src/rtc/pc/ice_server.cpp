@@ -1,4 +1,4 @@
-#include "rtc/pc/peer_connection_configuration.hpp"
+#include "rtc/pc/ice_server.hpp"
 
 #include <plog/Log.h>
 
@@ -127,13 +127,5 @@ std::string IceServer::relay_type_to_string() const {
         return "";
     }
 }
-
-// ProxyServer
-ProxyServer::ProxyServer(Type type_, const std::string hostname_, uint16_t port_, const std::string username_, const std::string password_) 
-    : type(type_),
-    hostname(std::move(hostname_)),
-    port(port_),
-    username(std::move(username_)),
-    password(std::move(password_)) {}
-
-}
+    
+} // namespace naivertc
