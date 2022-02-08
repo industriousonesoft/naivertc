@@ -55,12 +55,6 @@ set(LIB_HEADERS
     src/common/array_view.hpp
     src/common/thread_utils.hpp
 
-    # signaling
-    src/signaling/base/base_channel.hpp
-    src/signaling/common/url_parts.hpp
-    src/signaling/base/websocket.hpp
-    src/signaling/ayame/ayame_channel.hpp
-
     # rtc
     # rtc -> base
     src/rtc/base/internals.hpp
@@ -310,11 +304,6 @@ set(LIB_SOURCES
     src/common/logger.cpp
     src/common/weak_ptr_manager.cpp
     src/common/thread_utils.cpp
-
-    # signaling
-    src/signaling/base/base_channel.cpp
-    src/signaling/base/websocket.cpp
-    src/signaling/ayame/ayame_channel.cpp
 
     # rtc
     # rtc -> base
@@ -577,7 +566,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src)
 # linked libraries
 # json
 add_subdirectory(deps/json EXCLUDE_FROM_ALL)
-target_link_libraries(${PROJECT_NAME} PUBLIC nlohmann_json)
 # plog
 add_subdirectory(deps/plog EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} PUBLIC plog::plog)
@@ -627,9 +615,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC Usrsctp::Usrsctp)
 add_subdirectory(deps/libsrtp EXCLUDE_FROM_ALL)
 target_link_libraries(${PROJECT_NAME} PUBLIC srtp2)
 
+# signaling
+add_subdirectory(${PROJECT_SOURCE_DIR}/examples/signaling ${CMAKE_CURRENT_BINARY_DIR}/examples/signaling EXCLUDE_FROM_ALL)
+
 # examples
 add_subdirectory(${PROJECT_SOURCE_DIR}/examples/streamer ${CMAKE_CURRENT_BINARY_DIR}/examples/streamer EXCLUDE_FROM_ALL)
-add_subdirectory(${PROJECT_SOURCE_DIR}/examples/common_examples ${CMAKE_CURRENT_BINARY_DIR}/examples/common_examples EXCLUDE_FROM_ALL)
 
 # test
 if(ENABLE_TESTS)

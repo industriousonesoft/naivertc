@@ -85,7 +85,7 @@ bool Description::HasMedia() const {
 
 bool Description::HasAudio() const {
     for (const auto& entry : medias_) {
-        if (entry->kind() == MediaEntry::Kind::AUDIO) {
+        if (entry && entry->kind() == MediaEntry::Kind::AUDIO) {
             return true;
         } 
     }
@@ -94,7 +94,7 @@ bool Description::HasAudio() const {
 
 bool Description::HasVideo() const {
     for (const auto& entry : medias_) {
-        if (entry->kind() == MediaEntry::Kind::VIDEO) {
+        if (entry && entry->kind() == MediaEntry::Kind::VIDEO) {
             return true;
         } 
     }
@@ -103,7 +103,7 @@ bool Description::HasVideo() const {
 
 bool Description::HasMid(const std::string_view mid) const {
     for (const auto& entry : medias_) {
-        if (entry->mid() == mid) {
+        if (entry && entry->mid() == mid) {
             return true;
         } 
     }
@@ -177,7 +177,7 @@ void Description::ForEach(std::function<void(const Media&)> handler) const {
 
 const Media* Description::media(std::string_view mid) const {
     for (const auto& entry : medias_) {
-        if (entry->mid() == mid) {
+        if (entry && entry->mid() == mid) {
             return entry.get();
         }
     }
@@ -185,8 +185,11 @@ const Media* Description::media(std::string_view mid) const {
 }
 
 Media* Description::media(std::string_view mid) {
+    if (medias_.size() == 0) {
+        return nullptr;
+    }
     for (auto& entry : medias_) {
-        if (entry->mid() == mid) {
+        if (entry && entry->mid() == mid) {
             return entry.get();
         }
     }

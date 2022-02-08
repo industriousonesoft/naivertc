@@ -11,7 +11,7 @@
 #include <functional>
 #include <memory>
 
-#include "signaling/common/url_parts.hpp"
+#include "common/url_parts.hpp"
 
 // Boost
 #include <boost/asio/io_context.hpp>

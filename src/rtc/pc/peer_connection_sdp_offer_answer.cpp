@@ -390,9 +390,19 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
     RTC_RUN_ON(signaling_task_queue_);
     PLOG_VERBOSE << "Did process remote sdp: " << std::string(remote_sdp);
 
+    auto remote_ice_sdp = IceTransport::Description(remote_sdp.type(), 
+                                                    remote_sdp.role(), 
+                                                    remote_sdp.ice_ufrag(), 
+                                                    remote_sdp.ice_pwd());
+    network_task_queue_->Async([this, remote_sdp=std::move(remote_ice_sdp)](){
+        ice_transport_->SetRemoteDescription(std::move(remote_sdp));
+    });
+
+    remote_sdp_ = std::move(remote_sdp);
+
     // Handle incoming media track in remote SDP.
-    if (remote_sdp.type() == sdp::Type::ANSWER) {
-        remote_sdp.ForEach([this](const sdp::Media& remote_media) {
+    if (remote_sdp_->type() == sdp::Type::ANSWER) {
+        remote_sdp_->ForEach([this](const sdp::Media& remote_media) {
             auto it = media_tracks_.find(remote_media.mid());
             if (it != media_tracks_.end()) {
                 if (auto local_track = it->second.lock()) {
@@ -411,16 +421,6 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
             }
         });
     }
-
-    auto remote_ice_sdp = IceTransport::Description(remote_sdp.type(), 
-                                                    remote_sdp.role(), 
-                                                    remote_sdp.ice_ufrag(), 
-                                                    remote_sdp.ice_pwd());
-    network_task_queue_->Async([this, remote_sdp=std::move(remote_ice_sdp)](){
-        ice_transport_->SetRemoteDescription(std::move(remote_sdp));
-    });
-
-    remote_sdp_ = std::move(remote_sdp);
     
 }
 

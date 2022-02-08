@@ -15,15 +15,6 @@
             ],
             "cwd": "${workspaceFolder}",
             "env": {}
-        },
-        {
-            "name": "common_examples",
-            "type": "lldb",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/examples/common_examples/common_examples",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "env": {}
-        },
+        }
     ]
 }

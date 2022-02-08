@@ -1,7 +1,7 @@
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
 
-#include <signaling/ayame/ayame_channel.hpp>
+#include <channels/ayame_channel.hpp>
 #include <rtc/pc/peer_connection.hpp>
 
 // boost
@@ -9,14 +9,14 @@
 
 using namespace naivertc;
 
-class Client: public signaling::BaseChannel::Observer, public std::enable_shared_from_this<Client> {
+class Client: public signaling::AyameChannel::Observer {
     Client(boost::asio::io_context& ioc);
 public:
     static std::shared_ptr<Client> Create(boost::asio::io_context& ioc) {
         return std::shared_ptr<Client>(new Client(ioc));
     }
     // shared_ptr在引用为0是需要销毁对象，因此需确保析构函数是公开的
-    virtual ~Client();
+    ~Client() override;
 
     void Start();
     void Stop();
