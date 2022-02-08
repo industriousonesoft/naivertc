@@ -489,7 +489,7 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
 
 std::shared_ptr<MediaTrack> PeerConnection::OnIncomingMediaTrack(sdp::Media remote_sdp) {
     RTC_RUN_ON(signaling_task_queue_);
-    auto media_track = std::make_shared<MediaTrack>(std::move(remote_sdp));
+    auto media_track = std::make_shared<MediaTrack>(std::move(remote_sdp), worker_task_queue_.get());
     // Make sure the current media track dosen't be added before.
     if (media_tracks_.find(media_track->mid()) == media_tracks_.end()) {
         media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));

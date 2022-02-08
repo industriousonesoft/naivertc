@@ -4,6 +4,8 @@
 #include "base/defines.hpp"
 #include "base/thread_annotation.hpp"
 #include "rtc/media/media_track.hpp"
+#include "rtc/media/video/encoded_frame.hpp"
+
 
 namespace naivertc {
 
@@ -12,9 +14,7 @@ public:
     using MediaTrack::MediaTrack;
     ~VideoTrack() override;
 
-private:
-    void Open(std::weak_ptr<MediaTransport> transport) override {};
-    void Close() override {};
+    void Send(video::EncodedFrame encoded_frame);
 };
     
 } // namespace naivertc

@@ -14,38 +14,45 @@ MediaFileStreamSource::MediaFileStreamSource(std::string directory, std::string 
       sample_duration_ms_(1000 / samplesPerSecond),
       is_stoped_(true),
       sample_callback_(nullptr),
-      task_queue_("MediaFileStreamSource.task.queue") {
-
+      worker_queue_(naivertc::TaskQueueImpl::Current()) {
+    assert(worker_queue_ != nullptr);
 }
 
 MediaFileStreamSource::~MediaFileStreamSource() = default;
 
 void MediaFileStreamSource::Start() {
-    task_queue_.Async([this](){
-        is_stoped_ = false;
-        this->LoadNextSample();
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    is_stoped_ = false;
+    LoadNextSample();
 }
 
 void MediaFileStreamSource::Stop() {
-    task_queue_.Async([this](){
-        is_stoped_ = true;
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    is_stoped_ = true;
+    sample_callback_ = nullptr;
+}
+
+bool MediaFileStreamSource::IsRunning() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return is_stoped_ == false;
 }
 
 void MediaFileStreamSource::OnSampleAvailable(SampleAvailableCallback callback) {
-    task_queue_.Async([this, callback=std::move(callback)](){
-        this->sample_callback_ = std::move(callback);
-    });
+    RTC_RUN_ON(&sequence_checker_);
+    this->sample_callback_ = std::move(callback);
 }
 
 // Protected methods
-MediaFileStreamSource::Sample MediaFileStreamSource::CreateSample(std::ifstream& source) {
-    return Sample((std::istreambuf_iterator<char>(source)), std::istreambuf_iterator<char>());
+void MediaFileStreamSource::GenerateSample(std::ifstream& source, int64_t now_ms) {
+    Sample sample((std::istreambuf_iterator<char>(source)), std::istreambuf_iterator<char>());
+    if (sample_callback_) {
+        sample_callback_(std::move(sample), false, now_ms);
+    }
 }
 
 // Private methods
 void MediaFileStreamSource::LoadNextSample() {
+    RTC_RUN_ON(&sequence_checker_);
     if (is_stoped_) {
         return;
     }
@@ -54,7 +61,7 @@ void MediaFileStreamSource::LoadNextSample() {
 
     std::string frame_id = std::to_string(++counter_);
 
-    std::string file_path = directory_ + "/sample-" + frame_id + extension_;
+    std::string file_path = directory_ + "sample-" + frame_id + extension_;
     std::ifstream source(file_path, std::ios_base::binary);
     if (!source) {
         if (loop_ && counter_ > 0) {
@@ -63,25 +70,21 @@ void MediaFileStreamSource::LoadNextSample() {
             return;
         }
         if (sample_callback_) {
-            sample_callback_({}, clock_.now_ms());
+            sample_callback_({}, false, clock_.now_ms());
         }
         is_stoped_ = true;
         return;
     }
 
-    auto sample = CreateSample(source);
+    int64_t now_ms = clock_.now_ms();
+    GenerateSample(source, now_ms);
     
-    int64_t end_ms = clock_.now_ms();
-    if (sample_callback_) {
-        sample_callback_(std::move(sample), end_ms);
-    }
-
     int64_t delay_ms = 0;
-    int64_t eslapsed_ms = end_ms - start_ms;
+    int64_t eslapsed_ms = now_ms - start_ms;
     if (eslapsed_ms < sample_duration_ms_) {
         delay_ms = sample_duration_ms_ - eslapsed_ms;
     }
-    task_queue_.AsyncAfter(naivertc::TimeDelta::Millis(delay_ms), [this](){
+    worker_queue_->PostDelayed(naivertc::TimeDelta::Millis(delay_ms), [this](){
         this->LoadNextSample();
     });
 }

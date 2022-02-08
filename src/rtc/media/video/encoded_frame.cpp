@@ -3,13 +3,9 @@
 namespace naivertc {
 namespace video {
 
-EncodedFrame::EncodedFrame() {
-
-}
+// EncodedFrame::EncodedFrame() {}
     
-EncodedFrame::~EncodedFrame() {
-    
-}
+EncodedFrame::~EncodedFrame() = default;
     
 } // namespace video
 } // namespace naivertc

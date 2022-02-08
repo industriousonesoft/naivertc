@@ -1,8 +1,13 @@
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
 
+#include "stream/h264_file_stream_source.hpp"
+
+// signaling
 #include <channels/ayame_channel.hpp>
+// naivertc
 #include <rtc/pc/peer_connection.hpp>
+#include <rtc/base/task_utils/task_queue.hpp>
 
 // boost
 #include <boost/asio/io_context_strand.hpp>
@@ -23,11 +28,19 @@ public:
 
 private:
     void CreatePeerConnection(const RtcConfiguration& rtc_config);
+    
+    void AddAudioTrack(std::string cname, std::string stream_id);
+    void AddVideoTrack(std::string cname, std::string stream_id);
+    void AddDataChannel();
 
     void SendLocalSDP(const std::string sdp, bool is_offer);
     void SendLocalCandidate(const std::string mid, const std::string sdp);
 
+    void StartVideoStream(MediaStreamSource::SampleAvailableCallback callback);
+    void StopVideoStream();
+
 private:
+    // Implements signaling::AyameChannel::Observer
     void OnConnected(bool is_initiator) override;
     void OnClosed(boost::system::error_code ec) override;
     void OnIceServers(std::vector<IceServer> ice_servers) override;
@@ -44,6 +57,9 @@ private:
     std::shared_ptr<DataChannel> data_channel_;
     std::shared_ptr<AudioTrack> audio_track_;
     std::shared_ptr<VideoTrack> video_track_;
+
+    std::unique_ptr<naivertc::TaskQueue> worker_queue_;
+    std::unique_ptr<H264FileStreamSource> h264_file_stream_source_;
 };
 
 #endif

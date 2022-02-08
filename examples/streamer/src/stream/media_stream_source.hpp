@@ -8,11 +8,12 @@
 class MediaStreamSource {
 public:
     using Sample = std::vector<uint8_t>;
-    using SampleAvailableCallback = std::function<void(const Sample sample, int64_t capture_time_ms)>;
+    using SampleAvailableCallback = std::function<void(Sample sample, bool is_key_frame, int64_t capture_time_ms)>;
 public:
     virtual ~MediaStreamSource() = default;
     virtual void Start() = 0;
     virtual void Stop() = 0;
+    virtual bool IsRunning() const = 0;
     virtual void OnSampleAvailable(SampleAvailableCallback callback) = 0;
 };
 

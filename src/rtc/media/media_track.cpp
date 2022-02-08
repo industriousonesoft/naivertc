@@ -20,17 +20,26 @@ MediaTrack::Kind ToKind(sdp::MediaEntry::Kind kind) {
 } // namespace
 
 // Media track
-MediaTrack::MediaTrack(const Configuration& config) 
-    : MediaTrack(SdpBuilder::Build(config)) {}
+MediaTrack::MediaTrack(const Configuration& config, TaskQueue* worker_queue) 
+    : MediaTrack(SdpBuilder::Build(config), worker_queue) {}
 
-MediaTrack::MediaTrack(sdp::Media description)
-    : MediaChannel(ToKind(description.kind()), description.mid()),
+MediaTrack::MediaTrack(sdp::Media description, TaskQueue* worker_queue)
+    : MediaChannel(ToKind(description.kind()), description.mid(), worker_queue),
       description_(std::move(description)) {}
 
 MediaTrack::~MediaTrack() {}
 
 sdp::Media MediaTrack::description() const {
     return description_;
+}
+
+// Private methods
+ void MediaTrack::Open(std::weak_ptr<MediaTransport> transport) {
+    MediaChannel::Open(transport);
+ }
+    
+void MediaTrack::Close() {
+    MediaChannel::Close();
 }
 
 } // namespace naivertc

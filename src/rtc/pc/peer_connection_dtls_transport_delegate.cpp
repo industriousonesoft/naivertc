@@ -104,8 +104,8 @@ void PeerConnection::OpenMediaTracks() {
     RTC_RUN_ON(signaling_task_queue_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
-            if(media_track->is_opened()) {
-                media_track->Open(shared_from_this());
+            if(!media_track->is_opened()) {
+                std::static_pointer_cast<MediaChannel>(media_track)->Open(shared_from_this());
             }
         }
     }
@@ -115,7 +115,7 @@ void PeerConnection::CloseMediaTracks() {
     RTC_RUN_ON(signaling_task_queue_);
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
-            media_track->Close();
+            std::static_pointer_cast<MediaChannel>(media_track)->Close();
         }
     }
     media_tracks_.clear();

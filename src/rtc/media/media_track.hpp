@@ -84,11 +84,15 @@ public:
     };
 
 public:
-    MediaTrack(const Configuration& config);
-    MediaTrack(sdp::Media description);
+    MediaTrack(const Configuration& config, TaskQueue* worker_queue);
+    MediaTrack(sdp::Media description, TaskQueue* worker_queue);
     virtual ~MediaTrack();
 
     sdp::Media description() const;
+
+private:
+    void Open(std::weak_ptr<MediaTransport> transport) override;
+    void Close() override;
 
 public:
     // SdpBuilder

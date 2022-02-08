@@ -3,7 +3,7 @@
 
 #include "stream/media_stream_source.hpp"
 
-#include <rtc/base/task_utils/task_queue.hpp>
+#include <rtc/base/synchronization/sequence_checker.hpp>
 #include <rtc/base/time/clock_real_time.hpp>
 
 #include <string>
@@ -16,14 +16,16 @@ public:
 
     virtual void Start() override;
     virtual void Stop() override;
+    bool IsRunning() const override;
     void OnSampleAvailable(SampleAvailableCallback callback) override;
 
 protected:
-    virtual Sample CreateSample(std::ifstream& source);
+    virtual void GenerateSample(std::ifstream& source, int64_t now_ms);
 
 private:
     void LoadNextSample();
 protected:
+    naivertc::SequenceChecker sequence_checker_;
     const std::string directory_;
     const std::string extension_;
     bool loop_;
@@ -35,7 +37,7 @@ protected:
     SampleAvailableCallback sample_callback_;
 
     naivertc::RealTimeClock clock_;
-    naivertc::TaskQueue task_queue_;
+    naivertc::TaskQueueImpl* const worker_queue_;
 };
 
 #endif

@@ -10,11 +10,13 @@ namespace video {
     
 class RTC_CPP_EXPORT EncodedFrame : public CopyOnWriteBuffer {
 public:
-    EncodedFrame();
+    using CopyOnWriteBuffer::CopyOnWriteBuffer;
     ~EncodedFrame();
 
     uint16_t width() const { return width_; }
+    void set_width(uint16_t width) { width_ = width; };
     uint16_t height() const { return height_; }
+    void set_height(uint16_t height) { height_ = height; };
 
     video::FrameType frame_type() const { return frame_type_; }
     void set_frame_type(video::FrameType type) { frame_type_ = type; }

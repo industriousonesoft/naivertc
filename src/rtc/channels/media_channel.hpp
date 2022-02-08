@@ -8,6 +8,7 @@
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/base/time/clock_real_time.hpp"
 #include "rtc/api/rtp_packet_sink.hpp"
+#include "rtc/rtp_rtcp/base/rtp_parameters.hpp"
 
 #include <iostream>
 
@@ -48,24 +49,29 @@ public:
                            const sdp::Media remote_media, 
                            sdp::Type remote_sdp_type);
 
+    // Implements RtcpPacketSink
     void OnRtcpPacket(CopyOnWriteBuffer in_packet) override;
+    // Implements RtpPacketSink
     void OnRtpPacket(RtpPacketReceived in_packet) override;
 
 protected:
-    MediaChannel(Kind kind, std::string mid);
+    MediaChannel(Kind kind, std::string mid, TaskQueue* worker_queue);
 
 private:
     void TriggerOpen();
     void TriggerClose();
+
+    void CreateStreams();
 
 protected:
     const Kind kind_;
     const std::string mid_;
     std::unique_ptr<RealTimeClock> clock_;
     SequenceChecker signaling_queue_checker_;
-    TaskQueueImpl* signaling_queue_;
+    TaskQueueImpl* const signaling_queue_;
+    TaskQueue* const worker_queue_;
 
-    SequenceChecker worker_queue_checker_;
+    std::optional<RtpParameters> send_rtp_parameters_;
 
     bool is_opened_ = false;
     OpenedCallback opened_callback_ = nullptr;

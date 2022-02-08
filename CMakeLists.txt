@@ -162,6 +162,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp
     src/rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp
     src/rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp
+    src/rtc/rtp_rtcp/base/rtp_parameters.hpp
     src/rtc/rtp_rtcp/base/rtp_statistic_structs.hpp
     src/rtc/rtp_rtcp/base/rtcp_statistic_structs.hpp
     src/rtc/rtp_rtcp/base/rtp_utils.hpp

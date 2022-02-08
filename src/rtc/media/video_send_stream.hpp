@@ -17,8 +17,7 @@ class RTC_CPP_EXPORT VideoSendStream : public VideoEncodedFrameSink,
                                        public MediaSendStream {
 public:
     struct Configuration {
-        using RtpConfig = struct RtpVideoSender::Configuration;
-        RtpConfig rtp;
+        RtpParameters rtp;
 
         Clock* clock;
         MediaTransport* send_transport = nullptr;

@@ -10,10 +10,6 @@ class RTC_CPP_EXPORT AudioTrack : public MediaTrack {
 public:
     using MediaTrack::MediaTrack;
     ~AudioTrack() override;
-
-private:
-    void Open(std::weak_ptr<MediaTransport> transport) override {};
-    void Close() override {};
 };
     
 } // namespace naivertc

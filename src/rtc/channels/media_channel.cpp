@@ -6,19 +6,20 @@
 namespace naivertc {
 namespace {
 
-void ParseRtpSendParameters(const sdp::Media& media, VideoSendStream::Configuration& config) {
+RtpParameters ParseRtpParameters(const sdp::Media& media) {
+    RtpParameters rtp_parameters;
     // Ssrcs
     // Media ssrc
     if (!media.media_ssrcs().empty()) {
-        config.rtp.local_media_ssrc = media.media_ssrcs()[0];
+        rtp_parameters.local_media_ssrc = media.media_ssrcs()[0];
     }
     // Rtx ssrc
     if (!media.rtx_ssrcs().empty()) {
-        config.rtp.rtx_send_ssrc = media.rtx_ssrcs()[0];
+        rtp_parameters.rtx_send_ssrc = media.rtx_ssrcs()[0];
     }
     // FlexFec ssrc
     if (!media.fec_ssrcs().empty()) {
-        config.rtp.flexfec.ssrc = media.fec_ssrcs()[0];
+        rtp_parameters.flexfec.ssrc = media.fec_ssrcs()[0];
     }
     
     // Payload types
@@ -26,23 +27,23 @@ void ParseRtpSendParameters(const sdp::Media& media, VideoSendStream::Configurat
         switch (rtp_map.codec)
         {
         case sdp::Media::Codec::H264: {
-            config.rtp.media_payload_type = rtp_map.payload_type;
-            config.rtp.media_rtx_payload_type = rtp_map.rtx_payload_type;
+            rtp_parameters.media_payload_type = rtp_map.payload_type;
+            rtp_parameters.media_rtx_payload_type = rtp_map.rtx_payload_type;
             for (const auto& rtcp_feedback : rtp_map.rtcp_feedbacks) {
                 // NACK enabled
                 if (rtcp_feedback == sdp::Media::RtcpFeedback::NACK) {
-                    config.rtp.nack_enabled = true;
+                    rtp_parameters.nack_enabled = true;
                 }
             }
             break;
         }
         case sdp::Media::Codec::RED: {
-            config.rtp.ulpfec.red_payload_type = rtp_map.payload_type;
-            config.rtp.ulpfec.red_rtx_payload_type = rtp_map.rtx_payload_type;
+            rtp_parameters.ulpfec.red_payload_type = rtp_map.payload_type;
+            rtp_parameters.ulpfec.red_rtx_payload_type = rtp_map.rtx_payload_type;
             break;
         }
         case sdp::Media::Codec::ULP_FEC: {
-            config.rtp.ulpfec.ulpfec_payload_type = rtp_map.payload_type;
+            rtp_parameters.ulpfec.ulpfec_payload_type = rtp_map.payload_type;
             break;
         }
         default:
@@ -50,18 +51,22 @@ void ParseRtpSendParameters(const sdp::Media& media, VideoSendStream::Configurat
             break;
         }
     });
+
+    return rtp_parameters;
 }
 
     
 } // namespace
 
 
-MediaChannel::MediaChannel(Kind kind, std::string mid)
+MediaChannel::MediaChannel(Kind kind, std::string mid, TaskQueue* worker_queue)
     : kind_(kind),
       mid_(std::move(mid)),
       clock_(std::make_unique<RealTimeClock>()),
-      signaling_queue_(TaskQueueImpl::Current()) {
-    worker_queue_checker_.Detach();
+      signaling_queue_(TaskQueueImpl::Current()),
+      worker_queue_(worker_queue) {
+    assert(signaling_queue_ != nullptr);
+    assert(worker_queue_ != nullptr);
 }
 
 MediaChannel::~MediaChannel() {}
@@ -82,43 +87,48 @@ bool MediaChannel::is_opened() const {
 void MediaChannel::OnOpened(OpenedCallback callback) {
     signaling_queue_->Post([this, callback=std::move(callback)](){
         opened_callback_ = callback;
-        TriggerOpen();
+        if (is_opened_ && opened_callback_) {
+            opened_callback_();
+        }
     });
 }
 
 void MediaChannel::OnClosed(ClosedCallback callback) {
     signaling_queue_->Post([this, callback=std::move(callback)](){
         closed_callback_ = callback;
-        TriggerClose();
     });
 }
 
 void MediaChannel::Open(std::weak_ptr<MediaTransport> transport) {
     RTC_RUN_ON(signaling_queue_);
     send_transport_ = std::move(transport);
+    TriggerOpen();
+    worker_queue_->Async([this](){
+        CreateStreams();
+    });
 }
 
 void MediaChannel::Close() {
     RTC_RUN_ON(signaling_queue_);
-    send_transport_.reset();
+    TriggerClose();
+    worker_queue_->Async([this](){
+        send_rtp_parameters_.reset();
+        send_stream_.reset();
+        signaling_queue_->Post([this](){
+            send_transport_.reset();
+        });
+    });
 }
 
 void MediaChannel::OnMediaNegotiated(sdp::Media local_media, 
                                      sdp::Media remote_media, 
                                      sdp::Type remote_sdp_type) {
-    RTC_RUN_ON(&worker_queue_checker_);
-   
+    RTC_RUN_ON(worker_queue_);
     if (kind_ == Kind::VIDEO) {
         // Sendable
         if (local_media.direction() == sdp::Direction::SEND_ONLY ||
             local_media.direction() == sdp::Direction::SEND_RECV) {
-            VideoSendStream::Configuration send_config;
-            send_config.clock = clock_.get();
-            send_config.send_transport = send_transport_.lock().get();
-        
-            ParseRtpSendParameters(local_media, send_config);
-
-            send_stream_ = std::unique_ptr<MediaSendStream>(new VideoSendStream(std::move(send_config)));
+            send_rtp_parameters_.emplace(ParseRtpParameters(local_media));
         }
 
         // Receivable
@@ -126,25 +136,26 @@ void MediaChannel::OnMediaNegotiated(sdp::Media local_media,
             local_media.direction() == sdp::Direction::SEND_RECV) {
             // TODO: Add video receive stream.
         }
+
     } else if (kind_ == Kind::AUDIO) {
         // TODO: Add audio send and receive stream.
     }
 }
 
 std::vector<uint32_t> MediaChannel::send_ssrcs() const {
-    RTC_RUN_ON(&worker_queue_checker_);
+    RTC_RUN_ON(worker_queue_);
     return send_stream_ ? send_stream_->ssrcs() : std::vector<uint32_t>();
 }
 
 void MediaChannel::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
-    RTC_RUN_ON(&worker_queue_checker_);
+    RTC_RUN_ON(worker_queue_);
     if (send_stream_) {
         send_stream_->OnRtcpPacket(in_packet);
     }
 }
 
 void MediaChannel::OnRtpPacket(RtpPacketReceived in_packet) {
-    RTC_RUN_ON(&worker_queue_checker_);
+    RTC_RUN_ON(worker_queue_);
 }
 
 // Private methods
@@ -168,6 +179,21 @@ void MediaChannel::TriggerClose() {
     if (closed_callback_) {
         closed_callback_();
     }
+}
+
+void MediaChannel::CreateStreams() {
+    RTC_RUN_ON(worker_queue_);
+
+    // Send stream
+    if (send_rtp_parameters_) {
+        VideoSendStream::Configuration send_config;
+        send_config.clock = clock_.get();
+        send_config.send_transport = send_transport_.lock().get();
+        send_config.rtp = send_rtp_parameters_.value();
+
+        send_stream_.reset(new VideoSendStream(std::move(send_config)));
+    }
+
 }
 
 } // namespace naivertc
