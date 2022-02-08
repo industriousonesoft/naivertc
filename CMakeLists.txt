@@ -699,7 +699,7 @@ set(UNITTEST_SOURCES
     src/rtc/sdp/sdp_description_unittest.cpp
 
     # rtc -> pc
-    src/rtc/pc/peer_connection_configuration_unittest.cpp
+    src/rtc/pc/ice_server_unittest.cpp
 
     # rtc -> rtp_rtcp
     src/rtc/rtp_rtcp/rtp_sender_unittest.cpp

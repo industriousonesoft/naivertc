@@ -1,4 +1,4 @@
-#include "rtc/pc/peer_connection_configuration.hpp"
+#include "rtc/pc/ice_server.hpp"
 
 #include <gtest/gtest.h>
 
@@ -27,5 +27,5 @@ MY_TEST(IceServerTest, CreateFromTurnURL) {
     EXPECT_EQ(ice_server.relay_type(), IceServer::RelayType::TURN_UDP);
 }
 
-}
-}
+} // namespace test
+} // namespace naivertc

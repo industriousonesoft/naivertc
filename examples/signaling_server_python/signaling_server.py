@@ -25,6 +25,7 @@ async def handle_websocket(websocket, path):
             data = await websocket.recv()
             print('Client {} << {}'.format(client_id, data))
             message = json.loads(data)
+            # TODO: Using roomId instead.
             dest_client_id = message['id']
             dest_websocket = clients[dest_client_id]
             if dest_websocket:

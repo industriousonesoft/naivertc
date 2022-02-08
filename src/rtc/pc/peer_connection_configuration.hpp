@@ -78,6 +78,6 @@ struct RTC_CPP_EXPORT RtcConfiguration {
 
 };
 
-}
+} // namespace naivertc
 
 #endif
