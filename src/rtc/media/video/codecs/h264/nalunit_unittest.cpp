@@ -68,6 +68,25 @@ MY_TEST(NalUnitTest, FindNaluIndicesWithLongStartSequence) {
     EXPECT_EQ(nalu_indices[0].payload_size, 2);
 }
 
+MY_TEST(NalUnitTest, FindNaluIndicesWithLengthSeparator) {
+    const uint8_t h264_encoded_buffer[] = {0x00,0x00,0x00,0x19,0x67,0x42,0xc0,0x1f,
+                                           0xd9,0x80,0x50,0x05,0xbb,0x01,0x10,0x00,
+                                           0x00,0x03,0x00,0x10,0x00,0x00,0x03,0x03,
+                                           0xc0,0xf1,0x83,0x26,0x80,
+                                           0x00,0x00,0x00,0x05,0x68,0xc9,0x60,0xf2,
+                                           0xc8};
+    const size_t kBufferSize = sizeof(h264_encoded_buffer);
+
+    std::vector<NaluIndex> nalu_indices = NalUnit::FindNaluIndices(h264_encoded_buffer, kBufferSize, NalUnit::Separator::LENGTH);
+    EXPECT_EQ(nalu_indices.size(), 2u);
+    EXPECT_EQ(nalu_indices[0].start_offset, 0);
+    EXPECT_EQ(nalu_indices[0].payload_start_offset, 4);
+    EXPECT_EQ(nalu_indices[0].payload_size, 25);
+    EXPECT_EQ(nalu_indices[1].start_offset, 29);
+    EXPECT_EQ(nalu_indices[1].payload_start_offset, 33);
+    EXPECT_EQ(nalu_indices[1].payload_size, 5);
+}
+
 MY_TEST(NalUnitTest, RetrieveRbspFromEbsp) {
     uint8_t ebsp_buffer_1[] = {0x00, 0x00, 0x03, 0x01};
     uint8_t ebsp_buffer_2[] = {0x00, 0x00, 0x03, 0x02};

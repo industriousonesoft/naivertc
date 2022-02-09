@@ -6,10 +6,10 @@
 #include <set>
 
 namespace naivertc {
-namespace rtcp {
+namespace {
 
 // RTCP common header
-struct RTC_CPP_EXPORT Header {
+struct RTC_CPP_EXPORT RtcpHeader {
     uint8_t first_byte;
     uint8_t payload_type;
     uint16_t payload_size_in_32bit;
@@ -17,14 +17,14 @@ struct RTC_CPP_EXPORT Header {
 
 // RTCP payload-specific feedback packet (payload type = 206)
 struct RTC_CPP_EXPORT PSFeedback {
-    Header header;
+    RtcpHeader header;
     uint32_t packet_sender_ssrc;
     uint32_t media_source_ssrc;
 };
 
 // RTCP rtp feedback packet (payload type = 205)
 struct RTC_CPP_EXPORT RtpFeedback {
-    Header header;
+    RtcpHeader header;
     uint32_t packet_sender_ssrc;
     uint32_t media_source_ssrc;
 };
@@ -42,7 +42,7 @@ struct RTC_CPP_EXPORT ReportBlock {
 
 // RTCP sender report packet (payload type = 200)
 struct RTC_CPP_EXPORT SenderReport {
-    Header header;
+    RtcpHeader header;
     uint32_t packet_sender_ssrc;
     uint64_t ntp_timestamp;
     uint32_t rtp_timestamp;
@@ -60,7 +60,7 @@ struct RTC_CPP_EXPORT SenderReport {
 
 // RTCP receiver report packet (payload type = 201)
 struct RTC_CPP_EXPORT ReceiverReport {
-    Header header;
+    RtcpHeader header;
     uint32_t packet_sender_ssrc;
 
     ReportBlock report_blocks;
@@ -70,49 +70,72 @@ struct RTC_CPP_EXPORT ReceiverReport {
         return &report_blocks + sizeof(ReportBlock) * num; 
     }
 };
+
+// RTCP extended report packet (payload type = 207)
+struct RTC_CPP_EXPORT ExtendedReport {
+    RtcpHeader header;
+    uint32_t packet_sender_ssrc;
+};
     
-} // namespace rtcp
+} // namespace
 
 bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
+    if (rtcp_sink_by_ssrc_.empty()) {
+        PLOG_WARNING << "No RTCP sink available.";
+        return false;
+    }
     if (!IsRtcpPacket(in_packet)) {
+        PLOG_WARNING << "The incoming packet is not a RTCP packet.";
         return false;
     }
     std::set<uint32_t> ssrcs;
     size_t packet_size = in_packet.size();
     size_t offset = 0;
     // Parse buffer as a compound packet
-    while((sizeof(rtcp::Header) + offset) <= packet_size) {
-        auto rtcp_header = reinterpret_cast<rtcp::Header *>(in_packet.data() + offset);
+    while((offset + 4 /* RTCP header fixed size */) <= packet_size) {
+        auto rtcp_header = reinterpret_cast<RtcpHeader *>(in_packet.data() + offset);
         // Calculate packet size in bytes
-        size_t rtcp_packet_size = 4 /* Fixed RTCP header size */ + rtcp_header->payload_size_in_32bit * 4;
+        size_t rtcp_packet_size = /* rtcp_header_fixed_size=*/ 4 + /*payload_size=*/ntohs(rtcp_header->payload_size_in_32bit) * 4;
         if (rtcp_packet_size > packet_size - offset) {
             break;
         }
         offset += rtcp_packet_size;
-        // RTP feedback packet (pt = 205)
-        if (rtcp_header->payload_type == 205) {
-            auto rtp_fb = reinterpret_cast<rtcp::RtpFeedback*>(rtcp_header);
-            ssrcs.insert(rtp_fb->packet_sender_ssrc);
-            ssrcs.insert(rtp_fb->media_source_ssrc);
-        // RTCP payload-specific packet (pt = 206) 
-        } else if (rtcp_header->payload_type == 206) {
-            auto ps_fb = reinterpret_cast<rtcp::PSFeedback*>(rtcp_header);
-            ssrcs.insert(ps_fb->packet_sender_ssrc);
-            ssrcs.insert(ps_fb->media_source_ssrc);
         // RTCP sender report (pt = 200)
-        } else if (rtcp_header->payload_type == 200) {
-            auto rtcp_sr = reinterpret_cast<rtcp::SenderReport*>(rtcp_header);
-            ssrcs.insert(rtcp_sr->packet_sender_ssrc);
+        if (rtcp_header->payload_type == 200) {
+            auto rtcp_sr = reinterpret_cast<SenderReport*>(rtcp_header);
+            uint32_t sender_ssrc = ntohl(rtcp_sr->packet_sender_ssrc);
+            ssrcs.insert(sender_ssrc);
             for (uint8_t i = 0; i < rtcp_sr->report_count(); i++) {
-                ssrcs.insert(rtcp_sr->GetReportBlock(i)->source_ssrc);
+                uint32_t media_source_ssrc = ntohl(rtcp_sr->GetReportBlock(i)->source_ssrc);
+                ssrcs.insert(media_source_ssrc);
             }
-         // RTCP receiver report (pt = 200)
-        } else if (rtcp_header->payload_type == 201) {
-            auto rtcp_rr = reinterpret_cast<rtcp::ReceiverReport*>(rtcp_header);
-            ssrcs.insert(rtcp_rr->packet_sender_ssrc);
-            for (uint8_t i = 0; i < rtcp_rr->report_count(); i++) {
-                ssrcs.insert(rtcp_rr->GetReportBlock(i)->source_ssrc);
+        } 
+        // RTCP receiver report (pt = 201)
+        else if (rtcp_header->payload_type == 201) {
+            auto rtcp_sr = reinterpret_cast<ReceiverReport*>(rtcp_header);
+            uint32_t sender_ssrc = ntohl(rtcp_sr->packet_sender_ssrc);
+            ssrcs.insert(sender_ssrc);
+            for (uint8_t i = 0; i < rtcp_sr->report_count(); i++) {
+                uint32_t media_source_ssrc = ntohl(rtcp_sr->GetReportBlock(i)->source_ssrc);
+                ssrcs.insert(media_source_ssrc);
+                PLOG_VERBOSE << "RTCP RR report block source ssrc= " << media_source_ssrc;
             }
+        } 
+        // RTP feedback packet (pt = 205) or RTCP payload-specific packet (pt = 206) 
+        else if (rtcp_header->payload_type == 205 || rtcp_header->payload_type == 206) {
+            auto rtp_fb = reinterpret_cast<RtpFeedback*>(rtcp_header);
+            uint32_t sender_ssrc = ntohl(rtp_fb->packet_sender_ssrc);
+            ssrcs.insert(sender_ssrc);
+            // NOTE: Zero indicates |media_source_ssrc| is unsed, like REMB packet.
+            uint32_t source_ssrc = ntohl(rtp_fb->media_source_ssrc);
+            if (source_ssrc > 0) {
+                ssrcs.insert(source_ssrc);
+            }
+        } 
+        // RTCP extended report (pt = 207)
+        else if (rtcp_header->payload_type == 207) {
+            auto rtcp_xr = reinterpret_cast<ExtendedReport*>(rtcp_header);
+            ssrcs.insert(ntohl(rtcp_xr->packet_sender_ssrc));
         } else {
             // TODO: Support more RTCP packet
             PLOG_WARNING << "Unsupport RTCP packet, paylaod type=" << rtcp_header->payload_type;
@@ -120,8 +143,11 @@ bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
     }
     
     for (uint32_t ssrc : ssrcs) {
-        if (auto sink = rtcp_sink_by_ssrc_.at(ssrc)) {
-            sink->OnRtcpPacket(in_packet);
+        auto it = rtcp_sink_by_ssrc_.find(ssrc);
+        if (it != rtcp_sink_by_ssrc_.end()) {
+            it->second->OnRtcpPacket(in_packet);
+        } else {
+            
         }
     }
 

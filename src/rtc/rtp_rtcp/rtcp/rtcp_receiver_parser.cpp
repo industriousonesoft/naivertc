@@ -67,6 +67,7 @@ bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet,
                 ++num_skipped_packets_;
             }
             break;
+        // Xr
         case rtcp::ExtendedReports::kPacketType:
             if (!ParseXr(rtcp_block, packet_info)) {
                 ++num_skipped_packets_;
@@ -110,6 +111,7 @@ bool RtcpReceiver::ParseCompoundPacket(CopyOnWriteBuffer packet,
                     ++num_skipped_packets_;
                 }
                 break;
+            // Application layer FB (AFB) message
             case rtcp::Psfb::kAfbMessageType:
                 if (!ParseAfb(rtcp_block, packet_info)) {
                     ++num_skipped_packets_;
@@ -272,6 +274,8 @@ void RtcpReceiver::HandleReportBlock(const rtcp::ReportBlock& report_block,
     }
 
     packet_info->report_blocks.push_back(*rtcp_report_block);
+
+    PLOG_VERBOSE << "Parsed a report block, rtt_ms = " << rtt_ms << " ms.";
 }
 
 // Sdes
@@ -282,7 +286,7 @@ bool RtcpReceiver::ParseSdes(const rtcp::CommonHeader& rtcp_block,
         return false;
     }
     for (const auto& chunk : sdes.chunks()) {
-        PLOG_VERBOSE << "Received: ssrc=" << chunk.ssrc
+        PLOG_VERBOSE << "Received => ssrc=" << chunk.ssrc
                      << ", cname=" << chunk.cname;
         if (cname_observer_) {
             cname_observer_->OnCname(chunk.ssrc, chunk.cname);
@@ -305,6 +309,10 @@ bool RtcpReceiver::ParseNack(const rtcp::CommonHeader& rtcp_block,
         return false;
     }
 
+    if (nack.packet_ids().empty()) {
+        return true;
+    }
+
     packet_info->nack_list.insert(packet_info->nack_list.end(), 
                                   nack.packet_ids().begin(), 
                                   nack.packet_ids().end());
@@ -313,12 +321,12 @@ bool RtcpReceiver::ParseNack(const rtcp::CommonHeader& rtcp_block,
         nack_stats_.ReportRequest(packet_id);
     }
 
-    if (!nack.packet_ids().empty()) {
-        packet_info->packet_type_flags |= RtcpPacketType::NACK;
-        ++packet_type_counter_.nack_packets;
-        packet_type_counter_.nack_requests = nack_stats_.requests();
-        packet_type_counter_.unique_nack_requests = nack_stats_.unique_requests();
-    }
+    packet_info->packet_type_flags |= RtcpPacketType::NACK;
+    ++packet_type_counter_.nack_packets;
+    packet_type_counter_.nack_requests = nack_stats_.requests();
+    packet_type_counter_.unique_nack_requests = nack_stats_.unique_requests();
+
+    PLOG_VERBOSE << "Received => NACK list count=" << nack.packet_ids().size();
 
     return true;
 }
@@ -353,7 +361,7 @@ bool RtcpReceiver::ParsePli(const rtcp::CommonHeader& rtcp_block,
         // Received a signal that we need to send a new key frame.
         packet_info->packet_type_flags |= RtcpPacketType::PLI;
 
-        PLOG_VERBOSE << "Received FLI from remote ssrc=" << packet_info->remote_ssrc;
+        PLOG_VERBOSE << "Received => FLI from remote ssrc=" << packet_info->remote_ssrc;
     }
 
     return true;
@@ -384,7 +392,7 @@ bool RtcpReceiver::ParseFir(const rtcp::CommonHeader& rtcp_block,
         packet_info->packet_type_flags |= RtcpPacketType::FIR;
     }
 
-    PLOG_VERBOSE << "Received FIR from remote ssrc=" << packet_info->remote_ssrc;
+    PLOG_VERBOSE << "Received => FIR from remote ssrc=" << packet_info->remote_ssrc;
 
     return true;
 }
@@ -397,6 +405,7 @@ bool RtcpReceiver::ParseAfb(const rtcp::CommonHeader& rtcp_block,
         if (remb.Parse(rtcp_block)) {
             packet_info->packet_type_flags |= RtcpPacketType::REMB;
             packet_info->remb_bps = remb.bitrate_bps();
+            PLOG_VERBOSE << "Received REMB= " << packet_info->remb_bps << " bps.";
             return true;
         }
     }
@@ -445,6 +454,8 @@ bool RtcpReceiver::ParseBye(const rtcp::CommonHeader& rtcp_block) {
         rrtr_its_.erase(it);
     }
     xr_rr_rtt_ms_ = 0;
+
+    PLOG_VERBOSE << "Received => Bye with reason: " << bye.reason();
     return true;
 }
 
@@ -466,6 +477,8 @@ bool RtcpReceiver::ParseXr(const rtcp::CommonHeader& rtcp_block,
     if (xr.target_bitrate()) {
         HandleXrTargetBitrateBlock(*xr.target_bitrate(), packet_info, xr.sender_ssrc());
     }
+
+    PLOG_VERBOSE << "Received => Extended reports.";
 
     return true;
 }

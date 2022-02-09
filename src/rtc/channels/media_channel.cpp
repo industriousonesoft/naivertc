@@ -128,7 +128,20 @@ void MediaChannel::OnMediaNegotiated(sdp::Media local_media,
         // Sendable
         if (local_media.direction() == sdp::Direction::SEND_ONLY ||
             local_media.direction() == sdp::Direction::SEND_RECV) {
-            send_rtp_parameters_.emplace(ParseRtpParameters(local_media));
+            auto rtp_params = ParseRtpParameters(local_media);
+            // Media ssrc
+            if (rtp_params.local_media_ssrc >= 0) {
+                send_ssrcs_.push_back(rtp_params.local_media_ssrc);
+            }
+            // RTX ssrc
+            if (rtp_params.rtx_send_ssrc) {
+                send_ssrcs_.push_back(*rtp_params.rtx_send_ssrc);
+            }
+            // FLEX_FEC ssrc
+            if (rtp_params.flexfec.payload_type >= 0) {
+                send_ssrcs_.push_back(rtp_params.flexfec.ssrc);
+            }
+            send_rtp_parameters_.emplace(std::move(rtp_params));
         }
 
         // Receivable
@@ -144,7 +157,7 @@ void MediaChannel::OnMediaNegotiated(sdp::Media local_media,
 
 std::vector<uint32_t> MediaChannel::send_ssrcs() const {
     RTC_RUN_ON(worker_queue_);
-    return send_stream_ ? send_stream_->ssrcs() : std::vector<uint32_t>();
+    return send_ssrcs_;
 }
 
 void MediaChannel::OnRtcpPacket(CopyOnWriteBuffer in_packet) {

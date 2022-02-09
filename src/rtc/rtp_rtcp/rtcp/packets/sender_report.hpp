@@ -55,7 +55,7 @@ public:
                   PacketReadyCallback callback) const override;
 
 private:
-    static constexpr size_t kSenderReportFixedSize = 24;
+    static constexpr size_t kSenderReportBaseSize = 24;
 
     NtpTime ntp_;
     uint32_t rtp_timestamp_;

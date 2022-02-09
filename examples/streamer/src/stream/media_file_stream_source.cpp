@@ -3,7 +3,7 @@
 #include "rtc/base/units/time_delta.hpp"
 
 #include <limits>
-
+#include <plog/Log.h>
 
 MediaFileStreamSource::MediaFileStreamSource(std::string directory, std::string extension, int samplesPerSecond, bool loop) 
     : directory_(std::move(directory)),
@@ -67,12 +67,14 @@ void MediaFileStreamSource::LoadNextSample() {
         if (loop_ && counter_ > 0) {
             counter_ = -1;
             LoadNextSample();
+            PLOG_VERBOSE << "Start a new loop.";
             return;
         }
         if (sample_callback_) {
             sample_callback_({}, false, clock_.now_ms());
         }
         is_stoped_ = true;
+        PLOG_VERBOSE << "Media file source stoped.";
         return;
     }
 

@@ -62,8 +62,8 @@ bool SenderReport::Parse(const CommonHeader& packet) {
         return false;
     }
     const uint8_t report_block_count = packet.count();
-    if (packet.payload_size() < kSenderReportFixedSize + report_block_count * ReportBlock::kFixedReportBlockSize) {
-        PLOG_WARNING << "Packet is too small to contain all the data.";
+    if (packet.payload_size() < kSenderReportBaseSize + report_block_count * ReportBlock::kFixedReportBlockSize) {
+        PLOG_WARNING << "Packet [size=" << packet.packet_size() << "] is too small to contain all the data.";
         return false;
     }
     // Read SenderResport header
@@ -81,7 +81,7 @@ bool SenderReport::Parse(const CommonHeader& packet) {
     sender_packet_count_ = ByteReader<uint32_t>::ReadBigEndian(&payload[16]);
     sender_octet_count_ = ByteReader<uint32_t>::ReadBigEndian(&payload[20]);
     report_blocks_.resize(report_block_count);
-    const uint8_t* next_block = payload + kSenderReportFixedSize;
+    const uint8_t* next_block = payload + kSenderReportBaseSize;
     for (ReportBlock& block : report_blocks_) {
         bool block_parsed = block.Parse(next_block, ReportBlock::kFixedReportBlockSize);
         if (!block_parsed) {
@@ -99,7 +99,7 @@ bool SenderReport::Parse(const CommonHeader& packet) {
 
 // Override RtcpPacket
 size_t SenderReport::PacketSize() const {
-    return kRtcpCommonHeaderSize + kSenderReportFixedSize + report_blocks_.size() * ReportBlock::kFixedReportBlockSize;
+    return kRtcpCommonHeaderSize + kSenderReportBaseSize + report_blocks_.size() * ReportBlock::kFixedReportBlockSize;
 }
 
 bool SenderReport::PackInto(uint8_t* buffer,
@@ -124,7 +124,7 @@ bool SenderReport::PackInto(uint8_t* buffer,
     ByteWriter<uint32_t>::WriteBigEndian(&buffer[*index + 16], sender_packet_count_);
     ByteWriter<uint32_t>::WriteBigEndian(&buffer[*index + 20], sender_octet_count_);
 
-    *index += kSenderReportFixedSize;
+    *index += kSenderReportBaseSize;
 
     // Write report blocks
     for (const auto& block : report_blocks_) {

@@ -67,7 +67,7 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet, bool is_rtcp) {
                                             std::to_string(static_cast<int>(err)));
             }
         }
-        PLOG_VERBOSE << "Protected SRTCP packet, size=" << protectd_data_size;
+        PLOG_VERBOSE_IF(false) << "Protected SRTCP packet, size=" << protectd_data_size;
 
         packet.Resize(protectd_data_size);
     // Rtp packet
@@ -85,7 +85,7 @@ bool DtlsSrtpTransport::EncryptPacket(CopyOnWriteBuffer& packet, bool is_rtcp) {
                                             std::to_string(static_cast<int>(err)));
             }
         }
-        PLOG_VERBOSE << "Protected SRTP packet, size=" << protectd_data_size;
+        PLOG_VERBOSE_IF(false) << "Protected SRTP packet, size=" << protectd_data_size;
 
         packet.Resize(protectd_data_size);
     } else {
@@ -122,7 +122,8 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
     // of the packet. [...] If the value is in between 128 and 191 (inclusive), then the packet is
     // RTP (or RTCP [...]). If the value is between 20 and 63 (inclusive), the packet is DTLS.
     uint8_t first_byte = in_packet.cdata()[0];
-    PLOG_VERBOSE << "Demultiplexing DTLS and SRTP/SRTCP with first byte: " << std::to_string(first_byte);
+
+    PLOG_VERBOSE_IF(false) << "Demultiplexing DTLS and SRTP/SRTCP with first byte: " << std::to_string(first_byte);
 
     // DTLS packet
     if (first_byte >= 20 && first_byte <= 63) {
@@ -131,7 +132,7 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
     } else if (first_byte >= 128 && first_byte <= 191) {
         // RTCP packet
         if (IsRtcpPacket(in_packet)) {
-            PLOG_VERBOSE << "Incoming SRTCP packet, size: " << packet_size;
+            PLOG_VERBOSE_IF(false) << "Incoming SRTCP packet, size: " << packet_size;
             int unprotected_data_size = int(packet_size);
             if (srtp_err_status_t err = srtp_unprotect_rtcp(srtp_in_, static_cast<void *>(in_packet.data()), &unprotected_data_size)) {
                 if (err == srtp_err_status_replay_fail) {
@@ -143,7 +144,7 @@ void DtlsSrtpTransport::Incoming(CopyOnWriteBuffer in_packet) {
                 }
                 return;
             }
-            PLOG_VERBOSE << "Unprotected SRTCP packet, size: " << unprotected_data_size;
+            PLOG_VERBOSE_IF(false) << "Unprotected SRTCP packet, size: " << unprotected_data_size;
             
             in_packet.Resize(unprotected_data_size);
 

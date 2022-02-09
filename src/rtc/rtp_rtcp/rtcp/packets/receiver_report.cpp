@@ -33,7 +33,7 @@ bool ReceiverReport::Parse(const CommonHeader& packet) {
     }
     const uint8_t report_block_count = packet.count();
     if (packet.payload_size() < kReceiverReportBaseSize + report_block_count * ReportBlock::kFixedReportBlockSize) {
-        PLOG_WARNING << "Packet is too small to contain all the data.";
+        PLOG_WARNING << "Payload [size=" << packet.payload_size() << "] is too small to contain all the data.";
         return false;
     }
     const uint8_t* payload_buffer = packet.payload();

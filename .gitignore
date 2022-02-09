@@ -40,3 +40,6 @@ build/
 *_source/
 
 *.VSCodeCounter/
+
+*h264/
+*opus/

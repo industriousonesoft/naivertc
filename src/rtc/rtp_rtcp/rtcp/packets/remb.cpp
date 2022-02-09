@@ -101,8 +101,7 @@ bool Remb::Parse(const CommonHeader& packet) {
         return false;
     }
     if (packet.payload_size() < kRembBaseSize) {
-        PLOG_WARNING << "Payload size " << packet.payload_size()
-                     << " is too small for REMB packet.";
+        PLOG_WARNING << "Payload [size=" << packet.payload_size() << "] is too small for REMB packet.";
         return false;
     }
     const uint8_t* const payload_buffer = packet.payload();

@@ -240,7 +240,8 @@ bool RtpPacketEgresser::SendPacketToNetwork(RtpPacketToSend packet) {
             PLOG_WARNING << "Transport faild to send packet.";
             return false;
         }
-     }
+        PLOG_VERBOSE_IF(false) << "Send RTP packet: seq=" << packet.sequence_number() <<", size= " << packet.size();
+    }
     return true;
 }
 

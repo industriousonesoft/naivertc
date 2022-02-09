@@ -79,6 +79,7 @@ protected:
 
     std::weak_ptr<MediaTransport> send_transport_;
 
+    std::vector<uint32_t> send_ssrcs_;
     std::unique_ptr<MediaSendStream> send_stream_;
 };
 

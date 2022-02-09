@@ -63,7 +63,6 @@ void Client::StopVideoStream() {
     worker_queue_->Async([this](){
         if (h264_file_stream_source_ && h264_file_stream_source_->IsRunning()) {
             h264_file_stream_source_->Stop();
-            h264_file_stream_source_.reset();
         }
     });
 }

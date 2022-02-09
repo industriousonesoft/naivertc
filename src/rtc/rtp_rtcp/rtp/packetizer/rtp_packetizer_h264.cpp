@@ -69,8 +69,8 @@ bool RtpH264Packetizer::NextPacket(RtpPacketToSend* rtp_packet) {
 }
 
 void RtpH264Packetizer::Packetize(ArrayView<const uint8_t> payload, 
-                                 const PayloadSizeLimits& limits, 
-                                 h264::PacketizationMode packetization_mode) {
+                                  const PayloadSizeLimits& limits, 
+                                  h264::PacketizationMode packetization_mode) {
     Reset();
     auto nalu_indices = h264::NalUnit::FindNaluIndices(payload.data(), payload.size());
     for (auto& nalu_index : nalu_indices) {

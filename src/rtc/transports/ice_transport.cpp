@@ -326,7 +326,7 @@ int IceTransport::Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) 
     }
     ret = nice_agent_send(nice_agent_.get(), stream_id_, component_id_, out_packet.size(), reinterpret_cast<const char*>(out_packet.data()));
 #endif
-    PLOG_VERBOSE << "Send size=" << ret;
+    PLOG_VERBOSE_IF(false) << "Send size=" << ret;
     return ret;
 }
 

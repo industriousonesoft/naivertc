@@ -48,7 +48,9 @@ public:
     };
 
     // Returns a vector of the NALU indices in the given buffer.
-    static std::vector<NaluIndex> FindNaluIndices(const uint8_t* buffer, size_t size, Separator separator = Separator::SHORT_START_SEQUENCE);
+    static std::vector<NaluIndex> FindNaluIndices(const uint8_t* buffer, 
+                                                  size_t size, 
+                                                  Separator separator = Separator::SHORT_START_SEQUENCE);
 
     // SODB: String of Data Bits, the raw encoded data and unprocessed.
     // RBSP: Raw Byte Sequence Payload, Added trailing bits(one RBSP Stop bit + zere or more 0 bits) based on SODB for memory alignment.
@@ -61,8 +63,11 @@ public:
 
     // Retrieve RBSP from EBSP by removing 0x03 emulation byte
     // See section 7.4.1 of the H264 spec.
-    static std::vector<uint8_t> RetrieveRbspFromEbsp(const uint8_t* ebsp_buffer, size_t ebsp_size);
-    static void WriteRbsp(const uint8_t* rbsp_buffer, size_t rbsp_size, std::vector<uint8_t>& ebsp_buffer);
+    static std::vector<uint8_t> RetrieveRbspFromEbsp(const uint8_t* ebsp_buffer, 
+                                                     size_t ebsp_size);
+    static void WriteRbsp(const uint8_t* rbsp_buffer, 
+                          size_t rbsp_size, 
+                          std::vector<uint8_t>& ebsp_buffer);
 public:
     NalUnit();
     NalUnit(const NalUnit&);

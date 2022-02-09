@@ -18,7 +18,7 @@ enum class FrameType {
 // Codec types
 enum class CodecType {
     GENERIC = 0,
-    H264,
+    H264, // in Annex B as default
     // VP8,
     // VP9,
     // AV1,

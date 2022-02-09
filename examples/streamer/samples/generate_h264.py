@@ -17,7 +17,10 @@ class H264ByteStream:
     def merge_sample(sample: List[bytes]) -> bytes:
         result = bytes()
         for nalu in sample:
-            result += len(nalu).to_bytes(4, byteorder='big') + nalu
+            # AVCC
+            # result += len(nalu).to_bytes(4, byteorder='big') + nalu
+            # Annex B
+            result += b"\x00\x00\x00\x01" + nalu
         return result
 
     @staticmethod
