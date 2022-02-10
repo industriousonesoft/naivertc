@@ -2,7 +2,7 @@
 #define _RTC_CALL_RTP_VIDEO_STREAM_RECEIVER_H_
 
 #include "base/defines.hpp"
-#include "rtc/base/task_utils/task_queue.hpp"
+#include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtcp_responser.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
@@ -15,6 +15,7 @@
 #include "rtc/media/video/common.hpp"
 #include "rtc/media/video/codecs/h264/sps_pps_tracker.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
+#include "rtc/api/rtp_packet_sink.hpp"
 
 #include <memory>
 #include <map>
@@ -27,7 +28,8 @@ class RtpPacketReceived;
 class CopyOnWriteBuffer;
 class RtpReceiveStatistics;
 
-class RTC_CPP_EXPORT RtpVideoReceiver : public RecoveredPacketReceiver {
+class RTC_CPP_EXPORT RtpVideoReceiver : public RecoveredPacketReceiver,
+                                        public RtpPacketSink {
 public:
     struct Configuration {
         // Sender SSRC used for sending RTCP (such as receiver reports).
@@ -64,7 +66,7 @@ public:
     ~RtpVideoReceiver() override;
 
     void OnRtcpPacket(CopyOnWriteBuffer in_packet);
-    void OnRtpPacket(RtpPacketReceived in_packet);
+    void OnRtpPacket(RtpPacketReceived in_packet) override;
 
     void OnContinuousFrame(int64_t frame_id);
     void OnDecodedFrame(int64_t frame_id);

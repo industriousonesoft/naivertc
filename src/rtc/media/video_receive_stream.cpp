@@ -14,7 +14,9 @@ VideoReceiveStream::VideoReceiveStream(Configuration config)
 
     // RTX stream
     if (config.rtp.rtx_ssrc > 0) {
-        rtx_recv_stream_ = std::make_unique<RtxReceiveStream>(config.rtp.local_ssrc, config.rtp.rtx_associated_payload_types);
+        rtx_recv_stream_ = std::make_unique<RtxReceiveStream>(config.rtp.local_ssrc, 
+                                                              config.rtp.rtx_associated_payload_types, 
+                                                              &rtp_video_receiver_);
         rtp_demuxer_.AddRtpSink(config.rtp.rtx_ssrc, rtx_recv_stream_.get());
     }
 }

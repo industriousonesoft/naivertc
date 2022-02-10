@@ -6,20 +6,17 @@
 namespace naivertc {
 
 RtxReceiveStream::RtxReceiveStream(uint32_t media_ssrc,
-                                   std::map<int, int> associated_payload_types) 
+                                   std::map<int, int> associated_payload_types,
+                                   RtpPacketSink* media_packet_sink) 
     : media_ssrc_(media_ssrc),
-      associated_payload_types_(std::move(associated_payload_types)) {
+      associated_payload_types_(std::move(associated_payload_types)),
+      media_packet_sink_(media_packet_sink) {
     if (associated_payload_types_.empty()) {
         PLOG_WARNING << "RtxReceiveStream created with empty associated payload type mapping.";
     }
 }
 
 RtxReceiveStream::~RtxReceiveStream() {}
-
-void RtxReceiveStream::OnMediaPacketRecovered(MediaPacketRecoveredCallback callback) {
-    RTC_RUN_ON(&sequence_checker_);
-    media_packet_recovered_callback_ = std::move(callback);
-}
 
 void RtxReceiveStream::OnRtpPacket(RtpPacketReceived rtx_packet) {
     RTC_RUN_ON(&sequence_checker_);
@@ -50,8 +47,8 @@ void RtxReceiveStream::OnRtpPacket(RtpPacketReceived rtx_packet) {
     assert(media_payload != nullptr);
     memcpy(media_payload, rtx_payload.data(), rtx_payload.size());
 
-    if (media_packet_recovered_callback_) {
-        media_packet_recovered_callback_(std::move(media_packet));
+    if (media_packet_sink_) {
+        media_packet_sink_->OnRtpPacket((std::move(media_packet)));
     }
 }
 

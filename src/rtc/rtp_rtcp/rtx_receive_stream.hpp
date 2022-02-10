@@ -18,20 +18,18 @@ namespace naivertc {
 class RTC_CPP_EXPORT RtxReceiveStream : public RtpPacketSink {
 public:
     RtxReceiveStream(uint32_t media_ssrc,
-                     std::map<int, int> associated_payload_types);
+                     std::map<int, int> associated_payload_types,
+                     RtpPacketSink* media_packet_sink);
     ~RtxReceiveStream();
 
     void OnRtpPacket(RtpPacketReceived rtx_packet) override;
-
-    using MediaPacketRecoveredCallback = std::function<void(RtpPacketReceived media_packet)>;
-    void OnMediaPacketRecovered(MediaPacketRecoveredCallback callback);
 
 private:
     SequenceChecker sequence_checker_;
     const uint32_t media_ssrc_;
     const std::map<int, int> associated_payload_types_;
 
-    MediaPacketRecoveredCallback media_packet_recovered_callback_ = nullptr;
+    RtpPacketSink* const media_packet_sink_ = nullptr;
 };
 
 } // namespace naivertc
