@@ -15,20 +15,6 @@ struct RTC_CPP_EXPORT RtcpHeader {
     uint16_t payload_size_in_32bit;
 };
 
-// RTCP payload-specific feedback packet (payload type = 206)
-struct RTC_CPP_EXPORT PSFeedback {
-    RtcpHeader header;
-    uint32_t packet_sender_ssrc;
-    uint32_t media_source_ssrc;
-};
-
-// RTCP rtp feedback packet (payload type = 205)
-struct RTC_CPP_EXPORT RtpFeedback {
-    RtcpHeader header;
-    uint32_t packet_sender_ssrc;
-    uint32_t media_source_ssrc;
-};
-
 // RTCP report block
 struct RTC_CPP_EXPORT ReportBlock {
     uint32_t source_ssrc;
@@ -71,6 +57,26 @@ struct RTC_CPP_EXPORT ReceiverReport {
     }
 };
 
+// Bye (payload type = 203)
+struct RTC_CPP_EXPORT Bye {
+    RtcpHeader header;
+    uint32_t packet_sender_ssrc;
+};
+
+// RTCP rtp feedback packet (payload type = 205)
+struct RTC_CPP_EXPORT RtpFeedback {
+    RtcpHeader header;
+    uint32_t packet_sender_ssrc;
+    uint32_t media_source_ssrc;
+};
+
+// RTCP payload-specific feedback packet (payload type = 206)
+struct RTC_CPP_EXPORT PSFeedback {
+    RtcpHeader header;
+    uint32_t packet_sender_ssrc;
+    uint32_t media_source_ssrc;
+};
+
 // RTCP extended report packet (payload type = 207)
 struct RTC_CPP_EXPORT ExtendedReport {
     RtcpHeader header;
@@ -91,6 +97,8 @@ bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
     std::set<uint32_t> ssrcs;
     size_t packet_size = in_packet.size();
     size_t offset = 0;
+    // Indicate if the compound packet will deliver to all sinks or not.
+    bool deliver_to_all = false;
     // Parse buffer as a compound packet
     while((offset + 4 /* RTCP header fixed size */) <= packet_size) {
         auto rtcp_header = reinterpret_cast<RtcpHeader *>(in_packet.data() + offset);
@@ -113,8 +121,10 @@ bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
         // RTCP receiver report (pt = 201)
         else if (rtcp_header->payload_type == 201) {
             auto rtcp_sr = reinterpret_cast<ReceiverReport*>(rtcp_header);
-            uint32_t sender_ssrc = ntohl(rtcp_sr->packet_sender_ssrc);
-            ssrcs.insert(sender_ssrc);
+            // We don't care about the sender of RR but the source of report blocks,
+            // since the only valid informations in RR is report blocks.
+            // uint32_t sender_ssrc = ntohl(rtcp_sr->packet_sender_ssrc);
+            // ssrcs.insert(sender_ssrc);
             for (uint8_t i = 0; i < rtcp_sr->report_count(); i++) {
                 uint32_t media_source_ssrc = ntohl(rtcp_sr->GetReportBlock(i)->source_ssrc);
                 ssrcs.insert(media_source_ssrc);
@@ -126,31 +136,57 @@ bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
             auto rtp_fb = reinterpret_cast<RtpFeedback*>(rtcp_header);
             uint32_t sender_ssrc = ntohl(rtp_fb->packet_sender_ssrc);
             ssrcs.insert(sender_ssrc);
-            // NOTE: Zero indicates |media_source_ssrc| is unsed, like REMB packet.
+            // NOTE: Zero indicates |media_source_ssrc| is useless, like REMB packet.
             uint32_t source_ssrc = ntohl(rtp_fb->media_source_ssrc);
             if (source_ssrc > 0) {
                 ssrcs.insert(source_ssrc);
+            } else {
+                deliver_to_all = true;
+                break;
+            }
+        }
+        // RTCP bye (pt = 203)
+        else if (rtcp_header->payload_type == 203) {
+            auto rtcp_bye = reinterpret_cast<Bye*>(rtcp_header);
+            uint32_t sender_ssrc = ntohl(rtcp_bye->packet_sender_ssrc);
+            //  Zero indicates the Bye packet is valid but useless, ignoring.
+            if (sender_ssrc > 0) {
+                ssrcs.insert(sender_ssrc);
             }
         } 
         // RTCP extended report (pt = 207)
         else if (rtcp_header->payload_type == 207) {
-            auto rtcp_xr = reinterpret_cast<ExtendedReport*>(rtcp_header);
-            ssrcs.insert(ntohl(rtcp_xr->packet_sender_ssrc));
-        } else {
+            // auto rtcp_xr = reinterpret_cast<ExtendedReport*>(rtcp_header);
+            // uint32_t sender_ssrc = ntohl(rtcp_xr->packet_sender_ssrc);
+            // ssrcs.insert(sender_ssrc);
+            
+            // The XR packet is always sent by a receive-only peer,
+            // which means |sender_ssrc| is useless. 
+            deliver_to_all = true;
+            break;
+        } 
+        else {
             // TODO: Support more RTCP packet
             PLOG_WARNING << "Unsupport RTCP packet, paylaod type=" << rtcp_header->payload_type;
-        }
-    }
-    
-    for (uint32_t ssrc : ssrcs) {
-        auto it = rtcp_sink_by_ssrc_.find(ssrc);
-        if (it != rtcp_sink_by_ssrc_.end()) {
-            it->second->OnRtcpPacket(in_packet);
-        } else {
-            
+            deliver_to_all = true;
+            break;
         }
     }
 
+    if (deliver_to_all) {
+        for (auto& [ssrc, sink] : rtcp_sink_by_ssrc_) {
+            sink->OnRtcpPacket(std::move(in_packet));
+        }
+    } else {
+        for (uint32_t ssrc : ssrcs) {
+            auto it = rtcp_sink_by_ssrc_.find(ssrc);
+            if (it != rtcp_sink_by_ssrc_.end()) {
+                it->second->OnRtcpPacket(std::move(in_packet));
+            } else {
+                PLOG_WARNING << "No sink found for ssrc= " << ssrc;
+            }
+        }
+    }
     return true;
 }
 
