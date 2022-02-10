@@ -10,6 +10,8 @@
 #include "rtc/rtp_rtcp/rtp/receiver/video/jitter/frame_buffer.hpp"
 #include "rtc/rtp_rtcp/components/rtp_receive_statistics.hpp"
 #include "rtc/rtp_rtcp/rtp_video_receiver.hpp"
+#include "rtc/rtp_rtcp/rtx_receive_stream.hpp"
+#include "rtc/rtp_rtcp/components/rtp_demuxer.hpp"
 
 #include <map>
 
@@ -50,7 +52,10 @@ private:
     std::unique_ptr<rtp::video::Timing> timing_;
     std::unique_ptr<rtp::video::jitter::FrameBuffer> frame_buffer_;
 
+    RtpDemuxer rtp_demuxer_;
+
     RtpVideoReceiver rtp_video_receiver_;
+    std::unique_ptr<RtxReceiveStream> rtx_recv_stream_;
 };
 
 } // namespace naivertc

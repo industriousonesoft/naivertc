@@ -21,7 +21,7 @@ void RtxReceiveStream::OnMediaPacketRecovered(MediaPacketRecoveredCallback callb
     media_packet_recovered_callback_ = std::move(callback);
 }
 
-void RtxReceiveStream::OnRtxPacket(RtpPacketReceived rtx_packet) {
+void RtxReceiveStream::OnRtpPacket(RtpPacketReceived rtx_packet) {
     RTC_RUN_ON(&sequence_checker_);
     auto payload = rtx_packet.payload();
     if (payload.size() < kRtxHeaderSize) {
@@ -31,14 +31,15 @@ void RtxReceiveStream::OnRtxPacket(RtpPacketReceived rtx_packet) {
     auto it = associated_payload_types_.find(rtx_packet.payload_type());
     if (it == associated_payload_types_.end()) {
         PLOG_VERBOSE << "Unknown payload type "
-                    << static_cast<int>(rtx_packet.payload_type())
-                    << " on rtx ssrc=" << rtx_packet.ssrc();
+                     << static_cast<int>(rtx_packet.payload_type())
+                     << " on rtx ssrc=" << rtx_packet.ssrc();
         return;
     }
     RtpPacketReceived media_packet;
     media_packet.CopyHeaderFrom(rtx_packet);
+    // Set the media ssrc
     media_packet.set_ssrc(media_ssrc_);
-    // the media sequence number is saved in first two byte of RTX packet payload 
+    // The media sequence number is saved in first two byte of RTX packet payload 
     media_packet.set_sequence_number((payload[0] << 8) + payload[1]);
     media_packet.set_payload_type(it->second);
     media_packet.set_is_recovered(true);
