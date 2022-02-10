@@ -141,13 +141,17 @@ std::unique_ptr<FecGenerator> RtpVideoSender::MaybeCreateFecGenerator(const Conf
 
     } else if (config.ulpfec.red_payload_type >= 0 && 
                config.ulpfec.ulpfec_payload_type >= 0) {
+        // In webrtc: call/rtp_video_sender.cc:105
         // Payload tyeps without picture ID (contained in VP8/VP9, not in H264) cannnot determine
         // that a stream is complete without retransmitting FEC, so using UlpFEC + NACK for H264 
         // is a waste of bandwidth since FEC packtes still have to be transmitted. But that is not
         // the case with FlecFEC.
         // See https://blog.csdn.net/volvet/article/details/53700049
         // FIXME: Is there a way to solve UlpFEC + NACK? ULPFEC sent in a seperated stream, like FlexFEC?
-        if (config.nack_enabled) {
+        if (config.nack_enabled /* TODO: && codec_type == H264*/) {
+            PLOG_WARNING << "Transmitting payload type without picture ID using "
+                            "NACK+ULPFEC is a waste of bandwidth since ULPFEC packets "
+                            "also have to be retransmitted. Disabling ULPFEC.";
             return nullptr;
         }
         return std::make_unique<UlpFecGenerator>(config.ulpfec.red_payload_type, 

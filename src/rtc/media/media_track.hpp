@@ -65,6 +65,7 @@ public:
         
     public:
         Direction direction = Direction::SEND_RECV;
+        // RTX: Used for Nack packet or Padding packet
         bool rtx_enabled = false;
         // Feedbacks
         bool nack_enabled = false;

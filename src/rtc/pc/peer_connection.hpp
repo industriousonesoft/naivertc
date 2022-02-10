@@ -25,6 +25,10 @@
 
 namespace naivertc {
 
+class MediaTrack;
+class AudioTrack;
+class VideoTrack;
+
 // PeerConnection
 class RTC_CPP_EXPORT PeerConnection : public MediaTransport,
                                       public DataTransport,

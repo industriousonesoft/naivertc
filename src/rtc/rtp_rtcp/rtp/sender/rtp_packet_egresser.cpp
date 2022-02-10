@@ -33,15 +33,13 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           send_bitrates_observer_(config.send_bitrates_observer),
           transport_feedback_observer_(config.transport_feedback_observer),
           stream_data_counters_observer_(config.stream_data_counters_observer) {
-
-#if !ENABLE_TESTS
+    assert(worker_queue_ != nullptr);
     if (send_bitrates_observer_) {
         update_task_ = RepeatingTask::DelayedStart(clock_, worker_queue_, kUpdateInterval, [this](){
             PeriodicUpdate();
             return kUpdateInterval;
         });
     }
-#endif
 }
  
 RtpPacketEgresser::~RtpPacketEgresser() {
@@ -131,17 +129,17 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     const bool is_media = packet_type == RtpPacketType::AUDIO ||
                           packet_type == RtpPacketType::VIDEO;
     
-    auto transport_seq_num = packet.GetExtension<rtp::TransportSequenceNumber>();
-    if (transport_seq_num) {
-        AddPacketToTransportFeedback(*transport_seq_num, packet);
+    auto packet_id = packet.GetExtension<rtp::TransportSequenceNumber>();
+    if (packet_id) {
+        AddPacketToTransportFeedback(*packet_id, packet);
     }
 
     if (packet_type != RtpPacketType::PADDING &&
         packet_type != RtpPacketType::RETRANSMISSION) {
         // No include Padding or Retransmission packet.
         UpdateDelayStatistics(send_delay_ms, now_ms, packet_ssrc);
-        if (transport_seq_num) {
-            send_packet_observer_->OnSendPacket(*transport_seq_num, packet.capture_time_ms(), packet_ssrc);
+        if (packet_id) {
+            send_packet_observer_->OnSendPacket(*packet_id, packet.capture_time_ms(), packet_ssrc);
         }
     }
 
@@ -169,13 +167,9 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
         // TODO: Add support for FEC protecting all header extensions, 
         // add media packet to generator here instead.
         
-#if ENABLE_TESTS
-        UpdateSentStatistics(now_ms, std::move(send_stats));
-#else
         worker_queue_->Post([this, now_ms, send_stats=std::move(send_stats)](){
             UpdateSentStatistics(now_ms, std::move(send_stats));
         });
-#endif
     }
 }
 

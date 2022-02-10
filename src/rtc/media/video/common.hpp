@@ -19,10 +19,10 @@ enum class FrameType {
 enum class CodecType {
     GENERIC = 0,
     H264, // in Annex B as default
-    // VP8,
-    // VP9,
-    // AV1,
-    // MULTIPLEX
+    VP8,
+    VP9,
+    AV1,
+    MULTIPLEX
 };
 
 // Playout delay

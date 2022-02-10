@@ -139,10 +139,12 @@ size_t FecEncoder::MaxPacketOverhead() const {
 size_t FecEncoder::CalcNumFecPackets(size_t num_media_packets, uint8_t protection_factor) {
     // Result in Q0 with an unsigned round. (四舍五入)
     size_t num_fec_packets = (num_media_packets * protection_factor + (1 << 7)) >> 8;
+    //                     = (num_media_packets * protection_factor + 128) / 256;
     // Generate at least one FEC packet if we need protection.
     if (protection_factor > 0 && num_fec_packets == 0) {
         num_fec_packets = 1;
     }
+    assert(num_fec_packets <= num_media_packets);
     return num_fec_packets;
 }
 

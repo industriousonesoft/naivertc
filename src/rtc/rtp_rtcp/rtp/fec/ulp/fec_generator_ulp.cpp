@@ -48,46 +48,46 @@ UlpFecGenerator::UlpFecGenerator(int red_payload_type,
 UlpFecGenerator::~UlpFecGenerator() {}
 
 size_t UlpFecGenerator::MaxPacketOverhead() const {
-    return this->fec_encoder_->MaxPacketOverhead();
+    return fec_encoder_->MaxPacketOverhead();
 }
 
 void UlpFecGenerator::SetProtectionParameters(const FecProtectionParams& delta_params, const FecProtectionParams& key_params) {
     assert(delta_params.fec_rate >= 0 && delta_params.fec_rate <= 255);
     assert(key_params.fec_rate >= 0 && key_params.fec_rate <= 255);
-    this->pending_params_.emplace(std::make_pair(delta_params, key_params));
+    pending_params_.emplace(std::make_pair(delta_params, key_params));
 }
 
 void UlpFecGenerator::PushMediaPacket(RtpPacketToSend media_packet) {
-    if (this->pending_params_.has_value()) {
-        this->current_params_ = this->pending_params_.value();
-        this->pending_params_.reset();
+    if (pending_params_) {
+        current_params_ = pending_params_.value();
+        pending_params_.reset();
     }
 
     // Set the minimum media packets to protect
-    if (this->CurrentParams().fec_rate > kHighProtectionThreshold) {
-        this->min_num_media_packets_ = kMinMediaPackets;
+    if (CurrentParams().fec_rate > kHighProtectionThreshold) {
+        min_num_media_packets_ = kMinMediaPackets;
     } else {
-        this->min_num_media_packets_ = 1;
+        min_num_media_packets_ = 1;
     }
 
     // Enable key-protection-parameters if encountering a key frame packet once.
     if (media_packet.is_key_frame()) {
-        this->contains_key_frame_ = true;
+        contains_key_frame_ = true;
     }
     
     const bool complete_frame = media_packet.marker();
     // UlpFec packet masks can only protect up to 48 media packets
-    if (this->media_packets_.size() < kUlpFecMaxMediaPackets /* 48 */) {
-        this->media_packets_.push_back(media_packet);
+    if (media_packets_.size() < kUlpFecMaxMediaPackets /* 48 */) {
+        media_packets_.push_back(media_packet);
         // Keep a reference of the last media packet, so we can copy the RTP
         // header from it when creating newly RED+FEC packets later.
-        this->last_protected_media_packet_ = std::move(media_packet);
+        last_protected_media_packet_ = std::move(media_packet);
     } else {
         // TODO: How to handle packets not added into media packtets??
     }
 
     if (complete_frame) {
-        this->num_protected_frames_ += 1;
+        num_protected_frames_ += 1;
     }
 
     auto curr_params = CurrentParams();
@@ -135,7 +135,7 @@ std::vector<RtpPacketToSend> UlpFecGenerator::PopFecPackets() {
 
         RtpPacketToSend red_packet = RtpPacketToSend(last_protected_media_packet_->capacity());
         red_packet.CopyHeaderFrom(*last_protected_media_packet_);
-        red_packet.set_payload_type(this->red_payload_type_);
+        red_packet.set_payload_type(red_payload_type_);
         red_packet.set_marker(false);
         
         assert(red_packet.header_size() + kRedForFecHeaderLength + fec_packet.size() < red_packet.capacity());
@@ -144,7 +144,7 @@ std::vector<RtpPacketToSend> UlpFecGenerator::PopFecPackets() {
         // Primary RED header with F bit unset.
         // See https://tools.ietf.org/html/rfc2198#section-3
         // RED header, 1 byte
-        payload_buffer[0] = static_cast<uint8_t>(this->fec_payload_type_) & 0x7f /* Make sure the highest bit is 0. */;
+        payload_buffer[0] = static_cast<uint8_t>(fec_payload_type_) & 0x7f /* Make sure the highest bit is 0. */;
         memcpy(&payload_buffer[1], fec_packet.data(), fec_packet.size());
         total_fec_size_bytes += red_packet.size();
         red_packet.set_packet_type(RtpPacketType::FEC);
@@ -161,7 +161,7 @@ std::vector<RtpPacketToSend> UlpFecGenerator::PopFecPackets() {
 }
 
 const FecProtectionParams& UlpFecGenerator::CurrentParams() const {
-    return contains_key_frame_ ? this->current_params_.second : this->current_params_.first;
+    return contains_key_frame_ ? current_params_.second : current_params_.first;
 }
 
 // Private methods

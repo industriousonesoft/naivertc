@@ -33,6 +33,7 @@ void RtpPacketEgresser::NonPacedPacketSender::EnqueuePackets(std::vector<RtpPack
             }
             PrepareForSend(packet);
         }
+        PLOG_VERBOSE_IF(true) << "Enqueued " << fec_packets.size() << " FEC packets after sending media packets.";
         EnqueuePackets(std::move(fec_packets));
     }
 }

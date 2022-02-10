@@ -161,7 +161,7 @@ bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
             // ssrcs.insert(sender_ssrc);
             
             // The XR packet is always sent by a receive-only peer,
-            // which means |sender_ssrc| is useless. 
+            // which means |sender_ssrc| is useless for delivering. 
             deliver_to_all = true;
             break;
         } 

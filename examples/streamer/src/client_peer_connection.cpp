@@ -62,8 +62,8 @@ void Client::CreatePeerConnection(const RtcConfiguration& rtc_config) {
 
 }
 
+// AddAudioTrack
 void Client::AddAudioTrack(std::string cname, std::string stream_id) {
-
     MediaTrack::Configuration audio_track_config(MediaTrack::Kind::AUDIO, "1");
     audio_track_config.direction = MediaTrack::Direction::SEND_ONLY;
     audio_track_config.AddCodec(MediaTrack::Codec::OPUS);
@@ -81,11 +81,12 @@ void Client::AddAudioTrack(std::string cname, std::string stream_id) {
     });
 }
 
+// AddVideoTrack
 void Client::AddVideoTrack(std::string cname, std::string stream_id) {
     MediaTrack::Configuration video_track_config(MediaTrack::Kind::VIDEO, "2");
     video_track_config.direction = MediaTrack::Direction::SEND_ONLY;
     video_track_config.rtx_enabled = true;
-    video_track_config.nack_enabled = true;
+    video_track_config.nack_enabled = false;
     video_track_config.congestion_control = MediaTrack::CongestionControl::TRANSPORT_CC;
     video_track_config.fec_codec.emplace(MediaTrack::FecCodec::ULP_FEC);
     video_track_config.AddCodec(MediaTrack::Codec::H264);
@@ -114,6 +115,7 @@ void Client::AddVideoTrack(std::string cname, std::string stream_id) {
     });
 }
 
+// AddDataChannel
 void Client::AddDataChannel() {
     DataChannel::Init data_channel_init("naivertc-chat-data-channel");
     data_channel_ = peer_conn_->AddDataChannel(data_channel_init);

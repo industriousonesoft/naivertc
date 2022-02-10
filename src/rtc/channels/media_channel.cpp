@@ -118,6 +118,7 @@ void MediaChannel::Close() {
             send_transport_.reset();
         });
     });
+    PLOG_VERBOSE << "Media channel closed.";
 }
 
 void MediaChannel::OnMediaNegotiated(sdp::Media local_media, 
