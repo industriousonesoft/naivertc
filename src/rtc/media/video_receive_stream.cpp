@@ -32,7 +32,7 @@ std::vector<uint32_t> VideoReceiveStream::ssrcs() const {
 
 void VideoReceiveStream::OnRtpPacket(RtpPacketReceived in_packet) {
    RTC_RUN_ON(&sequence_checker_);
-   rtp_demuxer_.OnRtpPacket(std::move(in_packet), /*is_rtcp=*/false);
+   rtp_demuxer_.DeliverRtpPacket(std::move(in_packet));
 }
 
 void VideoReceiveStream::OnRtcpPacket(CopyOnWriteBuffer in_packet) {

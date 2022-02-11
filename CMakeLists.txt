@@ -124,6 +124,7 @@ set(LIB_HEADERS
     src/rtc/pc/ice_server.hpp
     src/rtc/pc/peer_connection_configuration.hpp
     src/rtc/pc/peer_connection.hpp
+    src/rtc/pc/broadcaster.hpp
 
     # rtc -> channels
     src/rtc/channels/data_channel.hpp
@@ -363,6 +364,7 @@ set(LIB_SOURCES
     src/rtc/pc/peer_connection_sctp_transport_delegate.cpp
     src/rtc/pc/peer_connection_sdp_offer_answer.cpp
     src/rtc/pc/peer_connection_media_handler.cpp
+    src/rtc/pc/broadcaster.cpp
 
     # rtc -> channels
     src/rtc/channels/data_channel.cpp

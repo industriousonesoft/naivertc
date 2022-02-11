@@ -80,7 +80,7 @@ int DtlsTransport::Send(CopyOnWriteBuffer packet, PacketOptions options) {
     user_packet_options_ = std::move(options);
     int ret = SSL_write(ssl_, packet.cdata(), int(packet.size()));
     if (openssl::check(ssl_, ret)) {
-        PLOG_VERBOSE << "Send size=" << ret;
+        PLOG_VERBOSE_IF(true) << "Send size=" << ret;
         return ret;
     } else {
         PLOG_VERBOSE << "Failed to send size=" << ret;

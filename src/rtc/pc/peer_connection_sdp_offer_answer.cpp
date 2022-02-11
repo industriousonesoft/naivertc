@@ -489,7 +489,7 @@ void PeerConnection::ValidRemoteDescription(const sdp::Description& remote_sdp) 
 
 std::shared_ptr<MediaTrack> PeerConnection::OnIncomingMediaTrack(sdp::Media remote_sdp) {
     RTC_RUN_ON(signaling_task_queue_);
-    auto media_track = std::make_shared<MediaTrack>(std::move(remote_sdp), worker_task_queue_.get());
+    auto media_track = std::make_shared<MediaTrack>(std::move(remote_sdp), &broadcaster_, worker_task_queue_.get());
     // Make sure the current media track dosen't be added before.
     if (media_tracks_.find(media_track->mid()) == media_tracks_.end()) {
         media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
@@ -512,13 +512,7 @@ void PeerConnection::OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_tr
         const sdp::Media remote_media = *remote_sdp_->media(mid);
 
         worker_task_queue_->Async([this, media_track, local_media, remote_media](){
-            auto media_channel = std::static_pointer_cast<MediaChannel>(media_track);
-            assert(media_channel != nullptr);
-            media_channel->OnMediaNegotiated(local_media, remote_media, remote_sdp_->type());
-            for (const auto& ssrc : media_track->send_ssrcs()) {
-                // TODO: Delivers packet to media stream instead of media track.
-                rtp_demuxer_.AddRtcpSink(ssrc, media_track.get());
-            }
+            media_track->OnMediaNegotiated(local_media, remote_media, remote_sdp_->type());
         });
 
     } else if (media_track->kind() == MediaTrack::Kind::AUDIO) {

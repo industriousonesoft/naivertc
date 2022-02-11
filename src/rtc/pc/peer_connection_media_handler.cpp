@@ -9,7 +9,7 @@ std::shared_ptr<AudioTrack> PeerConnection::AddAudioTrack(const MediaTrack::Conf
     return signaling_task_queue_->Sync<std::shared_ptr<AudioTrack>>([this, &config]() -> std::shared_ptr<AudioTrack> {
         std::shared_ptr<MediaTrack> media_track = FindMediaTrack(config.mid());
         if (!media_track) {
-            media_track = std::make_shared<AudioTrack>(config, worker_task_queue_.get());
+            media_track = std::make_shared<AudioTrack>(config, &broadcaster_, worker_task_queue_.get());
             this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
         } else {
             PLOG_WARNING << "The media track ["
@@ -28,7 +28,7 @@ std::shared_ptr<VideoTrack> PeerConnection::AddVideoTrack(const MediaTrack::Conf
     return signaling_task_queue_->Sync<std::shared_ptr<VideoTrack>>([this, &config]() -> std::shared_ptr<VideoTrack> {
         std::shared_ptr<MediaTrack> media_track = FindMediaTrack(config.mid());
         if (!media_track) {
-            media_track = std::make_shared<VideoTrack>(config, worker_task_queue_.get());
+            media_track = std::make_shared<VideoTrack>(config, &broadcaster_, worker_task_queue_.get());
             this->media_tracks_.emplace(std::make_pair(media_track->mid(), media_track));
         } else {
             PLOG_WARNING << "The media track ["

@@ -6,7 +6,6 @@
 #include "rtc/media/media_track.hpp"
 #include "rtc/media/video/encoded_frame.hpp"
 
-
 namespace naivertc {
 
 class RTC_CPP_EXPORT VideoTrack : public MediaTrack {

@@ -54,7 +54,7 @@ void RtcpSender::PacketSender::Reset() {
 void RtcpSender::PacketSender::SendPacket(CopyOnWriteBuffer packet) {
     PacketOptions options;
     options.kind = is_audio_ ? PacketKind::AUDIO : PacketKind::VIDEO;
-    this->send_transport_->SendRtcpPacket(std::move(packet), std::move(options));
+    this->send_transport_->SendRtpPacket(std::move(packet), std::move(options), true);
 }
     
 } // namespace naivertc

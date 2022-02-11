@@ -96,7 +96,7 @@ bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
 void PeerConnection::OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rtcp) {
     RTC_RUN_ON(network_task_queue_);
     worker_task_queue_->Async([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
-        rtp_demuxer_.OnRtpPacket(in_packet, is_rtcp);
+        broadcaster_.DeliverRtpPacket(std::move(in_packet), is_rtcp);
     });
 }
 
@@ -105,7 +105,7 @@ void PeerConnection::OpenMediaTracks() {
     for (auto& kv : media_tracks_) {
         if (auto media_track = kv.second.lock()) {
             if(!media_track->is_opened()) {
-                std::static_pointer_cast<MediaChannel>(media_track)->Open(shared_from_this());
+                std::static_pointer_cast<MediaChannel>(media_track)->Open();
             }
         }
     }

@@ -85,14 +85,22 @@ public:
     };
 
 public:
-    MediaTrack(const Configuration& config, TaskQueue* worker_queue);
-    MediaTrack(sdp::Media description, TaskQueue* worker_queue);
-    virtual ~MediaTrack();
+    MediaTrack(const Configuration& config,
+               Broadcaster* broadcaster,
+               TaskQueue* worker_queue);
+    MediaTrack(sdp::Media description,
+               Broadcaster* broadcaster,
+               TaskQueue* worker_queue);
+    virtual ~MediaTrack() override;
 
     sdp::Media description() const;
 
+    void OnMediaNegotiated(const sdp::Media local_media, 
+                           const sdp::Media remote_media, 
+                           sdp::Type remote_sdp_type);
+
 private:
-    void Open(std::weak_ptr<MediaTransport> transport) override;
+    void Open() override;
     void Close() override;
 
 public:
@@ -113,6 +121,8 @@ public:
 
 protected:
     const sdp::Media description_;
+    Broadcaster* const broadcaster_;
+    TaskQueue* const worker_queue_;
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Kind kind);

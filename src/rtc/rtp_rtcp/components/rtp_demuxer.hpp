@@ -24,14 +24,13 @@ public:
     void AddRtpSink(std::string mid, RtpPacketSink* sink);
     void RemoveRtpSink(std::string mid);
 
-    void OnRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp);
+    bool DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const;
+    bool DeliverRtpPacket(RtpPacketReceived in_packet) const;
 
     void Clear();
 
 private:
-    bool DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const;
-    bool DeliverRtpPacket(CopyOnWriteBuffer in_packet) const;
-
+    
 private:
     std::unordered_map<uint32_t, RtpPacketSink*> rtp_sink_by_ssrc_;
     std::unordered_map<uint32_t, RtcpPacketSink*> rtcp_sink_by_ssrc_;

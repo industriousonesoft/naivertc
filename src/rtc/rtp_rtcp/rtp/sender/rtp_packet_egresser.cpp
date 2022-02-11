@@ -230,7 +230,7 @@ bool RtpPacketEgresser::SendPacketToNetwork(RtpPacketToSend packet) {
             options.kind = PacketKind::VIDEO;
             options.dscp = DSCP::DSCP_AF42; // AF42: Assured Forwarding class 4, medium drop probability
         }
-        if (!send_transport_->SendRtpPacket(std::move(packet), std::move(options))) {
+        if (!send_transport_->SendRtpPacket(std::move(packet), std::move(options), false)) {
             PLOG_WARNING << "Transport faild to send packet.";
             return false;
         }

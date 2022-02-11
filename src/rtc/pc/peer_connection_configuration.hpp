@@ -10,6 +10,9 @@
 
 namespace naivertc {
 
+constexpr uint16_t kDefaultPortLowerBound = 1024;
+constexpr uint16_t kDefaultPortUpperBound = 65535;
+
 // CertificateType
 enum class CertificateType {
     DEFAULT,
@@ -66,8 +69,8 @@ struct RTC_CPP_EXPORT RtcConfiguration {
     bool auto_negotiation = false;
 
     // Port range
-    uint16_t port_range_begin = 1024;
-    uint16_t port_range_end = 65535;
+    uint16_t port_range_begin = kDefaultPortLowerBound;
+    uint16_t port_range_end = kDefaultPortUpperBound;
 
     // MTU: Maximum Transmission Unit
     std::optional<size_t> mtu;

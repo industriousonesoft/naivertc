@@ -6,18 +6,10 @@
 
 namespace naivertc {
 
-bool RtpDemuxer::DeliverRtpPacket(CopyOnWriteBuffer in_packet) const {
-    if (!IsRtpPacket(in_packet)) {
+bool RtpDemuxer::DeliverRtpPacket(RtpPacketReceived received_packet) const {
+    if (!IsRtpPacket(received_packet)) {
         return false;
     }
-
-    // TODO: Using RTP header extension map and arrival time as initial parameters
-    RtpPacketReceived received_packet;
-    if (received_packet.Parse(std::move(in_packet))) {
-        PLOG_WARNING << "Failed to parse the incoming RTP packet before demuxing. Drop it.";
-        return false;
-    }
-
 
     // Deliver rtp packet
     if (auto sink = rtp_sink_by_ssrc_.at(received_packet.ssrc())) {

@@ -11,24 +11,12 @@ namespace naivertc {
 
 PeerConnection::PeerConnection(const RtcConfiguration& config) 
     : rtc_config_(config),
-      certificate_(Certificate::MakeCertificate(rtc_config_.certificate_type)) {
+      certificate_(Certificate::MakeCertificate(rtc_config_.certificate_type)),
+      broadcaster_(&clock_, this) {
 
-    if (rtc_config_.port_range_end > 0 && rtc_config_.port_range_end < rtc_config_.port_range_begin) {
-        throw std::invalid_argument("Invaild port range.");
-    }
+    ValidateConfiguration(rtc_config_);
 
-    if (auto mtu = rtc_config_.mtu) {
-        // Min MTU for IPv4
-        if (mtu < 576) {
-            throw std::invalid_argument("Invalid MTU value: " + std::to_string(*mtu));
-        } else if (mtu > 1500) {
-            PLOG_WARNING << "MTU set to: " << *mtu;
-        } else {
-            PLOG_VERBOSE << "MTU set to: " << *mtu;
-        }
-    }
-
-    signaling_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.signal.task.queue");
+    signaling_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.signaling.task.queue");
     network_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.network.task.queue");
     worker_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.worker.task.queue");
 
@@ -48,7 +36,7 @@ PeerConnection::~PeerConnection() {
 
 void PeerConnection::Close() {
     worker_task_queue_->Sync([this](){
-       rtp_demuxer_.Clear();
+       broadcaster_.Clear();
     });
     network_task_queue_->Sync([this](){
         this->CloseTransports();
@@ -104,33 +92,54 @@ void PeerConnection::OnRemoteMediaTrackReceived(MediaTrackCallback callback) {
     });
 }
 
-// MediaTransport interface
-bool PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
-    return network_task_queue_->Sync<int>([this, packet=std::move(packet), options=std::move(options)](){
-        auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
-        if (srtp_transport) {
-            return srtp_transport->SendRtpPacket(std::move(packet), std::move(options)) > 0;
+// Private methods
+void PeerConnection::ValidateConfiguration(RtcConfiguration& config) {
+    if (config.port_range_end > 0 && 
+        config.port_range_end < config.port_range_begin) {
+        config.port_range_begin = kDefaultPortLowerBound;
+        config.port_range_end = kDefaultPortUpperBound;
+        PLOG_WARNING << "Invalid incoming port range, reset to default value: [" 
+                     << config.port_range_begin << ", " 
+                     << config.port_range_end << "].";
+    }
+
+    if (auto mtu = config.mtu) {
+        // Min MTU for IPv4
+        if (mtu < 576) {
+            config.mtu = 576;
+            PLOG_WARNING << "Invalid MTU value, reset to the minimum MTU for IPv4: " << *config.mtu;
+        } else if (mtu > 1500) {
+            PLOG_WARNING << "MTU set to: " << *mtu;
         } else {
-            return false;
+            PLOG_VERBOSE << "MTU set to: " << *mtu;
         }
-    });
+    }
 }
 
-bool PeerConnection::SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) {
-    return network_task_queue_->Sync<int>([this, packet=std::move(packet), options=std::move(options)](){
+// MediaTransport interface
+bool PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) {
+    auto handler = [this, packet=std::move(packet), options=std::move(options), is_rtcp](){
         auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
-        if (srtp_transport) {
-            return srtp_transport->SendRtcpPacket(std::move(packet), std::move(options)) > 0;
+        if (srtp_transport && srtp_transport->state() == DtlsSrtpTransport::State::CONNECTED) {
+            if (is_rtcp) {
+                return srtp_transport->SendRtcpPacket(std::move(packet), std::move(options)) > 0;
+            } else {
+                return srtp_transport->SendRtpPacket(std::move(packet), std::move(options)) > 0;
+            }
         } else {
             return false;
         }
-    });
+    };
+    // FIXME: Send in sync will block the thread sometimes, and i have no idea about this.
+    // return network_task_queue_->Sync<int>(std::move(handler));
+    network_task_queue_->Async(std::move(handler));
+    return true;
 }
 
 // DataTransport interface
 bool PeerConnection::Send(SctpMessageToSend message) {
     return network_task_queue_->Sync<bool>([this, message=std::move(message)](){
-        if (sctp_transport_) {
+        if (sctp_transport_ && sctp_transport_->state() == SctpTransport::State::CONNECTED) {
             return sctp_transport_->Send(std::move(message));
         } else {
             return false;
@@ -138,7 +147,6 @@ bool PeerConnection::Send(SctpMessageToSend message) {
     });
 }
 
-// Private methods
 void PeerConnection::FlushPendingDataChannels() {
     RTC_RUN_ON(signaling_task_queue_);
     if (this->data_channel_callback_ && this->pending_data_channels_.size() > 0) {
@@ -187,7 +195,6 @@ void PeerConnection::ShiftDataChannelIfNeccessary(sdp::Role role) {
     std::swap(data_channels_, new_data_channels);
 }
 
-// Private methods
 bool PeerConnection::UpdateConnectionState(ConnectionState state) {
     RTC_RUN_ON(signaling_task_queue_);
     if (connection_state_ == state) {

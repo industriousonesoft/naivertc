@@ -17,17 +17,14 @@
 #include "rtc/media/video_track.hpp"
 #include "rtc/api/media_transport.hpp"
 #include "rtc/api/data_transport.hpp"
-#include "rtc/rtp_rtcp/components/rtp_demuxer.hpp"
+#include "rtc/pc/broadcaster.hpp"
+#include "rtc/base/time/clock_real_time.hpp"
 
 #include <exception>
 #include <unordered_map>
 #include <iostream>
 
 namespace naivertc {
-
-class MediaTrack;
-class AudioTrack;
-class VideoTrack;
 
 // PeerConnection
 class RTC_CPP_EXPORT PeerConnection : public MediaTransport,
@@ -119,18 +116,13 @@ public:
     // Incoming data channel or media track created by remote peer
     void OnRemoteDataChannelReceived(DataChannelCallback callback);
     void OnRemoteMediaTrackReceived(MediaTrackCallback callback);
-
-private:
-    // MediaTransport interfaces
-    bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override;
-    bool SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) override;
-    // DataTransport interfaces
-    bool Send(SctpMessageToSend message) override;
     
 protected:
     PeerConnection(const RtcConfiguration& config);
 
 private:
+    void ValidateConfiguration(RtcConfiguration& config);
+
     void InitIceTransport();
     void InitDtlsTransport();
     void InitSctpTransport();
@@ -187,9 +179,17 @@ private:
     void OnBufferedAmountChanged(uint16_t stream_id, size_t amount);
     void OnSctpMessageReceived(SctpMessage message);
     void OnSctpReadyToSend();
+
 private:
-    const RtcConfiguration rtc_config_ RTC_GUARDED_BY(signaling_task_queue_);
+    // Implements MediaTransport
+    bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) override;
+    // Implementsl DataTransport
+    bool Send(SctpMessageToSend message) override;
+
+private:
+    RtcConfiguration rtc_config_ RTC_GUARDED_BY(signaling_task_queue_);
     std::shared_future<std::shared_ptr<Certificate>> certificate_;
+    RealTimeClock clock_;
     
     ConnectionState connection_state_ RTC_GUARDED_BY(signaling_task_queue_) = ConnectionState::CLOSED;
     GatheringState gathering_state_ RTC_GUARDED_BY(signaling_task_queue_) = GatheringState::NEW;
@@ -231,8 +231,7 @@ private:
     std::vector<std::shared_ptr<DataChannel>> pending_data_channels_ RTC_GUARDED_BY(signaling_task_queue_);
     std::vector<std::shared_ptr<MediaTrack>> pending_media_tracks_ RTC_GUARDED_BY(signaling_task_queue_);
 
-    RtpDemuxer rtp_demuxer_ RTC_GUARDED_BY(worker_task_queue_);
-    
+    Broadcaster broadcaster_ RTC_GUARDED_BY(worker_task_queue_);
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, PeerConnection::ConnectionState state);

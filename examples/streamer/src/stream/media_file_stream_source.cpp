@@ -85,6 +85,7 @@ void MediaFileStreamSource::LoadNextSample() {
     int64_t eslapsed_ms = now_ms - start_ms;
     if (eslapsed_ms < sample_duration_ms_) {
         delay_ms = sample_duration_ms_ - eslapsed_ms;
+        PLOG_VERBOSE_IF(false) << "Load next sample in " << delay_ms << " ms.";
     }
     worker_queue_->PostDelayed(naivertc::TimeDelta::Millis(delay_ms), [this](){
         this->LoadNextSample();

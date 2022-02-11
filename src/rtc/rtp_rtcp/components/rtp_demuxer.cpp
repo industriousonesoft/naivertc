@@ -52,14 +52,6 @@ void RtpDemuxer::RemoveRtpSink(std::string mid) {
     rtp_sink_by_mid_.erase(mid);
 }
 
-void RtpDemuxer::OnRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
-    if (is_rtcp) {
-        DeliverRtcpPacket(std::move(in_packet));
-    } else {
-        DeliverRtpPacket(std::move(in_packet));
-    }
-}
-
 void RtpDemuxer::Clear() {
     rtp_sink_by_mid_.clear();
     rtp_sink_by_ssrc_.clear();
