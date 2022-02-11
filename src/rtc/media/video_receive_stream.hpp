@@ -2,7 +2,7 @@
 #define _RTC_MEDIA_VIDEO_VIDEO_RECEIVE_STREAM_H_
 
 #include "base/defines.hpp"
-#include "rtc/api/media_receive_stream.hpp"
+#include "rtc/media/media_receive_stream.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp_video_receiver.hpp"

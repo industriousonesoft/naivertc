@@ -4,9 +4,9 @@
 #include "base/defines.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/api/media_transport.hpp"
-#include "rtc/api/video_encoded_frame_sink.hpp"
-#include "rtc/api/media_send_stream.hpp"
+#include "rtc/pc/media_transport.hpp"
+#include "rtc/media/video/encoded_frame_sink.hpp"
+#include "rtc/media/media_send_stream.hpp"
 #include "rtc/rtp_rtcp/rtp_video_sender.hpp"
 
 #include <memory>

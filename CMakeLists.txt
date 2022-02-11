@@ -92,12 +92,6 @@ set(LIB_HEADERS
     src/rtc/base/synchronization/yield_policy.hpp
     src/rtc/base/synchronization/sequence_checker.hpp
 
-    # rtc -> api
-    src/rtc/api/media_transport.hpp
-    src/rtc/api/data_transport.hpp
-    src/rtc/api/video_encoded_frame_sink.hpp
-    src/rtc/api/media_send_stream.hpp
-    
     # rtc -> sdp
     src/rtc/sdp/sdp_defines.hpp
     src/rtc/sdp/sdp_utils.hpp
@@ -124,6 +118,8 @@ set(LIB_HEADERS
     src/rtc/pc/peer_connection_configuration.hpp
     src/rtc/pc/peer_connection.hpp
     src/rtc/pc/broadcaster.hpp
+    src/rtc/pc/media_transport.hpp
+    src/rtc/pc/data_transport.hpp
 
     # rtc -> data_channel
     src/rtc/data_channel/data_channel.hpp
@@ -135,10 +131,13 @@ set(LIB_HEADERS
     src/rtc/media/video_receive_stream.hpp
     src/rtc/media/video_send_stream.hpp
     src/rtc/media/media_channel.hpp
+    src/rtc/media/media_send_stream.hpp
+    src/rtc/media/media_receive_stream.hpp
 
     # rtc -> media -> video
     src/rtc/media/video/common.hpp
     src/rtc/media/video/encoded_frame.hpp
+    src/rtc/media/video/encoded_frame_sink.hpp
 
     # rtc -> media -> video -> codecs -> h264
     src/rtc/media/video/codecs/h264/common.hpp

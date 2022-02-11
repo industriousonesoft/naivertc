@@ -5,7 +5,7 @@
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/transports/sctp_message.hpp"
-#include "rtc/api/data_transport.hpp"
+#include "rtc/pc/data_transport.hpp"
 
 #include <memory>
 #include <queue>

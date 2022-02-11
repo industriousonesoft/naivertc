@@ -3,7 +3,7 @@
 #include "rtc/sdp/sdp_entry.hpp"
 #include "rtc/sdp/sdp_utils.hpp"
 #include "rtc/transports/sctp_transport_internals.hpp"
-#include "rtc/api/media_send_stream.hpp"
+#include "rtc/media/media_send_stream.hpp"
 
 #include <plog/Log.h>
 

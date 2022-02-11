@@ -15,8 +15,8 @@
 #include "rtc/data_channel/data_channel.hpp"
 #include "rtc/media/audio_track.hpp"
 #include "rtc/media/video_track.hpp"
-#include "rtc/api/media_transport.hpp"
-#include "rtc/api/data_transport.hpp"
+#include "rtc/pc/media_transport.hpp"
+#include "rtc/pc/data_transport.hpp"
 #include "rtc/pc/broadcaster.hpp"
 #include "rtc/base/time/clock_real_time.hpp"
 

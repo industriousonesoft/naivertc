@@ -10,7 +10,7 @@
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/media/video/encoded_frame.hpp"
 #include "rtc/media/video/common.hpp"
-#include "rtc/api/media_transport.hpp"
+#include "rtc/pc/media_transport.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_controller.hpp"
 

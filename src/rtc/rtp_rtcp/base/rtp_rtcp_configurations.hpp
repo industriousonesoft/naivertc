@@ -5,7 +5,7 @@
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/base/rtp_statistic_structs.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
-#include "rtc/api/media_transport.hpp"
+#include "rtc/pc/media_transport.hpp"
 
 #include <optional>
 #include <vector>
