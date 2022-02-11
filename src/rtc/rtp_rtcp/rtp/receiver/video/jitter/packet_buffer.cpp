@@ -260,6 +260,7 @@ PacketBuffer::AssembledFrames PacketBuffer::TryToAssembleFrames(uint16_t seq_num
 
                 // If this is not a keyframe, make sure there are no gaps in the packet
                 // sequence numbers up until this point.
+                // FIXME: https://blog.csdn.net/CrystalShaw/article/details/98081575
                 if (!is_h264_keyframe && missing_packets_.upper_bound(seq_num_start) != missing_packets_.begin()) {
                     return assembled_frames;
                 }

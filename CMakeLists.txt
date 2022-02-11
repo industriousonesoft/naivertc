@@ -231,6 +231,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtp/fec/fec_codec.hpp
     src/rtc/rtp_rtcp/rtp/fec/fec_encoder.hpp
     src/rtc/rtp_rtcp/rtp/fec/fec_decoder.hpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_controller.hpp
     src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator.hpp
     src/rtc/rtp_rtcp/rtp/fec/fec_header_writer.hpp
     src/rtc/rtp_rtcp/rtp/fec/fec_header_reader.hpp
@@ -468,6 +469,7 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtp/fec/fec_codec.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_encoder.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_decoder.cpp
+    src/rtc/rtp_rtcp/rtp/fec/fec_controller.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator_bursty_table.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_mask_generator_random_table.cpp
