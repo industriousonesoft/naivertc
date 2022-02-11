@@ -370,7 +370,6 @@ set(LIB_SOURCES
     src/rtc/channels/data_channel.cpp
     src/rtc/channels/data_channel_utils.cpp
     src/rtc/channels/data_channel_message.cpp
-    src/rtc/channels/media_channel.cpp
 
     # rtc -> media
     src/rtc/media/media_track.cpp

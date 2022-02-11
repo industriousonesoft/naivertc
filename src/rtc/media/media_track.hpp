@@ -19,6 +19,12 @@ class RTC_CPP_EXPORT MediaTrack : public MediaChannel {
 public:
     using Direction = sdp::Direction;
 
+    // Kind
+    enum class Kind {
+        VIDEO,
+        AUDIO
+    };
+
     enum class Codec {
         H264,
         OPUS
@@ -84,6 +90,9 @@ public:
         std::vector<CodecParams> media_codecs_;
     };
 
+    using OpenedCallback = std::function<void()>;
+    using ClosedCallback = std::function<void()>;
+
 public:
     MediaTrack(const Configuration& config,
                Broadcaster* broadcaster,
@@ -93,7 +102,14 @@ public:
                TaskQueue* worker_queue);
     virtual ~MediaTrack() override;
 
+    Kind kind() const;
+    const std::string mid() const;
     sdp::Media description() const;
+
+    bool is_opened() const override;
+    
+    void OnOpened(OpenedCallback callback);
+    void OnClosed(ClosedCallback callback);
 
     void OnMediaNegotiated(const sdp::Media local_media, 
                            const sdp::Media remote_media, 
@@ -102,6 +118,9 @@ public:
 private:
     void Open() override;
     void Close() override;
+    
+    void TriggerOpen();
+    void TriggerClose();
 
 public:
     // SdpBuilder
@@ -120,9 +139,15 @@ public:
     };
 
 protected:
+    const Kind kind_;
     const sdp::Media description_;
     Broadcaster* const broadcaster_;
     TaskQueue* const worker_queue_;
+    TaskQueueImpl* const signaling_queue_;
+
+    bool is_opened_ = false;
+    OpenedCallback opened_callback_ = nullptr;
+    ClosedCallback closed_callback_ = nullptr;
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Kind kind);

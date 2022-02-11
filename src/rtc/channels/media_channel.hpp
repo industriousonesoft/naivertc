@@ -19,47 +19,10 @@ class Broadcaster;
 // MediaChannel
 class RTC_CPP_EXPORT MediaChannel {
 public:
-    // Kind
-    enum class Kind {
-        VIDEO,
-        AUDIO
-    };
-
-    using OpenedCallback = std::function<void()>;
-    using ClosedCallback = std::function<void()>;
-
-public:
-    virtual ~MediaChannel();
-
-    Kind kind() const;
-    const std::string mid() const;
-
-    bool is_opened() const;
-    
-    virtual void Open();
-    virtual void Close();
-
-    void OnOpened(OpenedCallback callback);
-    void OnClosed(ClosedCallback callback);
-
-protected:
-    MediaChannel(Kind kind, 
-                 std::string mid);
-
-private:
-    void TriggerOpen();
-    void TriggerClose();
-
-    void CreateStreams();
-
-protected:
-    const Kind kind_;
-    const std::string mid_;
-    TaskQueueImpl* const signaling_queue_;
-    
-    bool is_opened_ = false;
-    OpenedCallback opened_callback_ = nullptr;
-    ClosedCallback closed_callback_ = nullptr;
+    virtual ~MediaChannel() = default;
+    virtual bool is_opened() const = 0;
+    virtual void Open() = 0;
+    virtual void Close() = 0;
 };
 
 } // nemespace naivertc

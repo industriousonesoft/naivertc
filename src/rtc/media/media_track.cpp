@@ -78,15 +78,55 @@ MediaTrack::MediaTrack(const Configuration& config,
 MediaTrack::MediaTrack(sdp::Media description,
                        Broadcaster* broadcaster,
                        TaskQueue* worker_queue)
-    : MediaChannel(ToKind(description.kind()), description.mid()),
+    : kind_(ToKind(description.kind())),
       description_(std::move(description)),
       broadcaster_(broadcaster),
-      worker_queue_(worker_queue) {}
+      worker_queue_(worker_queue),
+      signaling_queue_(TaskQueueImpl::Current()) {}
 
 MediaTrack::~MediaTrack() {}
 
+MediaTrack::Kind MediaTrack::kind() const {
+    return kind_;
+}
+
+const std::string MediaTrack::mid() const {
+    return description_.mid();
+}
+
 sdp::Media MediaTrack::description() const {
     return description_;
+}
+
+bool MediaTrack::is_opened() const {
+    RTC_RUN_ON(signaling_queue_);
+    return is_opened_;
+}
+
+void MediaTrack::OnOpened(OpenedCallback callback) {
+    signaling_queue_->Post([this, callback=std::move(callback)](){
+        opened_callback_ = callback;
+        if (is_opened_ && opened_callback_) {
+            opened_callback_();
+        }
+    });
+}
+
+void MediaTrack::OnClosed(ClosedCallback callback) {
+    signaling_queue_->Post([this, callback=std::move(callback)](){
+        closed_callback_ = callback;
+    });
+}
+
+void MediaTrack::Open() {
+    RTC_RUN_ON(signaling_queue_);
+    TriggerOpen();
+}
+
+void MediaTrack::Close() {
+    RTC_RUN_ON(signaling_queue_);
+    TriggerClose();
+    PLOG_VERBOSE << "Media channel closed.";
 }
 
 void MediaTrack::OnMediaNegotiated(sdp::Media local_media, 
@@ -113,12 +153,27 @@ void MediaTrack::OnMediaNegotiated(sdp::Media local_media,
 }
 
 // Private methods
- void MediaTrack::Open() {
-    MediaChannel::Open();
- }
-    
-void MediaTrack::Close() {
-    MediaChannel::Close();
+void MediaTrack::TriggerOpen() {
+    RTC_RUN_ON(signaling_queue_);
+    if (is_opened_) {
+        return;
+    }
+    is_opened_ = true;
+    if (opened_callback_) {
+        opened_callback_();
+    }
 }
+
+void MediaTrack::TriggerClose() {
+    RTC_RUN_ON(signaling_queue_);
+    if (!is_opened_) {
+        return;
+    }
+    is_opened_ = false;
+    if (closed_callback_) {
+        closed_callback_();
+    }
+}
+
 
 } // namespace naivertc
