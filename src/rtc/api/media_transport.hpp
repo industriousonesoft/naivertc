@@ -10,12 +10,13 @@ namespace naivertc {
 // MediaTransport
 class RTC_CPP_EXPORT MediaTransport {
 public:
-    virtual bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) = 0;
+    virtual bool SendRtpPacket(CopyOnWriteBuffer packet, 
+                               PacketOptions options, 
+                               bool is_rtcp) = 0;
 protected:
     virtual ~MediaTransport() = default;
 };
 
-    
 } // namespace naivertc
 
 

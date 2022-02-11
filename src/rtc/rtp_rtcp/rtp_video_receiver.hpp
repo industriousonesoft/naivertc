@@ -15,7 +15,7 @@
 #include "rtc/media/video/common.hpp"
 #include "rtc/media/video/codecs/h264/sps_pps_tracker.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
-#include "rtc/api/rtp_packet_sink.hpp"
+#include "rtc/rtp_rtcp/base/rtp_packet_sink.hpp"
 
 #include <memory>
 #include <map>

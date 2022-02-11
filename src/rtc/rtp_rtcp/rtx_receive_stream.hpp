@@ -5,7 +5,7 @@
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
-#include "rtc/api/rtp_packet_sink.hpp"
+#include "rtc/rtp_rtcp/base/rtp_packet_sink.hpp"
 
 #include <map>
 #include <functional>

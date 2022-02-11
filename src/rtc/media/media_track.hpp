@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/sdp/sdp_media_entry_media.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
-#include "rtc/channels/media_channel.hpp"
+#include "rtc/media/media_channel.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 
 #include <string>
@@ -14,6 +14,8 @@
 #include <iostream>
 
 namespace naivertc {
+
+class Broadcaster;
 
 class RTC_CPP_EXPORT MediaTrack : public MediaChannel {
 public:

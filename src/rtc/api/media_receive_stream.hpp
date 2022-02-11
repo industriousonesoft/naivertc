@@ -2,7 +2,7 @@
 #define _RTC_API_MEDIA_RECEIVE_STREAM_H_
 
 #include "base/defines.hpp"
-#include "rtc/api/rtp_packet_sink.hpp"
+#include "rtc/rtp_rtcp/base/rtp_packet_sink.hpp"
 
 namespace naivertc {
 

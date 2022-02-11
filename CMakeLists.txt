@@ -95,7 +95,6 @@ set(LIB_HEADERS
     # rtc -> api
     src/rtc/api/media_transport.hpp
     src/rtc/api/data_transport.hpp
-    src/rtc/api/rtp_packet_sink.hpp
     src/rtc/api/video_encoded_frame_sink.hpp
     src/rtc/api/media_send_stream.hpp
     
@@ -126,9 +125,8 @@ set(LIB_HEADERS
     src/rtc/pc/peer_connection.hpp
     src/rtc/pc/broadcaster.hpp
 
-    # rtc -> channels
-    src/rtc/channels/data_channel.hpp
-    src/rtc/channels/media_channel.hpp
+    # rtc -> data_channel
+    src/rtc/data_channel/data_channel.hpp
 
     # rtc -> media
     src/rtc/media/media_track.hpp
@@ -136,6 +134,7 @@ set(LIB_HEADERS
     src/rtc/media/video_track.hpp
     src/rtc/media/video_receive_stream.hpp
     src/rtc/media/video_send_stream.hpp
+    src/rtc/media/media_channel.hpp
 
     # rtc -> media -> video
     src/rtc/media/video/common.hpp
@@ -167,6 +166,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/base/rtp_statistic_structs.hpp
     src/rtc/rtp_rtcp/base/rtcp_statistic_structs.hpp
     src/rtc/rtp_rtcp/base/rtp_utils.hpp
+    src/rtc/rtp_rtcp/base/rtp_packet_sink.hpp
 
     # rtp -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.hpp
@@ -366,10 +366,10 @@ set(LIB_SOURCES
     src/rtc/pc/peer_connection_media_handler.cpp
     src/rtc/pc/broadcaster.cpp
 
-    # rtc -> channels
-    src/rtc/channels/data_channel.cpp
-    src/rtc/channels/data_channel_utils.cpp
-    src/rtc/channels/data_channel_message.cpp
+    # rtc -> data_channel
+    src/rtc/data_channel/data_channel.cpp
+    src/rtc/data_channel/data_channel_utils.cpp
+    src/rtc/data_channel/data_channel_message.cpp
 
     # rtc -> media
     src/rtc/media/media_track.cpp

@@ -12,7 +12,7 @@
 #include "rtc/transports/ice_transport.hpp"
 #include "rtc/transports/dtls_transport.hpp"
 #include "rtc/transports/sctp_transport.hpp"
-#include "rtc/channels/data_channel.hpp"
+#include "rtc/data_channel/data_channel.hpp"
 #include "rtc/media/audio_track.hpp"
 #include "rtc/media/video_track.hpp"
 #include "rtc/api/media_transport.hpp"
