@@ -10,7 +10,7 @@ namespace naivertc {
 using namespace std::chrono_literals;
 
 IceTransport::IceTransport(Configuration config, sdp::Role role) 
-    : Transport(nullptr),
+    : BaseTransport(nullptr),
       config_(std::move(config)),
       curr_mid_("0"),
       role_(role) {

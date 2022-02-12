@@ -10,7 +10,7 @@
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/media/video/encoded_frame.hpp"
 #include "rtc/media/video/common.hpp"
-#include "rtc/pc/media_transport.hpp"
+#include "rtc/transports/rtc_transport_media.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_controller.hpp"
 
@@ -25,7 +25,7 @@ public:
 public:
     RtpVideoSender(const Configuration& config,
                    Clock* clock,
-                   MediaTransport* send_transport);
+                   RtcMediaTransport* send_transport);
     ~RtpVideoSender();
 
     bool OnEncodedFrame(video::EncodedFrame encoded_frame);
@@ -35,7 +35,7 @@ public:
 private:
     void CreateAndInitRtpRtcpModules(const Configuration& config,
                                      Clock* clock,
-                                     MediaTransport* send_transport);
+                                     RtcMediaTransport* send_transport);
 
     void InitRtpRtcpModules(const Configuration& config);
 

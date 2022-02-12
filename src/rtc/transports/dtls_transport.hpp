@@ -5,7 +5,7 @@
 #include "base/certificate.hpp"
 #include "base/tls.hpp"
 #include "rtc/base/internals.hpp"
-#include "rtc/transports/transport.hpp"
+#include "rtc/transports/base_transport.hpp"
 
 #include <optional>
 #include <functional>
@@ -18,7 +18,7 @@ using openssl_bool = int;
 static const openssl_bool openssl_true = 1;
 static const openssl_bool openssl_false = 0;
 
-class RTC_CPP_EXPORT DtlsTransport : public Transport {
+class RTC_CPP_EXPORT DtlsTransport : public BaseTransport {
 public:
     struct Configuration {
         std::shared_ptr<Certificate> certificate = nullptr;
@@ -28,7 +28,7 @@ public:
     static void Init();
     static void Cleanup();
 public:
-    DtlsTransport(Configuration config, bool is_client, Transport* lower);
+    DtlsTransport(Configuration config, bool is_client, BaseTransport* lower);
     virtual ~DtlsTransport() override;
 
     bool IsClient() const;

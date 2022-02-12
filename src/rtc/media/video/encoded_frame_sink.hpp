@@ -1,5 +1,5 @@
-#ifndef _RTC_API_VIDEO_ENCODED_FRAME_SINK_H_
-#define _RTC_API_VIDEO_ENCODED_FRAME_SINK_H_
+#ifndef _RTC_MEDIA_VIDEO_ENCODED_FRAME_SINK_H_
+#define _RTC_MEDIA_VIDEO_ENCODED_FRAME_SINK_H_
 
 #include "base/defines.hpp"
 #include "rtc/media/video/encoded_frame.hpp"

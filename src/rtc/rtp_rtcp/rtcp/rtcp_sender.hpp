@@ -35,7 +35,7 @@ public:
 
         Clock* clock;
 
-        MediaTransport* send_transport;
+        RtcMediaTransport* send_transport;
 
         // Observers
         RtcpPacketTypeCounterObserver* packet_type_counter_observer = nullptr;
@@ -107,7 +107,7 @@ private:
     // Helper to put several RTCP packets into lower layer datagram RTCP packet.
     class PacketSender {
     public:
-        PacketSender(MediaTransport* send_transport,
+        PacketSender(RtcMediaTransport* send_transport,
                      bool is_audio,
                      size_t max_packet_size);
         ~PacketSender();
@@ -128,7 +128,7 @@ private:
         void SendPacket(CopyOnWriteBuffer packet);
 
     private:
-        MediaTransport* const send_transport_;
+        RtcMediaTransport* const send_transport_;
         const bool is_audio_;
         size_t max_packet_size_;
         size_t index_;

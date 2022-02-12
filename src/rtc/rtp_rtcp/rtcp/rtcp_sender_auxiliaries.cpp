@@ -14,7 +14,7 @@ RtcpSender::RtcpContext::RtcpContext(const RtpSendFeedback& rtp_send_feedback,
       now_time(now_time) {}
 
 // PacketSender
-RtcpSender::PacketSender::PacketSender(MediaTransport* send_transport,
+RtcpSender::PacketSender::PacketSender(RtcMediaTransport* send_transport,
                                        bool is_audio,
                                        size_t max_packet_size)
     : send_transport_(send_transport), 

@@ -117,7 +117,7 @@ private:
     const uint32_t ssrc_;
     const std::optional<uint32_t> rtx_ssrc_;
     const std::optional<uint32_t> flex_fec_ssrc_;
-    MediaTransport* const send_transport_;
+    RtcMediaTransport* const send_transport_;
     
     RtpPacketHistory* const packet_history_;
     FecGenerator* const fec_generator_;

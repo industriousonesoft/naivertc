@@ -15,7 +15,7 @@
 
 namespace naivertc {
 
-class Broadcaster;
+class Call;
 
 class RTC_CPP_EXPORT MediaTrack : public MediaChannel {
 public:
@@ -97,10 +97,10 @@ public:
 
 public:
     MediaTrack(const Configuration& config,
-               Broadcaster* broadcaster,
+               Call* broadcaster,
                TaskQueue* worker_queue);
     MediaTrack(sdp::Media description,
-               Broadcaster* broadcaster,
+               Call* broadcaster,
                TaskQueue* worker_queue);
     virtual ~MediaTrack() override;
 
@@ -143,7 +143,7 @@ public:
 protected:
     const Kind kind_;
     const sdp::Media description_;
-    Broadcaster* const broadcaster_;
+    Call* const call_;
     TaskQueue* const worker_queue_;
     TaskQueueImpl* const signaling_queue_;
 

@@ -15,8 +15,8 @@ constexpr DSCP kHandshakePacketDscp = DSCP::DSCP_AF21;
 } // namespace
 
 
-DtlsTransport::DtlsTransport(Configuration config, bool is_client, Transport* lower) 
-    : Transport(lower),
+DtlsTransport::DtlsTransport(Configuration config, bool is_client, BaseTransport* lower) 
+    : BaseTransport(lower),
       config_(std::move(config)),
       is_client_(is_client),
       handshake_packet_options_(kHandshakePacketDscp, PacketKind::BINARY) {

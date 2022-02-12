@@ -47,10 +47,10 @@ public:
     RtcpPacketTypeCounter packet_counter_;
 };
 
-// MediaTransportImpl
-class MediaTransportImpl : public MediaTransport {
+// RtcMediaTransportImpl
+class RtcMediaTransportImpl : public RtcMediaTransport {
 public:
-    ~MediaTransportImpl() override = default;
+    ~RtcMediaTransportImpl() override = default;
 
     bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
         return false;
@@ -64,8 +64,8 @@ public:
     test::RtcpPacketParser parser_;
 };
 
-// MockMediaTransport
-class MockMediaTransport : public MediaTransport {
+// MockRtcMediaTransport
+class MockRtcMediaTransport : public RtcMediaTransport {
 public:
     MOCK_METHOD(bool, SendRtpPacket, (CopyOnWriteBuffer, PacketOptions), (override));
     MOCK_METHOD(bool, SendRtcpPacket, (CopyOnWriteBuffer, PacketOptions), (override));
@@ -151,7 +151,7 @@ public:
 
 protected:
     SimulatedClock clock_;
-    MediaTransportImpl send_transport_;
+    RtcMediaTransportImpl send_transport_;
     std::unique_ptr<RtpReceiveStatistics> receive_statistics_;
     RtpSendFeedbackProviderImpl rtp_send_feedback_provider_;
     RtcpReceiveFeedbackProviderImpl rtcp_receive_feedback_provider_;
@@ -524,7 +524,7 @@ MY_TEST_F(RtcpSenderTest, DoNotSendXrWithRrtrIfSending) {
 }
 
 MY_TEST_F(RtcpSenderTest, ByeMustBeTheLastToSend) {
-    MockMediaTransport mock_transport;
+    MockRtcMediaTransport mock_transport;
     EXPECT_CALL(mock_transport, SendRtcpPacket(_, _))
         .WillOnce(Invoke([](CopyOnWriteBuffer packet, PacketOptions options) {
             const uint8_t* next_packet = packet.data();

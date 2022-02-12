@@ -2,7 +2,7 @@
 #define _RTC_TRANSPORTS_ICE_TRANSPORT_H_
 
 #include "base/defines.hpp"
-#include "rtc/transports/transport.hpp"
+#include "rtc/transports/base_transport.hpp"
 #include "rtc/pc/peer_connection_configuration.hpp"
 #include "rtc/sdp/candidate.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
@@ -21,7 +21,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT IceTransport final: public Transport {
+class RTC_CPP_EXPORT IceTransport final: public BaseTransport {
 public:
     // Configuration
     struct Configuration {

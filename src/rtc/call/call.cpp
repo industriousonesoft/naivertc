@@ -1,25 +1,25 @@
-#include "rtc/pc/broadcaster.hpp"
+#include "rtc/call/call.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/pc/media_transport.hpp"
+#include "rtc/transports/rtc_transport_media.hpp"
 #include "rtc/media/video_send_stream.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 namespace naivertc {
 
-Broadcaster::Broadcaster(Clock* clock, MediaTransport* send_transport) 
+Call::Call(Clock* clock, RtcMediaTransport* send_transport) 
     : clock_(clock),
       send_transport_(send_transport) {
     worker_queue_checker_.Detach();
 }
     
-Broadcaster::~Broadcaster() {};
+Call::~Call() {};
     
-void Broadcaster::DeliverRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
+void Call::DeliverRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
     RTC_RUN_ON(&worker_queue_checker_);
     if (is_rtcp) {
         rtp_demuxer_.DeliverRtcpPacket(std::move(in_packet));
     } else {
-        // TODO: Using RTP header extension map and arrival time as initial parameters
+        // TODO: Using RTP header extension map
         RtpPacketReceived received_packet;
         if (received_packet.Parse(std::move(in_packet))) {
             PLOG_WARNING << "Failed to parse the incoming RTP packet before demuxing. Drop it.";
@@ -29,7 +29,7 @@ void Broadcaster::DeliverRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
     }
 }
 
-void Broadcaster::AddVideoSendStream(RtpParameters rtp_params) {
+void Call::AddVideoSendStream(RtpParameters rtp_params) {
     RTC_RUN_ON(&worker_queue_checker_);
     if (rtp_params.local_media_ssrc > 0) {
         // Add video send stream.
@@ -46,16 +46,16 @@ void Broadcaster::AddVideoSendStream(RtpParameters rtp_params) {
     }
 }
 
-void Broadcaster::AddVideoRecvStream(RtpParameters rtp_params) {
+void Call::AddVideoRecvStream(RtpParameters rtp_params) {
     RTC_RUN_ON(&worker_queue_checker_);
 }
 
-void Broadcaster::Clear() {
+void Call::Clear() {
     RTC_RUN_ON(&worker_queue_checker_);
     rtp_demuxer_.Clear();
 }
 
-void Broadcaster::Send(video::EncodedFrame encoded_frame) {
+void Call::Send(video::EncodedFrame encoded_frame) {
     if (video_send_streams_.empty()) {
         return;
     }

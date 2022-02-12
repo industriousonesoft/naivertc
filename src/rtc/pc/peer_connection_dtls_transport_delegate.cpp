@@ -96,7 +96,7 @@ bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
 void PeerConnection::OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rtcp) {
     RTC_RUN_ON(network_task_queue_);
     worker_task_queue_->Post([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
-        broadcaster_.DeliverRtpPacket(std::move(in_packet), is_rtcp);
+        call_.DeliverRtpPacket(std::move(in_packet), is_rtcp);
     });
 }
 

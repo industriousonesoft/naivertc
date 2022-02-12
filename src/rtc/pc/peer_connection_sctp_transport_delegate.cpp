@@ -35,7 +35,7 @@ void PeerConnection::InitSctpTransport() {
 }
 
 // SctpTransport delegate
-void PeerConnection::OnSctpTransportStateChanged(Transport::State state) {
+void PeerConnection::OnSctpTransportStateChanged(SctpTransport::State state) {
     RTC_RUN_ON(network_task_queue_);
     signaling_task_queue_->Post([this, state](){
         switch(state) {

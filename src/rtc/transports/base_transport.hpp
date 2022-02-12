@@ -11,7 +11,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT Transport {
+class RTC_CPP_EXPORT BaseTransport {
 public:
     enum class State {
         DISCONNECTED,
@@ -22,7 +22,7 @@ public:
     };
     
 public:
-    Transport(Transport* lower);
+    BaseTransport(BaseTransport* lower);
 
     bool is_stoped() const;
     State state() const;
@@ -36,7 +36,7 @@ public:
     void OnStateChanged(StateChangedCallback callback);    
 
 protected:
-    virtual ~Transport();
+    virtual ~BaseTransport();
     
     virtual void Incoming(CopyOnWriteBuffer packet) = 0;
     virtual int Outgoing(CopyOnWriteBuffer packet, PacketOptions options) = 0;
@@ -52,7 +52,7 @@ protected:
 protected:
     SequenceChecker sequence_checker_;
     TaskQueueImpl* const attached_queue_;
-    Transport* const lower_;
+    BaseTransport* const lower_;
 
     bool is_stoped_;
     State state_;

@@ -5,7 +5,7 @@
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/base/rtp_statistic_structs.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
-#include "rtc/pc/media_transport.hpp"
+#include "rtc/transports/rtc_transport_media.hpp"
 
 #include <optional>
 #include <vector>
@@ -40,7 +40,7 @@ struct RTC_CPP_EXPORT RtpConfiguration {
 
     Clock* clock;
     
-    MediaTransport* send_transport = nullptr;
+    RtcMediaTransport* send_transport = nullptr;
     FecGenerator* fec_generator = nullptr;
     RtpPacketSender* packet_sender = nullptr;
 
@@ -69,7 +69,7 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
 
     Clock* clock;
 
-    MediaTransport* send_transport;
+    RtcMediaTransport* send_transport;
 
     // Observers
     RtcpPacketTypeCounterObserver* packet_type_counter_observer = nullptr;

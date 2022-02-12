@@ -77,7 +77,7 @@ public:
 };
 
 // SendTransportImpl
-class SendTransportImpl : public MediaTransport {
+class SendTransportImpl : public RtcMediaTransport {
 public:
     SendTransportImpl(rtp::HeaderExtensionMap* header_extension_map) 
         : total_bytes_sent_(0),

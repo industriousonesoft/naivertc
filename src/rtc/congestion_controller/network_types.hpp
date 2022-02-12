@@ -85,7 +85,8 @@ struct RTC_CPP_EXPORT TransportPacketsFeedback {
 // Netwrok control
 
 // NetworkEstimate
-struct RTC_CPP_EXPORT NetworkEstimate {
+struct RTC_CPP_EXPORT NetworkEstimate
+ {
     float loss_rate_ratio = 0;
     TimeDelta rtt = TimeDelta::PlusInfinity();
     TimeDelta bwe_period = TimeDelta::PlusInfinity();

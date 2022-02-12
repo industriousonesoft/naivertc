@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/pc/media_transport.hpp"
+#include "rtc/transports/rtc_transport_media.hpp"
 #include "rtc/media/video/encoded_frame_sink.hpp"
 #include "rtc/media/media_send_stream.hpp"
 #include "rtc/rtp_rtcp/rtp_video_sender.hpp"
@@ -20,7 +20,7 @@ public:
         RtpParameters rtp;
 
         Clock* clock;
-        MediaTransport* send_transport = nullptr;
+        RtcMediaTransport* send_transport = nullptr;
     };
 public:
     VideoSendStream(Configuration config);

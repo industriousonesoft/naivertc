@@ -1,4 +1,4 @@
-#include "rtc/transports/transport.hpp"
+#include "rtc/transports/base_transport.hpp"
 
 #include <plog/Log.h>
 
@@ -6,31 +6,31 @@
 
 namespace naivertc {
 
-Transport::Transport(Transport* lower)
+BaseTransport::BaseTransport(BaseTransport* lower)
     : attached_queue_(TaskQueueImpl::Current()),
       lower_(lower),
       is_stoped_(true),
       state_(State::DISCONNECTED) {}
 
-Transport::~Transport() = default;
+BaseTransport::~BaseTransport() = default;
 
-bool Transport::is_stoped() const {
+bool BaseTransport::is_stoped() const {
     RTC_RUN_ON(&sequence_checker_);
     return is_stoped_;
 }
 
-Transport::State Transport::state() const {
+BaseTransport::State BaseTransport::state() const {
     RTC_RUN_ON(&sequence_checker_);
     return state_;
 }
 
-void Transport::OnStateChanged(StateChangedCallback callback) {
+void BaseTransport::OnStateChanged(StateChangedCallback callback) {
     RTC_RUN_ON(&sequence_checker_);
     state_changed_callback_ = std::move(callback);
 }
 
 // Protected methods
-void Transport::UpdateState(State state) {
+void BaseTransport::UpdateState(State state) {
     RTC_RUN_ON(&sequence_checker_);
     if (state_ == state) {
         return;
@@ -41,7 +41,7 @@ void Transport::UpdateState(State state) {
     }
 }
 
-int Transport::ForwardOutgoingPacket(CopyOnWriteBuffer packet, PacketOptions options) {
+int BaseTransport::ForwardOutgoingPacket(CopyOnWriteBuffer packet, PacketOptions options) {
     RTC_RUN_ON(&sequence_checker_);
     try {
         if (lower_) {
@@ -55,7 +55,7 @@ int Transport::ForwardOutgoingPacket(CopyOnWriteBuffer packet, PacketOptions opt
     }
 }
 
-void Transport::ForwardIncomingPacket(CopyOnWriteBuffer packet) {
+void BaseTransport::ForwardIncomingPacket(CopyOnWriteBuffer packet) {
     RTC_RUN_ON(&sequence_checker_);
     try {
         if (packet_recv_callback_) {
@@ -66,15 +66,15 @@ void Transport::ForwardIncomingPacket(CopyOnWriteBuffer packet) {
     }
 }
 
-void Transport::RegisterIncoming() {
+void BaseTransport::RegisterIncoming() {
     RTC_RUN_ON(&sequence_checker_);
     if (lower_) {
         PLOG_VERBOSE << "Registering incoming callback";
-        lower_->packet_recv_callback_ = std::bind(&Transport::Incoming, this, std::placeholders::_1);
+        lower_->packet_recv_callback_ = std::bind(&BaseTransport::Incoming, this, std::placeholders::_1);
     }
 }
 
-void Transport::DeregisterIncoming() {
+void BaseTransport::DeregisterIncoming() {
     RTC_RUN_ON(&sequence_checker_);
     if (lower_) {
         lower_->packet_recv_callback_ = nullptr;

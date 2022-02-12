@@ -15,9 +15,9 @@
 #include "rtc/data_channel/data_channel.hpp"
 #include "rtc/media/audio_track.hpp"
 #include "rtc/media/video_track.hpp"
-#include "rtc/pc/media_transport.hpp"
-#include "rtc/pc/data_transport.hpp"
-#include "rtc/pc/broadcaster.hpp"
+#include "rtc/transports/rtc_transport_media.hpp"
+#include "rtc/transports/rtc_transport_data.hpp"
+#include "rtc/call/call.hpp"
 #include "rtc/base/time/clock_real_time.hpp"
 
 #include <exception>
@@ -27,8 +27,8 @@
 namespace naivertc {
 
 // PeerConnection
-class RTC_CPP_EXPORT PeerConnection : public MediaTransport,
-                                      public DataTransport,
+class RTC_CPP_EXPORT PeerConnection : public RtcMediaTransport,
+                                      public RtcDataTransport,
                                       public std::enable_shared_from_this<PeerConnection> {
 public:
     // ConnectionState
@@ -164,7 +164,7 @@ private:
 
 private:
     // IceTransport callbacks
-    void OnIceTransportStateChanged(Transport::State transport_state);
+    void OnIceTransportStateChanged(IceTransport::State transport_state);
     void OnGatheringStateChanged(IceTransport::GatheringState gathering_state);
     void OnCandidateGathered(sdp::Candidate candidate);
     void OnRoleChanged(sdp::Role role);
@@ -181,9 +181,9 @@ private:
     void OnSctpReadyToSend();
 
 private:
-    // Implements MediaTransport
+    // Implements RtcMediaTransport
     bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) override;
-    // Implementsl DataTransport
+    // Implementsl RtcDataTransport
     bool Send(SctpMessageToSend message) override;
 
 private:
@@ -231,7 +231,7 @@ private:
     std::vector<std::shared_ptr<DataChannel>> pending_data_channels_ RTC_GUARDED_BY(signaling_task_queue_);
     std::vector<std::shared_ptr<MediaTrack>> pending_media_tracks_ RTC_GUARDED_BY(signaling_task_queue_);
 
-    Broadcaster broadcaster_ RTC_GUARDED_BY(worker_task_queue_);
+    Call call_ RTC_GUARDED_BY(worker_task_queue_);
 };
 
 RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, PeerConnection::ConnectionState state);

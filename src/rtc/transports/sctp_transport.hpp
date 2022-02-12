@@ -2,7 +2,7 @@
 #define _RTC_TRANSPORTS_SCTP_TRANSPORT_H_
 
 #include "base/defines.hpp"
-#include "rtc/transports/transport.hpp"
+#include "rtc/transports/base_transport.hpp"
 #include "rtc/transports/sctp_message.hpp"
 #include "rtc/transports/sctp_transport_usr_sctp_settings.hpp"
 
@@ -16,7 +16,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT SctpTransport final : public Transport {
+class RTC_CPP_EXPORT SctpTransport final : public BaseTransport {
 public:
     struct Configuration {
         // SCTP port, local and remote use the same port
@@ -31,7 +31,7 @@ public:
     static void CustomizeSctp(const SctpCustomizedSettings& settings);
     static void Cleanup();
 public:
-    SctpTransport(Configuration config, Transport* lower);
+    SctpTransport(Configuration config, BaseTransport* lower);
     ~SctpTransport() override;
 
     bool Start() override;

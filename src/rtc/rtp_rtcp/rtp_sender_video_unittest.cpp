@@ -27,13 +27,13 @@ enum : int {
     kPlayoutDelayExtensionId = 1,
 };
 
-// MediaTransportImpl
-class MediaTransportImpl : public MediaTransport {
+// RtcMediaTransportImpl
+class RtcMediaTransportImpl : public RtcMediaTransport {
 public:
-    MediaTransportImpl() {
+    RtcMediaTransportImpl() {
         header_extension_map_.Register<rtp::PlayoutDelayLimits>(kPlayoutDelayExtensionId);
     }
-    ~MediaTransportImpl() override = default;
+    ~RtcMediaTransportImpl() override = default;
 
     bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
         RtpPacketReceived recv_packet(&header_extension_map_);
@@ -83,7 +83,7 @@ public:
 
 protected:
     SimulatedClock clock_;
-    MediaTransportImpl send_transport_;
+    RtcMediaTransportImpl send_transport_;
     std::unique_ptr<RtpSender> packet_sender_;
     std::unique_ptr<RtpSenderVideo> sender_video_; 
 };

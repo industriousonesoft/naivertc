@@ -104,7 +104,7 @@ set(LIB_HEADERS
     src/rtc/sdp/sdp_media_entry_media.hpp
 
     # rtc -> transports
-    src/rtc/transports/transport.hpp
+    src/rtc/transports/base_transport.hpp
     src/rtc/transports/ice_transport.hpp
     src/rtc/transports/sctp_transport.hpp
     src/rtc/transports/sctp_transport_internals.hpp
@@ -112,14 +112,16 @@ set(LIB_HEADERS
     src/rtc/transports/sctp_message.hpp
     src/rtc/transports/dtls_transport.hpp
     src/rtc/transports/dtls_srtp_transport.hpp
+    src/rtc/transports/rtc_transport_media.hpp
+    src/rtc/transports/rtc_transport_data.hpp
+
+    # rtc -> call
+    src/rtc/call/call.hpp
 
     # rtc -> pc
     src/rtc/pc/ice_server.hpp
     src/rtc/pc/peer_connection_configuration.hpp
     src/rtc/pc/peer_connection.hpp
-    src/rtc/pc/broadcaster.hpp
-    src/rtc/pc/media_transport.hpp
-    src/rtc/pc/data_transport.hpp
 
     # rtc -> data_channel
     src/rtc/data_channel/data_channel.hpp
@@ -344,7 +346,7 @@ set(LIB_SOURCES
     src/rtc/sdp/sdp_media_entry_media.cpp
 
     # rtc -> transports
-    src/rtc/transports/transport.cpp
+    src/rtc/transports/base_transport.cpp
     src/rtc/transports/ice_transport.cpp
     src/rtc/transports/ice_transport_description.cpp
     src/rtc/transports/sctp_transport.cpp
@@ -355,6 +357,9 @@ set(LIB_SOURCES
     src/rtc/transports/dtls_srtp_transport.cpp
     src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
 
+    # rtc -> call
+    src/rtc/call/call.cpp
+
     # rtc -> pc
     src/rtc/pc/ice_server.cpp
     src/rtc/pc/peer_connection.cpp
@@ -363,7 +368,6 @@ set(LIB_SOURCES
     src/rtc/pc/peer_connection_sctp_transport_delegate.cpp
     src/rtc/pc/peer_connection_sdp_offer_answer.cpp
     src/rtc/pc/peer_connection_media_handler.cpp
-    src/rtc/pc/broadcaster.cpp
 
     # rtc -> data_channel
     src/rtc/data_channel/data_channel.cpp

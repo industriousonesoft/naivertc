@@ -9,8 +9,8 @@
 namespace naivertc {
 
 // SctpTransport
-SctpTransport::SctpTransport(Configuration config, Transport* lower) 
-    : Transport(lower),
+SctpTransport::SctpTransport(Configuration config, BaseTransport* lower) 
+    : BaseTransport(lower),
       config_(std::move(config)),
 	  // AF11: Assured Forwarding class 1, low drop probability
 	  packet_options_(DSCP::DSCP_AF11, PacketKind::TEXT) {

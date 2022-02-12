@@ -38,23 +38,23 @@ void PeerConnection::InitIceTransport() {
 }
 
 // IceTransport delegate
-void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state) {
+void PeerConnection::OnIceTransportStateChanged(IceTransport::State transport_state) {
     RTC_RUN_ON(network_task_queue_);
     signaling_task_queue_->Post([this, transport_state](){
         switch (transport_state) {
-        case Transport::State::CONNECTING:
+        case IceTransport::State::CONNECTING:
             UpdateConnectionState(ConnectionState::CONNECTING);
             break;
-        case Transport::State::CONNECTED: {
+        case IceTransport::State::CONNECTED: {
             PLOG_DEBUG << "ICE transport connected";
             InitDtlsTransport();
             break;
         }
-        case Transport::State::FAILED: 
+        case IceTransport::State::FAILED: 
             UpdateConnectionState(ConnectionState::FAILED);
             PLOG_DEBUG << "ICE transport failed";
             break;
-        case Transport::State::DISCONNECTED:
+        case IceTransport::State::DISCONNECTED:
             UpdateConnectionState(ConnectionState::DISCONNECTED);
             PLOG_DEBUG << "ICE transport disconnected";
             break;

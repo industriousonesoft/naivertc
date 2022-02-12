@@ -7,7 +7,7 @@ namespace naivertc {
 
 DtlsSrtpTransport::DtlsSrtpTransport(DtlsTransport::Configuration config,
                                      bool is_client,
-                                     Transport* lower) 
+                                     BaseTransport* lower) 
     : DtlsTransport(std::move(config), is_client, lower),
       srtp_init_done_(false) {
     PLOG_DEBUG << "Initializing DTLS-SRTP transport";

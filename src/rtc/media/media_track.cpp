@@ -1,6 +1,6 @@
 #include "rtc/media/media_track.hpp"
 #include "common/utils_random.hpp"
-#include "rtc/pc/broadcaster.hpp"
+#include "rtc/call/call.hpp"
 
 #include <plog/Log.h>
 
@@ -71,16 +71,16 @@ RtpParameters ParseRtpParameters(const sdp::Media& media) {
 
 // Media track
 MediaTrack::MediaTrack(const Configuration& config,
-                       Broadcaster* broadcaster,
+                       Call* broadcaster,
                        TaskQueue* worker_queue) 
     : MediaTrack(SdpBuilder::Build(config), broadcaster, worker_queue) {}
 
 MediaTrack::MediaTrack(sdp::Media description,
-                       Broadcaster* broadcaster,
+                       Call* broadcaster,
                        TaskQueue* worker_queue)
     : kind_(ToKind(description.kind())),
       description_(std::move(description)),
-      broadcaster_(broadcaster),
+      call_(broadcaster),
       worker_queue_(worker_queue),
       signaling_queue_(TaskQueueImpl::Current()) {}
 
@@ -138,7 +138,7 @@ void MediaTrack::OnMediaNegotiated(sdp::Media local_media,
         if (local_media.direction() == sdp::Direction::SEND_ONLY ||
             local_media.direction() == sdp::Direction::SEND_RECV) {
             auto rtp_params = ParseRtpParameters(local_media);
-            broadcaster_->AddVideoSendStream(std::move(rtp_params));
+            call_->AddVideoSendStream(std::move(rtp_params));
         }
 
         // Receivable

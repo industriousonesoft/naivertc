@@ -1,5 +1,5 @@
-#ifndef _RTC_PC_BROADCASTER_H_
-#define _RTC_PC_BROADCASTER_H_
+#ifndef _RTC_CALL_CALL_H_
+#define _RTC_CALL_CALL_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
@@ -12,13 +12,13 @@
 namespace naivertc {
 
 class Clock;
-class MediaTransport;
+class RtcMediaTransport;
 class VideoSendStream;
 
-class RTC_CPP_EXPORT Broadcaster {
+class RTC_CPP_EXPORT Call {
 public:
-    Broadcaster(Clock* clock, MediaTransport* send_transport);
-    ~Broadcaster();
+    Call(Clock* clock, RtcMediaTransport* send_transport);
+    ~Call();
 
     void DeliverRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp);
 
@@ -32,7 +32,7 @@ public:
 private:
     SequenceChecker worker_queue_checker_;
     Clock* const clock_;
-    MediaTransport* send_transport_;
+    RtcMediaTransport* send_transport_;
 
     RtpDemuxer rtp_demuxer_;
 

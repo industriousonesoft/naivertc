@@ -8,7 +8,7 @@ namespace naivertc {
 
 RtpVideoSender::RtpVideoSender(const Configuration& config,
                                Clock* clock,
-                               MediaTransport* send_transport) 
+                               RtcMediaTransport* send_transport) 
     : media_payload_type_(config.media_payload_type) {
     CreateAndInitRtpRtcpModules(config, clock, send_transport);    
 }
@@ -56,7 +56,7 @@ void RtpVideoSender::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
 // Private methods
 void RtpVideoSender::CreateAndInitRtpRtcpModules(const Configuration& config,
                                                  Clock* clock,
-                                                 MediaTransport* send_transport) {
+                                                 RtcMediaTransport* send_transport) {
     RTC_RUN_ON(&sequence_checker_);
     uint32_t local_media_ssrc = config.local_media_ssrc;
     std::optional<uint32_t> rtx_send_ssrc = config.rtx_send_ssrc;

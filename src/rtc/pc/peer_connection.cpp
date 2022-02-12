@@ -12,7 +12,7 @@ namespace naivertc {
 PeerConnection::PeerConnection(const RtcConfiguration& config) 
     : rtc_config_(config),
       certificate_(Certificate::MakeCertificate(rtc_config_.certificate_type)),
-      broadcaster_(&clock_, this) {
+      call_(&clock_, this) {
 
     ValidateConfiguration(rtc_config_);
 
@@ -36,7 +36,7 @@ PeerConnection::~PeerConnection() {
 
 void PeerConnection::Close() {
     worker_task_queue_->Invoke<void>([this](){
-        this->broadcaster_.Clear();
+        this->call_.Clear();
     });
     network_task_queue_->Invoke<void>([this](){
         this->CloseTransports();
@@ -116,7 +116,7 @@ void PeerConnection::ValidateConfiguration(RtcConfiguration& config) {
     }
 }
 
-// MediaTransport interface
+// RtcMediaTransport interface
 bool PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) {
     auto handler = [this, packet=std::move(packet), options=std::move(options), is_rtcp](){
         auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
@@ -130,13 +130,12 @@ bool PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions optio
             return false;
         }
     };
-    // FIXME: Send in sync will block the thread sometimes, and i have no idea about this.
     return network_task_queue_->Invoke<int>(std::move(handler));
     // network_task_queue_->Post(std::move(handler));
     // return true;
 }
 
-// DataTransport interface
+// RtcDataTransport interface
 bool PeerConnection::Send(SctpMessageToSend message) {
     return network_task_queue_->Invoke<bool>([this, message=std::move(message)](){
         if (sctp_transport_ && sctp_transport_->state() == SctpTransport::State::CONNECTED) {

@@ -11,7 +11,7 @@ DataChannel::Init::Init(std::string label)
 // Implement of DataChannel
 std::shared_ptr<DataChannel> DataChannel::RemoteDataChannel(uint16_t stream_id,
                                                             bool negotiated,
-                                                            std::weak_ptr<DataTransport> transport) {
+                                                            std::weak_ptr<RtcDataTransport> transport) {
     Init init("");
     init.negotiated = negotiated;
     auto dc = std::shared_ptr<DataChannel>(new DataChannel(init, stream_id));
@@ -90,7 +90,7 @@ void DataChannel::HintStreamId(sdp::Role role) {
     });
 }
 
-void DataChannel::Open(std::weak_ptr<DataTransport> transport) {
+void DataChannel::Open(std::weak_ptr<RtcDataTransport> transport) {
     task_queue_->Post([this, transport](){
         if (is_opened_) {
             PLOG_VERBOSE << "DataChannel: " + std::to_string(stream_id_) + "did open already.";

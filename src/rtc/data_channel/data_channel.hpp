@@ -5,7 +5,7 @@
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/transports/sctp_message.hpp"
-#include "rtc/pc/data_transport.hpp"
+#include "rtc/transports/rtc_transport_data.hpp"
 
 #include <memory>
 #include <queue>
@@ -54,7 +54,7 @@ public:
 public:
     static std::shared_ptr<DataChannel> RemoteDataChannel(uint16_t stream_id,
                                                           bool negotiated,
-                                                          std::weak_ptr<DataTransport> transport);
+                                                          std::weak_ptr<RtcDataTransport> transport);
 
     static bool IsOpenMessage(const CopyOnWriteBuffer& message);
 public:
@@ -69,7 +69,7 @@ public:
     void HintStreamId(sdp::Role role);
 
     // TODO: Find a better way to set the transport.
-    void Open(std::weak_ptr<DataTransport> transport);
+    void Open(std::weak_ptr<RtcDataTransport> transport);
     void Close(bool by_remote = false);
 
     void Send(const std::string text);
@@ -119,7 +119,7 @@ private:
     std::unique_ptr<TaskQueue> task_queue_;
 
     bool is_opened_ = false;
-    std::weak_ptr<DataTransport> send_transport_;
+    std::weak_ptr<RtcDataTransport> send_transport_;
 
     std::queue<SctpMessageToSend> pending_outgoing_messages_;
     std::queue<SctpMessage> pending_incoming_messages_;
