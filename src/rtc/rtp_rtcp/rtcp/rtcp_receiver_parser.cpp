@@ -241,10 +241,10 @@ void RtcpReceiver::HandleReportBlock(const rtcp::ReportBlock& report_block,
     rtcp_report_block->packets_lost = report_block.cumulative_packet_lost();
     // We have successfully delivered new RTP packets to the remote side after
     // the last RR was sent from the remote side.
-    if (report_block.extended_high_seq_num() > rtcp_report_block->extended_highest_sequence_number) {
+    if (report_block.extended_highest_seq_num() > rtcp_report_block->extended_highest_sequence_number) {
         last_time_increased_sequence_number_ = last_time_received_rb_;
     }
-    rtcp_report_block->extended_highest_sequence_number = report_block.extended_high_seq_num();
+    rtcp_report_block->extended_highest_sequence_number = report_block.extended_highest_seq_num();
     rtcp_report_block->jitter = report_block.jitter();
     rtcp_report_block->delay_since_last_sender_report = report_block.delay_since_last_sr();
     rtcp_report_block->last_sender_report_timestamp = report_block.last_sr_ntp_timestamp();

@@ -117,6 +117,7 @@ set(LIB_HEADERS
 
     # rtc -> call
     src/rtc/call/call.hpp
+    src/rtc/call/rtp_send_controller.hpp
 
     # rtc -> pc
     src/rtc/pc/ice_server.hpp
@@ -359,6 +360,7 @@ set(LIB_SOURCES
 
     # rtc -> call
     src/rtc/call/call.cpp
+    src/rtc/call/rtp_send_controller.cpp
 
     # rtc -> pc
     src/rtc/pc/ice_server.cpp

@@ -19,8 +19,8 @@ public:
     NetworkControlUpdate OnNetworkAvailability(NetworkAvailability) override;
     NetworkControlUpdate OnNetworkRouteChange(NetworkRouteChange) override;
     NetworkControlUpdate OnProcessInterval(ProcessInterval) override;
-    NetworkControlUpdate OnRemoteBitrateReport(RemoteBitrateReport) override;
-    NetworkControlUpdate OnRoundTripTimeUpdate(RoundTripTimeUpdate) override;
+    NetworkControlUpdate OnRemoteBitrateUpdated(DataRate bitrate, Timestamp receive_time) override;
+    NetworkControlUpdate OnRttUpdated(TimeDelta rtt, Timestamp receive_time) override;
     NetworkControlUpdate OnSentPacket(SentPacket) override;
     NetworkControlUpdate OnReceivedPacket(ReceivedPacket) override;
     NetworkControlUpdate OnStreamsConfig(StreamsConfig) override;

@@ -42,7 +42,7 @@ MY_TEST(RtcpReportBlockTest, ParseMatchPack) {
     EXPECT_EQ(parsed_rb.cumulative_packet_lost(), kCumulativePacketLost);
     EXPECT_EQ(parsed_rb.sequence_num_cycles(), kSeqNumCycles);
     EXPECT_EQ(parsed_rb.highest_seq_num(), kHighestSeqNum);
-    EXPECT_EQ(parsed_rb.extended_high_seq_num(), kExtendedHighestSeqNum);
+    EXPECT_EQ(parsed_rb.extended_highest_seq_num(), kExtendedHighestSeqNum);
     EXPECT_EQ(parsed_rb.jitter(), kJitter);
     EXPECT_EQ(parsed_rb.last_sr_ntp_timestamp(), kLastSrNtpTimestamp);
     EXPECT_EQ(parsed_rb.delay_since_last_sr(), kDelaySinceLastSr);

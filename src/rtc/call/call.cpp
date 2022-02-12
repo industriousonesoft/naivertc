@@ -8,7 +8,8 @@ namespace naivertc {
 
 Call::Call(Clock* clock, RtcMediaTransport* send_transport) 
     : clock_(clock),
-      send_transport_(send_transport) {
+      send_transport_(send_transport),
+      send_controller_(clock_) {
     worker_queue_checker_.Detach();
 }
     

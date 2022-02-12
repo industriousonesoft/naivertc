@@ -20,7 +20,7 @@ public:
     int32_t cumulative_packet_lost() const { return cumulative_packet_lost_; }
     uint16_t sequence_num_cycles() const;
     uint16_t highest_seq_num() const;
-    uint32_t extended_high_seq_num() const { return extended_high_seq_num_; }
+    uint32_t extended_highest_seq_num() const { return extended_highest_seq_num_; }
     uint32_t jitter() const { return jitter_; }
     uint32_t last_sr_ntp_timestamp() const { return last_sr_ntp_timestamp_; }
     uint32_t delay_since_last_sr() const { return delay_since_last_sr_; }
@@ -42,7 +42,7 @@ private:
     // fraction lost is high 8-bits value, cumulative packets lost is low signed 24-bits value
     uint8_t fraction_lost_;
     int32_t cumulative_packet_lost_;
-    uint32_t extended_high_seq_num_;
+    uint32_t extended_highest_seq_num_;
     uint32_t jitter_;
     // Last send report NTP timestamp, 
     // the middle 32 bits out of 64 in the NTP timestamp

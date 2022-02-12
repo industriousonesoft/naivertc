@@ -722,7 +722,7 @@ MY_TEST(RtcpReceiverTest, VerifyBlockAndTimestampObtainedFromReportBlockDataObse
             EXPECT_EQ(rtcp_block.fraction_lost(), report_block.fraction_lost);
             EXPECT_EQ(rtcp_block.cumulative_packet_lost(),
                      report_block.packets_lost);
-            EXPECT_EQ(rtcp_block.extended_high_seq_num(),
+            EXPECT_EQ(rtcp_block.extended_highest_seq_num(),
                      report_block.extended_highest_sequence_number);
             EXPECT_EQ(rtcp_block.jitter(), report_block.jitter);
         });

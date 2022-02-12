@@ -6,6 +6,7 @@
 #include "rtc/rtp_rtcp/base/rtp_parameters.hpp"
 #include "rtc/rtp_rtcp/components/rtp_demuxer.hpp"
 #include "rtc/media/video/encoded_frame.hpp"
+#include "rtc/call/rtp_send_controller.hpp"
 
 #include <unordered_map>
 
@@ -20,8 +21,6 @@ public:
     Call(Clock* clock, RtcMediaTransport* send_transport);
     ~Call();
 
-    void DeliverRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp);
-
     void AddVideoSendStream(RtpParameters rtp_params);
     void AddVideoRecvStream(RtpParameters rtp_params);
 
@@ -29,14 +28,18 @@ public:
 
     void Send(video::EncodedFrame encoded_frame);
 
+    void DeliverRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp);
+
 private:
     SequenceChecker worker_queue_checker_;
     Clock* const clock_;
     RtcMediaTransport* send_transport_;
 
-    RtpDemuxer rtp_demuxer_;
-
     std::unordered_map<uint32_t, std::unique_ptr<VideoSendStream>> video_send_streams_;
+
+    RtpDemuxer rtp_demuxer_;
+    RtpSendController send_controller_;
+    
 };
     
 } // namespace naivertc

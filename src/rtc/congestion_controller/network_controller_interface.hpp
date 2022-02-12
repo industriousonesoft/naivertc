@@ -24,9 +24,9 @@ public:
     // Called periodically with a periodicy.
     RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnProcessInterval(ProcessInterval) = 0;
     // Called when the bitrate calculated by the remote is received.
-    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnRemoteBitrateReport(RemoteBitrateReport) = 0;
+    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnRemoteBitrateUpdated(DataRate bitrate, Timestamp receive_time) = 0;
     // Called when the RTT has been calculated by protocol sepcific mechanisms.
-    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnRoundTripTimeUpdate(RoundTripTimeUpdate) = 0;
+    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnRttUpdated(TimeDelta rtt, Timestamp receive_time) = 0;
     // Called when a packet is sent on the network.
     RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnSentPacket(SentPacket) = 0;
     // Called when a packet is received from the remote.

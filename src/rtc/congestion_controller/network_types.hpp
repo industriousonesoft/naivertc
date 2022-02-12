@@ -178,23 +178,10 @@ struct RTC_CPP_EXPORT ProcessInterval {
     Timestamp at_time = Timestamp::PlusInfinity();
 };
 
-// Transport level feedback
-struct RTC_CPP_EXPORT RemoteBitrateReport {
-    DataRate bitrate = DataRate::Infinity();
-    Timestamp receive_time = Timestamp::PlusInfinity();
-};
-
-// RoundTripTimeUpdate
-struct RTC_CPP_EXPORT RoundTripTimeUpdate {
-    bool smoothed = false;
-    Timestamp receive_time = Timestamp::PlusInfinity();
-    TimeDelta rtt = TimeDelta::PlusInfinity();
-};
-
 // TransportLossReport 
 struct RTC_CPP_EXPORT TransportLossReport {
-    uint64_t packets_loss_delta = 0;
-    uint64_t packets_received_delta = 0;
+    int num_of_lost_packets = 0;
+    int num_of_received_packets = 0;
     Timestamp receive_time = Timestamp::PlusInfinity();
     Timestamp start_time = Timestamp::PlusInfinity();
     Timestamp end_time = Timestamp::PlusInfinity();

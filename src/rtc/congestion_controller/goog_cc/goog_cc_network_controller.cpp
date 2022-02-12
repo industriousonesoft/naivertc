@@ -67,23 +67,23 @@ NetworkControlUpdate GoogCcNetworkController::OnProcessInterval(ProcessInterval)
     return update;
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnRemoteBitrateReport(RemoteBitrateReport report) {
+NetworkControlUpdate GoogCcNetworkController::OnRemoteBitrateUpdated(DataRate bitrate, Timestamp receive_time) {
     if (packet_feedback_only_) {
         PLOG_ERROR << "Received REMB for packet feedback only GoogCC.";
         return NetworkControlUpdate();
     }
-    send_side_bwe_->OnRemb(report.bitrate, report.receive_time);
+    send_side_bwe_->OnRemb(bitrate, receive_time);
     return NetworkControlUpdate();
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnRoundTripTimeUpdate(RoundTripTimeUpdate msg) {
-    if (packet_feedback_only_ || msg.smoothed) {
+NetworkControlUpdate GoogCcNetworkController::OnRttUpdated(TimeDelta rtt, Timestamp receive_time) {
+    if (packet_feedback_only_) {
         return NetworkControlUpdate();
     }
     if (delay_based_bwe_) {
-        delay_based_bwe_->OnRttUpdate(msg.rtt);
+        delay_based_bwe_->OnRttUpdate(rtt);
     }
-    send_side_bwe_->OnRtt(msg.rtt, msg.receive_time);
+    send_side_bwe_->OnRtt(rtt, receive_time);
     return NetworkControlUpdate();
 }
 

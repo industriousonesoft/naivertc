@@ -270,7 +270,7 @@ MY_TEST_F(RtcpSenderTest, SendRrWithOneReportBlock) {
     EXPECT_EQ(kRemoteSsrc, rb.source_ssrc());
     EXPECT_EQ(0, rb.fraction_lost());
     EXPECT_EQ(0, rb.cumulative_packet_lost());
-    EXPECT_EQ(kSeqNum, rb.extended_high_seq_num());
+    EXPECT_EQ(kSeqNum, rb.extended_highest_seq_num());
 }
 
 MY_TEST_F(RtcpSenderTest, SendRrWithTwoReportBlock) {
