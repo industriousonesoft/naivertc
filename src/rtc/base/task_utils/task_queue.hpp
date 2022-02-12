@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue_impl.hpp"
 
-// #define SUPPORT_YIELD
+#define SUPPORT_YIELD
 #if defined(SUPPORT_YIELD)
 #include "rtc/base/synchronization/event.hpp"
 #else
@@ -24,17 +24,34 @@ public:
     TaskQueue(std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> task_queue_impl);
     ~TaskQueue();
 
-    void Async(std::function<void()> handler) const;
-    void AsyncAfter(TimeDelta delay, std::function<void()> handler) const;
-   
-    void Sync(std::function<void()> handler) const;
-    template<typename T>
-    T Sync(std::function<T()> handler) const;
+    void Post(std::function<void()> handler) const;
+    void PostDelayed(TimeDelta delay, std::function<void()> handler) const;
+  
+    // Convenience method to invoke a functor on another thread, which
+    // blocks the current thread until execution is complete.
+    template<typename ReturnT,
+             typename = typename std::enable_if<std::is_void<ReturnT>::value>::type>
+    void Invoke(std::function<void()> handler) const {
+        InvokeInternal(std::move(handler));
+    }
+
+    template<typename ReturnT,
+             typename = typename std::enable_if<!std::is_void<ReturnT>::value>::type>
+    ReturnT Invoke(std::function<ReturnT()> handler) const {
+        ReturnT ret;
+        InvokeInternal([&ret, handler=std::move(handler)](){
+            ret = handler();
+        });
+        return ret;
+    }
 
     bool IsCurrent() const;
 
     // Returns non-owning pointer to the task queue implementation.
     TaskQueueImpl* Get() { return impl_; }
+
+private:
+    void InvokeInternal(std::function<void()> handler) const;
 
 private:
     TaskQueueImpl* const impl_;
@@ -46,32 +63,6 @@ private:
     mutable std::condition_variable cond_;
 #endif
 };
-
-template<typename T>
-T TaskQueue::Sync(std::function<T()> handler) const {
-    T ret;
-    if (IsCurrent()) {
-        ret = handler();
-    } else {
-#if !defined(SUPPORT_YIELD)
-        std::unique_lock<std::mutex> lock(mutex_);
-#endif
-        impl_->Post([this, handler=std::move(handler), &ret]{
-            ret = handler();
-#if defined(SUPPORT_YIELD)
-            event_.Set();
-#else
-            cond_.notify_one();
-#endif
-        });
-#if defined(SUPPORT_YIELD)
-    event_.WaitForever();
-#else
-    cond_.wait(lock);
-#endif
-    }
-    return ret;
-}
 
 } // namespace naivertc
 

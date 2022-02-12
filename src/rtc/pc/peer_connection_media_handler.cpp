@@ -6,7 +6,7 @@
 namespace naivertc {
     
 std::shared_ptr<AudioTrack> PeerConnection::AddAudioTrack(const MediaTrack::Configuration& config) {
-    return signaling_task_queue_->Sync<std::shared_ptr<AudioTrack>>([this, &config]() -> std::shared_ptr<AudioTrack> {
+    return signaling_task_queue_->Invoke<std::shared_ptr<AudioTrack>>([this, &config]() -> std::shared_ptr<AudioTrack> {
         std::shared_ptr<MediaTrack> media_track = FindMediaTrack(config.mid());
         if (!media_track) {
             media_track = std::make_shared<AudioTrack>(config, &broadcaster_, worker_task_queue_.get());
@@ -25,7 +25,7 @@ std::shared_ptr<AudioTrack> PeerConnection::AddAudioTrack(const MediaTrack::Conf
 }
 
 std::shared_ptr<VideoTrack> PeerConnection::AddVideoTrack(const MediaTrack::Configuration& config) {
-    return signaling_task_queue_->Sync<std::shared_ptr<VideoTrack>>([this, &config]() -> std::shared_ptr<VideoTrack> {
+    return signaling_task_queue_->Invoke<std::shared_ptr<VideoTrack>>([this, &config]() -> std::shared_ptr<VideoTrack> {
         std::shared_ptr<MediaTrack> media_track = FindMediaTrack(config.mid());
         if (!media_track) {
             media_track = std::make_shared<VideoTrack>(config, &broadcaster_, worker_task_queue_.get());
@@ -45,7 +45,7 @@ std::shared_ptr<VideoTrack> PeerConnection::AddVideoTrack(const MediaTrack::Conf
 
 // Data Channels
 std::shared_ptr<DataChannel> PeerConnection::AddDataChannel(const DataChannel::Init& init_config, std::optional<uint16_t> stream_id_opt) {
-    return signaling_task_queue_->Sync<std::shared_ptr<DataChannel>>([this, init_config, stream_id_opt=std::move(stream_id_opt)]() -> std::shared_ptr<DataChannel> {
+    return signaling_task_queue_->Invoke<std::shared_ptr<DataChannel>>([this, init_config, stream_id_opt=std::move(stream_id_opt)]() -> std::shared_ptr<DataChannel> {
         uint16_t stream_id;
         try {
             if (stream_id_opt.has_value()) {
@@ -59,7 +59,7 @@ std::shared_ptr<DataChannel> PeerConnection::AddDataChannel(const DataChannel::I
                 // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
                 // See https://tools.ietf.org/html/rfc8832#section-6
                 // The stream id is not equvalent to the mid of application in SDP, which is only used to distinguish the data channel and DTLS role.
-                stream_id = network_task_queue_->Sync<int>([this](){
+                stream_id = network_task_queue_->Invoke<int>([this](){
                     return (ice_transport_->role() == sdp::Role::ACTIVE) ? 0 : 1;
                 });
                 // Avoid conflict with existed data channel
@@ -81,7 +81,7 @@ std::shared_ptr<DataChannel> PeerConnection::AddDataChannel(const DataChannel::I
                 this->negotiation_needed_ = true;
             }
 
-            bool is_connected = network_task_queue_->Sync<bool>([this](){
+            bool is_connected = network_task_queue_->Invoke<bool>([this](){
                 // If sctp transport is connected yet, we open the data channel immidiately
                 return sctp_transport_ && sctp_transport_->state() == SctpTransport::State::CONNECTED;
             });

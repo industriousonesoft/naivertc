@@ -47,31 +47,31 @@ DataChannel::~DataChannel() {
 }
 
 uint16_t DataChannel::stream_id() const {
-    return task_queue_->Sync<uint16_t>([this](){
+    return task_queue_->Invoke<uint16_t>([this](){
         return stream_id_;
     });
 }
 
 const std::string DataChannel::label() const {
-    return task_queue_->Sync<std::string>([this](){
+    return task_queue_->Invoke<std::string>([this](){
         return config_.label;
     });
 }
 
 const std::string DataChannel::protocol() const {
-    return task_queue_->Sync<std::string>([this](){
+    return task_queue_->Invoke<std::string>([this](){
         return config_.protocol;
     });
 }
 
 bool DataChannel::is_opened() const {
-    return task_queue_->Sync<bool>([this](){
+    return task_queue_->Invoke<bool>([this](){
         return is_opened_;
     });
 }
 
 void DataChannel::HintStreamId(sdp::Role role) {
-    task_queue_->Async([this, role](){
+    task_queue_->Post([this, role](){
         // FRC 8832: The peer that initiates opening a data channel selects a stream identifier for 
         // which the corresponding incoming and outgoing streams are unused. If the side is acting as the DTLS client,
         // it MUST choose an even stream identifier, if the side is acting as the DTLS server, it MUST choose an odd one.
@@ -91,7 +91,7 @@ void DataChannel::HintStreamId(sdp::Role role) {
 }
 
 void DataChannel::Open(std::weak_ptr<DataTransport> transport) {
-    task_queue_->Async([this, transport](){
+    task_queue_->Post([this, transport](){
         if (is_opened_) {
             PLOG_VERBOSE << "DataChannel: " + std::to_string(stream_id_) + "did open already.";
             return;
@@ -104,7 +104,7 @@ void DataChannel::Open(std::weak_ptr<DataTransport> transport) {
 }
 
 void DataChannel::Close(bool by_remote) {
-    task_queue_->Async([this, by_remote](){
+    task_queue_->Post([this, by_remote](){
         if (!is_opened_) {
             return;
         }
@@ -119,39 +119,39 @@ void DataChannel::Close(bool by_remote) {
 
 // Callback
 void DataChannel::OnOpened(OpenedCallback callback) {
-    task_queue_->Async([this, callback=std::move(callback)](){
+    task_queue_->Post([this, callback=std::move(callback)](){
         opened_callback_ = callback;
     });
 }
 
 void DataChannel::OnClosed(ClosedCallback callback) {
-    task_queue_->Async([this, callback=std::move(callback)](){
+    task_queue_->Post([this, callback=std::move(callback)](){
         closed_callback_ = callback;
     });
 }
 
 void DataChannel::OnMessageReceived(BinaryMessageReceivedCallback callback) {
-    task_queue_->Async([this, callback=std::move(callback)](){
+    task_queue_->Post([this, callback=std::move(callback)](){
         binary_message_received_callback_ = callback;
         // TODO: Flush pending binary message 
     });
 }
 
 void DataChannel::OnMessageReceived(TextMessageReceivedCallback callback) {
-    task_queue_->Async([this, callback=std::move(callback)](){
+    task_queue_->Post([this, callback=std::move(callback)](){
         text_message_received_callback_ = callback;
         // TODO: Flush pending text message 
     });
 }
 
 void DataChannel::OnBufferedAmountChanged(BufferedAmountChangedCallback callback) {
-    task_queue_->Async([this, callback=std::move(callback)](){
+    task_queue_->Post([this, callback=std::move(callback)](){
         buffered_amount_changed_callback_ = callback;
     });
 }
 
 void DataChannel::OnReadyToSend() {
-    task_queue_->Async([this](){
+    task_queue_->Post([this](){
         FlushPendingMessages();
     });
 }

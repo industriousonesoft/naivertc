@@ -66,7 +66,7 @@ MY_TEST(RepeatingTaskTest, StopExternally) {
         return TimeDelta::Seconds(1);
     });
     EXPECT_EQ(counter, 0);
-    task_queue->AsyncAfter(TimeDelta::Seconds(3), [&](){
+    task_queue->PostDelayed(TimeDelta::Seconds(3), [&](){
         repeating_task->Stop();
         ASSERT_FALSE(repeating_task->Running());
         event.Set();

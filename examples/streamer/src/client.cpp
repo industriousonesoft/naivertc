@@ -47,7 +47,7 @@ void Client::Stop() {
 
 // Private methods
 void Client::StartVideoStream(MediaStreamSource::SampleAvailableCallback callback) {
-    worker_queue_->Async([this, callback=std::move(callback)](){
+    worker_queue_->Post([this, callback=std::move(callback)](){
         if (!h264_file_stream_source_) {
             h264_file_stream_source_.reset(new H264FileStreamSource(kDefaultH264SamplesDir, 30, true));
             h264_file_stream_source_->OnSampleAvailable(std::move(callback));
@@ -60,7 +60,7 @@ void Client::StartVideoStream(MediaStreamSource::SampleAvailableCallback callbac
 }
 
 void Client::StopVideoStream() {
-    worker_queue_->Async([this](){
+    worker_queue_->Post([this](){
         if (h264_file_stream_source_ && h264_file_stream_source_->IsRunning()) {
             h264_file_stream_source_->Stop();
         }

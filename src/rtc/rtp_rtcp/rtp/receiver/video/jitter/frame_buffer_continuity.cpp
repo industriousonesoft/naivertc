@@ -102,7 +102,7 @@ std::pair<int64_t, bool> FrameBuffer::InsertFrame(video::FrameToDecode frame) {
         last_continuous_frame_id = *last_continuous_frame_id_;
         // It might be a better time to decode next frame.
         if (decode_queue_) {
-            decode_queue_->Async([this](){
+            decode_queue_->Post([this](){
                 // Check if the decode task has been started and 
                 // waiting for next decodable frame.
                 if (decode_task_ && decode_task_->Running()) {

@@ -34,11 +34,25 @@ TaskQueue::~TaskQueue() {
     PLOG_VERBOSE << __FUNCTION__ << " did destroy.";
 }
 
-void TaskQueue::Sync(std::function<void()> handler) const {
+void TaskQueue::Post(std::function<void()> handler) const{
+    impl_->Post(std::move(handler));
+}
+
+void TaskQueue::PostDelayed(TimeDelta delay, std::function<void()> handler) const{
+    impl_->PostDelayed(delay, std::move(handler));
+}
+
+bool TaskQueue::IsCurrent() const {
+    return impl_->IsCurrent();
+}
+
+// Private methods
+void TaskQueue::InvokeInternal(std::function<void()> handler) const {
     if (IsCurrent()) {
         handler();
     } else {
 #if !defined(SUPPORT_YIELD)
+        // FIXME: `mutex + condiction` will block the caller thread sometimes, and i have no idea about this.
         std::unique_lock<std::mutex> lock(mutex_);
 #endif
         impl_->Post([this, handler=std::move(handler)]{
@@ -55,18 +69,6 @@ void TaskQueue::Sync(std::function<void()> handler) const {
         cond_.wait(lock);
 #endif
     }
-}
-
-void TaskQueue::Async(std::function<void()> handler) const{
-    impl_->Post(std::move(handler));
-}
-
-void TaskQueue::AsyncAfter(TimeDelta delay, std::function<void()> handler) const{
-    impl_->PostDelayed(delay, std::move(handler));
-}
-
-bool TaskQueue::IsCurrent() const {
-    return impl_->IsCurrent();
 }
 
 } // namespace naivertc

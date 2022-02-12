@@ -15,7 +15,7 @@ namespace naivertc {
 // Offer && Answer
 void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success, 
                                  SDPCreateFailureCallback on_failure) {
-    signaling_task_queue_->Async([this, on_success, on_failure](){
+    signaling_task_queue_->Post([this, on_success, on_failure](){
         try {
             if (this->signaling_state_ != SignalingState::HAVE_REMOTE_OFFER) {
                 this->SetLocalDescription(sdp::Type::OFFER);
@@ -34,7 +34,7 @@ void PeerConnection::CreateOffer(SDPCreateSuccessCallback on_success,
 
 void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success, 
                                   SDPCreateFailureCallback on_failure) {
-    signaling_task_queue_->Async([this, on_success, on_failure](){
+    signaling_task_queue_->Post([this, on_success, on_failure](){
         try {
             if (this->signaling_state_ == SignalingState::HAVE_REMOTE_OFFER) {
                 this->SetLocalDescription(sdp::Type::ANSWER);
@@ -54,7 +54,7 @@ void PeerConnection::CreateAnswer(SDPCreateSuccessCallback on_success,
 void PeerConnection::SetOffer(const std::string sdp,
                               SDPSetSuccessCallback on_success,
                               SDPSetFailureCallback on_failure) {
-    signaling_task_queue_->Async([this, sdp=std::move(sdp), on_success, on_failure](){
+    signaling_task_queue_->Post([this, sdp=std::move(sdp), on_success, on_failure](){
         try {
             auto remote_sdp = sdp::Description::Parser::Parse(sdp, sdp::Type::OFFER);
             this->SetRemoteDescription(std::move(remote_sdp));
@@ -68,7 +68,7 @@ void PeerConnection::SetOffer(const std::string sdp,
 void PeerConnection::SetAnswer(const std::string sdp, 
                                 SDPSetSuccessCallback on_success, 
                                 SDPSetFailureCallback on_failure) {
-    signaling_task_queue_->Async([this, sdp=std::move(sdp), on_success, on_failure](){
+    signaling_task_queue_->Post([this, sdp=std::move(sdp), on_success, on_failure](){
         try {
             auto remote_sdp = sdp::Description::Parser::Parse(sdp, sdp::Type::ANSWER);
             this->SetRemoteDescription(std::move(remote_sdp));
@@ -80,7 +80,7 @@ void PeerConnection::SetAnswer(const std::string sdp,
 }
 
 void PeerConnection::AddRemoteCandidate(const std::string mid, const std::string sdp) {
-    signaling_task_queue_->Async([this, mid, sdp](){
+    signaling_task_queue_->Post([this, mid, sdp](){
         remote_candidates_.emplace_back(sdp::Candidate(sdp, mid));
         // Start to process remote candidate if the remote sdp is ready and the connection is not done yet.
         if (remote_sdp_ && connection_state_ != ConnectionState::CONNECTED) {
@@ -159,7 +159,7 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
     }
 
     // Retrieve the ICE SDP from ICE transport.
-    auto local_ice_sdp = network_task_queue_->Sync<IceTransport::Description>([this, type](){
+    auto local_ice_sdp = network_task_queue_->Invoke<IceTransport::Description>([this, type](){
         return ice_transport_->GetLocalDescription(type);
     });
     
@@ -377,7 +377,7 @@ void PeerConnection::ProcessLocalDescription(sdp::Description& local_sdp) {
     // Start to gather local candidate after local sdp was set.
     if (gathering_state_ == GatheringState::NEW) {
         PLOG_DEBUG << "Start to gather local candidates";
-        network_task_queue_->Async([this, bundle_id=local_sdp.bundle_id()](){
+        network_task_queue_->Post([this, bundle_id=local_sdp.bundle_id()](){
             ice_transport_->StartToGatherLocalCandidate(std::move(bundle_id));
         });
     }
@@ -394,7 +394,7 @@ void PeerConnection::ProcessRemoteDescription(sdp::Description remote_sdp) {
                                                     remote_sdp.role(), 
                                                     remote_sdp.ice_ufrag(), 
                                                     remote_sdp.ice_pwd());
-    network_task_queue_->Async([this, remote_sdp=std::move(remote_ice_sdp)](){
+    network_task_queue_->Post([this, remote_sdp=std::move(remote_ice_sdp)](){
         ice_transport_->SetRemoteDescription(std::move(remote_sdp));
     });
 
@@ -442,7 +442,7 @@ void PeerConnection::ProcessRemoteCandidate(sdp::Candidate candidate) {
 
     // We might need a lookup
     if (candidate.isResolved() || candidate.Resolve(sdp::Candidate::ResolveMode::LOOK_UP)) {
-        network_task_queue_->Async([this, candidate=std::move(candidate)](){
+        network_task_queue_->Post([this, candidate=std::move(candidate)](){
             ice_transport_->AddRemoteCandidate(std::move(candidate));
         });
     } else {
@@ -511,7 +511,7 @@ void PeerConnection::OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_tr
         const sdp::Media local_media = *local_sdp_->media(mid);
         const sdp::Media remote_media = *remote_sdp_->media(mid);
 
-        worker_task_queue_->Async([this, media_track, local_media, remote_media](){
+        worker_task_queue_->Post([this, media_track, local_media, remote_media](){
             media_track->OnMediaNegotiated(local_media, remote_media, remote_sdp_->type());
         });
 

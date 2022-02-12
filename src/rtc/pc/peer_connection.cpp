@@ -20,7 +20,7 @@ PeerConnection::PeerConnection(const RtcConfiguration& config)
     network_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.network.task.queue");
     worker_task_queue_ = std::make_unique<TaskQueue>("PeerConnection.worker.task.queue");
 
-    signaling_task_queue_->Async([this](){
+    signaling_task_queue_->Post([this](){
         InitIceTransport();
     });
 }
@@ -35,13 +35,13 @@ PeerConnection::~PeerConnection() {
 }
 
 void PeerConnection::Close() {
-    worker_task_queue_->Sync([this](){
-       broadcaster_.Clear();
+    worker_task_queue_->Invoke<void>([this](){
+        this->broadcaster_.Clear();
     });
-    network_task_queue_->Sync([this](){
+    network_task_queue_->Invoke<void>([this](){
         this->CloseTransports();
     });
-    signaling_task_queue_->Sync([this](){
+    signaling_task_queue_->Invoke<void>([this](){
         PLOG_VERBOSE << "Closing PeerConnection";
         this->negotiation_needed_ = false;
         this->data_channel_needed_ = false;
@@ -53,31 +53,31 @@ void PeerConnection::Close() {
 
 // state && candidate callback
 void PeerConnection::OnConnectionStateChanged(ConnectionStateCallback callback) {
-    signaling_task_queue_->Async([this, callback](){
+    signaling_task_queue_->Post([this, callback](){
         this->connection_state_callback_ = callback;
     });
 }
 
 void PeerConnection::OnIceGatheringStateChanged(GatheringStateCallback callback) {
-    signaling_task_queue_->Async([this, callback](){
+    signaling_task_queue_->Post([this, callback](){
         this->gathering_state_callback_ = callback;
     });
 }
 
 void PeerConnection::OnIceCandidateGathered(CandidateCallback callback) {
-    signaling_task_queue_->Async([this, callback](){
+    signaling_task_queue_->Post([this, callback](){
         this->candidate_callback_ = callback;
     });
 }
 
 void PeerConnection::OnSignalingStateChanged(SignalingStateCallback callback) {
-    signaling_task_queue_->Async([this, callback](){
+    signaling_task_queue_->Post([this, callback](){
         this->signaling_state_callback_ = callback;
     });
 }
 
 void PeerConnection::OnRemoteDataChannelReceived(DataChannelCallback callback) {
-    signaling_task_queue_->Async([this, callback=std::move(callback)](){
+    signaling_task_queue_->Post([this, callback=std::move(callback)](){
         this->data_channel_callback_ = std::move(callback);
         // Flush pending data channels
         this->FlushPendingDataChannels();
@@ -85,7 +85,7 @@ void PeerConnection::OnRemoteDataChannelReceived(DataChannelCallback callback) {
 }
 
 void PeerConnection::OnRemoteMediaTrackReceived(MediaTrackCallback callback) {
-    signaling_task_queue_->Async([this, callback=std::move(callback)](){
+    signaling_task_queue_->Post([this, callback=std::move(callback)](){
         this->media_track_callback_ = std::move(callback);
         // Flush pending media tracks
         this->FlushPendingMediaTracks();
@@ -131,14 +131,14 @@ bool PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions optio
         }
     };
     // FIXME: Send in sync will block the thread sometimes, and i have no idea about this.
-    // return network_task_queue_->Sync<int>(std::move(handler));
-    network_task_queue_->Async(std::move(handler));
-    return true;
+    return network_task_queue_->Invoke<int>(std::move(handler));
+    // network_task_queue_->Post(std::move(handler));
+    // return true;
 }
 
 // DataTransport interface
 bool PeerConnection::Send(SctpMessageToSend message) {
-    return network_task_queue_->Sync<bool>([this, message=std::move(message)](){
+    return network_task_queue_->Invoke<bool>([this, message=std::move(message)](){
         if (sctp_transport_ && sctp_transport_->state() == SctpTransport::State::CONNECTED) {
             return sctp_transport_->Send(std::move(message));
         } else {

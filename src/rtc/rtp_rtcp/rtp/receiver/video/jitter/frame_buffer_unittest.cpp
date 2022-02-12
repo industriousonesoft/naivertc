@@ -160,7 +160,7 @@ protected:
     }
     // 
     void ExtractFrame(int64_t max_wait_time_ms = 0, bool keyframe_required = false) {
-        decode_queue_->Async([this, max_wait_time_ms, keyframe_required](){
+        decode_queue_->Post([this, max_wait_time_ms, keyframe_required](){
             frame_buffer_->NextFrame(max_wait_time_ms, keyframe_required, [this](std::optional<FrameToDecode> frame){
                 if (frame) {
                     frames_.emplace_back(std::move(*frame));

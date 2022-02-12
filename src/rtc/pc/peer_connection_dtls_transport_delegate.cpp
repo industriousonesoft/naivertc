@@ -22,7 +22,7 @@ void PeerConnection::InitDtlsTransport() {
     bool has_media = local_sdp_->HasAudio() || local_sdp_->HasVideo();
     auto lower = ice_transport_.get();
  
-    network_task_queue_->Async([this, has_media, lower, config=std::move(dtls_config)](){
+    network_task_queue_->Post([this, has_media, lower, config=std::move(dtls_config)](){
         bool is_dtls_client = ice_transport_->role() == sdp::Role::ACTIVE;
         // DTLS-SRTP
         if (has_media) {
@@ -45,7 +45,7 @@ void PeerConnection::InitDtlsTransport() {
 
 void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_state) {
     RTC_RUN_ON(network_task_queue_);
-    signaling_task_queue_->Async([this, transport_state](){
+    signaling_task_queue_->Post([this, transport_state](){
         switch (transport_state)
         {
         case DtlsSrtpTransport::State::CONNECTED: {
@@ -79,7 +79,7 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
 
 bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
     RTC_RUN_ON(network_task_queue_);
-    return signaling_task_queue_->Sync<bool>([this, remote_fingerprint=std::move(fingerprint)](){
+    return signaling_task_queue_->Invoke<bool>([this, remote_fingerprint=std::move(fingerprint)](){
         // We expect the remote fingerprint received by singaling channel is equal to 
         // the remote fingerprint received by DTLS channel.
         auto expected_remote_fingerprint = this->remote_sdp_.has_value() ? this->remote_sdp_->fingerprint() : std::nullopt;
@@ -95,7 +95,7 @@ bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
 
 void PeerConnection::OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rtcp) {
     RTC_RUN_ON(network_task_queue_);
-    worker_task_queue_->Async([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
+    worker_task_queue_->Post([this, in_packet=std::move(in_packet), is_rtcp]() mutable {
         broadcaster_.DeliverRtpPacket(std::move(in_packet), is_rtcp);
     });
 }

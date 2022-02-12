@@ -99,7 +99,7 @@ struct Close {
 } // namespace message
 
 void DataChannel::OnIncomingMessage(SctpMessage message) {
-    task_queue_->Async([this, message=std::move(message)]() mutable {
+    task_queue_->Post([this, message=std::move(message)]() mutable {
         switch (message.type()) {
             case SctpMessage::Type::CONTROL: {
                 const auto& payload = message.payload();
@@ -133,7 +133,7 @@ void DataChannel::OnIncomingMessage(SctpMessage message) {
 
 void DataChannel::Send(const std::string text) {
     CopyOnWriteBuffer payload(reinterpret_cast<const uint8_t*>(text.c_str()), text.length());
-    task_queue_->Async([this, payload=std::move(payload)](){
+    task_queue_->Post([this, payload=std::move(payload)](){
         Send(SctpMessageToSend(SctpMessage::Type::STRING, stream_id_, std::move(payload), user_message_reliability_));
     });
 }

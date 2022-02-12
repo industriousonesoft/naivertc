@@ -25,7 +25,7 @@ void PeerConnection::InitIceTransport() {
     // Thus, we assume passive role if we are the offerer.
     sdp::Role role = sdp::Role::ACT_PASS;
 
-    network_task_queue_->Async([this, role, config=std::move(ice_config)](){
+    network_task_queue_->Post([this, role, config=std::move(ice_config)](){
         ice_transport_.reset(new IceTransport(std::move(config), role));
         
         ice_transport_->OnStateChanged(std::bind(&PeerConnection::OnIceTransportStateChanged, this, std::placeholders::_1));
@@ -40,7 +40,7 @@ void PeerConnection::InitIceTransport() {
 // IceTransport delegate
 void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state) {
     RTC_RUN_ON(network_task_queue_);
-    signaling_task_queue_->Async([this, transport_state](){
+    signaling_task_queue_->Post([this, transport_state](){
         switch (transport_state) {
         case Transport::State::CONNECTING:
             UpdateConnectionState(ConnectionState::CONNECTING);
@@ -67,7 +67,7 @@ void PeerConnection::OnIceTransportStateChanged(Transport::State transport_state
 
 void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gathering_state) {
     RTC_RUN_ON(network_task_queue_);
-    signaling_task_queue_->Async([this, gathering_state](){
+    signaling_task_queue_->Post([this, gathering_state](){
         switch (gathering_state) {
         case IceTransport::GatheringState::NEW:
             this->UpdateGatheringState(GatheringState::NEW);
@@ -86,7 +86,7 @@ void PeerConnection::OnGatheringStateChanged(IceTransport::GatheringState gather
 
 void PeerConnection::OnCandidateGathered(sdp::Candidate candidate) {
     RTC_RUN_ON(network_task_queue_);
-    signaling_task_queue_->Async([this, candidate=std::move(candidate)](){
+    signaling_task_queue_->Post([this, candidate=std::move(candidate)](){
         if (this->candidate_callback_) {
             this->candidate_callback_(std::move(candidate));
         }
@@ -97,7 +97,7 @@ void PeerConnection::OnRoleChanged(sdp::Role role) {
     RTC_RUN_ON(network_task_queue_);
     // If sctp transport is created already, which means we have no chance to change the role any more
     assert(sctp_transport_ == nullptr && "Can not change the DTLS role of data channel after SCTP transport was created.");
-    signaling_task_queue_->Async([this, role](){
+    signaling_task_queue_->Post([this, role](){
         // The role of DTLS is not changed (since we assumed as a DTLS server).
         if (role != sdp::Role::ACTIVE) {
             return;
