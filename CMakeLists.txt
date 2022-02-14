@@ -278,6 +278,7 @@ set(LIB_HEADERS
 
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/network_types.hpp
+    src/rtc/congestion_controller/network_transport_statistician.hpp
     src/rtc/congestion_controller/network_controller_interface.hpp
     src/rtc/congestion_controller/goog_cc/bwe_defines.hpp
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp
@@ -525,6 +526,7 @@ set(LIB_SOURCES
 
     # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/network_types.cpp
+    src/rtc/congestion_controller/network_transport_statistician.cpp
     src/rtc/congestion_controller/goog_cc/bwe_defines.cpp
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.cpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator.cpp
