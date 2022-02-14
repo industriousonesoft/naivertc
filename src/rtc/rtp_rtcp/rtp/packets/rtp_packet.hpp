@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "common/array_view.hpp"
-#include "rtc/base/packet.hpp"
+#include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
 
@@ -11,7 +11,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacket : public Packet {
+class RTC_CPP_EXPORT RtpPacket : public CopyOnWriteBuffer {
 public:
     static std::shared_ptr<RtpPacket> Create() {
         return std::shared_ptr<RtpPacket>(new RtpPacket());

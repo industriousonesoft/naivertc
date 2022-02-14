@@ -53,7 +53,7 @@ RtpPacket::RtpPacket(const HeaderExtensionMap* extension_map)
     : RtpPacket(extension_map, kIpPacketSize) {}
 
 RtpPacket::RtpPacket(const HeaderExtensionMap* extension_map, size_t capacity) 
-    : Packet(capacity),
+    : CopyOnWriteBuffer(/*size=*/0, capacity),
       extension_map_(extension_map != nullptr ? *extension_map : HeaderExtensionMap()) {
     assert(capacity <= kIpPacketSize);
     Reset();

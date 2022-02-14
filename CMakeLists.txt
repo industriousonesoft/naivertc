@@ -58,7 +58,6 @@ set(LIB_HEADERS
     # rtc
     # rtc -> base
     src/rtc/base/internals.hpp
-    src/rtc/base/packet.hpp
     src/rtc/base/dscp.hpp
     src/rtc/base/packet_options.hpp
     src/rtc/base/copy_on_write_buffer.hpp
@@ -314,7 +313,6 @@ set(LIB_SOURCES
 
     # rtc
     # rtc -> base
-    src/rtc/base/packet.cpp
     src/rtc/base/copy_on_write_buffer.cpp
     src/rtc/base/memory/bit_io.cpp
     src/rtc/base/memory/bit_io_reader.cpp
@@ -682,7 +680,6 @@ set(UNITTEST_SOURCES
     src/rtc/media/video/codecs/h264/sprop_parameter_parser_unittest.cpp
 
     # rtc -> base
-    src/rtc/base/packet_unittest.cpp
     src/rtc/base/memory/byte_io_unittest.cpp
     src/rtc/base/memory/bit_io_reader_unittest.cpp
     src/rtc/base/memory/bit_io_writer_unittest.cpp
