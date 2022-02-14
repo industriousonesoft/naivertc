@@ -313,6 +313,7 @@ set(LIB_SOURCES
 
     # rtc
     # rtc -> base
+    src/rtc/base/packet_options.cpp
     src/rtc/base/copy_on_write_buffer.cpp
     src/rtc/base/memory/bit_io.cpp
     src/rtc/base/memory/bit_io_reader.cpp

@@ -11,6 +11,8 @@ constexpr uint32_t kTimestampTicksPerMs = 90;
 constexpr int kSendSideDelayWindowMs = 1000; // 1s
 constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(BitrateStatistics::kDefauleWindowSizeMs);
 
+
+
 } // namespace
 
 RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
@@ -129,8 +131,11 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     const bool is_media = packet_type == RtpPacketType::AUDIO ||
                           packet_type == RtpPacketType::VIDEO;
     
+    PacketOptions options(is_audio_ ? PacketKind::AUDIO : PacketKind::VIDEO);
+
     auto packet_id = packet.GetExtension<rtp::TransportSequenceNumber>();
     if (packet_id) {
+        options.packet_id = packet_id;
         AddPacketToTransportFeedback(*packet_id, packet);
     }
 
@@ -154,7 +159,7 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     // Send statistics
     SendStats send_stats(packet.ssrc(), packet.size(), packet_type, RtpPacketCounter(packet));
 
-    const bool send_success = SendPacketToNetwork(std::move(packet));
+    const bool send_success = SendPacketToNetwork(std::move(packet), std::move(options));
 
     // NOTE: The `packet` was moved to other, DO NOT use it any more.
 
@@ -218,18 +223,8 @@ DataRate RtpPacketEgresser::CalcTotalSendBitrate(const int64_t now_ms) {
     return send_bitrate;
 }
 
-bool RtpPacketEgresser::SendPacketToNetwork(RtpPacketToSend packet) {
+bool RtpPacketEgresser::SendPacketToNetwork(RtpPacketToSend packet, PacketOptions options) {
     if (send_transport_) {
-        PacketOptions options;
-        // Set recommended medium-priority DSCP value
-        // See https://datatracker.ietf.org/doc/html/draft-ietf-tsvwg-rtcweb-qos-18
-        if (is_audio_) {
-            options.kind = PacketKind::AUDIO;
-            options.dscp = DSCP::DSCP_EF; // EF: Expedited Forwarding
-        } else {
-            options.kind = PacketKind::VIDEO;
-            options.dscp = DSCP::DSCP_AF42; // AF42: Assured Forwarding class 4, medium drop probability
-        }
         if (!send_transport_->SendRtpPacket(std::move(packet), std::move(options), false)) {
             PLOG_WARNING << "Transport faild to send packet.";
             return false;

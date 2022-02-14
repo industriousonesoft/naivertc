@@ -52,8 +52,13 @@ void RtcpSender::PacketSender::Reset() {
 }
 
 void RtcpSender::PacketSender::SendPacket(CopyOnWriteBuffer packet) {
-    PacketOptions options;
-    options.kind = is_audio_ ? PacketKind::AUDIO : PacketKind::VIDEO;
+    // A sender of RTCP packets that also sends RTP packets (i.e., originates an RTP stream)
+    // should use the same DSCP marking for both types of packets.  If an
+    // RTCP sender doesn't send any RTP packets, it should mark its RTCP
+    // packets with the DSCP that it would use if it did send RTP packets
+    // with media similar to the RTP traffic that it receives. 
+    // See https://datatracker.ietf.org/doc/html/rfc7657#section-5.4
+    PacketOptions options(is_audio_ ? PacketKind::AUDIO : PacketKind::VIDEO);
     this->send_transport_->SendRtpPacket(std::move(packet), std::move(options), true);
 }
     

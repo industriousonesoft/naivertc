@@ -83,7 +83,7 @@ private:
     };
 
 private:
-    bool SendPacketToNetwork(RtpPacketToSend packet);
+    bool SendPacketToNetwork(RtpPacketToSend packet, PacketOptions options);
 
     bool VerifySsrcs(const RtpPacketToSend& packet);
 

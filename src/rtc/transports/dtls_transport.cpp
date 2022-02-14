@@ -19,7 +19,7 @@ DtlsTransport::DtlsTransport(Configuration config, bool is_client, BaseTransport
     : BaseTransport(lower),
       config_(std::move(config)),
       is_client_(is_client),
-      handshake_packet_options_(kHandshakePacketDscp, PacketKind::BINARY) {
+      handshake_packet_options_(PacketKind::BINARY, kHandshakePacketDscp) {
     InitOpenSSL(config_);
     WeakPtrManager::SharedInstance()->Register(this);
 }
@@ -141,7 +141,7 @@ int DtlsTransport::HandleDtlsWrite(CopyOnWriteBuffer data) {
     if (state_ != State::CONNECTED) {
         return Outgoing(std::move(data), handshake_packet_options_);
     } else {
-        PacketOptions options = user_packet_options_ ? std::move(*user_packet_options_): PacketOptions(DSCP::DSCP_DF);
+        PacketOptions options = user_packet_options_ ? std::move(*user_packet_options_): PacketOptions(PacketKind::BINARY, DSCP::DSCP_DF);
         return Outgoing(std::move(data), std::move(options));
     }
 }

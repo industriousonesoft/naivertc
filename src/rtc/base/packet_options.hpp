@@ -4,6 +4,8 @@
 #include "base/defines.hpp"
 #include "rtc/base/dscp.hpp"
 
+#include <optional>
+
 namespace naivertc {
 
 enum class PacketKind {
@@ -16,10 +18,14 @@ enum class PacketKind {
 // The structure holds meta infomation for the packet 
 // which is about to send over network
 struct RTC_CPP_EXPORT PacketOptions {
-    PacketOptions(DSCP dscp = DSCP::DSCP_DF, PacketKind kind = PacketKind::BINARY) : dscp(dscp), kind(kind) {}
-    ~PacketOptions() = default;
-    DSCP dscp;
+    PacketOptions(PacketKind kind);
+    PacketOptions(PacketKind kind, DSCP dscp);
+    ~PacketOptions();
     PacketKind kind;
+    DSCP dscp;
+    
+    // Transport sequence number
+    std::optional<uint16_t> packet_id;
 };
     
 } // namespace naivertc
