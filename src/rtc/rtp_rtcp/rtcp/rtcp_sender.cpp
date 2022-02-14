@@ -22,7 +22,7 @@ RtcpSender::RtcpSender(Configuration config)
       packet_sender_(config.send_transport, audio_, kIpPacketSize - kTransportOverhead /* Default is UDP/IPv6 */),
       packet_type_counter_observer_(config.packet_type_counter_observer),
       report_block_provider_(config.report_block_provider),
-      rtp_send_feedback_provider_(config.rtp_send_feedback_provider),
+      rtp_send_stats_provider_(config.rtp_send_stats_provider),
       rtcp_receive_feedback_provider_(config.rtcp_receive_feedback_provider),
       work_queue_(TaskQueueImpl::Current()) {
   

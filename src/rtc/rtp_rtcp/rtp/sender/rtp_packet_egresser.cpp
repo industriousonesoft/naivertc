@@ -263,25 +263,25 @@ void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id,
         const size_t packet_size = send_side_bwe_with_overhead_ ? packet.size() 
                                                                 : packet.payload_size() + packet.padding_size();
         
-        RtpTransportFeedback stats;
-        stats.packet_id = packet_id;
-        stats.rtp_timestamp = packet.timestamp();
-        stats.packet_size = packet_size;
-        stats.packet_type = packet.packet_type();
-        stats.ssrc = packet.ssrc();
-        stats.seq_num = packet.sequence_number();
+        RtpTransportFeedback feedback;
+        feedback.packet_id = packet_id;
+        feedback.rtp_timestamp = packet.timestamp();
+        feedback.packet_size = packet_size;
+        feedback.packet_type = packet.packet_type();
+        feedback.ssrc = packet.ssrc();
+        feedback.seq_num = packet.sequence_number();
 
         switch (packet.packet_type())
         {
         case RtpPacketType::AUDIO:
         case RtpPacketType::VIDEO:
-            stats.media_ssrc = ssrc_;
+            feedback.media_ssrc = ssrc_;
             break;
         case RtpPacketType::RETRANSMISSION:
             // For retransmissions, we're want to remove the original media packet
             // if the rentrasmit arrives, so populate that in the packet send statistics.
-            stats.media_ssrc = ssrc_;
-            stats.retransmitted_seq_num = packet.retransmitted_sequence_number();
+            feedback.media_ssrc = ssrc_;
+            feedback.retransmitted_seq_num = packet.retransmitted_sequence_number();
             break;
         case RtpPacketType::PADDING:
         case RtpPacketType::FEC:
@@ -292,7 +292,7 @@ void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id,
             break;
         }
 
-        transport_feedback_observer_->OnAddPacket(stats);
+        transport_feedback_observer_->OnSendFeedback(feedback);
     }
 }
 

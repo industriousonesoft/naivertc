@@ -68,7 +68,7 @@ public:
 };
 
 // MockPacketSendStatsObserver 
-class MockTransportFeedbackObserver : public RtpTransportFeedbackObserver {
+class MockTransportFeedbackObserver : public RtpSendFeedbackObserver {
 public:
     MOCK_METHOD(void, 
                 OnAddPacket, 

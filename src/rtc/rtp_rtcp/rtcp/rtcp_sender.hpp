@@ -40,7 +40,7 @@ public:
         // Observers
         RtcpPacketTypeCounterObserver* packet_type_counter_observer = nullptr;
         RtcpReportBlockProvider* report_block_provider = nullptr;
-        RtpSendFeedbackProvider* rtp_send_feedback_provider = nullptr;
+        RtpSendStatsProvider* rtp_send_stats_provider = nullptr;
         RtcpReceiveFeedbackProvider* rtcp_receive_feedback_provider = nullptr;
     };
 public:
@@ -90,13 +90,13 @@ private:
     // RtcpContext
     class RtcpContext {
     public:
-        RtcpContext(const RtpSendFeedback& rtp_send_feedback,
+        RtcpContext(const RtpSendStats& rtp_send_stats,
                     const RtcpReceiveFeedback& rtcp_receive_feedback,
                     const uint16_t* nack_list,
                     size_t nack_size,
                     Timestamp now_time);
 
-        const RtpSendFeedback& rtp_send_feedback;
+        const RtpSendStats& rtp_send_stats;
         const RtcpReceiveFeedback& rtcp_receive_feedback;
         const uint16_t* nack_list;
         size_t nack_size;
@@ -227,7 +227,7 @@ private:
 
     RtcpPacketTypeCounterObserver* const packet_type_counter_observer_ = nullptr;
     RtcpReportBlockProvider* const report_block_provider_ = nullptr;
-    RtpSendFeedbackProvider* const rtp_send_feedback_provider_ = nullptr;
+    RtpSendStatsProvider* const rtp_send_stats_provider_ = nullptr;
     RtcpReceiveFeedbackProvider* const rtcp_receive_feedback_provider_ = nullptr;
 
     TaskQueueImpl* const work_queue_;

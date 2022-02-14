@@ -80,9 +80,9 @@ bool RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
 
     // RtcpContext                                   
     // We need to send out NTP even if we haven't received any reports
-    auto rtp_send_feedback = rtp_send_feedback_provider_->GetSendFeedback();
+    auto rtp_send_stats = rtp_send_stats_provider_->GetSendStats();
     auto rtcp_receive_feedback = rtcp_receive_feedback_provider_->GetReceiveFeedback();
-    RtcpContext context(rtp_send_feedback, 
+    RtcpContext context(rtp_send_stats, 
                         rtcp_receive_feedback, 
                         nack_list,
                         nack_size,
@@ -185,7 +185,7 @@ void RtcpSender::PrepareReport(const RtcpContext& ctx) {
     // Send video rtcp packets
     if (!audio_ && sending_) {
         // Calculate bandwidth for video
-        int send_bitrate_kbit = ctx.rtp_send_feedback.send_bitrate.kbps();
+        int send_bitrate_kbit = ctx.rtp_send_stats.send_bitrate.kbps();
         if (send_bitrate_kbit != 0) {
             // FIXME: Why ? 360 / send bandwidth in kbit/s.
             min_interval = std::min(TimeDelta::Millis(360000 / send_bitrate_kbit), report_interval_);
@@ -278,8 +278,8 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
     sr.set_sender_ssrc(local_ssrc_);
     sr.set_ntp(clock_->ConvertTimestampToNtpTime(ctx.now_time));
     sr.set_rtp_timestamp(rtp_timestamp);
-    sr.set_sender_packet_count(ctx.rtp_send_feedback.packets_sent);
-    sr.set_sender_octet_count(ctx.rtp_send_feedback.media_bytes_sent);
+    sr.set_sender_packet_count(ctx.rtp_send_stats.packets_sent);
+    sr.set_sender_octet_count(ctx.rtp_send_stats.media_bytes_sent);
     sr.SetReportBlocks(CreateReportBlocks(ctx.rtcp_receive_feedback));
     sender.AppendPacket(sr);
 }

@@ -20,7 +20,7 @@ namespace naivertc {
 
 class RTC_CPP_EXPORT RtpSender : public RtcpNackListObserver,
                                  public RtcpReportBlocksObserver,
-                                 public RtpSendFeedbackProvider {
+                                 public RtpSendStatsProvider {
 public:
     RtpSender(const RtpConfiguration& config);
     ~RtpSender() override;
@@ -70,8 +70,8 @@ public:
     void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
                                     int64_t rtt_ms) override;
 
-    // Implements RtpSendFeedbackProvider
-    RtpSendFeedback GetSendFeedback() override;
+    // Implements RtpSendStatsProvider
+    RtpSendStats GetSendStats() override;
 
 private:
     int32_t ResendPacket(uint16_t seq_num);

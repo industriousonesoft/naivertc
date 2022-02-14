@@ -83,7 +83,7 @@ void RtpVideoSender::CreateAndInitRtpRtcpModules(const Configuration& config,
     rtcp_config.fec_ssrc = fec_generator_ ? fec_generator_->fec_ssrc() : std::nullopt;
     rtcp_config.clock = clock;
     rtcp_config.send_transport = send_transport;
-    rtcp_config.rtp_send_feedback_provider = rtp_sender.get();
+    rtcp_config.rtp_send_stats_provider = rtp_sender.get();
     auto rtcp_responser = std::make_unique<RtcpResponser>(rtcp_config);
     
     rtcp_responser_ = std::move(rtcp_responser);

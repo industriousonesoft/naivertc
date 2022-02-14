@@ -83,7 +83,7 @@ public:
 };
 
 // RtpSendDelayObserver
-class RtpSendDelayObserver {
+class RTC_CPP_EXPORT RtpSendDelayObserver {
 public:
     virtual ~RtpSendDelayObserver() = default;
     virtual void OnSendDelayUpdated(int64_t avg_delay_ms,
@@ -93,7 +93,7 @@ public:
 };
 
 // RtpSendBitratesObserver
-class RtpSendBitratesObserver {
+class RTC_CPP_EXPORT RtpSendBitratesObserver {
 public:
     virtual ~RtpSendBitratesObserver() = default;
     virtual void OnSendBitratesUpdated(uint32_t total_bitrate_bps,
@@ -102,7 +102,7 @@ public:
 };
 
 // RtpSendPacketObserver
-class RtpSendPacketObserver {
+class RTC_CPP_EXPORT RtpSendPacketObserver {
 public:
     virtual ~RtpSendPacketObserver() = default;
     virtual void OnSendPacket(uint16_t packet_id,
@@ -111,25 +111,25 @@ public:
 };
 
 // RtpStreamDataCountersObserver
-class RtpStreamDataCountersObserver {
+class RTC_CPP_EXPORT RtpStreamDataCountersObserver {
 public:
     virtual ~RtpStreamDataCountersObserver() = default;
     virtual void OnStreamDataCountersUpdated(const RtpStreamDataCounters& counters,
                                              uint32_t ssrc) = 0;
 };
 
-// RtpTransportFeedbackObserver
-class RtpTransportFeedbackObserver {
+// RtpSendFeedbackObserver
+class RTC_CPP_EXPORT RtpSendFeedbackObserver {
 public:
-    virtual ~RtpTransportFeedbackObserver() = default;
-    virtual void OnAddPacket(const RtpTransportFeedback& feedback) = 0;
+    virtual ~RtpSendFeedbackObserver() = default;
+    virtual void OnSendFeedback(const RtpTransportFeedback& feedback) = 0;
 };
 
-// RtpSendFeedbackProvider
-class RTC_CPP_EXPORT RtpSendFeedbackProvider {
+// RtpSendStatsProvider
+class RTC_CPP_EXPORT RtpSendStatsProvider {
 public:
-    virtual ~RtpSendFeedbackProvider() = default;
-    virtual RtpSendFeedback GetSendFeedback() = 0;
+    virtual ~RtpSendStatsProvider() = default;
+    virtual RtpSendStats GetSendStats() = 0;
 };
 
 // RTCP observer

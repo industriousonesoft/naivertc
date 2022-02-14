@@ -99,7 +99,6 @@ private:
     std::string type_str_;
     std::string various_tail_;
 
-    // TODO: wrap properties blow maybe?
     Family family_;
     std::string address_;
     uint16_t port_;

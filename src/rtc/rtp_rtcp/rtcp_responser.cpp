@@ -18,7 +18,7 @@ RtcpSender::Configuration RtcpConfigurationFromRtpRtcpConfiguration(const RtcpCo
     rtcp_sender_config.send_transport = config.send_transport;
     rtcp_sender_config.packet_type_counter_observer = config.packet_type_counter_observer;
     rtcp_sender_config.report_block_provider = config.report_block_provider;
-    rtcp_sender_config.rtp_send_feedback_provider = config.rtp_send_feedback_provider;
+    rtcp_sender_config.rtp_send_stats_provider = config.rtp_send_stats_provider;
     rtcp_sender_config.rtcp_receive_feedback_provider = rtcp_receive_feedback_provider;
     return rtcp_sender_config;
 }

@@ -47,7 +47,7 @@ struct RTC_CPP_EXPORT RtpConfiguration {
     RtpSendDelayObserver* send_delay_observer = nullptr;
     RtpSendPacketObserver* send_packet_observer = nullptr;
     RtpSendBitratesObserver* send_bitrates_observer = nullptr;
-    RtpTransportFeedbackObserver* transport_feedback_observer = nullptr;
+    RtpSendFeedbackObserver* transport_feedback_observer = nullptr;
     RtpStreamDataCountersObserver* stream_data_counters_observer = nullptr;
 };
 
@@ -82,7 +82,7 @@ struct RTC_CPP_EXPORT RtcpConfiguration {
     RtcpNackListObserver* nack_list_observer = nullptr;
     RtcpReportBlocksObserver* report_blocks_observer = nullptr;
     RtcpReportBlockProvider* report_block_provider = nullptr;
-    RtpSendFeedbackProvider* rtp_send_feedback_provider = nullptr;
+    RtpSendStatsProvider* rtp_send_stats_provider = nullptr;
 };
         
 } // namespace naivertc

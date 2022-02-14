@@ -71,12 +71,12 @@ public:
     MOCK_METHOD(bool, SendRtcpPacket, (CopyOnWriteBuffer, PacketOptions), (override));
 };
 
-// RtpSendFeedbackProviderImpl
-class RtpSendFeedbackProviderImpl : public RtpSendFeedbackProvider {
+// RtpSendStatsProviderImpl
+class RtpSendStatsProviderImpl : public RtpSendStatsProvider {
 public:
-    ~RtpSendFeedbackProviderImpl() override = default;
+    ~RtpSendStatsProviderImpl() override = default;
 
-    RtpSendFeedback GetSendFeedback() override {
+    RtpSendStats GetSendStats() override {
         return send_feedback_;
     }
 
@@ -130,7 +130,7 @@ public:
         config.send_transport = &send_transport_;
         config.rtcp_report_interval_ms = 1000;
         config.report_block_provider = receive_statistics_.get();
-        config.rtp_send_feedback_provider = &rtp_send_feedback_provider_;
+        config.rtp_send_stats_provider = &rtp_send_stats_provider_;
         config.rtcp_receive_feedback_provider = &rtcp_receive_feedback_provider_;
         config.packet_type_counter_observer = &packet_type_counter_observer_;
         return config;
@@ -153,7 +153,7 @@ protected:
     SimulatedClock clock_;
     RtcMediaTransportImpl send_transport_;
     std::unique_ptr<RtpReceiveStatistics> receive_statistics_;
-    RtpSendFeedbackProviderImpl rtp_send_feedback_provider_;
+    RtpSendStatsProviderImpl rtp_send_stats_provider_;
     RtcpReceiveFeedbackProviderImpl rtcp_receive_feedback_provider_;
     RtcpPacketTypeCounterObserverImpl packet_type_counter_observer_;
 };
@@ -169,7 +169,7 @@ MY_TEST_F(RtcpSenderTest, SendSr) {
     const uint32_t kPacketCount = 0x12345;
     const uint32_t kOctetCount = 0x23456;
 
-    rtp_send_feedback_provider_.OnRtpPacketSent(kPacketCount, kOctetCount);
+    rtp_send_stats_provider_.OnRtpPacketSent(kPacketCount, kOctetCount);
 
     auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
     rtcp_sender->set_sending(true);
@@ -192,7 +192,7 @@ MY_TEST_F(RtcpSenderTest, SendConsecutiveSrWithExactSlope) {
     const int kTimeBetweenSRsUs = 10043;  // Not exact value in milliseconds.
     const int kExtraPackets = 30;
 
-    rtp_send_feedback_provider_.OnRtpPacketSent(kPacketCount, kOctetCount);
+    rtp_send_stats_provider_.OnRtpPacketSent(kPacketCount, kOctetCount);
 
     auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
     rtcp_sender->set_sending(true);

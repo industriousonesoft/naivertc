@@ -235,9 +235,9 @@ void RtpSender::OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& r
     }
 }
 
-RtpSendFeedback RtpSender::GetSendFeedback() {
+RtpSendStats RtpSender::GetSendStats() {
     RTC_RUN_ON(&sequence_checker_);
-    RtpSendFeedback send_feedback;
+    RtpSendStats send_feedback;
     RtpStreamDataCounters rtp_stats = ctx_->packet_egresser.GetRtpStreamDataCounter();
     RtpStreamDataCounters rtx_stats = ctx_->packet_egresser.GetRtxStreamDataCounter();
     send_feedback.packets_sent = rtp_stats.transmitted.num_packets + rtx_stats.transmitted.num_packets;

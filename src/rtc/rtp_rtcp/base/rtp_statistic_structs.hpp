@@ -88,8 +88,8 @@ struct RTC_CPP_EXPORT RtpReceiveStats {
     RtpPacketCounter packet_counter;
 };
 
-// RtpSendFeedback
-struct RTC_CPP_EXPORT RtpSendFeedback {
+// RtpSendStats
+struct RTC_CPP_EXPORT RtpSendStats {
     uint32_t packets_sent = 0;
     size_t media_bytes_sent = 0;
     DataRate send_bitrate = DataRate::Zero();
