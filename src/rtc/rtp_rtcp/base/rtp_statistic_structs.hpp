@@ -69,14 +69,14 @@ struct RTC_CPP_EXPORT RtpStreamDataCounters final {
 
 // RtpSendFeedback
 struct RTC_CPP_EXPORT RtpSendFeedback {
-    uint32_t ssrc = 0;
+    // Transport sequence number
     uint16_t packet_id = 0;
-    uint16_t seq_num = 0;
+    uint32_t ssrc = 0;
     uint32_t rtp_timestamp = 0;
     size_t packet_size = 0;
+    uint16_t sequence_number;
     std::optional<uint32_t> media_ssrc;
     std::optional<RtpPacketType> packet_type;
-    std::optional<uint16_t> retransmitted_seq_num;
 };
 
 // RtpReceiveStats

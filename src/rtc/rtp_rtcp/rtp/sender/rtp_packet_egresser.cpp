@@ -269,7 +269,7 @@ void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id,
         feedback.packet_size = packet_size;
         feedback.packet_type = packet.packet_type();
         feedback.ssrc = packet.ssrc();
-        feedback.seq_num = packet.sequence_number();
+        feedback.sequence_number = packet.sequence_number();
 
         switch (packet.packet_type())
         {
@@ -281,7 +281,7 @@ void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id,
             // For retransmissions, we're want to remove the original media packet
             // if the rentrasmit arrives, so populate that in the packet send statistics.
             feedback.media_ssrc = ssrc_;
-            feedback.retransmitted_seq_num = packet.retransmitted_sequence_number();
+            feedback.sequence_number = *packet.retransmitted_sequence_number();
             break;
         case RtpPacketType::PADDING:
         case RtpPacketType::FEC:
