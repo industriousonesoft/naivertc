@@ -263,7 +263,7 @@ void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id,
         const size_t packet_size = send_side_bwe_with_overhead_ ? packet.size() 
                                                                 : packet.payload_size() + packet.padding_size();
         
-        RtpTransportFeedback feedback;
+        RtpSendFeedback feedback;
         feedback.packet_id = packet_id;
         feedback.rtp_timestamp = packet.timestamp();
         feedback.packet_size = packet_size;

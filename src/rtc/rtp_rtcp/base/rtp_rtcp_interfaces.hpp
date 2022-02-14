@@ -122,7 +122,7 @@ public:
 class RTC_CPP_EXPORT RtpSendFeedbackObserver {
 public:
     virtual ~RtpSendFeedbackObserver() = default;
-    virtual void OnSendFeedback(const RtpTransportFeedback& feedback) = 0;
+    virtual void OnSendFeedback(const RtpSendFeedback& feedback) = 0;
 };
 
 // RtpSendStatsProvider

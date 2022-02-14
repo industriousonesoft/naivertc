@@ -72,7 +72,7 @@ class MockTransportFeedbackObserver : public RtpSendFeedbackObserver {
 public:
     MOCK_METHOD(void, 
                 OnAddPacket, 
-                (const RtpTransportFeedback&), 
+                (const RtpSendFeedback&), 
                 (override));
 };
 
@@ -184,10 +184,10 @@ MY_TEST_P(RtpPacketEgresserTest, PacketSendStatsObserverGetsCorrectByteCount) {
 
     EXPECT_CALL(transport_feedback_observer_, 
                 OnAddPacket(AllOf(
-                    Field(&RtpTransportFeedback::ssrc, kSsrc),
-                    Field(&RtpTransportFeedback::packet_id, kTransportSeqNum),
-                    Field(&RtpTransportFeedback::seq_num, kStartSequenceNumber),
-                    Field(&RtpTransportFeedback::packet_size, expected_bytes)
+                    Field(&RtpSendFeedback::ssrc, kSsrc),
+                    Field(&RtpSendFeedback::packet_id, kTransportSeqNum),
+                    Field(&RtpSendFeedback::seq_num, kStartSequenceNumber),
+                    Field(&RtpSendFeedback::packet_size, expected_bytes)
                 )));
 
     auto packet = BuildRtpPacket();
@@ -676,9 +676,9 @@ MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverWithRetransmission) {
     EXPECT_CALL(
         transport_feedback_observer_,
         OnAddPacket(AllOf(
-            Field(&RtpTransportFeedback::ssrc, kSsrc),
-            Field(&RtpTransportFeedback::retransmitted_seq_num, retransmitted_seq),
-            Field(&RtpTransportFeedback::packet_id, kTransportSequenceNumber))));
+            Field(&RtpSendFeedback::ssrc, kSsrc),
+            Field(&RtpSendFeedback::retransmitted_seq_num, retransmitted_seq),
+            Field(&RtpSendFeedback::packet_id, kTransportSequenceNumber))));
     sender->SendPacket(std::move(retransmission));
 }
 
@@ -696,10 +696,10 @@ MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverWithRtxRetransmission)
     EXPECT_CALL(
         transport_feedback_observer_,
         OnAddPacket(AllOf(
-            Field(&RtpTransportFeedback::ssrc, kRtxSsrc),
-            Field(&RtpTransportFeedback::media_ssrc, kSsrc),
-            Field(&RtpTransportFeedback::retransmitted_seq_num, retransmitted_seq),
-            Field(&RtpTransportFeedback::packet_id, kTransportSequenceNumber))));
+            Field(&RtpSendFeedback::ssrc, kRtxSsrc),
+            Field(&RtpSendFeedback::media_ssrc, kSsrc),
+            Field(&RtpSendFeedback::retransmitted_seq_num, retransmitted_seq),
+            Field(&RtpSendFeedback::packet_id, kTransportSequenceNumber))));
     sender->SendPacket(std::move(retransmission));
 }
 
@@ -716,9 +716,9 @@ MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverRtxPadding) {
     EXPECT_CALL(
         transport_feedback_observer_,
         OnAddPacket(AllOf(
-            Field(&RtpTransportFeedback::ssrc, kRtxSsrc),
-            Field(&RtpTransportFeedback::media_ssrc, std::nullopt),
-            Field(&RtpTransportFeedback::packet_id, kTransportSequenceNumber))));
+            Field(&RtpSendFeedback::ssrc, kRtxSsrc),
+            Field(&RtpSendFeedback::media_ssrc, std::nullopt),
+            Field(&RtpSendFeedback::packet_id, kTransportSequenceNumber))));
     sender->SendPacket(std::move(rtx_padding));
 }
 
@@ -738,9 +738,9 @@ MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverFEC) {
     EXPECT_CALL(
         transport_feedback_observer_,
         OnAddPacket(AllOf(
-            Field(&RtpTransportFeedback::ssrc, kFlexFecSsrc),
-            Field(&RtpTransportFeedback::media_ssrc, std::nullopt),
-            Field(&RtpTransportFeedback::packet_id, kTransportSequenceNumber))));
+            Field(&RtpSendFeedback::ssrc, kFlexFecSsrc),
+            Field(&RtpSendFeedback::media_ssrc, std::nullopt),
+            Field(&RtpSendFeedback::packet_id, kTransportSequenceNumber))));
     sender->SendPacket(std::move(fec));
 }
 
