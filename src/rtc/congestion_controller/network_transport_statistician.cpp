@@ -18,11 +18,11 @@ NetworkTransportStatistician::NetworkTransportStatistician()
       last_untracked_send_time_(Timestamp::MinusInfinity()),
       pending_untracked_bytes_(0),
       last_feedback_recv_time_(Timestamp::MinusInfinity()),
-      last_timestamp_(TimeDelta::MinusInfinity()) {}
+      last_timestamp_(TimeDelta::MinusInfinity()) {
+    sequence_checker_.Detach();
+}
     
-NetworkTransportStatistician::~NetworkTransportStatistician() {
-    RTC_RUN_ON(&sequence_checker_);
-};
+NetworkTransportStatistician::~NetworkTransportStatistician() = default;
 
 size_t NetworkTransportStatistician::GetInFlightBytes() const {
     RTC_RUN_ON(&sequence_checker_);

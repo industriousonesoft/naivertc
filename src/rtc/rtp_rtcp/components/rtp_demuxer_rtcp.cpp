@@ -128,7 +128,7 @@ bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
             for (uint8_t i = 0; i < rtcp_sr->report_count(); i++) {
                 uint32_t media_source_ssrc = ntohl(rtcp_sr->GetReportBlock(i)->source_ssrc);
                 ssrcs.insert(media_source_ssrc);
-                PLOG_VERBOSE << "RTCP RR report block source ssrc= " << media_source_ssrc;
+                PLOG_VERBOSE_IF(false) << "RTCP RR report block source ssrc= " << media_source_ssrc;
             }
         } 
         // RTP feedback packet (pt = 205) or RTCP payload-specific packet (pt = 206) 

@@ -405,7 +405,6 @@ bool RtcpReceiver::ParseAfb(const rtcp::CommonHeader& rtcp_block,
         if (remb.Parse(rtcp_block)) {
             packet_info->packet_type_flags |= RtcpPacketType::REMB;
             packet_info->remb_bps = remb.bitrate_bps();
-            PLOG_VERBOSE << "Received REMB= " << packet_info->remb_bps << " bps.";
             return true;
         }
     }

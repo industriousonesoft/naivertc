@@ -225,8 +225,8 @@ void RtcpReceiver::HandleParseResult(const PacketInfo& packet_info) {
         }
         // Report blocks
         if (report_blocks_observer_) {
-            PLOG_VERBOSE << "Received report blocks size=" 
-                        << packet_info.report_blocks.size();
+            PLOG_VERBOSE_IF(false) << "Received report blocks size=" 
+                                   << packet_info.report_blocks.size();
             report_blocks_observer_->OnReceivedRtcpReportBlocks(packet_info.report_blocks);
         }
     }
