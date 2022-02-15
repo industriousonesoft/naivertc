@@ -5,6 +5,7 @@
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/congestion_controller/network_controller_interface.hpp"
+#include "rtc/congestion_controller/network_transport_statistician.hpp"
 
 #include <unordered_map>
 
@@ -13,23 +14,24 @@ namespace naivertc {
 class Clock;
 
 class RTC_CPP_EXPORT RtpSendController : public RtcpBandwidthObserver,
-                                         public RtcpReportBlocksObserver,
                                          public RtcpTransportFeedbackObserver,
-                                         public RtpSendFeedbackObserver {
+                                         public RtpTransportFeedbackObserver {
 public:
     RtpSendController(Clock* clock);
     ~RtpSendController() override;
 
 private:
+    // Implements RtpTransportFeedbackObserver
+    void OnAddPacket(const RtpPacketSendInfo& feedback) override;
+    void OnSentPacket(const RtpSentPacket& sent_packet) override;
+
     // Implements RtcpBandwidthObserver
     void OnReceivedEstimatedBitrateBps(uint32_t bitrate_bps) override;
-    // Implements RtcpReportBlocksObserver
-    void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
-                                    int64_t rtt_ms) override;
+
     // Implements RtcpTransportFeedbackObserver
     void OnTransportFeedback(const rtcp::TransportFeedback& feedback) override;
-    // Implements RtpSendFeedbackObserver
-    void OnSendFeedback(const RtpSendFeedback& feedback) override;
+    void OnReceivedRtcpReceiveReport(const std::vector<RtcpReportBlock>& report_blocks,
+                                     int64_t rtt_ms) override;
 
 private:
     void OnNetworkControlUpdate(NetworkControlUpdate update);
@@ -41,6 +43,7 @@ private:
     Clock* const clock_;
     TaskQueue worker_queue_;
 
+    NetworkTransportStatistician transport_statistician_;
     std::unique_ptr<NetworkControllerInterface> network_controller_;
 
     Timestamp last_report_block_time_;

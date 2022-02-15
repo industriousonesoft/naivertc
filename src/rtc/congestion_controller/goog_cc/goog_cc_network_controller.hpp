@@ -21,14 +21,12 @@ public:
     NetworkControlUpdate OnProcessInterval(ProcessInterval) override;
     NetworkControlUpdate OnRemoteBitrateUpdated(DataRate bitrate, Timestamp receive_time) override;
     NetworkControlUpdate OnRttUpdated(TimeDelta rtt, Timestamp receive_time) override;
-    NetworkControlUpdate OnSentPacket(SentPacket) override;
+    NetworkControlUpdate OnSentPacket(const SentPacket&) override;
     NetworkControlUpdate OnReceivedPacket(ReceivedPacket) override;
     NetworkControlUpdate OnStreamsConfig(StreamsConfig) override;
     NetworkControlUpdate OnTargetBitrateConstraints(TargetBitrateConstraints) override;
-    NetworkControlUpdate OnPacketsLost(int64_t num_of_packets_lost,
-                                       int64_t num_of_packets,
-                                       Timestamp receive_time) override;
-    NetworkControlUpdate OnTransportPacketsFeedback(TransportPacketsFeedback) override;
+    NetworkControlUpdate OnTransportLostReport(const TransportLossReport&) override;
+    NetworkControlUpdate OnTransportPacketsFeedback(const TransportPacketsFeedback&) override;
     NetworkControlUpdate OnNetworkStateEstimate(NetworkEstimate) override;
 
     NetworkControlUpdate GetNetworkState(Timestamp at_time) const;

@@ -2,10 +2,8 @@
 
 namespace naivertc {
 
-VideoSendStream::VideoSendStream(Configuration config) 
-    : rtp_video_sender_(std::make_unique<RtpVideoSender>(config.rtp, 
-                                                         config.clock, 
-                                                         config.send_transport)) {
+VideoSendStream::VideoSendStream(const Configuration& config) 
+    : rtp_video_sender_(std::make_unique<RtpVideoSender>(config)) {
     // Media ssrc
     if (config.rtp.local_media_ssrc >= 0) {
         ssrcs_.push_back(config.rtp.local_media_ssrc);

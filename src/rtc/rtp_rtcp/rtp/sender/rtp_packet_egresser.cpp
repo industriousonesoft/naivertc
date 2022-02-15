@@ -171,7 +171,6 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
 
         // TODO: Add support for FEC protecting all header extensions, 
         // add media packet to generator here instead.
-        
         worker_queue_->Post([this, now_ms, send_stats=std::move(send_stats)](){
             UpdateSentStatistics(now_ms, std::move(send_stats));
         });
@@ -225,13 +224,21 @@ DataRate RtpPacketEgresser::CalcTotalSendBitrate(const int64_t now_ms) {
 
 bool RtpPacketEgresser::SendPacketToNetwork(RtpPacketToSend packet, PacketOptions options) {
     if (send_transport_) {
-        if (!send_transport_->SendRtpPacket(std::move(packet), std::move(options), false)) {
-            PLOG_WARNING << "Transport faild to send packet.";
+        auto packet_id = options.packet_id;
+        int sent_size = send_transport_->SendRtpPacket(std::move(packet), std::move(options), false);
+        // NOTE: The |sent_size| may be greater then size of the packet to send,
+        // since it will be processed before sending to network, like encryption. 
+        if (sent_size < 0) {
+            PLOG_WARNING << "Faild to send packet: " << packet.sequence_number();
             return false;
         }
-        PLOG_VERBOSE_IF(false) << "Send RTP packet: seq=" << packet.sequence_number() <<", size= " << packet.size();
+        if (transport_feedback_observer_) {
+            RtpSentPacket sent_packet(clock_->CurrentTime(), packet_id);
+            sent_packet.size = sent_size;
+            transport_feedback_observer_->OnSentPacket(sent_packet);
+        }
     }
-    return true;
+    return false;
 }
 
 bool RtpPacketEgresser::VerifySsrcs(const RtpPacketToSend& packet) {
@@ -258,25 +265,25 @@ void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id,
         const size_t packet_size = send_side_bwe_with_overhead_ ? packet.size() 
                                                                 : packet.payload_size() + packet.padding_size();
         
-        RtpSendFeedback feedback;
-        feedback.packet_id = packet_id;
-        feedback.rtp_timestamp = packet.timestamp();
-        feedback.packet_size = packet_size;
-        feedback.packet_type = packet.packet_type();
-        feedback.ssrc = packet.ssrc();
-        feedback.sequence_number = packet.sequence_number();
+        RtpPacketSendInfo packet_info;
+        packet_info.packet_id = packet_id;
+        packet_info.rtp_timestamp = packet.timestamp();
+        packet_info.packet_size = packet_size;
+        packet_info.packet_type = packet.packet_type();
+        packet_info.ssrc = packet.ssrc();
+        packet_info.sequence_number = packet.sequence_number();
 
         switch (packet.packet_type())
         {
         case RtpPacketType::AUDIO:
         case RtpPacketType::VIDEO:
-            feedback.media_ssrc = ssrc_;
+            packet_info.media_ssrc = ssrc_;
             break;
         case RtpPacketType::RETRANSMISSION:
             // For retransmissions, we're want to remove the original media packet
             // if the rentrasmit arrives, so populate that in the packet send statistics.
-            feedback.media_ssrc = ssrc_;
-            feedback.sequence_number = *packet.retransmitted_sequence_number();
+            packet_info.media_ssrc = ssrc_;
+            packet_info.sequence_number = *packet.retransmitted_sequence_number();
             break;
         case RtpPacketType::PADDING:
         case RtpPacketType::FEC:
@@ -287,7 +294,7 @@ void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id,
             break;
         }
 
-        transport_feedback_observer_->OnSendFeedback(feedback);
+        transport_feedback_observer_->OnAddPacket(packet_info);
     }
 }
 

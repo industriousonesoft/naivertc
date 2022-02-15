@@ -117,22 +117,20 @@ void PeerConnection::ValidateConfiguration(RtcConfiguration& config) {
 }
 
 // RtcMediaTransport interface
-bool PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) {
+int PeerConnection::SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) {
     auto handler = [this, packet=std::move(packet), options=std::move(options), is_rtcp](){
         auto srtp_transport = dynamic_cast<DtlsSrtpTransport*>(dtls_transport_.get());
         if (srtp_transport && srtp_transport->state() == DtlsSrtpTransport::State::CONNECTED) {
             if (is_rtcp) {
-                return srtp_transport->SendRtcpPacket(std::move(packet), std::move(options)) > 0;
+                return srtp_transport->SendRtcpPacket(std::move(packet), std::move(options));
             } else {
-                return srtp_transport->SendRtpPacket(std::move(packet), std::move(options)) > 0;
+                return srtp_transport->SendRtpPacket(std::move(packet), std::move(options));
             }
         } else {
-            return false;
+            return -1;
         }
     };
     return network_task_queue_->Invoke<int>(std::move(handler));
-    // network_task_queue_->Post(std::move(handler));
-    // return true;
 }
 
 // RtcDataTransport interface

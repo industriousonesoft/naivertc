@@ -319,9 +319,12 @@ int IceTransport::Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) 
 #else
     if (last_dscp_ != options.dscp) {
         last_dscp_ = options.dscp;
+        //   0   1   2   3   4   5   6   7
+        // +---+---+---+---+---+---+---+---+
+        // |         DSCP          |unused |
+        // +---+---+---+---+---+---+---+---+
         // Explicit Congestion Notification takes the least-significant 2 bits of the DS field
         int ds = int(uint8_t(last_dscp_) << 2);
-        // ToS is the lagacy name for DS
         nice_agent_set_stream_tos(nice_agent_.get(), stream_id_, ds);
     }
     ret = nice_agent_send(nice_agent_.get(), stream_id_, component_id_, out_packet.size(), reinterpret_cast<const char*>(out_packet.data()));

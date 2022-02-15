@@ -118,11 +118,12 @@ public:
                                              uint32_t ssrc) = 0;
 };
 
-// RtpSendFeedbackObserver
-class RTC_CPP_EXPORT RtpSendFeedbackObserver {
+// RtpTransportFeedbackObserver
+class RTC_CPP_EXPORT RtpTransportFeedbackObserver {
 public:
-    virtual ~RtpSendFeedbackObserver() = default;
-    virtual void OnSendFeedback(const RtpSendFeedback& feedback) = 0;
+    virtual ~RtpTransportFeedbackObserver() = default;
+    virtual void OnAddPacket(const RtpPacketSendInfo& packet_info) = 0;
+    virtual void OnSentPacket(const RtpSentPacket& sent_packet) = 0;
 };
 
 // RtpSendStatsProvider
@@ -193,6 +194,8 @@ class RTC_CPP_EXPORT RtcpTransportFeedbackObserver {
 public:
     virtual ~RtcpTransportFeedbackObserver() = default;
     virtual void OnTransportFeedback(const rtcp::TransportFeedback& feedback) = 0;
+    virtual void OnReceivedRtcpReceiveReport(const std::vector<RtcpReportBlock>& report_blocks,
+                                             int64_t rtt_ms) = 0; 
 };
 
 // RtcpReportBlockProvider
@@ -206,8 +209,7 @@ public:
 class RTC_CPP_EXPORT RtcpReportBlocksObserver {
 public:
     virtual ~RtcpReportBlocksObserver() = default;
-    virtual void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
-                                            int64_t rtt_ms) = 0; 
+    virtual void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) = 0; 
 };
 
 // RtcpReceiveFeedbackProvider

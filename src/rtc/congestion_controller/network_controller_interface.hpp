@@ -28,7 +28,7 @@ public:
     // Called when the RTT has been calculated by protocol sepcific mechanisms.
     RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnRttUpdated(TimeDelta rtt, Timestamp receive_time) = 0;
     // Called when a packet is sent on the network.
-    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnSentPacket(SentPacket) = 0;
+    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnSentPacket(const SentPacket&) = 0;
     // Called when a packet is received from the remote.
     RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnReceivedPacket(ReceivedPacket) = 0;
     // Called when the stream specific configuration has been updated.
@@ -36,11 +36,9 @@ public:
     // Called when target transfer rate constraints has been changed.
     RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnTargetBitrateConstraints(TargetBitrateConstraints) = 0;
     // Called when a protocol specific calculation of packet loss has been made.
-    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnPacketsLost(int64_t packets_lost,
-                                                                   int64_t num_packets,
-                                                                   Timestamp receive_time) = 0;
+    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnTransportLostReport(const TransportLossReport&) = 0;
     // Called with per packet feedback regarding receive time.
-    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnTransportPacketsFeedback(TransportPacketsFeedback) = 0;
+    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnTransportPacketsFeedback(const TransportPacketsFeedback&) = 0;
     // Called with network state estimate updates.
     RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnNetworkStateEstimate(NetworkEstimate) = 0;
 };

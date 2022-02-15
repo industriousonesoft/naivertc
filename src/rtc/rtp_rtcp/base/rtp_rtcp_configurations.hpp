@@ -47,7 +47,7 @@ struct RTC_CPP_EXPORT RtpConfiguration {
     RtpSendDelayObserver* send_delay_observer = nullptr;
     RtpSendPacketObserver* send_packet_observer = nullptr;
     RtpSendBitratesObserver* send_bitrates_observer = nullptr;
-    RtpSendFeedbackObserver* transport_feedback_observer = nullptr;
+    RtpTransportFeedbackObserver* transport_feedback_observer = nullptr;
     RtpStreamDataCountersObserver* stream_data_counters_observer = nullptr;
 };
 

@@ -52,13 +52,12 @@ class RtcMediaTransportImpl : public RtcMediaTransport {
 public:
     ~RtcMediaTransportImpl() override = default;
 
-    bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
-        return false;
-    }
-
-    bool SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
-        parser_.Parse(packet.data(), packet.size());
-        return true;
+    int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) override {
+        if (is_rtcp) {
+            parser_.Parse(packet.data(), packet.size());
+            return packet.size();
+        }
+        return -1;
     }
 
     test::RtcpPacketParser parser_;
@@ -89,7 +88,7 @@ public:
     }
 
 private:
-    RtpSendFeedback send_feedback_;
+    RtpPacketSendInfo send_feedback_;
 };
 
 // RtcpReceiveFeedbackProviderImpl

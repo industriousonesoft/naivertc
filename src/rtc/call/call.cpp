@@ -38,7 +38,10 @@ void Call::AddVideoSendStream(RtpParameters rtp_params) {
         send_config.clock = clock_;
         send_config.send_transport = send_transport_;
         send_config.rtp = std::move(rtp_params);
-        auto send_stream = std::make_unique<VideoSendStream>(std::move(send_config));
+        send_config.observers.bandwidth_observer = &send_controller_;
+        send_config.observers.rtcp_transport_feedback_observer = &send_controller_;
+        send_config.observers.rtp_transport_feedback_observer = &send_controller_;
+        auto send_stream = std::make_unique<VideoSendStream>(send_config);
         // Added as RTCP sink.
         for (uint32_t ssrc : send_stream->ssrcs()) {
             rtp_demuxer_.AddRtcpSink(ssrc, send_stream.get());

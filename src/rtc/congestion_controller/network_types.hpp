@@ -50,6 +50,16 @@ struct RTC_CPP_EXPORT ReceivedPacket {
     size_t size = 0;
 };
 
+// Transport level feedback
+
+struct RTC_CPP_EXPORT TransportLossReport {
+  Timestamp receive_time = Timestamp::PlusInfinity();
+  uint64_t num_packets_lost = 0;
+  uint64_t num_packets = 0;
+};
+
+// Packet level feedback
+
 // PacketResult
 struct RTC_CPP_EXPORT PacketResult {
     class ReceiveTimeOrder {

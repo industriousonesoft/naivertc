@@ -142,7 +142,7 @@ private:
     RtpSendDelayObserver* const send_delay_observer_;
     RtpSendPacketObserver* const send_packet_observer_;
     RtpSendBitratesObserver* const send_bitrates_observer_;
-    RtpSendFeedbackObserver* const transport_feedback_observer_;
+    RtpTransportFeedbackObserver* const transport_feedback_observer_;
     RtpStreamDataCountersObserver* const stream_data_counters_observer_;
 };
     

@@ -35,18 +35,17 @@ public:
     }
     ~RtcMediaTransportImpl() override = default;
 
-    bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
+    int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) override {
+        if (is_rtcp) {
+            return -1;
+        }
         RtpPacketReceived recv_packet(&header_extension_map_);
-        if (!recv_packet.Parse(packet)) {
+        if (!recv_packet.Parse(std::move(packet))) {
             last_packet_.reset();
-            return false;
+            return -1;
         }
         last_packet_.emplace(std::move(recv_packet));
-        return true;
-    }
-
-    bool SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
-        RTC_NOTREACHED();
+        return last_packet_->size();
     }
 
     const RtpPacketReceived* last_packet() const {

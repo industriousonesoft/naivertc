@@ -220,8 +220,7 @@ void RtpSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t r
 }
 
 // Report blocks
-void RtpSender::OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
-                                           int64_t rtt_ms) {
+void RtpSender::OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) {
     RTC_RUN_ON(&sequence_checker_);
     uint32_t media_ssrc = ctx_->packet_generator.ssrc();
     std::optional<uint32_t> rtx_ssrc = ctx_->packet_generator.rtx_ssrc();

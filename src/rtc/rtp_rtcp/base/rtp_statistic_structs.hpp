@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/units/data_rate.hpp"
+#include "rtc/base/units/timestamp.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 
 #include <list>
@@ -67,8 +68,8 @@ struct RTC_CPP_EXPORT RtpStreamDataCounters final {
     RtpPacketCounter fec;
 };
 
-// RtpSendFeedback
-struct RTC_CPP_EXPORT RtpSendFeedback {
+// RtpPacketSendInfo
+struct RTC_CPP_EXPORT RtpPacketSendInfo {
     // Transport sequence number
     uint16_t packet_id = 0;
     uint32_t ssrc = 0;
@@ -77,6 +78,21 @@ struct RTC_CPP_EXPORT RtpSendFeedback {
     uint16_t sequence_number;
     std::optional<uint32_t> media_ssrc;
     std::optional<RtpPacketType> packet_type;
+};
+
+// RtpSentPacket
+struct RTC_CPP_EXPORT RtpSentPacket {
+    RtpSentPacket(Timestamp send_time, std::optional<uint16_t> packet_id = std::nullopt) 
+        : send_time(send_time),
+          packet_id(packet_id) {}
+    
+    Timestamp send_time = Timestamp::PlusInfinity();;
+    // Transport sequence number
+    std::optional<uint16_t> packet_id;
+    size_t size = 0;
+    // Indicates if accounting the packet without packet id 
+    // in send side BWE. e.g., used by audio packet.
+    bool included_in_allocation = false;
 };
 
 // RtpReceiveStats

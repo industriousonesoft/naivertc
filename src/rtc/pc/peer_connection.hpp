@@ -182,7 +182,7 @@ private:
 
 private:
     // Implements RtcMediaTransport
-    bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) override;
+    int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) override;
     // Implementsl RtcDataTransport
     bool Send(SctpMessageToSend message) override;
 

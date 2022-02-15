@@ -16,14 +16,9 @@ namespace naivertc {
 class RTC_CPP_EXPORT VideoSendStream : public VideoEncodedFrameSink,
                                        public MediaSendStream {
 public:
-    struct Configuration {
-        RtpParameters rtp;
-
-        Clock* clock;
-        RtcMediaTransport* send_transport = nullptr;
-    };
+    using Configuration = RtpVideoSender::Configuration;
 public:
-    VideoSendStream(Configuration config);
+    VideoSendStream(const Configuration& config);
     ~VideoSendStream() override;
 
     std::vector<uint32_t> ssrcs() const override;

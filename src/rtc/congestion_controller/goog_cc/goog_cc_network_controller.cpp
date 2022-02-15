@@ -87,7 +87,7 @@ NetworkControlUpdate GoogCcNetworkController::OnRttUpdated(TimeDelta rtt, Timest
     return NetworkControlUpdate();
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnSentPacket(SentPacket sent_packet) {
+NetworkControlUpdate GoogCcNetworkController::OnSentPacket(const SentPacket& sent_packet) {
     if (!first_packet_sent_) {
         first_packet_sent_ = true;
         // Initialize feedback time to send time to allow estimation of RTT until
@@ -113,17 +113,15 @@ NetworkControlUpdate GoogCcNetworkController::OnTargetBitrateConstraints(TargetB
     return update;
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnPacketsLost(int64_t num_of_packets_lost,
-                                                            int64_t num_of_packets,
-                                                            Timestamp receive_time) {
+NetworkControlUpdate GoogCcNetworkController::OnTransportLostReport(const TransportLossReport& loss_report) {
     if (packet_feedback_only_) {
         return NetworkControlUpdate();
     }
-    send_side_bwe_->OnPacketsLost(num_of_packets_lost, num_of_packets, receive_time);
+    send_side_bwe_->OnPacketsLost(loss_report.num_packets_lost, loss_report.num_packets, loss_report.receive_time);
     return NetworkControlUpdate();;
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(TransportPacketsFeedback report) {
+NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const TransportPacketsFeedback& report) {
     if (report.packet_feedbacks.empty()) {
         return NetworkControlUpdate();
     }

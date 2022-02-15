@@ -21,11 +21,15 @@ namespace naivertc {
 // RtpVideoSender
 class RTC_CPP_EXPORT RtpVideoSender {
 public:
-    using Configuration = RtpParameters;
+    struct Configuration {
+        Clock* clock;
+        RtcMediaTransport* send_transport = nullptr;
+
+        RtpParameters rtp;
+        RtpSenderObservers observers;
+    };
 public:
-    RtpVideoSender(const Configuration& config,
-                   Clock* clock,
-                   RtcMediaTransport* send_transport);
+    RtpVideoSender(const Configuration& config);
     ~RtpVideoSender();
 
     bool OnEncodedFrame(video::EncodedFrame encoded_frame);
@@ -33,13 +37,11 @@ public:
     void OnRtcpPacket(CopyOnWriteBuffer in_packet);
 
 private:
-    void CreateAndInitRtpRtcpModules(const Configuration& config,
-                                     Clock* clock,
-                                     RtcMediaTransport* send_transport);
+    void CreateAndInitRtpRtcpModules(const Configuration& config);
 
-    void InitRtpRtcpModules(const Configuration& config);
+    void InitRtpRtcpModules(const RtpParameters& rtp_params);
 
-    std::unique_ptr<FecGenerator> MaybeCreateFecGenerator(const Configuration& config, uint32_t media_ssrc);
+    std::unique_ptr<FecGenerator> MaybeCreateFecGenerator(const RtpParameters& rtp_params);
 
 private:
     SequenceChecker sequence_checker_;

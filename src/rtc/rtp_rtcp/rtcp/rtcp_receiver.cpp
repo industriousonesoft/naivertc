@@ -216,13 +216,18 @@ void RtcpReceiver::HandleParseResult(const PacketInfo& packet_info) {
         bandwidth_observer_->OnReceivedEstimatedBitrateBps(packet_info.remb_bps);
     }
 
-    // Report blocks
-    if (report_blocks_observer_) {
-        if ((packet_info.packet_type_flags & RtcpPacketType::SR) ||
-            (packet_info.packet_type_flags & RtcpPacketType::RR)) {
+    // Only SR or RR contains report blocks.
+    if ((packet_info.packet_type_flags & RtcpPacketType::SR) ||
+        (packet_info.packet_type_flags & RtcpPacketType::RR)) {
+        // Receive Report
+        if (transport_feedback_observer_) {
+            transport_feedback_observer_->OnReceivedRtcpReceiveReport(packet_info.report_blocks, packet_info.rtt_ms);
+        }
+        // Report blocks
+        if (report_blocks_observer_) {
             PLOG_VERBOSE << "Received report blocks size=" 
-                         << packet_info.report_blocks.size();
-            report_blocks_observer_->OnReceivedRtcpReportBlocks(packet_info.report_blocks, packet_info.rtt_ms);
+                        << packet_info.report_blocks.size();
+            report_blocks_observer_->OnReceivedRtcpReportBlocks(packet_info.report_blocks);
         }
     }
 }

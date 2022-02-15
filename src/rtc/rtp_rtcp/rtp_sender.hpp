@@ -67,8 +67,7 @@ public:
     void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t rrt_ms) override;
 
     // Implements RtcpReportBlocksObserver
-    void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,
-                                    int64_t rtt_ms) override;
+    void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) override;
 
     // Implements RtpSendStatsProvider
     RtpSendStats GetSendStats() override;
