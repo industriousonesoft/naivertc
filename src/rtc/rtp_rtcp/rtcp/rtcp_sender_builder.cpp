@@ -155,6 +155,7 @@ void RtcpSender::PrepareReport(const RtcpContext& ctx) {
         assert(ConsumeFlag(RtcpPacketType::RTCP_REPORT) == false);
     } else {
         // RtcpReports + Reduced-Size mode or SR/RR + Compouned mode
+        // Reduced-Size mode: see https://datatracker.ietf.org/doc/html/rfc5506
         if ((ConsumeFlag(RtcpPacketType::RTCP_REPORT) && rtcp_mode_ == RtcpMode::REDUCED_SIZE) ||
             rtcp_mode_ == RtcpMode::COMPOUND) {
             generate_report = true;

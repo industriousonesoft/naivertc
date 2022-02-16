@@ -171,6 +171,8 @@ void PeerConnection::SetLocalDescription(sdp::Type type) {
                     // Set local fingerprint (wait for certificate if necessary)
                     .set_fingerprint(certificate_.get()->fingerprint())
                     .Build();
+    // Set extmap-allow-mixed attribute.
+    local_sdp.set_extmap_allow_mixed(rtc_config_.extmap_allow_mixed);
 
     ProcessLocalDescription(local_sdp);
 

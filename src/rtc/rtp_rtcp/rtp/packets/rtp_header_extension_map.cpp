@@ -23,7 +23,9 @@ constexpr ExtensionInfo kExtensions[] = {
     CreateExtensionInfo<TransmissionTimeOffset>(),
     CreateExtensionInfo<TransportSequenceNumber>(),
     CreateExtensionInfo<PlayoutDelayLimits>(),
-    CreateExtensionInfo<RtpMid>()
+    CreateExtensionInfo<RtpMid>(),
+    CreateExtensionInfo<RtpStreamId>(),
+    CreateExtensionInfo<RepairedRtpStreamId>()
 };
 
 }  // namespace
@@ -33,7 +35,7 @@ HeaderExtensionMap::HeaderExtensionMap() : HeaderExtensionMap(false) {}
 HeaderExtensionMap::HeaderExtensionMap(bool extmap_allow_mixed) 
     : extmap_allow_mixed_(extmap_allow_mixed) {
     for (auto& id : extension_ids_) {
-        id = kInvalidId;
+        id = RtpExtension::kInvalidId;
     }
 }
 
@@ -47,7 +49,7 @@ HeaderExtensionMap::HeaderExtensionMap(bool extmap_allow_mixed)
 HeaderExtensionMap::~HeaderExtensionMap() = default;
 
 RtpExtensionType HeaderExtensionMap::GetType(int id) const {
-    if (id < kMinId || id > kMaxId) {
+    if (id < RtpExtension::kMinId || id > RtpExtension::kMaxId) {
         return RtpExtensionType::NONE;
     }
     for (int type = int(RtpExtensionType::NONE) + 1; type < int(RtpExtensionType::NUMBER_OF_EXTENSIONS);
@@ -57,6 +59,17 @@ RtpExtensionType HeaderExtensionMap::GetType(int id) const {
         }
     }
     return kInvalidType;
+}
+
+uint8_t HeaderExtensionMap::GetId(RtpExtensionType type) const {
+    if (type <= RtpExtensionType::NONE || type >= RtpExtensionType::NUMBER_OF_EXTENSIONS) {
+        return RtpExtension::kInvalidId;
+    }
+    return extension_ids_[int(type)];
+}
+
+bool HeaderExtensionMap::IsRegistered(RtpExtensionType type) const {
+    return GetId(type) != RtpExtension::kInvalidId;
 }
 
 bool HeaderExtensionMap::RegisterByType(RtpExtensionType type, int id) {
@@ -80,20 +93,20 @@ bool HeaderExtensionMap::RegisterByUri(std::string_view uri, int id) {
 }
 
 int HeaderExtensionMap::Deregister(RtpExtensionType type) {
-    int registered_id = kInvalidId;
+    int registered_id = RtpExtension::kInvalidId;
     if (IsRegistered(type)) {
         registered_id = extension_ids_[int(type)];
-        extension_ids_[int(type)] = kInvalidId;
+        extension_ids_[int(type)] = RtpExtension::kInvalidId;
     }
     return registered_id;
 }
 
 int HeaderExtensionMap::Deregister(std::string_view uri) {
-    int registered_id = kInvalidId;
+    int registered_id = RtpExtension::kInvalidId;
     for (const ExtensionInfo& extension : kExtensions) {
         if (extension.uri == uri) {
             registered_id = extension_ids_[int(extension.type)];
-            extension_ids_[int(extension.type)] = kInvalidId;
+            extension_ids_[int(extension.type)] = RtpExtension::kInvalidId;
             break;
         }
     }
@@ -107,7 +120,7 @@ bool HeaderExtensionMap::Register(int id, RtpExtensionType type, const char* uri
         return false;
     }
 
-    if (id < kMinId || id > kMaxId) {
+    if (id < RtpExtension::kMinId || id > RtpExtension::kMaxId) {
         PLOG_WARNING << "Failed to register extension uri:'" << uri
                      << "' with invalid id:" << id << ".";
         return false;
@@ -141,13 +154,13 @@ size_t HeaderExtensionMap::CalculateSize(ArrayView<const ExtensionSize> extensio
     size_t each_extension_header_size = 1;
     for (const auto& extension : extensions) {
         size_t id = GetId(extension.type);
-        if (id != HeaderExtensionMap::kInvalidId) {
+        if (id != RtpExtension::kInvalidId) {
             continue;
         }
         // All extensions should use same size header. Check if the |extension|
         // forces to switch to two byte header that allows larger id and value size.
-        if (id > HeaderExtensionMap::kOneByteHeaderExtensionMaxId ||
-            extension.size > HeaderExtensionMap::kOneByteHeaderExtensionMaxValueSize) {
+        if (id > RtpExtension::kOneByteHeaderExtensionMaxId ||
+            extension.size > RtpExtension::kOneByteHeaderExtensionMaxValueSize) {
             each_extension_header_size = 2;
         }
         extension_size += extension.size;

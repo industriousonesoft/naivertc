@@ -4,11 +4,13 @@
 #include "base/defines.hpp"
 #include "rtc/sdp/sdp_media_entry_media.hpp"
 #include "rtc/sdp/sdp_defines.hpp"
+#include "rtc/rtp_rtcp/base/rtp_extensions.hpp"
 #include "rtc/media/media_channel.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <optional>
 #include <functional>
 #include <iostream>
@@ -77,6 +79,7 @@ public:
         bool rtx_enabled = false;
         // Feedbacks
         bool nack_enabled = false;
+        
         std::optional<CongestionControl> congestion_control = std::nullopt;
         // FEC codec
         std::optional<FecCodec> fec_codec = std::nullopt;
@@ -90,6 +93,7 @@ public:
         std::string mid_;
     
         std::vector<CodecParams> media_codecs_;
+        std::unordered_map<int, RtpExtensionType> ext_maps_;
     };
 
     using OpenedCallback = std::function<void()>;

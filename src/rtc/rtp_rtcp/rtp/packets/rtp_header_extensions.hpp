@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/base/rtp_extensions.hpp"
 #include "rtc/media/video/common.hpp"
 
 #include <vector>

@@ -22,13 +22,7 @@ struct RTC_CPP_EXPORT ExtensionSize {
 class RTC_CPP_EXPORT HeaderExtensionMap {
 public:
     static constexpr RtpExtensionType kInvalidType = RtpExtensionType::NONE;
-    static constexpr int kInvalidId = 0;
-    static constexpr int kMinId = 1;
-    static constexpr int kMaxId = 255;
-    static constexpr int kMaxValueSize = 255;
-    static constexpr int kOneByteHeaderExtensionMaxId = 14;
-    static constexpr int kOneByteHeaderExtensionMaxValueSize = 16;
-
+    
 public:
     HeaderExtensionMap();
     explicit HeaderExtensionMap(bool extmap_allow_mixed);
@@ -41,24 +35,15 @@ public:
     // Return kInvalidType if not found.
     RtpExtensionType GetType(int id) const;
     // Return kInvalidId if not found.
-    uint8_t GetId(RtpExtensionType type) const {
-        if (type <= RtpExtensionType::NONE || type >= RtpExtensionType::NUMBER_OF_EXTENSIONS) {
-            return kInvalidId;
-        }
-        return extension_ids_[int(type)];
-    }
+    uint8_t GetId(RtpExtensionType type) const;
 
     template <typename Extension>
     bool Register(int id) {
         return Register(id, Extension::kType, Extension::kUri);
     }
+    bool IsRegistered(RtpExtensionType type) const;
     bool RegisterByType(RtpExtensionType type, int id);
     bool RegisterByUri(std::string_view uri, int id);
-
-    bool IsRegistered(RtpExtensionType type) const {
-        return GetId(type) != kInvalidId;
-    }
-
     // Return kInvalid if not registered, otherwise the registered id
     int Deregister(RtpExtensionType type);
     // Return kInvalid if not registered, otherwise the registered id

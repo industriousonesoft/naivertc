@@ -79,6 +79,10 @@ struct RTC_CPP_EXPORT RtcConfiguration {
     std::optional<uint16_t> local_sctp_port;
     std::optional<size_t> sctp_max_message_size;
 
+    // Supported by default after M71
+    // see: https://www.cnblogs.com/wangyiyunxin/p/14689496.html
+    bool extmap_allow_mixed = true;
+
 };
 
 } // namespace naivertc

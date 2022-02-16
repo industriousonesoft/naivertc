@@ -4,6 +4,43 @@
 #include <plog/Log.h>
 
 namespace naivertc {
+// From RFC 3550, RTCP header format.
+//   0                   1                   2                   3
+//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//  |V=2|P| RC/FMT  |      PT       |             length            |
+//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// PT: payload type, RFC3550 Section-12.1
+/*
+* abbrev   name                                 value
+*
+* SR       sender report                        200     [RFC3551]   supported
+* RR       receiver report                      201     [RFC3551]   supported
+* SDES     source description                   202     [RFC3551]   supported
+* BYE      goodbye                              203     [RFC3551]   supported
+* APP      application-defined                  204     [RFC3551]   ignored
+* RTPFB    Transport layer FB message           205     [RFC4585]   supported
+* PSFB     Payload-specific FB message          206     [RFC4585]   supported
+* XR       extended report                      207     [RFC3611]   supported
+*/
+
+/* 205       RFC 5104
+* FMT 1      NACK       supported
+* FMT 2      reserved
+* FMT 3      TMMBR      supported
+* FMT 4      TMMBN      supported
+*/
+
+/* 206       RFC 5104
+* FMT 1:     Picture Loss Indication (PLI)                      supported
+* FMT 2:     Slice Lost Indication (SLI)
+* FMT 3:     Reference Picture Selection Indication (RPSI)
+* FMT 4:     Full Intra Request (FIR) Command                   supported
+* FMT 5:     Temporal-Spatial Trade-off Request (TSTR)
+* FMT 6:     Temporal-Spatial Trade-off Notification (TSTN)
+* FMT 7:     Video Back Channel Message (VBCM)
+* FMT 15:    Application layer FB message
+*/
 
 CopyOnWriteBuffer RtcpPacket::Build() const {
     CopyOnWriteBuffer packet(PacketSize());
@@ -48,24 +85,6 @@ size_t RtcpPacket::PacketSizeWithoutCommonHeader() const {
     // Length in 32-bit words without common header
     return (length_in_bytes - kRtcpCommonHeaderSize);
 }
-
-// From RFC 3550, RTCP header format.
-//   0                   1                   2                   3
-//   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//  |V=2|P| RC/FMT  |      PT       |             length            |
-//  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// PT: payload type, RFC3550 Section-12.1
-// abbrev.  name                        value
-// SR       sender report                200
-// RR       receiver report              201
-// SDES     source description           202
-// BYE      goodbye                      203
-// APP      application-defined          204
-// RTPFB    transport layer feedback     205
-// PSFB     payload-specific feedback    206
-// XR       Extended Reports             207
-// ...
 
 void RtcpPacket::PackCommonHeader(
         size_t count_or_format,

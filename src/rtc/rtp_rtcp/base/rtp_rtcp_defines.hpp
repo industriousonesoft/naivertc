@@ -22,20 +22,6 @@ constexpr size_t kRedForFecHeaderSize = 1;
 
 static const int kMinSendSidePacketHistorySize = 600;
 
-// Rtp header extensions type
-enum class RtpExtensionType : int {
-    NONE = 0,
-    TRANSMISSTION_TIME_OFFSET,
-    ABSOLUTE_SEND_TIME,
-    ABSOLUTE_CAPTURE_TIME,
-    TRANSPORT_SEQUENCE_NUMBER,
-    PLAYOUT_DELAY_LIMITS,
-    RTP_STREAM_ID,
-    REPAIRED_RTP_STREAM_ID,
-    MID,
-    NUMBER_OF_EXTENSIONS
-};
-
 // RtpPacket media types.
 enum class RtpPacketType : size_t {
     AUDIO = 0,                     // Audio media packets.

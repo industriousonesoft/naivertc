@@ -11,7 +11,6 @@ constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
     
 } // namespace
 
-
 // RtpSenderContext
 RtpSender::RtpSenderContext::RtpSenderContext(const RtpConfiguration& config, 
                                               rtp::HeaderExtensionMap* header_extension_map) 

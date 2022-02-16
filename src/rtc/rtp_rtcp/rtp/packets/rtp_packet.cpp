@@ -223,7 +223,7 @@ void RtpPacket::Reset() {
 
 bool RtpPacket::HasExtension(ExtensionType type) const {
     uint8_t id = extension_map_.GetId(type);
-    if (id == HeaderExtensionMap::kInvalidId) {
+    if (id == RtpExtension::kInvalidId) {
         // Extension not registered
         return false;
     }
@@ -232,7 +232,7 @@ bool RtpPacket::HasExtension(ExtensionType type) const {
 
 bool RtpPacket::RemoveExtension(ExtensionType type) {
     uint8_t id_to_remove = extension_map_.GetId(type);
-    if (id_to_remove == HeaderExtensionMap::kInvalidId) {
+    if (id_to_remove == RtpExtension::kInvalidId) {
         // Extension not registered.
         PLOG_WARNING << "Extension not registered, type: " << int(type);
         return false;
@@ -342,29 +342,29 @@ RtpPacket::ExtensionInfo& RtpPacket::FindOrCreateExtensionInfo(int id) {
 
 // Build
 ArrayView<uint8_t> RtpPacket::AllocateExtension(ExtensionType type, size_t size) {
-    if (size == 0 || size > HeaderExtensionMap::kMaxValueSize ||
+    if (size == 0 || size > RtpExtension::kMaxValueSize ||
         (!extension_map_.extmap_allow_mixed() &&
-        size > HeaderExtensionMap::kOneByteHeaderExtensionMaxValueSize)) {
+        size > RtpExtension::kOneByteHeaderExtensionMaxValueSize)) {
         return nullptr;
     }
 
     uint8_t id = extension_map_.GetId(type);
-    if (id == HeaderExtensionMap::kInvalidId) {
+    if (id == RtpExtension::kInvalidId) {
         // Extension not registered.
         return nullptr;
     }
     if (!extension_map_.extmap_allow_mixed() &&
-        id > HeaderExtensionMap::kOneByteHeaderExtensionMaxId) {
+        id > RtpExtension::kOneByteHeaderExtensionMaxId) {
         return nullptr;
     }
     return AllocateRawExtension(id, size);
 }
 
 ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
-    if (id < HeaderExtensionMap::kMinId || id > HeaderExtensionMap::kMaxId) {
+    if (id < RtpExtension::kMinId || id > RtpExtension::kMaxId) {
         return nullptr;
     }
-    if (size < 1 || size > HeaderExtensionMap::kMaxValueSize) {
+    if (size < 1 || size > RtpExtension::kMaxValueSize) {
         return nullptr;
     }
     const ExtensionInfo* extension_entry = FindExtensionInfo(id);
@@ -404,8 +404,8 @@ ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
     // Determine if two-byte header is required for the extension based on id and
     // length. Please note that a length of 0 also requires two-byte header
     // extension. See RFC8285 Section 4.2-4.3.
-    const bool two_byte_header_required = id > HeaderExtensionMap::kOneByteHeaderExtensionMaxId ||
-                                          size > HeaderExtensionMap::kOneByteHeaderExtensionMaxValueSize ||
+    const bool two_byte_header_required = id > RtpExtension::kOneByteHeaderExtensionMaxId ||
+                                          size > RtpExtension::kOneByteHeaderExtensionMaxValueSize ||
                                           size == 0;
     if (two_byte_header_required && !extension_map_.extmap_allow_mixed()) {
         PLOG_WARNING << "Two bytes header required, but mixed extension is not allowed.";
@@ -480,7 +480,7 @@ ArrayView<uint8_t> RtpPacket::AllocateRawExtension(int id, size_t size) {
 
 ArrayView<const uint8_t> RtpPacket::FindExtension(ExtensionType type) const {
     uint8_t id = extension_map_.GetId(type);
-    if (id == HeaderExtensionMap::kInvalidId) {
+    if (id == RtpExtension::kInvalidId) {
         // Extension not registered.
         return nullptr;
     }
@@ -605,7 +605,6 @@ bool RtpPacket::ParseInternal(const uint8_t* buffer, size_t size) {
                                                                                       : kTwoByteExtensionHeaderSize;
             constexpr uint8_t kPaddingByte = 0;
             constexpr uint8_t kPaddingId = 0;
-            constexpr uint8_t kOneByteHeaderExtensionReservedId = 15;
             while (extensions_size_ + extension_header_length < extension_capacity) {
                 if (buffer[extension_offset + extensions_size_] == kPaddingByte) {
                     extensions_size_++;
@@ -627,8 +626,9 @@ bool RtpPacket::ParseInternal(const uint8_t* buffer, size_t size) {
                 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
                 if (profile_id == kOneByteExtensionProfileId) {
                     id = buffer[extension_offset + extensions_size_] >> 4;
+                    // The rang of length is [1, 16], when the |id| = kPaddingId, the length = 1 + 0(|L| field).
                     length = 1 + (buffer[extension_offset + extensions_size_] & 0xF);
-                    if (id == kOneByteHeaderExtensionReservedId || (id == kPaddingId && length != 1)) {
+                    if (id == RtpExtension::kOneByteHeaderExtensionReservedId || (id == kPaddingId && length != 1)) {
                         break;
                     }
                 }

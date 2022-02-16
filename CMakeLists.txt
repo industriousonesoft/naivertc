@@ -163,6 +163,7 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp
     src/rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp
     src/rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp
+    src/rtc/rtp_rtcp/base/rtp_extensions.hpp
     src/rtc/rtp_rtcp/base/rtp_parameters.hpp
     src/rtc/rtp_rtcp/base/rtp_statistic_structs.hpp
     src/rtc/rtp_rtcp/base/rtcp_statistic_structs.hpp
@@ -345,6 +346,9 @@ set(LIB_SOURCES
     src/rtc/sdp/sdp_session_entry.cpp
     src/rtc/sdp/sdp_media_entry_application.cpp
     src/rtc/sdp/sdp_media_entry_media.cpp
+    src/rtc/sdp/sdp_media_entry_media_auxiliaries.cpp
+    src/rtc/sdp/sdp_media_entry_media_builder.cpp
+    src/rtc/sdp/sdp_media_entry_media_parser.cpp
 
     # rtc -> transports
     src/rtc/transports/base_transport.cpp

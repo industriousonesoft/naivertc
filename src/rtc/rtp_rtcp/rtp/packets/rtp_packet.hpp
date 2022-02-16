@@ -5,6 +5,7 @@
 #include "common/array_view.hpp"
 #include "rtc/base/copy_on_write_buffer.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
+#include "rtc/rtp_rtcp/base/rtp_extensions.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
 
 #include <memory>
