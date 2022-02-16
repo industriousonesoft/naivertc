@@ -3,8 +3,9 @@
 
 #include "rtc/sdp/sdp_media_entry.hpp"
 
-#include <map>
+#include <unordered_map>
 #include <functional>
+#include <string>
 #include <sstream>
 
 namespace naivertc {
@@ -30,6 +31,14 @@ public:
         NACK,
         GOOG_REMB,
         TRANSPORT_CC
+    };
+
+    // ExtMap
+    struct ExtMap {
+        int id;
+        std::string uri;
+
+        ExtMap(int id, std::string uri);
     };
 
     // RtpMap
@@ -83,6 +92,12 @@ public:
     void set_bandwidth_max_value(int value) { bandwidth_max_value_ = value; };
     int bandwidth_max_value() const { return bandwidth_max_value_; };
 
+    bool rtcp_mux_enabled() const { return rtcp_mux_enabled_; };
+    void set_rtcp_mux_enabled(bool enabled) { rtcp_mux_enabled_ = enabled; };
+
+    bool rtcp_rsize_enabled() const { return rtcp_rsize_enabled_; };
+    void set_rtcp_rsize_enabled(bool enabled) { rtcp_rsize_enabled_ = enabled; };
+
     // Ssrc
     SsrcEntry* AddSsrc(uint32_t ssrc, 
                        SsrcEntry::Kind kind,
@@ -115,13 +130,20 @@ public:
                             std::optional<const std::string> codec_params = std::nullopt,
                             std::optional<const std::string> profile = std::nullopt);
     
+    // RtpMap
     bool AddFeedback(int payload_type, RtcpFeedback feed_back);
     RtpMap* AddRtpMap(RtpMap map);
     void ForEachRtpMap(std::function<void(const RtpMap& rtp_map)>&& handler) const;
     void ClearRtpMap();
-    
     bool HasPayloadType(int pt) const;
     std::vector<int> PayloadTypes() const;
+
+    // Rtp extension map
+    ExtMap* AddExtMap(ExtMap ext_map);
+    bool RemoveExtMap(int id);
+    bool RemoveExtMap(std::string uri);
+    void ClearExtMap();
+    void ForEachExtMap(std::function<void(const ExtMap& ext_map)>&& handler) const;
 
     virtual bool ParseSDPLine(std::string_view line) override;
     virtual bool ParseSDPAttributeField(std::string_view key, std::string_view value) override;
@@ -130,20 +152,24 @@ public:
 
 private:
     static std::optional<RtpMap> ParseRtpMap(const std::string_view& attr_value);
-    std::string FormatDescription() const override;
+    std::string ExtraMediaInfo() const override;
     virtual std::string GenerateSDPLines(const std::string eol) const override;
     std::string GenerateSsrcEntrySDPLines(const SsrcEntry& entry, const std::string eol) const;
 private:
     Direction direction_;
     
-    std::map<int, RtpMap> rtp_maps_;
+    // rtcp-mux: Rtp and Rtcp share the same socket and connection
+    // instead of using two separate connections.
+    bool rtcp_mux_enabled_;
+    // rtcp-rsize: RTCP Reduced-Size mode
+    bool rtcp_rsize_enabled_;
+    std::unordered_map<int, ExtMap> ext_maps_;
+    std::unordered_map<int, RtpMap> rtp_maps_;
 
     std::vector<uint32_t> media_ssrcs_;
     std::vector<uint32_t> rtx_ssrcs_;
     std::vector<uint32_t> fec_ssrcs_;
-    std::map<uint32_t, SsrcEntry> ssrc_entries_;
-
-    std::vector<std::string> extra_attributes_;
+    std::unordered_map<uint32_t, SsrcEntry> ssrc_entries_;
 
     int bandwidth_max_value_ = -1;
 };

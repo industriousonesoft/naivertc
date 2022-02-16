@@ -63,7 +63,12 @@ Description Description::Parser::Parse(const std::string& sdp, Type type) {
                 // Do nothing
             } else if (description.session_entry_.ParseSDPLine(line)){
                 // Do nothing
+            // Global attributes
             } else {
+                // extmap-allow-mixed
+                if (value == "extmap-allow-mixed") {
+                    description.set_extmap_allow_mixed(true);
+                }
                 PLOG_WARNING << "Unknown attribute: [" << key << ":" << value << "]";
             }
         } else  {

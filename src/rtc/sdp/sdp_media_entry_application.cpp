@@ -17,7 +17,7 @@ Application::Application(std::string mid)
 
 Application::~Application() {}
 
-std::string Application::FormatDescription() const {
+std::string Application::ExtraMediaInfo() const {
     // TODO: Add a=sctpmap attribute support
     // See https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sctp-sdp-06#section-5.1
     return "webrtc-datachannel";

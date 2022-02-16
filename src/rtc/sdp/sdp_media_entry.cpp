@@ -35,7 +35,7 @@ std::string MediaEntry::GenerateSDP(const std::string eol, Role role) const {
     // 9：代表音频使用端口9来传输
     const auto addr = "0.0.0.0";
     const auto port = "9";
-    oss << "m=" << kind_ << sp << port << sp << protocols_ << sp << FormatDescription() << eol;
+    oss << "m=" << kind_ << sp << port << sp << protocols_ << sp << ExtraMediaInfo() << eol;
     // connection line: c=<nettype> <addrtype> <connection-address>
     // nettype: network type, eg: IN represents Internet
     // addrtype: address type, eg: IPv4, IPv6
@@ -67,7 +67,7 @@ std::string MediaEntry::GenerateSDPLines(const std::string eol) const {
     return oss.str();
 }
 
-std::string MediaEntry::FormatDescription() const {
+std::string MediaEntry::ExtraMediaInfo() const {
     return "";
 }
 

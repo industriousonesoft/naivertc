@@ -37,7 +37,7 @@ protected:
                std::string mid, 
                std::string protocols);
 
-    virtual std::string FormatDescription() const;
+    virtual std::string ExtraMediaInfo() const;
     virtual std::string GenerateSDPLines(const std::string eol) const;   
 
     static Kind ToKind(const std::string_view kind_string);

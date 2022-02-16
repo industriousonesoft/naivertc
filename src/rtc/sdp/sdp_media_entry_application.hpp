@@ -26,7 +26,7 @@ public:
     Application Reciprocated() const;
 
 private:
-    std::string FormatDescription() const override;
+    std::string ExtraMediaInfo() const override;
     std::string GenerateSDPLines(const std::string eol) const override;
 
     std::optional<uint16_t> sctp_port_;

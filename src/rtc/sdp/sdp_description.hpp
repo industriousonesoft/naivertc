@@ -59,6 +59,9 @@ public:
     std::optional<std::string> ice_pwd() const;
     std::optional<std::string> fingerprint() const;
 
+    bool extmap_allow_mixed() const;
+    void set_extmap_allow_mixed(bool allow_mixed);
+
     void HintType(Type type);
     void HintRole(Role role);
 
@@ -101,7 +104,9 @@ private:
 private:
     Type type_;
     Role role_;
-    SessionEntry session_entry_; 
+    SessionEntry session_entry_;
+
+    bool extmap_allow_mixed_;
 
     std::vector<std::shared_ptr<Media>> medias_;
     std::shared_ptr<Application> application_;

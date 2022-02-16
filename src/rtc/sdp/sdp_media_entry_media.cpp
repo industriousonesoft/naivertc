@@ -1,73 +1,9 @@
 #include "rtc/sdp/sdp_media_entry_media.hpp"
-#include "common/utils_string.hpp"
 
 #include <plog/Log.h>
 
 namespace naivertc {
 namespace sdp {
-namespace {
-
-std::optional<sdp::Media::Codec> CodecFromString(const std::string_view& codec_name) {
-    if (codec_name == "OPUS" || codec_name == "opus") {
-        return sdp::Media::Codec::OPUS;
-    } else if (codec_name == "VP8" || codec_name == "vp8") {
-        return sdp::Media::Codec::VP8;
-    } else if (codec_name == "VP9" || codec_name == "vp9") {
-        return sdp::Media::Codec::VP9;
-    } else if (codec_name == "H264" || codec_name == "h264") {
-        return sdp::Media::Codec::H264;
-    } else if (codec_name == "RED" || codec_name == "red") {
-        return sdp::Media::Codec::RED;
-    } else if (codec_name == "ULPFEC" || codec_name == "ulpfec") {
-        return sdp::Media::Codec::ULP_FEC;
-    } else if (codec_name == "FLEXFEC" || codec_name == "flexfec") {
-        return sdp::Media::Codec::FLEX_FEC;
-    } else if (codec_name == "RTX" || codec_name == "rtx") {
-        return sdp::Media::Codec::RTX;
-    } else {
-        PLOG_WARNING << "Unsupport codec: " << codec_name;
-        return std::nullopt;
-    }
-}
-
-std::optional<sdp::Media::RtcpFeedback> RtcpFeedbackFromString(const std::string_view& feedback_name) {
-    if (feedback_name == "NACK" || feedback_name == "nack") {
-        return sdp::Media::RtcpFeedback::NACK;
-    } else if (feedback_name == "GOOG-REMB" || feedback_name == "goog-remb") {
-        return sdp::Media::RtcpFeedback::GOOG_REMB;
-    } else if (feedback_name == "TRANSPORT-CC" || feedback_name == "transport-cc") {
-        return sdp::Media::RtcpFeedback::TRANSPORT_CC;
-    } else {
-        PLOG_WARNING << "Unsupport RTCP feedback: " << feedback_name;
-        return std::nullopt;
-    }
-}
-
-} // namespace
-
-// RtpMap
-Media::RtpMap::RtpMap(int payload_type, 
-                     Codec codec, 
-                     int clock_rate, 
-                     std::optional<std::string> codec_params,
-                     std::optional<int> rtx_payload_type) 
-    : payload_type(payload_type),
-      codec(codec),
-      clock_rate(clock_rate),
-      codec_params(codec_params),
-      rtx_payload_type(rtx_payload_type) {}
-
-// SsrcEntry
-Media::SsrcEntry::SsrcEntry(uint32_t ssrc,
-                            Kind kind,
-                            std::optional<std::string> cname, 
-                            std::optional<std::string> msid, 
-                            std::optional<std::string> track_id) 
-    : ssrc(ssrc),
-      kind(kind),
-      cname(cname),
-      msid(msid),
-      track_id(track_id) {}
 
 // Media
 Media::Media(const MediaEntry& entry, Direction direction)
@@ -83,7 +19,9 @@ Media::Media(Kind kind,
              std::string protocols,
              Direction direction) 
     : MediaEntry(kind, std::move(mid), std::move(protocols)),
-      direction_(direction) {}
+      direction_(direction),
+      rtcp_mux_enabled_(false),
+      rtcp_rsize_enabled_(false) {}
 
 Media::~Media() = default;
 
@@ -243,12 +181,47 @@ Media::RtpMap* Media::AddRtpMap(RtpMap map) {
 
 void Media::ForEachRtpMap(std::function<void(const RtpMap& rtp_map)>&& handler) const {
     for (auto& kv : rtp_maps_) {
-        handler(kv.second);
+        if (handler) {
+            handler(kv.second);
+        }
     }
 }
 
 void Media::ClearRtpMap() {
     rtp_maps_.clear();
+}
+
+Media::ExtMap* Media::AddExtMap(ExtMap ext_map) {
+    auto [it, success] = ext_maps_.emplace(ext_map.id, std::move(ext_map));
+    return success ? &(it->second) : nullptr;
+}
+
+bool Media::RemoveExtMap(int id) {
+    return ext_maps_.erase(id) > 0;
+}
+
+bool Media::RemoveExtMap(std::string uri) {
+    bool found = false;
+    for (auto it = ext_maps_.begin(); it != ext_maps_.end(); ++it) {
+        if (it->second.uri == uri) {
+            found = true;
+            ext_maps_.erase(it);
+            break;
+        }
+    }
+    return found;
+}
+
+void Media::ClearExtMap() {
+    ext_maps_.clear();
+}
+
+void Media::ForEachExtMap(std::function<void(const ExtMap& ext_map)>&& handler) const {
+    for (const auto& kv : ext_maps_) {
+        if (handler) {
+            handler(kv.second);
+        }
+    }
 }
 
 Media Media::Reciprocated() const {
@@ -277,324 +250,15 @@ Media Media::Reciprocated() const {
 
 // void Media::Reset() {
 //     direction_ = Direction::INACTIVE;
+//     rtcp_mux_enabled_ = false;
+//     rtcp_rsize_enabled_ = false;
+//     ext_maps_.clear();
 //     rtp_maps_.clear();
 //     ClearSsrcs();
-//     extra_attributes_.clear();
 //     bandwidth_max_value_ = -1;
 // }
 
-// Override
-bool Media::ParseSDPLine(std::string_view line) {
-    if (utils::string::match_prefix(line, "a=")) {
-        std::string_view attr = line.substr(2);
-
-        auto [key, value] = utils::string::parse_pair(attr);
-        return ParseSDPAttributeField(key, value);
-        
-    // 'b=AS', is used to negotiate the maximum bandwidth
-    // eg: b=AS:80
-    } else if (utils::string::match_prefix(line, "b=AS")) {
-        bandwidth_max_value_ = utils::string::to_integer<int>(line.substr(line.find(':') + 1));
-        return true;
-    } else {
-        return MediaEntry::ParseSDPLine(line);
-    }
-}
-
-bool Media::ParseSDPAttributeField(std::string_view key, std::string_view value) {
-    // Direction
-    if (value == "sendonly") {
-        direction_ = Direction::SEND_ONLY;
-        return true;
-    } else if (value == "recvonly") {
-        direction_ = Direction::RECV_ONLY;
-        return true;
-    } else if (value == "sendrecv") {
-        direction_ = Direction::SEND_RECV;
-        return true;
-    } else if (value == "inactive") {
-        direction_ = Direction::INACTIVE;
-        return true;
-    }
-    // eg: a=rtpmap:101 VP9/90000
-    else if (key == "rtpmap") {
-        auto rtp_map = ParseRtpMap(value);
-        if (rtp_map.has_value()) {
-            auto it = rtp_maps_.find(rtp_map->payload_type);
-            if (it == rtp_maps_.end()) {
-                it = rtp_maps_.insert(std::make_pair(rtp_map->payload_type, rtp_map.value())).first;
-            } else {
-                it->second.payload_type = rtp_map->payload_type;
-                it->second.codec = rtp_map->codec;
-                it->second.clock_rate = rtp_map->clock_rate;
-                if (rtp_map->codec_params.has_value()) {
-                    it->second.codec_params.emplace(it->second.codec_params.value());
-                }
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
-    // eg: a=rtcp-fb:101 nack pli
-    // eg: a=rtcp-fb:101 goog-remb
-    else if (key == "rtcp-fb") {
-        size_t sp = value.find(' ');
-        int payload_type = utils::string::to_integer<int>(value.substr(0, sp));
-        auto it = rtp_maps_.find(payload_type);
-        if (it == rtp_maps_.end()) {
-            PLOG_WARNING << "No RTP map found before parsing 'rtcp-fb' with payload type: " << payload_type;
-            return false;
-        }
-        auto rtcp_feedback = RtcpFeedbackFromString(value.substr(sp + 1));
-        if (rtcp_feedback) {
-            it->second.rtcp_feedbacks.emplace_back(*rtcp_feedback);
-        }
-        return true;
-    }
-    // eg: a=fmtp:107 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
-    else if (key == "fmtp") {
-        size_t sp = value.find(" ");
-        int payload_type = utils::string::to_integer<int>(value.substr(0, sp));
-        auto it = rtp_maps_.find(payload_type);
-        if (it == rtp_maps_.end()) {
-            PLOG_WARNING << "No RTP map found before parsing 'fmtp' with payload type: " << payload_type;
-            return false;
-        }
-        it->second.fmt_profiles.emplace_back(value.substr(sp + 1));
-        return true;
-    } else if (value == "rtcp-mux") {
-        // Added by default
-        return true;
-    } else if (key == "rtcp") {
-        // Added by default
-        return true;
-    }
-    // a=ssrc-group:<semantics> <ssrc-id>
-    // eg: a=ssrc-group:FID 3463951252 1461041037
-    // eg: a=ssrc-group:FEC 3463951252 1461041037
-    else if (key == "ssrc-group") {
-        size_t sp = value.find(" ");
-        auto semantics = value.substr(0, sp);
-        std::vector<uint32_t> ssrcs;
-        auto ssrc_id_str = value.substr(sp + 1);
-        sp = ssrc_id_str.find(" ");
-        // Media ssrc
-        auto media_ssrc = utils::string::to_integer<uint32_t>(ssrc_id_str.substr(0, sp));
-        media_ssrcs_.emplace_back(media_ssrc);
-
-        // Associated ssrc
-        auto associated_ssrc = utils::string::to_integer<uint32_t>(ssrc_id_str.substr(sp + 1));
-        if (semantics == "FID") {
-            rtx_ssrcs_.emplace_back(associated_ssrc);
-        } else if (semantics == "FEC") {
-            fec_ssrcs_.emplace_back(associated_ssrc);
-        } else {
-            // TODO: How to handle SIM(simulcate) streams?
-            media_ssrcs_.emplace_back(media_ssrc);
-        }
-        return true;
-    }
-    // eg: a=ssrc:3463951252 cname:sTjtznXLCNH7nbRw
-    else if (key == "ssrc") {
-        auto ssrc = utils::string::to_integer<uint32_t>(value);
-        auto it = ssrc_entries_.find(ssrc);
-        if (it == ssrc_entries_.end()) {
-            if (IsRtxSsrc(ssrc)) {
-                it = ssrc_entries_.emplace(ssrc, SsrcEntry(ssrc, SsrcEntry::Kind::RTX)).first;
-            } else if (IsFecSsrc(ssrc)) {
-                it = ssrc_entries_.emplace(ssrc, SsrcEntry(ssrc, SsrcEntry::Kind::FEC)).first;
-            } else {
-                it = ssrc_entries_.emplace(ssrc, SsrcEntry(ssrc, SsrcEntry::Kind::MEDIA)).first;
-                // In case of no 'ssrc-group'
-                if (!IsMediaSsrc(ssrc)) {
-                    media_ssrcs_.emplace_back(ssrc);
-                }
-            }
-        }
-        auto cname_pos = value.find("cname:");
-        if (cname_pos != std::string::npos) {
-            auto cname = value.substr(cname_pos + 6);
-            it->second.cname = cname;
-        }
-        auto msid_pos = value.find("msid:");
-        if (msid_pos != std::string::npos) {
-            auto msid_str = value.substr(msid_pos + 5);
-            auto track_id_pos = msid_str.find(" ");
-            if (track_id_pos != std::string::npos) {
-                auto msid = msid_str.substr(0, track_id_pos);
-                auto track_id = msid_str.substr(track_id_pos + 1);
-                it->second.msid = msid;
-                it->second.track_id = track_id;
-            } else {
-                it->second.msid = msid_str;
-            }
-        }
-        return true;
-    }
-    // TODO: Support more attributes
-    else if (key == "extmap" ||
-             key == "rtcp-rsize") {
-        extra_attributes_.push_back(std::string(value));
-        return true;
-    }
-    else {
-        return MediaEntry::ParseSDPAttributeField(key, value);
-    }
-}
-
 // Private methods
-std::string Media::FormatDescription() const {
-    std::ostringstream desc;
-    const std::string sp = " ";
-    for (const auto& kv : rtp_maps_) {
-        desc << sp << kv.first;
-    }
-    return desc.str().substr(1 /* Trim the first space */);
-}
-
-std::string Media::GenerateSDPLines(const std::string eol) const {
-    std::ostringstream oss;
-    const std::string sp = " ";
-    oss << MediaEntry::GenerateSDPLines(eol);
-
-    // a=sendrecv
-    oss << "a=" << direction_ << eol;
-
-    // Rtp and Rtcp share the same socket and connection
-    // instead of using two separate connections.
-    oss << "a=rtcp-mux" << eol;
-
-    for (const auto& [key, map] : rtp_maps_) {
-        // a=rtpmap
-        oss << "a=rtpmap:" << map.payload_type << sp << ToString(map.codec) << "/" << map.clock_rate;
-        if (map.codec_params.has_value()) {
-            oss << "/" << map.codec_params.value();
-        }
-        oss << eol;
-
-        // a=rtcp-fb
-        for (const auto& feebback : map.rtcp_feedbacks) {
-            oss << "a=rtcp-fb:" << map.payload_type << sp << ToString(feebback) << eol;
-        }
-
-        // a=fmtp
-        for (const auto& val : map.fmt_profiles) {
-            oss << "a=fmtp:" << map.payload_type << sp << val << eol;
-        }
-    }
-
-    // a=ssrc
-    for (const auto& ssrc : media_ssrcs_) {
-        std::optional<uint32_t> associated_rtx_ssrc = RtxSsrcAssociatedWithMediaSsrc(ssrc);
-        std::optional<uint32_t> associated_fec_ssrc = FecSsrcAssociatedWithMediaSsrc(ssrc);
-    
-        // No associated ssrc
-        if (!associated_rtx_ssrc && !associated_rtx_ssrc) {
-            // a=ssrc
-            // Media ssrc entry
-            oss << GenerateSsrcEntrySDPLines(ssrc_entries_.at(ssrc), eol);
-        } else {
-            // a=ssrc-group:FID
-            if (associated_rtx_ssrc) {
-                oss << "a=ssrc-group:FID" << sp << ssrc << sp << associated_rtx_ssrc.value() << eol;
-                // a=ssrc
-                // Media ssrc entry
-                oss << GenerateSsrcEntrySDPLines(ssrc_entries_.at(ssrc), eol);
-                // RTX ssrc entry
-                oss << GenerateSsrcEntrySDPLines(ssrc_entries_.at(associated_rtx_ssrc.value()), eol);
-
-            }
-            // a=ssrc-group:FEC
-            if (associated_fec_ssrc) {
-                oss << "a=ssrc-group:FEC" << sp << ssrc << sp << associated_rtx_ssrc.value() << eol;
-                // a=ssrc
-                // Media ssrc entry
-                oss << GenerateSsrcEntrySDPLines(ssrc_entries_.at(ssrc), eol);
-                // FEC ssrc entry
-                oss << GenerateSsrcEntrySDPLines(ssrc_entries_.at(associated_fec_ssrc.value()), eol);
-            }
-        }
-    }
-    
-    // Extra attributes
-    for (const auto& attr : extra_attributes_) {
-        // extmap：表示rtp报头拓展的映射，可能有多个，eg: a=extmap:5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
-        // rtcp-resize(rtcp reduced size), 表示rtcp包是使用固定算法缩小过的
-        // FIXME: Add rtcp-rsize support
-        if (attr.find("extmap") == std::string::npos && attr.find("rtcp-rsize") == std::string::npos) {
-            oss << "a=" << attr << eol;
-        }
-    }
-
-    return oss.str();
-}
-
-std::string Media::GenerateSsrcEntrySDPLines(const SsrcEntry& entry, const std::string eol) const {
-    std::ostringstream oss;
-    const std::string sp = " ";
-    if (entry.cname.has_value()) {
-        oss << "a=ssrc:" << entry.ssrc << sp 
-            << "cname:" << entry.cname.value() << eol;;
-    } else {
-        oss << "a=ssrc:" << entry.ssrc << eol;;
-    }
-
-    if (entry.msid.has_value()) {
-        oss << "a=ssrc:" << entry.ssrc << sp 
-            << "msid:" << entry.msid.value() << sp 
-            << entry.track_id.value_or(entry.msid.value()) << eol;;
-    }
-    return oss.str();
-}
-
-// [key]:[value]
-// a=rtpmap:102 H264/90000
-std::optional<Media::RtpMap> Media::ParseRtpMap(const std::string_view& attr_value) {
-    size_t p = attr_value.find(' ');
-    if (p == std::string::npos) {
-        PLOG_WARNING << "No payload type found in attribure line: " << attr_value;
-        return std::nullopt;
-    }
-
-    int payload_type = utils::string::to_integer<int>(attr_value.substr(0, p));
-
-    std::string_view line = attr_value.substr(p + 1);
-    // find separator line
-    size_t spl = line.find('/');
-    if (spl == std::string::npos) {
-        PLOG_WARNING << "No codec type found in attribure line: " << attr_value;
-        return std::nullopt;
-    }
-
-    auto codec_name = std::string(line.substr(0, spl));
-    auto codec = CodecFromString(codec_name);
-
-    // Unsupported codec type.
-    if (!codec) {
-        return std::nullopt;
-    }
-
-    line = line.substr(spl + 1);
-    spl = line.find('/');
-
-    if (spl == std::string::npos) {
-        spl = line.find(' ');
-    }
-  
-    // clock_rate
-    int clock_rate = -1;
-    std::optional<std::string> codec_params;
-    if (spl == std::string::npos) {
-        clock_rate = utils::string::to_integer<int>(line);
-    } else {
-        clock_rate = utils::string::to_integer<int>(line.substr(0, spl));
-        codec_params.emplace(line.substr(spl + 1));
-    }
-
-    return RtpMap(payload_type, *codec, clock_rate, codec_params);
-}
-
 std::string Media::ToString(Codec codec) {
     switch (codec) {
     case sdp::Media::Codec::OPUS:

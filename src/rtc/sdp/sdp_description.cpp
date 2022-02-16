@@ -15,7 +15,8 @@ Description::Description(Type type,
                          std::optional<std::string> ice_pwd, 
                          std::optional<std::string> fingerprint) 
     : type_(type),
-      role_(Role::ACT_PASS) {
+      role_(Role::ACT_PASS),
+      extmap_allow_mixed_(false) {
           
     HintRole(role);
 
@@ -56,6 +57,14 @@ std::optional<std::string> Description::ice_pwd() const {
 std::optional<std::string> Description::fingerprint() const {
     return session_entry_.fingerprint();
 }
+
+bool Description::extmap_allow_mixed() const {
+    return extmap_allow_mixed_;
+}
+    
+void Description::set_extmap_allow_mixed(bool allow_mixed) {
+    extmap_allow_mixed_ = allow_mixed;
+}   
 
 void Description::HintType(Type type) {
     if (type_ == Type::UNSPEC) {
@@ -232,6 +241,11 @@ std::string Description::GenerateSDP(const std::string eol, bool application_onl
             oss << sp << kv.first;
         }
         oss << eol;
+    }
+
+    // extmap-allow-mixed
+    if (extmap_allow_mixed_) {
+        oss << "a=extmap-allow-mixed";
     }
     
     // WMS是WebRTC Media Stram的缩写，这里给Media Stream定义了一个唯一的标识符。
