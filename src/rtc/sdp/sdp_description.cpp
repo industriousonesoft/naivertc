@@ -245,7 +245,7 @@ std::string Description::GenerateSDP(const std::string eol, bool application_onl
 
     // extmap-allow-mixed
     if (extmap_allow_mixed_) {
-        oss << "a=extmap-allow-mixed";
+        oss << "a=extmap-allow-mixed" << eol;
     }
     
     // WMS是WebRTC Media Stram的缩写，这里给Media Stream定义了一个唯一的标识符。

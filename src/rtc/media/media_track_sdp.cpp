@@ -38,6 +38,9 @@ sdp::Media MediaTrack::SdpBuilder::Build(const Configuration& config) {
                                 config.mid(),
                                 kDefaultTransportPortocols, 
                                 config.direction);
+        // Enable RTP/RTCP multiplexing
+        // see: https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-bundle-negotiation-54#section-9.3
+        audio.set_rtcp_mux_enabled(true);
         AddCodecs(config, audio);;
         AddSsrcs(config, audio);
         return audio;
@@ -46,6 +49,10 @@ sdp::Media MediaTrack::SdpBuilder::Build(const Configuration& config) {
                                 config.mid(),
                                 kDefaultTransportPortocols, 
                                 config.direction);
+        // Enable RTP/RTCP multiplexing
+        video.set_rtcp_mux_enabled(true);
+        // Enable RTCP reduced-size
+        video.set_rtcp_rsize_enabled(true);
         AddCodecs(config, video);
         AddSsrcs(config, video);
         return video;

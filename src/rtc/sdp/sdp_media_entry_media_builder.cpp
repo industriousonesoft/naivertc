@@ -30,7 +30,7 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
     
     // a=rtcp-rsize
     if (rtcp_rsize_enabled_) {
-        oss << "a=rtcp-rsize";
+        oss << "a=rtcp-rsize" << eol;
     }
 
     // a=extmap
