@@ -364,6 +364,7 @@ void SendSideBwe::UpdateMinHistory(DataRate bitrate, Timestamp at_time) {
 }
 
 void SendSideBwe::UpdateUmaStats(int packet_lost, Timestamp at_time) {
+    // FIXME: |curr_bitrate_| should be finite, but it's not?
     DataRate bitrate = curr_bitrate_;
     for (size_t i = 0; i < kNumUmaRampupMetrics; ++i) {
         if (!rampup_uma_states_updated_[i] &&

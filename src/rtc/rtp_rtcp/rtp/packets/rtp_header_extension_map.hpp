@@ -21,12 +21,12 @@ struct RTC_CPP_EXPORT ExtensionSize {
 // Header extension map
 class RTC_CPP_EXPORT HeaderExtensionMap {
 public:
-    static constexpr RtpExtensionType kInvalidType = RtpExtensionType::NONE;
+    static constexpr RtpExtensionType kInvalidType = kRtpExtensionNone;
     
 public:
     HeaderExtensionMap();
     explicit HeaderExtensionMap(bool extmap_allow_mixed);
-    // explicit HeaderExtensionMap(ArrayView<const HeaderExtension> extensions);
+    explicit HeaderExtensionMap(ArrayView<const RtpExtension> extensions);
     ~HeaderExtensionMap();
 
     bool extmap_allow_mixed() const { return extmap_allow_mixed_; }
@@ -52,10 +52,10 @@ public:
     size_t CalculateSize(ArrayView<const ExtensionSize> extensions);
     
 private:
-    bool Register(int id, RtpExtensionType type, const char* uri);
+    bool Register(int id, RtpExtensionType type, std::string_view uri);
 
 private:
-    uint8_t extension_ids_[int(RtpExtensionType::NUMBER_OF_EXTENSIONS)];
+    uint8_t extension_ids_[kRtpExtensionNumberOfExtensions];
     bool extmap_allow_mixed_;
 };
     

@@ -75,12 +75,12 @@ void MediaTrack::SdpBuilder::AddExtMaps(const Configuration& config, sdp::Media&
     // kRtpExtensionTransportSequenceNumber
     if (config.congestion_control == CongestionControl::TRANSPORT_CC) {
         media.AddExtMap(kRtpExtensionTransportSequenceNumber, 
-                        RtpExtension::kTimestampOffsetUri);
+                        RtpExtension::kTransportSequenceNumberUri);
     }
+    // media.AddExtMap(kRtpExtensionTransmissionTimeOffset, 
+    //                 RtpExtension::kTimestampOffsetUri);
     // media.AddExtMap(kRtpExtensionAbsoluteSendTime, 
     //                 RtpExtension::kAbsSendTimeUri);
-    // media.AddExtMap(kRtpExtensionTransportSequenceNumber, 
-    //                 RtpExtension::kTransportSequenceNumberUri);
     // media.AddExtMap(kRtpExtensionAbsoluteCaptureTime, 
     //                 RtpExtension::kAbsoluteCaptureTimeUri);
     // media.AddExtMap(kRtpExtensionPlayoutDelay, 

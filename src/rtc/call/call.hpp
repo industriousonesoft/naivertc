@@ -9,6 +9,7 @@
 #include "rtc/call/rtp_send_controller.hpp"
 
 #include <unordered_map>
+#include <set>
 
 namespace naivertc {
 
@@ -35,7 +36,8 @@ private:
     Clock* const clock_;
     RtcMediaTransport* send_transport_;
 
-    std::unordered_map<uint32_t, std::unique_ptr<VideoSendStream>> video_send_streams_;
+    std::unordered_map<uint32_t, rtp::HeaderExtensionMap> recv_rtp_ext_maps_;
+    std::set<std::unique_ptr<VideoSendStream>> video_send_streams_;
 
     RtpDemuxer rtp_demuxer_;
     RtpSendController send_controller_;

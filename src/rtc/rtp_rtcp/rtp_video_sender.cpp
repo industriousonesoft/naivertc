@@ -120,6 +120,10 @@ void RtpVideoSender::InitRtpRtcpModules(const RtpParameters& rtp_params) {
     // Packet History
     rtp_sender_->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
     rtp_sender_->set_max_rtp_packet_size(rtp_params.max_packet_size);
+    // RTP header extension
+    for (const auto& rtp_extension : rtp_params.extensions) {
+        rtp_sender_->Register(rtp_extension.uri, rtp_extension.id);
+    }
 
     // RTCP responser
     rtcp_responser_->set_sending(true);

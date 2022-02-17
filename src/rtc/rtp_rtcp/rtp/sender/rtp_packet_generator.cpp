@@ -218,14 +218,14 @@ void RtpPacketGenerator::CopyHeaderAndExtensionsToRtxPacket(const RtpPacketToSen
     const std::vector<uint32_t> csrcs = packet.csrcs();
     rtx_packet->set_csrcs(csrcs);
 
-    for (int index = int(RtpExtensionType::NONE) + 1; index < int(RtpExtensionType::NUMBER_OF_EXTENSIONS); ++index) {
+    for (int index = kRtpExtensionNone + 1; index < kRtpExtensionNumberOfExtensions; ++index) {
         auto extension_type = static_cast<RtpExtensionType>(index);
 
         // Stream ID header extension (MID, RID) are sent per-SSRC. Since RTX
         // operates on a different SSRC, the presence and values of these header
         // extensions should be determined separately and not blindly copied.
-        if (extension_type == RtpExtensionType::MID || 
-            extension_type == RtpExtensionType::RTP_STREAM_ID) {
+        if (extension_type == kRtpExtensionMid || 
+            extension_type == kRtpExtensionRtpStreamId) {
             continue;
         }
 

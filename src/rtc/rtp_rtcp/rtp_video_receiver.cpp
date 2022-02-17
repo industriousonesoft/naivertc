@@ -16,11 +16,10 @@ constexpr int kPacketBufferMaxSize = 2048;
 
 constexpr int kPacketLogIntervalMs = 10000;
 
-std::unique_ptr<RtcpResponser> CreateRtcpResponser(const RtpVideoReceiver::Configuration& stream_config,
-                                                   Clock* clock) {
+std::unique_ptr<RtcpResponser> CreateRtcpResponser(const RtpVideoReceiver::Configuration& config) {
     RtcpConfiguration rtcp_config;
     rtcp_config.audio = false;
-    rtcp_config.local_media_ssrc = stream_config.local_ssrc;
+    rtcp_config.local_media_ssrc = config.local_ssrc;
     return std::make_unique<RtcpResponser>(rtcp_config);
 }
 
@@ -42,21 +41,19 @@ rtp::video::FrameToDecode CreateFrameToDecode(const rtp::video::jitter::PacketBu
 
 // RtpVideoReceiver
 RtpVideoReceiver::RtpVideoReceiver(Configuration config,
-                                   Clock* clock,
                                    RtpReceiveStatistics* rtp_recv_stats,
                                    CompleteFrameReceiver* complete_frame_receiver) 
     : config_(std::move(config)),
-      clock_(clock),
       complete_frame_receiver_(complete_frame_receiver),
-      rtcp_responser_(CreateRtcpResponser(config_, clock_)),
+      rtcp_responser_(CreateRtcpResponser(config_)),
       rtcp_feedback_buffer_(rtcp_responser_.get(), rtcp_responser_.get()),
-      nack_module_(config.nack_enabled ? std::make_unique<NackModule>(clock_,
+      nack_module_(config.nack_enabled ? std::make_unique<NackModule>(config_.clock,
                                                                       &rtcp_feedback_buffer_, 
                                                                       &rtcp_feedback_buffer_)
                                        : nullptr),
       packet_buffer_(kPacketBufferStartSize, kPacketBufferMaxSize),
-      remote_ntp_time_estimator_(clock_),
-      ulp_fec_receiver_(config_.remote_ssrc, clock_, this),
+      remote_ntp_time_estimator_(config_.clock),
+      ulp_fec_receiver_(config_.remote_ssrc, config_.clock, this),
       last_packet_log_ms_(-1) {
 
     rtcp_responser_->set_remote_ssrc(config.remote_ssrc);
@@ -86,7 +83,7 @@ void RtpVideoReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
         // Waiting for the first RTCP sender report.
         return;
     }
-    int64_t time_since_rtcp_arrival = clock_->now_ntp_time_ms() - last_sr_stats->arrival_ntp_time.ToMs();
+    int64_t time_since_rtcp_arrival = config_.clock->now_ntp_time_ms() - last_sr_stats->arrival_ntp_time.ToMs();
     // Don't use old SRs to estimate time.
     if (time_since_rtcp_arrival <= 1 /* 1 ms */) {
         remote_ntp_time_estimator_.UpdateRtcpTimestamp(last_rtt.ms(), 
@@ -174,7 +171,7 @@ void RtpVideoReceiver::OnDepacketizedPacket(RtpDepacketizer::Packet depacketized
                                                                               depacketized_packet.video_codec_header,
                                                                               rtp_packet.sequence_number(),
                                                                               rtp_packet.timestamp(),
-                                                                              clock_->now_ms() /* received_time_ms */);
+                                                                              config_.clock->now_ms() /* received_time_ms */);
     RtpVideoHeader& video_header = packet->video_header;
     video_header.is_last_packet_in_frame |= rtp_packet.marker();
 
@@ -306,7 +303,7 @@ void RtpVideoReceiver::HandleRedPacket(const RtpPacketReceived& packet) {
 
 void RtpVideoReceiver::UpdatePacketReceiveTimestamps(const RtpPacketReceived& packet, bool is_keyframe) {
     RTC_RUN_ON(&sequence_checker_);
-    Timestamp now = clock_->CurrentTime();
+    Timestamp now = config_.clock->CurrentTime();
     if (is_keyframe || last_received_keyframe_timestamp_ == packet.timestamp()) {
         last_received_keyframe_timestamp_ = packet.timestamp();
         last_received_keyframe_system_time_ = now;

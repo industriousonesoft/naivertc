@@ -305,6 +305,10 @@ bool RtpPacket::Parse(CopyOnWriteBuffer buffer) {
     return true;
 }
 
+void RtpPacket::SetHeaderExtensionMap(HeaderExtensionMap extension_map) {
+    extension_map_ = std::move(extension_map);
+}
+
 // Private methods
 inline void RtpPacket::WriteAt(size_t offset, uint8_t byte) {
     assert(offset < capacity());
@@ -344,7 +348,7 @@ RtpPacket::ExtensionInfo& RtpPacket::FindOrCreateExtensionInfo(int id) {
 ArrayView<uint8_t> RtpPacket::AllocateExtension(ExtensionType type, size_t size) {
     if (size == 0 || size > RtpExtension::kMaxValueSize ||
         (!extension_map_.extmap_allow_mixed() &&
-        size > RtpExtension::kOneByteHeaderExtensionMaxValueSize)) {
+         size > RtpExtension::kOneByteHeaderExtensionMaxValueSize)) {
         return nullptr;
     }
 

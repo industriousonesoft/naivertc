@@ -35,7 +35,7 @@ std::string Media::GenerateSDPLines(const std::string eol) const {
 
     // a=extmap
     for (const auto& [id, map] : ext_maps_) {
-        oss << "a=extmap:" << id << sp << map.uri;
+        oss << "a=extmap:" << id << sp << map.uri << eol;
     }
 
     // RTP maps

@@ -9,7 +9,7 @@ namespace {
 
 struct ExtensionInfo {
   RtpExtensionType type;
-  const char* uri;
+  std::string_view uri;
 };
 
 template <typename Extension>
@@ -39,20 +39,20 @@ HeaderExtensionMap::HeaderExtensionMap(bool extmap_allow_mixed)
     }
 }
 
-// HeaderExtensionMap::HeaderExtensionMap(ArrayView<const HeaderExtension> extensions) 
-//     : HeaderExtensionMap(false) {
-//     for (const auto& extension : extensions) {
-//         RegisterByUri(extension.id, extension.uri);
-//     }
-// }
+HeaderExtensionMap::HeaderExtensionMap(ArrayView<const RtpExtension> extensions) 
+    : HeaderExtensionMap(false) {
+    for (const auto& extension : extensions) {
+        RegisterByUri(extension.uri, extension.id);
+    }
+}
 
 HeaderExtensionMap::~HeaderExtensionMap() = default;
 
 RtpExtensionType HeaderExtensionMap::GetType(int id) const {
     if (id < RtpExtension::kMinId || id > RtpExtension::kMaxId) {
-        return RtpExtensionType::NONE;
+        return kRtpExtensionNone;
     }
-    for (int type = int(RtpExtensionType::NONE) + 1; type < int(RtpExtensionType::NUMBER_OF_EXTENSIONS);
+    for (int type = int(kRtpExtensionNone) + 1; type < int(kRtpExtensionNumberOfExtensions);
         ++type) {
         if (extension_ids_[type] == id) {
             return static_cast<RtpExtensionType>(type);
@@ -62,7 +62,7 @@ RtpExtensionType HeaderExtensionMap::GetType(int id) const {
 }
 
 uint8_t HeaderExtensionMap::GetId(RtpExtensionType type) const {
-    if (type <= RtpExtensionType::NONE || type >= RtpExtensionType::NUMBER_OF_EXTENSIONS) {
+    if (type <= kRtpExtensionNone || type >= kRtpExtensionNumberOfExtensions) {
         return RtpExtension::kInvalidId;
     }
     return extension_ids_[int(type)];
@@ -114,8 +114,8 @@ int HeaderExtensionMap::Deregister(std::string_view uri) {
 }
 
 // Private methods
-bool HeaderExtensionMap::Register(int id, RtpExtensionType type, const char* uri) {
-    if (type <= RtpExtensionType::NONE || type >= RtpExtensionType::NUMBER_OF_EXTENSIONS) {
+bool HeaderExtensionMap::Register(int id, RtpExtensionType type, std::string_view uri) {
+    if (type <= kRtpExtensionNone || type >= kRtpExtensionNumberOfExtensions) {
         PLOG_WARNING << "Invalid RTP extension type: " << int(type);
         return false;
     }

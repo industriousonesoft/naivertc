@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
+#include "rtc/rtp_rtcp/base/rtp_extensions.hpp"
 
 #include <optional>
 
@@ -30,6 +31,9 @@ struct RTC_CPP_EXPORT RtpParameters {
     size_t rtcp_report_interval_ms = 1000;
 
     size_t max_packet_size = kDefaultMaxPacketSize;
+
+    // RtpHeaderExtension
+    std::vector<RtpExtension> extensions;
 
     // NACK
     bool nack_enabled = false;

@@ -4,13 +4,9 @@ namespace naivertc {
 namespace sdp {
 
 Description::Builder::Builder(Type type) 
-    : type_(type) {
+    : type_(type) {}
 
-}
-
-Description::Builder::~Builder() {
-
-}
+Description::Builder::~Builder() {}
 
 Description::Builder& Description::Builder::set_role(Role role) {
     role_ = role;

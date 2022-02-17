@@ -84,6 +84,7 @@ public:
     bool Parse(CopyOnWriteBuffer buffer);
 
     // Header extensions
+    void SetHeaderExtensionMap(HeaderExtensionMap extension_map);
     template <typename Extension>
     bool HasExtension() const;
     bool HasExtension(ExtensionType type) const;

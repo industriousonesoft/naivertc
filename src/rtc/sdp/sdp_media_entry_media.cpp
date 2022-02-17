@@ -191,6 +191,10 @@ void Media::ClearRtpMap() {
     rtp_maps_.clear();
 }
 
+Media::ExtMap* Media::AddExtMap(int id, std::string uri) {
+    return AddExtMap(ExtMap(id, uri));
+}
+
 Media::ExtMap* Media::AddExtMap(ExtMap ext_map) {
     auto [it, success] = ext_maps_.emplace(ext_map.id, std::move(ext_map));
     return success ? &(it->second) : nullptr;
@@ -200,7 +204,7 @@ bool Media::RemoveExtMap(int id) {
     return ext_maps_.erase(id) > 0;
 }
 
-bool Media::RemoveExtMap(std::string uri) {
+bool Media::RemoveExtMap(std::string_view uri) {
     bool found = false;
     for (auto it = ext_maps_.begin(); it != ext_maps_.end(); ++it) {
         if (it->second.uri == uri) {

@@ -133,8 +133,10 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     
     PacketOptions options(is_audio_ ? PacketKind::AUDIO : PacketKind::VIDEO);
 
+    // Retrive transport sequence number
     auto packet_id = packet.GetExtension<rtp::TransportSequenceNumber>();
     if (packet_id) {
+        PLOG_VERBOSE_IF(false) << "Will send packet with transport sequence number: " << *packet_id;
         options.packet_id = packet_id;
         AddPacketToTransportFeedback(*packet_id, packet);
     }
@@ -143,7 +145,7 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
         packet_type != RtpPacketType::RETRANSMISSION) {
         // No include Padding or Retransmission packet.
         UpdateDelayStatistics(send_delay_ms, now_ms, packet_ssrc);
-        if (packet_id) {
+        if (packet_id && send_packet_observer_) {
             send_packet_observer_->OnSendPacket(*packet_id, packet.capture_time_ms(), packet_ssrc);
         }
     }

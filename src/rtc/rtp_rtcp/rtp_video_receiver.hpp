@@ -49,6 +49,9 @@ public:
         bool protected_by_flexfec = false;
 
         bool nack_enabled = false;
+
+        Clock* clock = nullptr;
+        RtcMediaTransport* send_transport = nullptr;
     };
 
     // CompleteFrameReceiver
@@ -60,7 +63,6 @@ public:
 
 public:
     RtpVideoReceiver(Configuration config,
-                     Clock* clock,
                      RtpReceiveStatistics* rtp_recv_stats,
                      CompleteFrameReceiver* complete_frame_receiver);
     ~RtpVideoReceiver() override;
@@ -120,7 +122,6 @@ private:
 private:
     SequenceChecker sequence_checker_;
     const Configuration config_;
-    Clock* const clock_;
     CompleteFrameReceiver* complete_frame_receiver_;
     std::unique_ptr<RtcpResponser> rtcp_responser_;
     RtcpFeedbackBuffer rtcp_feedback_buffer_;

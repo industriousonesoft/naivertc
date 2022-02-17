@@ -139,9 +139,10 @@ public:
     std::vector<int> PayloadTypes() const;
 
     // Rtp extension map
+    ExtMap* AddExtMap(int id, std::string uri);
     ExtMap* AddExtMap(ExtMap ext_map);
     bool RemoveExtMap(int id);
-    bool RemoveExtMap(std::string uri);
+    bool RemoveExtMap(std::string_view uri);
     void ClearExtMap();
     void ForEachExtMap(std::function<void(const ExtMap& ext_map)>&& handler) const;
 

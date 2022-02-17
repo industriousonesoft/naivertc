@@ -22,7 +22,7 @@ namespace naivertc {
 class RTC_CPP_EXPORT RtpVideoSender {
 public:
     struct Configuration {
-        Clock* clock;
+        Clock* clock = nullptr;
         RtcMediaTransport* send_transport = nullptr;
 
         RtpParameters rtp;

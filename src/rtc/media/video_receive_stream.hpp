@@ -20,16 +20,12 @@ namespace naivertc {
 class RTC_CPP_EXPORT VideoReceiveStream : public MediaReceiveStream,
                                           RtpVideoReceiver::CompleteFrameReceiver {
 public:
-    using RtpConfig = struct RtpVideoReceiver::Configuration;
-    struct Configuration {
-        Clock* clock;
-
-        RtpConfig rtp;
-    };  
+    using Configuration = struct RtpVideoReceiver::Configuration;  
 public:
-    VideoReceiveStream(Configuration config);
+    VideoReceiveStream(const Configuration& config);
     ~VideoReceiveStream() override;
 
+    const Configuration* config() const;
     std::vector<uint32_t> ssrcs() const override;
 
     // Implements RtpPacketSink
@@ -42,7 +38,6 @@ public:
 
 private:
     SequenceChecker sequence_checker_;
-    Clock* const clock_;
     std::unique_ptr<TaskQueue> decode_queue_;
    
     std::vector<uint32_t> ssrcs_;

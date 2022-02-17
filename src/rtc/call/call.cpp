@@ -20,13 +20,19 @@ void Call::DeliverRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
     if (is_rtcp) {
         rtp_demuxer_.DeliverRtcpPacket(std::move(in_packet));
     } else {
-        // TODO: Using RTP header extension map
         RtpPacketReceived received_packet;
         if (received_packet.Parse(std::move(in_packet))) {
             PLOG_WARNING << "Failed to parse the incoming RTP packet before demuxing. Drop it.";
             return;
         }
         rtp_demuxer_.DeliverRtpPacket(std::move(received_packet));
+        auto it = recv_rtp_ext_maps_.find(received_packet.ssrc());
+        if (it == recv_rtp_ext_maps_.end()) {
+            PLOG_WARNING << "Failed to look up RTP header extension for ssrc=" << received_packet.ssrc();
+            return;
+        }
+        // Identify header extensions.
+        received_packet.SetHeaderExtensionMap(it->second);
     }
 }
 
@@ -46,12 +52,15 @@ void Call::AddVideoSendStream(RtpParameters rtp_params) {
         for (uint32_t ssrc : send_stream->ssrcs()) {
             rtp_demuxer_.AddRtcpSink(ssrc, send_stream.get());
         }
-        video_send_streams_[rtp_params.local_media_ssrc] = std::move(send_stream);
+        video_send_streams_.insert(std::move(send_stream));
     }
 }
 
 void Call::AddVideoRecvStream(RtpParameters rtp_params) {
     RTC_RUN_ON(&worker_queue_checker_);
+
+    // auto header_extension = rtp::HeaderExtensionMap(rtp_params.extensions)
+    // header_extension.set_extmap_allow_mixed(rtp_params.extmap_allow_mixed);
 }
 
 void Call::Clear() {
@@ -63,7 +72,7 @@ void Call::Send(video::EncodedFrame encoded_frame) {
     if (video_send_streams_.empty()) {
         return;
     }
-    for (auto& [ssrc, send_stream] : video_send_streams_) {
+    for (auto& send_stream: video_send_streams_) {
         send_stream->OnEncodedFrame(std::move(encoded_frame));
     }
 }

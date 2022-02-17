@@ -121,7 +121,7 @@ bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
         // RTCP receiver report (pt = 201)
         else if (rtcp_header->payload_type == 201) {
             auto rtcp_sr = reinterpret_cast<ReceiverReport*>(rtcp_header);
-            // We don't care about the sender of RR but the source of report blocks,
+            // NOTE: We don't care about the sender of RR but the source of report blocks,
             // since the only valid informations in RR is report blocks.
             // uint32_t sender_ssrc = ntohl(rtcp_sr->packet_sender_ssrc);
             // ssrcs.insert(sender_ssrc);
@@ -134,8 +134,9 @@ bool RtpDemuxer::DeliverRtcpPacket(CopyOnWriteBuffer in_packet) const {
         // RTP feedback packet (pt = 205) or RTCP payload-specific packet (pt = 206) 
         else if (rtcp_header->payload_type == 205 || rtcp_header->payload_type == 206) {
             auto rtp_fb = reinterpret_cast<RtpFeedback*>(rtcp_header);
-            uint32_t sender_ssrc = ntohl(rtp_fb->packet_sender_ssrc);
-            ssrcs.insert(sender_ssrc);
+            // NOTE: We only care about who is the receiver of those message not the sender.
+            // uint32_t sender_ssrc = ntohl(rtp_fb->packet_sender_ssrc);
+            // ssrcs.insert(sender_ssrc);
             // NOTE: Zero indicates |media_source_ssrc| is useless, like REMB packet.
             uint32_t source_ssrc = ntohl(rtp_fb->media_source_ssrc);
             if (source_ssrc > 0) {

@@ -17,9 +17,9 @@ namespace rtp {
 class RTC_CPP_EXPORT AbsoluteSendTime final {
 public:
     using ValueType = uint32_t;
-    static constexpr RtpExtensionType kType = RtpExtensionType::ABSOLUTE_SEND_TIME;
+    static constexpr RtpExtensionType kType = kRtpExtensionAbsoluteSendTime;
     static constexpr uint8_t kValueSizeBytes = 3;
-    static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
+    static constexpr std::string_view kUri = RtpExtension::kAbsSendTimeUri;
 
     static constexpr uint32_t MsTo24Bits(int64_t time_ms) {
         return static_cast<uint32_t>(((time_ms << 18) + 500) / 1000) & 0x00FFFFFF;
@@ -75,10 +75,10 @@ public:
     
 public:
     using ValueType = TimeInfo;
-    static constexpr RtpExtensionType kType = RtpExtensionType::ABSOLUTE_CAPTURE_TIME;
+    static constexpr RtpExtensionType kType = kRtpExtensionAbsoluteCaptureTime;
     static constexpr uint8_t kValueSizeBytes = 16;
     static constexpr uint8_t kValueSizeBytesWithoutEstimatedCaptureClockOffset = 8;
-    static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time";
+    static constexpr std::string_view kUri = RtpExtension::kAbsoluteCaptureTimeUri;
 
     static bool Parse(const uint8_t* buffer, size_t buffer_size, TimeInfo* time_info);
     static bool PackInto(uint8_t* buffer, size_t buffer_size, const TimeInfo& time_info);
@@ -91,9 +91,9 @@ private:
 class TransmissionTimeOffset final {
 public:
     using ValueType = int32_t;
-    static constexpr RtpExtensionType kType = RtpExtensionType::TRANSMISSTION_TIME_OFFSET;
+    static constexpr RtpExtensionType kType = kRtpExtensionTransmissionTimeOffset;
     static constexpr uint8_t kValueSizeBytes = 3;
-    static constexpr const char kUri[] = "urn:ietf:params:rtp-hdrext:toffset";
+    static constexpr std::string_view kUri = RtpExtension::kTimestampOffsetUri;
 
     static bool Parse(const uint8_t* buffer, size_t buffer_size, int32_t* rtp_time_24bits);
     static bool PackInto(uint8_t* buffer, size_t buffer_size, int32_t rtp_time_24bits);
@@ -104,9 +104,9 @@ public:
 class TransportSequenceNumber final {
 public:
     using ValueType = uint16_t;
-    static constexpr RtpExtensionType kType = RtpExtensionType::TRANSPORT_SEQUENCE_NUMBER;
+    static constexpr RtpExtensionType kType = kRtpExtensionTransportSequenceNumber;
     static constexpr uint8_t kValueSizeBytes = 2;
-    static constexpr const char kUri[] = "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
+    static constexpr std::string_view kUri = RtpExtension::kTransportSequenceNumberUri;
 
     static bool Parse(const uint8_t* buffer, size_t buffer_size, uint16_t* transport_sequence_number);
     static bool PackInto(uint8_t* buffer, size_t buffer_size, uint16_t transport_sequence_number);
@@ -127,9 +127,9 @@ public:
 class PlayoutDelayLimits final {
 public:
     using ValueType = naivertc::video::PlayoutDelay;
-    static constexpr RtpExtensionType kType = RtpExtensionType::PLAYOUT_DELAY_LIMITS;
+    static constexpr RtpExtensionType kType = kRtpExtensionPlayoutDelay;
     static constexpr uint8_t kValueSizeBytes = 3;
-    static constexpr const char kUri[] = "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay";
+    static constexpr std::string_view kUri = RtpExtension::kPlayoutDelayUri;
 
     // Playout delay in milliseconds. A playout delay limit (min or max)
     // has 12 bits allocated. This allows a range of 0-4095 values which
@@ -160,24 +160,22 @@ public:
 // RtpMid
 class RtpMid final : public BaseRtpString {
 public:
-    static constexpr RtpExtensionType kType = RtpExtensionType::MID;
-    static constexpr const char kUri[] = "urn:ietf:params:rtp-hdrext:sdes:mid";
+    static constexpr RtpExtensionType kType = kRtpExtensionMid;
+    static constexpr std::string_view kUri = RtpExtension::kMidUri;
 };
 
 // RtpStreamId
 class RtpStreamId : public BaseRtpString {
 public:
-    static constexpr RtpExtensionType kType = RtpExtensionType::RTP_STREAM_ID;
-    static constexpr const char kUri[] =
-      "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id";
+    static constexpr RtpExtensionType kType = kRtpExtensionRtpStreamId;
+    static constexpr std::string_view kUri = RtpExtension::kRidUri;
 };
 
 // RepairedRtpStreamId
 class RepairedRtpStreamId : public BaseRtpString {
  public:
-  static constexpr RtpExtensionType kType = RtpExtensionType::REPAIRED_RTP_STREAM_ID;
-  static constexpr const char kUri[] =
-      "urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id";
+  static constexpr RtpExtensionType kType = kRtpExtensionRepairedRtpStreamId;
+  static constexpr std::string_view kUri = RtpExtension::kRepairedRidUri;
 };
 
 // Utils methods
