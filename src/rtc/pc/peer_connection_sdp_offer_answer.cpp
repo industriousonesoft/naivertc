@@ -507,19 +507,9 @@ std::shared_ptr<MediaTrack> PeerConnection::OnIncomingMediaTrack(sdp::Media remo
 void PeerConnection::OnNegotiatedMediaTrack(std::shared_ptr<MediaTrack> media_track) {
     RTC_RUN_ON(signaling_task_queue_);
     assert(media_track != nullptr);
-    if (media_track->kind() == MediaTrack::Kind::VIDEO) {
-        const auto mid = media_track->mid();
-
-        const sdp::Media local_media = *local_sdp_->media(mid);
-        const sdp::Media remote_media = *remote_sdp_->media(mid);
-
-        worker_task_queue_->Post([this, media_track, local_media, remote_media](){
-            media_track->OnMediaNegotiated(local_media, remote_media, remote_sdp_->type());
-        });
-
-    } else if (media_track->kind() == MediaTrack::Kind::AUDIO) {
-        // auto audio_track = dynamic_cast<AudioTrack*>(media_track.get());
-    }
+    worker_task_queue_->Post([media_track, local_sdp=local_sdp_.value(), remote_sdp=remote_sdp_.value()](){
+        media_track->OnNegotiated(local_sdp, remote_sdp);
+    });
 }
 
 } // namespace naivertc

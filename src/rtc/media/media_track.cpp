@@ -1,6 +1,7 @@
 #include "rtc/media/media_track.hpp"
 #include "common/utils_random.hpp"
 #include "rtc/call/call.hpp"
+#include "rtc/sdp/sdp_media_entry_media.hpp"
 
 #include <plog/Log.h>
 
@@ -33,6 +34,11 @@ RtpParameters ParseRtpParameters(const sdp::Media& media) {
     if (!media.fec_ssrcs().empty()) {
         rtp_parameters.flexfec.ssrc = media.fec_ssrcs()[0];
     }
+
+    // extensions
+    media.ForEachExtMap([&](const sdp::Media::ExtMap& ext_map){
+        rtp_parameters.extensions.emplace_back(ext_map.id, ext_map.uri);
+    });
     
     // Payload types
     media.ForEachRtpMap([&](const sdp::Media::RtpMap& rtp_map){
@@ -129,22 +135,27 @@ void MediaTrack::Close() {
     PLOG_VERBOSE << "Media channel closed.";
 }
 
-void MediaTrack::OnMediaNegotiated(sdp::Media local_media, 
-                                   sdp::Media remote_media, 
-                                   sdp::Type remote_sdp_type) {
+void MediaTrack::OnNegotiated(const sdp::Description& local_sdp, 
+                              const sdp::Description& remote_sdp) {
     RTC_RUN_ON(worker_queue_);
+    auto mid = this->mid();
+    const sdp::Media* local_media = local_sdp.media(mid);
+    const sdp::Media* remote_media = remote_sdp.media(mid);
     if (kind_ == Kind::VIDEO) {
         // Sendable
-        if (local_media.direction() == sdp::Direction::SEND_ONLY ||
-            local_media.direction() == sdp::Direction::SEND_RECV) {
-            auto rtp_params = ParseRtpParameters(local_media);
+        if (local_media->direction() == sdp::Direction::SEND_ONLY ||
+            local_media->direction() == sdp::Direction::SEND_RECV) {
+            auto rtp_params = ParseRtpParameters(*local_media);
+            rtp_params.extmap_allow_mixed = local_sdp.extmap_allow_mixed();
             call_->AddVideoSendStream(std::move(rtp_params));
         }
 
         // Receivable
-        if (local_media.direction() == sdp::Direction::RECV_ONLY ||
-            local_media.direction() == sdp::Direction::SEND_RECV) {
-            // TODO: Add video receive stream.
+        if (local_media->direction() == sdp::Direction::RECV_ONLY ||
+            local_media->direction() == sdp::Direction::SEND_RECV) {
+            auto rtp_params = ParseRtpParameters(*remote_media);
+            rtp_params.extmap_allow_mixed = local_sdp.extmap_allow_mixed();
+            call_->AddVideoRecvStream(std::move(rtp_params));
         }
 
     } else if (kind_ == Kind::AUDIO) {

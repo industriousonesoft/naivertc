@@ -2,8 +2,7 @@
 #define _RTC_MEDIA_TRACK_H_
 
 #include "base/defines.hpp"
-#include "rtc/sdp/sdp_media_entry_media.hpp"
-#include "rtc/sdp/sdp_defines.hpp"
+#include "rtc/sdp/sdp_description.hpp"
 #include "rtc/rtp_rtcp/base/rtp_extensions.hpp"
 #include "rtc/media/media_channel.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
@@ -117,9 +116,8 @@ public:
     void OnOpened(OpenedCallback callback);
     void OnClosed(ClosedCallback callback);
 
-    void OnMediaNegotiated(const sdp::Media local_media, 
-                           const sdp::Media remote_media, 
-                           sdp::Type remote_sdp_type);
+    void OnNegotiated(const sdp::Description& local_sdp, 
+                      const sdp::Description& remote_sdp);
 
 private:
     void Open() override;
@@ -134,6 +132,10 @@ public:
     public:
         static sdp::Media Build(const Configuration& config);
     private:
+        static void ConfigMedia(const Configuration& config, 
+                                sdp::Media& media);
+        static void AddExtMaps(const Configuration& config, 
+                               sdp::Media& media);
         static void AddCodecs(const Configuration& config, 
                               sdp::Media& media);
         static sdp::Media::RtpMap* AddMediaCodec(int payload_type, 
@@ -142,6 +144,7 @@ public:
         static void AddSsrcs(const Configuration& config, 
                              sdp::Media& media);
         static int NextPayloadType(Kind kind);
+
     };
 
 protected:

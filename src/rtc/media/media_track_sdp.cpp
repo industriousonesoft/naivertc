@@ -38,23 +38,14 @@ sdp::Media MediaTrack::SdpBuilder::Build(const Configuration& config) {
                                 config.mid(),
                                 kDefaultTransportPortocols, 
                                 config.direction);
-        // Enable RTP/RTCP multiplexing
-        // see: https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-bundle-negotiation-54#section-9.3
-        audio.set_rtcp_mux_enabled(true);
-        AddCodecs(config, audio);;
-        AddSsrcs(config, audio);
+        ConfigMedia(config, audio);
         return audio;
     } else if (config.kind() == MediaTrack::Kind::VIDEO) {
         auto video = sdp::Media(sdp::MediaEntry::Kind::VIDEO,
                                 config.mid(),
                                 kDefaultTransportPortocols, 
                                 config.direction);
-        // Enable RTP/RTCP multiplexing
-        video.set_rtcp_mux_enabled(true);
-        // Enable RTCP reduced-size
-        video.set_rtcp_rsize_enabled(true);
-        AddCodecs(config, video);
-        AddSsrcs(config, video);
+        ConfigMedia(config, video);
         return video;
     } else {
         RTC_NOTREACHED();
@@ -62,6 +53,46 @@ sdp::Media MediaTrack::SdpBuilder::Build(const Configuration& config) {
 }
 
 // Private methods
+void MediaTrack::SdpBuilder::ConfigMedia(const Configuration& config, 
+                                         sdp::Media& media) {
+    // Enable RTP/RTCP multiplexing when NUNDLE is enabled.
+    // see: https://datatracker.ietf.org/doc/html/draft-ietf-mmusic-sdp-bundle-negotiation-54#section-9.3
+    media.set_rtcp_mux_enabled(true);
+
+    // TODO: Should we enable this for audio?
+    if (config.kind() == MediaTrack::Kind::VIDEO) {
+        // Enable RTCP reduced-size
+        media.set_rtcp_rsize_enabled(true);
+    }
+
+    AddExtMaps(config, media);
+    AddCodecs(config, media);
+    AddSsrcs(config, media);
+}
+
+void MediaTrack::SdpBuilder::AddExtMaps(const Configuration& config, sdp::Media& media) {
+
+    // kRtpExtensionTransportSequenceNumber
+    if (config.congestion_control == CongestionControl::TRANSPORT_CC) {
+        media.AddExtMap(kRtpExtensionTransportSequenceNumber, 
+                        RtpExtension::kTimestampOffsetUri);
+    }
+    // media.AddExtMap(kRtpExtensionAbsoluteSendTime, 
+    //                 RtpExtension::kAbsSendTimeUri);
+    // media.AddExtMap(kRtpExtensionTransportSequenceNumber, 
+    //                 RtpExtension::kTransportSequenceNumberUri);
+    // media.AddExtMap(kRtpExtensionAbsoluteCaptureTime, 
+    //                 RtpExtension::kAbsoluteCaptureTimeUri);
+    // media.AddExtMap(kRtpExtensionPlayoutDelay, 
+    //                 RtpExtension::kPlayoutDelayUri);
+    // media.AddExtMap(kRtpExtensionMid, 
+    //                 RtpExtension::kMidUri);
+    // media.AddExtMap(kRtpExtensionRtpStreamId, 
+    //                 RtpExtension::kRidUri);
+    // media.AddExtMap(kRtpExtensionRepairedRtpStreamId, 
+    //                 RtpExtension::kRepairedRidUri);
+}
+
 void MediaTrack::SdpBuilder::AddCodecs(const Configuration& config, sdp::Media& media) {
     // Associated payload types of RTX
     std::vector<int> associated_payload_types;
