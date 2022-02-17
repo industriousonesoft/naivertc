@@ -66,8 +66,7 @@ public:
 // MockRtcMediaTransport
 class MockRtcMediaTransport : public RtcMediaTransport {
 public:
-    MOCK_METHOD(bool, SendRtpPacket, (CopyOnWriteBuffer, PacketOptions), (override));
-    MOCK_METHOD(bool, SendRtcpPacket, (CopyOnWriteBuffer, PacketOptions), (override));
+    MOCK_METHOD(int, SendRtpPacket, (CopyOnWriteBuffer, PacketOptions, bool), (override));
 };
 
 // RtpSendStatsProviderImpl
@@ -76,19 +75,19 @@ public:
     ~RtpSendStatsProviderImpl() override = default;
 
     RtpSendStats GetSendStats() override {
-        return send_feedback_;
+        return send_stats_;
     }
 
     void OnRtpPacketSent(uint32_t packets_sent,
                          size_t media_bytes_sent,
                          DataRate send_bitrate = DataRate::Zero()) {
-        send_feedback_.packets_sent = packets_sent;
-        send_feedback_.media_bytes_sent = media_bytes_sent;
-        send_feedback_.send_bitrate = send_bitrate;
+        send_stats_.packets_sent = packets_sent;
+        send_stats_.media_bytes_sent = media_bytes_sent;
+        send_stats_.send_bitrate = send_bitrate;
     }
 
 private:
-    RtpPacketSendInfo send_feedback_;
+    RtpSendStats send_stats_;
 };
 
 // RtcpReceiveFeedbackProviderImpl
@@ -524,8 +523,9 @@ MY_TEST_F(RtcpSenderTest, DoNotSendXrWithRrtrIfSending) {
 
 MY_TEST_F(RtcpSenderTest, ByeMustBeTheLastToSend) {
     MockRtcMediaTransport mock_transport;
-    EXPECT_CALL(mock_transport, SendRtcpPacket(_, _))
-        .WillOnce(Invoke([](CopyOnWriteBuffer packet, PacketOptions options) {
+    EXPECT_CALL(mock_transport, SendRtpPacket(_, _, _))
+        .WillOnce(Invoke([](CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) -> int {
+            EXPECT_TRUE(is_rtcp);
             const uint8_t* next_packet = packet.data();
             const uint8_t* packet_end = packet.data() + packet.size();
             rtcp::CommonHeader rtcp_block;
@@ -540,7 +540,7 @@ MY_TEST_F(RtcpSenderTest, ByeMustBeTheLastToSend) {
                     EXPECT_EQ(rtcp_block.type(), rtcp::Bye::kPacketType) << "Last packet in this test expected to be Bye.";
                 }
             }
-            return true;
+            return packet.size();
         }));
 
     RtcpSender::Configuration config = GetDefaultConfig();

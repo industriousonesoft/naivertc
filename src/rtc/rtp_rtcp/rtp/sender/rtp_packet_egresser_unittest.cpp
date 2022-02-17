@@ -74,6 +74,10 @@ public:
                 OnAddPacket, 
                 (const RtpPacketSendInfo&), 
                 (override));
+    MOCK_METHOD(void, 
+                OnSentPacket, 
+                (const RtpSentPacket& sent_packet), 
+                (override));
 };
 
 // SendTransportImpl
@@ -83,7 +87,7 @@ public:
         : total_bytes_sent_(0),
           header_extension_map_(header_extension_map) {}
 
-    bool SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) override {
+    int SendRtpPacket(CopyOnWriteBuffer packet, PacketOptions options, bool is_rtcp) override {
         if (is_rtcp) {
             return -1;
         }
@@ -92,10 +96,6 @@ public:
         EXPECT_TRUE(recv_packet.Parse(std::move(packet)));
         last_recv_packet_.emplace(std::move(recv_packet));
         return last_recv_packet_->size();
-    }
-
-    bool SendRtcpPacket(CopyOnWriteBuffer packet, PacketOptions options) override {
-        RTC_NOTREACHED();
     }
 
     std::optional<RtpPacketReceived> last_packet() const {
@@ -189,7 +189,7 @@ MY_TEST_P(RtpPacketEgresserTest, PacketSendStatsObserverGetsCorrectByteCount) {
                 OnAddPacket(AllOf(
                     Field(&RtpPacketSendInfo::ssrc, kSsrc),
                     Field(&RtpPacketSendInfo::packet_id, kTransportSeqNum),
-                    Field(&RtpPacketSendInfo::seq_num, kStartSequenceNumber),
+                    Field(&RtpPacketSendInfo::sequence_number, kStartSequenceNumber),
                     Field(&RtpPacketSendInfo::packet_size, expected_bytes)
                 )));
 
@@ -680,7 +680,7 @@ MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverWithRetransmission) {
         transport_feedback_observer_,
         OnAddPacket(AllOf(
             Field(&RtpPacketSendInfo::ssrc, kSsrc),
-            Field(&RtpPacketSendInfo::retransmitted_seq_num, retransmitted_seq),
+            Field(&RtpPacketSendInfo::sequence_number, retransmitted_seq),
             Field(&RtpPacketSendInfo::packet_id, kTransportSequenceNumber))));
     sender->SendPacket(std::move(retransmission));
 }
@@ -701,7 +701,7 @@ MY_TEST_P(RtpPacketEgresserTest, TransportFeedbackObserverWithRtxRetransmission)
         OnAddPacket(AllOf(
             Field(&RtpPacketSendInfo::ssrc, kRtxSsrc),
             Field(&RtpPacketSendInfo::media_ssrc, kSsrc),
-            Field(&RtpPacketSendInfo::retransmitted_seq_num, retransmitted_seq),
+            Field(&RtpPacketSendInfo::sequence_number, retransmitted_seq),
             Field(&RtpPacketSendInfo::packet_id, kTransportSequenceNumber))));
     sender->SendPacket(std::move(retransmission));
 }

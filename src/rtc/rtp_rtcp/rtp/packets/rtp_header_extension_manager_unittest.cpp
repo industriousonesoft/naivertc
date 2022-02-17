@@ -21,7 +21,6 @@ MY_TEST(RtpHeaderExtensionTest, RegisterByType) {
     EXPECT_EQ(TransmissionTimeOffset::kType, map.GetType(3));
 }
 
-
 MY_TEST(RtpHeaderExtensionTest, RegisterByUri) {
     HeaderExtensionMap map;
 
@@ -84,7 +83,7 @@ MY_TEST(RtpHeaderExtensionTest, GetType) {
 
 MY_TEST(RtpHeaderExtensionTest, GetId) {
     HeaderExtensionMap map;
-    EXPECT_EQ(HeaderExtensionMap::kInvalidId,
+    EXPECT_EQ(RtpExtension::kInvalidId,
                 map.GetId(TransmissionTimeOffset::kType));
     EXPECT_TRUE(map.Register<TransmissionTimeOffset>(3));
 

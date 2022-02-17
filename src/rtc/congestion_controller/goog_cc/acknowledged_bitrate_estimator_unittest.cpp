@@ -51,14 +51,14 @@ std::vector<PacketResult> CreateFeedbackVector() {
       Timestamp::Millis(kFirstArrivalTimeMs);
     packet_feedback_vector[0].sent_packet.send_time =
         Timestamp::Millis(kFirstSendTimeMs);
-    packet_feedback_vector[0].sent_packet.sequence_number = kSequenceNumber;
+    packet_feedback_vector[0].sent_packet.packet_id = kSequenceNumber;
     packet_feedback_vector[0].sent_packet.size = kPayloadSize;
     // The second packet feedback.
     packet_feedback_vector[1].recv_time =
         Timestamp::Millis(kFirstArrivalTimeMs + 10);
     packet_feedback_vector[1].sent_packet.send_time =
         Timestamp::Millis(kFirstSendTimeMs + 10);
-    packet_feedback_vector[1].sent_packet.sequence_number = kSequenceNumber + 1;
+    packet_feedback_vector[1].sent_packet.packet_id = kSequenceNumber + 1;
     packet_feedback_vector[1].sent_packet.size = kPayloadSize + 10;
     return packet_feedback_vector;
 }
