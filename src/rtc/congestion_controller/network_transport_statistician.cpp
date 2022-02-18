@@ -68,6 +68,8 @@ std::optional<SentPacket> NetworkTransportStatistician::ProcessSentPacket(const 
                     PLOG_WARNING << "appending acknowledged data for out of order packet. (Diff: "
                                  << diff.ms() << " ms.)";
                 }
+                // The bytes untracked by transport feedback but almost acknowledged by remote,
+                // like the audio packets which might be too small to drop.
                 it->second.sent.prior_unacked_bytes += pending_untracked_bytes_;
                 pending_untracked_bytes_ = 0;
             }
@@ -99,20 +101,21 @@ NetworkTransportStatistician::ProcessTransportFeedback(const rtcp::TransportFeed
         return std::nullopt;
     }
 
-    TransportPacketsFeedback msg;
-    msg.feedback_time = receive_time;
-    msg.prior_in_flight = inflight_bytes_;
-    msg.packet_feedbacks = ParsePacketResults(feedback, receive_time);
-    if (msg.packet_feedbacks.empty()) {
+    Timestamp last_acked_recv_time = Timestamp::MinusInfinity();
+
+    TransportPacketsFeedback report;
+    report.receive_time = receive_time;
+    report.prior_in_flight = inflight_bytes_;
+    if (ParsePacketFeedbacks(feedback, receive_time, report)) {
         return std::nullopt;
     }
 
     auto it = packet_fb_history_.find(last_acked_packet_id_);
     if (it != packet_fb_history_.end()) {
-        msg.first_unacked_send_time = it->second.sent.send_time;
+        report.first_unacked_send_time = it->second.sent.send_time;
     }
-    msg.bytes_in_flight = inflight_bytes_;
-    return msg;
+    report.bytes_in_flight = inflight_bytes_;
+    return report;
 }
 
 // Private methods
@@ -120,9 +123,9 @@ bool NetworkTransportStatistician::IsInFlight(const SentPacket& packet) {
     return packet.packet_id > last_acked_packet_id_;
 }
 
-std::vector<PacketResult> 
-NetworkTransportStatistician::ParsePacketResults(const rtcp::TransportFeedback& feedback,
-                                                 Timestamp receive_time) {
+bool NetworkTransportStatistician::ParsePacketFeedbacks(const rtcp::TransportFeedback& feedback,
+                                                        Timestamp receive_time,
+                                                        TransportPacketsFeedback& report) {
     if (last_timestamp_.IsInfinite()) {
         last_feedback_recv_time_ = receive_time;
     } else {
@@ -136,8 +139,7 @@ NetworkTransportStatistician::ParsePacketResults(const rtcp::TransportFeedback& 
     }
     last_timestamp_ = feedback.GetBaseTime();
 
-    std::vector<PacketResult> packet_results_;
-    packet_results_.reserve(feedback.GetPacketStatusCount());
+    report.packet_feedbacks.reserve(feedback.GetPacketStatusCount());
 
     size_t num_missing_packets = 0;
     TimeDelta packet_offset = TimeDelta::Zero();
@@ -165,18 +167,19 @@ NetworkTransportStatistician::ParsePacketResults(const rtcp::TransportFeedback& 
             continue;
         }
 
-        PacketResult result;
-        result.sent_packet = it->second.sent;
+        PacketResult feedback;
+        feedback.sent_packet = it->second.sent;
         // The packet has been received by the remote peer.
         if (packet.received()) {
             packet_offset += packet.delta();
-            result.recv_time = last_feedback_recv_time_ + packet_offset.RoundDownTo(TimeDelta::Millis(1));
+            feedback.recv_time = last_feedback_recv_time_ + packet_offset.RoundDownTo(TimeDelta::Millis(1));
             // NOTE: The lost packets are not erased from history as they might be
             // reported as received by a later feedback.
             packet_fb_history_.erase(it);
+            report.last_acked_recv_time = std::max(report.last_acked_recv_time, feedback.recv_time);
         }
 
-        packet_results_.push_back(std::move(result));
+        report.packet_feedbacks.push_back(std::move(feedback));
     }
 
     if (num_missing_packets > 0) {
@@ -185,7 +188,7 @@ NetworkTransportStatistician::ParsePacketResults(const rtcp::TransportFeedback& 
                      << ". Send time history too small?";
     }
 
-    return packet_results_;
+    return !report.packet_feedbacks.empty();
 }
 
 } // namespace naivertc

@@ -9,23 +9,32 @@
 
 namespace naivertc {
 
+// The class used to compute a bayesian estimate of the throughput
+// given acks containing the arrival time and acknowledged bytes. 
+// 贝叶斯估计是一种常用的基于观测数据作为参数来预估目标参数的算法，类似的算法还有
+// MLP（最大似然估计）和MAP（最大后延估计）。
+// 贝叶斯估计：假设观测参数服从一种分布，即先验分布。同样目标参数也服从一种分布，
+// 即后验分布，换言之，目标参数是后验分布中的一个随机数。因此可基于先验估计和观测
+// 数据得出后验分布，
 class RTC_CPP_EXPORT BitrateEstimator {
 public:
-    struct Configuration {
+    // Hyperparameter
+    struct Hyperparameter {
         int initial_window_ms = 500;
         int noninitial_window_ms = 150;
         double uncertainty_scale = 10.0;
-        double uncertainty_scale_in_alr = 10.0;
-        double small_sample_uncertainty_scale = 10.0;
+        double uncertainty_scale_in_alr = 20.0;
+        double small_sample_uncertainty_scale = 20.0;
         size_t small_sample_threshold = 0;
         DataRate uncertainty_symmetry_cap = DataRate::Zero();
         DataRate estimate_floor = DataRate::Zero();
     };
+    using Configuration = Hyperparameter;
 public:
     BitrateEstimator(Configuration config);
     virtual ~BitrateEstimator();
 
-    virtual void Update(Timestamp at_time, size_t amount, bool in_alr);
+    virtual void Update(Timestamp at_time, size_t acked_bytes, bool in_alr);
 
     virtual std::optional<DataRate> Estimate() const;
     virtual std::optional<DataRate> PeekRate() const;
@@ -33,12 +42,10 @@ public:
     virtual void ExpectFastRateChange();
 
 private:
-    // Return a pari consisting of the immediate bitrate in kbps and
-    // a bool denoting whether the count of accumulated bytes is small  
-    // than `small_sample_threshold` defined configuration.
-    std::pair<float, bool> CalcImmediateBitrate(int64_t now_ms,
-                                                int bytes,
-                                                int rate_window_ms);
+    float UpdateWindow(int64_t now_ms,
+                       int bytes,
+                       const int rate_window_ms,
+                       bool* is_small_sample);
 
 private:
     const Configuration config_;

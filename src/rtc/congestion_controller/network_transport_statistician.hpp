@@ -34,8 +34,9 @@ public:
 private:
     bool IsInFlight(const SentPacket& packet);
 
-    std::vector<PacketResult> ParsePacketResults(const rtcp::TransportFeedback& feedback,
-                                                Timestamp receive_time);
+    bool ParsePacketFeedbacks(const rtcp::TransportFeedback& feedback,
+                              Timestamp receive_time,
+                              TransportPacketsFeedback& report);
 
 private:
     // PacketFeedback

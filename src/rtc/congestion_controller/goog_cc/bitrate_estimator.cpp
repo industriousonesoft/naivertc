@@ -1,9 +1,6 @@
 #include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
 
-#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 0)
-#if ENABLE_TEST_DEBUG
-#include "testing/defines.hpp"
-#endif
+#include <plog/Log.h>
 
 namespace naivertc {
 namespace {
@@ -29,38 +26,42 @@ BitrateEstimator::BitrateEstimator(Configuration config)
 
 BitrateEstimator::~BitrateEstimator() = default;
 
-void BitrateEstimator::Update(Timestamp at_time, size_t amount, bool in_alr) {
-    int rate_window_ms = config_.noninitial_window_ms;
+void BitrateEstimator::Update(Timestamp at_time, size_t acked_bytes, bool in_alr) {
     // We use a larger window at the beginning to get a more
     // stable sample that we can use to initialize the estimate.
-    if (bitrate_estimate_kbps_ < 0.f) {
-        rate_window_ms = config_.initial_window_ms;
-    }
-    
-    auto [immediate_bitrate_kbps, is_small_sample] = CalcImmediateBitrate(at_time.ms(), amount, rate_window_ms);
-    if (immediate_bitrate_kbps < 0.0f) { 
+    int rate_window_ms = bitrate_estimate_kbps_ < 0.0f ? config_.initial_window_ms 
+                                                       : config_.noninitial_window_ms;
+
+    // Indicates if we just get a small amout of bytes 
+    // to do estimation during the rate window.
+    bool is_small_sample = false;
+    auto bitrate_sample_kbps = UpdateWindow(at_time.ms(), acked_bytes, rate_window_ms, &is_small_sample);
+    // Waits more sample to do estimation.
+    if (bitrate_sample_kbps < 0.0f) { 
         return;
     }
     if (bitrate_estimate_kbps_ < 0.0f) {
-        // This is the very first sample we get. Use it to initialize the estimate.
-        bitrate_estimate_kbps_ = immediate_bitrate_kbps;
+        // This is the very first bitrate sample we get. 
+        // Use it to initialize the estimate.
+        bitrate_estimate_kbps_ = bitrate_sample_kbps;
         return;
     }
-    // Optionally use higher uncertainly for very small samples to avoid dropping
-    // estimate and for samples obtained in ALR.
+    // Optionally use higher scale for very small samples to avoid
+    // dropping estimate and for samples obtained in ALR.
     float scale = config_.uncertainty_scale;
-    if (is_small_sample && immediate_bitrate_kbps < bitrate_estimate_kbps_) {
-        scale = config_.small_sample_uncertainty_scale;
-    } else if (in_alr && immediate_bitrate_kbps < bitrate_estimate_kbps_) {
-        // Optionally use higher uncertainty for samples obtained during ALR.
-        scale = config_.uncertainty_scale_in_alr;
+    if (bitrate_sample_kbps < bitrate_estimate_kbps_) {
+        if (is_small_sample) {
+            scale = config_.small_sample_uncertainty_scale;
+        } else if (in_alr) {
+            scale = config_.uncertainty_scale_in_alr;
+        }
     }
     // Define the sample uncertainty as a function of how far away it is from the
-    // current estimate. With low values of uncertainty_symmetry_cap we add more
+    // current estimate. With low values of |uncertainty_symmetry_cap| we add more
     // uncertainty to increases than to decreases. For higher values we approach
     // symmetry.
-    float sample_uncertainty = scale * std::abs(bitrate_estimate_kbps_ - immediate_bitrate_kbps) /
-                               (bitrate_estimate_kbps_ + std::min(immediate_bitrate_kbps, config_.uncertainty_symmetry_cap.kbps<float>()));
+    float sample_uncertainty = scale * std::abs(bitrate_estimate_kbps_ - bitrate_sample_kbps) /
+                               (bitrate_estimate_kbps_ + std::min(bitrate_sample_kbps, config_.uncertainty_symmetry_cap.kbps<float>()));
     
     float sample_var = sample_uncertainty * sample_uncertainty;
     // Update a bayesian estimate of the rate, weighting it lower if the sample
@@ -70,7 +71,7 @@ void BitrateEstimator::Update(Timestamp at_time, size_t amount, bool in_alr) {
     // FIXME: How to understand the formula below?
     float pred_bitrate_estimate_var = bitrate_estimate_var_ + 5.f;
     bitrate_estimate_kbps_ = (sample_var * bitrate_estimate_kbps_ +
-                              pred_bitrate_estimate_var * immediate_bitrate_kbps) /
+                              pred_bitrate_estimate_var * bitrate_sample_kbps) /
                               (sample_var + pred_bitrate_estimate_var);
     bitrate_estimate_kbps_ = std::max(bitrate_estimate_kbps_, config_.estimate_floor.kbps<float>());
     bitrate_estimate_var_ = sample_var * pred_bitrate_estimate_var / 
@@ -99,9 +100,11 @@ void BitrateEstimator::ExpectFastRateChange() {
 }
 
 // Private methods
-std::pair<float, bool> BitrateEstimator::CalcImmediateBitrate(int64_t now_ms,
-                                                              int bytes,
-                                                              int rate_window_ms) {
+float BitrateEstimator::UpdateWindow(int64_t now_ms,
+                                     int bytes,
+                                     const int rate_window_ms,
+                                     bool* is_small_sample) {
+    // The incoming sample is not the first one.
     if (prev_time_ms_) {
         // Reset if time moves backwards.
         if (now_ms < *prev_time_ms_) {
@@ -109,32 +112,32 @@ std::pair<float, bool> BitrateEstimator::CalcImmediateBitrate(int64_t now_ms,
             accumulated_bytes_ = 0;
             curr_window_ms_ = 0;
         } else {
+            // The time elapsed since the last sample.
             int elapsed_time_ms = static_cast<int>(now_ms - *prev_time_ms_);
             curr_window_ms_ += elapsed_time_ms;
             // Reset if nothing has been received for more than a full window.
             if (elapsed_time_ms > rate_window_ms) {
                 accumulated_bytes_ = 0;
+                // Regards the current sample as the first one in the new window.
                 curr_window_ms_ %= rate_window_ms;
             }
         }
     }
     prev_time_ms_ = now_ms;
-    float immediate_bitrate_kbps = -1.0f;
-    bool is_small_sample = false;
-    // Calculate the immediate bitrate every full window. 
+    float bitrate_sample_kbps = -1.0f;
+    // Checks if we can calculate the new bitrate sample.
     if (curr_window_ms_ >= rate_window_ms) {
-        is_small_sample = accumulated_bytes_ < config_.small_sample_threshold;
-        immediate_bitrate_kbps = 8.0f * accumulated_bytes_ / static_cast<float>(rate_window_ms);
+        *is_small_sample = accumulated_bytes_ < config_.small_sample_threshold;
+        bitrate_sample_kbps = 8.0f * accumulated_bytes_ / static_cast<float>(rate_window_ms);
+        PLOG_INFO << "Estimated bitrate=" << bitrate_sample_kbps 
+                  << " kbps with accumulated bytes=" << accumulated_bytes_
+                  << " during rate window: " << rate_window_ms 
+                  << " ms."<< std::endl;
         curr_window_ms_ -= rate_window_ms;
         accumulated_bytes_ = 0;
-#if ENABLE_TEST_DEBUG
-        GTEST_COUT << "Estimated bitrate: " << immediate_bitrate_kbps << " kbps - "
-                   << "at_time: " << now_ms 
-                   << std::endl;
-#endif
     }
     accumulated_bytes_ += bytes;
-    return {immediate_bitrate_kbps, is_small_sample};
+    return bitrate_sample_kbps;
 }
     
 } // namespace naivertc

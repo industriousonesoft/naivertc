@@ -86,20 +86,20 @@ TimeDelta SendSideBwe::rtt() const {
 void SendSideBwe::OnBitrates(std::optional<DataRate> send_bitrate,
                              DataRate min_bitrate,
                              DataRate max_bitrate,
-                             Timestamp at_time) {
+                             Timestamp report_time) {
     if (send_bitrate) {
         linker_capacity_tracker_.OnStartingBitrate(*send_bitrate);
-        OnSendBitrate(*send_bitrate, at_time);
+        OnSendBitrate(*send_bitrate, report_time);
     }
     SetBitrateBoundary(min_bitrate, max_bitrate);
 }
 
 void SendSideBwe::OnSendBitrate(DataRate bitrate,
-                                Timestamp at_time) {
+                                Timestamp report_time) {
     if (bitrate > DataRate::Zero()) {
         // Reset to avoid being caped by the estimate.
         delay_based_limit_ = DataRate::PlusInfinity();
-        UpdateTargetBitrate(bitrate, at_time);
+        UpdateTargetBitrate(bitrate, report_time);
         // Clear last sent bitrate history so the new bitrate can
         // be used directly and not capped.
         min_bitrate_history_.clear();
@@ -107,24 +107,24 @@ void SendSideBwe::OnSendBitrate(DataRate bitrate,
 }
 
 void SendSideBwe::OnDelayBasedBitrate(DataRate bitrate,
-                                      Timestamp at_time) {
-    linker_capacity_tracker_.OnDelayBasedEstimate(bitrate, at_time);
+                                      Timestamp report_time) {
+    linker_capacity_tracker_.OnDelayBasedEstimate(bitrate, report_time);
     delay_based_limit_ = bitrate.IsZero() ? DataRate::PlusInfinity()
                                           : bitrate;
-    ApplyLimits(at_time);
+    ApplyLimits(report_time);
 }
 
 void SendSideBwe::OnAcknowledgeBitrate(std::optional<DataRate> ack_bitrate,
-                                       Timestamp at_time) {
+                                       Timestamp report_time) {
     ack_bitrate_ = ack_bitrate;
     if (ack_bitrate && loss_based_bwe_) {
-        loss_based_bwe_->OnAcknowledgedBitrate(*ack_bitrate, at_time);
+        loss_based_bwe_->OnAcknowledgedBitrate(*ack_bitrate, report_time);
     }
 }
 
 void SendSideBwe::OnPropagationRtt(TimeDelta rtt,
-                                   Timestamp at_time) {
-    rtt_backoff_.Update(rtt, at_time);
+                                   Timestamp report_time) {
+    rtt_backoff_.Update(rtt, report_time);
 }
 
 void SendSideBwe::OnSentPacket(const SentPacket& sent_packet) {
@@ -132,23 +132,22 @@ void SendSideBwe::OnSentPacket(const SentPacket& sent_packet) {
 }
 
 void SendSideBwe::OnRemb(DataRate bitrate,
-                         Timestamp at_time) {
+                         Timestamp report_time) {
     remb_limit_ = bitrate.IsZero() ? DataRate::PlusInfinity()
                                    : bitrate;
-    ApplyLimits(at_time);
+    ApplyLimits(report_time);
 }
 
-void SendSideBwe::OnPacketsLost(int64_t num_of_packets_lost,
-                                int64_t num_of_packets,
-                                Timestamp at_time) {
+void SendSideBwe::OnPacketsLost(int64_t num_packets_lost,
+                                int64_t num_packets,
+                                Timestamp report_time) {
     if (time_first_report_.IsInfinite()) {
-        time_first_report_ = at_time;
+        time_first_report_ = report_time;
     }
-
     // Check sequence number diff and weight loss report.
-    if (num_of_packets > 0) {
-        accumulated_packets_ += num_of_packets;
-        accumulated_lost_packets_ += num_of_packets_lost;
+    if (num_packets > 0) {
+        accumulated_packets_ += num_packets;
+        accumulated_lost_packets_ += num_packets_lost;
 
         // Don't generate a loss rate until it can be based on enough packets.
         if (accumulated_packets_ < kLimitNumPackets) {
@@ -160,28 +159,28 @@ void SendSideBwe::OnPacketsLost(int64_t num_of_packets_lost,
         // Reset accumulator.
         accumulated_lost_packets_ = 0;
         accumulated_packets_ = 0;
-        time_last_fraction_loss_update_ = at_time;
+        time_last_fraction_loss_update_ = report_time;
         has_decreased_since_last_fraction_loss_ = false;
-        UpdateEstimate(at_time);
+        UpdateEstimate(report_time);
     }
-    UpdateUmaStats(num_of_packets_lost, at_time);
+    UpdateUmaStats(num_packets_lost, report_time);
 }
                 
 void SendSideBwe::OnRtt(TimeDelta rtt,
-                        Timestamp at_time) {
+                        Timestamp report_time) {
     // Update RTT if we were able to compute an RTT based on this RTCP.
     // FlexFEC doesn't send RTCP SR, which means we won't be able to compute RTT.
     if (rtt > TimeDelta::Zero()) {
         last_rtt_ = rtt;
     }
-    if (IsInStartPhase(at_time) && uma_rtt_state_ == NO_UPDATE) {
+    if (IsInStartPhase(report_time) && uma_rtt_state_ == NO_UPDATE) {
         uma_rtt_state_ = DONE;
     }
 }
 
 void SendSideBwe::IncomingPacketFeedbacks(const TransportPacketsFeedback& report) {
     if (loss_based_bwe_) {
-        loss_based_bwe_->IncomingFeedbacks(report.packet_feedbacks, report.feedback_time);
+        loss_based_bwe_->IncomingFeedbacks(report.packet_feedbacks, report.receive_time);
     }
 }
 
@@ -195,26 +194,26 @@ void SendSideBwe::SetBitrateBoundary(DataRate min_bitrate,
     }
 }
 
-void SendSideBwe::UpdateEstimate(Timestamp at_time) {
+void SendSideBwe::UpdateEstimate(Timestamp report_time) {
     // If the RTT that is esitmated right now is upper the limit,
     // which means that congestion has detected.
     // And we will decrease the bitrate if we could.
     if (rtt_backoff_.CorrectedRtt() > config_.rtt_limit) {
         // Not do drop too aften and make sure there has space to drop.
-        if (at_time - time_last_decrease_ >= config_.drop_interval &&
+        if (report_time - time_last_decrease_ >= config_.drop_interval &&
             curr_bitrate_ > config_.bandwidth_floor) {
-            time_last_decrease_ = at_time;
+            time_last_decrease_ = report_time;
             DataRate new_bitrate = std::max(curr_bitrate_ * config_.drop_factor,
                                             config_.bandwidth_floor);
-            linker_capacity_tracker_.OnRttBasedEstimate(new_bitrate, at_time);
-            UpdateTargetBitrate(new_bitrate, at_time);
+            linker_capacity_tracker_.OnRttBasedEstimate(new_bitrate, report_time);
+            UpdateTargetBitrate(new_bitrate, report_time);
         }
         return;
     }
 
     // We choose to trust the REMB and/or delay-based estimate during the start phase (2s)
     // if we haven't had any packet loss reported, to allow startup bitrate probing.
-    if (last_fraction_loss_ == 0 && IsInStartPhase(at_time)) {
+    if (last_fraction_loss_ == 0 && IsInStartPhase(report_time)) {
         DataRate new_bitrate = curr_bitrate_;
 
         if (remb_limit_.IsFinite()) {
@@ -231,15 +230,15 @@ void SendSideBwe::UpdateEstimate(Timestamp at_time) {
         if (new_bitrate != curr_bitrate_) {
             min_bitrate_history_.clear();
             if (loss_based_bwe_) {
-                min_bitrate_history_.push_back({at_time, new_bitrate});
+                min_bitrate_history_.push_back({report_time, new_bitrate});
             } else {
-                min_bitrate_history_.push_back({at_time, curr_bitrate_});
+                min_bitrate_history_.push_back({report_time, curr_bitrate_});
             }
-            UpdateTargetBitrate(new_bitrate, at_time);
+            UpdateTargetBitrate(new_bitrate, report_time);
             return;
         }
     } 
-    UpdateMinHistory(curr_bitrate_, at_time);
+    UpdateMinHistory(curr_bitrate_, report_time);
 
     // No loss information updated yet.
     if (time_last_fraction_loss_update_.IsInfinite()) {
@@ -250,14 +249,14 @@ void SendSideBwe::UpdateEstimate(Timestamp at_time) {
         auto esimate = loss_based_bwe_->Estimate(min_bitrate_history_.front().second,
                                                  delay_based_limit_,
                                                  last_rtt_,
-                                                 at_time);
+                                                 report_time);
         if (esimate) {
-            UpdateTargetBitrate(*esimate, at_time);
+            UpdateTargetBitrate(*esimate, report_time);
             return;
         }
     }
 
-    TimeDelta elapsed_time = at_time - time_last_fraction_loss_update_;
+    TimeDelta elapsed_time = report_time - time_last_fraction_loss_update_;
     // The loss information has updated since last time is still valid.
     if (elapsed_time < 1.2 * kMaxRtcpFeedbackInterval) {
         // We only care about loss above a given bitrate threshold.
@@ -282,7 +281,7 @@ void SendSideBwe::UpdateEstimate(Timestamp at_time) {
             // (gives a little extra increase at low rates, negligible at higher
             // rates).
             new_bitrate += DataRate::KilobitsPerSec(1);
-            UpdateTargetBitrate(new_bitrate, at_time);
+            UpdateTargetBitrate(new_bitrate, report_time);
             return;
         } else if (curr_bitrate_ > bitrate_threshold_) {
             if (loss_ratio <= high_loss_threshold_) {
@@ -290,13 +289,13 @@ void SendSideBwe::UpdateEstimate(Timestamp at_time) {
             } else {
                 // Loss ratio > 10%: Limit the rate decreases to once a kBweDecreaseInterval + RTT.
                 if (!has_decreased_since_last_fraction_loss_ &&
-                    (at_time-time_last_decrease_) > (kBweDecreaseInterval + last_rtt_)) {
-                    time_last_decrease_ = at_time;
+                    (report_time-time_last_decrease_) > (kBweDecreaseInterval + last_rtt_)) {
+                    time_last_decrease_ = report_time;
 
                     // Reduce bitrate: new_bitrate = curr_bitrate * (1 - 0.5 * loss_ratio)
                     DataRate new_bitrate = DataRate::BitsPerSec(curr_bitrate_.bps() * static_cast<double>((512 - last_fraction_loss_) / 512.0));
                     has_decreased_since_last_fraction_loss_ = true;
-                    UpdateTargetBitrate(new_bitrate, at_time);
+                    UpdateTargetBitrate(new_bitrate, report_time);
                     return;
                 }
             }
@@ -325,30 +324,30 @@ DataRate SendSideBwe::Clamp(DataRate bitrate) const {
 }
 
 void SendSideBwe::UpdateTargetBitrate(DataRate bitrate, 
-                                      Timestamp at_time) {
+                                      Timestamp report_time) {
     curr_bitrate_ = Clamp(bitrate);
     // Make sure that we have measured a throughput before updating the link capacity.
     if (ack_bitrate_) {
-        linker_capacity_tracker_.Update(std::min(*ack_bitrate_, curr_bitrate_), at_time);
+        linker_capacity_tracker_.Update(std::min(*ack_bitrate_, curr_bitrate_), report_time);
     }
 }
 
-void SendSideBwe::ApplyLimits(Timestamp at_time) {
-    UpdateTargetBitrate(curr_bitrate_, at_time);
+void SendSideBwe::ApplyLimits(Timestamp report_time) {
+    UpdateTargetBitrate(curr_bitrate_, report_time);
 }
 
-bool SendSideBwe::IsInStartPhase(Timestamp at_time) const {
+bool SendSideBwe::IsInStartPhase(Timestamp report_time) const {
     return time_first_report_.IsInfinite() ||
-           at_time - time_first_report_ < kStartPhase;
+           report_time - time_first_report_ < kStartPhase;
 }
 
-void SendSideBwe::UpdateMinHistory(DataRate bitrate, Timestamp at_time) {
+void SendSideBwe::UpdateMinHistory(DataRate bitrate, Timestamp report_time) {
     // Remove old data points from history.
     // Since history precision is in ms, add one so it is able to 
     // increase bitrate if it is off by as little as 0.5ms.
     const TimeDelta percision_correction = TimeDelta::Millis(1);
     while (!min_bitrate_history_.empty() && 
-           at_time - min_bitrate_history_.front().first + percision_correction > kBweIncreaseInterval) {
+           report_time - min_bitrate_history_.front().first + percision_correction > kBweIncreaseInterval) {
         min_bitrate_history_.pop_front();
     }
 
@@ -359,11 +358,11 @@ void SendSideBwe::UpdateMinHistory(DataRate bitrate, Timestamp at_time) {
         min_bitrate_history_.pop_back();
     }
 
-    min_bitrate_history_.push_back({at_time, bitrate});
+    min_bitrate_history_.push_back({report_time, bitrate});
 
 }
 
-void SendSideBwe::UpdateUmaStats(int packet_lost, Timestamp at_time) {
+void SendSideBwe::UpdateUmaStats(int packet_lost, Timestamp report_time) {
     // FIXME: |curr_bitrate_| should be finite, but it's not?
     DataRate bitrate = curr_bitrate_;
     for (size_t i = 0; i < kNumUmaRampupMetrics; ++i) {
@@ -373,13 +372,13 @@ void SendSideBwe::UpdateUmaStats(int packet_lost, Timestamp at_time) {
         }
     }
 
-    if (IsInStartPhase(at_time)) {
+    if (IsInStartPhase(report_time)) {
         initially_loss_packets_ += packet_lost;
     } else if (uma_update_state_ == UmaState::NO_UPDATE) {
         uma_update_state_ = UmaState::FIRST_DONE;
         bitrate_at_start_ = bitrate;
     } else if (uma_update_state_ == UmaState::FIRST_DONE &&
-               at_time - time_first_report_ >= kBweConverganceTime) {
+               report_time - time_first_report_ >= kBweConverganceTime) {
         uma_update_state_ = UmaState::DONE;
     }
 }

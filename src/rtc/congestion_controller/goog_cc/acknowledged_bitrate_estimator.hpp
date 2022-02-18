@@ -11,6 +11,8 @@
 
 namespace naivertc {
 
+// This class estimate the acknowledged bitrate based on 
+// the packets acknowledged by receiver
 class RTC_CPP_EXPORT AcknowledgedBitrateEstimator {
 public:
     static std::unique_ptr<AcknowledgedBitrateEstimator> Create(BitrateEstimator::Configuration config);
@@ -18,7 +20,9 @@ public:
     AcknowledgedBitrateEstimator(std::unique_ptr<BitrateEstimator> bitrate_estimator);
     ~AcknowledgedBitrateEstimator();
 
+    // Indicates if we are in Application Limit Region or not.
     void set_in_alr(bool in_alr);
+    // The time to end Application Limit Region.
     void set_alr_ended_time(Timestamp alr_ended_time);
 
     void IncomingPacketFeedbacks(const std::vector<PacketResult>& packet_feedbacks);

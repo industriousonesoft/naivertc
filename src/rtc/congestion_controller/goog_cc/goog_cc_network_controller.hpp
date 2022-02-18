@@ -34,6 +34,8 @@ public:
 private:
     void MaybeTriggerOnNetworkChanged(NetworkControlUpdate* update, Timestamp at_time);
 
+    bool TimeToUpdateLoss(Timestamp at_time);
+
 private:
     // Fixed variables
     const bool packet_feedback_only_;
@@ -44,7 +46,7 @@ private:
 
     std::unique_ptr<SendSideBwe> send_side_bwe_;
     std::unique_ptr<DelayBasedBwe> delay_based_bwe_;
-    std::unique_ptr<AcknowledgedBitrateEstimator> ack_bitrate_estimator_;
+    std::unique_ptr<AcknowledgedBitrateEstimator> acknowledged_bitrate_estimator_;
     std::unique_ptr<ProbeBitrateEstimator> probe_bitrate_estimator_;
 
     DataRate min_target_bitrate = DataRate::Zero();
@@ -54,9 +56,9 @@ private:
 
     bool first_packet_sent_ = false;
 
-    Timestamp time_next_loss_update_ = Timestamp::MinusInfinity();
+    Timestamp time_to_next_loss_update_ = Timestamp::MinusInfinity();
     int lost_packets_since_last_loss_update_ = 0;
-    int expected_packets_since_last_loss_update_ = 0;
+    int received_packets_since_last_loss_update_ = 0;
 
     std::deque<int64_t> feedback_max_rtts_;
 

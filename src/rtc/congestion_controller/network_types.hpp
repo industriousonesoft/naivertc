@@ -53,9 +53,9 @@ struct RTC_CPP_EXPORT ReceivedPacket {
 // Transport level feedback
 
 struct RTC_CPP_EXPORT TransportLossReport {
-  Timestamp receive_time = Timestamp::PlusInfinity();
-  uint64_t num_packets_lost = 0;
-  uint64_t num_packets = 0;
+    Timestamp receive_time = Timestamp::PlusInfinity();
+    uint64_t num_packets_lost = 0;
+    uint64_t num_packets = 0;
 };
 
 // Packet level feedback
@@ -76,8 +76,10 @@ struct RTC_CPP_EXPORT PacketResult {
 
 // TransportPacketsFeedback
 struct RTC_CPP_EXPORT TransportPacketsFeedback {
-    Timestamp feedback_time = Timestamp::PlusInfinity();
+    Timestamp receive_time = Timestamp::PlusInfinity();
     Timestamp first_unacked_send_time = Timestamp::PlusInfinity();
+    // The receive time of the last acknowledged packet.
+    Timestamp last_acked_recv_time = Timestamp::MinusInfinity();
     size_t bytes_in_flight = 0;
     size_t prior_in_flight = 0;
     std::vector<PacketResult> packet_feedbacks;
@@ -86,9 +88,8 @@ struct RTC_CPP_EXPORT TransportPacketsFeedback {
     std::vector<Timestamp> sendless_arrival_times;
 
     // Helper methods
-    std::vector<PacketResult> ReceivedWithSendInfo() const;
-    std::vector<PacketResult> LostWithSendInfo() const;
-    std::vector<PacketResult> PacketsWithFeedback() const;
+    std::vector<PacketResult> ReceivedPackets() const;
+    std::vector<PacketResult> LostPackets() const;
     std::vector<PacketResult> SortedByReceiveTime() const;
 };
 

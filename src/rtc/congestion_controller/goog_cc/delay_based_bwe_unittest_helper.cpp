@@ -148,7 +148,7 @@ void T(DelayBasedBweTest)::IncomingFeedback(int64_t recv_time_ms,
     }
 
     TransportPacketsFeedback msg;
-    msg.feedback_time = Timestamp::Millis(clock_.now_ms());
+    msg.receive_time = Timestamp::Millis(clock_.now_ms());
     msg.packet_feedbacks.emplace_back(std::move(packet_feedback));
     ack_bitrate_estimator_->IncomingPacketFeedbacks(msg.SortedByReceiveTime());
     DelayBasedBwe::Result ret = bandwidth_estimator_->IncomingPacketFeedbacks(msg, 
@@ -186,7 +186,7 @@ bool T(DelayBasedBweTest)::GenerateAndProcessFrame(uint32_t ssrc, uint32_t bitra
     ack_bitrate_estimator_->IncomingPacketFeedbacks(packets);
     TransportPacketsFeedback msg;
     msg.packet_feedbacks = packets;
-    msg.feedback_time = Timestamp::Millis(clock_.now_ms());
+    msg.receive_time = Timestamp::Millis(clock_.now_ms());
 
     DelayBasedBwe::Result ret = bandwidth_estimator_->IncomingPacketFeedbacks(msg,
                                                                               ack_bitrate_estimator_->Estimate(),

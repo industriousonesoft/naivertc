@@ -51,11 +51,11 @@ void DelayBasedBwe::SetMinBitrate(DataRate min_bitrate) {
     rate_control_.SetMinBitrate(min_bitrate);
 }
 
-DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPacketsFeedback& packets_feedback_info,
+DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPacketsFeedback& feedback_report,
                                                              std::optional<DataRate> acked_bitrate,
                                                              std::optional<DataRate> probe_bitrate,
                                                              bool in_alr) {
-    auto packet_feedbacks = packets_feedback_info.SortedByReceiveTime();
+    auto packet_feedbacks = feedback_report.SortedByReceiveTime();
     // TODO: An empty feedback vector here likely means that
     // all acks were too late and that the send time history had
     // timed out. We should reduce the rate when this occurs.
@@ -70,7 +70,7 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPack
     for (const auto& packet_feedback : packet_feedbacks) {
         delayed_feedback = false;
         // Detect the current bandwidth usage.
-        auto curr_state = Detect(packet_feedback, packets_feedback_info.feedback_time);
+        auto curr_state = Detect(packet_feedback, feedback_report.receive_time);
         if (prev_state == BandwidthUsage::UNDERUSING &&
             curr_state == BandwidthUsage::NORMAL) {
 #if ENABLE_TEST_DEBUG
@@ -89,7 +89,7 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPack
     }
 
     rate_control_.set_in_alr(in_alr);
-    return MaybeUpdateEstimate(acked_bitrate, probe_bitrate, recovered_from_overuse, in_alr, packets_feedback_info.feedback_time);
+    return MaybeUpdateEstimate(acked_bitrate, probe_bitrate, recovered_from_overuse, in_alr, feedback_report.receive_time);
 }
 
 std::pair<DataRate, bool> DelayBasedBwe::LatestEstimate() const {

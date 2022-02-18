@@ -24,6 +24,8 @@ constexpr float kDefaultPaceMultiplier = 2.5f;
 // However, if we actually are overusing, we want to drop to something slightly
 // below the current throughput estimate to drain the network queues.
 constexpr double kProbeDropThroughputFraction = 0.85;
+
+constexpr size_t kMaxFeedbackRttWindow = 32;
     
 } // namespace
 
@@ -36,7 +38,7 @@ GoogCcNetworkController::GoogCcNetworkController(Configuration config)
       loss_based_stable_bitrate_(false),
       send_side_bwe_(std::make_unique<SendSideBwe>(SendSideBwe::Configuration())),
       delay_based_bwe_(std::make_unique<DelayBasedBwe>(DelayBasedBwe::Configuration())),
-      ack_bitrate_estimator_(AcknowledgedBitrateEstimator::Create(BitrateEstimator::Configuration())),
+      acknowledged_bitrate_estimator_(AcknowledgedBitrateEstimator::Create(BitrateEstimator::Configuration())),
       probe_bitrate_estimator_(std::make_unique<ProbeBitrateEstimator>()),
       last_loss_based_target_bitrate_(config.constraints.starting_bitrate.value_or(DataRate::Zero())),
       last_stable_target_bitrate_(last_loss_based_target_bitrate_),
@@ -127,27 +129,40 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
     }
     TimeDelta max_feedback_rtt = TimeDelta::MinusInfinity();
     TimeDelta min_propagation_rtt = TimeDelta::PlusInfinity();
-    Timestamp max_recv_time = Timestamp::MinusInfinity();
-
-    std::vector<PacketResult> feedbacks = report.ReceivedWithSendInfo();
-    for (const auto& feedback : feedbacks) {
-        max_recv_time = std::max(max_recv_time, feedback.recv_time);
-    }
-
-    for (const auto& feedback : feedbacks) {
-        TimeDelta feedback_rtt = report.feedback_time - feedback.sent_packet.send_time;
-        TimeDelta min_pending_time = feedback.recv_time - max_recv_time;
-        TimeDelta propagation_rtt = feedback_rtt - min_pending_time;
+    size_t num_packets_received = 0;
+  
+    std::vector<PacketResult> received_packets = report.ReceivedPackets();
+    for (const auto& packet : received_packets) {
+        // Calculate propagation RTT: 
+        // propagation_rtt = (report.recv_time - packet.send_time) - (last_packet.recv_time - packet.recv_time)
+        //                    |              |
+        // packet.send_time   +__            |
+        //                    |  \________   |
+        //                    |           \__+  packet.recv_time
+        //                    |              |
+        //                    |              | -> pending_time
+        //                    |              |
+        //                    |            __+  last_packet.recv_time
+        //                    |   ________/  |
+        // report.recv_time   +__/           |
+        //                    |              |
+        TimeDelta feedback_rtt = report.receive_time - packet.sent_packet.send_time;
+        // NOTE: Fixed a bug to calcualte propagation RTT.
+        // see: https://bugs.chromium.org/p/webrtc/issues/detail?id=13106&q=&can=1
+        TimeDelta pending_time = report.last_acked_recv_time - packet.recv_time;
+        TimeDelta propagation_rtt = feedback_rtt - pending_time;
         max_feedback_rtt = std::max(max_feedback_rtt, feedback_rtt);
         min_propagation_rtt = std::min(min_propagation_rtt, propagation_rtt);
+        num_packets_received += 1;
     }
 
+    // Update progation RTT.
     if (max_feedback_rtt.IsFinite()) {
         feedback_max_rtts_.push_back(max_feedback_rtt.ms());
-        const size_t kMaxFeedbackRttWindow = 32;
+        // Start to update the propagation RTT once reaching a certain amount.
         if (feedback_max_rtts_.size() > kMaxFeedbackRttWindow) {
             feedback_max_rtts_.pop_front();
-            send_side_bwe_->OnPropagationRtt(min_propagation_rtt, report.feedback_time);
+            send_side_bwe_->OnPropagationRtt(min_propagation_rtt, report.receive_time);
         }
     }
 
@@ -161,53 +176,46 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
             }
         }
 
-        TimeDelta feedback_min_rtt = TimeDelta::PlusInfinity();
-        for (const auto& packet_feedback : feedbacks) {
-            TimeDelta pending_time = packet_feedback.recv_time - max_recv_time;
-            TimeDelta rtt = report.feedback_time - packet_feedback.sent_packet.send_time - pending_time;
-            // Value used for predicting NACK round trip time in FEC
-            feedback_min_rtt = std::min(rtt, feedback_min_rtt);
-        }
-        if (feedback_min_rtt.IsFinite()) {
-            send_side_bwe_->OnRtt(feedback_min_rtt, report.feedback_time);
+        if (min_propagation_rtt.IsFinite()) {
+            // Used to predict NACK round trip time in FEC controller.
+            send_side_bwe_->OnRtt(min_propagation_rtt, report.receive_time);
         }
 
         // Loss information
-        expected_packets_since_last_loss_update_ += report.PacketsWithFeedback().size();
-        for (const auto& packet_feedback : report.PacketsWithFeedback()) {
-            if (packet_feedback.IsLost()) {
-                lost_packets_since_last_loss_update_ += 1;
-            }
-        }
-        if (report.feedback_time > time_next_loss_update_) {
-            time_next_loss_update_ = report.feedback_time + kLossUpdateInterval;
-            send_side_bwe_->OnPacketsLost(lost_packets_since_last_loss_update_, expected_packets_since_last_loss_update_, report.feedback_time);
-            expected_packets_since_last_loss_update_ = 0;
+        received_packets_since_last_loss_update_ += report.packet_feedbacks.size();
+        lost_packets_since_last_loss_update_ += (report.packet_feedbacks.size() - num_packets_received);
+        // Time to update loss info.
+        if (TimeToUpdateLoss(report.receive_time)) {
+            send_side_bwe_->OnPacketsLost(/*num_packets_lost=*/lost_packets_since_last_loss_update_, 
+                                          /*num_packets*/received_packets_since_last_loss_update_, 
+                                          report.receive_time);
+            // Reset loss info after updating.
+            received_packets_since_last_loss_update_ = 0;
             lost_packets_since_last_loss_update_ = 0;
         }
     }
 
-    auto feeback_packets = report.SortedByReceiveTime();
-    ack_bitrate_estimator_->IncomingPacketFeedbacks(feeback_packets);
-    auto ack_bitrate = ack_bitrate_estimator_->Estimate();
-    send_side_bwe_->OnAcknowledgeBitrate(ack_bitrate, report.feedback_time);
+    auto sorted_received_packets = report.SortedByReceiveTime();
+    acknowledged_bitrate_estimator_->IncomingPacketFeedbacks(sorted_received_packets);
+    auto acknowledged_bitrate = acknowledged_bitrate_estimator_->Estimate();
+    send_side_bwe_->OnAcknowledgeBitrate(acknowledged_bitrate, report.receive_time);
 
     send_side_bwe_->IncomingPacketFeedbacks(report);
-    for (const auto& feedback : feeback_packets) {
+    // Ready to estimate the probe birate.
+    for (const auto& feedback : sorted_received_packets) {
         if (feedback.sent_packet.pacing_info.probe_cluster) {
             probe_bitrate_estimator_->IncomingProbePacketFeedback(feedback);
         }
     }
-
     auto probe_bitrate = probe_bitrate_estimator_->Estimate();
-    if (limit_probes_lower_than_throughput_estimate_ && probe_bitrate && ack_bitrate) {
+    if (limit_probes_lower_than_throughput_estimate_ && probe_bitrate && acknowledged_bitrate) {
         // Limit the backoff to slightly below the acknowledged bitrate, because we want 
         // to drain the queues if we are actually overusing.
-        auto backoffed_ack_bitrate = ack_bitrate.value() * kProbeDropThroughputFraction;
+        auto backoff_bitrate = acknowledged_bitrate.value() * kProbeDropThroughputFraction;
         // The acknowledged bitrate shouldn't normally be higher than the delay based estimate,
         // but it could happen (e.g. due to packet bursts or encoder overshoot.). we use
         // std::min to ensure a probe bitrate below the current BWE never causes an increase.
-        DataRate curr_bwe = std::min(delay_based_bwe_->last_estimate(), backoffed_ack_bitrate);
+        DataRate curr_bwe = std::min(delay_based_bwe_->last_estimate(), backoff_bitrate);
         // If the probe bitrate lower then the current BWE, using the current BWE instead.
         // Since the probe bitrate has a higher priority than the acknowledged bitrate (in
         // delay_based_bwe) in non-overusing state.
@@ -216,20 +224,22 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
 
     NetworkControlUpdate update;
     auto result = delay_based_bwe_->IncomingPacketFeedbacks(report,
-                                                            ack_bitrate,
+                                                            acknowledged_bitrate,
                                                             probe_bitrate,
                                                             false);
+    // The delay-based estimate has updated.
     if (result.updated) {
         if (result.probe) {
-            send_side_bwe_->OnSendBitrate(result.target_bitrate, report.feedback_time);
+            send_side_bwe_->OnSendBitrate(result.target_bitrate, report.receive_time);
         }
-        send_side_bwe_->OnDelayBasedBitrate(result.target_bitrate, report.feedback_time);
-        MaybeTriggerOnNetworkChanged(&update, report.feedback_time);
+        send_side_bwe_->OnDelayBasedBitrate(result.target_bitrate, report.receive_time);
+        // Update the estimate in the ProbeController, in case we want to probe.
+        MaybeTriggerOnNetworkChanged(&update, report.receive_time);
     }
 
-    
+    // TODO: Implemets Probe controller and ALR detector
     if (result.recovered_from_overuse) {
-
+        
     } else if (result.backoff_in_alr) {
 
     }
@@ -262,6 +272,15 @@ NetworkControlUpdate GoogCcNetworkController::GetNetworkState(Timestamp at_time)
 // Private methods
 void GoogCcNetworkController::MaybeTriggerOnNetworkChanged(NetworkControlUpdate* update, Timestamp at_time) {
 
+}
+
+bool GoogCcNetworkController::TimeToUpdateLoss(Timestamp at_time) {
+    if (at_time.IsFinite() && at_time > time_to_next_loss_update_) {
+        time_to_next_loss_update_ = at_time + kLossUpdateInterval;
+        return true;
+    } else {
+        return false;
+    }
 }
     
 } // namespace naivertc

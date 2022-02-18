@@ -30,12 +30,18 @@ void AcknowledgedBitrateEstimator::IncomingPacketFeedbacks(const std::vector<Pac
                           packet_feedbacks.end(),
                           PacketResult::ReceiveTimeOrder()));
     for (const auto& packet_feedback : packet_feedbacks) {
+        // Checks if the subsequent packets are in ALR or not.
         if (alr_ended_time_ && packet_feedback.sent_packet.send_time > *alr_ended_time_) {
+            // Allows the bitrate to change fast as getting out of ALR.
             bitrate_estimator_->ExpectFastRateChange();
             alr_ended_time_.reset();
         }
+        // Computes the size of packets that have been received by remote.
         size_t acknowledged_packet_size = packet_feedback.sent_packet.size;
+        // Accounts the bytes untracked by transport feedback but acknowledged
+        // by remote with high probability, like the audio packet.
         acknowledged_packet_size += packet_feedback.sent_packet.prior_unacked_bytes;
+        // Try to estimate the ackowledged bitrate.
         bitrate_estimator_->Update(packet_feedback.recv_time, acknowledged_packet_size, in_alr_);
     }
 }

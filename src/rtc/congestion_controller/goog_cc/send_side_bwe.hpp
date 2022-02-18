@@ -33,56 +33,56 @@ public:
     void OnBitrates(std::optional<DataRate> send_bitrate,
                     DataRate min_bitrate,
                     DataRate max_bitrate,
-                    Timestamp at_time);
+                    Timestamp report_time);
 
     void OnSendBitrate(DataRate bitrate,
-                       Timestamp at_time);
+                       Timestamp report_time);
 
     void OnDelayBasedBitrate(DataRate bitrate,
-                             Timestamp at_time);
+                             Timestamp report_time);
 
     void OnAcknowledgeBitrate(std::optional<DataRate> ack_bitrate,
-                              Timestamp at_time);
+                              Timestamp report_time);
 
     void OnPropagationRtt(TimeDelta rtt,
-                          Timestamp at_time);
+                          Timestamp report_time);
 
     void OnSentPacket(const SentPacket& sent_packet);
 
     // Call when we receive a RTCP message with TMMBR or REMB.
     void OnRemb(DataRate bitrate,
-                Timestamp at_time);
+                Timestamp report_time);
 
     // Call when we receive a RTCP message with a RecieveBlock.
-    void OnPacketsLost(int64_t num_of_packets_lost,
-                       int64_t num_of_packets,
-                       Timestamp at_time);
+    void OnPacketsLost(int64_t num_packets_lost,
+                       int64_t num_packets,
+                       Timestamp report_time);
 
     // Call when we receive a RTCP message with a ReceiveBlock.   
     void OnRtt(TimeDelta rtt,
-               Timestamp at_time);
+               Timestamp report_time);
 
     void IncomingPacketFeedbacks(const TransportPacketsFeedback& report);
 
     void SetBitrateBoundary(DataRate min_bitrate,
                             DataRate max_bitrate);
 
-    void UpdateEstimate(Timestamp at_time);
+    void UpdateEstimate(Timestamp report_time);
 
 private:
     // User Metrics Analysis
     enum UmaState { NO_UPDATE, FIRST_DONE, DONE };
 
     DataRate Clamp(DataRate bitrate) const;
-    void ApplyLimits(Timestamp at_time);
+    void ApplyLimits(Timestamp report_time);
     void UpdateTargetBitrate(DataRate bitrate, 
-                             Timestamp at_time);
+                             Timestamp report_time);
 
-    bool IsInStartPhase(Timestamp at_time) const;
+    bool IsInStartPhase(Timestamp report_time) const;
 
-    void UpdateMinHistory(DataRate bitrate, Timestamp at_time);
+    void UpdateMinHistory(DataRate bitrate, Timestamp report_time);
 
-    void UpdateUmaStats(int packet_lost, Timestamp at_time);
+    void UpdateUmaStats(int packet_lost, Timestamp report_time);
 
 private:
     const Configuration config_;
