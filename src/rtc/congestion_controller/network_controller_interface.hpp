@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT NetworkControllerInterface {
+class NetworkControllerInterface {
 public:
     struct Configuration {
         // The initial constraints to start with.

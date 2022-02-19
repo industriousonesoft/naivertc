@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT UlpFecHeaderWriter : public FecHeaderWriter {
+class UlpFecHeaderWriter : public FecHeaderWriter {
 public:
     UlpFecHeaderWriter();
     ~UlpFecHeaderWriter() override;

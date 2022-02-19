@@ -14,7 +14,7 @@ namespace naivertc {
 using RtpVideoCodecHeader = std::variant<std::monostate,
                                          h264::PacketizationInfo>;
 
-class RTC_CPP_EXPORT RtpDepacketizer {
+class RtpDepacketizer {
 public:
     struct Packet {
         RtpVideoHeader video_header;

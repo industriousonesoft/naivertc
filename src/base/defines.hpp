@@ -4,10 +4,6 @@
 #include <cstdint>
 #include <vector>
 
-#ifndef RTC_CPP_EXPORT
-#define RTC_CPP_EXPORT
-#endif
-
 // DISALLOW_COPY_AND_ASSIGN
 #define DISALLOW_COPY_AND_ASSIGN(TypeName)  \
     TypeName(const TypeName&) = delete;     \
@@ -24,7 +20,7 @@ using BinaryBuffer = std::vector<uint8_t>;
 // weak_bind
 // WARNING: weak_bind DO NOT call in a constructor, since weak_from_this() is NOT allowed used in a constructor.
 template <typename F, typename T, typename... Args> 
-RTC_CPP_EXPORT auto weak_bind(F&& f, T* t, Args&& ..._args) {
+auto weak_bind(F&& f, T* t, Args&& ..._args) {
     return [bound = std::bind(f, t, _args...), weak_this = t->weak_from_this()](auto &&...args) {
         if (auto shared_this = weak_this.lock()) {
             return bound(args...);

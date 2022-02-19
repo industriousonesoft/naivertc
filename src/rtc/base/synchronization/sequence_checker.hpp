@@ -11,7 +11,7 @@ namespace naivertc {
 
 // SequenceChecker is a helper class used to help verify that
 // some methods of a class are called on the same task queue.
-class RTC_CPP_EXPORT SequenceChecker {
+class SequenceChecker {
 public:
     // The task queue checker will be attached to the queue 
     // calling this constructor method.

@@ -15,7 +15,7 @@ namespace naivertc {
 // This class is responsible for RTX decapsulation.
 // The resulting media packets are passed on to a sink
 // representing the associated media stream.
-class RTC_CPP_EXPORT RtxReceiveStream : public RtpPacketSink {
+class RtxReceiveStream : public RtpPacketSink {
 public:
     RtxReceiveStream(uint32_t media_ssrc,
                      std::map<int, int> associated_payload_types,

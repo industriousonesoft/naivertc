@@ -8,7 +8,7 @@ namespace naivertc {
 namespace rtcp {
 
 // Receiver Reference Time Report block
-class RTC_CPP_EXPORT Rrtr {
+class Rrtr {
 public:
     static const uint8_t kBlockType = 4;
 public:

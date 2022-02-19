@@ -16,7 +16,7 @@ namespace naivertc {
 // 贝叶斯估计：假设观测参数服从一种分布，即先验分布。同样目标参数也服从一种分布，
 // 即后验分布，换言之，目标参数是后验分布中的一个随机数。因此可基于先验估计和观测
 // 数据得出后验分布，
-class RTC_CPP_EXPORT BitrateEstimator {
+class BitrateEstimator {
 public:
     // Hyperparameter
     struct Hyperparameter {

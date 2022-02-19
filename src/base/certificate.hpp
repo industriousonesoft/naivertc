@@ -12,7 +12,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT Certificate {
+class Certificate {
 public:
     static std::shared_future<std::shared_ptr<Certificate>> MakeCertificate(CertificateType type = CertificateType::DEFAULT);
 public:

@@ -15,7 +15,7 @@ namespace naivertc {
 
 class FecGenerator;
 
-struct RTC_CPP_EXPORT RtpConfiguration {
+struct RtpConfiguration {
     // True for a audio version of the RTP/RTCP module object false will create
     // a video version.
     bool audio = false;
@@ -51,7 +51,7 @@ struct RTC_CPP_EXPORT RtpConfiguration {
     RtpStreamDataCountersObserver* stream_data_counters_observer = nullptr;
 };
 
-struct RTC_CPP_EXPORT RtcpConfiguration {
+struct RtcpConfiguration {
     // True for a audio version of the RTP/RTCP module object false will create
     // a video version.
     bool audio = false;

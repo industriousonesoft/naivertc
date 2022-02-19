@@ -19,7 +19,7 @@ static constexpr size_t kNaluLongStartSequenceSize = 4;
 // that may be used if not the first NALU of an access unit or SPS or PPS blocks.
 static constexpr size_t kNaluShortStartSequenceSize = 3;
 
-struct RTC_CPP_EXPORT NaluIndex {
+struct NaluIndex {
     // Start index of NALU, including start sequence.
     size_t start_offset;
     // Start index of NALU payload, typically type header.

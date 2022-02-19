@@ -20,7 +20,7 @@ class ReportBlock;
 }
 
 // RtpPacketSender
-class RTC_CPP_EXPORT RtpPacketSender {
+class RtpPacketSender {
 public:
     virtual ~RtpPacketSender() = default;
     virtual void EnqueuePackets(std::vector<RtpPacketToSend> packets) = 0;
@@ -29,14 +29,14 @@ public:
 // SequenceNumberAssigner 
 // A class that can assign RTP sequence numbers 
 // for a packet to be sent.
-class RTC_CPP_EXPORT SequenceNumberAssigner {
+class SequenceNumberAssigner {
 public:
     virtual ~SequenceNumberAssigner() = default;
     virtual bool AssignSequenceNumber(RtpPacketToSend& packet) = 0;
 };
 
 // NackSender
-class RTC_CPP_EXPORT NackSender {
+class NackSender {
 public:
     virtual ~NackSender() = default;
     // If |buffering_allowed||buffering_allowed|, other feedback messages (e.g. key frame requests)
@@ -48,7 +48,7 @@ public:
 };
 
 // KeyFrameRequestSender
-class RTC_CPP_EXPORT KeyFrameRequestSender {
+class KeyFrameRequestSender {
 public:
     virtual ~KeyFrameRequestSender() = default;
     virtual void RequestKeyFrame() = 0;
@@ -60,14 +60,14 @@ public:
 // Callback interface for packets recovered by FlexFEC or ULPFEC. In
 // the FlexFEC case, the implementation should be able to demultiplex
 // the recovered RTP packets based on SSRC.
-class RTC_CPP_EXPORT RecoveredPacketReceiver {
+class RecoveredPacketReceiver {
 public:
     virtual ~RecoveredPacketReceiver() = default;
     virtual void OnRecoveredPacket(CopyOnWriteBuffer packet) = 0;
 };
 
 // VideoReceiveStatisticsObserver
-class RTC_CPP_EXPORT VideoReceiveStatisticsObserver {
+class VideoReceiveStatisticsObserver {
 public:
     virtual ~VideoReceiveStatisticsObserver() = default;
     virtual void OnCompleteFrame(bool is_keyframe,
@@ -83,7 +83,7 @@ public:
 };
 
 // RtpSendDelayObserver
-class RTC_CPP_EXPORT RtpSendDelayObserver {
+class RtpSendDelayObserver {
 public:
     virtual ~RtpSendDelayObserver() = default;
     virtual void OnSendDelayUpdated(int64_t avg_delay_ms,
@@ -93,7 +93,7 @@ public:
 };
 
 // RtpSendBitratesObserver
-class RTC_CPP_EXPORT RtpSendBitratesObserver {
+class RtpSendBitratesObserver {
 public:
     virtual ~RtpSendBitratesObserver() = default;
     virtual void OnSendBitratesUpdated(uint32_t total_bitrate_bps,
@@ -102,7 +102,7 @@ public:
 };
 
 // RtpSendPacketObserver
-class RTC_CPP_EXPORT RtpSendPacketObserver {
+class RtpSendPacketObserver {
 public:
     virtual ~RtpSendPacketObserver() = default;
     virtual void OnSendPacket(uint16_t packet_id,
@@ -111,7 +111,7 @@ public:
 };
 
 // RtpStreamDataCountersObserver
-class RTC_CPP_EXPORT RtpStreamDataCountersObserver {
+class RtpStreamDataCountersObserver {
 public:
     virtual ~RtpStreamDataCountersObserver() = default;
     virtual void OnStreamDataCountersUpdated(const RtpStreamDataCounters& counters,
@@ -119,7 +119,7 @@ public:
 };
 
 // RtpTransportFeedbackObserver
-class RTC_CPP_EXPORT RtpTransportFeedbackObserver {
+class RtpTransportFeedbackObserver {
 public:
     virtual ~RtpTransportFeedbackObserver() = default;
     virtual void OnAddPacket(const RtpPacketSendInfo& packet_info) = 0;
@@ -127,7 +127,7 @@ public:
 };
 
 // RtpSendStatsProvider
-class RTC_CPP_EXPORT RtpSendStatsProvider {
+class RtpSendStatsProvider {
 public:
     virtual ~RtpSendStatsProvider() = default;
     virtual RtpSendStats GetSendStats() = 0;
@@ -136,21 +136,21 @@ public:
 // RTCP observer
 
 // RtcpNackListObserver
-class RTC_CPP_EXPORT RtcpNackListObserver {
+class RtcpNackListObserver {
 public:
     virtual ~RtcpNackListObserver() = default;
     virtual void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t rrt_ms) = 0;
 };
 
 // RtcpIntraFrameObserver
-class RTC_CPP_EXPORT RtcpIntraFrameObserver {
+class RtcpIntraFrameObserver {
 public:
     virtual ~RtcpIntraFrameObserver() = default;
     virtual void OnReceivedIntraFrameRequest(uint32_t ssrc) = 0;
 };
 
 // RtcpLossNotificationObserver
-class RTC_CPP_EXPORT RtcpLossNotificationObserver {
+class RtcpLossNotificationObserver {
 public:
     virtual ~RtcpLossNotificationObserver() = default;
     virtual void OnReceivedLossNotification(uint32_t ssrc,
@@ -160,7 +160,7 @@ public:
 };
 
 // RtcpBandwidthObserver
-class RTC_CPP_EXPORT RtcpBandwidthObserver {
+class RtcpBandwidthObserver {
 public:
     virtual ~RtcpBandwidthObserver() = default;
     // REMB or TMMBR
@@ -168,7 +168,7 @@ public:
 };
 
 // RtcpPacketTypeCounterObserver
-class RTC_CPP_EXPORT RtcpPacketTypeCounterObserver {
+class RtcpPacketTypeCounterObserver {
 public:
     virtual ~RtcpPacketTypeCounterObserver() = default;
     virtual void RtcpPacketTypesCounterUpdated(uint32_t ssrc,
@@ -176,21 +176,21 @@ public:
 };
 
 // RtcpCnameObserver
-class RTC_CPP_EXPORT RtcpCnameObserver {
+class RtcpCnameObserver {
 public:
     virtual ~RtcpCnameObserver() = default;
     virtual void OnCname(uint32_t ssrc, std::string_view cname) = 0;
 };
 
 // RtcpRttObserver
-class RTC_CPP_EXPORT RtcpRttObserver {
+class RtcpRttObserver {
 public:
     virtual ~RtcpRttObserver() = 0;
     virtual void OnRttUpdated(TimeDelta rtt) = 0;
 };
 
 // RtcpTransportFeedbackObserver
-class RTC_CPP_EXPORT RtcpTransportFeedbackObserver {
+class RtcpTransportFeedbackObserver {
 public:
     virtual ~RtcpTransportFeedbackObserver() = default;
     virtual void OnTransportFeedback(const rtcp::TransportFeedback& feedback) = 0;
@@ -199,21 +199,21 @@ public:
 };
 
 // RtcpReportBlockProvider
-class RTC_CPP_EXPORT RtcpReportBlockProvider {
+class RtcpReportBlockProvider {
 public:
     virtual ~RtcpReportBlockProvider() = default;
     virtual std::vector<rtcp::ReportBlock> GetRtcpReportBlocks(size_t max_blocks) = 0;
 };
 
 // RtcpReportBlocksObserver 
-class RTC_CPP_EXPORT RtcpReportBlocksObserver {
+class RtcpReportBlocksObserver {
 public:
     virtual ~RtcpReportBlocksObserver() = default;
     virtual void OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) = 0; 
 };
 
 // RtcpReceiveFeedbackProvider
-class RTC_CPP_EXPORT RtcpReceiveFeedbackProvider {
+class RtcpReceiveFeedbackProvider {
 public:
     virtual ~RtcpReceiveFeedbackProvider() = default;
     virtual RtcpReceiveFeedback GetReceiveFeedback() = 0;

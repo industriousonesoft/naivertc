@@ -8,14 +8,14 @@
 namespace naivertc {
 
 // RtcpPacketSink
-class RTC_CPP_EXPORT RtcpPacketSink {
+class RtcpPacketSink {
 public:
     virtual ~RtcpPacketSink() = default;
     virtual void OnRtcpPacket(CopyOnWriteBuffer in_packet) = 0;
 };
 
 // RtpPacketSink
-class RTC_CPP_EXPORT RtpPacketSink {
+class RtpPacketSink {
 public:
     virtual ~RtpPacketSink() = default;
     virtual void OnRtpPacket(RtpPacketReceived in_packet) = 0;

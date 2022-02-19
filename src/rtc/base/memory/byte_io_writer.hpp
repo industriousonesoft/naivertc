@@ -16,7 +16,7 @@ class ByteWriter;
 
 // Specialization of ByteWriter for unsigned types
 template <typename T, unsigned int B>
-class RTC_CPP_EXPORT ByteWriter<T, B, false> {
+class ByteWriter<T, B, false> {
 public:
     static void WriteBigEndian(uint8_t* data, T val) {
         static_assert(B < sizeof(T), kSizeErrorMsg);
@@ -35,7 +35,7 @@ public:
 
 // Specialization of ByteWriter for signed types
 template <typename T, unsigned int B>
-class RTC_CPP_EXPORT ByteWriter<T, B, true> {
+class ByteWriter<T, B, true> {
 public:
     typedef typename UnsignedOf<T>::Type U;
 
@@ -60,7 +60,7 @@ private:
 
 // Specialization for single byte
 template <typename T>
-class RTC_CPP_EXPORT ByteWriter<T, 1, false> {
+class ByteWriter<T, 1, false> {
 public:
     static void WriteBigEndian(uint8_t* data, T val) {
         static_assert(sizeof(T) == 1, kSizeErrorMsg);
@@ -74,7 +74,7 @@ public:
 
 // Specialization for two byte
 template <typename T>
-class RTC_CPP_EXPORT ByteWriter<T, 2, false> {
+class ByteWriter<T, 2, false> {
 public:
     static void WriteBigEndian(uint8_t* data, T val) {
         static_assert(sizeof(T) >= 2, kSizeErrorMsg);
@@ -90,7 +90,7 @@ public:
 
 // Specialization for four byte
 template <typename T>
-class RTC_CPP_EXPORT ByteWriter<T, 4, false> {
+class ByteWriter<T, 4, false> {
 public:
     static void WriteBigEndian(uint8_t* data, T val) {
         static_assert(sizeof(T) >= 4, kSizeErrorMsg);
@@ -110,7 +110,7 @@ public:
 
 // Specialization for eight byte
 template <typename T>
-class RTC_CPP_EXPORT ByteWriter<T, 8, false> {
+class ByteWriter<T, 8, false> {
 public:
     static void WriteBigEndian(uint8_t* data, T val) {
         static_assert(sizeof(T) >= 8, kSizeErrorMsg);

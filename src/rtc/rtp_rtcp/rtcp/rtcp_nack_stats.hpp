@@ -7,7 +7,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtcpNackStats {
+class RtcpNackStats {
 public:
     RtcpNackStats();
 

@@ -13,7 +13,7 @@ namespace naivertc {
 
 class Clock;
 
-class RTC_CPP_EXPORT RtpSendController : public RtcpBandwidthObserver,
+class RtpSendController : public RtcpBandwidthObserver,
                                          public RtcpTransportFeedbackObserver,
                                          public RtpTransportFeedbackObserver {
 public:

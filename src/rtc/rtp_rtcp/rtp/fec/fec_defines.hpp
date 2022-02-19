@@ -50,14 +50,14 @@ enum class FecMaskType {
 };
 
 // Struct containing forward error correction settings.
-struct RTC_CPP_EXPORT FecProtectionParams {
+struct FecProtectionParams {
     size_t fec_rate = 0;
     size_t max_fec_frames = 0;
     FecMaskType fec_mask_type = FecMaskType::RANDOM;
 };
 
 // FEC Header
-struct RTC_CPP_EXPORT FecHeader {
+struct FecHeader {
     // FEC header fields
     size_t fec_header_size = 0;
     uint16_t seq_num_base = 0;

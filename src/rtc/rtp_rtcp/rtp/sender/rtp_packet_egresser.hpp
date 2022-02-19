@@ -22,7 +22,7 @@ namespace naivertc {
 class RtpPacketHistory;
 class RtpPacketSequencer;
 
-class RTC_CPP_EXPORT RtpPacketEgresser {
+class RtpPacketEgresser {
 public:
     // NonPacedPacketSender
     // NOTE: PacedSender 和 NonPacedsender最终都是通过RtpPacketEgresser发送数据，

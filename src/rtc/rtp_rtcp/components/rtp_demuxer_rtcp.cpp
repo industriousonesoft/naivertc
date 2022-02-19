@@ -9,14 +9,14 @@ namespace naivertc {
 namespace {
 
 // RTCP common header
-struct RTC_CPP_EXPORT RtcpHeader {
+struct RtcpHeader {
     uint8_t first_byte;
     uint8_t payload_type;
     uint16_t payload_size_in_32bit;
 };
 
 // RTCP report block
-struct RTC_CPP_EXPORT ReportBlock {
+struct ReportBlock {
     uint32_t source_ssrc;
     uint32_t fraction_lost_and_packet_lost;
     uint16_t seq_num_cycles;
@@ -27,7 +27,7 @@ struct RTC_CPP_EXPORT ReportBlock {
 };
 
 // RTCP sender report packet (payload type = 200)
-struct RTC_CPP_EXPORT SenderReport {
+struct SenderReport {
     RtcpHeader header;
     uint32_t packet_sender_ssrc;
     uint64_t ntp_timestamp;
@@ -45,7 +45,7 @@ struct RTC_CPP_EXPORT SenderReport {
 };
 
 // RTCP receiver report packet (payload type = 201)
-struct RTC_CPP_EXPORT ReceiverReport {
+struct ReceiverReport {
     RtcpHeader header;
     uint32_t packet_sender_ssrc;
 
@@ -58,27 +58,27 @@ struct RTC_CPP_EXPORT ReceiverReport {
 };
 
 // Bye (payload type = 203)
-struct RTC_CPP_EXPORT Bye {
+struct Bye {
     RtcpHeader header;
     uint32_t packet_sender_ssrc;
 };
 
 // RTCP rtp feedback packet (payload type = 205)
-struct RTC_CPP_EXPORT RtpFeedback {
+struct RtpFeedback {
     RtcpHeader header;
     uint32_t packet_sender_ssrc;
     uint32_t media_source_ssrc;
 };
 
 // RTCP payload-specific feedback packet (payload type = 206)
-struct RTC_CPP_EXPORT PSFeedback {
+struct PSFeedback {
     RtcpHeader header;
     uint32_t packet_sender_ssrc;
     uint32_t media_source_ssrc;
 };
 
 // RTCP extended report packet (payload type = 207)
-struct RTC_CPP_EXPORT ExtendedReport {
+struct ExtendedReport {
     RtcpHeader header;
     uint32_t packet_sender_ssrc;
 };

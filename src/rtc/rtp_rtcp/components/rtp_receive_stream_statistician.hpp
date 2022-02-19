@@ -11,7 +11,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpReceiveStreamStatistician {
+class RtpReceiveStreamStatistician {
 public:
     RtpReceiveStreamStatistician(uint32_t ssrc, Clock* clock, int max_reordering_threshold);
     ~RtpReceiveStreamStatistician();

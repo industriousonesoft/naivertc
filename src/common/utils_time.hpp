@@ -19,19 +19,19 @@ namespace utils {
 namespace time {
 
 // Returns the current time in seconds in 64 bits.
-RTC_CPP_EXPORT int64_t TimeInSec();
+int64_t TimeInSec();
 
 // Returns the current time in milliseconds in 32 bits.
-RTC_CPP_EXPORT uint32_t Time32InMillis();
+uint32_t Time32InMillis();
 
 // Returns the current time in milliseconds in 64 bits.
-RTC_CPP_EXPORT int64_t TimeInMillis();
+int64_t TimeInMillis();
 
 // Returns the current time in microseconds in 64 bits.
-RTC_CPP_EXPORT int64_t TimeInMicros();
+int64_t TimeInMicros();
 
 // Returns the current time in nanoseconds in 64 bits.
-RTC_CPP_EXPORT int64_t TimeInNanos();
+int64_t TimeInNanos();
 
 // Returns the number of microseconds since January 1, 1970, UTC.
 // Useful mainly when producing logs to be corrected with other devices,
@@ -42,7 +42,7 @@ RTC_CPP_EXPORT int64_t TimeInNanos();
 // time in changed, e.g., by some other process calling settimeofday. 
 // Always use TimeMicros(), not this function, for measuring time intervals 
 // and timeouts.
-RTC_CPP_EXPORT int64_t TimeUTCInMicros();
+int64_t TimeUTCInMicros();
     
 } // namespace time
 } // namespace utils

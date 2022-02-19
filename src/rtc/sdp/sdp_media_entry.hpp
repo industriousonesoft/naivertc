@@ -14,7 +14,7 @@
 namespace naivertc {
 namespace sdp {
 
-struct RTC_CPP_EXPORT MediaEntry : public Entry {
+struct MediaEntry : public Entry {
 public:
     enum class Kind {
         AUDIO,
@@ -55,7 +55,7 @@ private:
     std::optional<std::string> fingerprint_ = std::nullopt;
 };
 
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaEntry::Kind kind);
+std::ostream& operator<<(std::ostream& out, MediaEntry::Kind kind);
 
 } // namespace sdp
 } // namespace naivert 

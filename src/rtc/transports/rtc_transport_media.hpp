@@ -8,7 +8,7 @@
 namespace naivertc {
 
 // RtcMediaTransport
-class RTC_CPP_EXPORT RtcMediaTransport {
+class RtcMediaTransport {
 public:
     virtual ~RtcMediaTransport() = default;
     virtual int SendRtpPacket(CopyOnWriteBuffer packet, 

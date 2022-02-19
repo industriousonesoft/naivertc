@@ -8,7 +8,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT FecCodec {
+class FecCodec {
 public:
     virtual ~FecCodec() = default;
 public:

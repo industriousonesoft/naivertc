@@ -29,7 +29,7 @@ T MinusInfinityOrMinValue() {
 // See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
 template<typename T,
          typename std::enable_if<std::is_convertible<T, double>::value, T>::type* = nullptr>
-class RTC_CPP_EXPORT RunningStatistics {
+class RunningStatistics {
 public:
     RunningStatistics() 
         : count_(0),

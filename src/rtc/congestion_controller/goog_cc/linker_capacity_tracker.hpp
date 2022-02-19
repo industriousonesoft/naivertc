@@ -10,7 +10,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT LinkerCapacityTracker {
+class LinkerCapacityTracker {
 public:
     LinkerCapacityTracker(TimeDelta tracking_window = TimeDelta::Seconds(10));
     ~LinkerCapacityTracker();

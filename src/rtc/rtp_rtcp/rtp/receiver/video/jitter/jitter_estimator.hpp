@@ -16,7 +16,7 @@ namespace jitter {
 
 // This class is not thread-safety, the caller MUST provide that.
 // This class is used to estimate the jitter occurred during the transport of a frame.
-class RTC_CPP_EXPORT JitterEstimator {
+class JitterEstimator {
 public:
     struct HyperParameters {
         // The filter factor used to calculate the average and variance of frame size.

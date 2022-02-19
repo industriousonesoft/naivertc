@@ -9,7 +9,7 @@
 namespace naivertc {
 namespace h264 {
 
-class RTC_CPP_EXPORT SpropParameterParser final {
+class SpropParameterParser final {
 public:
     SpropParameterParser() = default;
     ~SpropParameterParser() = default;

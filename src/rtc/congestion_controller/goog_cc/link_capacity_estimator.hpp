@@ -11,7 +11,7 @@ namespace naivertc {
 // Helper class to estimate an average of incoming bitrates.
 // It measure this average and standard deviation with an exponential
 // moving average with the smoothing factor 0.95.
-class RTC_CPP_EXPORT LinkCapacityEstimator {
+class LinkCapacityEstimator {
 public:
     LinkCapacityEstimator();
     ~LinkCapacityEstimator();

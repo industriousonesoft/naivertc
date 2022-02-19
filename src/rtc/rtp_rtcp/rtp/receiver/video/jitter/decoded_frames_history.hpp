@@ -11,7 +11,7 @@ namespace naivertc {
 namespace rtp {
 namespace video {
 
-class RTC_CPP_EXPORT DecodedFramesHistory {
+class DecodedFramesHistory {
 public:
     explicit DecodedFramesHistory(size_t window_size);
     ~DecodedFramesHistory();

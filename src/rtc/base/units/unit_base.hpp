@@ -17,7 +17,7 @@ namespace naivertc {
 // always an int64_t, it's up to the unit implementation to choose what scale it represents.
 
 template <class Unit_T>
-class RTC_CPP_EXPORT UnitBase {
+class UnitBase {
 public:
     static constexpr Unit_T Zero() { return Unit_T(0); }
     static constexpr Unit_T PlusInfinity() { return Unit_T(PlusInfinityVal()); }

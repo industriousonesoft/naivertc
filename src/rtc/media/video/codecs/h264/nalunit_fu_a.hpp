@@ -13,7 +13,7 @@ namespace H264 {
 // |S|E|R|  Type   |
 // +---------------+
 
-class RTC_CPP_EXPORT NalUnit_FU_A : public NalUnit {
+class NalUnit_FU_A : public NalUnit {
 public:
     enum class FragmentType { START, MIDDLE, END };
 public:

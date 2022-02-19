@@ -10,7 +10,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacketizer {
+class RtpPacketizer {
 public:
     static constexpr size_t kDefaultMaximumPayloadSize = kDefaultMtuSize - 12 - 8 - 40; // 1220: SRTP/UDP/IPv6
     // Payload size limits

@@ -13,7 +13,7 @@ class CommonHeader;
 
 // Receiver Estimated Max Bitrate (REMB) (draft-alvestrand-rmcat-remb).
 // See https://datatracker.ietf.org/doc/html/draft-alvestrand-rmcat-remb-03
-class RTC_CPP_EXPORT Remb : public Psfb {
+class Remb : public Psfb {
 public:
     static constexpr size_t kMaxNumberOfSsrcs = 0xffu;
 public:

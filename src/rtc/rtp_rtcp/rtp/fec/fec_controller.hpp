@@ -5,7 +5,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT FecController {
+class FecController {
 public:
     FecController();
     ~FecController();

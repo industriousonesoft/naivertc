@@ -17,7 +17,7 @@ class Clock;
 class RtcMediaTransport;
 class VideoSendStream;
 
-class RTC_CPP_EXPORT Call {
+class Call {
 public:
     Call(Clock* clock, RtcMediaTransport* send_transport);
     ~Call();

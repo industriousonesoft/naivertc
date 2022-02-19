@@ -7,7 +7,7 @@
 namespace naivertc {
 
 // Byte order is assumend big-endian/network
-class RTC_CPP_EXPORT BitReader {
+class BitReader {
 public:
     BitReader(const uint8_t* bytes, size_t byte_count);
 

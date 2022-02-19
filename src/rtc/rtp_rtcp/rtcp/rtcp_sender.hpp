@@ -24,7 +24,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtcpSender final {
+class RtcpSender final {
 public:
     struct Configuration {
         bool audio = false;

@@ -10,7 +10,7 @@ namespace jitter {
 
 // RttFilter stores a periodic rtt valus to detect if a rtt jump or drift happens or not,
 // and calculates the current rtt.
-class RTC_CPP_EXPORT RttFilter {
+class RttFilter {
 public:
     RttFilter();
     RttFilter& operator=(const RttFilter& rhs);

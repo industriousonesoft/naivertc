@@ -13,7 +13,7 @@ namespace naivertc {
 constexpr size_t kDefaultMaxPacketSize = kIpPacketSize - kTransportOverhead;
 
 // RtpParameters
-struct RTC_CPP_EXPORT RtpParameters {
+struct RtpParameters {
     // SSRC used for the local media stream.
     uint32_t local_media_ssrc = 0;
     // Payload type used for media payload on the media stream.
@@ -60,7 +60,7 @@ struct RTC_CPP_EXPORT RtpParameters {
 };
 
 // RtpSenderObservers
-struct RTC_CPP_EXPORT RtpSenderObservers {
+struct RtpSenderObservers {
     // RTP
     RtpSendDelayObserver* send_delay_observer = nullptr;
     RtpSendPacketObserver* send_packet_observer = nullptr;

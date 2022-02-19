@@ -14,7 +14,7 @@ namespace naivertc {
 // the duration covered by a TimeDelta can be undefined. To simplify usage, it can be 
 // constructed and converted to different units, specifically seconds(s), milliseconds(ms)
 // microseconds (us).
-class RTC_CPP_EXPORT TimeDelta : public RelativeUnit<TimeDelta> {
+class TimeDelta : public RelativeUnit<TimeDelta> {
 public:
     template <typename T>
     static constexpr TimeDelta Seconds(T value) {

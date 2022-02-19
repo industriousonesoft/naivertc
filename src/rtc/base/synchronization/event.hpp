@@ -13,7 +13,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT Event { 
+class Event { 
 public:
     Event();
     Event(bool manual_reset, bool initially_signaled);

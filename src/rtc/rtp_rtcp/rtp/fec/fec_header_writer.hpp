@@ -10,7 +10,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT FecHeaderWriter {
+class FecHeaderWriter {
 public:
     virtual ~FecHeaderWriter();
 

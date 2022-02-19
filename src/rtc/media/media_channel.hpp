@@ -6,7 +6,7 @@
 namespace naivertc {
 
 // MediaChannel
-class RTC_CPP_EXPORT MediaChannel {
+class MediaChannel {
 public:
     virtual ~MediaChannel() = default;
     virtual bool is_opened() const = 0;

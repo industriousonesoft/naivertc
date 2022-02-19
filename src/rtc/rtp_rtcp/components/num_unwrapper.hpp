@@ -11,7 +11,7 @@ namespace naivertc {
     
 // This class is a specific of `NumberUnwrapper` with the max value of type U as the modulo.
 template <typename U>
-class RTC_CPP_EXPORT NumberUnwrapper {
+class NumberUnwrapper {
     static_assert(!std::numeric_limits<U>::is_signed, "U must be unsigned.");
     static_assert(std::numeric_limits<U>::max() <= std::numeric_limits<uint32_t>::max(), "U must not be wider than 32 bits");
 public:

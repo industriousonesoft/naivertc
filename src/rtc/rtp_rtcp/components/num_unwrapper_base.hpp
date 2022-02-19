@@ -9,7 +9,7 @@
 namespace naivertc {
 
 template <typename T, T M = 0>
-class RTC_CPP_EXPORT NumberUnwrapper {
+class NumberUnwrapper {
 static_assert(
       std::is_unsigned<T>::value &&
       std::numeric_limits<T>::max() < std::numeric_limits<int64_t>::max(),

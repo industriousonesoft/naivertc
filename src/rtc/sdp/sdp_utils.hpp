@@ -10,14 +10,14 @@
 namespace naivertc {
 namespace sdp {
 
-RTC_CPP_EXPORT sdp::Type ToType(const std::string_view type_string);
-RTC_CPP_EXPORT std::string ToString(sdp::Type type);
-RTC_CPP_EXPORT std::string ToString(sdp::Role role);
+sdp::Type ToType(const std::string_view type_string);
+std::string ToString(sdp::Type type);
+std::string ToString(sdp::Role role);
 
 // format: sha-256 8F:B5:D9:8F:53:7D:A9:B0:CE:01:3E:CB:30:BE:40:AC:33:42:25:FC:C4:FC:55:74:B9:8D:48:B0:02:5A:A8:EB
-RTC_CPP_EXPORT std::optional<std::string> ParseFingerprintAttribute(std::string_view attr_line);
+std::optional<std::string> ParseFingerprintAttribute(std::string_view attr_line);
 
-RTC_CPP_EXPORT bool IsSHA256Fingerprint(const std::string_view fingerprint);
+bool IsSHA256Fingerprint(const std::string_view fingerprint);
 
 } // namespace sdp
 } // namespace naivertc

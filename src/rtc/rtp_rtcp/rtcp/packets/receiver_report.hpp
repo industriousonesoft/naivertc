@@ -12,7 +12,7 @@ namespace rtcp {
 
 class CommonHeader;
 
-class RTC_CPP_EXPORT ReceiverReport : public RtcpPacket {
+class ReceiverReport : public RtcpPacket {
 public:
     static constexpr uint8_t kPacketType = 201;
     static constexpr size_t kMaxNumberOfReportBlocks = 0x1F;

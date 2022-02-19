@@ -9,7 +9,7 @@
 namespace naivertc {
 namespace sdp {
 
-struct RTC_CPP_EXPORT Candidate {
+struct Candidate {
 public: 
     enum class Family {
         UNRESOVLED,

@@ -17,7 +17,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacketHistory {
+class RtpPacketHistory {
 public:
     // Maximum number of packets we ever allow in the history.
     static constexpr size_t kMaxCapacity = 9600;

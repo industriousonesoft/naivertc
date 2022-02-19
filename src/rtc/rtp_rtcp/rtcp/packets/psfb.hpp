@@ -23,7 +23,7 @@ namespace rtcp {
 //       31:    reserved for future expansion of the sequence number space
 //
 
-class RTC_CPP_EXPORT Psfb : public RtcpPacket {
+class Psfb : public RtcpPacket {
 public:
     static constexpr uint8_t kPacketType = 206;
     // Application layer FB (AFB) message

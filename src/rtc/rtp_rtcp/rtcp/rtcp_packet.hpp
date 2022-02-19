@@ -8,7 +8,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtcpPacket {
+class RtcpPacket {
 public:
     // Size of the RTCP common header
     static constexpr size_t kRtcpCommonHeaderSize = 4;

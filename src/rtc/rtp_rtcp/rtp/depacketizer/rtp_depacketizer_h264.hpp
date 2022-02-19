@@ -9,7 +9,7 @@ namespace naivertc {
 class CopyOnWriteBuffer;
 
 // This class is not thread-safety, the caller MUST provide that.
-class RTC_CPP_EXPORT RtpH264Depacketizer : public RtpDepacketizer {
+class RtpH264Depacketizer : public RtpDepacketizer {
 public:
     ~RtpH264Depacketizer() override = default;
 

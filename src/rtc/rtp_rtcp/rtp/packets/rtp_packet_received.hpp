@@ -7,7 +7,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacketReceived : public RtpPacket {
+class RtpPacketReceived : public RtpPacket {
 public:
     RtpPacketReceived();
     RtpPacketReceived(const HeaderExtensionMap* extension_map, 

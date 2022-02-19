@@ -8,7 +8,7 @@ namespace rtcp {
 
 // A ReportBlock represents the Sender Report packet from
 // RFC 3550 section 6.4.1.
-class RTC_CPP_EXPORT ReportBlock {
+class ReportBlock {
 public:
     static constexpr size_t kFixedReportBlockSize = 24;
 

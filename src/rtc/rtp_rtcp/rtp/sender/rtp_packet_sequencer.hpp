@@ -10,7 +10,7 @@
 namespace naivertc {
 
 // NOTE: This class is not thread safe, the caller must provide that.
-class RTC_CPP_EXPORT RtpPacketSequencer : public SequenceNumberAssigner{
+class RtpPacketSequencer : public SequenceNumberAssigner{
 public:
     RtpPacketSequencer(const RtpConfiguration& config);
     ~RtpPacketSequencer();

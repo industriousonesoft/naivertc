@@ -20,7 +20,7 @@ constexpr int kDefaultIgnoredSampleThreshold = 5;
 
 }  // namespace
 
-class RTC_CPP_EXPORT DecodeTimeFilter {
+class DecodeTimeFilter {
 public:
     // `percentile` should between 0 ~ 1.
     DecodeTimeFilter(float percentile = kDefaultPercentile, 

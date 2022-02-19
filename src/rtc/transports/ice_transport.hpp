@@ -21,7 +21,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT IceTransport final: public BaseTransport {
+class IceTransport final: public BaseTransport {
 public:
     // Configuration
     struct Configuration {

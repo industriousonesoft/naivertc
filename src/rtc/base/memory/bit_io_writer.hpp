@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT BitWriter {
+class BitWriter {
 public:
     BitWriter(uint8_t* bytes, size_t byte_count);
 

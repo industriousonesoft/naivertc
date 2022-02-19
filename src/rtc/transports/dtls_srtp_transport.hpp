@@ -10,7 +10,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT DtlsSrtpTransport final : public DtlsTransport {
+class DtlsSrtpTransport final : public DtlsTransport {
 public:
     static void Init();
     static void Cleanup();

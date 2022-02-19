@@ -11,7 +11,7 @@ namespace naivertc {
 namespace rtcp {
 class CommonHeader;
 
-class RTC_CPP_EXPORT Bye : public RtcpPacket {
+class Bye : public RtcpPacket {
 public:
     static constexpr uint8_t kPacketType = 203;
 public:

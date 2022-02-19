@@ -35,7 +35,7 @@ enum RtpExtensionType : int {
 };
 
 // RtpExtension
-struct RTC_CPP_EXPORT RtpExtension {
+struct RtpExtension {
 
     static constexpr int kInvalidId = 0;
     static constexpr int kMinId = 1;

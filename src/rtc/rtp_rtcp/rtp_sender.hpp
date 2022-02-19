@@ -18,7 +18,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpSender : public RtcpNackListObserver,
+class RtpSender : public RtcpNackListObserver,
                                  public RtcpReportBlocksObserver,
                                  public RtpSendStatsProvider {
 public:

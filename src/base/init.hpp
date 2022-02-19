@@ -15,8 +15,8 @@ enum class LoggingLevel {
     VERBOSE
 };
 
-RTC_CPP_EXPORT void Init(LoggingLevel level = LoggingLevel::NONE);
-RTC_CPP_EXPORT void Cleanup();
+void Init(LoggingLevel level = LoggingLevel::NONE);
+void Cleanup();
     
 } // namespace naivertc
 

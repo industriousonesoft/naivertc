@@ -9,7 +9,7 @@
 namespace naivertc {
 namespace h264 {
 
-class RTC_CPP_EXPORT SpsParser {
+class SpsParser {
 public:
     struct SpsState {
         SpsState();

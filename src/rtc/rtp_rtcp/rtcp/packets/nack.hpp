@@ -11,7 +11,7 @@ namespace rtcp {
 class CommonHeader;
 
 // Negative acknowledgements, RFC 4585, section 6.2.1
-class RTC_CPP_EXPORT Nack : public Rtpfb {
+class Nack : public Rtpfb {
 public:
     static constexpr uint8_t kFeedbackMessageType = 1;
 public:

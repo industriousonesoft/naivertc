@@ -11,7 +11,7 @@ namespace video {
 
 // This class is not thread-safety, the caller MUST provide that.
 // This class is used to estimate the expected receive time of a frame.
-class RTC_CPP_EXPORT TimestampExtrapolator {
+class TimestampExtrapolator {
 public:
     explicit TimestampExtrapolator(int64_t start_time_ms);
     ~TimestampExtrapolator();

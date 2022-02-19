@@ -10,7 +10,7 @@
 namespace naivertc {
 
 template<typename T>
-class RTC_CPP_EXPORT ArrayView {
+class ArrayView {
 public:
     using value_type = T;
     using const_iterator = const T*;

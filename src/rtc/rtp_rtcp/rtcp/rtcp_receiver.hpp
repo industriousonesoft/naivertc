@@ -42,7 +42,7 @@ class ReportBlock;
 };
 
 // RtcpReceiver
-class RTC_CPP_EXPORT RtcpReceiver {
+class RtcpReceiver {
 public:
     RtcpReceiver(const RtcpConfiguration& config);
     ~RtcpReceiver();

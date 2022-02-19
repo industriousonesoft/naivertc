@@ -5,7 +5,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT YieldInterface {
+class YieldInterface {
 public:
     virtual ~YieldInterface() = default;
     virtual void YieldExecution() = 0;
@@ -13,7 +13,7 @@ public:
 
 // Sets the current thread-local yield policy while it's in scope
 // and reverts to the previous thread-local yield policy when it leaves the scope.
-class RTC_CPP_EXPORT ScopedYieldPolicy final {
+class ScopedYieldPolicy final {
 public:
     explicit ScopedYieldPolicy(YieldInterface* policy);
     ScopedYieldPolicy(const ScopedYieldPolicy&) = delete;

@@ -18,7 +18,7 @@ namespace naivertc {
 
 class Call;
 
-class RTC_CPP_EXPORT MediaTrack : public MediaChannel {
+class MediaTrack : public MediaChannel {
 public:
     using Direction = sdp::Direction;
 
@@ -159,9 +159,9 @@ protected:
     ClosedCallback closed_callback_ = nullptr;
 };
 
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Kind kind);
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec);
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, MediaTrack::FecCodec codec);
+std::ostream& operator<<(std::ostream& out, MediaTrack::Kind kind);
+std::ostream& operator<<(std::ostream& out, MediaTrack::Codec codec);
+std::ostream& operator<<(std::ostream& out, MediaTrack::FecCodec codec);
 
 } // namespace naivertc
 

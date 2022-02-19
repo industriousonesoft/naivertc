@@ -12,7 +12,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacket : public CopyOnWriteBuffer {
+class RtpPacket : public CopyOnWriteBuffer {
 public:
     static std::shared_ptr<RtpPacket> Create() {
         return std::shared_ptr<RtpPacket>(new RtpPacket());

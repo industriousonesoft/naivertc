@@ -9,7 +9,7 @@ namespace rtcp {
 class CommonHeader;
 
 // Picture loss indication (PLI) (RFC 4585)
-class RTC_CPP_EXPORT Pli : public Psfb {
+class Pli : public Psfb {
 public:
     static constexpr uint8_t kFeedbackMessageType = 1;
 public:

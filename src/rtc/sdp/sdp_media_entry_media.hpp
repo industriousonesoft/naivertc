@@ -11,7 +11,7 @@
 namespace naivertc {
 namespace sdp {
 
-struct RTC_CPP_EXPORT Media : public MediaEntry {
+struct Media : public MediaEntry {
 public:
     enum class Codec {
         // Audio codec

@@ -12,7 +12,7 @@
 namespace naivertc {
 
 // TODO: Implement the unit tests.
-class RTC_CPP_EXPORT LossBasedBwe {
+class LossBasedBwe {
 public:
     struct Configuration {
         double min_increase_factor = 1.02;

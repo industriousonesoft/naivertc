@@ -12,7 +12,7 @@ namespace rtcp {
 
 class CommonHeader;
 
-class RTC_CPP_EXPORT Sdes : public RtcpPacket {
+class Sdes : public RtcpPacket {
 public:
     struct Chunk {
        uint32_t ssrc;

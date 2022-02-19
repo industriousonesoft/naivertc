@@ -11,7 +11,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT BaseTransport {
+class BaseTransport {
 public:
     enum class State {
         DISCONNECTED,

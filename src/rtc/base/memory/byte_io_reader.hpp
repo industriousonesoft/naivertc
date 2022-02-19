@@ -17,7 +17,7 @@ class ByteReader;
 
 // Specialization of ByteReader for unsigned types.
 template <typename T, unsigned int B>
-class RTC_CPP_EXPORT ByteReader<T, B, false> {
+class ByteReader<T, B, false> {
 public:
     static T ReadBigEndian(const uint8_t* data) {
         static_assert(B <= sizeof(T), kSizeErrorMsg);
@@ -49,7 +49,7 @@ private:
 
 // Specialization of ByteReader for signed types
 template <typename T, unsigned int B> 
-class RTC_CPP_EXPORT ByteReader<T, B, true> {
+class ByteReader<T, B, true> {
 public:
     typedef typename UnsignedOf<T>::Type U;
 
@@ -114,7 +114,7 @@ private:
 
 // Specializations for single bytes
 template <typename T>
-class RTC_CPP_EXPORT ByteReader<T, 1, false> {
+class ByteReader<T, 1, false> {
 public:
     static T ReadBigEndian(const uint8_t* data) {
         static_assert(sizeof(T) == 1, kSizeErrorMsg);
@@ -129,7 +129,7 @@ public:
 
 // Specializations for two bytes
 template <typename T>
-class RTC_CPP_EXPORT ByteReader<T, 2, false> {
+class ByteReader<T, 2, false> {
 public:
     static T ReadBigEndian(const uint8_t* data) {
         static_assert(sizeof(T) >= 2, kSizeErrorMsg);
@@ -144,7 +144,7 @@ public:
 
 // Specializations for four bytes
 template <typename T>
-class RTC_CPP_EXPORT ByteReader<T, 4, false> {
+class ByteReader<T, 4, false> {
 public:
     static T ReadBigEndian(const uint8_t* data) {
         static_assert(sizeof(T) >= 4, kSizeErrorMsg);
@@ -163,7 +163,7 @@ private:
 
 // Specializations for eight bytes
 template <typename T>
-class RTC_CPP_EXPORT ByteReader<T, 8, false> {
+class ByteReader<T, 8, false> {
 public:
     static T ReadBigEndian(const uint8_t* data) {
         static_assert(sizeof(T) >= 8, kSizeErrorMsg);

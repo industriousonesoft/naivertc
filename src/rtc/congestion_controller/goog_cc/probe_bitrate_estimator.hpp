@@ -11,7 +11,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT ProbeBitrateEstimator {
+class ProbeBitrateEstimator {
 public:
     ProbeBitrateEstimator();
     ~ProbeBitrateEstimator();

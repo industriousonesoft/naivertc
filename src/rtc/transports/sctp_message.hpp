@@ -12,7 +12,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT SctpMessage {
+class SctpMessage {
 public:
     enum class Type {
         BINARY,
@@ -37,7 +37,7 @@ protected:
 };
 
 // SctpMessageToSend
-class RTC_CPP_EXPORT SctpMessageToSend : public SctpMessage {
+class SctpMessageToSend : public SctpMessage {
 public:
     // The reliability may change from message to message, even wihin a single channel.
     // For example, control message may be sent reliably and in-order, even if the data
@@ -85,7 +85,7 @@ private:
     size_t offset_ = 0;
 };
 
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, SctpMessage::Type type);
+std::ostream& operator<<(std::ostream& out, SctpMessage::Type type);
 
 } // namespace naivertc
 

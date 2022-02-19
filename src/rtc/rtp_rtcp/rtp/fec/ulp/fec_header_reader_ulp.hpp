@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT UlpFecHeaderReader : public FecHeaderReader {
+class UlpFecHeaderReader : public FecHeaderReader {
 public:
     UlpFecHeaderReader();
     ~UlpFecHeaderReader() override;

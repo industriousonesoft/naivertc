@@ -14,7 +14,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT TaskQueueImplBoost final : public TaskQueueImpl {
+class TaskQueueImplBoost final : public TaskQueueImpl {
 public:
     static std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> Create(std::string name);
 public:

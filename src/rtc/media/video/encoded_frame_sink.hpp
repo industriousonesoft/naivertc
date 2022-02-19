@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT VideoEncodedFrameSink {
+class VideoEncodedFrameSink {
 public:
     virtual bool OnEncodedFrame(video::EncodedFrame encoded_frame) = 0;
 protected:

@@ -15,7 +15,7 @@ namespace naivertc {
 class SimulatedTimeController;
 
 // SimulatedTaskQueue
-class RTC_CPP_EXPORT SimulatedTaskQueue : public TaskQueueImpl, 
+class SimulatedTaskQueue : public TaskQueueImpl, 
                                           public SimulatedSequenceRunner {
 public:
     SimulatedTaskQueue(SimulatedTimeController* handler);

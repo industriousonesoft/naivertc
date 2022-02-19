@@ -11,7 +11,7 @@ namespace rtcp {
 class CommonHeader;
 
 // Full intra request (FIR) (RFC 5104, Section 4.3.1)
-class RTC_CPP_EXPORT Fir : public Psfb {
+class Fir : public Psfb {
 public:
     static constexpr uint8_t kFeedbackMessageType = 4;
     struct Request {

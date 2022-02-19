@@ -13,7 +13,7 @@
 namespace naivertc {
 
 // NOTE: This class is not thread safe, the caller must provide that.
-class RTC_CPP_EXPORT FecEncoder : public FecCodec {
+class FecEncoder : public FecCodec {
 public:
     // Using static Create method to make sure the FEC coder is unique, 
     // and not allowed to share with others

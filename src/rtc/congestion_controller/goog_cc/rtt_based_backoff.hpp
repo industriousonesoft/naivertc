@@ -9,7 +9,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RttBasedBackoff {
+class RttBasedBackoff {
 public:
     RttBasedBackoff();
     ~RttBasedBackoff();

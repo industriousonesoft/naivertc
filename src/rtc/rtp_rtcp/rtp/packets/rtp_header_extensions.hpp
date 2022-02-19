@@ -14,7 +14,7 @@ namespace naivertc {
 namespace rtp {
 
 // AbsoluteSendTime
-class RTC_CPP_EXPORT AbsoluteSendTime final {
+class AbsoluteSendTime final {
 public:
     using ValueType = uint32_t;
     static constexpr RtpExtensionType kType = kRtpExtensionAbsoluteSendTime;

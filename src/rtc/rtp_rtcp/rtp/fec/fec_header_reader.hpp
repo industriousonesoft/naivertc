@@ -7,7 +7,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT FecHeaderReader {
+class FecHeaderReader {
 public:
     virtual ~FecHeaderReader();
 

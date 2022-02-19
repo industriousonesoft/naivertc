@@ -10,7 +10,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT UlpFecReceiver {
+class UlpFecReceiver {
 public:
     // Packet counter
     struct PacketCounter {

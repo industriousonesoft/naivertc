@@ -7,7 +7,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RealTimeClock : public Clock {
+class RealTimeClock : public Clock {
 public:
     RealTimeClock();
     ~RealTimeClock();

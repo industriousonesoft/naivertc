@@ -15,7 +15,7 @@ namespace naivertc {
 // A rate control implementation based on AIMD (additive increases of bitrate
 // when no over-use is detected and multiplivative decreases when over-uses
 // are detected).
-class RTC_CPP_EXPORT AimdRateControl {
+class AimdRateControl {
 public:
     struct Configuration {
         bool send_side = false;

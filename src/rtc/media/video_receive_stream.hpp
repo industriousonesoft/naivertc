@@ -17,7 +17,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT VideoReceiveStream : public MediaReceiveStream,
+class VideoReceiveStream : public MediaReceiveStream,
                                           RtpVideoReceiver::CompleteFrameReceiver {
 public:
     using Configuration = struct RtpVideoReceiver::Configuration;  

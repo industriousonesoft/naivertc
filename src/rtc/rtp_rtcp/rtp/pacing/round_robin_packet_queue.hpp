@@ -15,7 +15,7 @@ namespace naivertc {
 
 using DataSize = uint64_t;
     
-class RTC_CPP_EXPORT RoundRobinPacketQueue {
+class RoundRobinPacketQueue {
 public:
     RoundRobinPacketQueue(Timestamp start_time);
     ~RoundRobinPacketQueue();

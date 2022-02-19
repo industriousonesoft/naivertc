@@ -9,7 +9,7 @@ namespace rtcp {
 
 // RTPFB: Transport layer feedback message.
 // RFC4585, Section 6.2
-class RTC_CPP_EXPORT Rtpfb : public RtcpPacket {
+class Rtpfb : public RtcpPacket {
 public:
     static constexpr uint8_t kPacketType = 205;
 

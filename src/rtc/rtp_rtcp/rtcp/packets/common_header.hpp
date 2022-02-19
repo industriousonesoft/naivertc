@@ -6,7 +6,7 @@
 namespace naivertc {
 namespace rtcp {
 
-class RTC_CPP_EXPORT CommonHeader {
+class CommonHeader {
 public:
     static constexpr size_t kFixedHeaderSize = 4;
 

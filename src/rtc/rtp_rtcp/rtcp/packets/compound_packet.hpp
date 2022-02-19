@@ -9,7 +9,7 @@
 namespace naivertc {
 namespace rtcp {
 
-class RTC_CPP_EXPORT CompoundPacket : public RtcpPacket {
+class CompoundPacket : public RtcpPacket {
 public:
     CompoundPacket();
     ~CompoundPacket() override;

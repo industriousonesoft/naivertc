@@ -32,9 +32,9 @@ enum class Direction {
 };
 
 // Overload operator <<
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, Type type);
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, Role role);
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, Direction direction);
+std::ostream& operator<<(std::ostream& out, Type type);
+std::ostream& operator<<(std::ostream& out, Role role);
+std::ostream& operator<<(std::ostream& out, Direction direction);
 
 } // namespace sdp
 } // namespace naivertc

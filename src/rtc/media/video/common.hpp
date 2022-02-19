@@ -36,7 +36,7 @@ enum class CodecType {
 //
 // min = x, max = y indicates that the receiver is free to adapt
 // in the range (x, y) based on network jitter.
-struct RTC_CPP_EXPORT PlayoutDelay {
+struct PlayoutDelay {
     PlayoutDelay() = default;
     PlayoutDelay(int min_ms, int max_ms) : min_ms(min_ms), max_ms(max_ms) {}
     int min_ms = -1;

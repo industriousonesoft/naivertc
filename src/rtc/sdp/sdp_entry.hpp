@@ -10,7 +10,7 @@
 namespace naivertc {
 namespace sdp {
 
-struct RTC_CPP_EXPORT Entry : public std::enable_shared_from_this<Entry> {
+struct Entry : public std::enable_shared_from_this<Entry> {
 public:
     enum class Type {
         SESSION,

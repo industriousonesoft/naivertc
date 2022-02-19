@@ -12,7 +12,7 @@ namespace wrap_around_utils {
 
 // Check if th number `a` is ahead or at number `b`.
 template <typename T, T M>
-RTC_CPP_EXPORT inline typename std::enable_if<(M > 0), bool>::type AheadOrAt(T a, T b) {
+inline typename std::enable_if<(M > 0), bool>::type AheadOrAt(T a, T b) {
     static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
     // If `M` is an even number and the two numbers are at max distance
     // from each other, then the number with the highest value is
@@ -26,7 +26,7 @@ RTC_CPP_EXPORT inline typename std::enable_if<(M > 0), bool>::type AheadOrAt(T a
 }
 
 template <typename T, T M>
-RTC_CPP_EXPORT inline typename std::enable_if<(M == 0), bool>::type AheadOrAt(T a, T b) {
+inline typename std::enable_if<(M == 0), bool>::type AheadOrAt(T a, T b) {
     static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
     // `max_dist` is the half-way mark (the half count of all count that the tyep U can represent) for the type U. 
     // For instance, for a uint16_t it will be 0x8000 (2^15), and for a uint32_t, it will be 0x80000000 (2^31).
@@ -37,27 +37,27 @@ RTC_CPP_EXPORT inline typename std::enable_if<(M == 0), bool>::type AheadOrAt(T 
 }
 
 template <typename T>
-RTC_CPP_EXPORT inline bool AheadOrAt(T a, T b) {
+inline bool AheadOrAt(T a, T b) {
     return AheadOrAt<T, 0>(a, b);
 }
 
 // Check if the number `a` is ahead of number `b`.
 template <typename T, T M = 0>
-RTC_CPP_EXPORT inline bool AheadOf(T a, T b) {
+inline bool AheadOf(T a, T b) {
     static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
     return a != b && AheadOrAt<T, M>(a, b);
 }
 
 // Return the latest one.
 template <typename T, T M = 0>
-RTC_CPP_EXPORT inline T Latest(T a, T b) {
+inline T Latest(T a, T b) {
     static_assert(std::is_unsigned<T>::value, "Type must be an unsigned integer.");
     return AheadOf<T, M>(a, b) ? a : b;
 }
 
 template <typename T, T M = 0>
 // Return 0 on no wrap around, 1 on forward wrap around, -1 on backward wrap around.
-RTC_CPP_EXPORT inline int DetectWrapAround(T prev, T curr) {
+inline int DetectWrapAround(T prev, T curr) {
     // NOTE: A new way to detect wrap around: curr < 0x0000ffff && prev > 0xffff0000
     if (curr < prev) {
         // When the incoming timestamp is less than the previous one, there are probably two situation:

@@ -11,7 +11,7 @@
 namespace naivertc {
 
 // ProbeCluster
-struct RTC_CPP_EXPORT ProbeCluster {     
+struct ProbeCluster {     
     int id = -1;
     // The mininum of packet number to estimate probe bitrate.
     int min_probes = -1;
@@ -21,13 +21,13 @@ struct RTC_CPP_EXPORT ProbeCluster {
 };
 
 // PacedPacketInfo
-struct RTC_CPP_EXPORT PacedPacketInfo {
+struct PacedPacketInfo {
     int send_bitrate_bps = -1;
     std::optional<ProbeCluster> probe_cluster = std::nullopt;
 };
 
 // SentPacket
-struct RTC_CPP_EXPORT SentPacket {
+struct SentPacket {
     Timestamp send_time = Timestamp::PlusInfinity();
     // Size of packet with overhead up to IP layer.
     size_t size = 0;
@@ -44,7 +44,7 @@ struct RTC_CPP_EXPORT SentPacket {
 };
 
 // ReceivedPacket
-struct RTC_CPP_EXPORT ReceivedPacket {
+struct ReceivedPacket {
     Timestamp send_time = Timestamp::MinusInfinity();
     Timestamp receive_time = Timestamp::MinusInfinity();
     size_t size = 0;
@@ -52,7 +52,7 @@ struct RTC_CPP_EXPORT ReceivedPacket {
 
 // Transport level feedback
 
-struct RTC_CPP_EXPORT TransportLossReport {
+struct TransportLossReport {
     Timestamp receive_time = Timestamp::PlusInfinity();
     uint64_t num_packets_lost = 0;
     uint64_t num_packets = 0;
@@ -61,7 +61,7 @@ struct RTC_CPP_EXPORT TransportLossReport {
 // Packet level feedback
 
 // PacketResult
-struct RTC_CPP_EXPORT PacketResult {
+struct PacketResult {
     class ReceiveTimeOrder {
     public:
         bool operator()(const PacketResult& lhs, const PacketResult& rhs);
@@ -75,7 +75,7 @@ struct RTC_CPP_EXPORT PacketResult {
 };
 
 // TransportPacketsFeedback
-struct RTC_CPP_EXPORT TransportPacketsFeedback {
+struct TransportPacketsFeedback {
     Timestamp receive_time = Timestamp::PlusInfinity();
     Timestamp first_unacked_send_time = Timestamp::PlusInfinity();
     // The receive time of the last acknowledged packet.
@@ -96,7 +96,7 @@ struct RTC_CPP_EXPORT TransportPacketsFeedback {
 // Netwrok control
 
 // NetworkEstimate
-struct RTC_CPP_EXPORT NetworkEstimate
+struct NetworkEstimate
  {
     float loss_rate_ratio = 0;
     TimeDelta rtt = TimeDelta::PlusInfinity();
@@ -105,7 +105,7 @@ struct RTC_CPP_EXPORT NetworkEstimate
 };
 
 // PacerConfig
-struct RTC_CPP_EXPORT PacerConfig {
+struct PacerConfig {
     // Pacer should send at most data_window bytes over time_window duration.
     size_t data_window = 0;
     // Pacer should send at least pad_window bytes over time_window duration.
@@ -117,7 +117,7 @@ struct RTC_CPP_EXPORT PacerConfig {
 };
 
 // ProbeClusterConfig
-struct RTC_CPP_EXPORT ProbeClusterConfig {
+struct ProbeClusterConfig {
     int32_t id = 0;
     int32_t target_probe_count = 0;
     DataRate target_bitrate = DataRate::Zero();
@@ -136,7 +136,7 @@ struct TargetTransferRate {
 };
 
 // NetworkControlUpdate
-struct RTC_CPP_EXPORT NetworkControlUpdate {
+struct NetworkControlUpdate {
     std::optional<size_t> congestion_window;
     std::optional<PacerConfig> pacer_config;
     std::vector<ProbeClusterConfig> probe_cluster_config;
@@ -144,13 +144,13 @@ struct RTC_CPP_EXPORT NetworkControlUpdate {
 };
 
 // NetworkAvailability
-struct RTC_CPP_EXPORT NetworkAvailability {
+struct NetworkAvailability {
     bool network_available = false;
     Timestamp at_time = Timestamp::PlusInfinity();
 };
 
 // TargetBitrateConstraints 
-struct RTC_CPP_EXPORT TargetBitrateConstraints {
+struct TargetBitrateConstraints {
     std::optional<DataRate> min_bitrate;
     std::optional<DataRate> max_bitrate;
     std::optional<DataRate> starting_bitrate;
@@ -158,13 +158,13 @@ struct RTC_CPP_EXPORT TargetBitrateConstraints {
 };
 
 // NetworkRouteChange
-struct RTC_CPP_EXPORT NetworkRouteChange {
+struct NetworkRouteChange {
     TargetBitrateConstraints constraints;
     Timestamp at_time = Timestamp::PlusInfinity();
 };
 
 // BitrateAllocationLimits
-struct RTC_CPP_EXPORT BitrateAllocationLimits {
+struct BitrateAllocationLimits {
     // The total minimum send bitrate required by all send streams.
     DataRate min_total_allocated_bitrate = DataRate::Zero();
     // The total maximum allocatable bitrate for all currently availale stream.
@@ -174,7 +174,7 @@ struct RTC_CPP_EXPORT BitrateAllocationLimits {
 };
 
 // StreamsConfig
-struct RTC_CPP_EXPORT StreamsConfig {
+struct StreamsConfig {
     std::optional<bool> request_alr_probing;
     std::optional<double> pacing_factor;
     BitrateAllocationLimits allocated_bitrate_limits;
@@ -184,7 +184,7 @@ struct RTC_CPP_EXPORT StreamsConfig {
 // Process control
 
 // ProcessInterval
-struct RTC_CPP_EXPORT ProcessInterval {
+struct ProcessInterval {
     std::optional<size_t> pacer_queue;
     Timestamp at_time = Timestamp::PlusInfinity();
 };

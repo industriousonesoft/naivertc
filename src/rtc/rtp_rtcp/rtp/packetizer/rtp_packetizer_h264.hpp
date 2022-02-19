@@ -12,7 +12,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpH264Packetizer final: public RtpPacketizer {
+class RtpH264Packetizer final: public RtpPacketizer {
 public:
     RtpH264Packetizer();
     ~RtpH264Packetizer();

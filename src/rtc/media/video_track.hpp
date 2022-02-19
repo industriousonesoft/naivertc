@@ -8,7 +8,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT VideoTrack : public MediaTrack {
+class VideoTrack : public MediaTrack {
 public:
     using MediaTrack::MediaTrack;
     ~VideoTrack() override;

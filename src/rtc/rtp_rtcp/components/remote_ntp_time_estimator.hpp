@@ -15,7 +15,7 @@ namespace naivertc {
 // It will create a linear regression between timestamp and NTP time
 // based on SR pakcet, then the linear regression is used to estimate 
 // the RTP packet received NTP time in local timebase.
-class RTC_CPP_EXPORT RemoteNtpTimeEstimator {
+class RemoteNtpTimeEstimator {
 public:
     explicit RemoteNtpTimeEstimator(Clock* clock);
     ~RemoteNtpTimeEstimator();

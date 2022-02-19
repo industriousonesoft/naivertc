@@ -8,7 +8,7 @@
 namespace naivertc {
 namespace video {
     
-class RTC_CPP_EXPORT EncodedFrame : public CopyOnWriteBuffer {
+class EncodedFrame : public CopyOnWriteBuffer {
 public:
     using CopyOnWriteBuffer::CopyOnWriteBuffer;
     ~EncodedFrame();

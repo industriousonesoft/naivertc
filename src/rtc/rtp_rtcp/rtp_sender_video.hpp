@@ -17,7 +17,7 @@ namespace naivertc {
 class Clock;
 class RtpSender;
 
-class RTC_CPP_EXPORT RtpSenderVideo {
+class RtpSenderVideo {
 public:
     RtpSenderVideo(Clock* clock, RtpSender* packet_sender);
     virtual ~RtpSenderVideo();

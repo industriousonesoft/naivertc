@@ -10,7 +10,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT GoogCcNetworkController : public NetworkControllerInterface {
+class GoogCcNetworkController : public NetworkControllerInterface {
 public:
     GoogCcNetworkController(Configuration config);
     ~GoogCcNetworkController() override;

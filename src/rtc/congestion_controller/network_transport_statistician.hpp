@@ -17,7 +17,7 @@ class TransportFeedback;
 }
 
 // NetworkTransportStatistician
-class RTC_CPP_EXPORT NetworkTransportStatistician {
+class NetworkTransportStatistician {
 public:
     NetworkTransportStatistician();
     ~NetworkTransportStatistician();

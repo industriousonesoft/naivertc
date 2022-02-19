@@ -27,7 +27,7 @@
 namespace naivertc {
 
 // PeerConnection
-class RTC_CPP_EXPORT PeerConnection : public RtcMediaTransport,
+class PeerConnection : public RtcMediaTransport,
                                       public RtcDataTransport,
                                       public std::enable_shared_from_this<PeerConnection> {
 public:
@@ -234,9 +234,9 @@ private:
     Call call_ RTC_GUARDED_BY(worker_task_queue_);
 };
 
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, PeerConnection::ConnectionState state);
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, PeerConnection::GatheringState state);
-RTC_CPP_EXPORT std::ostream& operator<<(std::ostream& out, PeerConnection::SignalingState state);
+std::ostream& operator<<(std::ostream& out, PeerConnection::ConnectionState state);
+std::ostream& operator<<(std::ostream& out, PeerConnection::GatheringState state);
+std::ostream& operator<<(std::ostream& out, PeerConnection::SignalingState state);
 
 } // namespace naivertc
 

@@ -12,7 +12,7 @@
 #include <functional>
 
 namespace naivertc {
-class RTC_CPP_EXPORT RepeatingTask final {
+class RepeatingTask final {
 public:
     using TaskClouser = std::function<TimeDelta(void)>;
     static std::unique_ptr<RepeatingTask> DelayedStart(Clock* clock,

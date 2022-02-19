@@ -22,7 +22,7 @@ enum class CertificateType {
 
 #if USE_NICE
 
-struct RTC_CPP_EXPORT ProxyServer {
+struct ProxyServer {
     enum class Type { 
         NONE = 0,
         SOCKS5,
@@ -51,7 +51,7 @@ struct RTC_CPP_EXPORT ProxyServer {
 #endif
 
 // Rtc Configuration
-struct RTC_CPP_EXPORT RtcConfiguration {
+struct RtcConfiguration {
     // Ice settings
     std::vector<IceServer> ice_servers;
     

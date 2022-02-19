@@ -13,7 +13,7 @@ namespace rtp {
 namespace video {
 
 // The class is not thread-safe, the caller MUST privode that.
-class RTC_CPP_EXPORT Timing {
+class Timing {
 public:
     struct TimingInfo {
         int max_decode_ms = -1;

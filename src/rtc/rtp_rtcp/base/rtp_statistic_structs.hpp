@@ -14,7 +14,7 @@ namespace naivertc {
 class RtpPacket;
 
 // RtpState
-struct RTC_CPP_EXPORT RtpState final {
+struct RtpState final {
     RtpState();
     ~RtpState();
 
@@ -27,7 +27,7 @@ struct RTC_CPP_EXPORT RtpState final {
 };
 
 // RtpPacketCounter
-struct RTC_CPP_EXPORT RtpPacketCounter final {
+struct RtpPacketCounter final {
     RtpPacketCounter();
     explicit RtpPacketCounter(const RtpPacket& packet);
     ~RtpPacketCounter();
@@ -47,7 +47,7 @@ struct RTC_CPP_EXPORT RtpPacketCounter final {
 };
 
 // RtpStreamDataCounters
-struct RTC_CPP_EXPORT RtpStreamDataCounters final {
+struct RtpStreamDataCounters final {
     RtpStreamDataCounters();
     ~RtpStreamDataCounters();
 
@@ -69,7 +69,7 @@ struct RTC_CPP_EXPORT RtpStreamDataCounters final {
 };
 
 // RtpPacketSendInfo
-struct RTC_CPP_EXPORT RtpPacketSendInfo {
+struct RtpPacketSendInfo {
     // Transport sequence number
     uint16_t packet_id = 0;
     uint32_t ssrc = 0;
@@ -81,7 +81,7 @@ struct RTC_CPP_EXPORT RtpPacketSendInfo {
 };
 
 // RtpSentPacket
-struct RTC_CPP_EXPORT RtpSentPacket {
+struct RtpSentPacket {
     RtpSentPacket(Timestamp send_time, std::optional<uint16_t> packet_id = std::nullopt) 
         : send_time(send_time),
           packet_id(packet_id) {}
@@ -96,7 +96,7 @@ struct RTC_CPP_EXPORT RtpSentPacket {
 };
 
 // RtpReceiveStats
-struct RTC_CPP_EXPORT RtpReceiveStats {
+struct RtpReceiveStats {
     int32_t packets_lost = 0;
     uint32_t jitter = 0;
 
@@ -105,7 +105,7 @@ struct RTC_CPP_EXPORT RtpReceiveStats {
 };
 
 // RtpSendStats
-struct RTC_CPP_EXPORT RtpSendStats {
+struct RtpSendStats {
     uint32_t packets_sent = 0;
     size_t media_bytes_sent = 0;
     DataRate send_bitrate = DataRate::Zero();

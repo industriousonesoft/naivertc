@@ -9,7 +9,7 @@
 namespace naivertc {
 namespace rtcp {
 
-class RTC_CPP_EXPORT TransportFeedback : public Rtpfb {
+class TransportFeedback : public Rtpfb {
 public:
     // ReceivedPacket
     class ReceivedPacket {

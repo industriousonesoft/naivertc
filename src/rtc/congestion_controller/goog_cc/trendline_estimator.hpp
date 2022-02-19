@@ -10,7 +10,7 @@
 namespace naivertc {
 
 // Heper class to detect the trandline of delay based the deltas calculated by `InterArrivalDelta`.
-struct RTC_CPP_EXPORT TrendlineEstimator {
+struct TrendlineEstimator {
 public:
     static constexpr unsigned kDefaultTrendlineWindowSize = 20;
 

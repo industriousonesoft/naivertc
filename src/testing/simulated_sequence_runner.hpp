@@ -7,7 +7,7 @@
 namespace naivertc {
 
 // SimulatedSequenceRunner
-class RTC_CPP_EXPORT SimulatedSequenceRunner {
+class SimulatedSequenceRunner {
 public:
     virtual ~SimulatedSequenceRunner() = default;
 

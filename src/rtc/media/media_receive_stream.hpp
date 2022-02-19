@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT MediaReceiveStream : public RtpPacketSink,
+class MediaReceiveStream : public RtpPacketSink,
                                           public RtcpPacketSink {
 public:
     virtual ~MediaReceiveStream() = default;

@@ -12,7 +12,7 @@ namespace naivertc {
 // over N most recent samples.
 template<typename T,
         typename std::enable_if<std::is_convertible<T, double>::value, T>::type* = nullptr>
-class RTC_CPP_EXPORT RollingAccumulator {
+class RollingAccumulator {
 public:
     explicit RollingAccumulator(size_t window_size) 
         : samples_(window_size) {

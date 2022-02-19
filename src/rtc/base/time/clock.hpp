@@ -23,7 +23,7 @@ constexpr int64_t kNtpJan1970Ms = 2'208'988'800'000;
 constexpr double kMagicNtpFractionalUnit = 4.294967296E+9;
 
 // A clock interface that allows reading of absolute and relative timestamps
-class RTC_CPP_EXPORT Clock {
+class Clock {
 public:
     virtual ~Clock() = default;
 

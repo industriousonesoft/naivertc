@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT DataRate final : public RelativeUnit<DataRate> {
+class DataRate final : public RelativeUnit<DataRate> {
 public:
     template <typename T>
     static constexpr DataRate BitsPerSec(T value) {

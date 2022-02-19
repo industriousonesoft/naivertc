@@ -9,7 +9,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtpPacketToSend : public RtpPacket {
+class RtpPacketToSend : public RtpPacket {
 public:
     RtpPacketToSend(size_t capacity);
     RtpPacketToSend(const RtpPacketToSend& packet);

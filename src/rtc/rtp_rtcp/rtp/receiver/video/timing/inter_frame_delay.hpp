@@ -9,7 +9,7 @@ namespace video {
 
 // This class used to calculate the delay of a complete frame, which is the interval time
 // between the timestamp and the last received packet.
-class RTC_CPP_EXPORT InterFrameDelay {
+class InterFrameDelay {
 public:
     InterFrameDelay();
     ~InterFrameDelay();

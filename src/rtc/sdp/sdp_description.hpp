@@ -18,10 +18,10 @@ namespace naivertc {
 namespace sdp {
 
 // This class is not thread-safe, the caller MUST provide that.
-class RTC_CPP_EXPORT Description {
+class Description {
 public:
 // Builder
-class RTC_CPP_EXPORT Builder {
+class Builder {
 public:
     Builder(Type type);
     ~Builder();
@@ -43,7 +43,7 @@ private:
 };
 
 // Parser
-class RTC_CPP_EXPORT Parser {
+class Parser {
 public:
     static Description Parse(const std::string& sdp, Type type);
 };

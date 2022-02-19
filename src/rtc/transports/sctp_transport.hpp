@@ -16,7 +16,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT SctpTransport final : public BaseTransport {
+class SctpTransport final : public BaseTransport {
 public:
     struct Configuration {
         // SCTP port, local and remote use the same port

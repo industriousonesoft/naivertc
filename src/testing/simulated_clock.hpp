@@ -10,7 +10,7 @@
 namespace naivertc {
 
 // This class is thread-safety (being protected atomically).
-class RTC_CPP_EXPORT SimulatedClock : public Clock {
+class SimulatedClock : public Clock {
 public:
     // The constructors assume an epoch of Jan 1, 1970.
     explicit SimulatedClock(int64_t initial_time_us);

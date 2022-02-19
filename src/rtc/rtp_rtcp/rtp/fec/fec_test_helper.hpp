@@ -10,7 +10,7 @@ namespace naivertc {
 namespace test {
 
 // RtpPacketGenerator
-class RTC_CPP_EXPORT RtpPacketGenerator {
+class RtpPacketGenerator {
 public:
     explicit RtpPacketGenerator(uint32_t ssrc, uint8_t payload_type);
     virtual ~RtpPacketGenerator();
@@ -30,7 +30,7 @@ private:
 };
 
 // UlpFecPacketGenerator
-class RTC_CPP_EXPORT UlpFecPacketGenerator : public RtpPacketGenerator {
+class UlpFecPacketGenerator : public RtpPacketGenerator {
 public:
     explicit UlpFecPacketGenerator(uint32_t ssrc, 
                                    uint8_t media_payload_type, 

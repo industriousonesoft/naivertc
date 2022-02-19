@@ -12,7 +12,7 @@
 namespace naivertc {
 
 // RtpReceiveStatistics
-class RTC_CPP_EXPORT RtpReceiveStatistics : public RtcpReportBlockProvider {
+class RtpReceiveStatistics : public RtcpReportBlockProvider {
 public:
     RtpReceiveStatistics(Clock* clock);
     ~RtpReceiveStatistics() override;

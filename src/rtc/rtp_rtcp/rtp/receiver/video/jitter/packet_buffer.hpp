@@ -22,7 +22,7 @@ using CodecType = ::naivertc::video::CodecType;
 namespace jitter {
     
 // This class is not thread-safety, the caller MUST provide that.
-class RTC_CPP_EXPORT PacketBuffer {
+class PacketBuffer {
 public:
     struct Packet {
         Packet(RtpVideoHeader video_header,

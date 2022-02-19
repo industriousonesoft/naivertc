@@ -8,7 +8,7 @@
 namespace naivertc {
 namespace sdp {
 
-struct RTC_CPP_EXPORT SessionEntry : public Entry {
+struct SessionEntry : public Entry {
 public:
     SessionEntry();
     virtual ~SessionEntry() = default;

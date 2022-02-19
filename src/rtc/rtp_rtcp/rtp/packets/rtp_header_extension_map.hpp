@@ -13,13 +13,13 @@ namespace naivertc {
 namespace rtp {
 
 // Extension size
-struct RTC_CPP_EXPORT ExtensionSize {
+struct ExtensionSize {
     RtpExtensionType type;
     size_t size;
 };
 
 // Header extension map
-class RTC_CPP_EXPORT HeaderExtensionMap {
+class HeaderExtensionMap {
 public:
     static constexpr RtpExtensionType kInvalidType = kRtpExtensionNone;
     

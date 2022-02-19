@@ -8,7 +8,7 @@
 namespace naivertc {
 
 // IceServer
-struct RTC_CPP_EXPORT IceServer {
+struct IceServer {
     enum class Type { STUN, TURN };
     enum class RelayType { TURN_UDP, TURN_TCP, TURN_TLS };
 

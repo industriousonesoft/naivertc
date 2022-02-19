@@ -12,7 +12,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT RtcpResponser : public KeyFrameRequestSender,
+class RtcpResponser : public KeyFrameRequestSender,
                                      public RtcpReceiveFeedbackProvider {
 public:
     RtcpResponser(const RtcpConfiguration& config);

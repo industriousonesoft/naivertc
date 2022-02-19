@@ -13,7 +13,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT FecDecoder : public FecCodec {
+class FecDecoder : public FecCodec {
 public:
     // MediaPacket
     struct MediaPacket {

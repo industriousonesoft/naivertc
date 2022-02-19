@@ -39,7 +39,7 @@ namespace h264 {
 // 29       FU-B      Fragmentation unit                 5.8
 // 30-31    reserved  
 
-class RTC_CPP_EXPORT NalUnit : public BinaryBuffer {
+class NalUnit : public BinaryBuffer {
 public:
     enum class Separator {
         SHORT_START_SEQUENCE,   // 0x00, 0x00, 0x01

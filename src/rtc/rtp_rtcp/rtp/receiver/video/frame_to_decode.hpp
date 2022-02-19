@@ -14,7 +14,7 @@ namespace video {
 using FrameType = ::naivertc::video::FrameType;
 using CodecType = ::naivertc::video::CodecType;
 
-class RTC_CPP_EXPORT FrameToDecode : public CopyOnWriteBuffer {
+class FrameToDecode : public CopyOnWriteBuffer {
 public:
     FrameToDecode(CopyOnWriteBuffer bitstream,
                   video::FrameType frame_type,

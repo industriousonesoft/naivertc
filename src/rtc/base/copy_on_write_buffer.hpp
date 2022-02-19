@@ -25,7 +25,7 @@ struct IsCompatible {
 
 } // internal
 
-class RTC_CPP_EXPORT CopyOnWriteBuffer {
+class CopyOnWriteBuffer {
 public:
     CopyOnWriteBuffer();
     CopyOnWriteBuffer(const CopyOnWriteBuffer&);

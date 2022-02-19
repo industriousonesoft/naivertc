@@ -9,7 +9,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT WeakPtrManager {
+class WeakPtrManager {
 public:
     static WeakPtrManager* SharedInstance() {
         // 使用静态局部变量来完全避免手动释放所分配的资源和线程安全问题

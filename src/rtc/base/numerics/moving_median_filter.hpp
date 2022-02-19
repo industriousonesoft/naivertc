@@ -10,7 +10,7 @@ namespace naivertc {
 
 // Class to efficiently get moving median filter from a stream of samples
 template <typename T>
-class RTC_CPP_EXPORT MovingMedianFilter {
+class MovingMedianFilter {
 public:
     // `window_size` is how many lastest samples are stored and
     // used to take median. it must be positive.

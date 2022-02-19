@@ -9,7 +9,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT HistogramPercentileCounter {
+class HistogramPercentileCounter {
 public:
     // Values below `long_tail_boundary` are stored as the histogram in an array.
     // Values above - in a map.

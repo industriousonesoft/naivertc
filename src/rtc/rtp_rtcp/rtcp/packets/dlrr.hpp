@@ -12,12 +12,12 @@ namespace naivertc {
 namespace rtcp {
 
 // DLRR Report Block: Delay since the Last Receiver Report (RFC 3611).
-class RTC_CPP_EXPORT Dlrr {
+class Dlrr {
 public:
     static const uint8_t kBlockType = 5;
 
     // RFC 3611 4.5
-    struct RTC_CPP_EXPORT TimeInfo {
+    struct TimeInfo {
         TimeInfo();
         TimeInfo(uint32_t ssrc, 
                  uint32_t last_rr, 

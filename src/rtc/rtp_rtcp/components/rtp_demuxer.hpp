@@ -10,7 +10,7 @@
 
 namespace naivertc {
 // This class is not thread-safe, the caller MUST provide that.
-class RTC_CPP_EXPORT RtpDemuxer {
+class RtpDemuxer {
 public:
     RtpDemuxer();
     ~RtpDemuxer();

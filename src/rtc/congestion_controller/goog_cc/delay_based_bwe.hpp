@@ -11,7 +11,7 @@
 namespace naivertc {
 
 // A bandwidth estimation based on delay.
-class RTC_CPP_EXPORT DelayBasedBwe {
+class DelayBasedBwe {
 public:
     using AimdRateControlConfig = AimdRateControl::Configuration;
     using TrendlineEstimatorConfig = TrendlineEstimator::Configuration;

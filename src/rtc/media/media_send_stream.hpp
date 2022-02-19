@@ -6,7 +6,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT MediaSendStream : public RtcpPacketSink {
+class MediaSendStream : public RtcpPacketSink {
 public:
     virtual ~MediaSendStream() = default;
     virtual std::vector<uint32_t> ssrcs() const = 0;    

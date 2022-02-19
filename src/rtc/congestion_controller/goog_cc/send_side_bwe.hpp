@@ -11,7 +11,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT SendSideBwe {
+class SendSideBwe {
 public:
     struct Configuration {
         TimeDelta rtt_limit = TimeDelta::Seconds(3);

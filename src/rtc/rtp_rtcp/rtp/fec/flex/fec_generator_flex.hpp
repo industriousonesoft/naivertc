@@ -7,7 +7,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT FlexfecGenerator : public FecGenerator {
+class FlexfecGenerator : public FecGenerator {
 public:
     FlexfecGenerator(int payload_type,
                      uint32_t ssrc,

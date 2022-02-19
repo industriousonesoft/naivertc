@@ -28,7 +28,7 @@ class RtpPacketReceived;
 class CopyOnWriteBuffer;
 class RtpReceiveStatistics;
 
-class RTC_CPP_EXPORT RtpVideoReceiver : public RecoveredPacketReceiver,
+class RtpVideoReceiver : public RecoveredPacketReceiver,
                                         public RtpPacketSink {
 public:
     struct Configuration {

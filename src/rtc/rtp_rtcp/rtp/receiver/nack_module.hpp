@@ -13,7 +13,7 @@ namespace naivertc {
 static constexpr TimeDelta kDefaultUpdateInterval = TimeDelta::Millis(20);
 static constexpr int kDefaultSendNackDelayMs = 0;
 
-class RTC_CPP_EXPORT NackModule final {
+class NackModule final {
 public:
     NackModule(Clock* clock,
                NackSender* nack_sender,

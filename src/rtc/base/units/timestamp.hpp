@@ -13,7 +13,7 @@ namespace naivertc {
 // The epoch is assumed to be before any represented timestamps, this means that
 // negative value are not valid. The most notable feature is that the difference of 
 // two Timestamps results in a TimeDelta.
-class RTC_CPP_EXPORT Timestamp : public UnitBase<Timestamp> {
+class Timestamp : public UnitBase<Timestamp> {
 public:
     template <typename T>
     static constexpr Timestamp Seconds(T value) {

@@ -14,7 +14,7 @@
 namespace naivertc {
 namespace h264 {
 
-class RTC_CPP_EXPORT SpsPpsTracker {
+class SpsPpsTracker {
 public:
     enum class PacketAction { INSERT, DROP, REQUEST_KEY_FRAME };
     struct FixedBitstream {

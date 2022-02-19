@@ -8,7 +8,7 @@
 namespace naivertc {
 namespace rtcp {
 
-class RTC_CPP_EXPORT TargetBitrate {
+class TargetBitrate {
 public:
     static const uint8_t kBlockType = 42;
 

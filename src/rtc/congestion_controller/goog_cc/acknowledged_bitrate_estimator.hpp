@@ -13,7 +13,7 @@ namespace naivertc {
 
 // This class estimate the acknowledged bitrate based on 
 // the packets acknowledged by receiver
-class RTC_CPP_EXPORT AcknowledgedBitrateEstimator {
+class AcknowledgedBitrateEstimator {
 public:
     static std::unique_ptr<AcknowledgedBitrateEstimator> Create(BitrateEstimator::Configuration config);
 public:

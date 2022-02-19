@@ -11,7 +11,7 @@
 namespace naivertc {
 
 // Class for converting an RTP timestamp to the NTP domain in milliseconds.
-class RTC_CPP_EXPORT RtpToNtpEstimator {
+class RtpToNtpEstimator {
 public:
     struct Parameters {
         Parameters() 

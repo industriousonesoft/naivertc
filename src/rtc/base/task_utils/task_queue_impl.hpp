@@ -8,7 +8,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT TaskQueueImpl {
+class TaskQueueImpl {
 public:
     struct Deleter {
         void operator()(TaskQueueImpl* task_queue) const { task_queue->Delete(); }

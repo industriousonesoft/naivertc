@@ -17,7 +17,7 @@
 namespace naivertc {
 
 // SimulatedTimeController
-class RTC_CPP_EXPORT SimulatedTimeController : public YieldInterface {
+class SimulatedTimeController : public YieldInterface {
 public:
     explicit SimulatedTimeController(Timestamp start_time);
     ~SimulatedTimeController() override;

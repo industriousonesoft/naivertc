@@ -33,7 +33,7 @@ private:
 };
 
 // RtcpReportBlock
-struct RTC_CPP_EXPORT RtcpReportBlock final {
+struct RtcpReportBlock final {
   RtcpReportBlock();
   RtcpReportBlock(uint32_t sender_ssrc,
                   uint32_t source_ssrc,
@@ -56,7 +56,7 @@ struct RTC_CPP_EXPORT RtcpReportBlock final {
 };
 
 // RtcpPacketTypeCounter
-struct RTC_CPP_EXPORT RtcpPacketTypeCounter {
+struct RtcpPacketTypeCounter {
     RtcpPacketTypeCounter();
 
     RtcpPacketTypeCounter& operator+(const RtcpPacketTypeCounter& other);
@@ -73,7 +73,7 @@ struct RTC_CPP_EXPORT RtcpPacketTypeCounter {
 };
 
 // RtcpSenderReportStats
-struct RTC_CPP_EXPORT RtcpSenderReportStats {
+struct RtcpSenderReportStats {
     NtpTime send_ntp_time;
     uint32_t send_rtp_time = 0;
     NtpTime arrival_ntp_time;
@@ -83,7 +83,7 @@ struct RTC_CPP_EXPORT RtcpSenderReportStats {
 };
 
 // RtcpReceiveFeedback
-struct RTC_CPP_EXPORT RtcpReceiveFeedback {
+struct RtcpReceiveFeedback {
     // The last sender report stats.
     std::optional<RtcpSenderReportStats> last_sr_stats;
     // The last receive time infos.

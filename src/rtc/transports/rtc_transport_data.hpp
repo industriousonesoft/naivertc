@@ -9,7 +9,7 @@
 namespace naivertc {
 
 // RtcDataTransport
-class RTC_CPP_EXPORT RtcDataTransport {
+class RtcDataTransport {
 public:
     virtual ~RtcDataTransport() = default;
     virtual bool Send(SctpMessageToSend message) = 0;

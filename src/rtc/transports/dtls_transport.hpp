@@ -18,7 +18,7 @@ using openssl_bool = int;
 static const openssl_bool openssl_true = 1;
 static const openssl_bool openssl_false = 0;
 
-class RTC_CPP_EXPORT DtlsTransport : public BaseTransport {
+class DtlsTransport : public BaseTransport {
 public:
     struct Configuration {
         std::shared_ptr<Certificate> certificate = nullptr;

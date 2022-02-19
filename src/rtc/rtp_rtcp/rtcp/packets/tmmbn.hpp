@@ -12,7 +12,7 @@ class CommonHeader;
 
 // Temporary Maximum Media Stream Bit Rate Notification (TMMBN).
 // RFC 5104, Section 4.2.2.
-class RTC_CPP_EXPORT Tmmbn : public Rtpfb {
+class Tmmbn : public Rtpfb {
  public:
     static constexpr uint8_t kFeedbackMessageType = 4;
 

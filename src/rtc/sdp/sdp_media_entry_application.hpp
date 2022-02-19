@@ -6,7 +6,7 @@
 namespace naivertc {
 namespace sdp {
 
-struct RTC_CPP_EXPORT Application : public MediaEntry {
+struct Application : public MediaEntry {
 public:
     Application(const MediaEntry& entry);
     Application(MediaEntry&& entry);

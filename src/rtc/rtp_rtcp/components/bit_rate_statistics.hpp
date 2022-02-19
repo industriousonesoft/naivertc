@@ -11,7 +11,7 @@ namespace naivertc {
 
 // NOTE: 使用Timestamp无小数转换，不方便计算bit rate，因此使用int64_t替代
 // This class is not thread safe, the caller must provide that.
-class RTC_CPP_EXPORT BitrateStatistics {
+class BitrateStatistics {
 public:
     static const int kDefauleWindowSizeMs = 1000; // 1s
 public:

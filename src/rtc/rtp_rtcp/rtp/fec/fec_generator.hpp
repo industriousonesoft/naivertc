@@ -9,7 +9,7 @@
 
 namespace naivertc {
 
-class RTC_CPP_EXPORT FecGenerator {
+class FecGenerator {
 public:
     enum class FecType {
         ULP_FEC,

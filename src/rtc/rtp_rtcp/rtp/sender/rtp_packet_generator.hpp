@@ -20,7 +20,7 @@ namespace rtp {
 class HeaderExtensionMap;
 }
 
-class RTC_CPP_EXPORT RtpPacketGenerator {
+class RtpPacketGenerator {
 public:
     RtpPacketGenerator(const RtpConfiguration& config, 
                        rtp::HeaderExtensionMap* header_extension_map);
