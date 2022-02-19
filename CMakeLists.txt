@@ -289,6 +289,7 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/bitrate_estimator.hpp
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp
+    src/rtc/congestion_controller/goog_cc/probe_controller.hpp
     src/rtc/congestion_controller/goog_cc/loss_based_bwe.hpp
     src/rtc/congestion_controller/goog_cc/rtt_based_backoff.hpp
     src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.hpp
@@ -539,6 +540,7 @@ set(LIB_SOURCES
     src/rtc/congestion_controller/goog_cc/bitrate_estimator.cpp
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.cpp
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/probe_controller.cpp
     src/rtc/congestion_controller/goog_cc/loss_based_bwe.cpp
     src/rtc/congestion_controller/goog_cc/rtt_based_backoff.cpp
     src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.cpp
@@ -799,6 +801,7 @@ set(UNITTEST_SOURCES
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator_unittest.cpp
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator_unittest.cpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe_unittest.cpp
+    src/rtc/congestion_controller/goog_cc/probe_controller_unittest.cpp
 )
 
 # EXCLUDE_FROM_ALL表示指定的target(或某个模块下的所有target)不会被加入默认编译的all target列表中，即不会自动编译，需要手动编译
