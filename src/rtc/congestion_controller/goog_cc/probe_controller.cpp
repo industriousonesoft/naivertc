@@ -64,10 +64,6 @@ std::vector<ProbeClusterConfig> ProbeController::OnBitrateConstraints(DataRate m
                                                                       DataRate start_bitrate,
                                                                       DataRate max_bitrate,
                                                                       Timestamp at_time) {
-    assert(min_bitrate.IsFinite());
-    assert(start_bitrate.IsFinite());
-    assert(max_bitrate.IsFinite());
-
     if (start_bitrate.IsZero()) {
         start_bitrate_ = min_bitrate;
     } if (start_bitrate > DataRate::Zero()) {
@@ -75,11 +71,13 @@ std::vector<ProbeClusterConfig> ProbeController::OnBitrateConstraints(DataRate m
         estimated_bitrate_ = start_bitrate;
     }
 
-    std::vector<ProbeClusterConfig> pending_probes;
+    auto old_max_bitrate = max_bitrate_;
+    max_bitrate_ = max_bitrate;
+
     switch (probing_state_) {
     case ProbingState::NEW:
         // Initiation of probing to estimate initial channel capacity.
-        pending_probes = InitExponentialProbing(max_bitrate, at_time);
+        return InitExponentialProbing(at_time);
         break;
     case ProbingState::WAITING:
         break;
@@ -87,29 +85,26 @@ std::vector<ProbeClusterConfig> ProbeController::OnBitrateConstraints(DataRate m
         // If the new max bitrate is higher than both the current max bitrate
         // and the estimate, we initiate probing to estimate current channel
         // capacity.
-        if (!estimated_bitrate_.IsFinite() &&
-            max_bitrate_.IsFinite() &&
-            max_bitrate_ < max_bitrate &&
-            estimated_bitrate_ < max_bitrate) {
+        if (!estimated_bitrate_.IsZero() &&
+            old_max_bitrate < max_bitrate_ &&
+            estimated_bitrate_ < max_bitrate_) {
             // The assumption is that if we jump more than 20% in the bandwidth
             // esitmate or if the bandwidth estimate is within 90% of the new
             // max bitrate then the probing attempt was considered as success.
             MidCallProbing mid_call_probing;
             mid_call_probing.probing_state = ProbingState::WAITING;
-            mid_call_probing.bitrate_to_probe = max_bitrate;
+            mid_call_probing.bitrate_to_probe = max_bitrate_;
             mid_call_probing.success_threshold = std::min(estimated_bitrate_ * 1.2, max_bitrate * 0.9);
             mid_call_probing_.emplace(std::move(mid_call_probing));
-            pending_probes = InitProbing({max_bitrate}, max_bitrate, false, at_time);
+            return InitProbing({max_bitrate}, false, at_time);
         }
         break;
     }
-    max_bitrate_ = max_bitrate;
-    return pending_probes;
+    return std::vector<ProbeClusterConfig>();
 }
 
 std::vector<ProbeClusterConfig> ProbeController::OnMaxTotalAllocatedBitrate(DataRate max_total_allocated_bitrate,
                                                                             Timestamp at_time) {
-    assert(max_total_allocated_bitrate.IsFinite());
     const bool in_alr = InAlr();
     const bool allow_allocation_probe = in_alr;
 
@@ -123,7 +118,7 @@ std::vector<ProbeClusterConfig> ProbeController::OnMaxTotalAllocatedBitrate(Data
     if (allow_allocation_probe &&
         probing_state_ == ProbingState::DONE &&
         max_total_allocated_bitrate_ != max_total_allocated_bitrate &&
-        estimated_bitrate_.IsFinite() &&
+        !estimated_bitrate_.IsZero() &&
         (max_bitrate_.IsInfinite() || estimated_bitrate_ < max_bitrate_) &&
         estimated_bitrate_ < max_total_allocated_bitrate) {
         
@@ -145,7 +140,7 @@ std::vector<ProbeClusterConfig> ProbeController::OnMaxTotalAllocatedBitrate(Data
                 pending_probes.push_back(second_probe_bitrate);
             }
         }
-        return InitProbing(pending_probes, max_bitrate_, config_.allocation_allow_further_probing, at_time);
+        return InitProbing(pending_probes, config_.allocation_allow_further_probing, at_time);
     } else {
         max_total_allocated_bitrate_ = max_total_allocated_bitrate;
         return std::vector<ProbeClusterConfig>();
@@ -166,15 +161,15 @@ std::vector<ProbeClusterConfig> ProbeController::OnEstimatedBitrate(DataRate est
     std::vector<ProbeClusterConfig> pending_probes;
     // Check if we can continue probing further.
     if (probing_state_ == ProbingState::WAITING && 
-        min_bitrate_to_probe_further_->IsFinite()) {
+        min_bitrate_to_probe_further_) {
         PLOG_INFO << "Measured bitrate=" << estimate.bps() 
                   << " bps, minimum to probe furter="
                   << min_bitrate_to_probe_further_->bps();
         // Continue probing if the current probing results indicate
         // channel has greater capacity.
-        if (estimate > min_bitrate_to_probe_further_) {
+        if (estimate > *min_bitrate_to_probe_further_) {
             auto further_probe_bitrate = estimate * config_.further_exponential_probe_scale;
-            pending_probes = InitProbing({further_probe_bitrate}, max_bitrate_, true, at_time);
+            pending_probes = InitProbing({further_probe_bitrate}, true, at_time);
         }
     }
 
@@ -188,7 +183,7 @@ std::vector<ProbeClusterConfig> ProbeController::OnEstimatedBitrate(DataRate est
 
 std::vector<ProbeClusterConfig> ProbeController::OnPeriodicProcess(Timestamp at_time) {
     // The current probing is timeout.
-    if (at_time - time_last_probing_initiated_ > kMaxWaitingTimeForProbingResult) {
+    if (at_time - time_last_probing_initiated_ > kMaxWaitingTimeForProbingResult /* 1s */) {
         mid_call_probing_.reset();
         if (probing_state_ == ProbingState::WAITING) {
             PLOG_WARNING << "The current probing is timeout.";
@@ -199,11 +194,11 @@ std::vector<ProbeClusterConfig> ProbeController::OnPeriodicProcess(Timestamp at_
 
     if (enable_periodic_alr_probing_ && probing_state_ == ProbingState::DONE) {
         // Probing peridiclly when in ALR state.
-        if (alr_start_time_->IsFinite() && estimated_bitrate_.IsFinite()) {
+        if (alr_start_time_ && !estimated_bitrate_.IsZero()) {
             auto time_to_next_probe = std::max(*alr_start_time_, time_last_probing_initiated_) + config_.alr_probing_interval;
             // Check if it's time to probe.
             if (at_time >= time_to_next_probe) {
-                return InitProbing({estimated_bitrate_ * config_.alr_probe_scale}, max_bitrate_, true, at_time);
+                return InitProbing({estimated_bitrate_ * config_.alr_probe_scale}, true, at_time);
             }
         }
     }
@@ -218,12 +213,10 @@ std::vector<ProbeClusterConfig> ProbeController::RequestProbe(Timestamp at_time)
     // If the probe session fails, the assumption is that this drop was
     // a real one from a compeitng flow or a newwork change.
     const bool in_alr = InAlr();
-    const bool alr_ended_recently = (alr_end_time_->IsFinite() && 
+    const bool alr_ended_recently = (alr_end_time_ && 
                                      at_time - *alr_end_time_ < kAlrEndedTimeout);
     if (in_alr || alr_ended_recently) {
-        if (probing_state_ == ProbingState::DONE && 
-            time_last_large_drop_.IsFinite() && 
-            bitrate_before_last_large_drop_.IsFinite()) {
+        if (probing_state_ == ProbingState::DONE) {
             // Compute the suggested bitrate to probe.
             DataRate bitrate_to_probe = bitrate_before_last_large_drop_ * kProbeFractionAfterDrop;
             DataRate min_expected_probe_bitrate = bitrate_to_probe * (1 - kProbeUncertainty);
@@ -234,22 +227,42 @@ std::vector<ProbeClusterConfig> ProbeController::RequestProbe(Timestamp at_time)
                 interval_since_last_request > kMinTimeBetweenAlrProbes) {
                 PLOG_INFO << "Detected big bandwidth drop, start probing.";
                 time_last_probe_request_ = at_time;
-                return InitProbing({bitrate_to_probe}, max_bitrate_, false, at_time);
+                return InitProbing({bitrate_to_probe}, false, at_time);
             }
         }
     }
     return std::vector<ProbeClusterConfig>();
 }
 
+void ProbeController::Reset(Timestamp at_time) {
+    probing_state_ = ProbingState::NEW;
+
+    start_bitrate_ = DataRate::Zero();
+    estimated_bitrate_ = DataRate::Zero();
+    max_bitrate_ = DataRate::Zero();
+    max_total_allocated_bitrate_ = DataRate::Zero();
+
+    time_last_probing_initiated_ = Timestamp::Zero();
+    time_last_large_drop_ = at_time;
+    time_last_probe_request_ = at_time;
+
+    bitrate_before_last_large_drop_ = DataRate::Zero();
+
+    min_bitrate_to_probe_further_ = std::nullopt;
+
+    mid_call_probing_ = std::nullopt;
+
+    alr_end_time_.reset();
+}
+
 // Private methods
 std::vector<ProbeClusterConfig> ProbeController::InitProbing(std::vector<DataRate> bitrates_to_probe,
-                                                             const DataRate probe_cap,
                                                              bool probe_further, 
                                                              Timestamp at_time) {
-    DataRate max_probe_bitrate = probe_cap.IsFinite() ? probe_cap 
-                                                      : kDefaultMaxProbingBitrate;
+    DataRate max_probe_bitrate = !max_bitrate_.IsZero() ? max_bitrate_ 
+                                                            : kDefaultMaxProbingBitrate;
     if (config_.limit_probes_with_allocatable_bitrate &&
-        max_total_allocated_bitrate_.IsFinite()) {
+        max_total_allocated_bitrate_ > DataRate::Zero()) {
         // If a max allocated bitrate has been configured, allow probing up to 2x
         // that rate. This allows some overhead to account for bursty streams,
         // which otherwise would have to ramp up when the overshoot is already in
@@ -259,9 +272,9 @@ std::vector<ProbeClusterConfig> ProbeController::InitProbing(std::vector<DataRat
         max_probe_bitrate = std::min(max_probe_bitrate, max_total_allocated_bitrate_ * 2);
     }
     std::vector<ProbeClusterConfig> pending_probes;
-    DataRate min_probe_bitrate = DataRate::PlusInfinity();
+    DataRate max_bitrate = DataRate::Zero();
     for (const auto& bitrate : bitrates_to_probe) {
-        assert(bitrate.IsFinite());
+        assert(bitrate.bps() >= 0);
         ProbeClusterConfig config;
         config.at_time = at_time;
         config.target_interval = kMinProbeInterval;
@@ -275,15 +288,16 @@ std::vector<ProbeClusterConfig> ProbeController::InitProbing(std::vector<DataRat
         } else {
             config.target_bitrate = bitrate;
         }
-        min_probe_bitrate = std::min(min_probe_bitrate, bitrate);
+        max_bitrate = std::max(max_bitrate, bitrate);
         pending_probes.push_back(std::move(config));
     }
     time_last_probing_initiated_ = at_time;
     // Need to probe further.
     if (probe_further) {
         probing_state_ = ProbingState::WAITING;
-        if (min_probe_bitrate.IsFinite()) {
-            min_bitrate_to_probe_further_.emplace(min_probe_bitrate * config_.further_probe_scale);
+        // Set the max birate as the min birate to probe further
+        if (!max_bitrate.IsZero()) {
+            min_bitrate_to_probe_further_.emplace(max_bitrate * config_.further_probe_scale);
         }
     } else {
         probing_state_ = ProbingState::DONE;
@@ -292,10 +306,9 @@ std::vector<ProbeClusterConfig> ProbeController::InitProbing(std::vector<DataRat
     return pending_probes;
 }
 
-std::vector<ProbeClusterConfig> ProbeController::InitExponentialProbing(const DataRate probe_cap, 
-                                                                        Timestamp at_time) {
+std::vector<ProbeClusterConfig> ProbeController::InitExponentialProbing(Timestamp at_time) {
     assert(probing_state_ == ProbingState::NEW);
-    assert(start_bitrate_.IsFinite());
+    assert(!start_bitrate_.IsZero());
 
     std::vector<DataRate> bitrates_to_probe;
     // Applies the first exponential probe scale as it's available.
@@ -306,7 +319,7 @@ std::vector<ProbeClusterConfig> ProbeController::InitExponentialProbing(const Da
     if (config_.second_exponential_probe_scale > 0) {
         bitrates_to_probe.push_back(start_bitrate_ * config_.second_exponential_probe_scale);
     }
-    return InitProbing(bitrates_to_probe, probe_cap, true, at_time);
+    return InitProbing(bitrates_to_probe, true, at_time);
 }
 
 bool ProbeController::InAlr() const {

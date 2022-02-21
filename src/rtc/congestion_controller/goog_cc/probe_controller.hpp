@@ -55,15 +55,15 @@ public:
 
     std::vector<ProbeClusterConfig> OnPeriodicProcess(Timestamp at_time);
 
-    std::vector<ProbeClusterConfig> RequestProbe(Timestamp at_time);                                                
+    std::vector<ProbeClusterConfig> RequestProbe(Timestamp at_time);
+
+    void Reset(Timestamp at_time);                                         
                         
 private:
     std::vector<ProbeClusterConfig> InitProbing(std::vector<DataRate> bitrates_to_probe,
-                                                const DataRate probe_cap,
                                                 bool probe_further, 
                                                 Timestamp at_time);
-    std::vector<ProbeClusterConfig> InitExponentialProbing(const DataRate probe_cap, 
-                                                           Timestamp at_time);
+    std::vector<ProbeClusterConfig> InitExponentialProbing(Timestamp at_time);
 
     bool InAlr() const;
 
@@ -88,16 +88,16 @@ private:
     bool enable_periodic_alr_probing_ = false;
     ProbingState probing_state_ = ProbingState::NEW;
 
-    DataRate start_bitrate_ = DataRate::MinusInfinity();
-    DataRate estimated_bitrate_ = DataRate::MinusInfinity();
-    DataRate max_bitrate_ = DataRate::MinusInfinity();
-    DataRate max_total_allocated_bitrate_ = DataRate::MinusInfinity();
+    DataRate start_bitrate_ = DataRate::Zero();
+    DataRate estimated_bitrate_ = DataRate::Zero();
+    DataRate max_bitrate_ = DataRate::Zero();
+    DataRate max_total_allocated_bitrate_ = DataRate::Zero();
 
     Timestamp time_last_probing_initiated_ = Timestamp::Zero();
-    Timestamp time_last_large_drop_ = Timestamp::PlusInfinity();
+    Timestamp time_last_large_drop_ = Timestamp::Zero();
     Timestamp time_last_probe_request_ = Timestamp::Zero();
 
-    DataRate bitrate_before_last_large_drop_ = DataRate::MinusInfinity();
+    DataRate bitrate_before_last_large_drop_ = DataRate::Zero();
 
     std::optional<DataRate> min_bitrate_to_probe_further_ = std::nullopt;
 
