@@ -49,9 +49,9 @@ private:
     std::unique_ptr<SendSideBwe> send_side_bwe_;
     std::unique_ptr<DelayBasedBwe> delay_based_bwe_;
     std::unique_ptr<AcknowledgedBitrateEstimator> acknowledged_bitrate_estimator_;
-    std::unique_ptr<ProbeBitrateEstimator> probe_bitrate_estimator_;
     std::unique_ptr<ProbeController> probe_controller_;
-
+    std::unique_ptr<ProbeBitrateEstimator> probe_bitrate_estimator_;
+    
     DataRate min_target_bitrate_ = DataRate::Zero();
     DataRate min_bitrate_ = DataRate::Zero();
     DataRate max_bitrate_ = DataRate::PlusInfinity();

@@ -50,35 +50,35 @@ std::optional<DataRate> ProbeBitrateEstimator::IncomingProbePacketFeedback(const
 
     EraseOldCluster(packet_feedback.recv_time);
 
-    AggregatedCluster* curr_cluster = &clusters_[cluster_id];
+    AggregatedCluster& curr_cluster = clusters_[cluster_id];
 
-    if (packet_feedback.sent_packet.send_time < curr_cluster->first_send_time) {
-        curr_cluster->first_send_time = packet_feedback.sent_packet.send_time;
+    if (packet_feedback.sent_packet.send_time < curr_cluster.first_send_time) {
+        curr_cluster.first_send_time = packet_feedback.sent_packet.send_time;
     }
-    if (packet_feedback.sent_packet.send_time > curr_cluster->last_send_time) {
-        curr_cluster->last_send_time = packet_feedback.sent_packet.send_time;
-        curr_cluster->last_send_size = packet_feedback.sent_packet.size;
+    if (packet_feedback.sent_packet.send_time > curr_cluster.last_send_time) {
+        curr_cluster.last_send_time = packet_feedback.sent_packet.send_time;
+        curr_cluster.last_send_size = packet_feedback.sent_packet.size;
     }
-    if (packet_feedback.recv_time < curr_cluster->first_recv_time) {
-        curr_cluster->first_recv_time = packet_feedback.recv_time;
-        curr_cluster->first_recv_size = packet_feedback.sent_packet.size;
+    if (packet_feedback.recv_time < curr_cluster.first_recv_time) {
+        curr_cluster.first_recv_time = packet_feedback.recv_time;
+        curr_cluster.first_recv_size = packet_feedback.sent_packet.size;
     }
-    if (packet_feedback.recv_time > curr_cluster->last_recv_time) {
-        curr_cluster->last_recv_time = packet_feedback.recv_time;
+    if (packet_feedback.recv_time > curr_cluster.last_recv_time) {
+        curr_cluster.last_recv_time = packet_feedback.recv_time;
     }
-    curr_cluster->accumulated_size += packet_feedback.sent_packet.size;
-    curr_cluster->num_probes += 1;
+    curr_cluster.accumulated_size += packet_feedback.sent_packet.size;
+    curr_cluster.num_probes += 1;
 
     int min_probes = packet_feedback.sent_packet.pacing_info.probe_cluster->min_probes * kMinReceivedProbesRatio;
     size_t min_size = packet_feedback.sent_packet.pacing_info.probe_cluster->min_bytes * kMinReceivedBytesRatio;
 
     // Not reach the threshold and waits for more probes.
-    if (curr_cluster->num_probes < min_probes || curr_cluster->accumulated_size < min_size) {
+    if (curr_cluster.num_probes < min_probes || curr_cluster.accumulated_size < min_size) {
         return std::nullopt;
     }
 
-    TimeDelta send_interval = curr_cluster->last_send_time - curr_cluster->first_send_time;
-    TimeDelta recv_interval = curr_cluster->last_recv_time - curr_cluster->first_recv_time;
+    TimeDelta send_interval = curr_cluster.last_send_time - curr_cluster.first_send_time;
+    TimeDelta recv_interval = curr_cluster.last_recv_time - curr_cluster.first_recv_time;
 
     // Invalid send/receive interval.
     if (send_interval <= TimeDelta::Zero() || send_interval > kMaxProbeInterval ||
@@ -91,13 +91,13 @@ std::optional<DataRate> ProbeBitrateEstimator::IncomingProbePacketFeedback(const
     }
     // The size of the last sent packet should not be included when calculating the send bitrate,
     // since the `send_interval` dose not include the time taken to actually send the last packet.
-    assert(curr_cluster->accumulated_size > curr_cluster->last_send_size);
-    size_t send_size = curr_cluster->accumulated_size - curr_cluster->last_send_size;
+    assert(curr_cluster.accumulated_size > curr_cluster.last_send_size);
+    size_t send_size = curr_cluster.accumulated_size - curr_cluster.last_send_size;
     DataRate send_bitrate = DataRate::BitsPerSec(send_size * 8000.0 / send_interval.ms());
 
     // The size of the first received packet should not be included when calculating the receive bitrate,
     // since the `recv_interval` dose not include the time taken to actually receive the first packet.
-    size_t recv_size = curr_cluster->accumulated_size - curr_cluster->first_recv_size;
+    size_t recv_size = curr_cluster.accumulated_size - curr_cluster.first_recv_size;
     DataRate recv_bitrate = DataRate::BitsPerSec(recv_size * 8000.0 / recv_interval.ms());
 
     double ratio = recv_bitrate / send_bitrate;
@@ -121,17 +121,17 @@ std::optional<DataRate> ProbeBitrateEstimator::IncomingProbePacketFeedback(const
               << recv_bitrate.kbps<double>() << " kbps]"
               << " [ratio: " << ratio << "]";
 
-    DataRate ret = std::min(send_bitrate, recv_bitrate);
+    DataRate probed_bitrate = std::min(send_bitrate, recv_bitrate);
 
     // If we're receiving at significantly lower bitrate than we were sending at,
     // it suggests that we've found the true capacity of the link.
     // In this case, set the target bitrate siligtly lower to not immediately overuse.
     if (recv_bitrate.bps<double>() < kMinRatioForUnsaturatedLink * send_bitrate.bps<double>()) {
         assert(send_bitrate > recv_bitrate);
-        ret = DataRate::BitsPerSec(kTargetUtilizationFraction * recv_bitrate.bps<double>());
+        probed_bitrate = DataRate::BitsPerSec(kTargetUtilizationFraction * recv_bitrate.bps<double>());
     }
-    estimated_bitrate_ = ret;
-    return ret;
+    estimated_bitrate_ = probed_bitrate;
+    return probed_bitrate;
 
 }
 

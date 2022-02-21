@@ -112,7 +112,7 @@ TEST_F(ProbeControllerTest, TestExponentialProbing) {
   EXPECT_EQ(probes[0].target_bitrate, DataRate::BitsPerSec(2 * 1800));
 }
 
-TEST_F(ProbeControllerTest, TestExponentialProbingTimeout) {
+MY_TEST_F(ProbeControllerTest, TestExponentialProbingTimeout) {
     auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     // Advance far enough to cause a time out in waiting for probing result.
     clock_.AdvanceTimeMs(kExponentialProbingTimeoutMs);
@@ -142,7 +142,7 @@ MY_TEST_F(ProbeControllerTest, RequestProbeInAlr) {
     EXPECT_EQ(probes[0].target_bitrate, estimated_bitrate * 0.85);
 }
 
-TEST_F(ProbeControllerTest, RequestProbeWhenAlrEndedRecently) {
+MY_TEST_F(ProbeControllerTest, RequestProbeWhenAlrEndedRecently) {
     auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     EXPECT_EQ(probes.size(), 2u);
     DataRate estimated_bitrate = DataRate::BitsPerSec(500);
@@ -315,7 +315,7 @@ MY_TEST_F(ProbeControllerTest, TestAllocatedBitrateCap) {
     EXPECT_EQ(probes[0].target_bitrate, estimated_bitrate * 2) << probes[0].target_bitrate.bps();
 }
 
-TEST_F(ProbeControllerTest, ConfigurableProbing) {
+MY_TEST_F(ProbeControllerTest, ConfigurableProbing) {
     ProbeController::Configuration config;
     config.first_exponential_probe_scale = 2;
     config.second_exponential_probe_scale = 5;
