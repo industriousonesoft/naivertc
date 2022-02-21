@@ -35,13 +35,15 @@ GoogCcNetworkController::GoogCcNetworkController(Configuration config)
       use_min_allocated_bitrate_as_lower_bound_(false),
       ignore_probes_lower_than_network_estimate_(false),
       limit_probes_lower_than_throughput_estimate_(false),
-      loss_based_stable_bitrate_(false),
+      use_loss_based_as_stable_bitrate_(false),
       send_side_bwe_(std::make_unique<SendSideBwe>(SendSideBwe::Configuration())),
       delay_based_bwe_(std::make_unique<DelayBasedBwe>(DelayBasedBwe::Configuration())),
       acknowledged_bitrate_estimator_(AcknowledgedBitrateEstimator::Create(BitrateEstimator::Configuration())),
+      probe_controller_(std::make_unique<ProbeController>(ProbeController::Configuration())),
       probe_bitrate_estimator_(std::make_unique<ProbeBitrateEstimator>()),
       last_loss_based_target_bitrate_(config.constraints.starting_bitrate.value_or(DataRate::Zero())),
       last_stable_target_bitrate_(last_loss_based_target_bitrate_),
+      last_pushback_target_bitrate_(last_stable_target_bitrate_),
       pacing_factor_(config.stream_based_config.pacing_factor.value_or(kDefaultPaceMultiplier)),
       max_padding_bitrate_(config.stream_based_config.allocated_bitrate_limits.max_padding_bitrate),
       min_total_allocated_bitrate_(config.stream_based_config.allocated_bitrate_limits.min_total_allocated_bitrate),
@@ -64,8 +66,35 @@ NetworkControlUpdate GoogCcNetworkController::OnNetworkRouteChange(NetworkRouteC
     return update;
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnProcessInterval(ProcessInterval) {
+NetworkControlUpdate GoogCcNetworkController::OnProcessInterval(ProcessInterval msg) {
     NetworkControlUpdate update;
+    // The first time to process
+    if (initial_config_) {
+        update.probe_cluster_configs = ResetConstraints(initial_config_->constraints);
+        // Enable probe in ALR periodiclly.
+        if (initial_config_->stream_based_config.request_alr_probing) {
+            probe_controller_->set_enable_periodic_alr_probing(*initial_config_->stream_based_config.request_alr_probing);
+        }
+        // Set the max allocated bitrate.
+        auto max_total_bitrate = initial_config_->stream_based_config.allocated_bitrate_limits.max_total_allocated_bitrate;
+        if (!max_total_bitrate.IsZero()) {
+            auto probes = probe_controller_->OnMaxTotalAllocatedBitrate(max_total_bitrate, msg.at_time);
+            // Appends the probes config
+            update.AppendProbes(probes);
+            max_total_allocated_bitrate_ = max_total_bitrate;
+        }
+        initial_config_.reset();
+    }
+
+    // Update estimate periodiclly.
+    send_side_bwe_->UpdateEstimate(msg.at_time);
+
+    auto probes = probe_controller_->OnPeriodicProcess(msg.at_time);
+    if (!probes.empty()) {
+        update.AppendProbes(probes);
+    }
+
+    MaybeTriggerOnNetworkChanged(&update, msg.at_time);
     return update;
 }
 
@@ -237,11 +266,14 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
         MaybeTriggerOnNetworkChanged(&update, report.receive_time);
     }
 
-    // TODO: Implemets Probe controller and ALR detector
+    // TODO: Implemets ALR detector and CongestionWindowPushbackController
     if (result.recovered_from_overuse) {
-        
+        // TODOL Set ALR start time.
+        // Request a new probe.
+        update.AppendProbes(probe_controller_->RequestProbe(report.receive_time));
     } else if (result.backoff_in_alr) {
-
+        // If we just backed off during ALR, request a new probe.
+        update.AppendProbes(probe_controller_->RequestProbe(report.receive_time));
     }
     return update;
 }
@@ -271,7 +303,59 @@ NetworkControlUpdate GoogCcNetworkController::GetNetworkState(Timestamp at_time)
 
 // Private methods
 void GoogCcNetworkController::MaybeTriggerOnNetworkChanged(NetworkControlUpdate* update, Timestamp at_time) {
+    uint8_t fraction_loss = send_side_bwe_->fraction_loss();
+    TimeDelta rtt = send_side_bwe_->rtt();
+    DataRate loss_based_target_bitrate = send_side_bwe_->target_bitate();
+    DataRate pushback_target_rate = loss_based_target_bitrate;
+ 
+    PLOG_VERBOSE << "fraction loss: " << (fraction_loss * 100) / 256 
+                 << ", rtt: " << rtt.ms()
+                 << " ms, loss based target bitrate: " << loss_based_target_bitrate.bps() << " bps.";
 
+    DataRate stable_target_bitrate = send_side_bwe_->EstimatedLinkCapacity();
+    // Use loss based target bitate as stable birate
+    if (use_loss_based_as_stable_bitrate_) {
+        stable_target_bitrate = std::min(stable_target_bitrate, loss_based_target_bitrate);
+    } else {
+        stable_target_bitrate = std::min(stable_target_bitrate, pushback_target_rate);
+    }
+    
+    if ((loss_based_target_bitrate != last_loss_based_target_bitrate_) ||
+        (fraction_loss != last_estimated_fraction_loss_) ||
+        (rtt != last_estimated_rtt) ||
+        (pushback_target_rate != last_pushback_target_bitrate_) ||
+        (stable_target_bitrate != last_stable_target_bitrate_)) {
+        last_loss_based_target_bitrate_ = loss_based_target_bitrate;
+        last_pushback_target_bitrate_ = pushback_target_rate;
+        last_estimated_fraction_loss_ = fraction_loss;
+        last_estimated_rtt = rtt;
+        last_stable_target_bitrate_ = stable_target_bitrate;
+
+        TimeDelta delay_bwe_period = delay_based_bwe_->GetExpectedBwePeriod();
+
+        TargetTransferRate target_bitrate_msg;
+        target_bitrate_msg.at_time = at_time;
+        target_bitrate_msg.target_bitrate = pushback_target_rate;
+        target_bitrate_msg.stable_target_bitrate = stable_target_bitrate;
+        target_bitrate_msg.network_estimate.at_time = at_time;
+        target_bitrate_msg.network_estimate.rtt = rtt;
+        target_bitrate_msg.network_estimate.loss_rate_ratio = fraction_loss / 255.0f;
+        target_bitrate_msg.network_estimate.bwe_period = delay_bwe_period;
+        update->target_rate = target_bitrate_msg;
+
+        auto probes = probe_controller_->OnEstimatedBitrate(loss_based_target_bitrate, at_time);
+        update->AppendProbes(probes);
+        
+        // TODO: update update->pacer_config.
+
+        PLOG_VERBOSE << "loss_based_target_bitrate_bps=" << loss_based_target_bitrate.bps()
+                     << ", pushback_target_bitrate_bps=" << pushback_target_rate.bps()
+                     << ", estimated_fraction_loss=" << fraction_loss
+                     << ", estimated_rtt_ms=" << rtt.ms()
+                     << ", stable_target_bitrate_bps=" << stable_target_bitrate.bps()
+                     << ", at time: " << at_time.ms();
+    }
+        
 }
 
 bool GoogCcNetworkController::TimeToUpdateLoss(Timestamp at_time) {
@@ -280,6 +364,43 @@ bool GoogCcNetworkController::TimeToUpdateLoss(Timestamp at_time) {
         return true;
     } else {
         return false;
+    }
+}
+
+std::vector<ProbeClusterConfig> GoogCcNetworkController::ResetConstraints(TargetBitrateConstraints new_constraints) {
+
+    min_target_bitrate_ = new_constraints.min_bitrate.value_or(DataRate::Zero());
+    max_bitrate_ = new_constraints.max_bitrate.value_or(DataRate::PlusInfinity());
+    starting_bitrate_ = new_constraints.starting_bitrate;
+    ClampConstraints();
+
+    // Uses the start bitrate as the send bitrate at the first time.
+    send_side_bwe_->OnBitrates(starting_bitrate_, min_bitrate_, max_bitrate_, new_constraints.at_time);
+
+    if (starting_bitrate_) {
+        delay_based_bwe_->SetStartBitrate(*starting_bitrate_);
+    }
+    delay_based_bwe_->SetMinBitrate(min_bitrate_);
+
+    // Probes
+    return probe_controller_->OnBitrates(min_bitrate_, 
+                                         starting_bitrate_.value_or(DataRate::Zero()), 
+                                         max_bitrate_, 
+                                         new_constraints.at_time);
+}
+
+void GoogCcNetworkController::ClampConstraints() {
+    min_bitrate_ = std::max(min_bitrate_, kMinBitrate);
+    if (use_min_allocated_bitrate_as_lower_bound_) {
+        min_bitrate_ = std::max(min_bitrate_, min_total_allocated_bitrate_);
+    }
+    if (max_bitrate_ < min_bitrate_) {
+        PLOG_WARNING << "The max bitrate is smaller than the min bitrate.";
+        max_bitrate_ = min_bitrate_;
+    }
+    if (starting_bitrate_ && starting_bitrate_ < min_bitrate_) {
+        PLOG_WARNING << "The start bitrate is smaller than the min bitrate.";
+        starting_bitrate_ = min_bitrate_;
     }
 }
     

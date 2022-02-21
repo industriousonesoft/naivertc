@@ -60,10 +60,10 @@ void ProbeController::set_alr_end_time(Timestamp end_time) {
     alr_end_time_.emplace(end_time);
 }
 
-std::vector<ProbeClusterConfig> ProbeController::OnBitrateConstraints(DataRate min_bitrate,
-                                                                      DataRate start_bitrate,
-                                                                      DataRate max_bitrate,
-                                                                      Timestamp at_time) {
+std::vector<ProbeClusterConfig> ProbeController::OnBitrates(DataRate min_bitrate,
+                                                            DataRate start_bitrate,
+                                                            DataRate max_bitrate,
+                                                            Timestamp at_time) {
     if (start_bitrate.IsZero()) {
         start_bitrate_ = min_bitrate;
     } if (start_bitrate > DataRate::Zero()) {

@@ -1,12 +1,12 @@
 #ifndef _RTC_CONGESTION_CONTROLLER_GOOG_CC_GOOG_CC_NETWORK_CONTROLLER_H_
 #define _RTC_CONGESTION_CONTROLLER_GOOG_CC_GOOG_CC_NETWORK_CONTROLLER_H_
 
-#include "base/defines.hpp"
 #include "rtc/congestion_controller/network_controller_interface.hpp"
 #include "rtc/congestion_controller/goog_cc/send_side_bwe.hpp"
 #include "rtc/congestion_controller/goog_cc/delay_based_bwe.hpp"
 #include "rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp"
+#include "rtc/congestion_controller/goog_cc/probe_controller.hpp"
 
 namespace naivertc {
 
@@ -35,6 +35,8 @@ private:
     void MaybeTriggerOnNetworkChanged(NetworkControlUpdate* update, Timestamp at_time);
 
     bool TimeToUpdateLoss(Timestamp at_time);
+    std::vector<ProbeClusterConfig> ResetConstraints(TargetBitrateConstraints new_constraints);
+    void ClampConstraints();
 
 private:
     // Fixed variables
@@ -42,16 +44,17 @@ private:
     const bool use_min_allocated_bitrate_as_lower_bound_;
     const bool ignore_probes_lower_than_network_estimate_;
     const bool limit_probes_lower_than_throughput_estimate_;
-    const bool loss_based_stable_bitrate_;
+    const bool use_loss_based_as_stable_bitrate_;
 
     std::unique_ptr<SendSideBwe> send_side_bwe_;
     std::unique_ptr<DelayBasedBwe> delay_based_bwe_;
     std::unique_ptr<AcknowledgedBitrateEstimator> acknowledged_bitrate_estimator_;
     std::unique_ptr<ProbeBitrateEstimator> probe_bitrate_estimator_;
+    std::unique_ptr<ProbeController> probe_controller_;
 
-    DataRate min_target_bitrate = DataRate::Zero();
-    DataRate min_bitrate = DataRate::Zero();
-    DataRate max_bitrate = DataRate::PlusInfinity();
+    DataRate min_target_bitrate_ = DataRate::Zero();
+    DataRate min_bitrate_ = DataRate::Zero();
+    DataRate max_bitrate_ = DataRate::PlusInfinity();
     std::optional<DataRate> starting_bitrate_;
 
     bool first_packet_sent_ = false;
@@ -66,6 +69,7 @@ private:
 
     DataRate last_loss_based_target_bitrate_;
     DataRate last_stable_target_bitrate_;
+    DataRate last_pushback_target_bitrate_;
 
     std::optional<uint8_t> last_estimated_fraction_loss_ = 0;
     TimeDelta last_estimated_rtt = TimeDelta::PlusInfinity();

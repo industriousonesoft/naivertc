@@ -139,8 +139,14 @@ struct TargetTransferRate {
 struct NetworkControlUpdate {
     std::optional<size_t> congestion_window;
     std::optional<PacerConfig> pacer_config;
-    std::vector<ProbeClusterConfig> probe_cluster_config;
+    std::vector<ProbeClusterConfig> probe_cluster_configs;
     std::optional<TargetTransferRate> target_rate;
+
+    void AppendProbes(std::vector<ProbeClusterConfig> config) {
+        if (!config.empty()) {
+            probe_cluster_configs.insert(probe_cluster_configs.end(), config.begin(), config.end());
+        }
+    }
 };
 
 // NetworkAvailability

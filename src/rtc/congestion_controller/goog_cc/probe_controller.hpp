@@ -43,10 +43,10 @@ public:
     void set_alr_start_time(std::optional<Timestamp> start_time);
     void set_alr_end_time(Timestamp end_time);
 
-    std::vector<ProbeClusterConfig> OnBitrateConstraints(DataRate min_bitrate,
-                                                         DataRate start_bitrate,
-                                                         DataRate max_bitrate,
-                                                         Timestamp at_time);
+    std::vector<ProbeClusterConfig> OnBitrates(DataRate min_bitrate,
+                                               DataRate start_bitrate,
+                                               DataRate max_bitrate,
+                                               Timestamp at_time);
     std::vector<ProbeClusterConfig> OnMaxTotalAllocatedBitrate(DataRate max_total_allocated_bitrate,
                                                                Timestamp at_time);
 

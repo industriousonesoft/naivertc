@@ -8,7 +8,7 @@
 
 namespace naivertc {
 
-constexpr DataRate kMinBitrate = DataRate::BitsPerSec(5000);
+constexpr DataRate kMinBitrate = DataRate::BitsPerSec(5'000); // 5kbps
 
 enum class BandwidthUsage {
     NORMAL,

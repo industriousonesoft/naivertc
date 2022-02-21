@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 #include "testing/simulated_clock.hpp"
 
@@ -43,12 +43,12 @@ protected:
 };
 
 MY_TEST_F(ProbeControllerTest, InitProbingStart) {
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     EXPECT_GE(probes.size(), 2);
 }
 
 MY_TEST_F(ProbeControllerTest, MidCallProbingOnMaxBitrateIncrease) {
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
 
     DataRate new_max_bitrate = kMaxBitrate + DataRate::BitsPerSec(100);
     // Long enough to time out exponential probing.
@@ -57,14 +57,14 @@ MY_TEST_F(ProbeControllerTest, MidCallProbingOnMaxBitrateIncrease) {
     probes = probe_ctrl_->OnPeriodicProcess(Now());
     ASSERT_TRUE(probes.empty());
     // Trigger mid call probing to |new_max_bitrate|.
-    probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, new_max_bitrate, Now());
+    probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, new_max_bitrate, Now());
 
     ASSERT_EQ(probes.size(), 1u);
     EXPECT_EQ(probes[0].target_bitrate, new_max_bitrate);
 }
 
 MY_TEST_F(ProbeControllerTest, ProbesOnMaxBitrateIncreaseOnlyWhenInAlr) {
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
 
     probes = probe_ctrl_->OnEstimatedBitrate(kMaxBitrate - DataRate::BitsPerSec(1), Now());
 
@@ -86,21 +86,21 @@ MY_TEST_F(ProbeControllerTest, ProbesOnMaxBitrateIncreaseOnlyWhenInAlr) {
 }
 
 MY_TEST_F(ProbeControllerTest, InitiatesProbingOnMaxBitrateIncreaseAtMaxBitrate) {
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     // Long enough to time out exponential probing.
     clock_.AdvanceTimeMs(kExponentialProbingTimeoutMs);
     probes = probe_ctrl_->OnEstimatedBitrate(kStartBitrate, Now());
     probes = probe_ctrl_->OnPeriodicProcess(Now());
     probes = probe_ctrl_->OnEstimatedBitrate(kMaxBitrate, Now());
     // Trigger mid call probing on max birates increased
-    probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate + DataRate::BitsPerSec(100), Now());
+    probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate + DataRate::BitsPerSec(100), Now());
     EXPECT_EQ(probes.size(), 1u);
     EXPECT_EQ(probes[0].target_bitrate, kMaxBitrate + DataRate::BitsPerSec(100));
 }
 
 
 TEST_F(ProbeControllerTest, TestExponentialProbing) {
-  auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+  auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
 
   // Repeated probe should only be sent when estimated bitrate climbs above
   // 0.7 * 6 * kStartBitrate = 1260.
@@ -113,7 +113,7 @@ TEST_F(ProbeControllerTest, TestExponentialProbing) {
 }
 
 TEST_F(ProbeControllerTest, TestExponentialProbingTimeout) {
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     // Advance far enough to cause a time out in waiting for probing result.
     clock_.AdvanceTimeMs(kExponentialProbingTimeoutMs);
     // Cancel the further probe when time out.
@@ -124,7 +124,7 @@ TEST_F(ProbeControllerTest, TestExponentialProbingTimeout) {
 }
 
 MY_TEST_F(ProbeControllerTest, RequestProbeInAlr) {
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     EXPECT_GE(probes.size(), 2u);
     DataRate estimated_bitrate = DataRate::BitsPerSec(500);
     probes = probe_ctrl_->OnEstimatedBitrate(estimated_bitrate, Now());
@@ -143,7 +143,7 @@ MY_TEST_F(ProbeControllerTest, RequestProbeInAlr) {
 }
 
 TEST_F(ProbeControllerTest, RequestProbeWhenAlrEndedRecently) {
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     EXPECT_EQ(probes.size(), 2u);
     DataRate estimated_bitrate = DataRate::BitsPerSec(500);
     probes = probe_ctrl_->OnEstimatedBitrate(estimated_bitrate, Now());
@@ -164,7 +164,7 @@ TEST_F(ProbeControllerTest, RequestProbeWhenAlrEndedRecently) {
 }
 
 MY_TEST_F(ProbeControllerTest, RequestProbeWhenAlrNotEndedRecently) {
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     EXPECT_EQ(probes.size(), 2u);
     DataRate estimated_bitrate = DataRate::BitsPerSec(500);
     probes = probe_ctrl_->OnEstimatedBitrate(estimated_bitrate, Now());
@@ -184,7 +184,7 @@ MY_TEST_F(ProbeControllerTest, RequestProbeWhenAlrNotEndedRecently) {
 }
 
 MY_TEST_F(ProbeControllerTest, RequestProbeWhenBweDropNotRecent) {
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     EXPECT_EQ(probes.size(), 2u);
     DataRate estimated_bitrate = DataRate::BitsPerSec(500);
     probes = probe_ctrl_->OnEstimatedBitrate(estimated_bitrate, Now());
@@ -204,7 +204,7 @@ MY_TEST_F(ProbeControllerTest, RequestProbeWhenBweDropNotRecent) {
 
 MY_TEST_F(ProbeControllerTest, PeriodicProbing) {
     probe_ctrl_->set_enable_periodic_alr_probing(true);
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     EXPECT_EQ(probes.size(), 2u);
     DataRate estimated_bitrate = DataRate::BitsPerSec(500);
     // Repeated probe should only be sent when estimated bitrate climbs above
@@ -244,7 +244,7 @@ MY_TEST_F(ProbeControllerTest, PeriodicProbing) {
 MY_TEST_F(ProbeControllerTest, PeriodicProbingAfterReset) {
     probe_ctrl_->set_alr_start_time(Now());
     probe_ctrl_->set_enable_periodic_alr_probing(true);
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     probe_ctrl_->Reset(Now());
 
     clock_.AdvanceTimeMs(10000);
@@ -253,7 +253,7 @@ MY_TEST_F(ProbeControllerTest, PeriodicProbingAfterReset) {
     // mode.
     EXPECT_EQ(probes.size(), 0u);
 
-    probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
+    probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
     EXPECT_EQ(probes.size(), 2u);
 
     // Make sure we use |kStartBitrate| as the estimated bitrate
@@ -268,7 +268,7 @@ MY_TEST_F(ProbeControllerTest, TestExponentialProbingOverflow) {
     const auto kMultiplier = DataRate::BitsPerSec(1000'000);
     const auto start_birate = 10 * kMultiplier;
     const auto max_birate = 100 * kMultiplier;
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, start_birate, max_birate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, start_birate, max_birate, Now());
     
     // Repeated probe will be sent when estimated bitrate climbs above
     // 0.7 * 6 * start_birate = 42 * kMultiplier.
@@ -285,7 +285,7 @@ MY_TEST_F(ProbeControllerTest, TestAllocatedBitrateCap) {
     const auto kMultiplier = DataRate::BitsPerSec(1000'000);
     const auto start_birate = 10 * kMultiplier;
     const auto max_birate = 100 * kMultiplier;
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, start_birate, max_birate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, start_birate, max_birate, Now());
 
     // Configure ALR for periodic probing.
     probe_ctrl_->set_enable_periodic_alr_probing(true);
@@ -326,7 +326,7 @@ TEST_F(ProbeControllerTest, ConfigurableProbing) {
 
     probe_ctrl_.reset(new ProbeController(config));
     const auto max_bitrate = DataRate::BitsPerSec(5000'000);
-    auto probes = probe_ctrl_->OnBitrateConstraints(kMinBitrate, kStartBitrate, max_bitrate, Now());
+    auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, max_bitrate, Now());
     EXPECT_EQ(probes.size(), 2u);
     EXPECT_EQ(probes[0].target_bitrate, kStartBitrate * 2);
     EXPECT_EQ(probes[1].target_bitrate, kStartBitrate * 5);
