@@ -15,7 +15,7 @@ std::mutex DtlsTransport::global_mutex_;
 
 // Static methods
 void DtlsTransport::Init() {
-    PLOG_VERBOSE << "SCTP init";
+    PLOG_VERBOSE << "DTLS init";
     std::lock_guard lock(global_mutex_);
 
     openssl::init();
@@ -60,8 +60,10 @@ void DtlsTransport::InitOpenSSL(const Configuration& config) {
 		// See https://tools.ietf.org/html/rfc8261#section-5
 		// RFC 8827: Implementations MUST NOT implement DTLS renegotiation
 		// See https://tools.ietf.org/html/rfc8827#section-6.5
-		SSL_CTX_set_options(ctx_, SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION | SSL_OP_NO_QUERY_MTU |
-		                              SSL_OP_NO_RENEGOTIATION);
+		SSL_CTX_set_options(ctx_, SSL_OP_NO_SSLv3 | 
+                                  SSL_OP_NO_COMPRESSION | 
+                                  SSL_OP_NO_QUERY_MTU |
+		                          SSL_OP_NO_RENEGOTIATION);
         // DTLS version 1
         SSL_CTX_set_min_proto_version(ctx_, DTLS1_VERSION);
         // Set whether we should read as many input bytes as possible (for non-blocking reads) or not
@@ -111,7 +113,7 @@ void DtlsTransport::InitOpenSSL(const Configuration& config) {
         SSL_set_tmp_ecdh(ssl_, ecdh.get());
 
         // RFC 8827: The DTLS-SRTP protection profile SRTP_AES128_CM_HMAC_SHA1_80 MUST be supported
-		// See https://tools.ietf.org/html/rfc8827#section-6.5 Warning:
+		// See https://tools.ietf.org/html/rfc8827#section-6.5
 		// SSL_set_tlsext_use_srtp() returns 0 on success and 1 on error
         if (SSL_set_tlsext_use_srtp(ssl_, "SRTP_AES128_CM_SHA1_80")) {
             throw std::runtime_error("Failed to set SRTP profile: " + openssl::error_string(ERR_get_error()));
