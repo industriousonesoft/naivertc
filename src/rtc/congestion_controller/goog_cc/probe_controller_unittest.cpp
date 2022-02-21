@@ -99,7 +99,7 @@ MY_TEST_F(ProbeControllerTest, InitiatesProbingOnMaxBitrateIncreaseAtMaxBitrate)
 }
 
 
-TEST_F(ProbeControllerTest, TestExponentialProbing) {
+MY_TEST_F(ProbeControllerTest, TestExponentialProbing) {
   auto probes = probe_ctrl_->OnBitrates(kMinBitrate, kStartBitrate, kMaxBitrate, Now());
 
   // Repeated probe should only be sent when estimated bitrate climbs above
