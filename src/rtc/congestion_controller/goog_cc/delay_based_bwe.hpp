@@ -6,7 +6,7 @@
 #include "rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp"
 #include "rtc/congestion_controller/goog_cc/trendline_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/aimd_rate_control.hpp"
-#include "rtc/congestion_controller/network_types.hpp"
+#include "rtc/congestion_controller/base/network_types.hpp"
 
 namespace naivertc {
 

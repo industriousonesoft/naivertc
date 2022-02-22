@@ -1,7 +1,7 @@
 #ifndef _RTC_CONGESTION_CONTROLLER_GOOG_CC_DELAY_BASED_BWE_UNIT_TEST_HELPER_H_
 #define _RTC_CONGESTION_CONTROLLER_GOOG_CC_DELAY_BASED_BWE_UNIT_TEST_HELPER_H_
 
-#include "rtc/congestion_controller/network_types.hpp"
+#include "rtc/congestion_controller/base/network_types.hpp"
 #include "rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/delay_based_bwe.hpp"

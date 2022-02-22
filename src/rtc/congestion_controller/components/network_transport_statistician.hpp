@@ -1,9 +1,9 @@
-#ifndef _RTC_CALL_RTP_TRANSPORT_STATISTICIAN_H_
-#define _RTC_CALL_RTP_TRANSPORT_STATISTICIAN_H_
+#ifndef _RTC_CONGESION_CONTROLLER_COMPONENTS_NETWORK_TRANSPORT_STATISTICIAN_H_
+#define _RTC_CONGESION_CONTROLLER_COMPONENTS_NETWORK_TRANSPORT_STATISTICIAN_H_
 
 #include "base/defines.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
-#include "rtc/congestion_controller/network_types.hpp"
+#include "rtc/congestion_controller/base/network_types.hpp"
 #include "rtc/rtp_rtcp/base/rtp_statistic_structs.hpp"
 #include "rtc/rtp_rtcp/components/num_unwrapper.hpp"
 

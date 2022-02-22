@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/units/timestamp.hpp"
-#include "rtc/congestion_controller/network_types.hpp"
+#include "rtc/congestion_controller/base/network_types.hpp"
 #include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
 
 #include <optional>

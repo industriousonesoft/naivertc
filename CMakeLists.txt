@@ -277,8 +277,9 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
 
     # rtc -> congestion_controller -> goog_cc
-    src/rtc/congestion_controller/network_types.hpp
-    src/rtc/congestion_controller/network_transport_statistician.hpp
+    src/rtc/congestion_controller/base/network_types.hpp
+    src/rtc/congestion_controller/components/interval_budget.hpp
+    src/rtc/congestion_controller/components/network_transport_statistician.hpp
     src/rtc/congestion_controller/network_controller_interface.hpp
     src/rtc/congestion_controller/goog_cc/bwe_defines.hpp
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp
@@ -529,8 +530,9 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
 
     # rtc -> congestion_controller -> goog_cc
-    src/rtc/congestion_controller/network_types.cpp
-    src/rtc/congestion_controller/network_transport_statistician.cpp
+    src/rtc/congestion_controller/base/network_types.cpp
+    src/rtc/congestion_controller/components/interval_budget.cpp
+    src/rtc/congestion_controller/components/network_transport_statistician.cpp
     src/rtc/congestion_controller/goog_cc/bwe_defines.cpp
     src/rtc/congestion_controller/goog_cc/inter_arrival_delta.cpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator.cpp
@@ -802,6 +804,7 @@ set(UNITTEST_SOURCES
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator_unittest.cpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe_unittest.cpp
     src/rtc/congestion_controller/goog_cc/probe_controller_unittest.cpp
+    src/rtc/congestion_controller/components/interval_budget_unittest.cpp
 )
 
 # EXCLUDE_FROM_ALL表示指定的target(或某个模块下的所有target)不会被加入默认编译的all target列表中，即不会自动编译，需要手动编译

@@ -5,7 +5,7 @@
 #include "rtc/base/units/time_delta.hpp"
 #include "rtc/base/units/data_rate.hpp"
 #include "rtc/base/units/timestamp.hpp"
-#include "rtc/congestion_controller/network_types.hpp"
+#include "rtc/congestion_controller/base/network_types.hpp"
 
 namespace naivertc {
 

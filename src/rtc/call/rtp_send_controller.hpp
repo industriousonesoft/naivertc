@@ -1,11 +1,10 @@
 #ifndef _RTC_CALL_RTP_SEND_CONTROLLER_H_
 #define _RTC_CALL_RTP_SEND_CONTROLLER_H_
 
-#include "base/defines.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/congestion_controller/network_controller_interface.hpp"
-#include "rtc/congestion_controller/network_transport_statistician.hpp"
+#include "rtc/congestion_controller/components/network_transport_statistician.hpp"
 
 #include <unordered_map>
 
