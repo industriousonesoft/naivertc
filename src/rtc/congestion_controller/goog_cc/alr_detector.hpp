@@ -10,6 +10,7 @@ namespace naivertc {
 
 class Clock;
 
+// Application limited region detector
 // This is a helper class that utilizes signals of elapsed time and
 // bytes sent to estimate whether network traffic is currently limited
 // by the application's ability to generate traffic.
@@ -20,7 +21,11 @@ class AlrDetector {
 public:
     struct Configuration {
         double bandwidth_usage_ratio = 0.65;
+        // If the current ratio > |start_budget_level_ratio|, 
+        // which indicates a ALR started.
         double start_budget_level_ratio = 0.8;
+        // If the current ratio < |stop_budget_level_ratio|, 
+        // which indicates a ALR stoped.
         double stop_budget_level_ratio = 0.5;
     };
 public:
