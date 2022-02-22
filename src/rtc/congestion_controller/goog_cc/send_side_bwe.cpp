@@ -123,7 +123,7 @@ void SendSideBwe::OnAcknowledgeBitrate(std::optional<DataRate> ack_bitrate,
 
 void SendSideBwe::OnPropagationRtt(TimeDelta rtt,
                                    Timestamp report_time) {
-    rtt_backoff_.Update(rtt, report_time);
+    rtt_backoff_.OnPropagationRtt(rtt, report_time);
 }
 
 void SendSideBwe::OnSentPacket(const SentPacket& sent_packet) {
@@ -197,7 +197,7 @@ void SendSideBwe::UpdateEstimate(Timestamp report_time) {
     // If the RTT that is esitmated right now is upper the limit,
     // which means that congestion has detected.
     // And we will decrease the bitrate if we could.
-    if (rtt_backoff_.CorrectedRtt() > config_.rtt_limit) {
+    if (rtt_backoff_.CorrectedRtt(report_time) > config_.rtt_limit) {
         // Not do drop too aften and make sure there has space to drop.
         if (report_time - time_last_decrease_ >= config_.drop_interval &&
             curr_bitrate_ > config_.bandwidth_floor) {

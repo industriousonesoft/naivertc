@@ -14,13 +14,12 @@ public:
     RttBasedBackoff();
     ~RttBasedBackoff();
 
-    void Update(TimeDelta rtt,
-                Timestamp at_time);
-
     void OnSentPacket(const SentPacket& sent_packet);
+    void OnPropagationRtt(TimeDelta rtt,
+                          Timestamp at_time);
 
     // Returns the RTT with backoff.
-    TimeDelta CorrectedRtt() const;
+    TimeDelta CorrectedRtt(Timestamp at_time) const;
 
 private:
     TimeDelta last_rtt_;

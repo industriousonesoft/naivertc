@@ -9,26 +9,21 @@ RttBasedBackoff::RttBasedBackoff()
 
 RttBasedBackoff::~RttBasedBackoff() = default;
 
-void RttBasedBackoff::Update(TimeDelta rtt,
-                             Timestamp at_time) {
-    last_rtt_ = rtt;
-    time_last_rtt_update_ = at_time;
-}
-
 void RttBasedBackoff::OnSentPacket(const SentPacket& sent_packet) {
     time_last_packet_sent_ = sent_packet.send_time;
 }
 
-TimeDelta RttBasedBackoff::CorrectedRtt() const {
-    if (time_last_rtt_update_ > time_last_packet_sent_) {
-        // The rtt was updated in time after sending the last packet.
-        return last_rtt_;
-    } else {
-        // The last packet was set, but the rtt is not updated until now.
-        // TODO: Find a better mechanism to esitmate the RTT?
-        TimeDelta timeout_correction = time_last_packet_sent_ - time_last_rtt_update_;
-        return last_rtt_ + timeout_correction;
-    }
+void RttBasedBackoff::OnPropagationRtt(TimeDelta rtt,
+                                       Timestamp at_time) {
+    last_rtt_ = rtt;
+    time_last_rtt_update_ = at_time;
+}
+
+TimeDelta RttBasedBackoff::CorrectedRtt(Timestamp at_time) const {
+    TimeDelta time_since_rtt_updated = at_time - time_last_rtt_update_;
+    TimeDelta time_since_packet_sent = at_time - time_last_packet_sent_;
+    TimeDelta timeout_correction = std::max(time_since_rtt_updated - time_since_packet_sent, TimeDelta::Zero());
+    return timeout_correction + last_rtt_;
 }
     
 } // namespace naivertc
