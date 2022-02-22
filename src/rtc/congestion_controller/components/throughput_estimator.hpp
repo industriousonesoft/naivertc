@@ -16,7 +16,7 @@ namespace naivertc {
 // 贝叶斯估计：假设观测参数服从一种分布，即先验分布。同样目标参数也服从一种分布，
 // 即后验分布，换言之，目标参数是后验分布中的一个随机数。因此可基于先验估计和观测
 // 数据得出后验分布，
-class BitrateEstimator {
+class ThroughputEstimator {
 public:
     // Hyperparameter
     struct Hyperparameter {
@@ -31,8 +31,8 @@ public:
     };
     using Configuration = Hyperparameter;
 public:
-    BitrateEstimator(Configuration config);
-    virtual ~BitrateEstimator();
+    ThroughputEstimator(Configuration config);
+    virtual ~ThroughputEstimator();
 
     virtual void Update(Timestamp at_time, size_t acked_bytes, bool in_alr);
 

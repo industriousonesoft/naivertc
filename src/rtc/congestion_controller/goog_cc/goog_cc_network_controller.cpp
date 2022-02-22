@@ -1,5 +1,4 @@
 #include "rtc/congestion_controller/goog_cc/goog_cc_network_controller.hpp"
-#include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
 
 #include <plog/Log.h>
 
@@ -38,7 +37,7 @@ GoogCcNetworkController::GoogCcNetworkController(Configuration config)
       use_loss_based_as_stable_bitrate_(false),
       send_side_bwe_(std::make_unique<SendSideBwe>(SendSideBwe::Configuration())),
       delay_based_bwe_(std::make_unique<DelayBasedBwe>(DelayBasedBwe::Configuration())),
-      acknowledged_bitrate_estimator_(AcknowledgedBitrateEstimator::Create(BitrateEstimator::Configuration())),
+      acknowledged_bitrate_estimator_(AcknowledgedBitrateEstimator::Create(ThroughputEstimator::Configuration())),
       probe_controller_(std::make_unique<ProbeController>(ProbeController::Configuration())),
       probe_bitrate_estimator_(std::make_unique<ProbeBitrateEstimator>()),
       last_loss_based_target_bitrate_(config.constraints.starting_bitrate.value_or(DataRate::Zero())),
@@ -50,7 +49,7 @@ GoogCcNetworkController::GoogCcNetworkController(Configuration config)
       max_total_allocated_bitrate_(config.stream_based_config.allocated_bitrate_limits.max_total_allocated_bitrate),
       initial_config_(std::move(config)) {
     if (delay_based_bwe_) {
-        delay_based_bwe_->SetMinBitrate(kMinBitrate);
+        delay_based_bwe_->SetMinBitrate(kDefaultMinBitrate);
     }
 }
 
@@ -390,7 +389,7 @@ std::vector<ProbeClusterConfig> GoogCcNetworkController::ResetConstraints(Target
 }
 
 void GoogCcNetworkController::ClampConstraints() {
-    min_bitrate_ = std::max(min_bitrate_, kMinBitrate);
+    min_bitrate_ = std::max(min_bitrate_, kDefaultMinBitrate);
     if (use_min_allocated_bitrate_as_lower_bound_) {
         min_bitrate_ = std::max(min_bitrate_, min_total_allocated_bitrate_);
     }

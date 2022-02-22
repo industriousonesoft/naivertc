@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/congestion_controller/base/network_types.hpp"
-#include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
+#include "rtc/congestion_controller/components/throughput_estimator.hpp"
 
 #include <optional>
 #include <vector>
@@ -15,9 +15,9 @@ namespace naivertc {
 // the packets acknowledged by receiver
 class AcknowledgedBitrateEstimator {
 public:
-    static std::unique_ptr<AcknowledgedBitrateEstimator> Create(BitrateEstimator::Configuration config);
+    static std::unique_ptr<AcknowledgedBitrateEstimator> Create(ThroughputEstimator::Configuration config);
 public:
-    AcknowledgedBitrateEstimator(std::unique_ptr<BitrateEstimator> bitrate_estimator);
+    AcknowledgedBitrateEstimator(std::unique_ptr<ThroughputEstimator> bitrate_estimator);
     ~AcknowledgedBitrateEstimator();
 
     // Indicates if we are in Application Limit Region or not.
@@ -31,7 +31,7 @@ public:
     std::optional<DataRate> PeekRate() const;
 
 private:
-    std::unique_ptr<BitrateEstimator> bitrate_estimator_;
+    std::unique_ptr<ThroughputEstimator> throughput_estimator_;
     bool in_alr_;
     std::optional<Timestamp> alr_ended_time_;
 };

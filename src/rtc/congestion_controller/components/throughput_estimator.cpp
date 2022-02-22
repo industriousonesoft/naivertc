@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
+#include "rtc/congestion_controller/components/throughput_estimator.hpp"
 
 #include <plog/Log.h>
 
@@ -10,7 +10,7 @@ constexpr int kMaxRateWindowMs = 1000;
     
 } // namespac 
 
-BitrateEstimator::BitrateEstimator(Configuration config) 
+ThroughputEstimator::ThroughputEstimator(Configuration config) 
     : config_(std::move(config)),
       accumulated_bytes_(0),
       curr_window_ms_(0),
@@ -24,9 +24,9 @@ BitrateEstimator::BitrateEstimator(Configuration config)
            config_.noninitial_window_ms <= kMaxRateWindowMs);
 }
 
-BitrateEstimator::~BitrateEstimator() = default;
+ThroughputEstimator::~ThroughputEstimator() = default;
 
-void BitrateEstimator::Update(Timestamp at_time, size_t acked_bytes, bool in_alr) {
+void ThroughputEstimator::Update(Timestamp at_time, size_t acked_bytes, bool in_alr) {
     // We use a larger window at the beginning to get a more
     // stable sample that we can use to initialize the estimate.
     int rate_window_ms = bitrate_estimate_kbps_ < 0.0f ? config_.initial_window_ms 
@@ -79,28 +79,28 @@ void BitrateEstimator::Update(Timestamp at_time, size_t acked_bytes, bool in_alr
 
 }   
 
-std::optional<DataRate> BitrateEstimator::Estimate() const {
+std::optional<DataRate> ThroughputEstimator::Estimate() const {
     if (bitrate_estimate_kbps_ >= 0.0f) {
         return DataRate::KilobitsPerSec(bitrate_estimate_kbps_);
     }
     return std::nullopt;
 }
 
-std::optional<DataRate> BitrateEstimator::PeekRate() const {
+std::optional<DataRate> ThroughputEstimator::PeekRate() const {
     if (curr_window_ms_ > 0) {
         return DataRate::BytesPerSec(accumulated_bytes_ * 1000 / curr_window_ms_);
     }
     return std::nullopt;
 }
 
-void BitrateEstimator::ExpectFastRateChange() {
+void ThroughputEstimator::ExpectFastRateChange() {
     // By setting the bitrate-estimate variance to a higher value we allow the
     // bitrate to change fast for the next few samples.
     bitrate_estimate_var_ += 200;
 }
 
 // Private methods
-float BitrateEstimator::UpdateWindow(int64_t now_ms,
+float ThroughputEstimator::UpdateWindow(int64_t now_ms,
                                      int bytes,
                                      const int rate_window_ms,
                                      bool* is_small_sample) {

@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp"
+#include "rtc/congestion_controller/components/inter_arrival_delta.hpp"
 
 #include <plog/Log.h>
 

@@ -2,8 +2,8 @@
 #define _RTC_CONGESTION_CONTROLLER_GOOG_CC_SEND_SIDE_BWE_H_
 
 #include "base/defines.hpp"
-#include "rtc/congestion_controller/goog_cc/rtt_based_backoff.hpp"
-#include "rtc/congestion_controller/goog_cc/linker_capacity_tracker.hpp"
+#include "rtc/congestion_controller/components/linker_capacity_tracker.hpp"
+#include "rtc/congestion_controller/components/rtt_based_backoff.hpp"
 #include "rtc/congestion_controller/goog_cc/loss_based_bwe.hpp"
 
 #include <deque>

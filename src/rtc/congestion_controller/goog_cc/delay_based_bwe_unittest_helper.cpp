@@ -1,5 +1,4 @@
 #include "rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.hpp"
-#include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
 #include "common/utils_numeric.hpp"
 
 namespace naivertc {
@@ -114,7 +113,7 @@ std::pair<std::vector<PacketResult>, int64_t> RtpStreamGenerator::GenerateFrame(
 // T(DelayBasedBweTest)
 T(DelayBasedBweTest)::T(DelayBasedBweTest)()
     : clock_(Timestamp::Millis(0)),
-      ack_bitrate_estimator_(std::make_unique<AcknowledgedBitrateEstimator>(std::make_unique<BitrateEstimator>(BitrateEstimator::Configuration()))),
+      ack_bitrate_estimator_(std::make_unique<AcknowledgedBitrateEstimator>(std::make_unique<ThroughputEstimator>(ThroughputEstimator::Configuration()))),
       probe_bitrate_estimator_(std::make_unique<ProbeBitrateEstimator>()),
       bandwidth_estimator_(std::make_unique<DelayBasedBwe>(DelayBasedBwe::Configuration())),
       stream_generator_(std::make_unique<RtpStreamGenerator>(/*link_capacity_bps=*/1e6, clock_.now_us())),

@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/rtt_based_backoff.hpp"
+#include "rtc/congestion_controller/components/rtt_based_backoff.hpp"
 
 namespace naivertc {
 
@@ -10,7 +10,7 @@ RttBasedBackoff::RttBasedBackoff()
 RttBasedBackoff::~RttBasedBackoff() = default;
 
 void RttBasedBackoff::Update(TimeDelta rtt,
-                          Timestamp at_time) {
+                             Timestamp at_time) {
     last_rtt_ = rtt;
     time_last_rtt_update_ = at_time;
 }

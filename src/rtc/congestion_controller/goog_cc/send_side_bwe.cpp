@@ -11,7 +11,6 @@ constexpr TimeDelta kBweDecreaseInterval = TimeDelta::Millis(300);
 constexpr TimeDelta kStartPhase = TimeDelta::Millis(2000);
 constexpr TimeDelta kBweConverganceTime = TimeDelta::Millis(20000);
 constexpr int kLimitNumPackets = 20;
-constexpr DataRate kDefaultMaxBitrate = DataRate::BitsPerSec(1000000000);
 // Expecting that RTCP feedback is sent uniformly within [0.5, 1.5]s intervals.
 constexpr TimeDelta kMaxRtcpFeedbackInterval = TimeDelta::Millis(5000);
 
@@ -39,7 +38,7 @@ SendSideBwe::SendSideBwe(Configuration config)
       accumulated_lost_packets_(0),
       accumulated_packets_(0),
       curr_bitrate_(DataRate::Zero()),
-      min_configured_bitrate_(kMinBitrate),
+      min_configured_bitrate_(kDefaultMinBitrate),
       max_configured_bitrate_(kDefaultMaxBitrate),
       ack_bitrate_(std::nullopt),
       has_decreased_since_last_fraction_loss_(false),
@@ -186,7 +185,7 @@ void SendSideBwe::IncomingPacketFeedbacks(const TransportPacketsFeedback& report
 
 void SendSideBwe::SetBitrateBoundary(DataRate min_bitrate,
                                      DataRate max_bitrate) {
-    min_configured_bitrate_ = std::max(min_bitrate, kMinBitrate);
+    min_configured_bitrate_ = std::max(min_bitrate, kDefaultMinBitrate);
     if (max_configured_bitrate_ > DataRate::Zero() && max_bitrate.IsFinite()) {
         max_configured_bitrate_ = std::max(max_configured_bitrate_, max_bitrate);
     } else {

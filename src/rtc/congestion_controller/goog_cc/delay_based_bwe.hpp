@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/units/time_delta.hpp"
-#include "rtc/congestion_controller/goog_cc/inter_arrival_delta.hpp"
+#include "rtc/congestion_controller/components/inter_arrival_delta.hpp"
 #include "rtc/congestion_controller/goog_cc/trendline_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/aimd_rate_control.hpp"
 #include "rtc/congestion_controller/base/network_types.hpp"

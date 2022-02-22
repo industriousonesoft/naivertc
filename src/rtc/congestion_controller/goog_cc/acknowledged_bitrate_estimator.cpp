@@ -4,18 +4,16 @@
 
 namespace naivertc {
 
-std::unique_ptr<AcknowledgedBitrateEstimator> AcknowledgedBitrateEstimator::Create(BitrateEstimator::Configuration config) {
-    return std::make_unique<AcknowledgedBitrateEstimator>(std::make_unique<BitrateEstimator>(std::move(config)));
+std::unique_ptr<AcknowledgedBitrateEstimator> AcknowledgedBitrateEstimator::Create(ThroughputEstimator::Configuration config) {
+    return std::make_unique<AcknowledgedBitrateEstimator>(std::make_unique<ThroughputEstimator>(std::move(config)));
 }
 
-AcknowledgedBitrateEstimator::AcknowledgedBitrateEstimator(std::unique_ptr<BitrateEstimator> bitrate_estimator) 
-    : bitrate_estimator_(std::move(bitrate_estimator)),
+AcknowledgedBitrateEstimator::AcknowledgedBitrateEstimator(std::unique_ptr<ThroughputEstimator> bitrate_estimator) 
+    : throughput_estimator_(std::move(bitrate_estimator)),
       in_alr_(false),
       alr_ended_time_(std::nullopt) {}
 
-AcknowledgedBitrateEstimator::~AcknowledgedBitrateEstimator() {
-    bitrate_estimator_.reset();
-}
+AcknowledgedBitrateEstimator::~AcknowledgedBitrateEstimator() {}
 
 void AcknowledgedBitrateEstimator::set_in_alr(bool in_alr) {
     in_alr_ = in_alr;
@@ -33,7 +31,7 @@ void AcknowledgedBitrateEstimator::IncomingPacketFeedbacks(const std::vector<Pac
         // Checks if the subsequent packets are in ALR or not.
         if (alr_ended_time_ && packet_feedback.sent_packet.send_time > *alr_ended_time_) {
             // Allows the bitrate to change fast as getting out of ALR.
-            bitrate_estimator_->ExpectFastRateChange();
+            throughput_estimator_->ExpectFastRateChange();
             alr_ended_time_.reset();
         }
         // Computes the size of packets that have been received by remote.
@@ -42,16 +40,16 @@ void AcknowledgedBitrateEstimator::IncomingPacketFeedbacks(const std::vector<Pac
         // by remote with high probability, like the audio packet.
         acknowledged_packet_size += packet_feedback.sent_packet.prior_unacked_bytes;
         // Try to estimate the ackowledged bitrate.
-        bitrate_estimator_->Update(packet_feedback.recv_time, acknowledged_packet_size, in_alr_);
+        throughput_estimator_->Update(packet_feedback.recv_time, acknowledged_packet_size, in_alr_);
     }
 }
 
 std::optional<DataRate> AcknowledgedBitrateEstimator::Estimate() const {
-    return bitrate_estimator_->Estimate();
+    return throughput_estimator_->Estimate();
 }
     
 std::optional<DataRate> AcknowledgedBitrateEstimator::PeekRate() const {
-    return bitrate_estimator_->PeekRate();
+    return throughput_estimator_->PeekRate();
 }
     
 } // namespace naivertc

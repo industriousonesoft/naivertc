@@ -1,5 +1,4 @@
 #include "rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp"
-#include "rtc/congestion_controller/goog_cc/bitrate_estimator.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -21,10 +20,10 @@ constexpr int64_t kFirstSendTimeMs = 10;
 constexpr uint16_t kSequenceNumber = 1;
 constexpr size_t kPayloadSize = 10;
 
-class MockBitrateEstimator : public BitrateEstimator {
+class MockThroughputEstimator : public ThroughputEstimator {
 public:
     // Inherits the constructs from superclass.
-    using BitrateEstimator::BitrateEstimator;
+    using ThroughputEstimator::ThroughputEstimator;
     MOCK_METHOD(void, Update, (Timestamp at_time, size_t amount, bool in_alr), (override));
     MOCK_METHOD(std::optional<DataRate>, Estimate, (), (const, override));
     MOCK_METHOD(std::optional<DataRate>, PeekRate, (), (const, override));
@@ -33,14 +32,14 @@ public:
 
 struct AcknowledgedBitrateEstimatorTestStates {
     std::unique_ptr<AcknowledgedBitrateEstimator> acknowledged_bitrate_estimator;
-    MockBitrateEstimator* bitrate_estimator;
+    MockThroughputEstimator* throughput_estimator;
 };
 
 AcknowledgedBitrateEstimatorTestStates CreateTestStates() {
     AcknowledgedBitrateEstimatorTestStates states;
-    auto mock_bitrate_estimator = std::make_unique<MockBitrateEstimator>(MockBitrateEstimator::Configuration());
-    states.bitrate_estimator = mock_bitrate_estimator.get();
-    states.acknowledged_bitrate_estimator = std::make_unique<AcknowledgedBitrateEstimator>(std::move(mock_bitrate_estimator));
+    auto mock_throughput_estimator = std::make_unique<MockThroughputEstimator>(MockThroughputEstimator::Configuration());
+    states.throughput_estimator = mock_throughput_estimator.get();
+    states.acknowledged_bitrate_estimator = std::make_unique<AcknowledgedBitrateEstimator>(std::move(mock_throughput_estimator));
     return states;
 }
 
@@ -70,10 +69,10 @@ MY_TEST(AcknowledgedBitrateEstimatorTest, UpdateBandwidth) {
     auto packet_feedback_vector = CreateFeedbackVector();
     {
         InSequence dummy;
-        EXPECT_CALL(*states.bitrate_estimator, Update(packet_feedback_vector[0].recv_time,
+        EXPECT_CALL(*states.throughput_estimator, Update(packet_feedback_vector[0].recv_time,
                                                       packet_feedback_vector[0].sent_packet.size,
                                                       /* in_alr */ false)).Times(1);
-        EXPECT_CALL(*states.bitrate_estimator, Update(packet_feedback_vector[1].recv_time,
+        EXPECT_CALL(*states.throughput_estimator, Update(packet_feedback_vector[1].recv_time,
                                                       packet_feedback_vector[1].sent_packet.size,
                                                       /* in_alr */ false)).Times(1);
     }
@@ -85,12 +84,12 @@ MY_TEST(TestAcknowledgedBitrateEstimator, ExpectFastRateChangeWhenLeftAlr) {
   auto packet_feedback_vector = CreateFeedbackVector();
   {
     InSequence dummy;
-    EXPECT_CALL(*states.bitrate_estimator,
+    EXPECT_CALL(*states.throughput_estimator,
                 Update(packet_feedback_vector[0].recv_time,
                        packet_feedback_vector[0].sent_packet.size,
                        /*in_alr*/ false)).Times(1);
-    EXPECT_CALL(*states.bitrate_estimator, ExpectFastRateChange()).Times(1);
-    EXPECT_CALL(*states.bitrate_estimator,
+    EXPECT_CALL(*states.throughput_estimator, ExpectFastRateChange()).Times(1);
+    EXPECT_CALL(*states.throughput_estimator,
                 Update(packet_feedback_vector[1].recv_time,
                        packet_feedback_vector[1].sent_packet.size,
                        /*in_alr*/ false)).Times(1);
@@ -102,7 +101,7 @@ MY_TEST(TestAcknowledgedBitrateEstimator, ExpectFastRateChangeWhenLeftAlr) {
 MY_TEST(TestAcknowledgedBitrateEstimator, ReturnBitrate) {
   auto states = CreateTestStates();
   std::optional<DataRate> return_value = DataRate::KilobitsPerSec(123);
-  EXPECT_CALL(*states.bitrate_estimator, Estimate()).Times(1)
+  EXPECT_CALL(*states.throughput_estimator, Estimate()).Times(1)
                                                     .WillOnce(Return(return_value));
   EXPECT_EQ(return_value, states.acknowledged_bitrate_estimator->Estimate());
 }
