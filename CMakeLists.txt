@@ -295,6 +295,7 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/probe_controller.hpp
     src/rtc/congestion_controller/goog_cc/loss_based_bwe.hpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe.hpp
+    src/rtc/congestion_controller/goog_cc/alr_detector.hpp
     src/rtc/congestion_controller/goog_cc/goog_cc_network_controller.hpp
 )
 
@@ -547,6 +548,7 @@ set(LIB_SOURCES
     src/rtc/congestion_controller/goog_cc/probe_controller.cpp
     src/rtc/congestion_controller/goog_cc/loss_based_bwe.cpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe.cpp
+    src/rtc/congestion_controller/goog_cc/alr_detector.cpp
     src/rtc/congestion_controller/goog_cc/goog_cc_network_controller.cpp
 )
 

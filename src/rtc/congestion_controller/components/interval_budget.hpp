@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "rtc/base/units/data_rate.hpp"
+#include "rtc/base/units/time_delta.hpp"
 
 namespace naivertc {
 
@@ -18,7 +19,7 @@ public:
 
     void set_target_bitrate(DataRate bitrate);
 
-    void IncreaseBudget(int64_t interval_time_ms);
+    void IncreaseBudget(TimeDelta interval_time);
     void ConsumeBudget(size_t bytes);
 
 private:
