@@ -113,7 +113,7 @@ void SendSideBwe::OnDelayBasedBitrate(DataRate bitrate,
     ApplyLimits(report_time);
 }
 
-void SendSideBwe::OnAcknowledgeBitrate(std::optional<DataRate> ack_bitrate,
+void SendSideBwe::OnAcknowledgedBitrate(std::optional<DataRate> ack_bitrate,
                                        Timestamp report_time) {
     ack_bitrate_ = ack_bitrate;
     if (ack_bitrate && loss_based_bwe_) {
@@ -160,7 +160,7 @@ void SendSideBwe::OnPacketsLost(int64_t num_packets_lost,
         accumulated_packets_ = 0;
         time_last_fraction_loss_update_ = report_time;
         has_decreased_since_last_fraction_loss_ = false;
-        UpdateEstimate(report_time);
+        OnPeriodicProcess(report_time);
     }
     UpdateUmaStats(num_packets_lost, report_time);
 }
@@ -193,7 +193,7 @@ void SendSideBwe::SetBitrateBoundary(DataRate min_bitrate,
     }
 }
 
-void SendSideBwe::UpdateEstimate(Timestamp report_time) {
+void SendSideBwe::OnPeriodicProcess(Timestamp report_time) {
     // If the RTT that is esitmated right now is upper the limit,
     // which means that congestion has detected.
     // And we will decrease the bitrate if we could.
@@ -204,7 +204,7 @@ void SendSideBwe::UpdateEstimate(Timestamp report_time) {
             time_last_decrease_ = report_time;
             DataRate new_bitrate = std::max(curr_bitrate_ * config_.drop_factor,
                                             config_.bandwidth_floor);
-            linker_capacity_tracker_.OnRttBasedEstimate(new_bitrate, report_time);
+            linker_capacity_tracker_.OnRttBackoffEstimate(new_bitrate, report_time);
             UpdateTargetBitrate(new_bitrate, report_time);
         }
         return;
@@ -327,7 +327,8 @@ void SendSideBwe::UpdateTargetBitrate(DataRate bitrate,
     curr_bitrate_ = Clamp(bitrate);
     // Make sure that we have measured a throughput before updating the link capacity.
     if (ack_bitrate_) {
-        linker_capacity_tracker_.Update(std::min(*ack_bitrate_, curr_bitrate_), report_time);
+        // Use the smaller as the linker capacity estimate.
+        linker_capacity_tracker_.OnCapacityEstimate(std::min(*ack_bitrate_, curr_bitrate_), report_time);
     }
 }
 

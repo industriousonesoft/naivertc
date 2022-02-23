@@ -10,6 +10,9 @@
 
 namespace naivertc {
 
+// This class is used to estimate the linker capacity based
+// on the delay-based estimate, RTT-based backoff and the
+// send side esitmate.
 class LinkerCapacityTracker {
 public:
     LinkerCapacityTracker(TimeDelta tracking_window = TimeDelta::Seconds(10));
@@ -20,10 +23,10 @@ public:
                               Timestamp at_time);
     // Call when the estimated bitrate has been dropped
     // since congestion has detected by the RTT estimate (with backoff).
-    void OnRttBasedEstimate(DataRate bitrate,
+    void OnRttBackoffEstimate(DataRate bitrate,
+                              Timestamp at_time);
+    void OnCapacityEstimate(DataRate bitrate, 
                             Timestamp at_time);
-    void Update(DataRate bitrate, 
-                Timestamp at_time);
 
     DataRate estimate() const;
 

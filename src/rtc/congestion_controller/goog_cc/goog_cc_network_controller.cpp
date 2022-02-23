@@ -40,8 +40,9 @@ GoogCcNetworkController::GoogCcNetworkController(Configuration config)
       acknowledged_bitrate_estimator_(AcknowledgedBitrateEstimator::Create(ThroughputEstimator::Configuration())),
       probe_controller_(std::make_unique<ProbeController>(ProbeController::Configuration())),
       probe_bitrate_estimator_(std::make_unique<ProbeBitrateEstimator>()),
-      last_loss_based_target_bitrate_(config.constraints.starting_bitrate.value_or(DataRate::Zero())),
-      last_stable_target_bitrate_(last_loss_based_target_bitrate_),
+      alr_detector_(std::make_unique<AlrDetector>(AlrDetector::Configuration(), config.clock)),
+      send_side_estimate_(config.constraints.starting_bitrate.value_or(DataRate::Zero())),
+      last_stable_target_bitrate_(send_side_estimate_),
       last_pushback_target_bitrate_(last_stable_target_bitrate_),
       pacing_factor_(config.stream_based_config.pacing_factor.value_or(kDefaultPaceMultiplier)),
       max_padding_bitrate_(config.stream_based_config.allocated_bitrate_limits.max_padding_bitrate),
@@ -67,7 +68,11 @@ NetworkControlUpdate GoogCcNetworkController::OnNetworkRouteChange(NetworkRouteC
 
 NetworkControlUpdate GoogCcNetworkController::OnProcessInterval(ProcessInterval msg) {
     NetworkControlUpdate update;
-    // The first time to process
+    // Check the ALR state periodiclly.
+    auto alr_started_time = alr_detector_->alr_started_time();
+    probe_controller_->set_alr_start_time(alr_started_time);
+
+    // Config at the first time.
     if (initial_config_) {
         update.probe_cluster_configs = ResetConstraints(initial_config_->constraints);
         // Enable probe in ALR periodiclly.
@@ -86,7 +91,7 @@ NetworkControlUpdate GoogCcNetworkController::OnProcessInterval(ProcessInterval 
     }
 
     // Update estimate periodiclly.
-    send_side_bwe_->UpdateEstimate(msg.at_time);
+    send_side_bwe_->OnPeriodicProcess(msg.at_time);
 
     auto probes = probe_controller_->OnPeriodicProcess(msg.at_time);
     if (!probes.empty()) {
@@ -118,6 +123,11 @@ NetworkControlUpdate GoogCcNetworkController::OnRttUpdated(TimeDelta rtt, Timest
 }
 
 NetworkControlUpdate GoogCcNetworkController::OnSentPacket(const SentPacket& sent_packet) {
+    // The ALR state might be changed after updating sent bytes, so we
+    // should update the ALR state of |acknowledged_bitrate_estimator_|.
+    alr_detector_->OnBytesSent(sent_packet.size, sent_packet.send_time);
+    acknowledged_bitrate_estimator_->set_in_alr(alr_detector_->InAlr());
+
     if (!first_packet_sent_) {
         first_packet_sent_ = true;
         // Initialize feedback time to send time to allow estimation of RTT until
@@ -223,10 +233,19 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
         }
     }
 
+    auto arl_ended_time = alr_detector_->alr_ended_time();
+    // if |arl_ended_time| has value indicates that we was in ALR 
+    // but has quit from it now.
+    if (arl_ended_time) {
+        acknowledged_bitrate_estimator_->set_alr_ended_time(*arl_ended_time);
+    }
+
+    // Try to estimate the throughput with sorted feedbacks.
     auto sorted_received_packets = report.SortedByReceiveTime();
     acknowledged_bitrate_estimator_->IncomingPacketFeedbacks(sorted_received_packets);
     auto acknowledged_bitrate = acknowledged_bitrate_estimator_->Estimate();
-    send_side_bwe_->OnAcknowledgeBitrate(acknowledged_bitrate, report.receive_time);
+    // The acknowledged estimate will be used to do estimation based on loss.
+    send_side_bwe_->OnAcknowledgedBitrate(acknowledged_bitrate, report.receive_time);
 
     send_side_bwe_->IncomingPacketFeedbacks(report);
     // Ready to estimate the probe birate.
@@ -257,6 +276,7 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
                                                             false);
     // The delay-based estimate has updated.
     if (result.updated) {
+        // Use the probed bitrate as the send birate.
         if (result.probe) {
             send_side_bwe_->OnSendBitrate(result.target_bitrate, report.receive_time);
         }
@@ -304,31 +324,36 @@ NetworkControlUpdate GoogCcNetworkController::GetNetworkState(Timestamp at_time)
 void GoogCcNetworkController::MaybeTriggerOnNetworkChanged(NetworkControlUpdate* update, Timestamp at_time) {
     uint8_t fraction_loss = send_side_bwe_->fraction_loss();
     TimeDelta rtt = send_side_bwe_->rtt();
-    DataRate loss_based_target_bitrate = send_side_bwe_->target_bitate();
-    DataRate pushback_target_rate = loss_based_target_bitrate;
+    DataRate send_side_estimate = send_side_bwe_->target_bitate();
+    DataRate pushback_target_rate = send_side_estimate;
  
     PLOG_VERBOSE << "fraction loss: " << (fraction_loss * 100) / 256 
                  << ", rtt: " << rtt.ms()
-                 << " ms, loss based target bitrate: " << loss_based_target_bitrate.bps() << " bps.";
+                 << " ms, send side estimated bitrate: " << send_side_estimate.bps() << " bps.";
 
     DataRate stable_target_bitrate = send_side_bwe_->EstimatedLinkCapacity();
     // Use loss based target bitate as stable birate
     if (use_loss_based_as_stable_bitrate_) {
-        stable_target_bitrate = std::min(stable_target_bitrate, loss_based_target_bitrate);
+        stable_target_bitrate = std::min(stable_target_bitrate, send_side_estimate);
     } else {
         stable_target_bitrate = std::min(stable_target_bitrate, pushback_target_rate);
     }
     
-    if ((loss_based_target_bitrate != last_loss_based_target_bitrate_) ||
+    // FIXME: Check if the esitmation has been updated?
+    if ((send_side_estimate != send_side_estimate_) ||
         (fraction_loss != last_estimated_fraction_loss_) ||
         (rtt != last_estimated_rtt) ||
         (pushback_target_rate != last_pushback_target_bitrate_) ||
         (stable_target_bitrate != last_stable_target_bitrate_)) {
-        last_loss_based_target_bitrate_ = loss_based_target_bitrate;
+
+        send_side_estimate_ = send_side_estimate;
         last_pushback_target_bitrate_ = pushback_target_rate;
         last_estimated_fraction_loss_ = fraction_loss;
         last_estimated_rtt = rtt;
         last_stable_target_bitrate_ = stable_target_bitrate;
+
+        // Update the bitrate used to increase the ALR budget.
+        alr_detector_->OnEstimate(send_side_estimate);
 
         TimeDelta delay_bwe_period = delay_based_bwe_->GetExpectedBwePeriod();
 
@@ -342,12 +367,12 @@ void GoogCcNetworkController::MaybeTriggerOnNetworkChanged(NetworkControlUpdate*
         target_bitrate_msg.network_estimate.bwe_period = delay_bwe_period;
         update->target_rate = target_bitrate_msg;
 
-        auto probes = probe_controller_->OnEstimatedBitrate(loss_based_target_bitrate, at_time);
+        auto probes = probe_controller_->OnEstimatedBitrate(send_side_estimate, at_time);
         update->AppendProbes(probes);
         
         // TODO: update update->pacer_config.
 
-        PLOG_VERBOSE << "loss_based_target_bitrate_bps=" << loss_based_target_bitrate.bps()
+        PLOG_VERBOSE << "send_side_estimate_bps=" << send_side_estimate.bps()
                      << ", pushback_target_bitrate_bps=" << pushback_target_rate.bps()
                      << ", estimated_fraction_loss=" << fraction_loss
                      << ", estimated_rtt_ms=" << rtt.ms()
@@ -382,8 +407,8 @@ std::vector<ProbeClusterConfig> GoogCcNetworkController::ResetConstraints(Target
     delay_based_bwe_->SetMinBitrate(min_bitrate_);
 
     // Probes
-    return probe_controller_->OnBitrates(min_bitrate_, 
-                                         starting_bitrate_.value_or(DataRate::Zero()), 
+    return probe_controller_->OnBitrates(starting_bitrate_.value_or(DataRate::Zero()),
+                                         min_bitrate_,
                                          max_bitrate_, 
                                          new_constraints.at_time);
 }

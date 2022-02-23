@@ -27,7 +27,7 @@ void ProbingInStartPhase(bool use_delay_based) {
     } else {
         bwe.OnRemb(kInitialBitrate, at_time);
     }
-    bwe.UpdateEstimate(at_time);
+    bwe.OnPeriodicProcess(at_time);
     EXPECT_EQ(kInitialBitrate, bwe.target_bitate());
 
     // The second REMB doesn't apply immediately.
@@ -38,7 +38,7 @@ void ProbingInStartPhase(bool use_delay_based) {
     } else {
         bwe.OnRemb(kSecondBitrate, at_time);
     }
-    bwe.UpdateEstimate(at_time);
+    bwe.OnPeriodicProcess(at_time);
     EXPECT_EQ(kInitialBitrate, bwe.target_bitate());
 
 }
@@ -74,7 +74,7 @@ MY_TEST(SendSideBweTest, DosentReapplyBitrateDecreaseWithoutFollowingRemb) {
 
     // Triger an update 2 seconds later to not be rate limited.
     at_time += TimeDelta::Millis(1000);
-    bwe.UpdateEstimate(at_time);
+    bwe.OnPeriodicProcess(at_time);
     EXPECT_LT(bwe.target_bitate(), kInitialBitrate);
     // Verify that the threhold bitrate isn't hitting the min bitrate.
     // If this ever happens, update the thresholds or loss rate so than
@@ -90,7 +90,7 @@ MY_TEST(SendSideBweTest, DosentReapplyBitrateDecreaseWithoutFollowingRemb) {
     // Trigger an update 2 seconds later to not be rate limited, but it still 
     // shouldn't update.
     at_time += TimeDelta::Millis(1000);
-    bwe.UpdateEstimate(at_time);
+    bwe.OnPeriodicProcess(at_time);
 
     EXPECT_EQ(last_updated_bitrate, bwe.target_bitate());
     // The old loss rate and RTT should still be applied though.
@@ -112,7 +112,7 @@ MY_TEST(SendSideBweTest, SettingSendBitrateOverideDelayBasedEstimate) {
     bwe.OnSendBitrate(kInitialBitrate, at_time);
     bwe.OnDelayBasedBitrate(kDelayBasedBitrate, at_time);
 
-    bwe.UpdateEstimate(at_time);
+    bwe.OnPeriodicProcess(at_time);
 
     EXPECT_GE(bwe.target_bitate(), kInitialBitrate) << bwe.target_bitate().bps();
     EXPECT_LE(bwe.target_bitate(), kDelayBasedBitrate);

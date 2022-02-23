@@ -7,6 +7,7 @@
 #include "rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/probe_controller.hpp"
+#include "rtc/congestion_controller/goog_cc/alr_detector.hpp"
 
 namespace naivertc {
 
@@ -51,6 +52,7 @@ private:
     std::unique_ptr<AcknowledgedBitrateEstimator> acknowledged_bitrate_estimator_;
     std::unique_ptr<ProbeController> probe_controller_;
     std::unique_ptr<ProbeBitrateEstimator> probe_bitrate_estimator_;
+    std::unique_ptr<AlrDetector> alr_detector_;
     
     DataRate min_target_bitrate_ = DataRate::Zero();
     DataRate min_bitrate_ = DataRate::Zero();
@@ -67,7 +69,7 @@ private:
 
     std::optional<Configuration> initial_config_;
 
-    DataRate last_loss_based_target_bitrate_;
+    DataRate send_side_estimate_;
     DataRate last_stable_target_bitrate_;
     DataRate last_pushback_target_bitrate_;
 
@@ -79,8 +81,6 @@ private:
     DataRate max_padding_bitrate_;
     DataRate min_total_allocated_bitrate_;
     DataRate max_total_allocated_bitrate_;
-
-    bool previously_in_alr = false;
 
     std::optional<size_t> curr_data_window_;
 };

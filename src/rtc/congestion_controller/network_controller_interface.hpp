@@ -6,9 +6,12 @@
 
 namespace naivertc {
 
+class Clock;
+
 class NetworkControllerInterface {
 public:
     struct Configuration {
+        Clock* clock = nullptr;
         // The initial constraints to start with.
         TargetBitrateConstraints constraints;
         // The stream specific configuration.

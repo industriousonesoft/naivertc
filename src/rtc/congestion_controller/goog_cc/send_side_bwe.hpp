@@ -2,8 +2,8 @@
 #define _RTC_CONGESTION_CONTROLLER_GOOG_CC_SEND_SIDE_BWE_H_
 
 #include "base/defines.hpp"
-#include "rtc/congestion_controller/components/linker_capacity_tracker.hpp"
 #include "rtc/congestion_controller/components/rtt_based_backoff.hpp"
+#include "rtc/congestion_controller/goog_cc/linker_capacity_tracker.hpp"
 #include "rtc/congestion_controller/goog_cc/loss_based_bwe.hpp"
 
 #include <deque>
@@ -41,7 +41,7 @@ public:
     void OnDelayBasedBitrate(DataRate bitrate,
                              Timestamp report_time);
 
-    void OnAcknowledgeBitrate(std::optional<DataRate> ack_bitrate,
+    void OnAcknowledgedBitrate(std::optional<DataRate> ack_bitrate,
                               Timestamp report_time);
 
     void OnPropagationRtt(TimeDelta rtt,
@@ -67,7 +67,7 @@ public:
     void SetBitrateBoundary(DataRate min_bitrate,
                             DataRate max_bitrate);
 
-    void UpdateEstimate(Timestamp report_time);
+    void OnPeriodicProcess(Timestamp report_time);
 
 private:
     // User Metrics Analysis

@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/components/linker_capacity_tracker.hpp"
+#include "rtc/congestion_controller/goog_cc/linker_capacity_tracker.hpp"
 
 namespace naivertc {
 
@@ -19,6 +19,7 @@ void LinkerCapacityTracker::OnStartingBitrate(DataRate bitrate) {
 
 void LinkerCapacityTracker::OnDelayBasedEstimate(DataRate bitrate, 
                                                  Timestamp at_time) {
+    // Update with the delay-based estimate conservatively.
     if (bitrate < last_delay_based_estimate_) {
         estimated_capacity_ = std::min(estimated_capacity_, bitrate);
         time_last_capacity_udpate_ = at_time;
@@ -26,19 +27,22 @@ void LinkerCapacityTracker::OnDelayBasedEstimate(DataRate bitrate,
     last_delay_based_estimate_ = bitrate;
 }
 
-void LinkerCapacityTracker::OnRttBasedEstimate(DataRate bitrate,
-                                               Timestamp at_time) {
+void LinkerCapacityTracker::OnRttBackoffEstimate(DataRate bitrate,
+                                                 Timestamp at_time) {
+    // Update with the RTT-based backoff conservatively.
     estimated_capacity_ = std::min(estimated_capacity_, bitrate);
     time_last_capacity_udpate_ = at_time;
 }
 
-void LinkerCapacityTracker::Update(DataRate bitrate, 
-                                   Timestamp at_time) {
+void LinkerCapacityTracker::OnCapacityEstimate(DataRate bitrate, 
+                                              Timestamp at_time) {
+    // FIXME: Make sure the linker capacity still in a high level?
     if (bitrate > estimated_capacity_) {
-        TimeDelta elapsed_time = at_time - time_last_capacity_udpate_;
+        // 距离上一次更新的时间越近，权重值越大。
+        TimeDelta time_since_last_update = at_time - time_last_capacity_udpate_;
         // Calculate the exponential smoothing faction: e^-x = 1 / e^x
-        double alpha = elapsed_time.IsFinite() ? exp(-(elapsed_time / tracking_window_))
-                                               : 0;
+        double alpha = time_since_last_update.IsFinite() ? exp(-(time_since_last_update / tracking_window_))
+                                                         : 0;
         estimated_capacity_ = alpha * estimated_capacity_ + (1 - alpha) * bitrate;
     }
     time_last_capacity_udpate_ = at_time;
