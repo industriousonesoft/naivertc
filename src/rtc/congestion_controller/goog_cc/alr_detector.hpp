@@ -20,12 +20,11 @@ class Clock;
 class AlrDetector {
 public:
     struct Configuration {
+        // The bandwidth used to increase the ALR budget.
         double bandwidth_usage_ratio = 0.65;
-        // If the current ratio > |start_budget_level_ratio|, 
-        // which indicates a ALR started.
+        // Indicates a new ALR starts when bandwidth usage is below 20%. 
         double start_budget_level_ratio = 0.8;
-        // If the current ratio < |stop_budget_level_ratio|, 
-        // which indicates a ALR stoped.
+        // Indicates a new ALR ends when bandwidth usage is above 50%. 
         double stop_budget_level_ratio = 0.5;
     };
 public:
@@ -37,7 +36,7 @@ public:
 
     bool InAlr() const { return alr_started_time_.has_value(); }
 
-    void OnByteSent(size_t bytes_sent, Timestamp send_time);
+    void OnBytesSent(size_t bytes_sent, Timestamp send_time);
     void OnEstimate(DataRate bitrate);
 
 private:

@@ -5,7 +5,7 @@
 namespace naivertc {
 namespace {
     
-constexpr TimeDelta kBudgetWindow = TimeDelta::Millis(500);
+constexpr TimeDelta kBudgetWindow = TimeDelta::Millis(500); // 500ms
 
 int64_t IntervalBytes(const DataRate& bitrate, const TimeDelta& interval) {
     return (bitrate.kbps() * interval.ms()) / 8;

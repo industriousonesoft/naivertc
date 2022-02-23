@@ -806,6 +806,7 @@ set(UNITTEST_SOURCES
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator_unittest.cpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe_unittest.cpp
     src/rtc/congestion_controller/goog_cc/probe_controller_unittest.cpp
+    src/rtc/congestion_controller/goog_cc/alr_detector_unittest.cpp
     src/rtc/congestion_controller/components/interval_budget_unittest.cpp
 )
 
