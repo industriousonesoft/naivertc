@@ -152,6 +152,9 @@ BandwidthUsage TrendlineEstimator::Detect(double trend, double inter_departure_m
     const double modified_trend = std::min<double>(num_of_samples_, kMinNumSamples) * trend * threshold_gain_;
     prev_modified_trend_ = modified_trend;
 
+    // NOTE: I think make threshold adaptive before detecting is more reasonable.
+    UpdateThreshold(modified_trend, now_ms);
+
     // Overusing
     if (modified_trend > threshold_) {
         if (overuse_continuous_time_ms_ == -1) {
@@ -193,7 +196,6 @@ BandwidthUsage TrendlineEstimator::Detect(double trend, double inter_departure_m
                << std::endl;
 #endif
     prev_trend_ = trend;
-    UpdateThreshold(modified_trend, now_ms);
     return estimated_state_;
 }
 
