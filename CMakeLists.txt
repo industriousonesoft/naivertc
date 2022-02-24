@@ -289,6 +289,7 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/trendline_estimator.hpp
     src/rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp
     src/rtc/congestion_controller/goog_cc/aimd_rate_control.hpp
+    src/rtc/congestion_controller/goog_cc/overuse_detector.hpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe.hpp
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp
@@ -539,6 +540,7 @@ set(LIB_SOURCES
     src/rtc/congestion_controller/components/rtt_based_backoff.cpp
     src/rtc/congestion_controller/components/throughput_estimator.cpp
     src/rtc/congestion_controller/goog_cc/bwe_defines.cpp
+    src/rtc/congestion_controller/goog_cc/overuse_detector.cpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator.cpp
     src/rtc/congestion_controller/goog_cc/link_capacity_estimator.cpp
     src/rtc/congestion_controller/goog_cc/aimd_rate_control.cpp
@@ -799,6 +801,7 @@ set(UNITTEST_SOURCES
     src/rtc/transports/ice_transport_description_unittest.cpp
 
     # rtc -> congestion_controller -> goog_cc
+    src/rtc/congestion_controller/components/interval_budget_unittest.cpp
     src/rtc/congestion_controller/goog_cc/trendline_estimator_unittest.cpp
     src/rtc/congestion_controller/goog_cc/aimd_rate_control_unittest.cpp
     src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.cpp
@@ -808,7 +811,7 @@ set(UNITTEST_SOURCES
     src/rtc/congestion_controller/goog_cc/send_side_bwe_unittest.cpp
     src/rtc/congestion_controller/goog_cc/probe_controller_unittest.cpp
     src/rtc/congestion_controller/goog_cc/alr_detector_unittest.cpp
-    src/rtc/congestion_controller/components/interval_budget_unittest.cpp
+    
 )
 
 # EXCLUDE_FROM_ALL表示指定的target(或某个模块下的所有target)不会被加入默认编译的all target列表中，即不会自动编译，需要手动编译

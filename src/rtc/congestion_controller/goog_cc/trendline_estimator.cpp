@@ -14,12 +14,7 @@ namespace {
 
 // Parameters for linear least squares fit of regression line to noisy data.
 constexpr double kDefaultTrendlineSmoothingCoeff = 0.9;
-constexpr double kDefaultTrendlineThresholdGain = 4.0;
-constexpr double kMaxAdaptOffsetMs = 15.0;
-constexpr double kOverUsingTimeThresholdMs = 10;
-constexpr int kOverUsingCountThreshold = 1;
-constexpr int kMinNumSamples = 60;
-constexpr int kMmaxNumSamples = 1000;
+constexpr size_t kMmaxNumSamples = 1000;
     
 } // namespace
 
@@ -28,24 +23,16 @@ constexpr int kMmaxNumSamples = 1000;
 TrendlineEstimator::TrendlineEstimator(Configuration config) 
     : config_(std::move(config)),
       smoothing_coeff_(kDefaultTrendlineSmoothingCoeff),
-      threshold_gain_(kDefaultTrendlineThresholdGain),
-      num_of_samples_(0),
+      num_samples_(0),
       first_arrival_time_ms_(-1),
       accumulated_delay_ms_(0),
-      smoothed_delay_ms_(0),
-      k_up_(0.0087),
-      k_down_(0.039),
-      overusing_count_threshold_(kOverUsingCountThreshold),
-      overusing_time_threshold_(kOverUsingTimeThresholdMs),
-      threshold_(12.5),
-      prev_modified_trend_(NAN),
-      last_update_ms_(-1),
-      prev_trend_(0.0),
-      overuse_continuous_time_ms_(-1),
-      overuse_accumated_counter_(0),
-      estimated_state_(BandwidthUsage::NORMAL) {}
+      smoothed_delay_ms_(0) {}
 
 TrendlineEstimator::~TrendlineEstimator() = default;
+
+BandwidthUsage TrendlineEstimator::State() const {
+    return overuse_detector_.State();
+}
 
 BandwidthUsage TrendlineEstimator::Update(double recv_delta_ms,
                                           double send_delta_ms,
@@ -57,10 +44,6 @@ BandwidthUsage TrendlineEstimator::Update(double recv_delta_ms,
                            send_time_ms, 
                            arrival_time_ms, 
                            packet_size);
-}
-
-BandwidthUsage TrendlineEstimator::State() const {
-    return estimated_state_;
 }
 
 // Private methods
@@ -84,8 +67,8 @@ BandwidthUsage TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
     // recv_delta = r2 - r1
     // propagation_delta = r2' - r2 = recv_delta - send_delta
     const double propagation_delta_ms = recv_delta_ms - send_delta_ms;
-    ++num_of_samples_;
-    num_of_samples_ = std::min(num_of_samples_, kMmaxNumSamples);
+    ++num_samples_;
+    num_samples_ = std::min(num_samples_, kMmaxNumSamples);
     if (first_arrival_time_ms_ == -1) {
         first_arrival_time_ms_ = arrival_time_ms;
     }
@@ -116,8 +99,7 @@ BandwidthUsage TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
         delay_hits_.pop_front();
     }
 
-    // Simple linear regression.
-    double trend = prev_trend_;
+    std::optional<double> trend = std::nullopt;
     // We have enough smaples to estmate the trend.
     if (delay_hits_.size() == config_.window_size) {
         // Update `trend` if it is possible to fit a line to the data. The delay
@@ -125,107 +107,22 @@ BandwidthUsage TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
         // 0 < trend < 1   ->  the delay increases, queues are filling up
         //   trend == 0    ->  the delay does not change
         //   trend < 0     ->  the delay decreases, queues are being emptied
-        trend = CalcLinearFitSlope(delay_hits_).value_or(trend);
-        if (config_.enable_cap) {
+        auto slope = CalcLinearFitSlope(delay_hits_);
+        if (slope && config_.enable_cap) {
             auto slope_cap = CalcSlopeCap();
             // We only use the cap to filter out overuse detections, not
             // to detect additional underuses.
-            if (trend >= 0 && slope_cap.has_value() && trend > slope_cap.value()) {
-                trend = slope_cap.value();
+            if (slope.value() > 0 && slope_cap && slope.value() > slope_cap.value()) {
+                slope = slope_cap.value();
             }
         }
+        trend = slope;
     }
 
     // FIXME: The reason of using inter-departure instead of inter-arrval is that we  
     // used the inter-departure to detect the packet group (AKA sample here) in
     // `InterArrivalDelta`?
-    return Detect(trend, send_delta_ms, arrival_time_ms);
-}
-
-BandwidthUsage TrendlineEstimator::Detect(double trend, double inter_departure_ms, int64_t now_ms) {
-    if (num_of_samples_ < 2) {
-        estimated_state_ = BandwidthUsage::NORMAL;
-        return estimated_state_;
-    }
-  
-    // FIXME: How to understand the formula below?
-    const double modified_trend = std::min<double>(num_of_samples_, kMinNumSamples) * trend * threshold_gain_;
-    prev_modified_trend_ = modified_trend;
-
-    // NOTE: I think make threshold adaptive before detecting is more reasonable.
-    UpdateThreshold(modified_trend, now_ms);
-
-    // Overusing
-    if (modified_trend > threshold_) {
-        if (overuse_continuous_time_ms_ == -1) {
-            // Assume that we've been over-using half of 
-            // the time since the previous sample.
-            overuse_continuous_time_ms_ = inter_departure_ms / 2;
-        } else {
-            // Increment timer.
-            overuse_continuous_time_ms_ += inter_departure_ms;
-        }
-        ++overuse_accumated_counter_;
-        // No detect overusing sensitively.
-        if (overuse_continuous_time_ms_ > overusing_time_threshold_ && 
-            overuse_accumated_counter_ > overusing_count_threshold_ &&
-            trend >= prev_trend_) {
-            overuse_continuous_time_ms_ = 0;
-            overuse_accumated_counter_ = 0;
-            estimated_state_ = BandwidthUsage::OVERUSING;
-        } else {
-            // Remains the previous state. 
-        }
-    // Underusing
-    } else if (modified_trend < -threshold_) {
-        overuse_continuous_time_ms_ = -1;
-        overuse_accumated_counter_ = 0;
-        estimated_state_ = BandwidthUsage::UNDERUSING;
-    // Nomal
-    } else {
-        overuse_continuous_time_ms_ = -1;
-        overuse_accumated_counter_ = 0;
-        estimated_state_ = BandwidthUsage::NORMAL;
-    }
-#if ENABLE_TEST_DEBUG
-    GTEST_COUT << "modified_trend: " << modified_trend << " vs "
-               << "threshold: " << threshold_ << " - "
-               << "trend: " << trend << " vs "
-               << "prev_trend: " << prev_trend_ << " - "
-               << "estimated_state: " << estimated_state_
-               << std::endl;
-#endif
-    prev_trend_ = trend;
-    return estimated_state_;
-}
-
-void TrendlineEstimator::UpdateThreshold(double modified_trend, int now_ms) {
-    if (last_update_ms_ == -1) {
-        last_update_ms_ = now_ms;
-    }
-    double modified_trend_abs = fabs(modified_trend);
-    if (modified_trend_abs > threshold_ + kMaxAdaptOffsetMs) {
-        // Avoid adapting the threshold to big letency spikes.
-        last_update_ms_ = now_ms;
-        return;
-    }
-
-    // NOTE: The goal of the adaptive threshold is to adapt the sensitivity of the 
-    // algorithm (the least square algorithm) to the delay gradient based on 
-    // network conditions.
-    // The parameters |k_up_| and |k_down_| determine the algorithm sensitivity
-    // to the estimated one way delay gradient |modified_trend|.
-    // For detail, see https://c3lab.poliba.it/images/6/65/Gcc-analysis.pdf (4.2 Adaptive threshold design)
-    const double k = modified_trend_abs < threshold_ ? k_down_ : k_up_;
-    const int64_t kMaxTimeDeltaMs = 100;
-    int64_t time_delta_ms = std::min<double>(now_ms - last_update_ms_, kMaxTimeDeltaMs);
-    // γ(ti) = γ(ti−1) + ∆T · kγ (ti)(|m(ti)| − γ(ti−1))
-    // The proposed formula: threshold_i = threshold_i-1 + k_i * (|modified_trend_i| - threshold_i-1) * delta_time 
-    threshold_ += k * (modified_trend_abs - threshold_) * time_delta_ms;
-    // Clamp `threshold_` in [6.f, 600.f].
-    threshold_ = std::max<double>(threshold_, 6.f);
-    threshold_ = std::min<double>(threshold_, 600.f);
-    last_update_ms_ = now_ms;
+    return overuse_detector_.Detect(trend, send_delta_ms, num_samples_, arrival_time_ms);
 }
 
 std::optional<double> TrendlineEstimator::CalcLinearFitSlope(const std::deque<PacketTiming>& samples) const {
@@ -283,5 +180,6 @@ std::optional<double> TrendlineEstimator::CalcSlopeCap() const {
     // Calculate slope cap.
     return (late.accumulated_delay_ms - early.accumulated_delay_ms) / (late.arrival_time_ms - early.arrival_time_ms) + config_.cap_uncertainty;
 }
+
     
 } // namespace naivertc
