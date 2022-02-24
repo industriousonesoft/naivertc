@@ -51,7 +51,8 @@ private:
     BandwidthUsage Detect(double trend, double inter_departure_ms, int64_t now_ms);
     void UpdateThreshold(double modified_trend, int now_ms);
 
-    std::optional<double> CalcLinearFitSlope() const;
+    struct PacketTiming;
+    std::optional<double> CalcLinearFitSlope(const std::deque<PacketTiming>& samples) const;
     std::optional<double> CalcSlopeCap() const;
 
 private:
@@ -74,15 +75,15 @@ private:
     // Smoothing coefficient.
     const double smoothing_coeff_;
     const double threshold_gain_;
-    // Used by the existing threshold.
-    int num_of_deltas_;
+    int num_of_samples_;
     // Keep the arrival times small by using the 
     // change from the first packet.
     int64_t first_arrival_time_ms_;
     // Exponential backoff filtering.
     double accumulated_delay_ms_;
     double smoothed_delay_ms_;
-    // Linear least squares regression.
+    // Delay histogram
+    // Used for linear least squares regression.
     std::deque<PacketTiming> delay_hits_;
 
     const double k_up_;

@@ -392,7 +392,7 @@ void JitterEstimator::KalmanEstimateChannel(int64_t frame_delay_ms, int32_t fram
     // Kalman gain
     // 计算卡尔曼增益
     // Mh = M*h' = M*[dL(i)  1]' = [c00, c01] * [dL(i)] = [c00*dL(i) + c01, c01*dL(i) + c11]
-    //                               [c01, c11]   [  1  ]
+    //                             [c01, c11]   [  1  ]
     Mh[0] = theta_cov_[0][0] * frame_size_delta + theta_cov_[0][1];
     Mh[1] = theta_cov_[1][0] * frame_size_delta + theta_cov_[1][1];
 

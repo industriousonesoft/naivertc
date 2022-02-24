@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/components/link_capacity_estimator.hpp"
+#include "rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp"
 
 namespace naivertc {
 namespace {

@@ -18,8 +18,8 @@ constexpr double kDefaultTrendlineThresholdGain = 4.0;
 constexpr double kMaxAdaptOffsetMs = 15.0;
 constexpr double kOverUsingTimeThresholdMs = 10;
 constexpr int kOverUsingCountThreshold = 1;
-constexpr int kMinNumDeltas = 60;
-constexpr int kDeltaCounterMax = 1000;
+constexpr int kMinNumSamples = 60;
+constexpr int kMmaxNumSamples = 1000;
     
 } // namespace
 
@@ -29,7 +29,7 @@ TrendlineEstimator::TrendlineEstimator(Configuration config)
     : config_(std::move(config)),
       smoothing_coeff_(kDefaultTrendlineSmoothingCoeff),
       threshold_gain_(kDefaultTrendlineThresholdGain),
-      num_of_deltas_(0),
+      num_of_samples_(0),
       first_arrival_time_ms_(-1),
       accumulated_delay_ms_(0),
       smoothed_delay_ms_(0),
@@ -69,22 +69,41 @@ BandwidthUsage TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
                                                    int64_t send_time_ms,
                                                    int64_t arrival_time_ms,
                                                    size_t packet_size) {
-    // Inter-group delay variation
+    // Inter-group delay variation between two adjacent groups.
+    //    |             |
+    // s1 + _           |
+    //    |  \ _ _ _    |
+    //    |         \ _ + r1
+    // s2 + _           |
+    //    |  \ _ _ _    |
+    //    |   \     \ _ + r2'(expected)
+    //    |    \ _ _    |
+    //    |         \ _ + r2 (real)
+    //    |             |
+    // send_delta = s2 - s1
+    // recv_delta = r2 - r1
+    // propagation_delta = r2' - r2 = recv_delta - send_delta
     const double propagation_delta_ms = recv_delta_ms - send_delta_ms;
-    ++num_of_deltas_;
-    num_of_deltas_ = std::min(num_of_deltas_, kDeltaCounterMax);
+    ++num_of_samples_;
+    num_of_samples_ = std::min(num_of_samples_, kMmaxNumSamples);
     if (first_arrival_time_ms_ == -1) {
         first_arrival_time_ms_ = arrival_time_ms;
     }
     
+    // Accumulate propagation delay.
     accumulated_delay_ms_ += propagation_delta_ms;
     // Exponential backoff filter.
     // Calculate the smoothed accumulated delay.
     smoothed_delay_ms_ = smoothing_coeff_ * smoothed_delay_ms_ + (1 - smoothing_coeff_) * accumulated_delay_ms_;
 
     // Maintain packet window.
-    delay_hits_.emplace_back(static_cast<double>(arrival_time_ms - first_arrival_time_ms_), smoothed_delay_ms_, accumulated_delay_ms_);
+    delay_hits_.emplace_back(/*arrival_time_ms=*/static_cast<double>(arrival_time_ms - first_arrival_time_ms_), 
+                             smoothed_delay_ms_, 
+                             accumulated_delay_ms_);
+    // Sort |delay_hits_| if required. 
     if (config_.enable_sort) {
+        // The |delay_hits_| is ordered before emplacing back the new element,
+        // so we just need to put the back element to the right postion.
         for (size_t i = delay_hits_.size() - 1;
              i > 0 &&
              delay_hits_[i].arrival_time_ms < delay_hits_[i - 1].arrival_time_ms;
@@ -99,14 +118,14 @@ BandwidthUsage TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
 
     // Simple linear regression.
     double trend = prev_trend_;
-    // We have enoght smaples to estmate the trend of delay.
+    // We have enough smaples to estmate the trend.
     if (delay_hits_.size() == config_.window_size) {
         // Update `trend` if it is possible to fit a line to the data. The delay
         // trend can be seen as an estimate of (send_rate - capacity) / capacity.
         // 0 < trend < 1   ->  the delay increases, queues are filling up
         //   trend == 0    ->  the delay does not change
         //   trend < 0     ->  the delay decreases, queues are being emptied
-        trend = CalcLinearFitSlope().value_or(trend);
+        trend = CalcLinearFitSlope(delay_hits_).value_or(trend);
         if (config_.enable_cap) {
             auto slope_cap = CalcSlopeCap();
             // We only use the cap to filter out overuse detections, not
@@ -118,18 +137,21 @@ BandwidthUsage TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
     }
 
     // FIXME: The reason of using inter-departure instead of inter-arrval is that we  
-    // used the inter-departure to detect the packet group (also known as sample here) in
+    // used the inter-departure to detect the packet group (AKA sample here) in
     // `InterArrivalDelta`?
     return Detect(trend, send_delta_ms, arrival_time_ms);
 }
 
 BandwidthUsage TrendlineEstimator::Detect(double trend, double inter_departure_ms, int64_t now_ms) {
-    if (num_of_deltas_ < 2) {
+    if (num_of_samples_ < 2) {
         estimated_state_ = BandwidthUsage::NORMAL;
         return estimated_state_;
     }
-    const double modified_trend = std::min<double>(num_of_deltas_, kMinNumDeltas) * trend * threshold_gain_;
+  
+    // FIXME: How to understand the formula below?
+    const double modified_trend = std::min<double>(num_of_samples_, kMinNumSamples) * trend * threshold_gain_;
     prev_modified_trend_ = modified_trend;
+
     // Overusing
     if (modified_trend > threshold_) {
         if (overuse_continuous_time_ms_ == -1) {
@@ -186,41 +208,44 @@ void TrendlineEstimator::UpdateThreshold(double modified_trend, int now_ms) {
         return;
     }
 
-    // NOTE: Why we usd the adaptive threshold instead of static one:
-    // The goal of the adaptive threshold is to adapt the sensitivity of the 
+    // NOTE: The goal of the adaptive threshold is to adapt the sensitivity of the 
     // algorithm (the least square algorithm) to the delay gradient based on 
     // network conditions.
+    // The parameters |k_up_| and |k_down_| determine the algorithm sensitivity
+    // to the estimated one way delay gradient |modified_trend|.
     // For detail, see https://c3lab.poliba.it/images/6/65/Gcc-analysis.pdf (4.2 Adaptive threshold design)
     const double k = modified_trend_abs < threshold_ ? k_down_ : k_up_;
     const int64_t kMaxTimeDeltaMs = 100;
     int64_t time_delta_ms = std::min<double>(now_ms - last_update_ms_, kMaxTimeDeltaMs);
+    // γ(ti) = γ(ti−1) + ∆T · kγ (ti)(|m(ti)| − γ(ti−1))
     // The proposed formula: threshold_i = threshold_i-1 + k_i * (|modified_trend_i| - threshold_i-1) * delta_time 
     threshold_ += k * (modified_trend_abs - threshold_) * time_delta_ms;
-    // Clamp `threshold_` in [6.f, 600.f]
+    // Clamp `threshold_` in [6.f, 600.f].
     threshold_ = std::max<double>(threshold_, 6.f);
     threshold_ = std::min<double>(threshold_, 600.f);
     last_update_ms_ = now_ms;
 }
 
-std::optional<double> TrendlineEstimator::CalcLinearFitSlope() const {
-    assert(delay_hits_.size() >= 2);
+std::optional<double> TrendlineEstimator::CalcLinearFitSlope(const std::deque<PacketTiming>& samples) const {
+    assert(samples.size() >= 2);
     // Compute the center of mass.
     double sum_x = 0;
     double sum_y = 0;
-    for (const auto& pt : delay_hits_) {
+    for (const auto& pt : samples) {
         sum_x += pt.arrival_time_ms;
         sum_y += pt.smoothed_delay_ms;
     }
-    double x_avg = sum_x / delay_hits_.size();
-    double y_avg = sum_y / delay_hits_.size();
-    // Least Square:
+    double x_avg = sum_x / samples.size();
+    double y_avg = sum_y / samples.size();
+    // 采用最小二乘法（Least Square）:
     // y = k*x + b
     // propagation_delta = k * arrive_time + b
     // error = y_i - y^ = y_i - (k*x_i + b)
     // Compute the slope k = ∑(x_i-x_avg)(y_i-y_avg) / ∑(x_i-x_avg)^2
+    // see https://developer.aliyun.com/article/781509
     double numerator = 0;
     double denominator = 0;
-    for (const auto& pt : delay_hits_) {
+    for (const auto& pt : samples) {
         double x = pt.arrival_time_ms;
         double y = pt.smoothed_delay_ms;
         numerator += (x - x_avg) * (y - y_avg);
@@ -233,12 +258,15 @@ std::optional<double> TrendlineEstimator::CalcSlopeCap() const {
     assert(config_.beginning_packets >= 1 && config_.beginning_packets < delay_hits_.size());
     assert(config_.end_packets >= 1 && config_.end_packets < delay_hits_.size());
     assert(config_.beginning_packets + config_.end_packets <= delay_hits_.size());
+
+    // Find the earlist packet in the begining period.
     auto early = delay_hits_[0];
     for (size_t i = 1; i < config_.beginning_packets; ++i) {
         if (delay_hits_[i].accumulated_delay_ms < early.accumulated_delay_ms) {
             early = delay_hits_[i];
         }
     }
+    // Find the earlist packet in the end period.
     size_t late_start = delay_hits_.size() - config_.end_packets;
     auto late = delay_hits_[late_start];
     for (size_t i = late_start + 1; i < delay_hits_.size(); ++i) {
@@ -246,9 +274,11 @@ std::optional<double> TrendlineEstimator::CalcSlopeCap() const {
             late = delay_hits_[i];
         }
     }
+    // Too short to calculate slope (There might has a spike happenned).
     if (late.arrival_time_ms - early.arrival_time_ms < 1 /* 1ms */) {
         return std::nullopt;
     }
+    // Calculate slope cap.
     return (late.accumulated_delay_ms - early.accumulated_delay_ms) / (late.arrival_time_ms - early.arrival_time_ms) + config_.cap_uncertainty;
 }
     

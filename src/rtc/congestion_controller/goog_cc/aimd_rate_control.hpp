@@ -5,8 +5,8 @@
 #include "rtc/base/units/time_delta.hpp"
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/base/units/data_rate.hpp"
-#include "rtc/congestion_controller/components/link_capacity_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/bwe_defines.hpp"
+#include "rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp"
 
 #include <optional>
 
