@@ -187,5 +187,4 @@ std::optional<double> TrendlineEstimator::CalcSlopeCap() const {
     return (late.accumulated_delay_ms - early.accumulated_delay_ms) / (late.arrival_time_ms - early.arrival_time_ms) + config_.cap_uncertainty;
 }
 
-    
 } // namespace naivertc

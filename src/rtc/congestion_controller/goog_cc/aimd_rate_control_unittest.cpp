@@ -27,9 +27,8 @@ struct AimdRateControlStates {
 AimdRateControlStates CreateAimdRateControlStates(bool send_side = false, bool no_bitrate_increase_in_alr = false) {
     AimdRateControlStates states;
     auto config = AimdRateControl::Configuration();
-    config.send_side = send_side;
     config.no_bitrate_increase_in_alr = no_bitrate_increase_in_alr;
-    states.aimd_rate_control.reset(new AimdRateControl(std::move(config)));
+    states.aimd_rate_control.reset(new AimdRateControl(std::move(config), send_side));
     states.simulated_clock.reset(new SimulatedClock(kClockInitialTime));
     return states;
 }

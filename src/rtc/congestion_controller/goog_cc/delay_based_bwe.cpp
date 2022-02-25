@@ -25,7 +25,7 @@ DelayBasedBwe::DelayBasedBwe(Configuration config)
       last_feedback_arrival_time_(Timestamp::MinusInfinity()),
       last_video_packet_arrival_time_(Timestamp::MinusInfinity()),
       audio_packets_since_last_video_(0),
-      rate_control_(std::move(config.aimd_rate_control_config)),
+      rate_control_(std::move(config.aimd_rate_control_config), true),
       prev_bitrate_(DataRate::Zero()),
       has_once_detected_overuse_(false),
       prev_state_(BandwidthUsage::NORMAL),

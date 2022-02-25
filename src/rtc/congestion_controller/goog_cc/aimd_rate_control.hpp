@@ -13,12 +13,13 @@
 namespace naivertc {
 
 // A rate control implementation based on AIMD (additive increases of bitrate
-// when no over-use is detected and multiplivative decreases when over-uses
+// when no over-use is detected and multiplicative decreases when over-uses
 // are detected).
+// When we think the available bandwidth has changes or is unknown, we will
+// switch to 'slow-start mode' to increase bitrate multiplicatively.
 class AimdRateControl {
 public:
     struct Configuration {
-        bool send_side = false;
         bool adaptive_threshold_enabled = true;
         bool no_bitrate_increase_in_alr = false;
         bool link_capacity_fix = false;
@@ -27,7 +28,7 @@ public:
         DataRate max_bitrate = DataRate::KilobitsPerSec(30'000);
     };
 public:
-    AimdRateControl(Configuration config);
+    AimdRateControl(Configuration config, bool send_side);
     ~AimdRateControl();
 
     void set_rtt(TimeDelta rtt);
@@ -75,14 +76,14 @@ private:
     
     bool DontIncreaseInAlr() const;
 
-    bool IsInStartPhase(Timestamp at_time) const;
-    bool CanReduceFurther(Timestamp at_time) const;
-    bool CanReduceFurther(DataRate estimated_throughput) const;
+    bool TimeToReduceFurther(Timestamp at_time) const;
+    bool SufficientToReduceFurther(DataRate estimated_throughput) const;
 
 private:
     enum class RateControlState { HOLD, INCREASE, DECREASE };
 
     const Configuration config_;
+    const bool send_side_;
     DataRate min_configured_bitrate_;
     DataRate curr_bitrate_;
     DataRate latest_estimated_throughput_;
