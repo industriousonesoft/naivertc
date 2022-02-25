@@ -285,9 +285,10 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
         MaybeTriggerOnNetworkChanged(&update, report.receive_time);
     }
 
-    // TODO: Implemets ALR detector and CongestionWindowPushbackController
-    if (result.recovered_from_overuse) {
-        // TODOL Set ALR start time.
+    // TODO: CongestionWindowPushbackController
+    if (result.recovered_from_underuse) {
+        // We might be in ALR region when recovered from underuse.
+        probe_controller_->set_alr_start_time(alr_detector_->alr_started_time());
         // Request a new probe.
         update.AppendProbes(probe_controller_->RequestProbe(report.receive_time));
     } else if (result.backoff_in_alr) {

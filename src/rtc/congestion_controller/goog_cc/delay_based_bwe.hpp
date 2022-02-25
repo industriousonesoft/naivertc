@@ -36,7 +36,7 @@ public:
         bool updated = false;
         bool probe = false;
         DataRate target_bitrate = DataRate::Zero();
-        bool recovered_from_overuse = false;
+        bool recovered_from_underuse = false;
         bool backoff_in_alr = false;
     };
 public:
@@ -71,7 +71,7 @@ private:
 
     Result MaybeUpdateEstimate(std::optional<DataRate> acked_bitrate,
                                std::optional<DataRate> probe_bitrate,
-                               bool recovered_from_overuse,
+                               bool recovered_from_underuse,
                                bool in_alr,
                                Timestamp at_time);
 

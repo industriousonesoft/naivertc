@@ -73,9 +73,12 @@ BandwidthUsage TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
         first_arrival_time_ms_ = arrival_time_ms;
     }
     
+    // NOTE: 使用最小二乘法拟合是为了求延迟梯度与时间的线性函数关系，且真实线性函数是一条直线。
+    // 因此这里使用滑动平均算法处理（smoothing_coeff为0.9也意味着新样本占比很低）延迟梯度的依据
+    // 是过滤掉因为抖动产生的峰值，从而可以得到一个更为接近真实情况的线性函数。
+    // Exponential backoff filter.
     // Accumulate propagation delay.
     accumulated_delay_ms_ += propagation_delta_ms;
-    // Exponential backoff filter.
     // Calculate the smoothed accumulated delay.
     smoothed_delay_ms_ = smoothing_coeff_ * smoothed_delay_ms_ + (1 - smoothing_coeff_) * accumulated_delay_ms_;
 
@@ -119,9 +122,12 @@ BandwidthUsage TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
         trend = slope;
     }
 
-    // FIXME: The reason of using inter-departure instead of inter-arrval is that we  
-    // used the inter-departure to detect the packet group (AKA sample here) in
-    // `InterArrivalDelta`?
+    // FIXME: 此处为什么使用|send_delta_ms|而非|recv_delta_ms|来表示overuse状态的持续时间？
+    // NOTE: 我的理解：GCC处理overuse的策略是即便已经检测出处于overuse状态，但是不会立即更新。
+    // 因为真实的网络状况可能并未过载，所以会选择将overuse状态持续一段时间以便在高码率下发送更多的数据。
+    // 而|send_delta_ms|相较于|recv_delta_ms|过滤掉了网络延迟等其它因素，可以更准确地表示两个组包之
+    // 间的发送间隔时长。如果|send_delta_ms|越来越大，则表示网络过载情况越严重。因此，GCC使用|send_delta_ms|
+    // 作为更新overuse状态的线性指标更为精确
     return overuse_detector_.Detect(trend, send_delta_ms, num_samples_, arrival_time_ms);
 }
 

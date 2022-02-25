@@ -65,7 +65,7 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPack
     }
 
     bool delayed_feedback = true;
-    bool recovered_from_overuse = false;
+    bool recovered_from_underuse = false;
     BandwidthUsage prev_state = active_delay_detector_->State();
     for (const auto& packet_feedback : packet_feedbacks) {
         delayed_feedback = false;
@@ -74,9 +74,9 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPack
         if (prev_state == BandwidthUsage::UNDERUSING &&
             curr_state == BandwidthUsage::NORMAL) {
 #if ENABLE_TEST_DEBUG
-            GTEST_COUT << "Reconvered from overuse." << std::endl;
+            GTEST_COUT << "Recovered from underuse." << std::endl;
 #endif
-            recovered_from_overuse = true;
+            recovered_from_underuse = true;
         }
         prev_state = curr_state;
     }
@@ -89,7 +89,7 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPack
     }
 
     rate_control_.set_in_alr(in_alr);
-    return MaybeUpdateEstimate(acked_bitrate, probe_bitrate, recovered_from_overuse, in_alr, feedback_report.receive_time);
+    return MaybeUpdateEstimate(acked_bitrate, probe_bitrate, recovered_from_underuse, in_alr, feedback_report.receive_time);
 }
 
 std::pair<DataRate, bool> DelayBasedBwe::LatestEstimate() const {
@@ -145,11 +145,11 @@ BandwidthUsage DelayBasedBwe::Detect(const PacketResult& packet_feedback,
     }
     size_t packet_size = packet_feedback.sent_packet.size;
 
-    // FIXME: Why using the video inter arrival for the audio packets in WebRTC?
-    InterArrivalDelta* inter_arrival_for_packet = (separate_audio_.enabled && packet_feedback.sent_packet.is_audio) 
-                                                  ? audio_inter_arrival_delta_.get()
-                                                  : video_inter_arrival_delta_.get();
-
+    // Choose the |inter_arrival| correspond to the incoming pakcet.
+    InterArrivalDelta* inter_arrival_for_packet = (separate_audio_.enabled && 
+                                                   packet_feedback.sent_packet.is_audio) 
+                                                   ? audio_inter_arrival_delta_.get()
+                                                   : video_inter_arrival_delta_.get();
     // Waits for two adjacent packet group arriving, and try to compute the deltas of them.
     auto deltas = inter_arrival_for_packet->ComputeDeltas(packet_feedback.sent_packet.send_time,
                                                           packet_feedback.recv_time,
@@ -173,7 +173,7 @@ BandwidthUsage DelayBasedBwe::Detect(const PacketResult& packet_feedback,
 
 DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate> acked_bitrate,
                                                          std::optional<DataRate> probe_bitrate,
-                                                         bool recovered_from_overuse,
+                                                         bool recovered_from_underuse,
                                                          bool in_alr,
                                                          Timestamp at_time) {
     Result ret;
@@ -218,7 +218,7 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
             auto [target_bitrate, updated] = UpdateEstimate(active_delay_detector_->State(), acked_bitrate, at_time);
             ret.updated = updated;
             ret.target_bitrate = target_bitrate;
-            ret.recovered_from_overuse = recovered_from_overuse;
+            ret.recovered_from_underuse = recovered_from_underuse;
         }
     }
     BandwidthUsage detected_state = active_delay_detector_->State();

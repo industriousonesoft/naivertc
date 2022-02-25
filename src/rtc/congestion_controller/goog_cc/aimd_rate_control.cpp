@@ -12,7 +12,6 @@ constexpr TimeDelta kDefaultRtt = TimeDelta::Millis(200);
     
 } // namespace
 
-
 AimdRateControl::AimdRateControl(Configuration config) 
     : config_(std::move(config)),
       min_configured_bitrate_(config_.min_bitrate),

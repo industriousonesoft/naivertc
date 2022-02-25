@@ -4,10 +4,9 @@ namespace naivertc {
 namespace {
 
 constexpr double kDefaultTrendlineThresholdGain = 4.0;
-constexpr int kOverUsingCountThreshold = 1;
+constexpr size_t kOverUsingCountThreshold = 1;
 constexpr double kMaxAdaptOffsetMs = 15.0;
 constexpr double kOverUsingTimeThresholdMs = 10;
-
 constexpr size_t kMinNumSamples = 60;
     
 } // namespace
@@ -42,13 +41,13 @@ BandwidthUsage OveruseDetector::Detect(std::optional<double> new_trend,
     } 
 
     const double trend = new_trend.value_or(last_trend_);
-    // FIXME: How to understand the formula below?
+    // FIXME: How to understand the formula below? It's a low-pass filter?
     const double enhanced_trend = std::min<double>(num_samples, kMinNumSamples) * trend * threshold_gain_;
 
     // Overusing
     if (enhanced_trend > threshold_) {
         if (overuse_continuous_time_ms_ == -1) {
-            // Assume that we've been over-using half of 
+            // Initialize the timer. Assume that we've been over-using half of 
             // the time since the previous sample.
             overuse_continuous_time_ms_ = inter_departure_ms / 2;
         } else {
@@ -56,7 +55,12 @@ BandwidthUsage OveruseDetector::Detect(std::optional<double> new_trend,
             overuse_continuous_time_ms_ += inter_departure_ms;
         }
         ++overuse_accumated_counter_;
-        // No detect overusing sensitively.
+        // Not detect sensitively, do update state only 
+        // both of the following conditions are true:
+        // 1. We've been over-using over 10 ms;
+        // 2. It's not the first time we have detected overuse state;
+        // 3. The new trend is increasing or not decreasing, we think 
+        // the current network state is fine.
         if (overuse_continuous_time_ms_ > overuse_time_threshold_ && 
             overuse_accumated_counter_ > overuse_count_threshold_ &&
             trend >= last_trend_) {
@@ -64,14 +68,14 @@ BandwidthUsage OveruseDetector::Detect(std::optional<double> new_trend,
             overuse_accumated_counter_ = 0;
             bandwidth_usage_ = BandwidthUsage::OVERUSING;
         } else {
-            // Remains the previous state. 
+            // Otherwise, we just keep the previous state. 
         }
     // Underusing
     } else if (enhanced_trend < -threshold_) {
         overuse_continuous_time_ms_ = -1;
         overuse_accumated_counter_ = 0;
         bandwidth_usage_ = BandwidthUsage::UNDERUSING;
-    // Nomal
+    // Nomal if enhanced trend in the range [-threshold_, threshold_].
     } else {
         overuse_continuous_time_ms_ = -1;
         overuse_accumated_counter_ = 0;
@@ -109,6 +113,7 @@ void OveruseDetector::UpdateThreshold(const double enhanced_trend, int now_ms) {
     // to the estimated one way delay gradient |modified_trend|.
     // For detail, see https://c3lab.poliba.it/images/6/65/Gcc-analysis.pdf (4.2 Adaptive threshold design)
     const double k = enhanced_trend_abs < threshold_ ? k_down_ : k_up_;
+    // FIXME: 此处的|kMaxTimeDeltaMs|取值与InterArrivalDelta类中的|kMaxBurstDuration|相同，二者之间存在联系吗？
     const int64_t kMaxTimeDeltaMs = 100;
     int64_t time_delta_ms = std::min<double>(now_ms - last_update_ms_, kMaxTimeDeltaMs);
     // γ(ti) = γ(ti−1) + ∆T · kγ (ti)(|m(ti)| − γ(ti−1))
