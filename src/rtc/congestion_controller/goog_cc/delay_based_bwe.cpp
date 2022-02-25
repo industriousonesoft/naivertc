@@ -56,19 +56,19 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPack
                                                              std::optional<DataRate> probe_bitrate,
                                                              bool in_alr) {
     auto packet_feedbacks = feedback_report.SortedByReceiveTime();
-    // TODO: An empty feedback vector here likely means that
-    // all acks were too late and that the send time history had
-    // timed out. We should reduce the rate when this occurs.
+    // NOTE: NetworkTransportStatistician中发送的包到接收反馈的时间窗口为1分钟。
+    // 换言之，某个包的反馈是在其发送1分钟后才收到则会被丢弃掉，因此有可能导致packet_feedbacks为空。
+    // 详见NetworkTransportStatistician::AddPacket
+    // TODO(bugs.webrtc.org/10125): Design a better mechanism to safe-guard
+    // against building very large network queues.
     if (packet_feedbacks.empty()) {
         PLOG_WARNING << "Very late feedback received.";
         return Result();
     }
 
-    bool delayed_feedback = true;
     bool recovered_from_underuse = false;
     BandwidthUsage prev_state = active_delay_detector_->State();
     for (const auto& packet_feedback : packet_feedbacks) {
-        delayed_feedback = false;
         // Detect the current bandwidth usage.
         auto curr_state = Detect(packet_feedback, feedback_report.receive_time);
         if (prev_state == BandwidthUsage::UNDERUSING &&
@@ -81,13 +81,7 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPack
         prev_state = curr_state;
     }
 
-    // FIXME: How to understand this mechanism? who not use packet_feedbacks.empty() instead?
-    if (delayed_feedback) {
-        // TODO(bugs.webrtc.org/10125): Design a better mechanism to safe-guard
-        // against building very large network queues.
-        return Result();
-    }
-
+    // Do not increase the delay-based estimate in alr.
     rate_control_.set_in_alr(in_alr);
     return MaybeUpdateEstimate(acked_bitrate, probe_bitrate, recovered_from_underuse, in_alr, feedback_report.receive_time);
 }
@@ -177,8 +171,9 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
                                                          bool in_alr,
                                                          Timestamp at_time) {
     Result ret;
+    BandwidthUsage detected_state = active_delay_detector_->State();
     // Currently overusing the bandwidth.
-    if (active_delay_detector_->State() == BandwidthUsage::OVERUSING) {
+    if (detected_state == BandwidthUsage::OVERUSING) {
         if (has_once_detected_overuse_ && in_alr && alr_limited_backoff_enabled_) {
             // Check if we can reduce the current bitrate further to close to `prev_bitrate_`.
             if (rate_control_.CanReduceFurther(at_time, prev_bitrate_)) {
@@ -215,13 +210,13 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
             rate_control_.SetEstimate(*probe_bitrate, at_time);
         } else {
             // Retrieve the current bitrate from AIMD rate control.
-            auto [target_bitrate, updated] = UpdateEstimate(active_delay_detector_->State(), acked_bitrate, at_time);
+            auto [target_bitrate, updated] = UpdateEstimate(detected_state, acked_bitrate, at_time);
             ret.updated = updated;
             ret.target_bitrate = target_bitrate;
             ret.recovered_from_underuse = recovered_from_underuse;
         }
     }
-    BandwidthUsage detected_state = active_delay_detector_->State();
+    
     if ((ret.updated && prev_bitrate_ != ret.target_bitrate) ||
         detected_state != prev_state_) {
         auto curr_bitrate = ret.updated ? ret.target_bitrate : prev_bitrate_;

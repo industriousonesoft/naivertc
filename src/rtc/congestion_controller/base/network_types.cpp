@@ -17,7 +17,7 @@ std::vector<PacketResult> TransportPacketsFeedback::ReceivedPackets() const {
   std::vector<PacketResult> res;
   for (const PacketResult& fb : packet_feedbacks) {
     if (fb.IsReceived()) {
-      res.push_back(fb);
+       res.push_back(fb);
     }
   }
   return res;

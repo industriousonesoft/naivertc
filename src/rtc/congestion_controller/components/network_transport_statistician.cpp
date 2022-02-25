@@ -141,13 +141,14 @@ bool NetworkTransportStatistician::ParsePacketFeedbacks(const rtcp::TransportFee
 
     report.packet_feedbacks.reserve(feedback.GetPacketStatusCount());
 
-    size_t num_missing_packets = 0;
+    size_t num_droping_packets = 0;
     TimeDelta packet_offset = TimeDelta::Zero();
     for (const auto& packet : feedback.GetAllPackets()) {
         int64_t packet_id = seq_num_unwrapper_.Unwrap(packet.sequence_number());
 
         // Updates the last acked packet id.
         if (packet_id > last_acked_packet_id_) {
+            // Update the inflight bytes.
             for (auto it = packet_fb_history_.upper_bound(last_acked_packet_id_);
                  it != packet_fb_history_.upper_bound(packet_id); ++it) {
                 inflight_bytes_ -= it->second.sent.size;
@@ -156,9 +157,9 @@ bool NetworkTransportStatistician::ParsePacketFeedbacks(const rtcp::TransportFee
         }
 
         auto it = packet_fb_history_.find(packet_id);
-        // Missing packet
+        // If the feedback arrived too late, droping it.
         if (it == packet_fb_history_.end()) {
-            ++num_missing_packets;
+            ++num_droping_packets;
             continue;
         }
 
@@ -182,9 +183,9 @@ bool NetworkTransportStatistician::ParsePacketFeedbacks(const rtcp::TransportFee
         report.packet_feedbacks.push_back(std::move(feedback));
     }
 
-    if (num_missing_packets > 0) {
-        PLOG_WARNING << "Failed to lookup send time for " << num_missing_packets
-                     << " packet" << (num_missing_packets > 1 ? "s" : "")
+    if (num_droping_packets > 0) {
+        PLOG_WARNING << "Failed to lookup send time for " << num_droping_packets
+                     << " packet" << (num_droping_packets > 1 ? "s" : "")
                      << ". Send time history too small?";
     }
 
