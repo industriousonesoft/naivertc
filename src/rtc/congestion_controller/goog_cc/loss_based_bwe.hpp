@@ -11,7 +11,7 @@
 
 namespace naivertc {
 
-// TODO: Implement the unit tests.
+// This class require transport feedback and acknowledged bitrate.
 class LossBasedBwe {
 public:
     struct Configuration {
@@ -38,7 +38,7 @@ public:
 
     void SetInitialBitrate(DataRate bitrate);
 
-    void IncomingFeedbacks(const std::vector<PacketResult> packet_feedbacks, 
+    void IncomingFeedbacks(const std::vector<PacketResult>& packet_feedbacks, 
                            Timestamp at_time);
     void OnAcknowledgedBitrate(DataRate ack_bitrate, 
                                Timestamp at_time);

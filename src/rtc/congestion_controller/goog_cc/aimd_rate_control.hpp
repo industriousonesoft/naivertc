@@ -20,6 +20,8 @@ namespace naivertc {
 class AimdRateControl {
 public:
     struct Configuration {
+        // Indicates if we use a adaptive threhold instead a fixed one
+        // to detecte the bandwidth usage in OveruseDetector.
         bool adaptive_threshold_enabled = true;
         bool no_bitrate_increase_in_alr = false;
         bool link_capacity_fix = false;

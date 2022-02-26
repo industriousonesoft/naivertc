@@ -90,7 +90,7 @@ void SendSideBwe::OnBitrates(std::optional<DataRate> send_bitrate,
         linker_capacity_tracker_.OnStartingBitrate(*send_bitrate);
         OnSendBitrate(*send_bitrate, report_time);
     }
-    SetBitrateBoundary(min_bitrate, max_bitrate);
+    SetMinMaxBitrate(min_bitrate, max_bitrate);
 }
 
 void SendSideBwe::OnSendBitrate(DataRate bitrate,
@@ -160,7 +160,7 @@ void SendSideBwe::OnPacketsLost(int64_t num_packets_lost,
         accumulated_packets_ = 0;
         time_last_fraction_loss_update_ = report_time;
         has_decreased_since_last_fraction_loss_ = false;
-        OnPeriodicProcess(report_time);
+        UpdateEstimate(report_time);
     }
     UpdateUmaStats(num_packets_lost, report_time);
 }
@@ -183,8 +183,8 @@ void SendSideBwe::IncomingPacketFeedbacks(const TransportPacketsFeedback& report
     }
 }
 
-void SendSideBwe::SetBitrateBoundary(DataRate min_bitrate,
-                                     DataRate max_bitrate) {
+void SendSideBwe::SetMinMaxBitrate(DataRate min_bitrate,
+                                   DataRate max_bitrate) {
     min_configured_bitrate_ = std::max(min_bitrate, kDefaultMinBitrate);
     if (max_configured_bitrate_ > DataRate::Zero() && max_bitrate.IsFinite()) {
         max_configured_bitrate_ = std::max(max_configured_bitrate_, max_bitrate);
@@ -193,12 +193,12 @@ void SendSideBwe::SetBitrateBoundary(DataRate min_bitrate,
     }
 }
 
-void SendSideBwe::OnPeriodicProcess(Timestamp report_time) {
-    // If the RTT that is esitmated right now is upper the limit,
-    // which means that congestion has detected.
-    // And we will decrease the bitrate if we could.
+void SendSideBwe::UpdateEstimate(Timestamp report_time) {
+    // If the roughly RTT (with backoff) exceed the limit, we assume that 
+    // we've been over-using.
     if (rtt_backoff_.CorrectedRtt(report_time) > config_.rtt_limit) {
-        // Not do drop too aften and make sure there has space to drop.
+        // Decrease the bitrate at intervals if the current bitrate is above
+        // the floor (the min bitrate as required).
         if (report_time - time_last_decrease_ >= config_.drop_interval &&
             curr_bitrate_ > config_.bandwidth_floor) {
             time_last_decrease_ = report_time;
@@ -216,8 +216,9 @@ void SendSideBwe::OnPeriodicProcess(Timestamp report_time) {
         DataRate new_bitrate = curr_bitrate_;
 
         if (remb_limit_.IsFinite()) {
-            // FIXME: Why the new bitrate should not be larger than the REMB?
-            new_bitrate = remb_limit_;
+            // TODO: We should not allow the new_bitrate to be larger than the
+            // receiver limit here.
+            new_bitrate = std::max(remb_limit_, new_bitrate);
         }
         if (delay_based_limit_.IsFinite()) {
             new_bitrate = std::max(delay_based_limit_, new_bitrate);
@@ -244,6 +245,7 @@ void SendSideBwe::OnPeriodicProcess(Timestamp report_time) {
         return;
     }
     
+    // The loss_based_bwe_ has higher priority.
     if (loss_based_bwe_) {
         auto esimate = loss_based_bwe_->Estimate(min_bitrate_history_.front().second,
                                                  delay_based_limit_,
@@ -299,7 +301,8 @@ void SendSideBwe::OnPeriodicProcess(Timestamp report_time) {
                 }
             }
         }
-    }   
+    }
+    ApplyLimits(report_time);  
 }
 
 // Private methods

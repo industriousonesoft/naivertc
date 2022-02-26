@@ -33,6 +33,7 @@ double LossRatioFromBitrate(DataRate bitrate,
     if (loss_bandwidth_balance >= bitrate) {
         return 1.0;
     }
+    // loss_ratio = (loss_bandwidth_balance / bitrate)^exponent
     return pow(loss_bandwidth_balance / bitrate, exponent);
 }
 
@@ -45,7 +46,7 @@ DataRate BitrateFromLossRatio(double loss_ratio,
     if (loss_ratio < 1e-5) {
         return DataRate::Infinity();
     }
-    // loss_bandwidth_balance * (1 / (loss_ratio^1/exponent))
+    // bitrate = loss_bandwidth_balance * (1 / (loss_ratio^1/exponent))
     return loss_bandwidth_balance * pow(loss_ratio, -1.0 / exponent);
 }
 
@@ -53,8 +54,9 @@ double ExponentialSmoothingFactor(TimeDelta window_size, TimeDelta interval) {
     if (window_size <= TimeDelta::Zero()) {
         return 1.0;
     }
-    // 1 - e^-x= 1 - 1/e^x
-    // FIXME: Why using the exp?
+    // x = interval / window
+    // factor = 1 - e^-x= 1 - 1/e^x
+    // NOTE: The growth of factor has a positive relation with interval length.
     return 1.0 - exp(interval / window_size * -1.0);
 }
     
@@ -80,7 +82,7 @@ void LossBasedBwe::SetInitialBitrate(DataRate bitrate) {
     avg_loss_ratio_max_ = 0.f;
 }
 
-void LossBasedBwe::IncomingFeedbacks(const std::vector<PacketResult> packet_feedbacks, 
+void LossBasedBwe::IncomingFeedbacks(const std::vector<PacketResult>& packet_feedbacks, 
                                      Timestamp at_time) {
     if (packet_feedbacks.empty()) {
         return;
@@ -95,8 +97,11 @@ void LossBasedBwe::IncomingFeedbacks(const std::vector<PacketResult> packet_feed
                                   : kDefaultRtcpFeedbackInterval;
     time_last_loss_packet_report_ = at_time;
     has_decreased_since_last_loss_report_ = false;
+    // NOTE: 由于packet_feedbacks在处理时设置了时间窗口，导致太旧的包反馈会被丢弃，所以反馈的只是窗口内的丢包情况。
+    // 因此，此处计算丢包率采样了指数滑动平均数的方式，在历史值的基础上给予新数据的更大权重，这样可得到更接近于真实值的丢包率。
     // Exponetial smoothing
     avg_loss_ratio_ += ExponentialSmoothingFactor(config_.loss_window, elapsed_time) * (loss_ratio - avg_loss_ratio_);
+    // The max loss ratio is self-adaptive, which adapts to the average.
     if (avg_loss_ratio_ > avg_loss_ratio_max_) {
         avg_loss_ratio_max_ = avg_loss_ratio_;
     } else {
@@ -132,14 +137,16 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
 
     if (loss_based_bitrate_.IsZero()) {
         // The initial bitrate is not set yet.
-        return expected_birate;
+        loss_based_bitrate_ = expected_birate;
     }
 
     // Only increase if loss ratio has beed low for some time.
     const double loss_ratio_estimate_for_increase = avg_loss_ratio_max_;
     // Avoid multiple decreases from averaging over one loss spike.
     const double loss_ratio_estimate_for_decrease = std::min(avg_loss_ratio_, last_loss_ratio_);
-    // Limit decrease once a period (RTT + decrease_interval) since last update.
+    // 允许降低码率操作的需要同时满足一下两个条件：
+    // 1、次数限制：在下一次反馈到来之前只允许操作一次
+    // 2、时长限制：距离上一次操作的时长>=decrease_interval
     const bool allow_to_decrease = !has_decreased_since_last_loss_report_ && (at_time - time_last_decrease_ >= rtt + config_.decrease_interval);
     // If packet lost reports are too old, don't increase bitrate.
     const bool loss_report_valid = at_time - time_last_loss_packet_report_ < kRtcpFeedbackValidPeriod;

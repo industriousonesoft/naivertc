@@ -40,10 +40,11 @@ private:
     void ClampConstraints();
 
 private:
+
     // Fixed variables
     const bool packet_feedback_only_;
     const bool use_min_allocated_bitrate_as_lower_bound_;
-    const bool ignore_probes_lower_than_network_estimate_;
+    // const bool ignore_probes_lower_than_network_estimate_;
     const bool limit_probes_lower_than_throughput_estimate_;
     const bool use_loss_based_as_stable_bitrate_;
 
@@ -67,8 +68,6 @@ private:
 
     std::deque<int64_t> feedback_max_rtts_;
 
-    std::optional<Configuration> initial_config_;
-
     DataRate send_side_estimate_;
     DataRate last_stable_target_bitrate_;
     DataRate last_pushback_target_bitrate_;
@@ -83,6 +82,8 @@ private:
     DataRate max_total_allocated_bitrate_;
 
     std::optional<size_t> curr_data_window_;
+
+    std::optional<Configuration> initial_config_;
 };
     
 } // namespace naivertc

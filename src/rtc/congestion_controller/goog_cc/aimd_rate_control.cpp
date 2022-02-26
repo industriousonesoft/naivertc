@@ -9,6 +9,7 @@ namespace {
 // 0.85 is the RECOMMENDED value.
 constexpr double kDefaultBackoffFactor = 0.85;
 constexpr TimeDelta kDefaultRtt = TimeDelta::Millis(200);
+constexpr DataRate kMinIncreaseRatePerSecond = DataRate::BitsPerSec(4000); // 4 kbps
     
 } // namespace
 
@@ -137,21 +138,22 @@ DataRate AimdRateControl::Update(BandwidthUsage bw_state,
 DataRate AimdRateControl::GetNearMaxIncreaseRatePerSecond() const {
     assert(!curr_bitrate_.IsZero());
     // Assumed the FPS is 30.
-    // FIXME: Using the real FPS instead may be better?
     double bits_per_frame = curr_bitrate_.bps() / 30.0;
     double packets_per_frame = std::ceil(bits_per_frame / 9600.0 /* bits_per_packet = bits_per_bytes * packet_size_bytes = 8.0 * 1200.0 */);
-    double avg_packet_size_bits = bits_per_frame / packets_per_frame;
+    double avg_packet_size_in_bits = bits_per_frame / packets_per_frame;
 
-    // The response_time interval is estimated as the round-trip time plus
-    // 100 ms as an estimate of over-use estimator and detector reaction time.
+    // The response_time interval is estimated as the round-trip time
+    // plus 100 ms as an estimate of over-use estimator and detector
+    // reaction time.
+    // see https://datatracker.ietf.org/doc/html/draft-ietf-rmcat-gcc-02#page-10
     TimeDelta response_time = rtt_ + TimeDelta::Millis(100);
-    // FIXME: Dose this mean that the adaptive threshold used in `TrendlineEstimator`?
+    // FIXME: why do we need to increase more slowly when using a adative threshold?
     if (config_.adaptive_threshold_enabled) {
         response_time = response_time * 2;
     }
-    // Additive increases of bitrate: Add one packet per response time when no over-use is detected.
-    DataRate increase_rate_per_second = DataRate::BitsPerSec(avg_packet_size_bits * 1000.0 / response_time.ms());
-    const DataRate kMinIncreaseRatePerSecond = DataRate::BitsPerSec(4000); // 4 kbps
+    // Increase slightly (one packet every response time) when used bandwidth 
+    // is near the link capacity (assuming the max bitrate).
+    DataRate increase_rate_per_second = DataRate::BitsPerSec(avg_packet_size_in_bits * 1000.0 / response_time.ms());
     return std::max(kMinIncreaseRatePerSecond, increase_rate_per_second);
 }
 

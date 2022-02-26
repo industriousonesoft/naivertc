@@ -32,7 +32,7 @@ constexpr size_t kMaxFeedbackRttWindow = 32;
 GoogCcNetworkController::GoogCcNetworkController(Configuration config) 
     : packet_feedback_only_(false),
       use_min_allocated_bitrate_as_lower_bound_(false),
-      ignore_probes_lower_than_network_estimate_(false),
+    //   ignore_probes_lower_than_network_estimate_(false),
       limit_probes_lower_than_throughput_estimate_(false),
       use_loss_based_as_stable_bitrate_(false),
       send_side_bwe_(std::make_unique<SendSideBwe>(SendSideBwe::Configuration())),
@@ -49,9 +49,8 @@ GoogCcNetworkController::GoogCcNetworkController(Configuration config)
       min_total_allocated_bitrate_(config.stream_based_config.allocated_bitrate_limits.min_total_allocated_bitrate),
       max_total_allocated_bitrate_(config.stream_based_config.allocated_bitrate_limits.max_total_allocated_bitrate),
       initial_config_(std::move(config)) {
-    if (delay_based_bwe_) {
-        delay_based_bwe_->SetMinBitrate(kDefaultMinBitrate);
-    }
+    // Initial estimate with the min bitrate.
+    delay_based_bwe_->SetMinBitrate(kDefaultMinBitrate);
 }
 
 GoogCcNetworkController::~GoogCcNetworkController() {}
@@ -91,7 +90,7 @@ NetworkControlUpdate GoogCcNetworkController::OnProcessInterval(ProcessInterval 
     }
 
     // Update estimate periodiclly.
-    send_side_bwe_->OnPeriodicProcess(msg.at_time);
+    send_side_bwe_->UpdateEstimate(msg.at_time);
 
     auto probes = probe_controller_->OnPeriodicProcess(msg.at_time);
     if (!probes.empty()) {
@@ -167,9 +166,9 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
     }
     TimeDelta max_feedback_rtt = TimeDelta::MinusInfinity();
     TimeDelta min_propagation_rtt = TimeDelta::PlusInfinity();
-    size_t num_packets_received = 0;
   
     std::vector<PacketResult> received_packets = report.ReceivedPackets();
+    const size_t num_packets_received = received_packets.size();
     for (const auto& packet : received_packets) {
         // Calculate propagation RTT: 
         // propagation_rtt = (report.recv_time - packet.send_time) - (last_packet.recv_time - packet.recv_time)
@@ -191,31 +190,37 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
         TimeDelta propagation_rtt = feedback_rtt - pending_time;
         max_feedback_rtt = std::max(max_feedback_rtt, feedback_rtt);
         min_propagation_rtt = std::min(min_propagation_rtt, propagation_rtt);
-        num_packets_received += 1;
     }
 
     // Update progation RTT.
     if (max_feedback_rtt.IsFinite()) {
         feedback_max_rtts_.push_back(max_feedback_rtt.ms());
-        // Start to update the propagation RTT once reaching a certain amount.
+        // FIXME: Why do we need to do update with a window here?
         if (feedback_max_rtts_.size() > kMaxFeedbackRttWindow) {
             feedback_max_rtts_.pop_front();
+            // RTT will be employed to estimate a corrected RTT.
+            // TODO: Use time since last unacknowledged packet instead of report receive time.
             send_side_bwe_->OnPropagationRtt(min_propagation_rtt, report.receive_time);
         }
     }
 
+    // We need to retrieve the RTT and loss info from the packet feedbacks.
     if (packet_feedback_only_) {
         if (!feedback_max_rtts_.empty()) {
             // SMA: Simple Moving Average.
             int64_t sum_rtt_ms = std::accumulate(feedback_max_rtts_.begin(), feedback_max_rtts_.end(), 0);
             int64_t mean_rtt_ms = sum_rtt_ms / feedback_max_rtts_.size();
             if (delay_based_bwe_) {
+                // RTT will be employed to calculte the increase when used bandwidth 
+                // is near the link capacity (assuming the max bitrate).
+                // FIXME: Using feedback_rtt instread of propagation_rtt may be resulting a 
+                // more smaller and more reasonable value?
                 delay_based_bwe_->OnRttUpdate(TimeDelta::Millis(mean_rtt_ms));
             }
         }
 
         if (min_propagation_rtt.IsFinite()) {
-            // Used to predict NACK round trip time in FEC controller.
+            // RTT will be employed to predict NACK round trip time in FEC controller.
             send_side_bwe_->OnRtt(min_propagation_rtt, report.receive_time);
         }
 

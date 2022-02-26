@@ -64,14 +64,14 @@ public:
 
     void IncomingPacketFeedbacks(const TransportPacketsFeedback& report);
 
-    void SetBitrateBoundary(DataRate min_bitrate,
-                            DataRate max_bitrate);
-
-    void OnPeriodicProcess(Timestamp report_time);
+    void UpdateEstimate(Timestamp report_time);
 
 private:
     // User Metrics Analysis
     enum UmaState { NO_UPDATE, FIRST_DONE, DONE };
+
+    void SetMinMaxBitrate(DataRate min_bitrate,
+                          DataRate max_bitrate);
 
     DataRate Clamp(DataRate bitrate) const;
     void ApplyLimits(Timestamp report_time);
