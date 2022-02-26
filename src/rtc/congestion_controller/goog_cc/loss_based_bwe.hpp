@@ -11,7 +11,8 @@
 
 namespace naivertc {
 
-// This class require transport feedback and acknowledged bitrate.
+// This class estimates an upper BWE limit based on loss,
+// and require transport feedback and acknowledged bitrate.
 class LossBasedBwe {
 public:
     struct Configuration {

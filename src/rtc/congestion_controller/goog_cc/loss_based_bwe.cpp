@@ -151,10 +151,13 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
     // If packet lost reports are too old, don't increase bitrate.
     const bool loss_report_valid = at_time - time_last_loss_packet_report_ < kRtcpFeedbackValidPeriod;
 
+    // Reset
     if (loss_report_valid && config_.allow_resets &&
         loss_ratio_estimate_for_increase < ThresholdToReset()) {
         loss_based_bitrate_ = expected_birate;
-    } else if (loss_report_valid && loss_ratio_estimate_for_increase < ThresholdToIncrease()) {
+    } 
+    // Increase
+    else if (loss_report_valid && loss_ratio_estimate_for_increase < ThresholdToIncrease()) {
         // Increase bitrate by RTT-adptive ratio.
         DataRate new_bibtrate = min_bitrate * CalcIncreaseFactor(config_, rtt) + config_.increase_offset;
 
@@ -166,7 +169,9 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
         if (new_bibtrate > loss_based_bitrate_) {
             loss_based_bitrate_ = new_bibtrate;
         }
-    } else if (loss_ratio_estimate_for_decrease > ThresholdToDecrease() && allow_to_decrease) {
+    } 
+    // Decrease
+    else if (loss_ratio_estimate_for_decrease > ThresholdToDecrease() && allow_to_decrease) {
         // Decrease bitrate by the fixed ratio.
         DataRate new_bitrate = config_.decrease_factor * ack_bitrate_max_;
         const DataRate decreased_bitrate_floor = BitrateFromLossRatio(loss_ratio_estimate_for_decrease,
@@ -180,6 +185,8 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
             has_decreased_since_last_loss_report_ = true;
             loss_based_bitrate_ = new_bitrate;
         }
+    } else {
+        // Hold
     }
     return loss_based_bitrate_;
 }
