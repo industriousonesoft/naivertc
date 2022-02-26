@@ -156,7 +156,9 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportLostReport(const Transp
     if (packet_feedback_only_) {
         return NetworkControlUpdate();
     }
-    send_side_bwe_->OnPacketsLost(loss_report.num_packets_lost, loss_report.num_packets, loss_report.receive_time);
+    send_side_bwe_->OnPacketsLostReport(loss_report.num_packets_lost, 
+                                        loss_report.num_packets, 
+                                        loss_report.receive_time);
     return NetworkControlUpdate();;
 }
 
@@ -229,9 +231,9 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
         lost_packets_since_last_loss_update_ += (report.packet_feedbacks.size() - num_packets_received);
         // Time to update loss info.
         if (TimeToUpdateLoss(report.receive_time)) {
-            send_side_bwe_->OnPacketsLost(/*num_packets_lost=*/lost_packets_since_last_loss_update_, 
-                                          /*num_packets*/received_packets_since_last_loss_update_, 
-                                          report.receive_time);
+            send_side_bwe_->OnPacketsLostReport(/*num_packets_lost=*/lost_packets_since_last_loss_update_, 
+                                                /*num_packets*/received_packets_since_last_loss_update_, 
+                                                report.receive_time);
             // Reset loss info after updating.
             received_packets_since_last_loss_update_ = 0;
             lost_packets_since_last_loss_update_ = 0;

@@ -17,6 +17,12 @@ enum class BandwidthUsage {
     OVERUSING
 };
 
+enum class RateControlState { 
+    HOLD, 
+    INCREASE, 
+    DECREASE 
+};
+
 std::ostream& operator<<(std::ostream& out, BandwidthUsage usage);
     
 } // namespace naivertc

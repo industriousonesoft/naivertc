@@ -82,8 +82,6 @@ private:
     bool SufficientToReduceFurther(DataRate estimated_throughput) const;
 
 private:
-    enum class RateControlState { HOLD, INCREASE, DECREASE };
-
     const Configuration config_;
     const bool send_side_;
     DataRate min_configured_bitrate_;

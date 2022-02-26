@@ -12,13 +12,13 @@ namespace test {
 void ProbingInStartPhase(bool use_delay_based) {
     SendSideBwe bwe({});
     Timestamp at_time = Timestamp::Millis(0);
-    bwe.SetBitrateBoundary(DataRate::BitsPerSec(100'000), DataRate::BitsPerSec(1500'000));
+    bwe.SetMinMaxBitrate(DataRate::BitsPerSec(100'000), DataRate::BitsPerSec(1500'000));
     bwe.OnSendBitrate(DataRate::BitsPerSec(200'000), at_time);
 
     const DataRate kInitialBitrate = DataRate::BitsPerSec(1000'000);
     const DataRate kSecondBitrate = kInitialBitrate + DataRate::BitsPerSec(500'000);
 
-    bwe.OnPacketsLost(/*packets_lost=*/0, /*num_packets=*/1, at_time);
+    bwe.OnPacketsLostReport(/*packets_lost=*/0, /*num_packets=*/1, at_time);
     bwe.OnRtt(TimeDelta::Millis(50), at_time);
 
     // The initial REMB applies immediately/
@@ -27,7 +27,7 @@ void ProbingInStartPhase(bool use_delay_based) {
     } else {
         bwe.OnRemb(kInitialBitrate, at_time);
     }
-    bwe.OnPeriodicProcess(at_time);
+    bwe.UpdateEstimate(at_time);
     EXPECT_EQ(kInitialBitrate, bwe.target_bitate());
 
     // The second REMB doesn't apply immediately.
@@ -38,7 +38,7 @@ void ProbingInStartPhase(bool use_delay_based) {
     } else {
         bwe.OnRemb(kSecondBitrate, at_time);
     }
-    bwe.OnPeriodicProcess(at_time);
+    bwe.UpdateEstimate(at_time);
     EXPECT_EQ(kInitialBitrate, bwe.target_bitate());
 
 }
@@ -56,7 +56,7 @@ MY_TEST(SendSideBweTest, DosentReapplyBitrateDecreaseWithoutFollowingRemb) {
     const DataRate kMinBitrate = DataRate::BitsPerSec(100'000);
     const DataRate kInitialBitrate = DataRate::BitsPerSec(1000'000);
     Timestamp at_time = Timestamp::Millis(0);
-    bwe.SetBitrateBoundary(kMinBitrate, DataRate::BitsPerSec(1500'000));
+    bwe.SetMinMaxBitrate(kMinBitrate, DataRate::BitsPerSec(1500'000));
     bwe.OnSendBitrate(kInitialBitrate, at_time);
 
     // Equalt to 50% in ratio.
@@ -69,12 +69,12 @@ MY_TEST(SendSideBweTest, DosentReapplyBitrateDecreaseWithoutFollowingRemb) {
     EXPECT_EQ(0, bwe.rtt().ms());
 
     // Signal heavy loss to go down in bitrate.
-    bwe.OnPacketsLost(/*packets_lost=*/50, /*num_packets=*/100, at_time);
+    bwe.OnPacketsLostReport(/*packets_lost=*/50, /*num_packets=*/100, at_time);
     bwe.OnRtt(kRtt, at_time);
 
     // Triger an update 2 seconds later to not be rate limited.
     at_time += TimeDelta::Millis(1000);
-    bwe.OnPeriodicProcess(at_time);
+    bwe.UpdateEstimate(at_time);
     EXPECT_LT(bwe.target_bitate(), kInitialBitrate);
     // Verify that the threhold bitrate isn't hitting the min bitrate.
     // If this ever happens, update the thresholds or loss rate so than
@@ -90,7 +90,7 @@ MY_TEST(SendSideBweTest, DosentReapplyBitrateDecreaseWithoutFollowingRemb) {
     // Trigger an update 2 seconds later to not be rate limited, but it still 
     // shouldn't update.
     at_time += TimeDelta::Millis(1000);
-    bwe.OnPeriodicProcess(at_time);
+    bwe.UpdateEstimate(at_time);
 
     EXPECT_EQ(last_updated_bitrate, bwe.target_bitate());
     // The old loss rate and RTT should still be applied though.
@@ -108,11 +108,11 @@ MY_TEST(SendSideBweTest, SettingSendBitrateOverideDelayBasedEstimate) {
     SendSideBwe bwe({});
     Timestamp at_time = Timestamp::Millis(0);
 
-    bwe.SetBitrateBoundary(kMinBitrate, kMaxBitrate);
+    bwe.SetMinMaxBitrate(kMinBitrate, kMaxBitrate);
     bwe.OnSendBitrate(kInitialBitrate, at_time);
     bwe.OnDelayBasedBitrate(kDelayBasedBitrate, at_time);
 
-    bwe.OnPeriodicProcess(at_time);
+    bwe.UpdateEstimate(at_time);
 
     EXPECT_GE(bwe.target_bitate(), kInitialBitrate) << bwe.target_bitate().bps();
     EXPECT_LE(bwe.target_bitate(), kDelayBasedBitrate);

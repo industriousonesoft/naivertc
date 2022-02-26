@@ -1,19 +1,19 @@
-#ifndef _RTC_CONGESTION_CONTORLLER_GOOG_CC_LOSS_BASED_BWE_H_
-#define _RTC_CONGESTION_CONTORLLER_GOOG_CC_LOSS_BASED_BWE_H_
+#ifndef _RTC_CONGESTION_CONTORLLER_GOOG_CC_LOSS_FEEDBACK_BASED_BWE_H_
+#define _RTC_CONGESTION_CONTORLLER_GOOG_CC_LOSS_FEEDBACK_BASED_BWE_H_
 
-#include "base/defines.hpp"
 #include "rtc/base/units/time_delta.hpp"
 #include "rtc/base/units/data_rate.hpp"
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/congestion_controller/base/network_types.hpp"
+#include "rtc/congestion_controller/goog_cc/bwe_defines.hpp"
 
 #include <optional>
 
 namespace naivertc {
 
-// This class estimates an upper BWE limit based on loss,
+// This class estimates an upper BWE limit based on loss feedbacks,
 // and require transport feedback and acknowledged bitrate.
-class LossBasedBwe {
+class LossFeedbackBasedBwe {
 public:
     struct Configuration {
         double min_increase_factor = 1.02;
@@ -34,20 +34,22 @@ public:
         TimeDelta loss_report_timeout = TimeDelta::Millis(6000);
     };
 public:
-    LossBasedBwe(Configuration config);
-    ~LossBasedBwe();
+    LossFeedbackBasedBwe(Configuration config);
+    ~LossFeedbackBasedBwe();
+
+    bool InUse() const;
 
     void SetInitialBitrate(DataRate bitrate);
 
-    void IncomingFeedbacks(const std::vector<PacketResult>& packet_feedbacks, 
+    void OnPacketFeedbacks(const std::vector<PacketResult>& packet_feedbacks, 
                            Timestamp at_time);
     void OnAcknowledgedBitrate(DataRate ack_bitrate, 
                                Timestamp at_time);
 
-    std::optional<DataRate> Estimate(DataRate min_bitrate,
-                                     DataRate expected_birate,
-                                     TimeDelta rtt,
-                                     Timestamp at_time);
+     std::pair<DataRate, RateControlState> Estimate(DataRate min_bitrate,
+                                                    DataRate expected_birate,
+                                                    TimeDelta rtt,
+                                                    Timestamp at_time);
 
 private:
     // The threshold of loss ratio to reset bitrate.

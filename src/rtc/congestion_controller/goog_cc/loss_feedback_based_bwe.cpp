@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/loss_based_bwe.hpp"
+#include "rtc/congestion_controller/goog_cc/loss_feedback_based_bwe.hpp"
 
 namespace naivertc {
 namespace {
@@ -10,7 +10,7 @@ constexpr int kMaxRtcpFeedbackIntervalMs = 5000;
 // The valid period of a RTCP feeback.
 constexpr TimeDelta kRtcpFeedbackValidPeriod = TimeDelta::Millis<int64_t>(1.2 * kMaxRtcpFeedbackIntervalMs);
 
-double CalcIncreaseFactor(const LossBasedBwe::Configuration& config, TimeDelta rtt) {
+double CalcIncreaseFactor(const LossFeedbackBasedBwe::Configuration& config, TimeDelta rtt) {
     assert(config.increase_low_rtt < config.increase_high_rtt && "On misconfiguration.");
     // Clamp the RTT
     if (rtt < config.increase_low_rtt) {
@@ -62,7 +62,7 @@ double ExponentialSmoothingFactor(TimeDelta window_size, TimeDelta interval) {
     
 } // namespace
 
-LossBasedBwe::LossBasedBwe(Configuration config) 
+LossFeedbackBasedBwe::LossFeedbackBasedBwe(Configuration config) 
     : config_(std::move(config)),
       avg_loss_ratio_(0.f),
       avg_loss_ratio_max_(0.f),
@@ -74,16 +74,20 @@ LossBasedBwe::LossBasedBwe(Configuration config)
       time_last_decrease_(Timestamp::MinusInfinity()),
       time_last_loss_packet_report_(Timestamp::MinusInfinity()) {}
 
-LossBasedBwe::~LossBasedBwe() = default;
+LossFeedbackBasedBwe::~LossFeedbackBasedBwe() = default;
 
-void LossBasedBwe::SetInitialBitrate(DataRate bitrate) {
+bool LossFeedbackBasedBwe::InUse() const {
+    return time_last_loss_packet_report_.IsFinite();
+}
+
+void LossFeedbackBasedBwe::SetInitialBitrate(DataRate bitrate) {
     loss_based_bitrate_ = bitrate;
     avg_loss_ratio_ = 0.f;
     avg_loss_ratio_max_ = 0.f;
 }
 
-void LossBasedBwe::IncomingFeedbacks(const std::vector<PacketResult>& packet_feedbacks, 
-                                     Timestamp at_time) {
+void LossFeedbackBasedBwe::OnPacketFeedbacks(const std::vector<PacketResult>& packet_feedbacks, 
+                                             Timestamp at_time) {
     if (packet_feedbacks.empty()) {
         return;
     }
@@ -111,8 +115,8 @@ void LossBasedBwe::IncomingFeedbacks(const std::vector<PacketResult>& packet_fee
     last_loss_ratio_ = loss_ratio;
 }
 
-void LossBasedBwe::OnAcknowledgedBitrate(DataRate ack_bitrate, 
-                                         Timestamp at_time) {
+void LossFeedbackBasedBwe::OnAcknowledgedBitrate(DataRate ack_bitrate, 
+                                                 Timestamp at_time) {
     
     if (ack_bitrate > ack_bitrate_max_) {
         ack_bitrate_max_ = ack_bitrate;
@@ -123,22 +127,19 @@ void LossBasedBwe::OnAcknowledgedBitrate(DataRate ack_bitrate,
         double smoothing_factor = ExponentialSmoothingFactor(config_.ack_rate_max_window, elapsed_time);
         ack_bitrate_max_ -= smoothing_factor * (ack_bitrate_max_ - ack_bitrate);
     }
-     time_ack_bitrate_last_update_ = at_time;
+    time_ack_bitrate_last_update_ = at_time;
 }
 
-std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
-                                               DataRate expected_birate,
-                                               TimeDelta rtt,
-                                               Timestamp at_time) {
-    if (time_last_loss_packet_report_.IsInfinite()) {
-        // The first RTCP feedback is not coming yet.
-        return std::nullopt;
-    }
-
+ std::pair<DataRate, RateControlState> LossFeedbackBasedBwe::Estimate(DataRate min_bitrate,
+                                                                      DataRate expected_birate,
+                                                                      TimeDelta rtt,
+                                                                      Timestamp at_time) {
     if (loss_based_bitrate_.IsZero()) {
         // The initial bitrate is not set yet.
         loss_based_bitrate_ = expected_birate;
     }
+    
+    RateControlState state = RateControlState::HOLD;
 
     // Only increase if loss ratio has beed low for some time.
     const double loss_ratio_estimate_for_increase = avg_loss_ratio_max_;
@@ -169,6 +170,7 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
         if (new_bibtrate > loss_based_bitrate_) {
             loss_based_bitrate_ = new_bibtrate;
         }
+        state = RateControlState::INCREASE;
     } 
     // Decrease
     else if (loss_ratio_estimate_for_decrease > ThresholdToDecrease() && allow_to_decrease) {
@@ -185,26 +187,27 @@ std::optional<DataRate> LossBasedBwe::Estimate(DataRate min_bitrate,
             has_decreased_since_last_loss_report_ = true;
             loss_based_bitrate_ = new_bitrate;
         }
+        state = RateControlState::DECREASE;
     } else {
         // Hold
     }
-    return loss_based_bitrate_;
+    return {loss_based_bitrate_, state};
 }
 
 // Private methods
-double LossBasedBwe::ThresholdToReset() const {
+double LossFeedbackBasedBwe::ThresholdToReset() const {
     return LossRatioFromBitrate(loss_based_bitrate_,
                                 config_.loss_bandwidth_balance_reset,
                                 config_.loss_bandwidth_balance_exponent);
 }
 
-double LossBasedBwe::ThresholdToIncrease() const {
+double LossFeedbackBasedBwe::ThresholdToIncrease() const {
     return LossRatioFromBitrate(loss_based_bitrate_,
                                 config_.loss_bandwidth_balance_increase,
                                 config_.loss_bandwidth_balance_exponent);
 }
 
-double LossBasedBwe::ThresholdToDecrease() const {
+double LossFeedbackBasedBwe::ThresholdToDecrease() const {
     return LossRatioFromBitrate(loss_based_bitrate_,
                                 config_.loss_bandwidth_balance_decrease,
                                 config_.loss_bandwidth_balance_exponent);

@@ -294,7 +294,8 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp
     src/rtc/congestion_controller/goog_cc/probe_controller.hpp
-    src/rtc/congestion_controller/goog_cc/loss_based_bwe.hpp
+    src/rtc/congestion_controller/goog_cc/loss_feedback_based_bwe.hpp
+    src/rtc/congestion_controller/goog_cc/loss_report_based_bwe.hpp
     src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.hpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe.hpp
     src/rtc/congestion_controller/goog_cc/alr_detector.hpp
@@ -548,7 +549,8 @@ set(LIB_SOURCES
     src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.cpp
     src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.cpp
     src/rtc/congestion_controller/goog_cc/probe_controller.cpp
-    src/rtc/congestion_controller/goog_cc/loss_based_bwe.cpp
+    src/rtc/congestion_controller/goog_cc/loss_feedback_based_bwe.cpp
+    src/rtc/congestion_controller/goog_cc/loss_report_based_bwe.cpp
     src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.cpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe.cpp
     src/rtc/congestion_controller/goog_cc/alr_detector.cpp
