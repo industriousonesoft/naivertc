@@ -41,7 +41,8 @@ private:
 
 private:
 
-    // Fixed variables
+    // Indicates we will ignoring RTT, REMB and loss report feedbacks, 
+    // and only employ the transport packet feedbacks to do estimate.
     const bool packet_feedback_only_;
     const bool use_min_allocated_bitrate_as_lower_bound_;
     // const bool ignore_probes_lower_than_network_estimate_;

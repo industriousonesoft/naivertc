@@ -19,7 +19,7 @@ void RtpSendController::OnReceivedEstimatedBitrateBps(uint32_t bitrate_bps) {
     Timestamp recv_time = Timestamp::Millis(clock_->now_ms());
     worker_queue_.Post([this, bitrate, recv_time](){
         if (network_controller_) {
-            // OnNetworkControlUpdate(network_controller_->OnRemoteBitrateUpdated(bitrate, recv_time));
+            OnNetworkControlUpdate(network_controller_->OnRemoteBitrateUpdated(bitrate, recv_time));
         }
     });
 }
@@ -35,7 +35,7 @@ void RtpSendController::OnSentPacket(const RtpSentPacket& sent_packet) {
     worker_queue_.Post([this, sent_packet](){
         auto sent_msg = transport_statistician_.ProcessSentPacket(sent_packet);
         if (sent_msg && network_controller_) {
-            // OnNetworkControlUpdate(network_controller_->OnSentPacket(*sent_msg));
+            OnNetworkControlUpdate(network_controller_->OnSentPacket(*sent_msg));
         }
     });
 }
@@ -45,7 +45,7 @@ void RtpSendController::OnTransportFeedback(const rtcp::TransportFeedback& feedb
     worker_queue_.Post([this, feedback, receive_time](){
         auto feedback_msg = transport_statistician_.ProcessTransportFeedback(feedback, receive_time);
         if (feedback_msg && network_controller_) {
-            // OnNetworkControlUpdate(network_controller_->OnTransportPacketsFeedback(*feedback_msg));
+            OnNetworkControlUpdate(network_controller_->OnTransportPacketsFeedback(*feedback_msg));
         }
     });
 }
@@ -60,7 +60,7 @@ void RtpSendController::OnReceivedRtcpReceiveReport(const std::vector<RtcpReport
     worker_queue_.Post([this, rtt_ms, receive_time](){
         if (network_controller_ && rtt_ms > 0) {
             TimeDelta rtt = TimeDelta::Millis(rtt_ms);
-            // OnNetworkControlUpdate(network_controller_->OnRttUpdated(rtt, receive_time));
+            OnNetworkControlUpdate(network_controller_->OnRttUpdated(rtt, receive_time));
         }
     });
 }
@@ -103,7 +103,8 @@ void RtpSendController::HandleRtcpReportBlocks(const std::vector<RtcpReportBlock
         loss_report.num_packets_lost = num_packets_lost;
         loss_report.num_packets = num_packets;
         loss_report.receive_time = receive_time;
-        // OnNetworkControlUpdate(network_controller_->OnTransportLostReport(loss_report));
+        // Update loss report.
+        OnNetworkControlUpdate(network_controller_->OnTransportLostReport(loss_report));
     }
     last_report_block_time_ = receive_time;
 }   
