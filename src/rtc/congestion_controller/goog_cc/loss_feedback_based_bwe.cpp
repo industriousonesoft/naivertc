@@ -56,7 +56,7 @@ double ExponentialSmoothingFactor(TimeDelta window_size, TimeDelta interval) {
     }
     // x = interval / window
     // factor = 1 - e^-x= 1 - 1/e^x
-    // NOTE: The growth of factor has a positive relation with interval length.
+    // NOTE: The growth of factor is drectly propotional to the length of interval.
     return 1.0 - exp(interval / window_size * -1.0);
 }
     

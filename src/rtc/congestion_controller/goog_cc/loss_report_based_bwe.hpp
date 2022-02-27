@@ -11,8 +11,8 @@ namespace naivertc {
 class LossReportBasedBwe {
 public:
     struct Configuration {
-        float low_loss_threshold = 0.02f;
-        float high_loss_threshold = 0.1f;
+        float low_loss_threshold = 0.02f; // 2%
+        float high_loss_threshold = 0.1f; // 10%
         DataRate max_bitrate_threshold = DataRate::Zero();
     };
 public:
