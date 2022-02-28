@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/alr_detector.hpp"
+#include "rtc/congestion_controller/components/alr_detector.hpp"
 
 #include <gtest/gtest.h>
 
@@ -30,7 +30,7 @@ public:
 
     void SetUp() override {
         alr_decector_ = std::make_unique<AlrDetector>(alr_config_, &clock_);
-        alr_decector_->OnEstimate(kTargetBitrate);
+        alr_decector_->SetTargetBitrate(kTargetBitrate);
     }
 
     void ProduceTraffic(TimeDelta interval, double bw_usage_ratio){
@@ -99,7 +99,7 @@ MY_TEST_F(AlrDetectorTest, BandwidthEstimateChanges) {
 
     // When bandwidth estimate drops, the detector should
     // stay in ALR mode.
-    alr_decector_->OnEstimate(kTargetBitrate * 0.5);
+    alr_decector_->SetTargetBitrate(kTargetBitrate * 0.5);
     EXPECT_TRUE(alr_decector_->InAlr());
 
     // Quit ALR mode as the sender continues sending the same

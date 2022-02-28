@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/probe_controller.hpp"
+#include "rtc/congestion_controller/goog_cc/probe/probe_controller.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>

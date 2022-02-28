@@ -97,7 +97,7 @@ void SendSideBwe::OnPropagationRtt(TimeDelta rtt,
 }
 
 void SendSideBwe::OnSentPacket(const SentPacket& sent_packet) {
-    rtt_backoff_.OnSentPacket(sent_packet);
+    rtt_backoff_.OnSentPacket(sent_packet.send_time);
 }
 
 void SendSideBwe::OnRemb(DataRate bitrate,

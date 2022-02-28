@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/congestion_controller/base/network_types.hpp"
-#include "rtc/congestion_controller/components/throughput_estimator.hpp"
+#include "rtc/congestion_controller/goog_cc/throughput/throughput_estimator.hpp"
 
 #include <optional>
 #include <vector>

@@ -9,8 +9,8 @@ RttBasedBackoff::RttBasedBackoff()
 
 RttBasedBackoff::~RttBasedBackoff() = default;
 
-void RttBasedBackoff::OnSentPacket(const SentPacket& sent_packet) {
-    time_last_packet_sent_ = sent_packet.send_time;
+void RttBasedBackoff::OnSentPacket(Timestamp at_time) {
+    time_last_packet_sent_ = at_time;
 }
 
 void RttBasedBackoff::OnPropagationRtt(TimeDelta rtt,

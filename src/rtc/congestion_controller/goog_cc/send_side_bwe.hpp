@@ -4,8 +4,8 @@
 #include "base/defines.hpp"
 #include "rtc/congestion_controller/components/rtt_based_backoff.hpp"
 #include "rtc/congestion_controller/goog_cc/linker_capacity_tracker.hpp"
-#include "rtc/congestion_controller/goog_cc/loss_feedback_based_bwe.hpp"
-#include "rtc/congestion_controller/goog_cc/loss_report_based_bwe.hpp"
+#include "rtc/congestion_controller/goog_cc/loss_based/loss_feedback_based_bwe.hpp"
+#include "rtc/congestion_controller/goog_cc/loss_based/loss_report_based_bwe.hpp"
 
 #include <deque>
 #include <optional>

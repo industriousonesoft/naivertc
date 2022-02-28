@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/components/throughput_estimator.hpp"
+#include "rtc/congestion_controller/goog_cc/throughput/throughput_estimator.hpp"
 
 #include <plog/Log.h>
 

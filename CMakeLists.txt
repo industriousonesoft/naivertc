@@ -276,29 +276,41 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.hpp
 
-    # rtc -> congestion_controller -> goog_cc
+    # rtc -> congestion_controller -> goog_cc -> base
     src/rtc/congestion_controller/base/network_types.hpp
+    src/rtc/congestion_controller/base/rate_control_settings.hpp
+
+    # rtc -> congestion_controller -> goog_cc -> components
     src/rtc/congestion_controller/components/interval_budget.hpp
     src/rtc/congestion_controller/components/network_transport_statistician.hpp
-    
     src/rtc/congestion_controller/components/inter_arrival_delta.hpp
     src/rtc/congestion_controller/components/rtt_based_backoff.hpp
-    src/rtc/congestion_controller/components/throughput_estimator.hpp
+    src/rtc/congestion_controller/components/alr_detector.hpp
+    
+    # rtc -> congestion_controller -> goog_cc -> delay_based
+    src/rtc/congestion_controller/goog_cc/delay_based/trendline_estimator.hpp
+    src/rtc/congestion_controller/goog_cc/delay_based/link_capacity_estimator.hpp
+    src/rtc/congestion_controller/goog_cc/delay_based/aimd_rate_control.hpp
+    src/rtc/congestion_controller/goog_cc/delay_based/overuse_detector.hpp
+    src/rtc/congestion_controller/goog_cc/delay_based/delay_based_bwe.hpp
+
+    # rtc -> congestion_controller -> goog_cc -> throughput
+    src/rtc/congestion_controller/goog_cc/throughput/throughput_estimator.hpp
+    src/rtc/congestion_controller/goog_cc/throughput/acknowledged_bitrate_estimator.hpp
+
+    # rtc -> congestion_controller -> goog_cc -> probe
+    src/rtc/congestion_controller/goog_cc/probe/probe_bitrate_estimator.hpp
+    src/rtc/congestion_controller/goog_cc/probe/probe_controller.hpp
+
+    # rtc -> congestion_controller -> goog_cc -> loss_based
+    src/rtc/congestion_controller/goog_cc/loss_based/loss_feedback_based_bwe.hpp
+    src/rtc/congestion_controller/goog_cc/loss_based/loss_report_based_bwe.hpp
+
+    # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/network_controller_interface.hpp
     src/rtc/congestion_controller/goog_cc/bwe_defines.hpp
-    src/rtc/congestion_controller/goog_cc/trendline_estimator.hpp
-    src/rtc/congestion_controller/goog_cc/link_capacity_estimator.hpp
-    src/rtc/congestion_controller/goog_cc/aimd_rate_control.hpp
-    src/rtc/congestion_controller/goog_cc/overuse_detector.hpp
-    src/rtc/congestion_controller/goog_cc/delay_based_bwe.hpp
-    src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp
-    src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp
-    src/rtc/congestion_controller/goog_cc/probe_controller.hpp
-    src/rtc/congestion_controller/goog_cc/loss_feedback_based_bwe.hpp
-    src/rtc/congestion_controller/goog_cc/loss_report_based_bwe.hpp
-    src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.hpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe.hpp
-    src/rtc/congestion_controller/goog_cc/alr_detector.hpp
+    src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.hpp
     src/rtc/congestion_controller/goog_cc/goog_cc_network_controller.hpp
 )
 
@@ -533,27 +545,40 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_receiver_parser.cpp
     src/rtc/rtp_rtcp/rtcp/rtcp_nack_stats.cpp
 
-    # rtc -> congestion_controller -> goog_cc
+    # rtc -> congestion_controller -> goog_cc -> base
     src/rtc/congestion_controller/base/network_types.cpp
+    src/rtc/congestion_controller/base/rate_control_settings.cpp
+
+    # rtc -> congestion_controller -> goog_cc -> components
     src/rtc/congestion_controller/components/interval_budget.cpp
     src/rtc/congestion_controller/components/network_transport_statistician.cpp
     src/rtc/congestion_controller/components/inter_arrival_delta.cpp
     src/rtc/congestion_controller/components/rtt_based_backoff.cpp
-    src/rtc/congestion_controller/components/throughput_estimator.cpp
+    src/rtc/congestion_controller/components/alr_detector.cpp
+
+    # rtc -> congestion_controller -> goog_cc -> delay_based
+    src/rtc/congestion_controller/goog_cc/delay_based/overuse_detector.cpp
+    src/rtc/congestion_controller/goog_cc/delay_based/trendline_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/delay_based/link_capacity_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/delay_based/aimd_rate_control.cpp
+    src/rtc/congestion_controller/goog_cc/delay_based/delay_based_bwe.cpp
+
+    # rtc -> congestion_controller -> goog_cc -> throughput
+    src/rtc/congestion_controller/goog_cc/throughput/throughput_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/throughput/acknowledged_bitrate_estimator.cpp
+
+    # rtc -> congestion_controller -> goog_cc -> probe
+    src/rtc/congestion_controller/goog_cc/probe/probe_bitrate_estimator.cpp
+    src/rtc/congestion_controller/goog_cc/probe/probe_controller.cpp
+
+    # rtc -> congestion_controller -> goog_cc -> loss_based
+    src/rtc/congestion_controller/goog_cc/loss_based/loss_feedback_based_bwe.cpp
+    src/rtc/congestion_controller/goog_cc/loss_based/loss_report_based_bwe.cpp
+
+    # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/goog_cc/bwe_defines.cpp
-    src/rtc/congestion_controller/goog_cc/overuse_detector.cpp
-    src/rtc/congestion_controller/goog_cc/trendline_estimator.cpp
-    src/rtc/congestion_controller/goog_cc/link_capacity_estimator.cpp
-    src/rtc/congestion_controller/goog_cc/aimd_rate_control.cpp
-    src/rtc/congestion_controller/goog_cc/delay_based_bwe.cpp
-    src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.cpp
-    src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator.cpp
-    src/rtc/congestion_controller/goog_cc/probe_controller.cpp
-    src/rtc/congestion_controller/goog_cc/loss_feedback_based_bwe.cpp
-    src/rtc/congestion_controller/goog_cc/loss_report_based_bwe.cpp
     src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.cpp
     src/rtc/congestion_controller/goog_cc/send_side_bwe.cpp
-    src/rtc/congestion_controller/goog_cc/alr_detector.cpp
     src/rtc/congestion_controller/goog_cc/goog_cc_network_controller.cpp
 )
 
@@ -671,8 +696,8 @@ set(TESTING_SOURCES
     src/rtc/rtp_rtcp/rtcp/rtcp_packet_parser.hpp
     src/rtc/rtp_rtcp/rtcp/rtcp_packet_parser.cpp
 
-    # rtc -> congestion_controller -> goog_cc
-    src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.hpp
+    # rtc -> congestion_controller -> goog_cc -> delay_based
+    src/rtc/congestion_controller/goog_cc/delay_based/delay_based_bwe_unittest_helper.hpp
     
     # main
     gtest/main.cpp
@@ -802,17 +827,25 @@ set(UNITTEST_SOURCES
     # rtc -> transports
     src/rtc/transports/ice_transport_description_unittest.cpp
 
-    # rtc -> congestion_controller -> goog_cc
+    # rtc -> congestion_controller -> goog_cc -> components
     src/rtc/congestion_controller/components/interval_budget_unittest.cpp
-    src/rtc/congestion_controller/goog_cc/trendline_estimator_unittest.cpp
-    src/rtc/congestion_controller/goog_cc/aimd_rate_control_unittest.cpp
-    src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.cpp
-    src/rtc/congestion_controller/goog_cc/delay_based_bwe_unittest.cpp
-    src/rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator_unittest.cpp
-    src/rtc/congestion_controller/goog_cc/probe_bitrate_estimator_unittest.cpp
+    src/rtc/congestion_controller/components/alr_detector_unittest.cpp
+
+    # rtc -> congestion_controller -> goog_cc -> delay_based
+    src/rtc/congestion_controller/goog_cc/delay_based/trendline_estimator_unittest.cpp
+    src/rtc/congestion_controller/goog_cc/delay_based/aimd_rate_control_unittest.cpp
+    src/rtc/congestion_controller/goog_cc/delay_based/delay_based_bwe_unittest_helper.cpp
+    src/rtc/congestion_controller/goog_cc/delay_based/delay_based_bwe_unittest.cpp
+
+    # rtc -> congestion_controller -> goog_cc -> throughput
+    src/rtc/congestion_controller/goog_cc/throughput/acknowledged_bitrate_estimator_unittest.cpp
+
+    # rtc -> congestion_controller -> goog_cc -> probe
+    src/rtc/congestion_controller/goog_cc/probe/probe_bitrate_estimator_unittest.cpp
+    src/rtc/congestion_controller/goog_cc/probe/probe_controller_unittest.cpp
+
+    # rtc -> congestion_controller -> goog_cc
     src/rtc/congestion_controller/goog_cc/send_side_bwe_unittest.cpp
-    src/rtc/congestion_controller/goog_cc/probe_controller_unittest.cpp
-    src/rtc/congestion_controller/goog_cc/alr_detector_unittest.cpp
     
 )
 

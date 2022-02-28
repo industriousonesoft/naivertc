@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/loss_feedback_based_bwe.hpp"
+#include "rtc/congestion_controller/goog_cc/loss_based/loss_feedback_based_bwe.hpp"
 
 namespace naivertc {
 namespace {
@@ -69,8 +69,8 @@ LossFeedbackBasedBwe::LossFeedbackBasedBwe(Configuration config)
       last_loss_ratio_(0.f),
       has_decreased_since_last_loss_report_(false),
       loss_based_bitrate_(DataRate::Zero()),
-      ack_bitrate_max_(DataRate::Zero()),
-      time_ack_bitrate_last_update_(Timestamp::MinusInfinity()),
+      acked_bitrate_max_(DataRate::Zero()),
+      time_acked_bitrate_last_update_(Timestamp::MinusInfinity()),
       time_last_decrease_(Timestamp::MinusInfinity()),
       time_last_loss_packet_report_(Timestamp::MinusInfinity()) {}
 
@@ -115,19 +115,19 @@ void LossFeedbackBasedBwe::OnPacketFeedbacks(const std::vector<PacketResult>& pa
     last_loss_ratio_ = loss_ratio;
 }
 
-void LossFeedbackBasedBwe::OnAcknowledgedBitrate(DataRate ack_bitrate, 
+void LossFeedbackBasedBwe::OnAcknowledgedBitrate(DataRate acked_bitrate, 
                                                  Timestamp at_time) {
     
-    if (ack_bitrate > ack_bitrate_max_) {
-        ack_bitrate_max_ = ack_bitrate;
+    if (acked_bitrate > acked_bitrate_max_) {
+        acked_bitrate_max_ = acked_bitrate;
     } else {
         // The time has elapsed since last time.
-        TimeDelta elapsed_time = time_ack_bitrate_last_update_.IsFinite() ? at_time - time_ack_bitrate_last_update_
+        TimeDelta elapsed_time = time_acked_bitrate_last_update_.IsFinite() ? at_time - time_acked_bitrate_last_update_
                                                                           : kDefaultRtcpFeedbackInterval;
         double smoothing_factor = ExponentialSmoothingFactor(config_.ack_rate_max_window, elapsed_time);
-        ack_bitrate_max_ -= smoothing_factor * (ack_bitrate_max_ - ack_bitrate);
+        acked_bitrate_max_ -= smoothing_factor * (acked_bitrate_max_ - acked_bitrate);
     }
-    time_ack_bitrate_last_update_ = at_time;
+    time_acked_bitrate_last_update_ = at_time;
 }
 
  std::pair<DataRate, RateControlState> LossFeedbackBasedBwe::Estimate(DataRate min_bitrate,
@@ -175,7 +175,7 @@ void LossFeedbackBasedBwe::OnAcknowledgedBitrate(DataRate ack_bitrate,
     // Decrease
     else if (loss_ratio_estimate_for_decrease > ThresholdToDecrease() && allow_to_decrease) {
         // Decrease bitrate by the fixed ratio.
-        DataRate new_bitrate = config_.decrease_factor * ack_bitrate_max_;
+        DataRate new_bitrate = config_.decrease_factor * acked_bitrate_max_;
         const DataRate decreased_bitrate_floor = BitrateFromLossRatio(loss_ratio_estimate_for_decrease,
                                                                       config_.loss_bandwidth_balance_decrease,
                                                                       config_.loss_bandwidth_balance_exponent);

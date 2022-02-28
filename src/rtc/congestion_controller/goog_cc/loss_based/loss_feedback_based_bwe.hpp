@@ -43,7 +43,7 @@ public:
 
     void OnPacketFeedbacks(const std::vector<PacketResult>& packet_feedbacks, 
                            Timestamp at_time);
-    void OnAcknowledgedBitrate(DataRate ack_bitrate, 
+    void OnAcknowledgedBitrate(DataRate acked_bitrate, 
                                Timestamp at_time);
 
      std::pair<DataRate, RateControlState> Estimate(DataRate min_bitrate,
@@ -65,8 +65,8 @@ private:
     double last_loss_ratio_;
     bool has_decreased_since_last_loss_report_;
     DataRate loss_based_bitrate_;
-    DataRate ack_bitrate_max_;
-    Timestamp time_ack_bitrate_last_update_;
+    DataRate acked_bitrate_max_;
+    Timestamp time_acked_bitrate_last_update_;
     Timestamp time_last_decrease_;
     Timestamp time_last_loss_packet_report_;    
 };

@@ -36,9 +36,10 @@ public:
 
     bool InAlr() const { return alr_started_time_.has_value(); }
 
-    void OnBytesSent(size_t bytes_sent, Timestamp send_time);
-    void OnEstimate(DataRate bitrate);
+    void SetTargetBitrate(DataRate bitrate);
 
+    void OnBytesSent(size_t bytes_sent, Timestamp send_time);
+    
 private:
     const Configuration config_;
     Clock* const clock_;

@@ -25,6 +25,9 @@ constexpr float kDefaultPaceMultiplier = 2.5f;
 constexpr double kProbeDropThroughputFraction = 0.85;
 
 constexpr size_t kMaxFeedbackRttWindow = 32;
+
+constexpr TimeDelta kDefaultAcceptedQueuingTime = TimeDelta::Millis(350);
+constexpr DataRate kDefaultMinPushbackTargetBitrate = DataRate::BitsPerSec(30'000);
     
 } // namespace
 
@@ -97,6 +100,8 @@ NetworkControlUpdate GoogCcNetworkController::OnPeriodicUpdate(const PeriodicUpd
     if (!probes.empty()) {
         update.AppendProbes(probes);
     }
+
+    // TODO: Update Congestion window
 
     MaybeTriggerOnNetworkChanged(&update, msg.at_time);
     return update;
@@ -362,7 +367,7 @@ void GoogCcNetworkController::MaybeTriggerOnNetworkChanged(NetworkControlUpdate*
         last_stable_target_bitrate_ = stable_target_bitrate;
 
         // Update the bitrate used to increase the ALR budget.
-        alr_detector_->OnEstimate(send_side_estimate);
+        alr_detector_->SetTargetBitrate(send_side_estimate);
 
         TimeDelta delay_bwe_period = delay_based_bwe_->GetExpectedBwePeriod();
 

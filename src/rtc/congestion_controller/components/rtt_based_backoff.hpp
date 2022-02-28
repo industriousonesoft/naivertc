@@ -14,7 +14,7 @@ public:
     RttBasedBackoff();
     ~RttBasedBackoff();
 
-    void OnSentPacket(const SentPacket& sent_packet);
+    void OnSentPacket(Timestamp at_time);
     void OnPropagationRtt(TimeDelta rtt,
                           Timestamp at_time);
 

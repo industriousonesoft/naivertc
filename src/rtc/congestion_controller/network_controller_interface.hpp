@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/congestion_controller/base/network_types.hpp"
+#include "rtc/congestion_controller/base/rate_control_settings.hpp"
 
 namespace naivertc {
 
@@ -16,6 +17,8 @@ public:
         TargetBitrateConstraints constraints;
         // The stream specific configuration.
         StreamsConfig stream_based_config;
+        // The config of congestion window.
+        CongestionWindwoConfiguration congestion_windwo_config;
     };
 public:
     virtual ~NetworkControllerInterface() = default;

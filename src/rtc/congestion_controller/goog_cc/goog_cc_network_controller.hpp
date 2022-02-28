@@ -2,12 +2,13 @@
 #define _RTC_CONGESTION_CONTROLLER_GOOG_CC_GOOG_CC_NETWORK_CONTROLLER_H_
 
 #include "rtc/congestion_controller/network_controller_interface.hpp"
+#include "rtc/congestion_controller/components/alr_detector.hpp"
 #include "rtc/congestion_controller/goog_cc/send_side_bwe.hpp"
-#include "rtc/congestion_controller/goog_cc/delay_based_bwe.hpp"
-#include "rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp"
-#include "rtc/congestion_controller/goog_cc/probe_bitrate_estimator.hpp"
-#include "rtc/congestion_controller/goog_cc/probe_controller.hpp"
-#include "rtc/congestion_controller/goog_cc/alr_detector.hpp"
+#include "rtc/congestion_controller/goog_cc/delay_based/delay_based_bwe.hpp"
+#include "rtc/congestion_controller/goog_cc/throughput/acknowledged_bitrate_estimator.hpp"
+#include "rtc/congestion_controller/goog_cc/probe/probe_bitrate_estimator.hpp"
+#include "rtc/congestion_controller/goog_cc/probe/probe_controller.hpp"
+
 
 namespace naivertc {
 

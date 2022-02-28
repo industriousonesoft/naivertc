@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/delay_based_bwe_unittest_helper.hpp"
+#include "rtc/congestion_controller/goog_cc/delay_based/delay_based_bwe_unittest_helper.hpp"
 #include "common/utils_numeric.hpp"
 
 namespace naivertc {

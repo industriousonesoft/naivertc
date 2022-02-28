@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/alr_detector.hpp"
+#include "rtc/congestion_controller/components/alr_detector.hpp"
 #include "rtc/base/time/clock.hpp"
 
 namespace naivertc {
@@ -37,7 +37,7 @@ void AlrDetector::OnBytesSent(size_t bytes_sent, Timestamp send_time) {
 
 }
     
-void AlrDetector::OnEstimate(DataRate bitrate) {
+void AlrDetector::SetTargetBitrate(DataRate bitrate) {
     alr_budget_.set_target_bitrate(bitrate * config_.bandwidth_usage_ratio);
 }
     

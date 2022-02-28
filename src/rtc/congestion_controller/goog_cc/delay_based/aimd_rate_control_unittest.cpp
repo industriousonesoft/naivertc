@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/aimd_rate_control.hpp"
+#include "rtc/congestion_controller/goog_cc/delay_based/aimd_rate_control.hpp"
 #include "testing/simulated_clock.hpp"
 
 #include <gtest/gtest.h>

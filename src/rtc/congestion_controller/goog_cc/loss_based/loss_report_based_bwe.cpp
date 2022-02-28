@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/loss_report_based_bwe.hpp"
+#include "rtc/congestion_controller/goog_cc/loss_based/loss_report_based_bwe.hpp"
 
 namespace naivertc {
 namespace {

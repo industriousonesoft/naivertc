@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/acknowledged_bitrate_estimator.hpp"
+#include "rtc/congestion_controller/goog_cc/throughput/acknowledged_bitrate_estimator.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
