@@ -38,7 +38,9 @@ DataRate CongestionWindwoPushbackController::AdjustTargetBitrate(DataRate target
         encoding_bitrate_ratio_ = 1.0;
     } else {
         // fill ratio in range: [0.1, 1.0]
+        // Recover from decrease.
         encoding_bitrate_ratio_ *= 1.05;
+        // Limit |encoding_bitrate_ratio_| below 1.0. 
         encoding_bitrate_ratio_ = std::min(encoding_bitrate_ratio_, 1.0);
     }
     auto adjust_target_bitrate = target_bitrate * encoding_bitrate_ratio_;
