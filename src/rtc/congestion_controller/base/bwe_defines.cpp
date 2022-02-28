@@ -1,4 +1,4 @@
-#include "rtc/congestion_controller/goog_cc/bwe_defines.hpp"
+#include "rtc/congestion_controller/base/bwe_defines.hpp"
 
 namespace naivertc {
 

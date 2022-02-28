@@ -1,5 +1,5 @@
 #include "rtc/congestion_controller/goog_cc/send_side_bwe.hpp"
-#include "rtc/congestion_controller/goog_cc/bwe_defines.hpp"
+#include "rtc/congestion_controller/base/bwe_defines.hpp"
 
 #include <plog/Log.h>
 

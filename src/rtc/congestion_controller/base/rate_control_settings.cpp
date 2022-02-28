@@ -3,7 +3,7 @@
 namespace naivertc {
 
 bool CongestionWindwoConfiguration::IsEnabled() const {
-    return queue_addtional_time.has_value();
+    return queuing_delay.has_value();
 }
 
 bool CongestionWindwoConfiguration::IsPushbackEnabled() const {

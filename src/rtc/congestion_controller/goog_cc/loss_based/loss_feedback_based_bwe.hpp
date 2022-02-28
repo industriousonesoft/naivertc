@@ -5,7 +5,7 @@
 #include "rtc/base/units/data_rate.hpp"
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/congestion_controller/base/network_types.hpp"
-#include "rtc/congestion_controller/goog_cc/bwe_defines.hpp"
+#include "rtc/congestion_controller/base/bwe_defines.hpp"
 
 #include <optional>
 

@@ -25,9 +25,6 @@ constexpr float kDefaultPaceMultiplier = 2.5f;
 constexpr double kProbeDropThroughputFraction = 0.85;
 
 constexpr size_t kMaxFeedbackRttWindow = 32;
-
-constexpr TimeDelta kDefaultAcceptedQueuingTime = TimeDelta::Millis(350);
-constexpr DataRate kDefaultMinPushbackTargetBitrate = DataRate::BitsPerSec(30'000);
     
 } // namespace
 

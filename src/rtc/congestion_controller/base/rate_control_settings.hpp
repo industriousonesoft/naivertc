@@ -1,8 +1,7 @@
 #ifndef _RTC_CONGESTION_CONTROLLER_BASE_RATE_CONTROL_SETTING_H_
 #define _RTC_CONGESTION_CONTROLLER_BASE_RATE_CONTROL_SETTING_H_
 
-#include "rtc/base/units/data_rate.hpp"
-#include "rtc/base/units/time_delta.hpp"
+#include "rtc/congestion_controller/base/bwe_defines.hpp"
 
 #include <optional>
 
@@ -10,8 +9,8 @@ namespace naivertc {
 
 // CongestionWindwoConfiguration
 struct CongestionWindwoConfiguration {
-    std::optional<TimeDelta> queue_addtional_time = TimeDelta::Millis(300);
-    std::optional<DataRate> min_pushback_bitrate = DataRate::BitsPerSec(30'000);
+    std::optional<TimeDelta> queuing_delay = kDefaultAcceptedQueuingDelay;
+    std::optional<DataRate> min_pushback_bitrate = kDefaultMinPushbackTargetBitrate;
     bool drop_frame_only = true;
     bool probe_on_max_allocation_changed = true;
 

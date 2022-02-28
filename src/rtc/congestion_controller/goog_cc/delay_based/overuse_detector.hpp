@@ -2,7 +2,7 @@
 #define _RTC_CONGESTION_CONTROLLER_GOOG_CC_OVERUSE_DETECTOR_H_
 
 #include "base/defines.hpp"
-#include "rtc/congestion_controller/goog_cc/bwe_defines.hpp"
+#include "rtc/congestion_controller/base/bwe_defines.hpp"
 
 #include <optional>
 
