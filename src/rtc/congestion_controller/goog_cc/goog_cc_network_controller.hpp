@@ -13,22 +13,22 @@ namespace naivertc {
 
 class GoogCcNetworkController : public NetworkControllerInterface {
 public:
-    GoogCcNetworkController(Configuration config);
+    GoogCcNetworkController(const Configuration& config);
     ~GoogCcNetworkController() override;
 
     // NetworkControllerInterface
-    NetworkControlUpdate OnNetworkAvailability(NetworkAvailability) override;
-    NetworkControlUpdate OnNetworkRouteChange(NetworkRouteChange) override;
-    NetworkControlUpdate OnProcessInterval(ProcessInterval) override;
+    NetworkControlUpdate OnNetworkAvailability(const NetworkAvailability&) override;
+    NetworkControlUpdate OnNetworkRouteChange(const NetworkRouteChange&) override;
+    NetworkControlUpdate OnPeriodicUpdate(const PeriodicUpdate&) override;
     NetworkControlUpdate OnRemoteBitrateUpdated(DataRate bitrate, Timestamp receive_time) override;
     NetworkControlUpdate OnRttUpdated(TimeDelta rtt, Timestamp receive_time) override;
     NetworkControlUpdate OnSentPacket(const SentPacket&) override;
-    NetworkControlUpdate OnReceivedPacket(ReceivedPacket) override;
-    NetworkControlUpdate OnStreamsConfig(StreamsConfig) override;
-    NetworkControlUpdate OnTargetBitrateConstraints(TargetBitrateConstraints) override;
+    NetworkControlUpdate OnReceivedPacket(const ReceivedPacket&) override;
+    NetworkControlUpdate OnStreamsConfig(const StreamsConfig&) override;
+    NetworkControlUpdate OnTargetBitrateConstraints(const TargetBitrateConstraints&) override;
     NetworkControlUpdate OnTransportLostReport(const TransportLossReport&) override;
     NetworkControlUpdate OnTransportPacketsFeedback(const TransportPacketsFeedback&) override;
-    NetworkControlUpdate OnNetworkStateEstimate(NetworkEstimate) override;
+    NetworkControlUpdate OnNetworkStateEstimate(const NetworkEstimate&) override;
 
     NetworkControlUpdate GetNetworkState(Timestamp at_time) const;
 
@@ -36,7 +36,7 @@ private:
     void MaybeTriggerOnNetworkChanged(NetworkControlUpdate* update, Timestamp at_time);
 
     bool TimeToUpdateLoss(Timestamp at_time);
-    std::vector<ProbeClusterConfig> ResetConstraints(TargetBitrateConstraints new_constraints);
+    std::vector<ProbeClusterConfig> ResetConstraints(const TargetBitrateConstraints& new_constraints);
     void ClampConstraints();
 
 private:

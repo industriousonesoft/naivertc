@@ -187,10 +187,8 @@ struct StreamsConfig {
     Timestamp at_time = Timestamp::PlusInfinity();
 };
 
-// Process control
-
-// ProcessInterval
-struct ProcessInterval {
+// PeriodicUpdate
+struct PeriodicUpdate {
     std::optional<size_t> pacer_queue;
     Timestamp at_time = Timestamp::PlusInfinity();
 };

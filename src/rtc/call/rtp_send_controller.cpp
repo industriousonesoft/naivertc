@@ -4,14 +4,43 @@
 #include "rtc/congestion_controller/goog_cc/goog_cc_network_controller.hpp"
 
 namespace naivertc {
+namespace {
+
+// Goog-CC process interval: 25ms
+constexpr TimeDelta kUpdateInterval = TimeDelta::Millis(25);
+
+// Customize goog_cc 
+GoogCcNetworkController::Configuration BuildGoogCCConfig(Clock* clock) {
+    GoogCcNetworkController::Configuration config;
+    config.clock = clock;
+    return config;
+}
+    
+} // namespace
 
 RtpSendController::RtpSendController(Clock* clock) 
     : clock_(clock),
       worker_queue_("RtpSendController.worker.queue"),
-      network_controller_(std::make_unique<GoogCcNetworkController>(/*TODO: Customize goog_cc */GoogCcNetworkController::Configuration())),
-      last_report_block_time_(clock_->CurrentTime()) {}
+      update_interval_(kUpdateInterval),
+      network_controller_(std::make_unique<GoogCcNetworkController>(BuildGoogCCConfig(clock_))),
+      last_report_block_time_(clock_->CurrentTime()) {
+    assert(clock != nullptr);
+    if (update_interval_.IsFinite()) {
+        controller_task_ = RepeatingTask::DelayedStart(clock_, worker_queue_.Get(), update_interval_, [this](){
+            UpdatePeriodically();
+            return update_interval_;
+        });
+    }
+}
 
-RtpSendController::~RtpSendController() {}
+RtpSendController::~RtpSendController() {
+    worker_queue_.Invoke<void>([this](){
+        if (controller_task_ && controller_task_->Running()) {
+            controller_task_->Stop();
+        }
+        controller_task_.reset();
+    });
+}
 
 // Private methods
 void RtpSendController::OnReceivedEstimatedBitrateBps(uint32_t bitrate_bps) {
@@ -27,7 +56,7 @@ void RtpSendController::OnReceivedEstimatedBitrateBps(uint32_t bitrate_bps) {
 void RtpSendController::OnAddPacket(const RtpPacketSendInfo& packet_info) {
     Timestamp receive_time = clock_->CurrentTime();
     worker_queue_.Post([this, packet_info, receive_time](){
-        transport_statistician_.AddPacket(packet_info, /*TODO: transport_overhead_bytes*/0, receive_time);
+        transport_statistician_.AddPacket(packet_info, /*TODO: transport_overhead_bytes=*/0, receive_time);
     });
 }
 
@@ -107,6 +136,13 @@ void RtpSendController::HandleRtcpReportBlocks(const std::vector<RtcpReportBlock
         OnNetworkControlUpdate(network_controller_->OnTransportLostReport(loss_report));
     }
     last_report_block_time_ = receive_time;
-}   
+} 
+
+void RtpSendController::UpdatePeriodically() {
+    PeriodicUpdate msg;
+    msg.at_time = clock_->CurrentTime();
+    // TODO: add pacing to cwin
+    OnNetworkControlUpdate(network_controller_->OnPeriodicUpdate(msg));
+}
     
 } // namespace naivertc

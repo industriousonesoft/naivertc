@@ -29,7 +29,7 @@ constexpr size_t kMaxFeedbackRttWindow = 32;
 } // namespace
 
 
-GoogCcNetworkController::GoogCcNetworkController(Configuration config) 
+GoogCcNetworkController::GoogCcNetworkController(const Configuration& config) 
     : packet_feedback_only_(false),
       use_min_allocated_bitrate_as_lower_bound_(false),
     //   ignore_probes_lower_than_network_estimate_(false),
@@ -49,23 +49,24 @@ GoogCcNetworkController::GoogCcNetworkController(Configuration config)
       min_total_allocated_bitrate_(config.stream_based_config.allocated_bitrate_limits.min_total_allocated_bitrate),
       max_total_allocated_bitrate_(config.stream_based_config.allocated_bitrate_limits.max_total_allocated_bitrate),
       initial_config_(std::move(config)) {
+    assert(config.clock != nullptr);
     // Initial estimate with the min bitrate.
     delay_based_bwe_->SetMinBitrate(kDefaultMinBitrate);
 }
 
 GoogCcNetworkController::~GoogCcNetworkController() {}
 
-NetworkControlUpdate GoogCcNetworkController::OnNetworkAvailability(NetworkAvailability) {
+NetworkControlUpdate GoogCcNetworkController::OnNetworkAvailability(const NetworkAvailability& msg) {
     NetworkControlUpdate update;
     return update;
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnNetworkRouteChange(NetworkRouteChange) {
+NetworkControlUpdate GoogCcNetworkController::OnNetworkRouteChange(const NetworkRouteChange& msg) {
     NetworkControlUpdate update;
     return update;
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnProcessInterval(ProcessInterval msg) {
+NetworkControlUpdate GoogCcNetworkController::OnPeriodicUpdate(const PeriodicUpdate& msg) {
     NetworkControlUpdate update;
     // Check the ALR state periodiclly.
     auto alr_started_time = alr_detector_->alr_started_time();
@@ -137,17 +138,17 @@ NetworkControlUpdate GoogCcNetworkController::OnSentPacket(const SentPacket& sen
     return NetworkControlUpdate();
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnReceivedPacket(ReceivedPacket received_packet) {
+NetworkControlUpdate GoogCcNetworkController::OnReceivedPacket(const ReceivedPacket& received_packet) {
     last_packet_received_time_ = received_packet.receive_time;
     return NetworkControlUpdate();
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnStreamsConfig(StreamsConfig msg) {
+NetworkControlUpdate GoogCcNetworkController::OnStreamsConfig(const StreamsConfig& msg) {
     NetworkControlUpdate update;
     return update;
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnTargetBitrateConstraints(TargetBitrateConstraints) {
+NetworkControlUpdate GoogCcNetworkController::OnTargetBitrateConstraints(const TargetBitrateConstraints& constraints) {
     NetworkControlUpdate update;
     return update;
 }
@@ -305,7 +306,7 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
     return update;
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnNetworkStateEstimate(NetworkEstimate) {
+NetworkControlUpdate GoogCcNetworkController::OnNetworkStateEstimate(const NetworkEstimate& estimate) {
     NetworkControlUpdate update;
     return update;
 }
@@ -337,7 +338,7 @@ void GoogCcNetworkController::MaybeTriggerOnNetworkChanged(NetworkControlUpdate*
  
     PLOG_VERBOSE << "fraction loss: " << (fraction_loss * 100) / 256 
                  << ", rtt: " << rtt.ms()
-                 << " ms, send side estimated bitrate: " << send_side_estimate.bps() << " bps.";
+                 << " ms, send-side estimate: " << send_side_estimate.bps() << " bps.";
 
     DataRate stable_target_bitrate = send_side_bwe_->EstimatedLinkCapacity();
     // Use loss based target bitate as stable birate
@@ -399,7 +400,7 @@ bool GoogCcNetworkController::TimeToUpdateLoss(Timestamp at_time) {
     }
 }
 
-std::vector<ProbeClusterConfig> GoogCcNetworkController::ResetConstraints(TargetBitrateConstraints new_constraints) {
+std::vector<ProbeClusterConfig> GoogCcNetworkController::ResetConstraints(const TargetBitrateConstraints& new_constraints) {
 
     min_target_bitrate_ = new_constraints.min_bitrate.value_or(DataRate::Zero());
     max_bitrate_ = new_constraints.max_bitrate.value_or(DataRate::PlusInfinity());
