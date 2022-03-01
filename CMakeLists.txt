@@ -228,6 +228,7 @@ set(LIB_HEADERS
 
     # rtc -> rtp_rtcp -> rtp -> pacing
     src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp
+    src/rtc/rtp_rtcp/rtp/pacing/pacing_controller.hpp
 
     # rtc -> rtp_rtcp -> rtp -> fec
     src/rtc/rtp_rtcp/rtp/fec/fec_defines.hpp
@@ -313,6 +314,7 @@ set(LIB_HEADERS
     src/rtc/congestion_controller/goog_cc/linker_capacity_tracker.hpp
     src/rtc/congestion_controller/goog_cc/goog_cc_network_controller.hpp
     src/rtc/congestion_controller/goog_cc/congestion_window_pushback_controller.hpp
+
 )
 
 # Cpp files
@@ -493,6 +495,7 @@ set(LIB_SOURCES
 
     # rtc -> rtp_rtcp -> rtp -> pacing
     src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
+    src/rtc/rtp_rtcp/rtp/pacing/pacing_controller.cpp
 
     # rtc -> rtp_rtcp -> rtp -> fec
     src/rtc/rtp_rtcp/rtp/fec/fec_codec.cpp
@@ -582,6 +585,7 @@ set(LIB_SOURCES
     src/rtc/congestion_controller/goog_cc/send_side_bwe.cpp
     src/rtc/congestion_controller/goog_cc/goog_cc_network_controller.cpp
     src/rtc/congestion_controller/goog_cc/congestion_window_pushback_controller.cpp
+
 )
 
 if(USE_NICE)
