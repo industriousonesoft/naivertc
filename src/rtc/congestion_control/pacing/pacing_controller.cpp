@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/pacing/pacing_controller.hpp"
+#include "rtc/congestion_control/pacing/pacing_controller.hpp"
 
 namespace naivertc {
 

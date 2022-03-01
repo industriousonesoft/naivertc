@@ -226,10 +226,6 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer.hpp
     src/rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer_h264.hpp
 
-    # rtc -> rtp_rtcp -> rtp -> pacing
-    src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp
-    src/rtc/rtp_rtcp/rtp/pacing/pacing_controller.hpp
-
     # rtc -> rtp_rtcp -> rtp -> fec
     src/rtc/rtp_rtcp/rtp/fec/fec_defines.hpp
     src/rtc/rtp_rtcp/rtp/fec/fec_codec.hpp
@@ -314,6 +310,11 @@ set(LIB_HEADERS
     src/rtc/congestion_control/controllers/goog_cc/linker_capacity_tracker.hpp
     src/rtc/congestion_control/controllers/goog_cc/goog_cc_network_controller.hpp
     src/rtc/congestion_control/controllers/goog_cc/congestion_window_pushback_controller.hpp
+
+    # rtc -> congestion_control -> pacing
+    src/rtc/congestion_control/pacing/bitrate_prober.hpp
+    src/rtc/congestion_control/pacing/round_robin_packet_queue.hpp
+    src/rtc/congestion_control/pacing/pacing_controller.hpp
 
 )
 
@@ -493,10 +494,6 @@ set(LIB_SOURCES
     # rtc -> rtp_rtcp -> rtp -> depacketizer
     src/rtc/rtp_rtcp/rtp/depacketizer/rtp_depacketizer_h264.cpp
 
-    # rtc -> rtp_rtcp -> rtp -> pacing
-    src/rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.cpp
-    src/rtc/rtp_rtcp/rtp/pacing/pacing_controller.cpp
-
     # rtc -> rtp_rtcp -> rtp -> fec
     src/rtc/rtp_rtcp/rtp/fec/fec_codec.cpp
     src/rtc/rtp_rtcp/rtp/fec/fec_encoder.cpp
@@ -585,6 +582,11 @@ set(LIB_SOURCES
     src/rtc/congestion_control/controllers/goog_cc/send_side_bwe.cpp
     src/rtc/congestion_control/controllers/goog_cc/goog_cc_network_controller.cpp
     src/rtc/congestion_control/controllers/goog_cc/congestion_window_pushback_controller.cpp
+
+    # rtc -> congestion_control -> pacing
+    src/rtc/congestion_control/pacing/bitrate_prober.cpp
+    src/rtc/congestion_control/pacing/round_robin_packet_queue.cpp
+    src/rtc/congestion_control/pacing/pacing_controller.cpp
 
 )
 

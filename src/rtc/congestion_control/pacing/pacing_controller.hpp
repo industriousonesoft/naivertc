@@ -1,5 +1,5 @@
-#ifndef _RTC_RTP_RTCP_PACING_PACING_CONTROLLER_H_
-#define _RTC_RTP_RTCP_PACING_PACING_CONTROLLER_H_
+#ifndef _RTC_CONGESTION_CONTROL_PACING_PACING_CONTROLLER_H_
+#define _RTC_CONGESTION_CONTROL_PACING_PACING_CONTROLLER_H_
 
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 #include "rtc/base/units/data_rate.hpp"

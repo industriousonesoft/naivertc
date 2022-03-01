@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/rtp/pacing/round_robin_packet_queue.hpp"
+#include "rtc/congestion_control/pacing/round_robin_packet_queue.hpp"
 
 namespace naivertc {
 
