@@ -1,7 +1,7 @@
 #include "rtc/call/rtp_send_controller.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/transport_feedback.hpp"
-#include "rtc/congestion_controller/goog_cc/goog_cc_network_controller.hpp"
+#include "rtc/congestion_control/controllers/goog_cc/goog_cc_network_controller.hpp"
 
 namespace naivertc {
 namespace {
