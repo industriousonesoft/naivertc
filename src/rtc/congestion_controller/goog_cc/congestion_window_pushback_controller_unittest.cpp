@@ -27,7 +27,7 @@ protected:
 
 MY_TEST_F(CongestionWindowPushbackControllerTest, FullCongestionWindow) {
     // The congestion window is filling up: fill_ratio > 1.5
-    cwnd_controller_->OnOutstandingBytes(100'000);
+    cwnd_controller_->OnInflightBytes(100'000);
     cwnd_controller_->set_congestion_window(5000);
 
     // Decrease the taraget bitrate by 10%
@@ -42,7 +42,7 @@ MY_TEST_F(CongestionWindowPushbackControllerTest, FullCongestionWindow) {
 
 MY_TEST_F(CongestionWindowPushbackControllerTest, NormalCongestionWindow) {
     // fill_ratio > 0.1 && fill_ratio < 1.0
-    cwnd_controller_->OnOutstandingBytes(199999);
+    cwnd_controller_->OnInflightBytes(199999);
     cwnd_controller_->set_congestion_window(200000);
 
     const auto target_bitrate = DataRate::BitsPerSec(80000);
@@ -52,7 +52,7 @@ MY_TEST_F(CongestionWindowPushbackControllerTest, NormalCongestionWindow) {
 
 MY_TEST_F(CongestionWindowPushbackControllerTest, MinPushbackBitrate) {
     // The congestion window is filling up.
-    cwnd_controller_->OnOutstandingBytes(100000);
+    cwnd_controller_->OnInflightBytes(100000);
     cwnd_controller_->set_congestion_window(50000);
 
     // Decrease the taraget bitrate by 10%
@@ -67,7 +67,7 @@ MY_TEST_F(CongestionWindowPushbackControllerTest, MinPushbackBitrate) {
 }
 
 MY_TEST_F(CongestionWindowPushbackControllerTest, NoPushbackOnDataWindowUnset) {
-    cwnd_controller_->OnOutstandingBytes(1e8);  // Large number
+    cwnd_controller_->OnInflightBytes(1e8);  // Large number
 
     const auto target_bitrate = DataRate::BitsPerSec(80000);
     auto pushback_bitrate = cwnd_controller_->AdjustTargetBitrate(target_bitrate);

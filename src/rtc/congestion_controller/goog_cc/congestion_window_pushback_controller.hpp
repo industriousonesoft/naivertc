@@ -15,30 +15,32 @@ namespace naivertc {
 class CongestionWindwoPushbackController {
 public:
     struct Configuration {
-        bool use_pacing = false;
+        // Indicates if adding pacing to congestion window.
+        bool add_pacing = true;
         DataRate min_pushback_bitrate = kDefaultMinPushbackTargetBitrate;
         size_t initial_congestion_window = 0;
     };
     
 public:
-    CongestionWindwoPushbackController(Configuration config);
+    CongestionWindwoPushbackController(const Configuration& config);
     ~CongestionWindwoPushbackController();
 
     void set_congestion_window(size_t congestion_window);
 
-    void OnOutstandingBytes(int64_t outstanding_bytes);
+    void OnInflightBytes(int64_t inflight_bytes);
     void OnPacingQueue(int64_t pacing_bytes);
 
     // Return pushback bitrate based on the target bitrate.
     DataRate AdjustTargetBitrate(DataRate target_bitrate);
 
 private:
-    const Configuration config_;
+    const bool add_pacing_;
+    const DataRate min_pushback_bitrate_;
 
     size_t congestion_window_;
-    int64_t outstanding_bytes_ = 0;
-    int64_t pacing_bytes_ = 0;
-    double encoding_bitrate_ratio_ = 1.0;
+    int64_t inflight_bytes_;
+    int64_t pacing_bytes_;
+    double encoding_bitrate_ratio_;
 };
     
 } // namespace naivertc

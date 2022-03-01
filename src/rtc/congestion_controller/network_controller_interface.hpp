@@ -17,8 +17,8 @@ public:
         TargetBitrateConstraints constraints;
         // The stream specific configuration.
         StreamsConfig stream_based_config;
-        // The config of congestion window.
-        CongestionWindwoConfiguration congestion_windwo_config;
+        // Bitrate control settings.
+        RateControlSettings rate_control_settings;
     };
 public:
     virtual ~NetworkControllerInterface() = default;

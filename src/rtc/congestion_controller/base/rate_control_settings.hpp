@@ -7,18 +7,22 @@
 
 namespace naivertc {
 
-// CongestionWindwoConfiguration
-struct CongestionWindwoConfiguration {
+// RateControlSettings
+struct RateControlSettings {
+    // Congestion window settings
     std::optional<TimeDelta> queuing_delay = kDefaultAcceptedQueuingDelay;
     std::optional<DataRate> min_pushback_bitrate = kDefaultMinPushbackTargetBitrate;
+    std::optional<size_t> initial_congestion_window = 0;
     bool drop_frame_only = true;
+
+    // Probe settings
     bool probe_on_max_allocation_changed = true;
 
-    bool IsEnabled() const;
+    bool UseCongestionWindow() const;
     // When pushback is enabled, the pacer is oblivious to the congestion window.
     // The relation between outstanding data and the congestion window will affects
     // encoder allocations directly.
-    bool IsPushbackEnabled() const;
+    bool UseCongestionWindowPushback() const;
 };
     
 } // namespace naivertc

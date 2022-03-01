@@ -111,8 +111,8 @@ struct PacerConfig {
     // Pacer should send at least pad_window bytes over time_window duration.
     size_t pad_window = 0;
     TimeDelta time_window = TimeDelta::PlusInfinity();
-    DataRate data_rate() const { return DataRate::BitsPerSec(data_window * 8 * 1000 / time_window.ms()); }
-    DataRate pad_rate() const { return DataRate::BitsPerSec(pad_window * 8 * 1000 / time_window.ms()); }
+    DataRate data_rate() const { return DataRate::BitsPerSec(data_window * 8000 / time_window.ms()); }
+    DataRate pad_rate() const { return DataRate::BitsPerSec(pad_window * 8000 / time_window.ms()); }
     Timestamp at_time = Timestamp::PlusInfinity();
 };
 

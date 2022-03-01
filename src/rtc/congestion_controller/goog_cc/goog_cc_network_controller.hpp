@@ -3,12 +3,12 @@
 
 #include "rtc/congestion_controller/network_controller_interface.hpp"
 #include "rtc/congestion_controller/components/alr_detector.hpp"
-#include "rtc/congestion_controller/goog_cc/send_side_bwe.hpp"
 #include "rtc/congestion_controller/goog_cc/delay_based/delay_based_bwe.hpp"
 #include "rtc/congestion_controller/goog_cc/throughput/acknowledged_bitrate_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/probe/probe_bitrate_estimator.hpp"
 #include "rtc/congestion_controller/goog_cc/probe/probe_controller.hpp"
-
+#include "rtc/congestion_controller/goog_cc/send_side_bwe.hpp"
+#include "rtc/congestion_controller/goog_cc/congestion_window_pushback_controller.hpp"
 
 namespace naivertc {
 
@@ -40,15 +40,18 @@ private:
     std::vector<ProbeClusterConfig> ResetConstraints(const TargetBitrateConstraints& new_constraints);
     void ClampConstraints();
 
+    void UpdateCongestionWindow();
+    PacerConfig GetPacerConfig(Timestamp at_time) const;
+
 private:
 
     // Indicates we will ignoring RTT, REMB and loss report feedbacks, 
     // and only employ the transport packet feedbacks to do estimate.
     const bool packet_feedback_only_;
     const bool use_min_allocated_bitrate_as_lower_bound_;
-    // const bool ignore_probes_lower_than_network_estimate_;
     const bool limit_probes_lower_than_throughput_estimate_;
     const bool use_loss_based_as_stable_bitrate_;
+    const RateControlSettings rate_control_settings_;
 
     std::unique_ptr<SendSideBwe> send_side_bwe_;
     std::unique_ptr<DelayBasedBwe> delay_based_bwe_;
@@ -56,6 +59,7 @@ private:
     std::unique_ptr<ProbeController> probe_controller_;
     std::unique_ptr<ProbeBitrateEstimator> probe_bitrate_estimator_;
     std::unique_ptr<AlrDetector> alr_detector_;
+    std::unique_ptr<CongestionWindwoPushbackController> cwnd_controller_;
     
     DataRate min_target_bitrate_ = DataRate::Zero();
     DataRate min_bitrate_ = DataRate::Zero();
@@ -68,9 +72,9 @@ private:
     int lost_packets_since_last_loss_update_ = 0;
     int received_packets_since_last_loss_update_ = 0;
 
-    std::deque<int64_t> feedback_max_rtts_;
+    std::deque<TimeDelta> feedback_max_rtts_;
 
-    DataRate send_side_estimate_;
+    DataRate last_loss_based_target_bitrate_;
     DataRate last_stable_target_bitrate_;
     DataRate last_pushback_target_bitrate_;
 
@@ -83,7 +87,7 @@ private:
     DataRate min_total_allocated_bitrate_;
     DataRate max_total_allocated_bitrate_;
 
-    std::optional<size_t> curr_data_window_;
+    std::optional<size_t> curr_congestion_window_;
 
     std::optional<Configuration> initial_config_;
 };
