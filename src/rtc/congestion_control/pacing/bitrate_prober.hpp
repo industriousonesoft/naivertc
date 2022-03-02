@@ -3,6 +3,9 @@
 
 #include "rtc/base/units/data_rate.hpp"
 #include "rtc/base/units/timestamp.hpp"
+#include "rtc/congestion_control/base/network_types.hpp"
+
+#include <deque>
 
 namespace naivertc {
 
@@ -10,22 +13,100 @@ class BitrateProber {
 public:
     struct Configuration {
         // The minimum number probing packets used.
-        int min_probe_packets_sent;
+        int min_probe_packets_sent = 5;
         // A minimum interval between probes to allow
         // scheduling to be feasible.
-        TimeDelta min_probe_delta;
-        TimeDelta min_probe_duration;
+        TimeDelta min_probe_delta = TimeDelta::Millis(1);
+        TimeDelta min_probe_duration = TimeDelta::Millis(15);
         // The maximum amout of time each probe can
         // be delayed.
-        TimeDelta max_probe_delay;
-        bool abort_delayed_probes;
+        TimeDelta max_probe_delay = TimeDelta::Millis(10);
+        bool abort_delayed_probes = true;
     };
 public:
-    BitrateProber(Configuration config);
+    BitrateProber(const Configuration& config);
     ~BitrateProber();
+
+    void SetEnabled(bool enable);
+
+    // Returns true if the prober is in a probing session, i.e., it currently
+    // wants packets to be sent out according to the time returned by
+    // TimeUntilNextProbe().
+    bool IsProbing() const;
+
+    // Initializes a new probing session if the prober is allowed to probe. Does
+    // not initialize the prober unless the packet size is large enough to probe
+    // with.
+    void OnIncomingPacket(size_t packet_size);
+
+    // Returns true if the prober is pushed back to the cluster queue.
+    bool AddProbeCluster(int cluster_id, 
+                         DataRate bitrate, 
+                         Timestamp at_time);
+
+    // Returns the time at which the next probe should be sent to get accurate
+    // probing. If probing is not desired at this time, Timestamp::PlusInfinity()
+    // will be returned.
+    Timestamp NextTimeToProbe(Timestamp at_time) const;
+
+    // Returns the next unexpired prober in cluster queue, 
+    std::optional<PacedPacketInfo> NextProbeCluster(Timestamp at_time);
+
+    // Returns the minimum number of bytes that the prober recommends for
+    // the next probe, or zero if not probing.
+    size_t RecommendedMinProbeSize() const;
+
+    // Called to report to the prober that a probe has been sent. In case of
+    // multiple packets per probe, this call would be made at the end of sending
+    // the last packet in probe. |size| is the total size of all packets in probe.
+    void OnProbeSent(size_t sent_bytes, Timestamp at_time);
+
+private:
+    struct ProbeCluster;
+    Timestamp CalculateNextProbeTime(const ProbeCluster& cluster) const;
+
+private:
+    // ProbingState
+    enum class ProbingState {
+        // Probing will not be triggered in this state at all time.
+        DISABLED,
+        // Probing is enabled and ready to trigger on the first packet arrival.
+        INACTIVE,
+        // Probe cluster is filled with the set of bitrates to be probed and
+        // probes are being sent.
+        ACTIVE,
+        // Probing is enabled, but currently suspended until an explicit trigger
+        // to start probing again.
+        SUSPENDED,
+    };
+
+    // A probe cluster consists of a set of probes. Each probe in turn can be
+    // divided into a number of packets to accommodate the MTU on the network.
+    struct ProbeCluster {
+        PacedPacketInfo pace_info;
+
+        int sent_probes = 0;
+        int sent_bytes = 0;
+        Timestamp created_at = Timestamp::MinusInfinity();
+        Timestamp started_at = Timestamp::MinusInfinity();
+    };
 
 private:
     const Configuration config_;
+
+    ProbingState probing_state_;
+
+    // Probe bitrate per packet. These are used to compute the delta relative to
+    // the previous probe packet based on the size and time when that packet was
+    // sent.
+    std::deque<ProbeCluster> clusters_;
+
+    // Time the next probe should be sent when in kActive state.
+    Timestamp next_time_to_probe_;
+
+    int total_probe_count_;
+    int total_failed_probe_count_;
+
 };
     
 } // namespace naivertc

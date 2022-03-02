@@ -22,7 +22,7 @@ struct ProbeCluster {
 
 // PacedPacketInfo
 struct PacedPacketInfo {
-    int send_bitrate_bps = -1;
+    DataRate send_bitrate = DataRate::Zero();
     std::optional<ProbeCluster> probe_cluster = std::nullopt;
 };
 

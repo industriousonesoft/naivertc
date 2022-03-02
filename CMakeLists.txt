@@ -855,6 +855,9 @@ set(UNITTEST_SOURCES
     # rtc -> congestion_control -> controllers -> goog_cc
     src/rtc/congestion_control/controllers/goog_cc/send_side_bwe_unittest.cpp
     src/rtc/congestion_control/controllers/goog_cc/congestion_window_pushback_controller_unittest.cpp
+
+    # rtc -> congestion_control -> pacing
+    src/rtc/congestion_control/pacing/bitrate_prober_unittest.cpp
     
 )
 
