@@ -586,6 +586,7 @@ set(LIB_SOURCES
     # rtc -> congestion_control -> pacing
     src/rtc/congestion_control/pacing/bitrate_prober.cpp
     src/rtc/congestion_control/pacing/round_robin_packet_queue.cpp
+    src/rtc/congestion_control/pacing/round_robin_packet_queue_augxiliaries.cpp
     src/rtc/congestion_control/pacing/pacing_controller.cpp
 
 )

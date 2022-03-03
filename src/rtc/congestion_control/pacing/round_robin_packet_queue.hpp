@@ -10,80 +10,91 @@
 #include <map>
 #include <queue>
 #include <optional>
+#include <unordered_map>
 
 namespace naivertc {
 
-using DataSize = uint64_t;
-    
 class RoundRobinPacketQueue {
 public:
-    RoundRobinPacketQueue(Timestamp start_time);
+    RoundRobinPacketQueue(bool include_overhead, Timestamp start_time);
     ~RoundRobinPacketQueue();
+
+    void set_transport_overhead();
+
+    size_t num_packets() const { return num_packets_; }
+    size_t packet_size() const { return total_packet_size_; }
+
+    bool Empty() const;
 
     void Push(int priority,
               Timestamp enqueue_time,
               uint64_t enqueue_order,
-              std::shared_ptr<RtpPacketToSend> packet);
+              RtpPacketToSend packet);
 
-    std::shared_ptr<RtpPacketToSend> Pop();
+    std::optional<RtpPacketToSend> Pop();
+
+    Timestamp OldestEnqueueTime() const;
+    void UpdateEnqueueTime(Timestamp now);
+
+    TimeDelta AverageQueueDelta() const;
+
+private:
+    struct QueuedPacket;
+    struct Stream;
+
+    void Push(QueuedPacket packet);
+
+    size_t PacketSize(const QueuedPacket& packet) const;
+
+    void MaybePromoteSinglePacketToNormalQueue();
+
+    Stream* GetHighestPriorityStream();
+    bool IsEmptyStream(const Stream& stream) const;
 
 private:
     // QueuedPacket
     struct QueuedPacket {
-    public:
+
+        int priority;
+        Timestamp enqueue_time;
+        uint64_t enqueue_order;
+        std::multiset<Timestamp>::iterator enqueue_time_it;
+        RtpPacketToSend owned_packet;
+
         QueuedPacket(int priority,
                      Timestamp enqueue_time,
                      uint64_t enqueue_order,
                      std::multiset<Timestamp>::iterator enqueue_time_it,
-                     std::shared_ptr<RtpPacketToSend> packet);
+                     RtpPacketToSend packet);
         QueuedPacket(const QueuedPacket& rhs);
         ~QueuedPacket();
 
-        int priority() const { return priority_; }
-        RtpPacketType type() const { return owned_packet_->packet_type(); }
-        uint32_t ssrc() const { return owned_packet_->ssrc(); }
-        Timestamp enqueue_time() const { return enqueue_time_; }
+        RtpPacketType type() const { return owned_packet.packet_type(); }
+        uint32_t ssrc() const { return owned_packet.ssrc(); }
         bool is_retransmission() const { return type() == RtpPacketType::RETRANSMISSION; }
-        int64_t enqueue_order() const { return enqueue_order_; }
-        std::shared_ptr<RtpPacketToSend> owned_packet() const { return owned_packet_; }
-
-        std::multiset<Timestamp>::iterator enqueue_time_iterator() const { return enqueue_time_it_; }
-        void set_enqueue_time_iterator(std::multiset<Timestamp>::iterator it) { enqueue_time_it_ = it; }
-
+      
+        void SubtractPauseTime(TimeDelta pause_time_sum);
+        // std::priority_queue的特点是让优先级高的排在队列前面，优先出队。
+        // Return true if the other has higher priority.
         bool operator<(const QueuedPacket& other) const;
 
-    private:
-        int priority_;
-        Timestamp enqueue_time_;
-        uint64_t enqueue_order_;
-        std::multiset<Timestamp>::iterator enqueue_time_it_;
-        std::shared_ptr<RtpPacketToSend> owned_packet_;
     };
 
     // PriorityPacketQueue
-    class PriorityPacketQueue : public std::priority_queue<std::shared_ptr<QueuedPacket>> {
+    class PriorityPacketQueue : public std::priority_queue<QueuedPacket> {
     public:
         using const_iterator = container_type::const_iterator;
         const_iterator begin() const;
         const_iterator end() const;
     };
 
-    // StreamPriority 
-    struct StreamPriority {
-    public:
-        StreamPriority(int priority, DataSize size) 
-            : priority(priority), size(size) {}
-
-        bool operator<(const StreamPriority& other) const {
-            // FIXMED: 为什么此处和QueuedPacket中priority的比较方式不同？
-            if (priority != other.priority) {
-                return priority < other.priority;
-            }
-            return size < other.size;
-        }
-        
+    // StreamPrioKey 
+    struct StreamPrioKey {
         const int priority;
-        const DataSize size;
+        const size_t sent_size;
+
+        StreamPrioKey(int priority, size_t sent_size);
+        bool operator<(const StreamPrioKey& other) const;
     };
 
     // Stream
@@ -93,22 +104,40 @@ private:
         ~Stream();
 
         uint32_t ssrc;
-        DataSize size;
+        size_t sent_size;
         PriorityPacketQueue packet_queue;
         // Whenever a packet is inserted for this stream we check if |priority_it|
         // points to an element in |stream_priorities_|, and if it does it means
         // this stream has already been scheduled, and if the scheduled priority is
         // lower than the priority of the incoming packet we reschedule this stream
         // with the higher priority.
-        std::multimap<StreamPriority, uint32_t>::iterator priority_it;
+        std::multimap<StreamPrioKey, uint32_t>::iterator priority_it;
     };
 
 private:
-    void Push(std::shared_ptr<QueuedPacket> packet);
+    const bool include_overhead_;
+    Timestamp time_last_update_;
+    size_t max_stream_sent_size_;
+    bool paused_ = false;
+    size_t num_packets_ = 0;
+    // The total size of all packets in streams.
+    size_t total_packet_size_ = 0;
+    TimeDelta queue_delta_sum_ = TimeDelta::Zero();
+    TimeDelta pause_delta_sum_ = TimeDelta::Zero();
+    size_t transport_overhead_ = 0;
 
-private:
-    Timestamp last_updated_time_;
-    size_t packet_count_;
+    // A map of streams used to prioritize from which stream to send next. We use
+    // a multimap instead of a priority_queue since the priority of a stream can
+    // change as a new packet is inserted, and a multimap allows us to remove and
+    // then reinsert a StreamPrioKey if the priority has increased.
+    std::multimap<StreamPrioKey, uint32_t> stream_priorities_;
+
+    // A map of SSRCs to Streams.
+    std::unordered_map<uint32_t, Stream> streams_;
+
+    // The enqueue time of every packet currently in the queue. Used to figure out
+    // the age of the oldest packet in the queue.
+    std::multiset<Timestamp> enqueue_times_;
 
     std::optional<QueuedPacket> single_packet_queue_;
 };

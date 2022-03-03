@@ -24,8 +24,8 @@ BitrateProber::BitrateProber(const Configuration& config)
 
 BitrateProber::~BitrateProber() {}
 
-void BitrateProber::SetEnabled(bool enable) {
-    if (enable) {
+void BitrateProber::SetEnabled(bool enabled) {
+    if (enabled) {
         if (probing_state_ == ProbingState::DISABLED) {
             probing_state_ = ProbingState::INACTIVE;
             PLOG_INFO << "Bandwidth probing enabled, set to inactive.";
