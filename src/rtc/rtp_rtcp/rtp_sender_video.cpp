@@ -128,7 +128,6 @@ bool RtpSenderVideo::Send(int payload_type,
         packet->set_is_first_packet_of_frame(i == 0);
 
         if (!packetizer->NextPacket(&packet.value())) {
-            assert(false);
             return false;
         }
 
