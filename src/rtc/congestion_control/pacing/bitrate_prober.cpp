@@ -72,7 +72,7 @@ bool BitrateProber::AddProbeCluster(int cluster_id,
     cluster.pace_info.probe_cluster.emplace();
     cluster.pace_info.probe_cluster->id = cluster_id;
     cluster.pace_info.probe_cluster->min_probes = config_.min_probe_packets_sent;
-    cluster.pace_info.probe_cluster->min_bytes = config_.min_probe_duration.ms() * bitrate.bps() / 8000;
+    cluster.pace_info.probe_cluster->min_bytes = config_.min_probe_duration * bitrate;
     cluster.pace_info.send_bitrate = bitrate;
     clusters_.push_back(std::move(cluster));
 
@@ -136,7 +136,7 @@ size_t BitrateProber::RecommendedMinProbeSize() const {
     if (clusters_.empty()) {
         return 0;
     }
-    return 2 * clusters_.front().pace_info.send_bitrate.bps() * config_.min_probe_delta.ms() / 8000;
+    return 2 * clusters_.front().pace_info.send_bitrate * config_.min_probe_delta;
 }
 
 void BitrateProber::OnProbeSent(size_t sent_bytes, Timestamp at_time) {
@@ -173,7 +173,7 @@ Timestamp BitrateProber::CalculateNextProbeTime(const ProbeCluster& cluster) con
 
     // Compute the time delta from the cluster start to ensure 
     // probe bitrate stays close to the target bitrate.
-    TimeDelta delta = TimeDelta::Millis(cluster.sent_bytes * 8000 / cluster.pace_info.send_bitrate.bps());
+    TimeDelta delta = cluster.sent_bytes / cluster.pace_info.send_bitrate;
     return cluster.started_at + delta;
 }
     

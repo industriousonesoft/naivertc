@@ -36,7 +36,9 @@ public:
     Timestamp OldestEnqueueTime() const;
     void UpdateEnqueueTime(Timestamp now);
 
-    TimeDelta AverageQueueDelta() const;
+    TimeDelta AverageQueueTime() const;
+
+    std::optional<Timestamp> LeadingAudioPacketEnqueueTime() const;
 
 private:
     struct QueuedPacket;
@@ -122,8 +124,8 @@ private:
     size_t num_packets_ = 0;
     // The total size of all packets in streams.
     size_t total_packet_size_ = 0;
-    TimeDelta queue_delta_sum_ = TimeDelta::Zero();
-    TimeDelta pause_delta_sum_ = TimeDelta::Zero();
+    TimeDelta queue_time_sum_ = TimeDelta::Zero();
+    TimeDelta pause_time_sum_ = TimeDelta::Zero();
     size_t transport_overhead_ = 0;
 
     // A map of streams used to prioritize from which stream to send next. We use

@@ -86,7 +86,7 @@ private:
         PacedPacketInfo pace_info;
 
         int sent_probes = 0;
-        int sent_bytes = 0;
+        size_t sent_bytes = 0;
         Timestamp created_at = Timestamp::MinusInfinity();
         Timestamp started_at = Timestamp::MinusInfinity();
     };

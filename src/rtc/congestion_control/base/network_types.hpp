@@ -14,10 +14,10 @@ namespace naivertc {
 struct ProbeCluster {     
     int id = -1;
     // The mininum of packet number to estimate probe bitrate.
-    int min_probes = -1;
+    size_t min_probes = 0;
     // The mininum of accumulated bytes to estimate probe bitrate.
-    int min_bytes = -1;
-    int bytes_sent = 0;
+    size_t min_bytes = 0;
+    size_t bytes_sent = 0;
 };
 
 // PacedPacketInfo

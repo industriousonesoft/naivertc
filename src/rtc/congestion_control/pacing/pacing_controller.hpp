@@ -33,7 +33,7 @@ public:
         bool include_overhead = false;
         bool drain_large_queue = true;
         bool send_padding_if_silent = false;
-        bool pace_audio = false;
+        bool pacing_audio = false;
         bool ignore_transport_overhead = false;
         TimeDelta padding_target_duration = TimeDelta::Millis(5);
 
@@ -42,6 +42,22 @@ public:
         Clock* clock = nullptr;
         PacketSender* packet_sender = nullptr;
     };
+
+    // Expected max pacer delay. If ExpectedQueueTime() is higher than
+    // this value, the packet producers should wait (eg drop frames rather than
+    // encoding them). Bitrate sent may temporarily exceed target set by
+    // UpdateBitrate() so that this limit will be upheld.
+    static const TimeDelta kMaxExpectedQueueLength;
+    // Pacing-rate relative to our target send rate.
+    // Multiplicative factor that is applied to the target bitrate to calculate
+    // the number of bytes that can be transmitted per interval.
+    // Increasing this factor will result in lower delays in cases of bitrate
+    // overshoots from the encoder.
+    static const float kDefaultPaceMultiplier;
+    // If no media or paused, wake up at least every |kPausedProcessInterval| in
+    // order to send a keep-alive packet so we don't get stuck in a bad state due
+    // to lack of feedback.
+    static const TimeDelta kPausedProcessInterval;
 public:
     PacingController(const Configuration& config);
     ~PacingController();
@@ -49,22 +65,25 @@ public:
     void SetPacingBitrate(DataRate pacing_bitrate, 
                           DataRate padding_bitrate);
 
-    void SetCongestionWindow(size_t window_size);
+    void SetCongestionWindow(size_t congestion_window_size);
+    void OnInflightBytes(size_t inflight_bytes);
 
     // Adds the packet to the queue and calls PacketSender::SendPacket() when
     // it's time to send.
     void EnqueuePacket(RtpPacketToSend packet);
 
-private:
-    int PriorityForType(RtpPacketType packet_type);
+    Timestamp NextSendTime() const;
 
+    bool IsCongested() const;
+
+private:
     void EnqueuePacketInternal(RtpPacketToSend packet, 
                                const int priority);
 
 private:
     const bool drain_large_queue_;
     const bool send_padding_if_silent_;
-    const bool pace_audio_;
+    const bool pacing_audio_;
     const bool ignore_transport_overhead_;
     const TimeDelta padding_target_duration_;
 
@@ -85,8 +104,15 @@ private:
     IntervalBudget media_budget_;
     IntervalBudget padding_budget_;
 
+    bool probing_send_failure_ = false;
     BitrateProber prober_;
+
+    bool paused_ = false;
+    uint64_t packet_counter_ = 0;
     RoundRobinPacketQueue packet_queue_;
+
+    size_t congestion_window_size_ = 0;
+    size_t inflight_bytes_ = 0;
 
 };
     

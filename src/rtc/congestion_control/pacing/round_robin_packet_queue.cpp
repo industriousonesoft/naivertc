@@ -42,7 +42,7 @@ void RoundRobinPacketQueue::Push(int priority,
                                                   enqueue_times_.end(), 
                                                   std::move(packet)));
         UpdateEnqueueTime(enqueue_time);
-        single_packet_queue_->SubtractPauseTime(pause_delta_sum_);
+        single_packet_queue_->SubtractPauseTime(pause_time_sum_);
         num_packets_ = 1;
         total_packet_size_ += PacketSize(*single_packet_queue_);
     } else {
@@ -59,7 +59,7 @@ std::optional<RtpPacketToSend> RoundRobinPacketQueue::Pop() {
     if (single_packet_queue_) {
         RtpPacketToSend rtp_packet = std::move(single_packet_queue_->owned_packet);
         single_packet_queue_.reset();
-        queue_delta_sum_ = TimeDelta::Zero();
+        queue_time_sum_ = TimeDelta::Zero();
         num_packets_ = 0;
         total_packet_size_ = 0;
         return rtp_packet;
@@ -76,12 +76,12 @@ std::optional<RtpPacketToSend> RoundRobinPacketQueue::Pop() {
     const QueuedPacket& queued_packet = stream->packet_queue.top();
 
     // Calculate the total amount of time spent by this packet in the queue
-    // while in a non-paused state. Note that the |pause_delta_sum_| was
+    // while in a non-paused state. Note that the |pause_time_sum_| was
     // subtracted from |packet.enqueue_time| when the packet was pushed, and
     // by subtracting it now we effectively remove the time spent in in the
     // queue while in a paused state.
-    TimeDelta delat_in_non_paused_state = time_last_update_ - queued_packet.enqueue_time - pause_delta_sum_;
-    queue_delta_sum_ -= delat_in_non_paused_state;
+    TimeDelta delat_in_non_paused_state = time_last_update_ - queued_packet.enqueue_time - pause_time_sum_;
+    queue_time_sum_ -= delat_in_non_paused_state;
 
     assert(queued_packet.enqueue_time_it != enqueue_times_.end());
     enqueue_times_.erase(queued_packet.enqueue_time_it);
@@ -131,19 +131,42 @@ void RoundRobinPacketQueue::UpdateEnqueueTime(Timestamp now) {
     }
     auto delta = now - time_last_update_;
     if (paused_) {
-        pause_delta_sum_ += delta;
+        pause_time_sum_ += delta;
     } else {
         // FIXME: How to understand this?
-        queue_delta_sum_ += TimeDelta::Micros(delta.us() * num_packets_);
+        queue_time_sum_ += TimeDelta::Micros(delta.us() * num_packets_);
     }
     time_last_update_ = now;
 }
 
-TimeDelta RoundRobinPacketQueue::AverageQueueDelta() const {
+TimeDelta RoundRobinPacketQueue::AverageQueueTime() const {
     if (Empty()) {
         return TimeDelta::Zero();
     }
-    return queue_delta_sum_ / num_packets_;
+    return queue_time_sum_ / num_packets_;
+}
+
+std::optional<Timestamp> RoundRobinPacketQueue::LeadingAudioPacketEnqueueTime() const {
+    if (Empty()) {
+        return std::nullopt;
+    }
+
+    // Single packet mode
+    if (single_packet_queue_) {
+        if (single_packet_queue_->type() == RtpPacketType::AUDIO) {
+            return single_packet_queue_->enqueue_time;
+        } else {
+            return std::nullopt;
+        }
+    }
+
+    // Queue mode
+    uint32_t ssrc = stream_priorities_.begin()->second;
+    const auto& top_packet = streams_.find(ssrc)->second.packet_queue.top();
+    if (top_packet.type() == RtpPacketType::AUDIO) {
+        return top_packet.enqueue_time;
+    }
+    return std::nullopt;
 }
 
 // Private methods
@@ -178,7 +201,7 @@ void RoundRobinPacketQueue::Push(QueuedPacket packet) {
         // way we subtract the total amount of time the packet has spent in the
         // queue while in a paused state.
         UpdateEnqueueTime(packet.enqueue_time);
-        packet.SubtractPauseTime(pause_delta_sum_);
+        packet.SubtractPauseTime(pause_time_sum_);
 
         num_packets_ += 1;
         total_packet_size_ += PacketSize(packet);

@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 #include "testing/simulated_clock.hpp"
 
@@ -67,7 +67,7 @@ MY_TEST_F(BitrateProberTest, VerifyStatesAndTimeBetweenProbes) {
     EXPECT_GE(probe_duration, kMinProbeDuration);
 
     // Verify that the actual bitrate is within 10% of the target.
-    DataRate bitrate = DataRate::BitsPerSec(static_cast<double>(kProbeSize * (kMinNumProbes - 1)) * 8000.0 / probe_duration.ms());
+    DataRate bitrate = kProbeSize * (kMinNumProbes - 1) / probe_duration;
     EXPECT_GT(bitrate, kTestBitrate1 * 0.9);
     EXPECT_LT(bitrate, kTestBitrate1 * 1.1);
 
@@ -82,7 +82,7 @@ MY_TEST_F(BitrateProberTest, VerifyStatesAndTimeBetweenProbes) {
 
     probe_duration = now - start_time;
     EXPECT_GE(probe_duration, kMinProbeDuration);
-    bitrate = DataRate::BitsPerSec(static_cast<double>(kProbeSize * (kMinNumProbes - 1)) * 8000.0 / probe_duration.ms());
+    bitrate = kProbeSize * (kMinNumProbes - 1) / probe_duration;
     EXPECT_GT(bitrate, kTestBitrate2 * 0.9);
     EXPECT_LT(bitrate, kTestBitrate2 * 1.1);
 
@@ -175,7 +175,7 @@ MY_TEST_F(BitrateProberTest, VerifyProbeSizeOnHighBitrate) {
     prober_->AddProbeCluster(/*cluster_id=*/0, kHighBitrate, clock_.CurrentTime());
     // Probe size should ensure a minimum of 1 ms interval.
     EXPECT_GT(prober_->RecommendedMinProbeSize(),
-              kHighBitrate.bps() * TimeDelta::Millis(1).ms() / 8000 );
+              kHighBitrate * TimeDelta::Millis(1));
 }
 
 MY_TEST_F(BitrateProberTest, MinumumNumberOfProbingPackets) {
@@ -196,7 +196,7 @@ MY_TEST_F(BitrateProberTest, MinumumNumberOfProbingPackets) {
 
 MY_TEST_F(BitrateProberTest, ScaleBytesUsedForProbing) {
     const DataRate kBitrate = DataRate::KilobitsPerSec(10000);  // 10 Mbps.
-    const size_t kExpectedBytesSent = kBitrate.bps() * kMinProbeDuration.ms() / 8000;
+    const size_t kExpectedBytesSent = kBitrate * kMinProbeDuration;
 
     Timestamp now = clock_.CurrentTime();
     prober_->AddProbeCluster(/*cluster_id=*/0, kBitrate, now);
@@ -212,7 +212,7 @@ MY_TEST_F(BitrateProberTest, ScaleBytesUsedForProbing) {
 
 MY_TEST_F(BitrateProberTest, HighBitrateProbing) {
     const DataRate kBitrate = DataRate::KilobitsPerSec(1000000);  // 1 Gbps.
-    const size_t kExpectedBytesSent = kBitrate.bps() * kMinProbeDuration.ms() / 8000;
+    const size_t kExpectedBytesSent = kBitrate * kMinProbeDuration;
 
     Timestamp now = clock_.CurrentTime();
     prober_->AddProbeCluster(0, kBitrate, now);

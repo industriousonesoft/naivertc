@@ -7,10 +7,6 @@ namespace {
     
 constexpr TimeDelta kBudgetWindow = TimeDelta::Millis(500); // 500ms
 
-int64_t IntervalBytes(const DataRate& bitrate, const TimeDelta& interval) {
-    return (bitrate.kbps() * interval.ms()) / 8;
-}
-
 } // namespace
 
 
@@ -41,13 +37,13 @@ double IntervalBudget::budget_ratio() const {
 
 void IntervalBudget::set_target_bitrate(DataRate bitrate) {
     target_bitrate_ = bitrate;
-    max_bytes_in_budget_ = IntervalBytes(bitrate, kBudgetWindow);
+    max_bytes_in_budget_ = static_cast<int64_t>(bitrate * kBudgetWindow);
     // Clamps |bytes_remaining_| in [-max_bytes_in_budget_, max_bytes_in_budget_].
     bytes_remaining_ = std::min(std::max(-max_bytes_in_budget_, bytes_remaining_), max_bytes_in_budget_);
 }
 
 void IntervalBudget::IncreaseBudget(TimeDelta interval_time) {
-    int64_t increased_bytes = IntervalBytes(target_bitrate_, interval_time);
+    int64_t increased_bytes = static_cast<int64_t>(target_bitrate_ * interval_time);
     const bool overused_last_interval = bytes_remaining_ < 0;
     if (overused_last_interval || can_build_up_from_underuse_) {
         // We overuse last interval, compensate this interval.

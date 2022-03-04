@@ -11,8 +11,8 @@ namespace naivertc {
 namespace test {
 namespace {
     
-constexpr int kDefaultMinProbes = 5;
-constexpr int kDefaultMinBytes = 5000;
+constexpr size_t kDefaultMinProbes = 5;
+constexpr size_t kDefaultMinBytes = 5000;
 constexpr float kTargetUtilizationFraction = 0.95f;
 
 } // namespace
@@ -27,8 +27,8 @@ public:
                            size_t size_bytes,
                            int64_t send_time_ms,
                            int64_t recv_time_ms,
-                           int min_probes = kDefaultMinProbes,
-                           int min_bytes = kDefaultMinBytes) {
+                           size_t min_probes = kDefaultMinProbes,
+                           size_t min_bytes = kDefaultMinBytes) {
         const Timestamp kReferenceTime = Timestamp::Seconds(1000);
         PacketResult feedback;
         feedback.sent_packet.send_time = kReferenceTime + TimeDelta::Millis(send_time_ms);
