@@ -34,16 +34,9 @@ private:
     void RetryStashedFrames();
 
 private:
-    // Using the sequence number of the last packet of 
-    // a completed frame as the picture id.
     using PictureId = uint16_t;
     struct GopInfo {
-        // The sequence number of the last packet of
-        // the last completed frame.
         PictureId last_picture_id_gop;
-        // The sequence number of the last packet of
-        // the last completed frame advanced by any potential
-        // continuous packets of padding.
         PictureId last_picture_id_with_padding_gop;
     };
     // Using the picture id of the keyframe in the GOP as the key.

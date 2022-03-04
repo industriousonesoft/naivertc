@@ -68,11 +68,11 @@ void SeqNumFrameRefFinder::ClearTo(uint16_t seq_num) {
 SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video::FrameToDecode& frame) {
     // We received a keyframe,
     if (frame.frame_type() == video::FrameType::KEY) {
+        // 用keyframe的序号作为key值代表一个GOP。
         gop_infos_.insert({frame.seq_num_end(), {frame.seq_num_end(), frame.seq_num_end()}});
     }
 
-    // We have received a frame, but not yet a keyframe,
-    // stashing this frame, and try it later.
+    // We have received a frame but not yet a keyframe, stash this frame.
     if (gop_infos_.empty()) {
         return FrameDecision::STASHED;
     }
@@ -86,6 +86,8 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
     // Find the last sequence number (picture id) of the last frame for the keyframe
     // that this frame indirectly references.
     auto next_gop_info_it = gop_infos_.upper_bound(frame.seq_num_end());
+    // If the incoming frame is older the first keyframe in GOP list,
+    // which means its referred keyframe is not in the list, droping it.
     if (next_gop_info_it == gop_infos_.begin()) {
         PLOG_WARNING << "Frame with packet range ["
                      << frame.seq_num_start() << ", "
@@ -94,6 +96,8 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
         return FrameDecision::DROPED;
     }
 
+    // If the incoming frame is keyframe, |next_gop_info_it| will be |gop_infos_.end()|.
+    // So |--next_gop_info_it| will point to the last keyframe in the list.
     auto curr_gop_info_it = --next_gop_info_it;
 
     // The frame is not continuous with the last frame in the GOP, stashing it.
@@ -110,7 +114,7 @@ SeqNumFrameRefFinder::FrameDecision SeqNumFrameRefFinder::FindRefForFrame(video:
     assert(wrap_around_utils::AheadOrAt<uint16_t>(curr_frame_picture_id, curr_gop_info_it->first));
 
     PictureId last_picture_id_gop = curr_gop_info_it->second.last_picture_id_gop;
-    // the keyframe has no reference frames, but the delta frame has.
+    // Update the reference for delta frame.
     if (frame.frame_type() == video::FrameType::DELTA) {
         int64_t referred_picture_id = seq_num_unwrapper_.Unwrap(last_picture_id_gop);
         bool success = InsertReference(referred_picture_id, frame);
