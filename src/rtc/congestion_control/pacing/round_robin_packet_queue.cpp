@@ -8,9 +8,8 @@ constexpr size_t kMaxLeadingSize = 1400;
 } // namespace
 
 // RoundRobinPacketQueue
-RoundRobinPacketQueue::RoundRobinPacketQueue(bool include_overhead, Timestamp start_time) 
-    : include_overhead_(include_overhead),
-      time_last_update_(start_time),
+RoundRobinPacketQueue::RoundRobinPacketQueue(Timestamp start_time) 
+    : time_last_update_(start_time),
       max_stream_sent_size_(kMaxLeadingSize) {
 
 }
@@ -19,6 +18,37 @@ RoundRobinPacketQueue::~RoundRobinPacketQueue() {
     while (!Empty()) {
         Pop();
     }
+}
+
+bool RoundRobinPacketQueue::include_overhead() const {
+    return include_overhead_;
+}
+
+void RoundRobinPacketQueue::set_include_overhead() {
+    MaybePromoteSinglePacketToNormalQueue();
+    include_overhead_ = true;
+    // Update the size to reflect overhead for existing packets.
+    for (const auto& stream : streams_) {
+        for (const auto& packet : stream.second.packet_queue) {
+            // The header size of each packet may be different as within defferent
+            // header extensions.
+            total_packet_size_ += packet.owned_packet.header_size() + transport_overhead_;
+        }
+    }
+}
+
+size_t RoundRobinPacketQueue::transport_overhead() const {
+    return transport_overhead_;
+}
+
+void RoundRobinPacketQueue::set_transport_overhead(size_t overhead_per_packet) {
+    MaybePromoteSinglePacketToNormalQueue();
+    // Update the size to reflect overhead for existing packets.
+    for (const auto& stream : streams_) {
+        int num_packets = stream.second.packet_queue.size();
+        total_packet_size_ += num_packets * (overhead_per_packet - transport_overhead_);
+    }
+    transport_overhead_ = overhead_per_packet;
 }
 
 bool RoundRobinPacketQueue::Empty() const {

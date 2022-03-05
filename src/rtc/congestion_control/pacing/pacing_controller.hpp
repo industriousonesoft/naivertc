@@ -4,7 +4,7 @@
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 #include "rtc/base/units/data_rate.hpp"
 #include "rtc/base/units/timestamp.hpp"
-#include "rtc/congestion_control/components/interval_budget.hpp"
+#include "rtc/base/units/time_delta.hpp"
 #include "rtc/congestion_control/pacing/bitrate_prober.hpp"
 #include "rtc/congestion_control/pacing/round_robin_packet_queue.hpp"
 
@@ -21,16 +21,16 @@ public:
     class PacketSender {
     public:
         virtual ~PacketSender() = default;
-        virtual void SendPacket(RtpPacketToSend packet) = 0;
+        virtual void SendPacket(RtpPacketToSend packet, 
+                                const PacedPacketInfo& pacing_info) = 0;
         // Should be called after each call to SendPacket().
         virtual std::vector<RtpPacketToSend> FetchFecPackets() = 0;
-        virtual std::vector<RtpPacketToSend> GeneratePadding(size_t bytes) = 0;
+        virtual std::vector<RtpPacketToSend> GeneratePadding(size_t padding_size) = 0;
     };
 
     using ProbingSetting = BitrateProber::Configuration;
     // Configuration
     struct Configuration {
-        bool include_overhead = false;
         bool drain_large_queue = true;
         bool send_padding_if_silent = false;
         bool pacing_audio = false;
@@ -47,7 +47,7 @@ public:
     // this value, the packet producers should wait (eg drop frames rather than
     // encoding them). Bitrate sent may temporarily exceed target set by
     // UpdateBitrate() so that this limit will be upheld.
-    static const TimeDelta kMaxExpectedQueueLength;
+    static const TimeDelta kMaxExpectedQueueTime;
     // Pacing-rate relative to our target send rate.
     // Multiplicative factor that is applied to the target bitrate to calculate
     // the number of bytes that can be transmitted per interval.
@@ -62,6 +62,12 @@ public:
     PacingController(const Configuration& config);
     ~PacingController();
 
+    bool include_overhead() const;
+    void set_include_overhead();
+
+    size_t transport_overhead() const;
+    void set_transport_overhead(size_t overhead_per_packet);
+
     void SetPacingBitrate(DataRate pacing_bitrate, 
                           DataRate padding_bitrate);
 
@@ -72,6 +78,8 @@ public:
     // it's time to send.
     void EnqueuePacket(RtpPacketToSend packet);
 
+    void ProcessPackets();
+
     Timestamp NextSendTime() const;
 
     bool IsCongested() const;
@@ -79,6 +87,28 @@ public:
 private:
     void EnqueuePacketInternal(RtpPacketToSend packet, 
                                const int priority);
+
+    TimeDelta UpdateProcessTime(Timestamp at_time);
+
+    void ReduceDebt(TimeDelta elapsed_time);
+
+    void AddDebt(size_t sent_bytes);
+
+    bool IsTimeToSendHeartbeat(Timestamp at_time) const;
+
+    void OnMediaSent(RtpPacketType packet_type, 
+                     size_t sent_bytes, 
+                     Timestamp at_time);
+    void OnPaddingSent(size_t sent_bytes, 
+                       Timestamp at_time);
+
+    std::optional<RtpPacketToSend> 
+    NextPacketToSend(const PacedPacketInfo& pacing_info,
+                     Timestamp target_send_time,
+                     Timestamp at_time); 
+
+    size_t PaddingToAdd(size_t recommended_probe_size, size_t sent_bytes);
+                
 
 private:
     const bool drain_large_queue_;
@@ -113,7 +143,9 @@ private:
 
     size_t congestion_window_size_ = 0;
     size_t inflight_bytes_ = 0;
+    bool account_for_audio_ = false;
 
+    TimeDelta queue_time_cap_;
 };
     
 } // namespace naivertc

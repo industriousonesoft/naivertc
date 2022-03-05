@@ -16,10 +16,14 @@ namespace naivertc {
 
 class RoundRobinPacketQueue {
 public:
-    RoundRobinPacketQueue(bool include_overhead, Timestamp start_time);
+    RoundRobinPacketQueue(Timestamp start_time);
     ~RoundRobinPacketQueue();
 
-    void set_transport_overhead();
+    bool include_overhead() const;
+    void set_include_overhead();
+
+    size_t transport_overhead() const;
+    void set_transport_overhead(size_t overhead_per_packet);
 
     size_t num_packets() const { return num_packets_; }
     size_t packet_size() const { return total_packet_size_; }
@@ -117,7 +121,6 @@ private:
     };
 
 private:
-    const bool include_overhead_;
     Timestamp time_last_update_;
     size_t max_stream_sent_size_;
     bool paused_ = false;
@@ -126,6 +129,8 @@ private:
     size_t total_packet_size_ = 0;
     TimeDelta queue_time_sum_ = TimeDelta::Zero();
     TimeDelta pause_time_sum_ = TimeDelta::Zero();
+
+    bool include_overhead_ = false;
     size_t transport_overhead_ = 0;
 
     // A map of streams used to prioritize from which stream to send next. We use
