@@ -50,7 +50,7 @@ public:
     Timestamp NextTimeToProbe(Timestamp at_time) const;
 
     // Returns the next unexpired prober in cluster queue, 
-    std::optional<PacedPacketInfo> NextProbeCluster(Timestamp at_time);
+    std::optional<ProbeCluster> NextProbeCluster(Timestamp at_time);
 
     // Returns the minimum number of bytes that the prober recommends for
     // the next probe, or zero if not probing.
@@ -62,8 +62,8 @@ public:
     void OnProbeSent(size_t sent_bytes, Timestamp at_time);
 
 private:
-    struct ProbeCluster;
-    Timestamp CalculateNextProbeTime(const ProbeCluster& cluster) const;
+    struct ProbeClusterInfo;
+    Timestamp CalculateNextProbeTime(const ProbeClusterInfo& cluster) const;
 
 private:
     // ProbingState
@@ -82,13 +82,13 @@ private:
 
     // A probe cluster consists of a set of probes. Each probe in turn can be
     // divided into a number of packets to accommodate the MTU on the network.
-    struct ProbeCluster {
-        PacedPacketInfo pace_info;
-
-        int sent_probes = 0;
-        size_t sent_bytes = 0;
+    struct ProbeClusterInfo {
+        ProbeCluster probe_cluster;
         Timestamp created_at = Timestamp::MinusInfinity();
         Timestamp started_at = Timestamp::MinusInfinity();
+
+        ProbeClusterInfo(ProbeCluster probe_cluster) 
+            : probe_cluster(std::move(probe_cluster)) {};
     };
 
 private:
@@ -99,7 +99,7 @@ private:
     // Probe bitrate per packet. These are used to compute the delta relative to
     // the previous probe packet based on the size and time when that packet was
     // sent.
-    std::deque<ProbeCluster> clusters_;
+    std::deque<ProbeClusterInfo> clusters_;
 
     // Time the next probe should be sent when in kActive state.
     Timestamp next_time_to_probe_;

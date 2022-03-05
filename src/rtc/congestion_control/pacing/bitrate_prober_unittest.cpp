@@ -45,11 +45,11 @@ MY_TEST_F(BitrateProberTest, VerifyStatesAndTimeBetweenProbes) {
     prober_->AddProbeCluster(1, kTestBitrate2, now);
     EXPECT_FALSE(prober_->IsProbing());
     // Only return a availale cluster in active state.
-    EXPECT_FALSE(prober_->NextProbeCluster(now)->probe_cluster);
+    EXPECT_FALSE(prober_->NextProbeCluster(now));
 
     prober_->OnIncomingPacket(kProbeSize);
     EXPECT_TRUE(prober_->IsProbing());
-    EXPECT_EQ(0, prober_->NextProbeCluster(now)->probe_cluster->id);
+    EXPECT_EQ(0, prober_->NextProbeCluster(now)->id);
 
     // First packet should be probe as soon as possible.
     EXPECT_EQ(Timestamp::MinusInfinity(), prober_->NextTimeToProbe(now));
@@ -58,7 +58,7 @@ MY_TEST_F(BitrateProberTest, VerifyStatesAndTimeBetweenProbes) {
     auto start_time = now;
     for (int i = 0; i < kMinNumProbes; ++i) {
         now = std::max(now, prober_->NextTimeToProbe(now));
-        EXPECT_EQ(0, prober_->NextProbeCluster(now)->probe_cluster->id);
+        EXPECT_EQ(0, prober_->NextProbeCluster(now)->id);
         prober_->OnProbeSent(kProbeSize, now);
     }
 
@@ -76,7 +76,7 @@ MY_TEST_F(BitrateProberTest, VerifyStatesAndTimeBetweenProbes) {
 
     for (int i = 0; i < kMinNumProbes; ++i) {
         now = std::max(now, prober_->NextTimeToProbe(now));
-        EXPECT_EQ(1, prober_->NextProbeCluster(now)->probe_cluster->id);
+        EXPECT_EQ(1, prober_->NextProbeCluster(now)->id);
         prober_->OnProbeSent(kProbeSize, now);
     }
 
@@ -114,7 +114,7 @@ MY_TEST_F(BitrateProberTest, DoesntDiscardDelayedProbesInLegacyMode) {
     prober_->AddProbeCluster(0, kTestBitrate1, now);
     prober_->OnIncomingPacket(kProbeSize);
     EXPECT_TRUE(prober_->IsProbing());
-    EXPECT_EQ(prober_->NextProbeCluster(now)->probe_cluster->id, 0);
+    EXPECT_EQ(prober_->NextProbeCluster(now)->id, 0);
     // Advance to first probe time and indicate sent probe.
     now = std::max(now, prober_->NextTimeToProbe(now));
     prober_->OnProbeSent(kProbeSize, now);
@@ -143,7 +143,7 @@ MY_TEST_F(BitrateProberTest, DiscardDelayedProbesInLegacyMode) {
     prober_->AddProbeCluster(0, kTestBitrate1, now);
     prober_->OnIncomingPacket(kProbeSize);
     EXPECT_TRUE(prober_->IsProbing());
-    EXPECT_EQ(prober_->NextProbeCluster(now)->probe_cluster->id, 0);
+    EXPECT_EQ(prober_->NextProbeCluster(now)->id, 0);
     // Advance to first probe time and indicate sent probe.
     now = std::max(now, prober_->NextTimeToProbe(now));
     prober_->OnProbeSent(kProbeSize, now);

@@ -195,9 +195,9 @@ void PacingController::ProcessPackets() {
     if (is_probing) {
         // Probe timing is sensitive, and handled explicitly by BitrateProber,
         // so use actual sent time rather |target_send_time|.
-        pacing_info = prober_.NextProbeCluster(now).value_or(PacedPacketInfo());
+        pacing_info.probe_cluster = prober_.NextProbeCluster(now);
         if (pacing_info.probe_cluster.has_value()) {
-            first_packet_in_probe = pacing_info.probe_cluster->id == 0;
+            first_packet_in_probe = pacing_info.probe_cluster->sent_bytes == 0;
             recommended_probe_size = prober_.RecommendedMinProbeSize();
         } else {
             // No valid probe cluster returned, probe might have timed out.

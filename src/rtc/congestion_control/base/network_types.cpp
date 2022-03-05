@@ -2,8 +2,21 @@
 
 namespace naivertc {
 
-// TransportPacketsFeedback
+// ProbeCluster
+ProbeCluster::ProbeCluster(int id, 
+                           int min_probes, 
+                           size_t min_bytes, 
+                           DataRate target_bitrate)
+    : id(id),
+      min_probes(min_probes),
+      min_bytes(min_bytes),
+      target_bitrate(target_bitrate) {}
 
+bool ProbeCluster::IsDone() const {
+    return sent_probes >= min_probes && sent_bytes >= min_bytes;
+}
+
+// PacketResult
 bool PacketResult::ReceiveTimeOrder::operator()(const PacketResult& lhs,
                                                 const PacketResult& rhs) {
   if (lhs.recv_time != rhs.recv_time)
@@ -13,6 +26,7 @@ bool PacketResult::ReceiveTimeOrder::operator()(const PacketResult& lhs,
   return lhs.sent_packet.packet_id < rhs.sent_packet.packet_id;
 }
 
+// TransportPacketsFeedback
 std::vector<PacketResult> TransportPacketsFeedback::ReceivedPackets() const {
   std::vector<PacketResult> res;
   for (const PacketResult& fb : packet_feedbacks) {

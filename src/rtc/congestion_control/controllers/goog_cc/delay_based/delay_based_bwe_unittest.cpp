@@ -6,10 +6,10 @@ namespace test {
 namespace {
 constexpr int kNumProbesCluster0 = 5;
 constexpr int kNumProbesCluster1 = 8;
-const ProbeCluster kProbeCluster0 = {0, kNumProbesCluster0, 2000};
-const ProbeCluster kProbeCluster1 = {1, kNumProbesCluster1, 4000};
-const PacedPacketInfo kPacingInfo0 = {DataRate::Zero(), kProbeCluster0};
-const PacedPacketInfo kPacingInfo1 = {DataRate::Zero(), kProbeCluster1};
+const ProbeCluster kProbeCluster0 = {0, kNumProbesCluster0, 2000, DataRate::Zero()};
+const ProbeCluster kProbeCluster1 = {1, kNumProbesCluster1, 4000, DataRate::Zero()};
+const PacedPacketInfo kPacingInfo0 = {kProbeCluster0};
+const PacedPacketInfo kPacingInfo1 = {kProbeCluster1};
 constexpr float kTargetUtilizationFraction = 0.95f;
 
 constexpr size_t kMtu = 1200;
@@ -226,8 +226,8 @@ MY_TEST_F(DelayBasedBweTest, DISABLED_TestInitialOveruseWithInitialBackoffInterv
 MY_TEST_F(DelayBasedBweTest, InitialBehavior) {
     const int kFps = 50; // 50 fps to avoid rounding errors;
     const int kFrameIntervalMs = 1000 / kFps;
-    const ProbeCluster kProbeCluster = {/*id=*/0, /*min_probes=*/kInitialProbingPackets, /*min_bytes=*/5000};
-    const PacedPacketInfo kPacingInfo = {DataRate::Zero(), kProbeCluster};
+    const ProbeCluster kProbeCluster = {/*id=*/0, /*min_probes=*/kInitialProbingPackets, /*min_bytes=*/5000, DataRate::Zero()};
+    const PacedPacketInfo kPacingInfo = {kProbeCluster};
     int64_t send_time_ms = 0;
     std::vector<uint32_t> ssrcs;
     EXPECT_FALSE(bandwidth_estimator_->LatestEstimate().second);
@@ -260,8 +260,8 @@ MY_TEST_F(DelayBasedBweTest, RateIncreaseReordering) {
     const int64_t expected_bitrate_bps = 730'000/* 730 kbps */;
     const int kFps = 50; // 50 fps to avoid rounding errors;
     const int kFrameIntervalMs = 1000 / kFps;
-    const ProbeCluster kProbeCluster = {/*id=*/0, /*min_probes=*/kInitialProbingPackets, /*min_bytes=*/5000};
-    const PacedPacketInfo kPacingInfo = {DataRate::Zero(), kProbeCluster};
+    const ProbeCluster kProbeCluster = {/*id=*/0, /*min_probes=*/kInitialProbingPackets, /*min_bytes=*/5000, DataRate::Zero()};
+    const PacedPacketInfo kPacingInfo = {kProbeCluster};
     int64_t send_time_ms = 0;
     // Inserting packets for five seconds to get a valid estimate.
     for (int i = 0; i < 5 * kFps + 1 + kNumInitialPackets; ++i) {

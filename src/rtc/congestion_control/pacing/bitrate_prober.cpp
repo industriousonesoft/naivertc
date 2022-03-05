@@ -67,19 +67,18 @@ bool BitrateProber::AddProbeCluster(int cluster_id,
         total_failed_probe_count_++;
     }
 
-    ProbeCluster cluster;
+    ProbeCluster probe_cluster = {cluster_id, 
+                                  config_.min_probe_packets_sent, 
+                                  config_.min_probe_duration * bitrate, 
+                                  bitrate};
+    ProbeClusterInfo cluster = {probe_cluster};
     cluster.created_at = at_time;
-    cluster.pace_info.probe_cluster.emplace();
-    cluster.pace_info.probe_cluster->id = cluster_id;
-    cluster.pace_info.probe_cluster->min_probes = config_.min_probe_packets_sent;
-    cluster.pace_info.probe_cluster->min_bytes = config_.min_probe_duration * bitrate;
-    cluster.pace_info.send_bitrate = bitrate;
     clusters_.push_back(std::move(cluster));
 
     PLOG_INFO << "Probe cluster (bitrate : min_bytes : min_probes): ("
-              << cluster.pace_info.send_bitrate.bps() << " bps : "
-              << cluster.pace_info.probe_cluster->min_bytes << " : "
-              << cluster.pace_info.probe_cluster->min_probes << ")";
+              << cluster.probe_cluster.target_bitrate.bps() << " bps : "
+              << cluster.probe_cluster.min_bytes << " : "
+              << cluster.probe_cluster.min_probes << ")";
 
     // If we are already probing, continue doing so.
     // Otherwise set state to inactive and wait for
@@ -106,7 +105,7 @@ Timestamp BitrateProber::NextTimeToProbe(Timestamp at_time) const {
     return next_time_to_probe_;
 }
 
-std::optional<PacedPacketInfo> BitrateProber::NextProbeCluster(Timestamp at_time) {
+std::optional<ProbeCluster> BitrateProber::NextProbeCluster(Timestamp at_time) {
     // Probing is not active or probing is complete already.
     if (probing_state_ != ProbingState::ACTIVE || clusters_.empty()) {
         return std::nullopt;
@@ -124,10 +123,7 @@ std::optional<PacedPacketInfo> BitrateProber::NextProbeCluster(Timestamp at_time
         }
     }
 
-    PacedPacketInfo info = clusters_.front().pace_info;
-    assert(info.probe_cluster.has_value());
-    info.probe_cluster->bytes_sent = clusters_.front().sent_bytes;
-    return info;
+    return clusters_.front().probe_cluster;
 }
 
 size_t BitrateProber::RecommendedMinProbeSize() const {
@@ -136,7 +132,7 @@ size_t BitrateProber::RecommendedMinProbeSize() const {
     if (clusters_.empty()) {
         return 0;
     }
-    return 2 * clusters_.front().pace_info.send_bitrate * config_.min_probe_delta;
+    return 2 * clusters_.front().probe_cluster.target_bitrate * config_.min_probe_delta;
 }
 
 void BitrateProber::OnProbeSent(size_t sent_bytes, Timestamp at_time) {
@@ -148,16 +144,14 @@ void BitrateProber::OnProbeSent(size_t sent_bytes, Timestamp at_time) {
     if (!clusters_.empty()) {
         auto& cluster = clusters_.front();
         // Check if it's the first time to send probe.
-        if (cluster.sent_bytes == 0) {
+        if (cluster.probe_cluster.sent_bytes == 0) {
             cluster.started_at = at_time;
         }
-        cluster.sent_bytes += sent_bytes;
-        cluster.sent_probes += 1;
+        cluster.probe_cluster.sent_bytes += sent_bytes;
+        cluster.probe_cluster.sent_probes += 1;
         next_time_to_probe_ = CalculateNextProbeTime(cluster);
-        assert(cluster.pace_info.probe_cluster);
         // Remove the current cluster if it's probing has done.
-        if (cluster.sent_bytes >= cluster.pace_info.probe_cluster->min_bytes &&
-            cluster.sent_probes >= cluster.pace_info.probe_cluster->min_probes) {
+        if (cluster.probe_cluster.IsDone()) {
             clusters_.pop_front();
         }
         if (clusters_.empty()) {
@@ -167,13 +161,13 @@ void BitrateProber::OnProbeSent(size_t sent_bytes, Timestamp at_time) {
 }
 
 // Private methods
-Timestamp BitrateProber::CalculateNextProbeTime(const ProbeCluster& cluster) const {
-    assert(cluster.pace_info.send_bitrate > DataRate::Zero());
+Timestamp BitrateProber::CalculateNextProbeTime(const ProbeClusterInfo& cluster) const {
+    assert(cluster.probe_cluster.target_bitrate > DataRate::Zero());
     assert(cluster.started_at.IsFinite());
 
     // Compute the time delta from the cluster start to ensure 
     // probe bitrate stays close to the target bitrate.
-    TimeDelta delta = cluster.sent_bytes / cluster.pace_info.send_bitrate;
+    TimeDelta delta = cluster.probe_cluster.sent_bytes / cluster.probe_cluster.target_bitrate;
     return cluster.started_at + delta;
 }
     
