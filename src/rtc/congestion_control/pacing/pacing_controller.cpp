@@ -59,8 +59,6 @@ PacingController::PacingController(const Configuration& config)
       packet_sender_(config.packet_sender),
       last_process_time_(clock_->CurrentTime()),
       last_send_time_(last_process_time_),
-      media_budget_(DataRate::Zero()),
-      padding_budget_(DataRate::Zero()),
       prober_(config.probing_setting),
       packet_queue_(last_process_time_),
       queue_time_cap_(kMaxExpectedQueueTime) {}
@@ -91,7 +89,6 @@ void PacingController::SetPacingBitrate(DataRate pacing_bitrate,
     media_bitrate_ = pacing_bitrate;
     padding_bitrate_ = padding_bitrate;
     pacing_bitrate_ = pacing_bitrate;
-    padding_budget_.set_target_bitrate(padding_bitrate);
 
     PLOG_VERBOSE << "Set pacing bitrate=" << pacing_bitrate.bps() 
                  << " bps, padding bitrate=" << padding_bitrate.bps()
@@ -236,7 +233,7 @@ void PacingController::ProcessPackets() {
 
         std::optional<RtpPacketToSend> rtp_packet = NextPacketToSend(pacing_info, target_send_time, now);
         // No packet available to send.
-        if (!rtp_packet.has_value()) {
+        if (rtp_packet == std::nullopt) {
             // Check if we should send padding.
             size_t padding_to_add = PaddingToAdd(recommended_probe_size, sent_bytes);
             auto padding_packets = packet_sender_->GeneratePadding(padding_to_add);
@@ -443,12 +440,15 @@ std::optional<RtpPacketToSend> PacingController::NextPacketToSend(const PacedPac
     // Check if the next packet to send is a unpaced audio packet?
     bool has_unpaced_audio_packet = !pacing_audio_ && packet_queue_.LeadingAudioPacketEnqueueTime().has_value();
     bool is_probing = pacing_info.probe_cluster.has_value();
+    // If the next packet is not neither a audio nor used to probe,
+    // we need to check it futher.
     if (!has_unpaced_audio_packet && !is_probing) {
         if (IsCongested()) {
-            // Don't send any packets if in congestion.
+            // Don't send any packets (except aduio or probe) if congested.
             return std::nullopt;
         }
 
+        // Allow sending slight early if we could.
         if (at_time <= target_send_time) {
             // The time required to reduce the current debt to zero.
             auto flush_time = media_debt_ / media_bitrate_;
@@ -459,6 +459,7 @@ std::optional<RtpPacketToSend> PacingController::NextPacketToSend(const PacedPac
             }
         }
     }
+    // The next packet could be audio, probe or others.
     return packet_queue_.Pop();
 }
 

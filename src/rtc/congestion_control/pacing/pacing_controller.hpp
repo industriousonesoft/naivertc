@@ -131,9 +131,6 @@ private:
     Timestamp last_send_time_;
     std::optional<Timestamp> first_sent_packet_time_;
 
-    IntervalBudget media_budget_;
-    IntervalBudget padding_budget_;
-
     bool probing_send_failure_ = false;
     BitrateProber prober_;
 
