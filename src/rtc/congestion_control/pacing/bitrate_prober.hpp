@@ -9,6 +9,7 @@
 
 namespace naivertc {
 
+// This class is used to manager the probe state and probe clusters.
 class BitrateProber {
 public:
     struct Configuration {
@@ -41,7 +42,7 @@ public:
 
     // Returns true if the prober is pushed back to the cluster queue.
     bool AddProbeCluster(int cluster_id, 
-                         DataRate bitrate, 
+                         DataRate target_bitrate, 
                          Timestamp at_time);
 
     // Returns the time at which the next probe should be sent to get accurate

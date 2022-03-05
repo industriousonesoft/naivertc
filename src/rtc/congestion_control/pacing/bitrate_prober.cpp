@@ -52,10 +52,10 @@ void BitrateProber::OnIncomingPacket(size_t packet_size) {
 }
 
 bool BitrateProber::AddProbeCluster(int cluster_id, 
-                                    DataRate bitrate, 
+                                    DataRate target_bitrate, 
                                     Timestamp at_time) {
     if (probing_state_ == ProbingState::DISABLED || 
-        bitrate == DataRate::Zero()) {
+        target_bitrate == DataRate::Zero()) {
         return false;
     }
     
@@ -67,15 +67,15 @@ bool BitrateProber::AddProbeCluster(int cluster_id,
         total_failed_probe_count_++;
     }
 
-    ProbeCluster probe_cluster = {cluster_id, 
-                                  config_.min_probe_packets_sent, 
-                                  config_.min_probe_duration * bitrate, 
-                                  bitrate};
+    ProbeCluster probe_cluster = {/*id=*/cluster_id, 
+                                  /*min_probe=*/config_.min_probe_packets_sent, 
+                                  /*min_bytes=*/config_.min_probe_duration * target_bitrate, 
+                                  /*target_bitrate=*/target_bitrate};
     ProbeClusterInfo cluster = {probe_cluster};
     cluster.created_at = at_time;
     clusters_.push_back(std::move(cluster));
 
-    PLOG_INFO << "Probe cluster (bitrate : min_bytes : min_probes): ("
+    PLOG_INFO << "Probe cluster (target_bitrate : min_bytes : min_probes): ("
               << cluster.probe_cluster.target_bitrate.bps() << " bps : "
               << cluster.probe_cluster.min_bytes << " : "
               << cluster.probe_cluster.min_probes << ")";
