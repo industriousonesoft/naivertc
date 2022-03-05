@@ -57,8 +57,8 @@ MY_TEST(UnitBaseTest, ConstExpr) {
     constexpr TestUnit kTestUnitMinValue = TestUnit::MinusInfinity();
 
     static_assert(kTestUnitZero.IsZero(), "");
-    static_assert(kTestUnitMaxValue.IsMax(), "");
-    static_assert(kTestUnitMinValue.IsMin(), "");
+    static_assert(kTestUnitMaxValue.IsPlusInfinity(), "");
+    static_assert(kTestUnitMinValue.IsMinusInfinity(), "");
     static_assert(kTestUnitMaxValue.ToKiloOr(-1) == -1, "");
 
     static_assert(kTestUnitMaxValue > kTestUnitZero, "");
@@ -111,24 +111,24 @@ MY_TEST(UnitBaseTest, ConvertsToAndFromDouble) {
     EXPECT_EQ(TestUnit::PlusInfinity().ToMilli<double>(), kMaxValue);
     EXPECT_EQ(TestUnit::MinusInfinity().ToMilli<double>(), kMinValue);
 
-    EXPECT_TRUE(TestUnit::FromKilo(kMaxValue).IsMax());
-    EXPECT_TRUE(TestUnit::FromKilo(kMinValue).IsMin());
-    EXPECT_TRUE(TestUnit::FromValue(kMaxValue).IsMax());
-    EXPECT_TRUE(TestUnit::FromValue(kMinValue).IsMin());
+    EXPECT_TRUE(TestUnit::FromKilo(kMaxValue).IsPlusInfinity());
+    EXPECT_TRUE(TestUnit::FromKilo(kMinValue).IsMinusInfinity());
+    EXPECT_TRUE(TestUnit::FromValue(kMaxValue).IsPlusInfinity());
+    EXPECT_TRUE(TestUnit::FromValue(kMinValue).IsMinusInfinity());
 }
 
 MY_TEST(UnitBaseTest, InfinityOperations) {
   const int64_t kValue = 267;
   const TestUnit finite = TestUnit::FromKilo(kValue);
-  EXPECT_TRUE((TestUnit::PlusInfinity() + finite).IsMax());
-  EXPECT_TRUE((TestUnit::PlusInfinity() - finite).IsMax());
-  EXPECT_TRUE((finite + TestUnit::PlusInfinity()).IsMax());
-  EXPECT_TRUE((finite - TestUnit::MinusInfinity()).IsMax());
+  EXPECT_TRUE((TestUnit::PlusInfinity() + finite).IsPlusInfinity());
+  EXPECT_TRUE((TestUnit::PlusInfinity() - finite).IsPlusInfinity());
+  EXPECT_TRUE((finite + TestUnit::PlusInfinity()).IsPlusInfinity());
+  EXPECT_TRUE((finite - TestUnit::MinusInfinity()).IsPlusInfinity());
 
-  EXPECT_TRUE((TestUnit::MinusInfinity() + finite).IsMin());
-  EXPECT_TRUE((TestUnit::MinusInfinity() - finite).IsMin());
-  EXPECT_TRUE((finite + TestUnit::MinusInfinity()).IsMin());
-  EXPECT_TRUE((finite - TestUnit::PlusInfinity()).IsMin());
+  EXPECT_TRUE((TestUnit::MinusInfinity() + finite).IsMinusInfinity());
+  EXPECT_TRUE((TestUnit::MinusInfinity() - finite).IsMinusInfinity());
+  EXPECT_TRUE((finite + TestUnit::MinusInfinity()).IsMinusInfinity());
+  EXPECT_TRUE((finite - TestUnit::PlusInfinity()).IsMinusInfinity());
 }
     
 } // namespace test

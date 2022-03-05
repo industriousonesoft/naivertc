@@ -59,11 +59,11 @@ MY_TEST(TimestampTest, IdentityChecks) {
     EXPECT_FALSE(Timestamp::MinusInfinity().IsFinite());
     EXPECT_TRUE(Timestamp::Millis(kValue).IsFinite());
 
-    EXPECT_TRUE(Timestamp::PlusInfinity().IsMax());
-    EXPECT_FALSE(Timestamp::MinusInfinity().IsMax());
+    EXPECT_TRUE(Timestamp::PlusInfinity().IsPlusInfinity());
+    EXPECT_FALSE(Timestamp::MinusInfinity().IsPlusInfinity());
 
-    EXPECT_TRUE(Timestamp::MinusInfinity().IsMin());
-    EXPECT_FALSE(Timestamp::PlusInfinity().IsMin());
+    EXPECT_TRUE(Timestamp::MinusInfinity().IsMinusInfinity());
+    EXPECT_FALSE(Timestamp::PlusInfinity().IsMinusInfinity());
 }
 
 MY_TEST(TimestampTest, ConvertsToAndFromDouble) {
@@ -91,12 +91,12 @@ MY_TEST(TimestampTest, ConvertsToAndFromDouble) {
     EXPECT_EQ(Timestamp::PlusInfinity().us<double>(), kMaxValue);
     EXPECT_EQ(Timestamp::MinusInfinity().us<double>(), kMinValue);
 
-    EXPECT_TRUE(Timestamp::Seconds(kMaxValue).IsMax());
-    EXPECT_TRUE(Timestamp::Seconds(kMinValue).IsMin());
-    EXPECT_TRUE(Timestamp::Millis(kMaxValue).IsMax());
-    EXPECT_TRUE(Timestamp::Millis(kMinValue).IsMin());
-    EXPECT_TRUE(Timestamp::Micros(kMaxValue).IsMax());
-    EXPECT_TRUE(Timestamp::Micros(kMinValue).IsMin());
+    EXPECT_TRUE(Timestamp::Seconds(kMaxValue).IsPlusInfinity());
+    EXPECT_TRUE(Timestamp::Seconds(kMinValue).IsMinusInfinity());
+    EXPECT_TRUE(Timestamp::Millis(kMaxValue).IsPlusInfinity());
+    EXPECT_TRUE(Timestamp::Millis(kMinValue).IsMinusInfinity());
+    EXPECT_TRUE(Timestamp::Micros(kMaxValue).IsPlusInfinity());
+    EXPECT_TRUE(Timestamp::Micros(kMinValue).IsMinusInfinity());
 }
 
 MY_TEST(UnitConversionTest, TimestampAndTimeDeltaMath) {

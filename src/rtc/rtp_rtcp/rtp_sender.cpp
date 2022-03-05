@@ -193,7 +193,7 @@ size_t RtpSender::FecPacketOverhead() const {
 std::vector<RtpPacketToSend> RtpSender::GeneratePadding(size_t target_packet_size, 
                                                         bool media_has_been_sent) {
     std::vector<RtpPacketToSend> paddings;
-
+    // TODO: Generate padding packet.
     return paddings;
 }
 

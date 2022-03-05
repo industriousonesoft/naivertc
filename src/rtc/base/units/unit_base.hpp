@@ -28,9 +28,9 @@ public:
 
     constexpr bool IsZero() const { return value_ == 0; }
     constexpr bool IsFinite() const { return !IsInfinite(); }
-    constexpr bool IsInfinite() const { return IsMax() || IsMin(); }
-    constexpr bool IsMax() const { return value_ == PlusInfinityVal(); }
-    constexpr bool IsMin() const { return value_ == MinusInfinityVal(); }
+    constexpr bool IsInfinite() const { return IsPlusInfinity() || IsMinusInfinity(); }
+    constexpr bool IsPlusInfinity() const { return value_ == PlusInfinityVal(); }
+    constexpr bool IsMinusInfinity() const { return value_ == MinusInfinityVal(); }
 
     constexpr bool operator==(const Unit_T& other) const {
         return value_ == other.value_;
@@ -128,9 +128,9 @@ protected:
     template <typename T>
     constexpr typename std::enable_if<std::is_floating_point<T>::value, T>::type
     ToValue() const {
-        return IsMax()
+        return IsPlusInfinity()
                 ? std::numeric_limits<T>::infinity()
-                : IsMin() ? -std::numeric_limits<T>::infinity()
+                : IsMinusInfinity() ? -std::numeric_limits<T>::infinity()
                                     : value_;
     }
     template <typename T>
