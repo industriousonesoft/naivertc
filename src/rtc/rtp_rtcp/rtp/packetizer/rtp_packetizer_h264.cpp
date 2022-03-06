@@ -328,7 +328,7 @@ void RtpH264Packetizer::NextStapAPacket(RtpPacketToSend* rtp_packet) {
         is_last_fragment = packet->last_fragment;
     }
     assert(is_last_fragment);
-    rtp_packet->SetPayloadSize(index);
+    rtp_packet->set_payload_size(index);
 }
 
 void RtpH264Packetizer::Reset() {

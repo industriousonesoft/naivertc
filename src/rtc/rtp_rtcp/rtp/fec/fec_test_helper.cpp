@@ -56,7 +56,7 @@ RtpPacketReceived UlpFecPacketGenerator::BuildMediaRedPacket(const RtpPacket& rt
     red_packet.CopyHeaderFrom(rtp_packet);
 
     auto rtp_payload = rtp_packet.payload();
-    auto red_payload_data = red_packet.SetPayloadSize(rtp_payload.size() + 1/* 1 byte RED header */);
+    auto red_payload_data = red_packet.set_payload_size(rtp_payload.size() + 1/* 1 byte RED header */);
     // Add media payload type into RED header.
     red_payload_data[0] = rtp_packet.payload_type() & 0x7f;
     // Copy rest of payload/padding.
@@ -78,7 +78,7 @@ RtpPacketReceived UlpFecPacketGenerator::BuildUlpFecRedPacket(const CopyOnWriteB
     red_packet.CopyHeaderFrom(rtp_packet);
     red_packet.set_marker(false);
 
-    uint8_t* red_payload_data = red_packet.SetPayloadSize(fec_packets.size() + 1 /* 1 byte RED header */);
+    uint8_t* red_payload_data = red_packet.set_payload_size(fec_packets.size() + 1 /* 1 byte RED header */);
 
     // Add FEC payload type into RED header.
     red_payload_data[0] = fec_payload_type_ & 0x7f;

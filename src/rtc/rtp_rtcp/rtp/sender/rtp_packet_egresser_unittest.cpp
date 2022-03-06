@@ -275,12 +275,12 @@ MY_TEST_P(RtpPacketEgresserTest, ReportsFecRate) {
     for (size_t i = 0; i < kNumPackets; ++i) {
         auto media_packet = BuildRtpPacket();
         media_packet.set_packet_type(RtpPacketType::VIDEO);
-        media_packet.SetPayloadSize(500);
+        media_packet.set_payload_size(500);
         sender->SendPacket(std::move(media_packet));
 
         auto fec_packet = BuildRtpPacket();
         fec_packet.set_packet_type(RtpPacketType::FEC);
-        fec_packet.SetPayloadSize(123);
+        fec_packet.set_payload_size(123);
         sender->SendPacket(std::move(fec_packet));
         total_fec_bytes_sent += fec_packet.size();
 
@@ -306,7 +306,7 @@ MY_TEST_P(RtpPacketEgresserTest, SendBitratesObserver) {
 
     for (int i = 0; i < kNumPackets; i++) {
         auto packet = BuildRtpPacket();
-        packet.SetPayloadSize(500);
+        packet.set_payload_size(500);
         // Mark all the packets as retransmissions that will cause total and 
         // retransmitted rate to be equal.
         packet.set_packet_type(RtpPacketType::RETRANSMISSION);
@@ -453,7 +453,7 @@ MY_TEST_P(RtpPacketEgresserTest, StreamDataCountersCallbacks) {
 
     // Send a media packet.
     auto media_packet = BuildRtpPacket();
-    media_packet.SetPayloadSize(666);
+    media_packet.set_payload_size(666);
     expected_transmitted_counter.num_packets += 1;
     expected_transmitted_counter.payload_bytes += media_packet.payload_size();
     expected_transmitted_counter.header_bytes += media_packet.header_size();
@@ -474,7 +474,7 @@ MY_TEST_P(RtpPacketEgresserTest, StreamDataCountersCallbacks) {
     auto retransmission_packet = BuildRtpPacket();
     retransmission_packet.set_packet_type(RtpPacketType::RETRANSMISSION);
     retransmission_packet.set_retransmitted_sequence_number(retransmission_packet.sequence_number());
-    retransmission_packet.SetPayloadSize(237);
+    retransmission_packet.set_payload_size(237);
     expected_transmitted_counter.num_packets += 1;
     expected_transmitted_counter.payload_bytes += retransmission_packet.payload_size();
     expected_transmitted_counter.header_bytes += retransmission_packet.header_size();
@@ -523,7 +523,7 @@ MY_TEST_P(RtpPacketEgresserTest, StreamDataCountersCallbacksFec) {
 
     // Send a media packet.
     auto media_packet = BuildRtpPacket();
-    media_packet.SetPayloadSize(600);
+    media_packet.set_payload_size(600);
     expected_transmitted_counter.num_packets += 1;
     expected_transmitted_counter.payload_bytes += media_packet.payload_size();
     expected_transmitted_counter.header_bytes += media_packet.header_size();
@@ -543,7 +543,7 @@ MY_TEST_P(RtpPacketEgresserTest, StreamDataCountersCallbacksFec) {
     // statistics.
     auto fec_packet = BuildRtpPacket();
     fec_packet.set_packet_type(RtpPacketType::FEC);
-    fec_packet.SetPayloadSize(6);
+    fec_packet.set_payload_size(6);
     expected_transmitted_counter.num_packets += 1;
     expected_transmitted_counter.payload_bytes += fec_packet.payload_size();
     expected_transmitted_counter.header_bytes += fec_packet.header_size();
@@ -571,7 +571,7 @@ MY_TEST_P(RtpPacketEgresserTest, UpdatesDataCounters) {
 
     // Send a media packet.
     auto media_packet = BuildRtpPacket();
-    media_packet.SetPayloadSize(6);
+    media_packet.set_payload_size(6);
     sender->SendPacket(media_packet);
     clock_.AdvanceTime(TimeDelta::Zero());
 
@@ -579,7 +579,7 @@ MY_TEST_P(RtpPacketEgresserTest, UpdatesDataCounters) {
     auto rtx_packet = BuildRtpPacket();
     rtx_packet.set_packet_type(RtpPacketType::RETRANSMISSION);
     rtx_packet.set_ssrc(kRtxSsrc);
-    rtx_packet.SetPayloadSize(7);
+    rtx_packet.set_payload_size(7);
     rtx_packet.set_retransmitted_sequence_number(media_packet.sequence_number());
     sender->SendPacket(rtx_packet);
     clock_.AdvanceTime(TimeDelta::Zero());
@@ -620,21 +620,21 @@ MY_TEST_P(RtpPacketEgresserTest, SendPacketUpdatesStats) {
     // NOTE: Sets extension before setting payload size.
     video_packet.SetExtension<rtp::TransportSequenceNumber>(1);
     video_packet.set_packet_type(RtpPacketType::VIDEO);
-    video_packet.SetPayloadSize(kPayloadSize);
+    video_packet.set_payload_size(kPayloadSize);
 
     auto rtx_packet = BuildRtpPacket();
     rtx_packet.SetExtension<rtp::TransportSequenceNumber>(2);
     rtx_packet.set_ssrc(kRtxSsrc);
     rtx_packet.set_packet_type(RtpPacketType::RETRANSMISSION);
     rtx_packet.set_retransmitted_sequence_number(video_packet.sequence_number());
-    rtx_packet.SetPayloadSize(kPayloadSize);
+    rtx_packet.set_payload_size(kPayloadSize);
     
     auto fec_packet = BuildRtpPacket();
     fec_packet.SetExtension<rtp::TransportSequenceNumber>(3);
     // UlpFec packets share the same stream with meida packets.
     fec_packet.set_ssrc(kSsrc);
     fec_packet.set_packet_type(RtpPacketType::FEC);
-    fec_packet.SetPayloadSize(kPayloadSize);
+    fec_packet.set_payload_size(kPayloadSize);
 
     const int64_t kDiffMs = 25;
     clock_.AdvanceTimeMs(kDiffMs);

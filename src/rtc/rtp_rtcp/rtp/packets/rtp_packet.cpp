@@ -151,7 +151,7 @@ void RtpPacket::SetPayload(const uint8_t* buffer, size_t size) {
     SetPayload(std::move(raw_payload));
 }
 
-uint8_t* RtpPacket::SetPayloadSize(size_t size) {
+uint8_t* RtpPacket::set_payload_size(size_t size) {
     if (padding_size_ > 0) {
         PLOG_WARNING << "Failed to reset payload size when padding size is set.";
         return nullptr;
@@ -166,8 +166,8 @@ uint8_t* RtpPacket::SetPayloadSize(size_t size) {
 }
 
 uint8_t* RtpPacket::AllocatePayload(size_t size) {
-    SetPayloadSize(0);
-    return SetPayloadSize(size);
+    set_payload_size(0);
+    return set_payload_size(size);
 }
 
 // Write csrc list, Assumes:

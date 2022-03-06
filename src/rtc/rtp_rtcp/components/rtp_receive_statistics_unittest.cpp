@@ -34,7 +34,7 @@ RtpPacketReceived CreateRtpPacket(uint32_t ssrc,
         std::vector<uint32_t> csrcs(num_csrcs);
         packet_received.set_csrcs(csrcs);
     }
-    packet_received.SetPayloadSize(payload_size);
+    packet_received.set_payload_size(payload_size);
     packet_received.SetPadding(padding_size);
     return packet_received;
 }

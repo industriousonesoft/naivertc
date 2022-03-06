@@ -139,7 +139,7 @@ std::vector<RtpPacketToSend> UlpFecGenerator::PopFecPackets() {
         red_packet.set_marker(false);
         
         assert(red_packet.header_size() + kRedForFecHeaderLength + fec_packet.size() < red_packet.capacity());
-        uint8_t* payload_buffer = red_packet.SetPayloadSize(kRedForFecHeaderLength + fec_packet.size());
+        uint8_t* payload_buffer = red_packet.set_payload_size(kRedForFecHeaderLength + fec_packet.size());
         assert(payload_buffer != nullptr);
         // Primary RED header with F bit unset.
         // See https://tools.ietf.org/html/rfc2198#section-3
