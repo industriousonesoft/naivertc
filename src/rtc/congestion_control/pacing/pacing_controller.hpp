@@ -88,7 +88,7 @@ private:
     void EnqueuePacketInternal(RtpPacketToSend packet, 
                                const int priority);
 
-    TimeDelta UpdateProcessTime(Timestamp at_time);
+    std::pair<TimeDelta, bool> UpdateProcessTime(Timestamp at_time);
 
     void ReduceDebt(TimeDelta elapsed_time);
 

@@ -99,7 +99,12 @@ void PacingController::SetCongestionWindow(size_t congestion_window_size) {
     const bool was_congested = IsCongested();
     congestion_window_size_ = congestion_window_size;
     if (was_congested && !IsCongested()) {
-        // TODO：Update budget
+        // Update last process time when the congestion state changed.
+        // FIXME: But why do we need to do this?
+        auto [elapsed_time, update] = UpdateProcessTime(clock_->CurrentTime());
+        if (update) {
+            ReduceDebt(elapsed_time);
+        }
     }
 }
 
@@ -107,7 +112,11 @@ void PacingController::OnInflightBytes(size_t inflight_bytes) {
     const bool was_congested = IsCongested();
     inflight_bytes_ = inflight_bytes;
     if (was_congested && !IsCongested()) {
-        // TODO：Update budget
+        // Update last process when the congestion state changed.
+        auto [elapsed_time, update] = UpdateProcessTime(clock_->CurrentTime());
+        if (update) {
+            ReduceDebt(elapsed_time);
+        }
     }
 }
 
@@ -129,8 +138,10 @@ void PacingController::ProcessPackets() {
         target_send_time = now;
     } else if (now < target_send_time - early_execute_margin) {
         // We are too early, but if queue is empty still allow draining some debt.
-        auto elapsed_time = UpdateProcessTime(now);
-        ReduceDebt(elapsed_time);
+        auto [elapsed_time, updated] = UpdateProcessTime(now);
+        if (updated) {
+            ReduceDebt(elapsed_time);
+        }
         return;
     }
 
@@ -142,7 +153,7 @@ void PacingController::ProcessPackets() {
     }
 
     auto prev_process_time = last_process_time_;
-    TimeDelta elapsed_time = UpdateProcessTime(now);
+    TimeDelta elapsed_time = UpdateProcessTime(now).first;
 
     // Check if it's time to send a heartbeat packet.
     if (IsTimeToSendHeartbeat(now)) {
@@ -357,19 +368,33 @@ void PacingController::EnqueuePacketInternal(RtpPacketToSend packet,
     prober_.OnIncomingPacket(packet.size());
 
     auto now = clock_->CurrentTime();
-    // Process the incoming packet immediately.
-    if (packet_queue_.Empty() && NextSendTime() <= now) {
-        // TODO: Update budget
+    
+    if (packet_queue_.Empty()) {
+        // If queue is empty, we need to "fast-forward" the last process time,
+        // so that we don't use passed time as budget for sending the first new
+        // packet.
+        Timestamp target_process_time = now;
+        Timestamp next_send_time = NextSendTime();
+        if (next_send_time.IsFinite()) {
+            // There was already a valid planned send time, such as a heartbeat.
+            // Use that as last process time only if it's prior to now.
+            target_process_time = std::min(now, next_send_time);
+        }
+        auto [elapsed_time, updated] = UpdateProcessTime(target_process_time);
+        if (updated) {
+            ReduceDebt(elapsed_time);
+        } else {
+            last_process_time_ = target_process_time;
+        }
     }
     packet_queue_.Push(priority, clock_->CurrentTime(), packet_counter_++, std::move(packet));
 }
 
-TimeDelta PacingController::UpdateProcessTime(Timestamp at_time) {
+std::pair<TimeDelta, bool> PacingController::UpdateProcessTime(Timestamp at_time) {
     // If no previous process or the last process is in the future (as early probe process),
-    // then there is no elapsed time to add budget for.
-    if (last_process_time_.IsMinusInfinity() || 
-        at_time < last_process_time_) {
-        return TimeDelta::Zero();
+    // then there is no elapsed time to reduce debt for.
+    if (last_process_time_.IsMinusInfinity() || at_time < last_process_time_) {
+        return {TimeDelta::Zero(), false};
     }
 
     TimeDelta elapsed_time = at_time - last_process_time_;
@@ -380,7 +405,7 @@ TimeDelta PacingController::UpdateProcessTime(Timestamp at_time) {
                      << kMaxElapsedTime.ms() << " ms.";
         elapsed_time = kMaxElapsedTime;
     }
-    return elapsed_time;
+    return {elapsed_time, true};
 }
 
 void PacingController::ReduceDebt(TimeDelta elapsed_time) {

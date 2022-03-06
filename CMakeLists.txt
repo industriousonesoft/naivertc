@@ -859,6 +859,7 @@ set(UNITTEST_SOURCES
 
     # rtc -> congestion_control -> pacing
     src/rtc/congestion_control/pacing/bitrate_prober_unittest.cpp
+    src/rtc/congestion_control/pacing/pacing_controller_unittest.cpp
     
 )
 
