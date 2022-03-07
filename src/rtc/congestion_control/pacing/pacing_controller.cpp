@@ -50,11 +50,7 @@ const float PacingController::kDefaultPaceMultiplier = 2.5f;
 const TimeDelta PacingController::kPausedProcessInterval = kCongestedPacketInterval;
 
 PacingController::PacingController(const Configuration& config) 
-    : drain_large_queue_(config.drain_large_queue),
-      send_padding_if_silent_(config.send_padding_if_silent),
-      pacing_audio_(config.pacing_audio), 
-      ignore_transport_overhead_(config.ignore_transport_overhead),
-      padding_target_duration_(config.padding_target_duration),
+    : pacing_setting_(config.pacing_setting),
       clock_(config.clock),
       packet_sender_(config.packet_sender),
       last_process_time_(clock_->CurrentTime()),
@@ -78,10 +74,18 @@ size_t PacingController::transport_overhead() const {
 }
 
 void PacingController::set_transport_overhead(size_t overhead_per_packet) {
-    if (ignore_transport_overhead_) {
+    if (pacing_setting_.ignore_transport_overhead) {
         return;
     }
     packet_queue_.set_transport_overhead(overhead_per_packet);
+}
+
+bool PacingController::account_for_audio() const {
+    return account_for_audio_;
+}   
+
+void PacingController::set_account_for_audio(bool account_for_audio) {
+    account_for_audio_ = account_for_audio;
 }
 
 void PacingController::SetPacingBitrate(DataRate pacing_bitrate, 
@@ -185,7 +189,7 @@ void PacingController::ProcessPackets() {
         size_t queued_packet_size = packet_queue_.packet_size();
         if (queued_packet_size > 0) {
             packet_queue_.UpdateEnqueueTime(now);
-            if (drain_large_queue_) {
+            if (pacing_setting_.drain_large_queue) {
                 auto avg_time_left = std::max(TimeDelta::Millis(1), queue_time_cap_ - packet_queue_.AverageQueueTime());
                 // The minimum bitrate required to drain queue.
                 auto min_drain_bitrate_required = queued_packet_size / avg_time_left;
@@ -246,14 +250,17 @@ void PacingController::ProcessPackets() {
         // No packet available to send.
         if (rtp_packet == std::nullopt) {
             // Check if we should send padding.
-            size_t padding_to_add = PaddingToAdd(recommended_probe_size, sent_bytes);
-            auto padding_packets = packet_sender_->GeneratePadding(padding_to_add);
-            if (!padding_packets.empty()) {
-                for (auto& packet : padding_packets) {
-                    EnqueuePacket(packet);
+            size_t padding_to_add = PaddingSizeToAdd(recommended_probe_size, sent_bytes);
+            if (padding_to_add > 0) {
+                auto padding_packets = packet_sender_->GeneratePadding(padding_to_add);
+                // Enqueue the padding packets.
+                if (!padding_packets.empty()) {
+                    for (auto& packet : padding_packets) {
+                        EnqueuePacket(packet);
+                    }
+                    // Continue loop to send the padding that was just added.
+                    continue;
                 }
-                // Continue loop to send the padding that was just added.
-                continue;
             }
             // Can't fetch new packet and no padding to send, exit send loop.
             break;
@@ -261,12 +268,13 @@ void PacingController::ProcessPackets() {
 
         const RtpPacketType packet_type = rtp_packet->packet_type();
         size_t packet_size = rtp_packet->payload_size() + rtp_packet->padding_size();
-
         if (include_overhead()) {
             packet_size += rtp_packet->header_size() + transport_overhead();
         }
 
+        // Send packet
         packet_sender_->SendPacket(std::move(*rtp_packet), pacing_info);
+        // Enqueue FEC packet after sending.
         for (auto& fec_packet : packet_sender_->FetchFecPackets()) {
             EnqueuePacket(std::move(fec_packet));
         }
@@ -274,8 +282,8 @@ void PacingController::ProcessPackets() {
 
         OnMediaSent(packet_type, packet_size, target_send_time);
 
-        // Check if we can probing and have reached the reommended 
-        // probe size after sending media packet.
+        // If we are currently probing, we need to stop the send loop 
+        // when we have reached the send target(sent_bytes >= recommended_probe_size).
         if (is_probing && sent_bytes >= recommended_probe_size) {
             break;
         }
@@ -318,7 +326,7 @@ Timestamp PacingController::NextSendTime() const {
         }
     }
 
-    if (!pacing_audio_) {
+    if (!pacing_setting_.pacing_audio) {
         // when not pacing audio, return the enqueue time if the leading packet
         // is audio.
         auto audio_enqueue_time = packet_queue_.LeadingAudioPacketEnqueueTime();
@@ -348,7 +356,8 @@ Timestamp PacingController::NextSendTime() const {
                         last_process_time_ + drain_time);
     }
 
-    if (send_padding_if_silent_) {
+    // Send padding as heartbeat if necessary.
+    if (pacing_setting_.send_padding_if_silent) {
         return last_send_time_ + kPausedProcessInterval;
     }
 
@@ -415,6 +424,7 @@ void PacingController::ReduceDebt(TimeDelta elapsed_time) {
 }
 
 void PacingController::AddDebt(size_t sent_bytes) {
+    inflight_bytes_ += sent_bytes;
     media_debt_ += sent_bytes;
     padding_debt_ += sent_bytes;
     media_debt_ = std::min(media_debt_, media_bitrate_ * kMaxDebtInTime);
@@ -422,7 +432,10 @@ void PacingController::AddDebt(size_t sent_bytes) {
 }
 
 bool PacingController::IsTimeToSendHeartbeat(Timestamp at_time) const {
-    if (send_padding_if_silent_ || paused_ || IsCongested() || packet_counter_) {
+    if (pacing_setting_.send_padding_if_silent || 
+        paused_ || 
+        IsCongested() || 
+        packet_counter_ == 0) {
         // We send a padding packet as heartbeat every 500 ms to ensure we won't
         // get stuck in congested state due to no feedback being received.
         auto elapsed_since_last_send = at_time - last_send_time_;
@@ -439,7 +452,9 @@ void PacingController::OnMediaSent(RtpPacketType packet_type,
     if (!first_sent_packet_time_) {
         first_sent_packet_time_ = at_time;
     }
-    if (packet_type == RtpPacketType::AUDIO || account_for_audio_) {
+
+    // Only account for audio packet as required.
+    if (packet_type != RtpPacketType::AUDIO || account_for_audio_) {
         AddDebt(sent_bytes);
     }
     last_send_time_ = at_time;
@@ -462,14 +477,14 @@ std::optional<RtpPacketToSend> PacingController::NextPacketToSend(const PacedPac
         return std::nullopt;
     }
 
-    // Check if the next packet to send is a unpaced audio packet?
-    bool has_unpaced_audio_packet = !pacing_audio_ && packet_queue_.LeadingAudioPacketEnqueueTime().has_value();
+    // Check if the next packet to send is a unpaced audio packet.
+    bool has_unpaced_audio_packet = !pacing_setting_.pacing_audio && packet_queue_.LeadingAudioPacketEnqueueTime().has_value();
     bool is_probing = pacing_info.probe_cluster.has_value();
     // If the next packet is not neither a audio nor used to probe,
     // we need to check it futher.
     if (!has_unpaced_audio_packet && !is_probing) {
         if (IsCongested()) {
-            // Don't send any packets (except aduio or probe) if congested.
+            // Don't send any packets (except unpaced aduio packet or probe packet) if congested.
             return std::nullopt;
         }
 
@@ -488,7 +503,7 @@ std::optional<RtpPacketToSend> PacingController::NextPacketToSend(const PacedPac
     return packet_queue_.Pop();
 }
 
-size_t PacingController::PaddingToAdd(size_t recommended_probe_size, size_t sent_bytes) {
+size_t PacingController::PaddingSizeToAdd(size_t recommended_probe_size, size_t sent_bytes) {
     if (!packet_queue_.Empty()) {
         // No need to add padding if we have media packets in queue.
         return 0;
@@ -505,15 +520,18 @@ size_t PacingController::PaddingToAdd(size_t recommended_probe_size, size_t sent
     }
 
     if (recommended_probe_size > 0) {
+        // Check if we need to send padding packet for probing.
         if (recommended_probe_size > sent_bytes) {
+            // The remaining size for probing.
             return recommended_probe_size - sent_bytes;
         } else {
             return 0;
         }
     }
 
+    // FIXME: Why |padding_debt_ == 0| required?
     if (padding_bitrate_ > DataRate::Zero() && padding_debt_ == 0) {
-        return padding_target_duration_ * padding_bitrate_;
+        return pacing_setting_.padding_target_duration * padding_bitrate_;
     }
 
     return 0;

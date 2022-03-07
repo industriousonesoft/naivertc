@@ -28,15 +28,23 @@ public:
         virtual std::vector<RtpPacketToSend> GeneratePadding(size_t padding_size) = 0;
     };
 
+    struct PacingSettings {
+        // "WebRTC-Pacer-DrainQueue/Enabled/"
+        bool drain_large_queue = true;
+        // "WebRTC-Pacer-PadInSilence/Disabled/"
+        bool send_padding_if_silent = false;
+        // "WebRTC-Pacer-BlockAudio/Disabled/"
+        bool pacing_audio = false;
+        // "WebRTC-Pacer-IgnoreTransportOverhead/Disabled"
+        bool ignore_transport_overhead = false;
+        // "WebRTC-Pacer-DynamicPaddingTarget/timedelta:10ms/"
+        TimeDelta padding_target_duration = TimeDelta::Millis(5);
+    };
+
     using ProbingSetting = BitrateProber::Configuration;
     // Configuration
     struct Configuration {
-        bool drain_large_queue = true;
-        bool send_padding_if_silent = false;
-        bool pacing_audio = false;
-        bool ignore_transport_overhead = false;
-        TimeDelta padding_target_duration = TimeDelta::Millis(5);
-
+        PacingSettings pacing_setting;
         ProbingSetting probing_setting;
 
         Clock* clock = nullptr;
@@ -67,6 +75,9 @@ public:
 
     size_t transport_overhead() const;
     void set_transport_overhead(size_t overhead_per_packet);
+
+    bool account_for_audio() const;
+    void set_account_for_audio(bool account_for_audio);
 
     void SetPacingBitrate(DataRate pacing_bitrate, 
                           DataRate padding_bitrate);
@@ -107,16 +118,10 @@ private:
                      Timestamp target_send_time,
                      Timestamp at_time); 
 
-    size_t PaddingToAdd(size_t recommended_probe_size, size_t sent_bytes);
+    size_t PaddingSizeToAdd(size_t recommended_probe_size, size_t sent_bytes);
                 
-
 private:
-    const bool drain_large_queue_;
-    const bool send_padding_if_silent_;
-    const bool pacing_audio_;
-    const bool ignore_transport_overhead_;
-    const TimeDelta padding_target_duration_;
-
+    const PacingSettings pacing_setting_;
     Clock* const clock_;
     PacketSender* const packet_sender_;
 
