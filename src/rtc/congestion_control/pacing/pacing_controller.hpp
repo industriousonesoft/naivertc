@@ -66,6 +66,10 @@ public:
     // order to send a keep-alive packet so we don't get stuck in a bad state due
     // to lack of feedback.
     static const TimeDelta kPausedProcessInterval;
+    // Allow probes to be processed slightly ahead of inteded send time. Currently
+    // set to 1 ms as this is intended to allow times be rounded down to the nearest
+    // millisecond.
+    static const TimeDelta kMaxEarlyProbeProcessing;
 public:
     PacingController(const Configuration& config);
     ~PacingController();
@@ -79,6 +83,8 @@ public:
     bool account_for_audio() const;
     void set_account_for_audio(bool account_for_audio);
 
+    std::optional<Timestamp> first_sent_packet_time() const;
+
     void SetPacingBitrate(DataRate pacing_bitrate, 
                           DataRate padding_bitrate);
 
@@ -87,7 +93,7 @@ public:
 
     // Adds the packet to the queue and calls PacketSender::SendPacket() when
     // it's time to send.
-    void EnqueuePacket(RtpPacketToSend packet);
+    bool EnqueuePacket(RtpPacketToSend packet);
 
     void ProcessPackets();
 
@@ -119,6 +125,9 @@ private:
                      Timestamp at_time); 
 
     size_t PaddingSizeToAdd(size_t recommended_probe_size, size_t sent_bytes);
+
+    inline TimeDelta TimeToPayOffMediaDebt() const;
+    inline TimeDelta TimeToPayOffPaddingDebt() const;
                 
 private:
     const PacingSettings pacing_setting_;

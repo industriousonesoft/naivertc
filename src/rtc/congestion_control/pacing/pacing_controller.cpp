@@ -3,19 +3,16 @@
 
 #include <plog/Log.h>
 
+#include "testing/defines.hpp"
+
 namespace naivertc {
 namespace {
 
 constexpr TimeDelta kCongestedPacketInterval = TimeDelta::Millis(500);
 
 // The maximum debt level, in terms of time, capped when sending packets.
-constexpr TimeDelta kMaxDebtInTime = TimeDelta::Millis(500);
-constexpr TimeDelta kMaxElapsedTime = TimeDelta::Seconds(2);
-
-// Allow probes to be processed slightly ahead of inteded send time. Currently
-// set to 1 ms as this is intended to allow times be rounded down to the nearest
-// millisecond.
-constexpr TimeDelta kMaxEarlyProbeProcessing = TimeDelta::Millis(1);
+constexpr TimeDelta kMaxDebtInTime = TimeDelta::Millis(500); // 500ms
+constexpr TimeDelta kMaxElapsedTime = TimeDelta::Seconds(2); // 2s
 
 constexpr int kDefaultPriority = 0;
 
@@ -47,7 +44,8 @@ int PriorityForType(RtpPacketType packet_type) {
 
 const TimeDelta PacingController::kMaxExpectedQueueTime = TimeDelta::Millis(2000);
 const float PacingController::kDefaultPaceMultiplier = 2.5f;
-const TimeDelta PacingController::kPausedProcessInterval = kCongestedPacketInterval;
+const TimeDelta PacingController::kPausedProcessInterval = kCongestedPacketInterval; // 500 ms
+const TimeDelta PacingController::kMaxEarlyProbeProcessing = TimeDelta::Millis(1); // 1 ms
 
 PacingController::PacingController(const Configuration& config) 
     : pacing_setting_(config.pacing_setting),
@@ -88,6 +86,10 @@ void PacingController::set_account_for_audio(bool account_for_audio) {
     account_for_audio_ = account_for_audio;
 }
 
+std::optional<Timestamp> PacingController::first_sent_packet_time() const {
+    return first_sent_packet_time_;
+}
+
 void PacingController::SetPacingBitrate(DataRate pacing_bitrate, 
                                         DataRate padding_bitrate) {
     media_bitrate_ = pacing_bitrate;
@@ -106,7 +108,7 @@ void PacingController::SetCongestionWindow(size_t congestion_window_size) {
         // Update last process time when the congestion state changed.
         // FIXME: But why do we need to do this?
         auto [elapsed_time, update] = UpdateProcessTime(clock_->CurrentTime());
-        if (update) {
+        if (update && elapsed_time > TimeDelta::Zero()) {
             ReduceDebt(elapsed_time);
         }
     }
@@ -118,19 +120,19 @@ void PacingController::OnInflightBytes(size_t inflight_bytes) {
     if (was_congested && !IsCongested()) {
         // Update last process when the congestion state changed.
         auto [elapsed_time, update] = UpdateProcessTime(clock_->CurrentTime());
-        if (update) {
+        if (update && elapsed_time > TimeDelta::Zero()) {
             ReduceDebt(elapsed_time);
         }
     }
 }
 
-void PacingController::EnqueuePacket(RtpPacketToSend packet) {
+bool PacingController::EnqueuePacket(RtpPacketToSend packet) {
     if (pacing_bitrate_ <= DataRate::Zero()) {
         PLOG_WARNING << "The pacing bitrate must be set before enqueuing packet.";
-        return;
+        return false;
     }
-    const int priority = PriorityForType(packet.packet_type());
-    EnqueuePacketInternal(std::move(packet), priority);
+    EnqueuePacketInternal(std::move(packet), PriorityForType(packet.packet_type()));
+    return true;
 }
 
 void PacingController::ProcessPackets() {
@@ -143,7 +145,7 @@ void PacingController::ProcessPackets() {
     } else if (now < target_send_time - early_execute_margin) {
         // We are too early, but if queue is empty still allow draining some debt.
         auto [elapsed_time, updated] = UpdateProcessTime(now);
-        if (updated) {
+        if (updated && elapsed_time > TimeDelta::Zero()) {
             ReduceDebt(elapsed_time);
         }
         return;
@@ -162,7 +164,7 @@ void PacingController::ProcessPackets() {
     // Check if it's time to send a heartbeat packet.
     if (IsTimeToSendHeartbeat(now)) {
         if (packet_counter_ == 0) {
-            // We can not send padding until a media packet has first beed sent.
+            // We can not send padding until a media packet has first been sent.
             last_send_time_ = now;
         } else {
             // Generate and send padding packets.
@@ -237,6 +239,8 @@ void PacingController::ProcessPackets() {
             first_packet_in_probe = false;
         }
 
+        // NOTE: 理论上，在两次发包的间隙会有包抵达接收端，因此在发送新包之前先将这段时间
+        // 抵达的数据消除。因为
         if (prev_process_time < target_send_time) {
             // Reduce buffer levels with amount corresponding to time between last
             // process and target send time for the next packet.
@@ -314,6 +318,7 @@ void PacingController::ProcessPackets() {
 Timestamp PacingController::NextSendTime() const {
     const Timestamp now = clock_->CurrentTime();
 
+    // If paused, we only send heartbeats at intervals.
     if (paused_) {
         return last_send_time_ + kPausedProcessInterval;
     }
@@ -326,9 +331,9 @@ Timestamp PacingController::NextSendTime() const {
         }
     }
 
+    // If not pacing audio, audio packet takes a higher priority.
     if (!pacing_setting_.pacing_audio) {
-        // when not pacing audio, return the enqueue time if the leading packet
-        // is audio.
+        // return the enqueue time if the current leading packet is audio.
         auto audio_enqueue_time = packet_queue_.LeadingAudioPacketEnqueueTime();
         if (audio_enqueue_time) {
             return *audio_enqueue_time;
@@ -344,14 +349,19 @@ Timestamp PacingController::NextSendTime() const {
     // Send media packets first if we can.
     if (media_bitrate_ > DataRate::Zero() && !packet_queue_.Empty()) {
         // The next time we can send next media packet as soon as possible.
+        // GTEST_COUT << "last_send_time=" << last_send_time_.ms()
+        //            << " ms - last_process_time=" << last_process_time_.ms()
+        //            << " ms - media_debt=" << media_debt_
+        //            << " - pay_off_time=" << TimeToPayOffMediaDebt().ms()
+        //            << " ms" << std::endl;
         return std::min(last_send_time_ + kPausedProcessInterval, 
-                        last_process_time_ + media_debt_ / media_bitrate_);
+                        last_process_time_ + TimeToPayOffMediaDebt());
     }
 
     // Send padding packet when no packets in queue.
     if (padding_bitrate_ > DataRate::Zero() && packet_queue_.Empty()) {
         // Both media and padding debts should be drained.
-        TimeDelta drain_time = std::max(media_debt_ / media_bitrate_, padding_debt_ / padding_bitrate_);
+        TimeDelta drain_time = std::max(TimeToPayOffMediaDebt(), TimeToPayOffPaddingDebt());
         return std::min(last_send_time_ + kPausedProcessInterval,
                         last_process_time_ + drain_time);
     }
@@ -390,7 +400,7 @@ void PacingController::EnqueuePacketInternal(RtpPacketToSend packet,
             target_process_time = std::min(now, next_send_time);
         }
         auto [elapsed_time, updated] = UpdateProcessTime(target_process_time);
-        if (updated) {
+        if (updated && elapsed_time > TimeDelta::Zero()) {
             ReduceDebt(elapsed_time);
         } else {
             last_process_time_ = target_process_time;
@@ -418,6 +428,7 @@ std::pair<TimeDelta, bool> PacingController::UpdateProcessTime(Timestamp at_time
 }
 
 void PacingController::ReduceDebt(TimeDelta elapsed_time) {
+    // GTEST_COUT << "ReduceDebt media_debt=" << media_debt_ << " - reduced=" << media_bitrate_ * elapsed_time << std::endl;
     // Make sure |media_debt_| and |padding_debt_| not becomes a negative.
     media_debt_ -= std::min(media_debt_, media_bitrate_ * elapsed_time);
     padding_debt_ -= std::min(padding_debt_, padding_bitrate_ * elapsed_time);
@@ -429,6 +440,7 @@ void PacingController::AddDebt(size_t sent_bytes) {
     padding_debt_ += sent_bytes;
     media_debt_ = std::min(media_debt_, media_bitrate_ * kMaxDebtInTime);
     padding_debt_ = std::min(padding_debt_, padding_bitrate_ * kMaxDebtInTime);
+    // GTEST_COUT << "AddDebt sent_bytes=" << sent_bytes << " - media_debt=" << media_debt_ << std::endl;
 }
 
 bool PacingController::IsTimeToSendHeartbeat(Timestamp at_time) const {
@@ -477,12 +489,14 @@ std::optional<RtpPacketToSend> PacingController::NextPacketToSend(const PacedPac
         return std::nullopt;
     }
 
+    // NOTE: 音频包由于音频对连续性要求高，且因本身体积小不易丢包，因此可以选择忽略网络拥塞情况。
     // Check if the next packet to send is a unpaced audio packet.
     bool has_unpaced_audio_packet = !pacing_setting_.pacing_audio && packet_queue_.LeadingAudioPacketEnqueueTime().has_value();
     bool is_probing = pacing_info.probe_cluster.has_value();
     // If the next packet is not neither a audio nor used to probe,
     // we need to check it futher.
     if (!has_unpaced_audio_packet && !is_probing) {
+        // NOTE: 如果目前仍处于拥塞情况则不再发送新包，因为新包只会进一步加剧拥塞。
         if (IsCongested()) {
             // Don't send any packets (except unpaced aduio packet or probe packet) if congested.
             return std::nullopt;
@@ -490,10 +504,22 @@ std::optional<RtpPacketToSend> PacingController::NextPacketToSend(const PacedPac
 
         // Allow sending slight early if we could.
         if (at_time <= target_send_time) {
-            // The time required to reduce the current debt to zero.
-            auto flush_time = media_debt_ / media_bitrate_;
-            // Check if we can pay off the debt at the target sent time.
-            if (at_time + flush_time > target_send_time) {
+            // Check if we can pay off the debt (reduce debt to zero) at least 
+            // at the target sent time.
+            // NOTE: |time_to_pay_off|是一个估计值，预估之前发送的包到达接收端的理论时长。
+            // 因为此时|media_debt_|对应的包可能已经抵达接受端，只是发送端还没收到反馈而已，
+            // 故media_debt_可能未被及时更新。
+            auto time_to_pay_off = TimeToPayOffMediaDebt();
+            // GTEST_COUT << "at_time=" << at_time.ms() 
+            //            << " ms - target_send_time=" << target_send_time.ms()
+            //            << " ms - time_to_pay_off=" << time_to_pay_off.ms() << " ms."
+            //            << std::endl;
+            // NOTE: 如果此时|media_debt_|对应的包理论上还未抵达接收端，则暂时不发送新包。
+            // 因为这只会进一步加剧网络拥塞。
+            // 当|at_time + time_to_pay_off > target_send_time|表示即便是按时（at target_send_time）
+            // 发送下一个包，已发送的旧包仍未抵达接收端，故暂时不发新包，以避免加剧拥塞。
+            // 反之，如果在按时发送下一个包之前，旧包就已经抵达接收端，故可以提前发送新包，以减少延时。
+            if (at_time + time_to_pay_off > target_send_time) {
                 // Wait for next sent time.
                 return std::nullopt;
             }
@@ -535,6 +561,14 @@ size_t PacingController::PaddingSizeToAdd(size_t recommended_probe_size, size_t 
     }
 
     return 0;
+}
+
+inline TimeDelta PacingController::TimeToPayOffMediaDebt() const {
+    return media_debt_ / media_bitrate_;
+}
+
+inline TimeDelta PacingController::TimeToPayOffPaddingDebt() const {
+    return padding_debt_ / padding_bitrate_;
 }
     
 } // namespace naivertc
