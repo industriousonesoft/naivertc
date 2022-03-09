@@ -240,7 +240,7 @@ void PacingController::ProcessPackets() {
         }
 
         // NOTE: 理论上，在两次发包的间隙会有包抵达接收端，因此在发送新包之前先将这段时间
-        // 抵达的数据消除。因为
+        // 对应的债务（抵达的包）消除。
         if (prev_process_time < target_send_time) {
             // Reduce buffer levels with amount corresponding to time between last
             // process and target send time for the next packet.
@@ -256,6 +256,11 @@ void PacingController::ProcessPackets() {
             // Check if we should send padding.
             size_t padding_to_add = PaddingSizeToAdd(recommended_probe_size, sent_bytes);
             if (padding_to_add > 0) {
+                GTEST_COUT << "padding_to_add=" << padding_to_add 
+                           << " - target_send_time=" << target_send_time.ms() 
+                           << " ms - last_send_time=" << last_send_time_.ms()
+                           << " ms - last_process_time=" << last_process_time_.ms()
+                           << std::endl;
                 auto padding_packets = packet_sender_->GeneratePadding(padding_to_add);
                 // Enqueue the padding packets.
                 if (!padding_packets.empty()) {
@@ -379,6 +384,10 @@ bool PacingController::IsCongested() const {
         return inflight_bytes_ >= congestion_window_size_;
     } 
     return false;
+}
+
+size_t PacingController::NumQueuedPackets() const {
+    return packet_queue_.num_packets();
 }
 
 // Private methods
@@ -555,7 +564,7 @@ size_t PacingController::PaddingSizeToAdd(size_t recommended_probe_size, size_t 
         }
     }
 
-    // FIXME: Why |padding_debt_ == 0| required?
+    // Only add new padding till all padding debt has payed off.
     if (padding_bitrate_ > DataRate::Zero() && padding_debt_ == 0) {
         return pacing_setting_.padding_target_duration * padding_bitrate_;
     }

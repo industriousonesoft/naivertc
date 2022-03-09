@@ -101,6 +101,8 @@ public:
 
     bool IsCongested() const;
 
+    size_t NumQueuedPackets() const;
+
 private:
     void EnqueuePacketInternal(RtpPacketToSend packet, 
                                const int priority);
