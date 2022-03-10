@@ -66,6 +66,8 @@ private:
     struct ProbeClusterInfo;
     Timestamp CalculateNextProbeTime(const ProbeClusterInfo& cluster) const;
 
+    inline bool IsProbeDelayed(Timestamp at_time) const;
+
 private:
     // ProbingState
     enum class ProbingState {

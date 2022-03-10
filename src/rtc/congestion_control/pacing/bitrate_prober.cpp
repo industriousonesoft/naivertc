@@ -94,9 +94,12 @@ Timestamp BitrateProber::NextTimeToProbe(Timestamp at_time) const {
     if (probing_state_ != ProbingState::ACTIVE || clusters_.empty()) {
         return Timestamp::PlusInfinity();
     }
+    // NOTE: 此处有两种模式，且该函数常与NextProbeCluster函数组合使用。
+    // 模式1：旧模式保留延误的探测包，只是给出警告，返回一个最大时间，然后在NextProbeCluster函数中跳过超时检测，正常发送。
+    // 模式2：新模式丢弃延误的探测包，返回正常发送时间，然后在NextProbeCluster函数中因超时而被丢弃。
+    // Legacy behavior, just warn about late probe and return as if not probing.
     // It's too late to request next probe.
-    if (!config_.abort_delayed_probes && next_time_to_probe_.IsFinite() &&
-        at_time - next_time_to_probe_ > config_.max_probe_delay) {
+    if (!config_.abort_delayed_probes && IsProbeDelayed(at_time)) {
         PLOG_WARNING << "Probe delay too high (exceed " 
                      << config_.max_probe_delay.ms() 
                      << " ms), droping it.";
@@ -111,8 +114,7 @@ std::optional<ProbeCluster> BitrateProber::NextProbeCluster(Timestamp at_time) {
         return std::nullopt;
     }
     // It's too late to request next probe.
-    if (config_.abort_delayed_probes && next_time_to_probe_.IsFinite() &&
-        at_time - next_time_to_probe_ > config_.max_probe_delay) {
+    if (config_.abort_delayed_probes && IsProbeDelayed(at_time)) {
         PLOG_WARNING << "Probe delay too high (exceed " 
                      << config_.max_probe_delay.ms() 
                      << " ms), discarding it.";
@@ -122,7 +124,6 @@ std::optional<ProbeCluster> BitrateProber::NextProbeCluster(Timestamp at_time) {
             return std::nullopt;
         }
     }
-
     return clusters_.front().probe_cluster;
 }
 
@@ -169,6 +170,10 @@ Timestamp BitrateProber::CalculateNextProbeTime(const ProbeClusterInfo& cluster)
     // probe bitrate stays close to the target bitrate.
     TimeDelta delta = cluster.probe_cluster.sent_bytes / cluster.probe_cluster.target_bitrate;
     return cluster.started_at + delta;
+}
+
+bool BitrateProber::IsProbeDelayed(Timestamp at_time) const {
+    return next_time_to_probe_.IsFinite() && at_time - next_time_to_probe_ > config_.max_probe_delay;
 }
     
 } // namespace naivertc
