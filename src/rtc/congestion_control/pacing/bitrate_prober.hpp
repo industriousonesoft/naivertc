@@ -51,7 +51,7 @@ public:
     Timestamp NextTimeToProbe(Timestamp at_time) const;
 
     // Returns the next unexpired prober in cluster queue, 
-    std::optional<ProbeCluster> NextProbeCluster(Timestamp at_time);
+    std::optional<ProbeCluster> CurrentProbeCluster(Timestamp at_time);
 
     // Returns the minimum number of bytes that the prober recommends for
     // the next probe, or zero if not probing.
@@ -66,7 +66,7 @@ private:
     struct ProbeClusterInfo;
     Timestamp CalculateNextProbeTime(const ProbeClusterInfo& cluster) const;
 
-    inline bool IsProbeDelayed(Timestamp at_time) const;
+    inline bool IsProbeTimedOut(Timestamp at_time) const;
 
 private:
     // ProbingState

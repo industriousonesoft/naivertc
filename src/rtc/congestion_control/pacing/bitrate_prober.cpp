@@ -94,12 +94,12 @@ Timestamp BitrateProber::NextTimeToProbe(Timestamp at_time) const {
     if (probing_state_ != ProbingState::ACTIVE || clusters_.empty()) {
         return Timestamp::PlusInfinity();
     }
-    // NOTE: 此处有两种模式，且该函数常与NextProbeCluster函数组合使用。
-    // 模式1：旧模式保留延误的探测包，只是给出警告，返回一个最大时间，然后在NextProbeCluster函数中跳过超时检测，正常发送。
-    // 模式2：新模式丢弃延误的探测包，返回正常发送时间，然后在NextProbeCluster函数中因超时而被丢弃。
+    // NOTE: 此处有两种模式，且该函数常与CurrentProbeCluster函数组合使用。
+    // 模式1：旧模式保留延误的探测包，只是给出警告，返回一个最大时间，然后在CurrentProbeCluster函数中跳过超时检测，正常发送。
+    // 模式2：新模式丢弃延误的探测包，返回正常发送时间，然后在CurrentProbeCluster函数中因超时而被丢弃。
     // Legacy behavior, just warn about late probe and return as if not probing.
     // It's too late to request next probe.
-    if (!config_.abort_delayed_probes && IsProbeDelayed(at_time)) {
+    if (!config_.abort_delayed_probes && IsProbeTimedOut(at_time)) {
         PLOG_WARNING << "Probe delay too high (exceed " 
                      << config_.max_probe_delay.ms() 
                      << " ms), droping it.";
@@ -108,13 +108,13 @@ Timestamp BitrateProber::NextTimeToProbe(Timestamp at_time) const {
     return next_time_to_probe_;
 }
 
-std::optional<ProbeCluster> BitrateProber::NextProbeCluster(Timestamp at_time) {
+std::optional<ProbeCluster> BitrateProber::CurrentProbeCluster(Timestamp at_time) {
     // Probing is not active or probing is complete already.
     if (probing_state_ != ProbingState::ACTIVE || clusters_.empty()) {
         return std::nullopt;
     }
     // It's too late to request next probe.
-    if (config_.abort_delayed_probes && IsProbeDelayed(at_time)) {
+    if (config_.abort_delayed_probes && IsProbeTimedOut(at_time)) {
         PLOG_WARNING << "Probe delay too high (exceed " 
                      << config_.max_probe_delay.ms() 
                      << " ms), discarding it.";
@@ -172,7 +172,7 @@ Timestamp BitrateProber::CalculateNextProbeTime(const ProbeClusterInfo& cluster)
     return cluster.started_at + delta;
 }
 
-bool BitrateProber::IsProbeDelayed(Timestamp at_time) const {
+bool BitrateProber::IsProbeTimedOut(Timestamp at_time) const {
     return next_time_to_probe_.IsFinite() && at_time - next_time_to_probe_ > config_.max_probe_delay;
 }
     
