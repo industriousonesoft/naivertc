@@ -26,7 +26,7 @@ public:
     void set_transport_overhead(size_t overhead_per_packet);
 
     size_t num_packets() const { return num_packets_; }
-    size_t packet_size() const { return total_packet_size_; }
+    size_t queued_size() const { return total_queued_size_; }
 
     bool Empty() const;
 
@@ -38,11 +38,13 @@ public:
     std::optional<RtpPacketToSend> Pop();
 
     Timestamp OldestEnqueueTime() const;
-    void UpdateEnqueueTime(Timestamp now);
+    void UpdateEnqueueTime(Timestamp at_time);
 
     TimeDelta AverageQueueTime() const;
 
     std::optional<Timestamp> LeadingAudioPacketEnqueueTime() const;
+
+    void SetPauseState(bool paused, Timestamp at_time);
 
 private:
     struct QueuedPacket;
@@ -126,7 +128,7 @@ private:
     bool paused_ = false;
     size_t num_packets_ = 0;
     // The total size of all packets in streams.
-    size_t total_packet_size_ = 0;
+    size_t total_queued_size_ = 0;
     TimeDelta queue_time_sum_ = TimeDelta::Zero();
     TimeDelta pause_time_sum_ = TimeDelta::Zero();
 
