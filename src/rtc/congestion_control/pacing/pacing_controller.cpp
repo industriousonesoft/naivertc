@@ -42,7 +42,7 @@ int PriorityForType(RtpPacketType packet_type) {
   
 } // namespace
 
-const TimeDelta PacingController::kMaxExpectedQueueTime = TimeDelta::Millis(2000);
+const TimeDelta PacingController::kMaxExpectedQueueTime = TimeDelta::Millis(2000); // 2s
 const float PacingController::kDefaultPaceMultiplier = 2.5f;
 const TimeDelta PacingController::kPausedProcessInterval = kCongestedPacketInterval; // 500 ms
 const TimeDelta PacingController::kMaxEarlyProbeProcessing = TimeDelta::Millis(1); // 1 ms
@@ -90,6 +90,26 @@ std::optional<Timestamp> PacingController::first_sent_packet_time() const {
     return first_sent_packet_time_;
 }
 
+void PacingController::Pause() {
+    if (!paused_) {
+        PLOG_INFO << "PacedSender paused.";
+    }
+    paused_ = true;
+    packet_queue_.SetPauseState(paused_, clock_->CurrentTime());
+}
+
+void PacingController::Resume() {
+    if (paused_) {
+        PLOG_INFO << "PacedSender resumed.";
+    }
+    paused_ = false;
+    packet_queue_.SetPauseState(paused_, clock_->CurrentTime());
+}
+
+void PacingController::SetProbingEnabled(bool enabled) {
+    prober_.SetEnabled(enabled);
+}
+
 void PacingController::SetPacingBitrate(DataRate pacing_bitrate, 
                                         DataRate padding_bitrate) {
     media_bitrate_ = pacing_bitrate;
@@ -133,6 +153,11 @@ bool PacingController::EnqueuePacket(RtpPacketToSend packet) {
     }
     EnqueuePacketInternal(std::move(packet), PriorityForType(packet.packet_type()));
     return true;
+}
+
+bool PacingController::AddProbeCluster(int cluster_id, 
+                                       DataRate target_bitrate) {
+    return prober_.AddProbeCluster(cluster_id, target_bitrate, clock_->CurrentTime());
 }
 
 void PacingController::ProcessPackets() {
@@ -188,7 +213,7 @@ void PacingController::ProcessPackets() {
 
     if (elapsed_time > TimeDelta::Zero()) {
         auto target_bitrate = pacing_bitrate_;
-        size_t queued_packet_size = packet_queue_.packet_size();
+        size_t queued_packet_size = packet_queue_.queued_size();
         if (queued_packet_size > 0) {
             packet_queue_.UpdateEnqueueTime(now);
             if (pacing_setting_.drain_large_queue) {
@@ -212,7 +237,7 @@ void PacingController::ProcessPackets() {
     if (is_probing) {
         // Probe timing is sensitive, and handled explicitly by BitrateProber,
         // so use actual sent time rather |target_send_time|.
-        pacing_info.probe_cluster = prober_.NextProbeCluster(now);
+        pacing_info.probe_cluster = prober_.CurrentProbeCluster(now);
         if (pacing_info.probe_cluster.has_value()) {
             first_packet_in_probe = pacing_info.probe_cluster->sent_bytes == 0;
             recommended_probe_size = prober_.RecommendedMinProbeSize();
@@ -226,8 +251,9 @@ void PacingController::ProcessPackets() {
 
     while (!paused_) {
         if (first_packet_in_probe) {
+            // FIXME: Why probing starts with a small padding packet?
             // If it's first packet in probe, we insert a small padding packet so
-            // we have a more reliable start window for the rate estimation.
+            // we have a more reliable start window for the bitrate estimation.
             auto padding_packets = packet_sender_->GeneratePadding(1);
             if (!padding_packets.empty()) {
                 // Should return only one padding packet with a requested size of 1 byte.
@@ -256,11 +282,11 @@ void PacingController::ProcessPackets() {
             // Check if we should send padding.
             size_t padding_to_add = PaddingSizeToAdd(recommended_probe_size, sent_bytes);
             if (padding_to_add > 0) {
-                GTEST_COUT << "padding_to_add=" << padding_to_add 
-                           << " - target_send_time=" << target_send_time.ms() 
-                           << " ms - last_send_time=" << last_send_time_.ms()
-                           << " ms - last_process_time=" << last_process_time_.ms()
-                           << std::endl;
+                // GTEST_COUT << "padding_to_add=" << padding_to_add 
+                //            << " - target_send_time=" << target_send_time.ms() 
+                //            << " ms - last_send_time=" << last_send_time_.ms()
+                //            << " ms - last_process_time=" << last_process_time_.ms()
+                //            << std::endl;
                 auto padding_packets = packet_sender_->GeneratePadding(padding_to_add);
                 // Enqueue the padding packets.
                 if (!padding_packets.empty()) {
@@ -291,8 +317,10 @@ void PacingController::ProcessPackets() {
 
         OnMediaSent(packet_type, packet_size, target_send_time);
 
+        // NOTE: Probing works by sending short bursts of RTP packet at a bitrate
+        // that we wish to see, rather than sending packet continuously.
         // If we are currently probing, we need to stop the send loop 
-        // when we have reached the send target(sent_bytes >= recommended_probe_size).
+        // when we have reached the send target.
         if (is_probing && sent_bytes >= recommended_probe_size) {
             break;
         }
@@ -388,6 +416,14 @@ bool PacingController::IsCongested() const {
 
 size_t PacingController::NumQueuedPackets() const {
     return packet_queue_.num_packets();
+}
+
+Timestamp PacingController::OldestPacketEnqueueTime() const {
+    return packet_queue_.OldestEnqueueTime();
+}
+
+TimeDelta PacingController::ExpectedQueueTime() const {
+    return packet_queue_.queued_size() / pacing_bitrate_;
 }
 
 // Private methods
@@ -509,10 +545,9 @@ std::optional<RtpPacketToSend> PacingController::NextPacketToSend(const PacedPac
         if (IsCongested()) {
             // Don't send any packets (except unpaced aduio packet or probe packet) if congested.
             return std::nullopt;
-        }
-
+        } 
         // Allow sending slight early if we could.
-        if (at_time <= target_send_time) {
+        else if (at_time <= target_send_time) {
             // Check if we can pay off the debt (reduce debt to zero) at least 
             // at the target sent time.
             // NOTE: |time_to_pay_off|是一个估计值，预估之前发送的包到达接收端的理论时长。

@@ -32,7 +32,7 @@ void RoundRobinPacketQueue::set_include_overhead() {
         for (const auto& packet : stream.second.packet_queue) {
             // The header size of each packet may be different as within defferent
             // header extensions.
-            total_packet_size_ += packet.owned_packet.header_size() + transport_overhead_;
+            total_queued_size_ += packet.owned_packet.header_size() + transport_overhead_;
         }
     }
 }
@@ -46,7 +46,7 @@ void RoundRobinPacketQueue::set_transport_overhead(size_t overhead_per_packet) {
     // Update the size to reflect overhead for existing packets.
     for (const auto& stream : streams_) {
         int num_packets = stream.second.packet_queue.size();
-        total_packet_size_ += num_packets * (overhead_per_packet - transport_overhead_);
+        total_queued_size_ += num_packets * (overhead_per_packet - transport_overhead_);
     }
     transport_overhead_ = overhead_per_packet;
 }
@@ -74,7 +74,7 @@ void RoundRobinPacketQueue::Push(int priority,
         UpdateEnqueueTime(enqueue_time);
         single_packet_queue_->SubtractPauseTime(pause_time_sum_);
         num_packets_ = 1;
-        total_packet_size_ += PacketSize(*single_packet_queue_);
+        total_queued_size_ += PacketSize(*single_packet_queue_);
     } else {
         MaybePromoteSinglePacketToNormalQueue();
         Push(QueuedPacket(priority, 
@@ -91,7 +91,7 @@ std::optional<RtpPacketToSend> RoundRobinPacketQueue::Pop() {
         single_packet_queue_.reset();
         queue_time_sum_ = TimeDelta::Zero();
         num_packets_ = 0;
-        total_packet_size_ = 0;
+        total_queued_size_ = 0;
         return rtp_packet;
     }
 
@@ -127,7 +127,7 @@ std::optional<RtpPacketToSend> RoundRobinPacketQueue::Pop() {
     stream->sent_size = std::max(stream->sent_size + packet_size, max_stream_sent_size_ - kMaxLeadingSize);
     max_stream_sent_size_ = std::max(max_stream_sent_size_, stream->sent_size);
 
-    total_packet_size_ -= packet_size;
+    total_queued_size_ -= packet_size;
     num_packets_ -= 1;
 
     RtpPacketToSend rtp_packet = std::move(queued_packet.owned_packet);
@@ -155,18 +155,18 @@ Timestamp RoundRobinPacketQueue::OldestEnqueueTime() const {
     return *enqueue_times_.begin();
 }
 
-void RoundRobinPacketQueue::UpdateEnqueueTime(Timestamp now) {
-    if (now <= time_last_update_) {
+void RoundRobinPacketQueue::UpdateEnqueueTime(Timestamp at_time) {
+    if (at_time <= time_last_update_) {
         return;
     }
-    auto delta = now - time_last_update_;
+    auto delta = at_time - time_last_update_;
     if (paused_) {
         pause_time_sum_ += delta;
     } else {
         // FIXME: How to understand this?
         queue_time_sum_ += TimeDelta::Micros(delta.us() * num_packets_);
     }
-    time_last_update_ = now;
+    time_last_update_ = at_time;
 }
 
 TimeDelta RoundRobinPacketQueue::AverageQueueTime() const {
@@ -197,6 +197,14 @@ std::optional<Timestamp> RoundRobinPacketQueue::LeadingAudioPacketEnqueueTime() 
         return top_packet.enqueue_time;
     }
     return std::nullopt;
+}
+
+void RoundRobinPacketQueue::SetPauseState(bool paused, Timestamp at_time) {
+    if (paused_ == paused) {
+        return;
+    }
+    UpdateEnqueueTime(at_time);
+    paused_ = paused;
 }
 
 // Private methods
@@ -234,7 +242,7 @@ void RoundRobinPacketQueue::Push(QueuedPacket packet) {
         packet.SubtractPauseTime(pause_time_sum_);
 
         num_packets_ += 1;
-        total_packet_size_ += PacketSize(packet);
+        total_queued_size_ += PacketSize(packet);
     }
 
     stream.packet_queue.push(std::move(packet));

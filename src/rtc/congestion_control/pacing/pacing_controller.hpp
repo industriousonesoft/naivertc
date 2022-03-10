@@ -85,6 +85,11 @@ public:
 
     std::optional<Timestamp> first_sent_packet_time() const;
 
+    void Pause();
+    void Resume();
+
+    void SetProbingEnabled(bool enabled);
+
     void SetPacingBitrate(DataRate pacing_bitrate, 
                           DataRate padding_bitrate);
 
@@ -95,6 +100,9 @@ public:
     // it's time to send.
     bool EnqueuePacket(RtpPacketToSend packet);
 
+    bool AddProbeCluster(int cluster_id, 
+                         DataRate target_bitrate);
+
     void ProcessPackets();
 
     Timestamp NextSendTime() const;
@@ -102,6 +110,10 @@ public:
     bool IsCongested() const;
 
     size_t NumQueuedPackets() const;
+
+    Timestamp OldestPacketEnqueueTime() const;
+
+    TimeDelta ExpectedQueueTime() const;
 
 private:
     void EnqueuePacketInternal(RtpPacketToSend packet, 
