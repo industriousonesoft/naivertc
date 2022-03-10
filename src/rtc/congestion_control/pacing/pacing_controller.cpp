@@ -473,10 +473,12 @@ std::pair<TimeDelta, bool> PacingController::UpdateProcessTime(Timestamp at_time
 }
 
 void PacingController::ReduceDebt(TimeDelta elapsed_time) {
-    // GTEST_COUT << "ReduceDebt media_debt=" << media_debt_ << " - reduced=" << media_bitrate_ * elapsed_time << std::endl;
     // Make sure |media_debt_| and |padding_debt_| not becomes a negative.
     media_debt_ -= std::min(media_debt_, media_bitrate_ * elapsed_time);
     padding_debt_ -= std::min(padding_debt_, padding_bitrate_ * elapsed_time);
+    GTEST_COUT << "ReduceDebt media_debt=" << media_debt_ 
+               << " - padding_debt_=" << padding_debt_ 
+               << std::endl;
 }
 
 void PacingController::AddDebt(size_t sent_bytes) {
@@ -485,7 +487,10 @@ void PacingController::AddDebt(size_t sent_bytes) {
     padding_debt_ += sent_bytes;
     media_debt_ = std::min(media_debt_, media_bitrate_ * kMaxDebtInTime);
     padding_debt_ = std::min(padding_debt_, padding_bitrate_ * kMaxDebtInTime);
-    // GTEST_COUT << "AddDebt sent_bytes=" << sent_bytes << " - media_debt=" << media_debt_ << std::endl;
+    GTEST_COUT << "AddDebt sent_bytes=" << sent_bytes 
+               << " - media_debt=" << media_debt_
+               << " - padding_debt=" << padding_debt_
+               << std::endl;
 }
 
 bool PacingController::IsTimeToSendHeartbeat(Timestamp at_time) const {

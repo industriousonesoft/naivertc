@@ -1079,7 +1079,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_SkipsProbesWhenProcessIntervalTooLarge)
     }
 }
 
-MY_TEST_F(PacingControllerTest, ProbingWithPaddingSupport) {
+MY_TEST_F(PacingControllerTest, DISABLED_ProbingWithPaddingSupport) {
     const size_t kPacketSize = 1200;
     const DataRate kInitialBitrate = DataRate::KilobitsPerSec(300);
 
@@ -1090,7 +1090,7 @@ MY_TEST_F(PacingControllerTest, ProbingWithPaddingSupport) {
     for (int i = 0; i < 3; ++i) {
         EnqueuePacket(RtpPacketType::VIDEO, kVideoSsrc, seq_num++, clock_.now_ms(), kPacketSize);
     }
-   
+    
     const auto start_time = clock_.CurrentTime();
     int process_count = 0;
     while (process_count < 5) {
@@ -1104,6 +1104,29 @@ MY_TEST_F(PacingControllerTest, ProbingWithPaddingSupport) {
     auto probed_bitrate = packet_sender_.total_bytes_sent() / (clock_.CurrentTime() - start_time);
 
     EXPECT_NEAR(probed_bitrate.bps(), kFirstClusterBitrate.bps(), kProbingErrorMargin.bps());
+}
+
+MY_TEST_F(PacingControllerTest, PaddingOveruse) {
+    const size_t kPacketSize = 1200;
+    // Initially no padding bitrate.
+    pacer_->SetPacingBitrate(DataRate::BitsPerSec(60'000 * PacingController::kDefaultPaceMultiplier), DataRate::Zero());
+
+    uint16_t seq_num = 100;
+    EnqueueAndVerifyPacket(RtpPacketType::VIDEO, kVideoSsrc, seq_num++, clock_.now_ms(), kPacketSize);
+    pacer_->ProcessPackets();
+
+    // Add 30kbps padding. When increase budget, media budget will increase from
+    // negative (overuse) while padding budget will increase from 0 (as padding bitrate is zero).
+    clock_.AdvanceTimeMs(5);
+    // 150000 bps
+    pacer_->SetPacingBitrate(DataRate::BitsPerSec(60'000 * PacingController::kDefaultPaceMultiplier), DataRate::BitsPerSec(30'000));
+
+    EnqueueAndVerifyPacket(RtpPacketType::VIDEO, kVideoSsrc, seq_num++, clock_.now_ms(), kPacketSize);
+    EXPECT_GT(pacer_->ExpectedQueueTime(), TimeDelta::Millis(5));
+
+    // Don't send padding if queue is non-empty, even if padding debut == 0.
+    EXPECT_CALL(packet_sender_, SendPadding).Times(0);
+    ProcessNext();
 }
 
 } // namespace test    
