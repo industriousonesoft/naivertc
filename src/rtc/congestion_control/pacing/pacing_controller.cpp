@@ -249,9 +249,13 @@ void PacingController::ProcessPackets() {
 
     size_t sent_bytes = 0;
 
+    // NOTE: 进入process循环后会根据包的优先级进行处理，即先发送优先级高的包：
+    // audio > retransmission > video&FEC > padding.
+    // 如果当前优先级的包已经发送完，则检查并发送下一个优先级的包，以此类推。直到
+    // 在此次需要发送的包都已经全部发送，或因probe才会退出循环。
     while (!paused_) {
         if (first_packet_in_probe) {
-            // FIXME: Why probing starts with a small padding packet?
+            // FIXME: Why does probing starts with a small padding packet?
             // If it's first packet in probe, we insert a small padding packet so
             // we have a more reliable start window for the bitrate estimation.
             auto padding_packets = packet_sender_->GeneratePadding(1);
@@ -265,8 +269,8 @@ void PacingController::ProcessPackets() {
             first_packet_in_probe = false;
         }
 
-        // NOTE: 理论上，在两次发包的间隙会有包抵达接收端，因此在发送新包之前先将这段时间
-        // 对应的债务（抵达的包）消除。
+        // NOTE: 每次进入process的第一个循环时以下条件恒成立，期望是每次调用
+        // process都能发送新包。
         if (prev_process_time < target_send_time) {
             // Reduce buffer levels with amount corresponding to time between last
             // process and target send time for the next packet.
@@ -283,9 +287,9 @@ void PacingController::ProcessPackets() {
             size_t padding_to_add = PaddingSizeToAdd(recommended_probe_size, sent_bytes);
             if (padding_to_add > 0) {
                 // GTEST_COUT << "padding_to_add=" << padding_to_add 
-                //            << " - target_send_time=" << target_send_time.ms() 
-                //            << " ms - last_send_time=" << last_send_time_.ms()
-                //            << " ms - last_process_time=" << last_process_time_.ms()
+                //            << " - recommended_probe_size=" << recommended_probe_size
+                //            << " - sent_bytes=" << sent_bytes
+                //            << " - last_process_time=" << last_process_time_.ms()
                 //            << std::endl;
                 auto padding_packets = packet_sender_->GeneratePadding(padding_to_add);
                 // Enqueue the padding packets.
@@ -309,6 +313,7 @@ void PacingController::ProcessPackets() {
 
         // Send packet
         packet_sender_->SendPacket(std::move(*rtp_packet), pacing_info);
+        // FIXME: Why does the padding need FEC protection too?
         // Enqueue FEC packet after sending.
         for (auto& fec_packet : packet_sender_->FetchFecPackets()) {
             EnqueuePacket(std::move(fec_packet));
@@ -325,7 +330,8 @@ void PacingController::ProcessPackets() {
             break;
         }
 
-        // FIXME: Why do we update the send time here?
+        // NOTE: 如果下一次发包时间是在未来，即target_send_time = now，
+        // 说明此次需要发送的media包都已经发送，接下来就检查是否需要发送padding包。
         // Update target send time in case that are more packets 
         // that we are late in processing.
         Timestamp next_sent_time = NextSendTime();
@@ -385,7 +391,7 @@ Timestamp PacingController::NextSendTime() const {
         // GTEST_COUT << "last_send_time=" << last_send_time_.ms()
         //            << " ms - last_process_time=" << last_process_time_.ms()
         //            << " ms - media_debt=" << media_debt_
-        //            << " - pay_off_time=" << TimeToPayOffMediaDebt().ms()
+        //            << " - paid_off_time=" << TimeToPayOffMediaDebt().ms()
         //            << " ms" << std::endl;
         return std::min(last_send_time_ + kPausedProcessInterval, 
                         last_process_time_ + TimeToPayOffMediaDebt());
@@ -476,9 +482,9 @@ void PacingController::ReduceDebt(TimeDelta elapsed_time) {
     // Make sure |media_debt_| and |padding_debt_| not becomes a negative.
     media_debt_ -= std::min(media_debt_, media_bitrate_ * elapsed_time);
     padding_debt_ -= std::min(padding_debt_, padding_bitrate_ * elapsed_time);
-    GTEST_COUT << "ReduceDebt media_debt=" << media_debt_ 
-               << " - padding_debt_=" << padding_debt_ 
-               << std::endl;
+    // GTEST_COUT << "ReduceDebt media_debt=" << media_debt_ 
+    //            << " - padding_debt_=" << padding_debt_ 
+    //            << std::endl;
 }
 
 void PacingController::AddDebt(size_t sent_bytes) {
@@ -487,10 +493,10 @@ void PacingController::AddDebt(size_t sent_bytes) {
     padding_debt_ += sent_bytes;
     media_debt_ = std::min(media_debt_, media_bitrate_ * kMaxDebtInTime);
     padding_debt_ = std::min(padding_debt_, padding_bitrate_ * kMaxDebtInTime);
-    GTEST_COUT << "AddDebt sent_bytes=" << sent_bytes 
-               << " - media_debt=" << media_debt_
-               << " - padding_debt=" << padding_debt_
-               << std::endl;
+    // GTEST_COUT << "AddDebt sent_bytes=" << sent_bytes 
+    //            << " - media_debt=" << media_debt_
+    //            << " - padding_debt=" << padding_debt_
+    //            << std::endl;
 }
 
 bool PacingController::IsTimeToSendHeartbeat(Timestamp at_time) const {
@@ -553,22 +559,22 @@ std::optional<RtpPacketToSend> PacingController::NextPacketToSend(const PacedPac
         } 
         // Allow sending slight early if we could.
         else if (at_time <= target_send_time) {
-            // Check if we can pay off the debt (reduce debt to zero) at least 
+            // Check if we can paid off the debt (reduce debt to zero) at least 
             // at the target sent time.
-            // NOTE: |time_to_pay_off|是一个估计值，预估之前发送的包到达接收端的理论时长。
+            // NOTE: |time_to_paid_off|是一个估计值，预估之前发送的包到达接收端的理论时长。
             // 因为此时|media_debt_|对应的包可能已经抵达接受端，只是发送端还没收到反馈而已，
             // 故media_debt_可能未被及时更新。
-            auto time_to_pay_off = TimeToPayOffMediaDebt();
+            auto time_to_paid_off = TimeToPayOffMediaDebt();
             // GTEST_COUT << "at_time=" << at_time.ms() 
             //            << " ms - target_send_time=" << target_send_time.ms()
-            //            << " ms - time_to_pay_off=" << time_to_pay_off.ms() << " ms."
+            //            << " ms - time_to_paid_off=" << time_to_paid_off.ms() << " ms."
             //            << std::endl;
             // NOTE: 如果此时|media_debt_|对应的包理论上还未抵达接收端，则暂时不发送新包。
             // 因为这只会进一步加剧网络拥塞。
-            // 当|at_time + time_to_pay_off > target_send_time|表示即便是按时（at target_send_time）
+            // 当|at_time + time_to_paid_off > target_send_time|表示即便是按时（at target_send_time）
             // 发送下一个包，已发送的旧包仍未抵达接收端，故暂时不发新包，以避免加剧拥塞。
             // 反之，如果在按时发送下一个包之前，旧包就已经抵达接收端，故可以提前发送新包，以减少延时。
-            if (at_time + time_to_pay_off > target_send_time) {
+            if (at_time + time_to_paid_off > target_send_time) {
                 // Wait for next sent time.
                 return std::nullopt;
             }
@@ -604,7 +610,7 @@ size_t PacingController::PaddingSizeToAdd(size_t recommended_probe_size, size_t 
         }
     }
 
-    // Only add new padding till all padding debt has payed off.
+    // Only add new padding till all padding debt has paid off.
     if (padding_bitrate_ > DataRate::Zero() && padding_debt_ == 0) {
         return pacing_setting_.padding_target_duration * padding_bitrate_;
     }

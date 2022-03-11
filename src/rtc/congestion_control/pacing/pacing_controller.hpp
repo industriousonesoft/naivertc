@@ -168,6 +168,9 @@ private:
 
     size_t congestion_window_size_ = 0;
     size_t inflight_bytes_ = 0;
+    // Account for audio: so that audio packets can cause pushback on other
+    // types such as video. But audio packet should still be immediated passed
+    // through though.
     bool account_for_audio_ = false;
 
     TimeDelta queue_time_cap_;
