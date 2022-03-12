@@ -9,6 +9,7 @@ TaskQueuePacedSender::TaskQueuePacedSender(const Configuration& config,
       max_hold_back_window_(max_hold_back_window),
       max_hold_window_in_packets_(max_hold_window_in_packets),
       pacing_controller_(config),
+      packet_size_(/*alpha=*/0.95),
       task_queue_("TaskQueuePacedSender.task.queue") {
 
 }
