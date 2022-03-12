@@ -83,6 +83,7 @@ set(LIB_HEADERS
     src/rtc/base/numerics/running_statistics.hpp
     src/rtc/base/numerics/histogram_percentile_counter.hpp
     src/rtc/base/numerics/divide_round.hpp
+    src/rtc/base/numerics/exp_filter.hpp
     src/rtc/base/task_utils/repeating_task.hpp
     src/rtc/base/task_utils/task_queue.hpp
     src/rtc/base/task_utils/task_queue_impl.hpp
@@ -315,6 +316,7 @@ set(LIB_HEADERS
     src/rtc/congestion_control/pacing/bitrate_prober.hpp
     src/rtc/congestion_control/pacing/round_robin_packet_queue.hpp
     src/rtc/congestion_control/pacing/pacing_controller.hpp
+    src/rtc/congestion_control/pacing/task_queue_paced_sender.hpp
 
 )
 
@@ -346,6 +348,7 @@ set(LIB_SOURCES
     src/rtc/base/time/clock.cpp
     src/rtc/base/time/clock_real_time.cpp
     src/rtc/base/numerics/histogram_percentile_counter.cpp
+    src/rtc/base/numerics/exp_filter.cpp
     src/rtc/base/task_utils/repeating_task.cpp
     src/rtc/base/task_utils/task_queue.cpp
     src/rtc/base/task_utils/task_queue_impl.cpp
@@ -588,6 +591,7 @@ set(LIB_SOURCES
     src/rtc/congestion_control/pacing/round_robin_packet_queue.cpp
     src/rtc/congestion_control/pacing/round_robin_packet_queue_augxiliaries.cpp
     src/rtc/congestion_control/pacing/pacing_controller.cpp
+    src/rtc/congestion_control/pacing/task_queue_paced_sender.cpp
 
 )
 
@@ -746,6 +750,7 @@ set(UNITTEST_SOURCES
     src/rtc/base/numerics/running_statistics_unittest.cpp
     src/rtc/base/numerics/histogram_percentile_counter_unittest.cpp
     src/rtc/base/numerics/divide_round_unittest.cpp
+    src/rtc/base/numerics/exp_filter_unittest.cpp
     src/rtc/base/synchronization/event_unittest.cpp
     src/rtc/base/synchronization/yield_policy_unittest.cpp
     src/rtc/base/task_utils/task_queue_unittest.cpp

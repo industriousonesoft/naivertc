@@ -3,7 +3,7 @@
 
 #include <plog/Log.h>
 
-#include "testing/defines.hpp"
+// #include "testing/defines.hpp"
 
 namespace naivertc {
 namespace {
@@ -250,7 +250,7 @@ void PacingController::ProcessPackets() {
     size_t sent_bytes = 0;
 
     // NOTE: 进入process循环后会根据包的优先级进行处理，即先发送优先级高的包：
-    // audio > retransmission > video&FEC > padding.
+    // probe > audio > paced packets (retransmission > video|FEC) > padding.
     // 如果当前优先级的包已经发送完，则检查并发送下一个优先级的包，以此类推。直到
     // 在此次需要发送的包都已经全部发送，或因probe才会退出循环。
     while (!paused_) {
