@@ -42,7 +42,7 @@ struct RtpConfiguration {
     
     RtcMediaTransport* send_transport = nullptr;
     FecGenerator* fec_generator = nullptr;
-    RtpPacketSender* packet_sender = nullptr;
+    RtpPacketSender* paced_sender = nullptr;
 
     RtpSendDelayObserver* send_delay_observer = nullptr;
     RtpSendPacketObserver* send_packet_observer = nullptr;

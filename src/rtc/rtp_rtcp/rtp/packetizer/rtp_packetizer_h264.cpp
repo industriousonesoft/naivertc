@@ -17,12 +17,8 @@ static constexpr size_t kLengthFieldSize = 2;
 // +-+-+-+-+-+-+-+-+
 // |F|NRI|  Type   |
 // +---------------+
-enum class NaluHeaderBitsMask : uint8_t {
-    FORBIDDEN = 0x80,
-    NRI = 0x60,
-    TYPE = 0x1F
-};
-using FuAIndicatorBitsMask = NaluHeaderBitsMask;
+// Bit masks for FU (A and B) indicators.
+enum NalDefs : uint8_t { kFBit = 0x80, kNriMask = 0x60, kTypeMask = 0x1F };
 
 // NAL unit fragment header, RFC 6184, Section 5.8
 // +---------------+
@@ -30,12 +26,8 @@ using FuAIndicatorBitsMask = NaluHeaderBitsMask;
 // +-+-+-+-+-+-+-+-+
 // |S|E|R|  Type   |
 // +---------------+
-enum class FuAHeaderBitsMask : uint8_t {
-    START = 0x80,
-    END = 0x40,
-    RESERVER = 0x20,
-    TYPE = 0x1F
-};
+// Bit masks for FU (A and B) headers.
+enum FuDefs : uint8_t { kSBit = 0x80, kEBit = 0x40, kRBit = 0x20 };
     
 } // namespace
 
@@ -265,15 +257,13 @@ void RtpH264Packetizer::NextFuAPacket(RtpPacketToSend* rtp_packet) {
     // NAL unit fragmented over multiple packets (FU-A).
     // We do not send original NALU header, so it will be replaced by the
     // FU indicator header of the first packet.
-    uint8_t fu_indicator = (packet->header & 
-                            ~uint8_t(FuAIndicatorBitsMask::TYPE) &
-                           (uint8_t(FuAIndicatorBitsMask::FORBIDDEN) | 
-                            uint8_t(FuAIndicatorBitsMask::NRI))) | 
+    uint8_t fu_indicator = (packet->header & ~kTypeMask &
+                           (kFBit | kNriMask)) | 
                             uint8_t(h264::NaluType::FU_A);
     uint8_t fu_header = 0;
-    fu_header |= (packet->first_fragment ? uint8_t(FuAHeaderBitsMask::START) : 0);
-    fu_header |= (packet->last_fragment ? uint8_t(FuAHeaderBitsMask::END) : 0);
-    fu_header |= (packet->header & uint8_t(FuAHeaderBitsMask::TYPE));
+    fu_header |= (packet->first_fragment ? kSBit : 0);
+    fu_header |= (packet->last_fragment ? kEBit : 0);
+    fu_header |= (packet->header & kTypeMask);
     auto fragment = packet->fragment_data;
     uint8_t* payload_buffer = rtp_packet->AllocatePayload(kFuAHeaderSize + fragment.size());
     payload_buffer[0] = fu_indicator;
@@ -315,9 +305,8 @@ void RtpH264Packetizer::NextStapAPacket(RtpPacketToSend* rtp_packet) {
     assert(packet->first_fragment);
     // STAP-A NALU header
     payload_buffer[0] = (packet->header & 
-                        ~uint8_t(NaluHeaderBitsMask::TYPE) &
-                        (uint8_t(NaluHeaderBitsMask::FORBIDDEN ) | 
-                        uint8_t(NaluHeaderBitsMask::NRI))) | 
+                        ~kTypeMask &
+                        (kRBit | kNriMask)) | 
                         uint8_t(h264::NaluType::STAP_A);
     size_t index = kNaluHeaderSize;
     bool is_last_fragment = packet->last_fragment;
@@ -339,7 +328,7 @@ void RtpH264Packetizer::NextStapAPacket(RtpPacketToSend* rtp_packet) {
         is_last_fragment = packet->last_fragment;
     }
     assert(is_last_fragment);
-    rtp_packet->SetPayloadSize(index);
+    rtp_packet->set_payload_size(index);
 }
 
 void RtpH264Packetizer::Reset() {

@@ -75,7 +75,7 @@ public:
     void SetPayload(ArrayView<const uint8_t> payload);
     void SetPayload(const uint8_t* buffer, size_t size);
     // Reserve size_bytes for payload. Returns nullptr on failure.
-    uint8_t* SetPayloadSize(size_t size);
+    uint8_t* set_payload_size(size_t size);
     // Same as SetPayloadSize but doesn't guarantee to keep current payload.
     uint8_t* AllocatePayload(size_t size);
     

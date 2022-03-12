@@ -27,7 +27,7 @@ RtpSender::RtpSender(const RtpConfiguration& config)
       header_extension_map_(config.extmap_allow_mixed),
       ctx_(std::make_unique<RtpSenderContext>(config, &header_extension_map_)),
       fec_generator_(config.fec_generator),
-      paced_sender_(config.packet_sender ? config.packet_sender : &ctx_->non_paced_sender) {
+      paced_sender_(config.paced_sender ? config.paced_sender : &ctx_->non_paced_sender) {
     RTC_RUN_ON(&sequence_checker_);
 
     timestamp_offset_ = utils::random::generate_random<uint32_t>();
@@ -193,7 +193,7 @@ size_t RtpSender::FecPacketOverhead() const {
 std::vector<RtpPacketToSend> RtpSender::GeneratePadding(size_t target_packet_size, 
                                                         bool media_has_been_sent) {
     std::vector<RtpPacketToSend> paddings;
-
+    // TODO: Generate padding packet.
     return paddings;
 }
 

@@ -28,9 +28,9 @@ public:
 
     constexpr bool IsZero() const { return value_ == 0; }
     constexpr bool IsFinite() const { return !IsInfinite(); }
-    constexpr bool IsInfinite() const { return IsMax() || IsMin(); }
-    constexpr bool IsMax() const { return value_ == PlusInfinityVal(); }
-    constexpr bool IsMin() const { return value_ == MinusInfinityVal(); }
+    constexpr bool IsInfinite() const { return IsPlusInfinity() || IsMinusInfinity(); }
+    constexpr bool IsPlusInfinity() const { return value_ == PlusInfinityVal(); }
+    constexpr bool IsMinusInfinity() const { return value_ == MinusInfinityVal(); }
 
     constexpr bool operator==(const Unit_T& other) const {
         return value_ == other.value_;
@@ -78,9 +78,11 @@ protected:
       typename T,
       typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
     static constexpr Unit_T FromValue(T value) {
-        if (Unit_T::one_sided)
+        if (Unit_T::one_sided || std::is_unsigned<T>::value) {
             assert(value >= 0);
-        assert(value > MinusInfinityVal());
+        } else {
+            assert(value > MinusInfinityVal());
+        }
         assert(value < PlusInfinityVal());
         return Unit_T(utils::numeric::checked_static_cast<int64_t>(value));
     }
@@ -102,10 +104,11 @@ protected:
         typename T,
         typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
     static constexpr Unit_T FromFraction(int64_t denominator, T value) {
-        if (Unit_T::one_sided)
+        if (Unit_T::one_sided || std::is_unsigned<T>::value) {
             assert(value >= 0);
-        // FIXME: 当T为无符号类型时，min_value也会被隐式转换成无符号，导致assert结果为false
-        assert(value > MinusInfinityVal() / denominator);
+        } else {
+            assert(value > MinusInfinityVal() / denominator);
+        }
         assert(value < PlusInfinityVal() / denominator);
         return Unit_T(utils::numeric::checked_static_cast<int64_t>(value * denominator));
     }
@@ -125,9 +128,9 @@ protected:
     template <typename T>
     constexpr typename std::enable_if<std::is_floating_point<T>::value, T>::type
     ToValue() const {
-        return IsMax()
+        return IsPlusInfinity()
                 ? std::numeric_limits<T>::infinity()
-                : IsMin() ? -std::numeric_limits<T>::infinity()
+                : IsMinusInfinity() ? -std::numeric_limits<T>::infinity()
                                     : value_;
     }
     template <typename T>

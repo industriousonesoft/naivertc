@@ -48,7 +48,7 @@ public:
         RtpConfiguration config;
         config.local_media_ssrc = kSsrc;
         config.rtx_send_ssrc = kRtxSsrc;
-        config.packet_sender = &packet_sender_;
+        config.paced_sender = &packet_sender_;
         return config;
     }
 

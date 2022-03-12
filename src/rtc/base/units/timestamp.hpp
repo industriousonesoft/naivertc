@@ -59,38 +59,38 @@ public:
     }
 
     constexpr Timestamp operator+(const TimeDelta delta) const {
-        if (IsMax() || delta.IsMax()) {
-            assert(!IsMin());
-            assert(!delta.IsMin());
+        if (IsPlusInfinity() || delta.IsPlusInfinity()) {
+            assert(!IsMinusInfinity());
+            assert(!delta.IsMinusInfinity());
             return PlusInfinity();
-        } else if (IsMin() || delta.IsMin()) {
-            assert(!IsMax());
-            assert(!delta.IsMax());
+        } else if (IsMinusInfinity() || delta.IsMinusInfinity()) {
+            assert(!IsPlusInfinity());
+            assert(!delta.IsPlusInfinity());
             return MinusInfinity();
         }
         return Timestamp::Micros(us() + delta.us());
     }
     constexpr Timestamp operator-(const TimeDelta delta) const {
-        if (IsMax() || delta.IsMin()) {
-            assert(!IsMin());
-            assert(!delta.IsMax());
+        if (IsPlusInfinity() || delta.IsMinusInfinity()) {
+            assert(!IsMinusInfinity());
+            assert(!delta.IsPlusInfinity());
             return PlusInfinity();
-        } else if (IsMin() || delta.IsMax()) {
-            assert(!IsMax());
-            assert(!delta.IsMin());
+        } else if (IsMinusInfinity() || delta.IsPlusInfinity()) {
+            assert(!IsPlusInfinity());
+            assert(!delta.IsMinusInfinity());
             return MinusInfinity();
         }
         return Timestamp::Micros(us() - delta.us());
     }
 
     constexpr TimeDelta operator-(const Timestamp other) const {
-        if (IsMax() || other.IsMin()) {
-            assert(!IsMin());
-            assert(!other.IsMax());
+        if (IsPlusInfinity() || other.IsMinusInfinity()) {
+            assert(!IsMinusInfinity());
+            assert(!other.IsPlusInfinity());
             return TimeDelta::PlusInfinity();
-        } else if (IsMin() || other.IsMax()) {
-            assert(!IsMax());
-            assert(!other.IsMin());
+        } else if (IsMinusInfinity() || other.IsPlusInfinity()) {
+            assert(!IsPlusInfinity());
+            assert(!other.IsMinusInfinity());
             return TimeDelta::MinusInfinity();
         }
         return TimeDelta::Micros(us() - other.us());

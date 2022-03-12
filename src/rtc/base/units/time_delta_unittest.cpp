@@ -15,8 +15,8 @@ MY_TEST(TimeDeltaBaseTest, ConstExpr) {
     constexpr TimeDelta kTestUnitMinValue = TimeDelta::MinusInfinity();
 
     static_assert(kTestUnitZero.IsZero(), "");
-    static_assert(kTestUnitMaxValue.IsMax(), "");
-    static_assert(kTestUnitMinValue.IsMin(), "");
+    static_assert(kTestUnitMaxValue.IsPlusInfinity(), "");
+    static_assert(kTestUnitMinValue.IsMinusInfinity(), "");
     static_assert(kTestUnitMaxValue.ms_or(-1) == -1, "");
 
     static_assert(kTestUnitMaxValue > kTestUnitZero, "");
@@ -83,26 +83,26 @@ MY_TEST(TimeDeltaBaseTest, ConvertsToAndFromDouble) {
     EXPECT_EQ(TimeDelta::PlusInfinity().ns<double>(), kMaxValue);
     EXPECT_EQ(TimeDelta::MinusInfinity().ns<double>(), kMinValue);
 
-    EXPECT_TRUE(TimeDelta::Seconds(kMaxValue).IsMax());
-    EXPECT_TRUE(TimeDelta::Seconds(kMinValue).IsMin());
-    EXPECT_TRUE(TimeDelta::Millis(kMaxValue).IsMax());
-    EXPECT_TRUE(TimeDelta::Millis(kMinValue).IsMin());
-    EXPECT_TRUE(TimeDelta::Micros(kMaxValue).IsMax());
-    EXPECT_TRUE(TimeDelta::Micros(kMinValue).IsMin());
+    EXPECT_TRUE(TimeDelta::Seconds(kMaxValue).IsPlusInfinity());
+    EXPECT_TRUE(TimeDelta::Seconds(kMinValue).IsMinusInfinity());
+    EXPECT_TRUE(TimeDelta::Millis(kMaxValue).IsPlusInfinity());
+    EXPECT_TRUE(TimeDelta::Millis(kMinValue).IsMinusInfinity());
+    EXPECT_TRUE(TimeDelta::Micros(kMaxValue).IsPlusInfinity());
+    EXPECT_TRUE(TimeDelta::Micros(kMinValue).IsMinusInfinity());
 }
 
 MY_TEST(TimeDeltaBaseTest, InfinityOperations) {
   const int64_t kValue = 267;
   const TimeDelta finite = TimeDelta::Millis(kValue);
-  EXPECT_TRUE((TimeDelta::PlusInfinity() + finite).IsMax());
-  EXPECT_TRUE((TimeDelta::PlusInfinity() - finite).IsMax());
-  EXPECT_TRUE((finite + TimeDelta::PlusInfinity()).IsMax());
-  EXPECT_TRUE((finite - TimeDelta::MinusInfinity()).IsMax());
+  EXPECT_TRUE((TimeDelta::PlusInfinity() + finite).IsPlusInfinity());
+  EXPECT_TRUE((TimeDelta::PlusInfinity() - finite).IsPlusInfinity());
+  EXPECT_TRUE((finite + TimeDelta::PlusInfinity()).IsPlusInfinity());
+  EXPECT_TRUE((finite - TimeDelta::MinusInfinity()).IsPlusInfinity());
 
-  EXPECT_TRUE((TimeDelta::MinusInfinity() + finite).IsMin());
-  EXPECT_TRUE((TimeDelta::MinusInfinity() - finite).IsMin());
-  EXPECT_TRUE((finite + TimeDelta::MinusInfinity()).IsMin());
-  EXPECT_TRUE((finite - TimeDelta::PlusInfinity()).IsMin());
+  EXPECT_TRUE((TimeDelta::MinusInfinity() + finite).IsMinusInfinity());
+  EXPECT_TRUE((TimeDelta::MinusInfinity() - finite).IsMinusInfinity());
+  EXPECT_TRUE((finite + TimeDelta::MinusInfinity()).IsMinusInfinity());
+  EXPECT_TRUE((finite - TimeDelta::PlusInfinity()).IsMinusInfinity());
 }
     
 } // namespace test    

@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/units/unit_relative.hpp"
+#include "rtc/base/units/time_delta.hpp"
 
 namespace naivertc {
 
@@ -50,6 +51,23 @@ private:
     using RelativeUnit::RelativeUnit;
     static constexpr bool one_sided = true;
 };
+
+// Helper methods
+inline constexpr DataRate operator/(const size_t size_in_bytes, const TimeDelta& duration) {
+    return DataRate::BitsPerSec(size_in_bytes * 8000'000 / duration.us());
+}
+
+inline constexpr TimeDelta operator/(const size_t size_in_bytes, const DataRate& rate) {
+    return TimeDelta::Micros(size_in_bytes * 8000'000 / rate.bps());
+}
+
+inline constexpr size_t operator*(const TimeDelta& duration, const DataRate& rate) {
+    return static_cast<size_t>(((rate.bps() * duration.us()) + 4000'000) / 8000'000);
+}
+
+inline constexpr size_t operator*(const DataRate& rate, const TimeDelta& duration) {
+    return duration * rate;
+}
     
 } // namespace naivertc
 

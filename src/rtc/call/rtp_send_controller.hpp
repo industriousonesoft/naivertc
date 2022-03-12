@@ -3,8 +3,9 @@
 
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
-#include "rtc/congestion_controller/network_controller_interface.hpp"
-#include "rtc/congestion_controller/components/network_transport_statistician.hpp"
+#include "rtc/base/task_utils/repeating_task.hpp"
+#include "rtc/congestion_control/controllers/network_controller_interface.hpp"
+#include "rtc/congestion_control/components/network_transport_statistician.hpp"
 
 #include <unordered_map>
 
@@ -31,6 +32,8 @@ private:
     void OnTransportFeedback(const rtcp::TransportFeedback& feedback) override;
     void OnReceivedRtcpReceiveReport(const std::vector<RtcpReportBlock>& report_blocks,
                                      int64_t rtt_ms) override;
+  
+    void UpdatePeriodically();
 
 private:
     void OnNetworkControlUpdate(NetworkControlUpdate update);
@@ -41,6 +44,8 @@ private:
 private:
     Clock* const clock_;
     TaskQueue worker_queue_;
+    TimeDelta update_interval_;
+    std::unique_ptr<RepeatingTask> controller_task_;
 
     NetworkTransportStatistician transport_statistician_;
     std::unique_ptr<NetworkControllerInterface> network_controller_;

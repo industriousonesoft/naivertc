@@ -24,26 +24,26 @@ public:
     }
 
     constexpr Unit_T operator+(const Unit_T other) const {
-        if (this->IsMax() || other.IsMax()) {
-            assert(!this->IsMin());
-            assert(!other.IsMin());
+        if (this->IsPlusInfinity() || other.IsPlusInfinity()) {
+            assert(!this->IsMinusInfinity());
+            assert(!other.IsMinusInfinity());
             return this->PlusInfinity();
-        } else if (this->IsMin() || other.IsMin()) {
-            assert(!this->IsMax());
-            assert(!other.IsMax());
+        } else if (this->IsMinusInfinity() || other.IsMinusInfinity()) {
+            assert(!this->IsPlusInfinity());
+            assert(!other.IsPlusInfinity());
             return this->MinusInfinity();
         }
         return UnitBase<Unit_T>::FromValue(this->ToValue() + other.ToValue());
     }
 
     constexpr Unit_T operator-(const Unit_T other) const {
-        if (this->IsMax() || other.IsMin()) {
-            assert(!this->IsMin());
-            assert(!other.IsMax());
+        if (this->IsPlusInfinity() || other.IsMinusInfinity()) {
+            assert(!this->IsMinusInfinity());
+            assert(!other.IsPlusInfinity());
             return this->PlusInfinity();
-        } else if (this->IsMin() || other.IsMax()) {
-            assert(!this->IsMax());
-            assert(!other.IsMin());
+        } else if (this->IsMinusInfinity() || other.IsPlusInfinity()) {
+            assert(!this->IsPlusInfinity());
+            assert(!other.IsMinusInfinity());
             return this->MinusInfinity();
         }
         return UnitBase<Unit_T>::FromValue(this->ToValue() - other.ToValue());

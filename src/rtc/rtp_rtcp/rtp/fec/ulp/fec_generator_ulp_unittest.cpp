@@ -91,7 +91,7 @@ MY_TEST_F(UlpFecGeneratorTest, OneFrameFec) {
         media_packet.set_sequence_number(i + 100);
         media_packet.set_timestamp(1000 + i);
         media_packet.set_payload_type(kVideoPayloadType);
-        media_packet.SetPayloadSize(100);
+        media_packet.set_payload_size(100);
         media_packet.set_marker(i == kNumMediaPackets - 1);
         last_timestamp = media_packet.timestamp();
         PushMediaPacket(std::move(media_packet));
@@ -121,7 +121,7 @@ MY_TEST_F(UlpFecGeneratorTest, TwoFrameFec) {
             media_packet.set_sequence_number(seq_num++);
             media_packet.set_timestamp(1000 + i);
             media_packet.set_payload_type(kVideoPayloadType);
-            media_packet.SetPayloadSize(100);
+            media_packet.set_payload_size(100);
             media_packet.set_marker(i == kNumMediaPackets - 1);
             last_timestamp = media_packet.timestamp();
             PushMediaPacket(std::move(media_packet));
@@ -151,7 +151,7 @@ MY_TEST_F(UlpFecGeneratorTest, UpdateProtectionParameters) {
         media_packet.set_sequence_number(seq_num++);
         media_packet.set_timestamp(seq_num);
         media_packet.set_payload_type(kVideoPayloadType);
-        media_packet.SetPayloadSize(10);
+        media_packet.set_payload_size(10);
         media_packet.set_is_key_frame(is_key_frame);
         media_packet.set_marker(true);
         PushMediaPacket(std::move(media_packet));

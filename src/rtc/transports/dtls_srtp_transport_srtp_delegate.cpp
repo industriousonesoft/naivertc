@@ -11,6 +11,9 @@ namespace {
     RFC 5764 4.2.  Key Derivation
     */
     static const std::string kDtlsSrtpExporterLabel = "EXTRACTOR-dtls_srtp";
+
+    // The window size to use for replay protection.
+    constexpr size_t kDefaultReplayListWindow = 1024;
 }
 
 namespace naivertc {
@@ -74,7 +77,7 @@ void DtlsSrtpTransport::InitSrtp() {
     srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&inbound.rtcp);
     inbound.ssrc.type = ssrc_any_inbound;
     inbound.key = IsClient() ? server_write_key_ : client_write_key_;
-    inbound.window_size = 1024;
+    inbound.window_size = kDefaultReplayListWindow;
     inbound.allow_repeat_tx = true;
     inbound.next = nullptr;
 
@@ -87,7 +90,7 @@ void DtlsSrtpTransport::InitSrtp() {
     srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&outbound.rtcp);
     outbound.ssrc.type = ssrc_any_outbound;
     outbound.key = IsClient() ? client_write_key_ : server_write_key_;
-    outbound.window_size = 1024;
+    outbound.window_size = kDefaultReplayListWindow;
     outbound.allow_repeat_tx = true;
     outbound.next = nullptr;
 
