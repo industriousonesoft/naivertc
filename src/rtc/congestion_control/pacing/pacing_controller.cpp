@@ -290,6 +290,7 @@ void PacingController::ProcessPackets() {
                 //            << " - recommended_probe_size=" << recommended_probe_size
                 //            << " - sent_bytes=" << sent_bytes
                 //            << " - last_process_time=" << last_process_time_.ms()
+                //            << " - probe_cluster_id=" << (pacing_info.probe_cluster.has_value() ? pacing_info.probe_cluster->id : -1)
                 //            << std::endl;
                 auto padding_packets = packet_sender_->GeneratePadding(padding_to_add);
                 // Enqueue the padding packets.

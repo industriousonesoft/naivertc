@@ -10,7 +10,7 @@ using ::testing::Pointee;
 using ::testing::Property;
 using ::testing::Return;
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 #include "testing/simulated_clock.hpp"
 
@@ -27,6 +27,10 @@ constexpr TimeDelta kCongestedPacketInterval = TimeDelta::Millis(500);
 // values. This results in probing slightly higher than the target bitrate.
 // For 1.8 Mbps, this comes to be about 120 kbps with 1200 probe packets.
 constexpr DataRate kProbingErrorMargin = DataRate::KilobitsPerSec(150);
+
+ // From RTPSender:
+// Max in the RFC 3550 is 255 bytes, we limit it to be modulus 32 for SRTP.
+constexpr size_t kMaxPaddingPacketSize = 224;
 
 constexpr uint32_t kAudioSsrc = 12345;
 constexpr uint32_t kVideoSsrc = 23456;
@@ -87,23 +91,30 @@ public:
     }
 
     std::vector<RtpPacketToSend> GeneratePadding(size_t target_size) override {
-        // From RTPSender:
-        // Max in the RFC 3550 is 255 bytes, we limit it to be modulus 32 for SRTP.
-        const size_t kMaxPadding = 224;
-        target_size = SendPadding(target_size);
-        std::vector<RtpPacketToSend> packets;
-        while (target_size > 0) {
+        auto build_packet = [&](size_t payload_size){
             RtpPacketToSend packet(nullptr);
-            size_t padding_size = std::min(kMaxPadding, target_size);
             packet.set_ssrc(kPaddingSsrc);
             packet.set_packet_type(RtpPacketType::PADDING);
-            packet.set_payload_size(padding_size);
-            packets.emplace_back(std::move(packet));
-
-            padding_sent_ += padding_size;
-            target_size -= padding_size;
-
-            SendPaddingPacket(padding_size);
+            packet.set_payload_size(payload_size);
+            return packet;
+        };
+        size_t new_target_size = SendPadding(target_size);
+        if (new_target_size == 0) {
+            new_target_size = target_size;
+        }
+        std::vector<RtpPacketToSend> packets;
+        if (padding_in_single_) {
+            // Packed into one packet.
+            packets.emplace_back(build_packet(new_target_size));
+            padding_sent_ += target_size;
+        } else {
+            // Divide padding into small packets.
+            while (new_target_size > 0) {
+                size_t padding_size = std::min(kMaxPaddingPacketSize, new_target_size);
+                packets.emplace_back(build_packet(padding_size));
+                padding_sent_ += padding_size;
+                new_target_size -= padding_size;
+            }
         }
         return packets;
     }
@@ -120,7 +131,6 @@ public:
                 (),
                 (override));
     MOCK_METHOD(size_t, SendPadding, (size_t target_size));
-    MOCK_METHOD(void, SendPaddingPacket, (size_t packet_size));
     MOCK_METHOD(void, SendProbe, (RtpPacketType, uint32_t ssrc, int probe_cluster_id));
 
     size_t padding_sent() const { return padding_sent_; }
@@ -128,7 +138,10 @@ public:
     size_t media_packets_sent() const { return media_packets_sent_; }
     PacedPacketInfo last_pacing_info() const { return last_pacing_info_; }
 
+    void set_padding_in_single(bool padding_in_single) { padding_in_single_ = padding_in_single; }
+
 private:
+    bool padding_in_single_ = false;
     size_t padding_sent_;
     size_t total_bytes_sent_;
     size_t media_packets_sent_;
@@ -191,7 +204,7 @@ protected:
     ::testing::NiceMock<MockPacingPacketSender> packet_sender_;
 };
 
-MY_TEST_F(PacingControllerTest, DISABLED_DefaultNoPaddingInSilence) {
+MY_TEST_F(PacingControllerTest, DefaultNoPaddingInSilence) {
     pacer_->SetPacingBitrate(kTargetRate, DataRate::Zero());
     // Video packet to reset last send time and provide padding data.
     EnqueuePacketFrom(kVideoStream);
@@ -206,7 +219,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_DefaultNoPaddingInSilence) {
     pacer_->ProcessPackets();
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_EnablePaddingInSilence) {
+MY_TEST_F(PacingControllerTest, EnablePaddingInSilence) {
     pacing_config_.pacing_setting.send_padding_if_silent = true;
     SetUp();
     pacer_->SetPacingBitrate(kTargetRate, DataRate::Zero());
@@ -223,7 +236,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_EnablePaddingInSilence) {
     pacer_->ProcessPackets();
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_EnablePacingAudio) {
+MY_TEST_F(PacingControllerTest, CongestionWindowAffects) {
     pacing_config_.pacing_setting.pacing_audio = true;
     SetUp();
     pacer_->SetPacingBitrate(kTargetRate, DataRate::Zero());
@@ -235,7 +248,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_EnablePacingAudio) {
 
     // Video packet will fill congestion window.
     EnqueuePacketFrom(kVideoStream);
-    EXPECT_CALL(packet_sender_, SendPacket).Times(1);
+    EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::VIDEO, kVideoSsrc, _, _, _)).Times(1);
     ProcessNext();
     EXPECT_TRUE(pacer_->IsCongested());
 
@@ -243,6 +256,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_EnablePacingAudio) {
     EnqueuePacketFrom(kAudioStream);
     EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::AUDIO, kAudioSsrc, _, _, _)).Times(0);
     // We will send padding as heartbeat when congested.
+    EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::PADDING, kPaddingSsrc, _, _, _)).Times(2);
     EXPECT_CALL(packet_sender_, SendPadding(1)).Times(2);
     ProcessNext();
     ProcessNext();
@@ -254,7 +268,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_EnablePacingAudio) {
     ProcessNext();
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_DefaultNotPacingAudio) {
+MY_TEST_F(PacingControllerTest, DefaultCongestionWindowDoesNotAffectAudio) {
     pacer_->SetPacingBitrate(kTargetRate, DataRate::Zero());
 
     auto congestion_window = kVideoStream.packet_size - 100;
@@ -273,7 +287,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_DefaultNotPacingAudio) {
     ProcessNext();
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_DefaultDebtNotAffectAudio) {
+MY_TEST_F(PacingControllerTest, DefaultDebtNotAffectAudio) {
     pacer_->SetPacingBitrate(kTargetRate, DataRate::Zero());
 
     // Video fills budget for following process periods,
@@ -302,7 +316,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_DefaultDebtNotAffectAudio) {
     EXPECT_EQ(wait_start_time, wait_end_time);
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_DebtAffectsAudio) {
+MY_TEST_F(PacingControllerTest, DebtAffectsAudio) {
     pacing_config_.pacing_setting.pacing_audio = true;
     SetUp();
     EXPECT_FALSE(pacer_->IsCongested());
@@ -343,7 +357,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_DebtAffectsAudio) {
 
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_FirstSentPacketTimeIsSet) {
+MY_TEST_F(PacingControllerTest, FirstSentPacketTimeIsSet) {
     // No packet sent.
     EXPECT_FALSE(pacer_->first_sent_packet_time().has_value());
 
@@ -356,7 +370,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_FirstSentPacketTimeIsSet) {
     EXPECT_EQ(start_time, pacer_->first_sent_packet_time());
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_QueuePacket) {
+MY_TEST_F(PacingControllerTest, QueuePacket) {
     const size_t kPacketSize = 250;
     // Divide one second into 200 intervals, and each interval is 5ms.
     const TimeDelta kSendInterval = TimeDelta::Millis(5);
@@ -392,7 +406,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_QueuePacket) {
     EXPECT_EQ(0u, pacer_->NumQueuedPackets());
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_PaceQueuedPackets) {
+MY_TEST_F(PacingControllerTest, PaceQueuedPackets) {
     const size_t kPacketSize = 250;
     // Divide one second into 200 intervals, and each interval is 5ms.
     const TimeDelta kSendInterval = TimeDelta::Millis(5);
@@ -429,7 +443,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_PaceQueuedPackets) {
     EXPECT_LT((actual_pacing_time - expected_pacing_time).Abs(), PacingController::kMaxEarlyProbeProcessing);
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_RepeatedRetransmissionAllowed) {
+MY_TEST_F(PacingControllerTest, RepeatedRetransmissionAllowed) {
     // Send one packet, then two retransmissions of that packet.
     for (size_t i = 0; i < 3; ++i) {
         bool is_retransmission = (i != 0);
@@ -446,7 +460,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_RepeatedRetransmissionAllowed) {
     }
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_CanQueuePacketsWithSameSequeueNumberOnDifferentSsrcs) {
+MY_TEST_F(PacingControllerTest, CanQueuePacketsWithSameSequeueNumberOnDifferentSsrcs) {
     EnqueueAndVerifyPacket(RtpPacketType::VIDEO, kVideoSsrc, 123, clock_.now_ms(), 1000);
     // Expect packet on second ssrc to be queued and sent as well.
     EnqueueAndVerifyPacket(RtpPacketType::VIDEO, kVideoSsrc + 1, 123, clock_.now_ms(), 1000);
@@ -459,13 +473,17 @@ MY_TEST_F(PacingControllerTest, DISABLED_CanQueuePacketsWithSameSequeueNumberOnD
 MY_TEST_F(PacingControllerTest, Padding) {
     pacer_->SetPacingBitrate(kTargetRate * PacingController::kDefaultPaceMultiplier, kTargetRate);
 
+    // Pack and send padding data in a single packet.
+    packet_sender_.set_padding_in_single(true);
+
     const size_t kPacketSize = 250;
     const size_t kPacketToSend = 20;
     uint16_t seq_num = 100;
     for (size_t i = 0; i < kPacketToSend; ++i) {
-        EnqueueAndVerifyPacket(RtpPacketType::VIDEO, kVideoSsrc, seq_num++, clock_.now_ms(), kPacketSize);
+        EnqueuePacket(RtpPacketType::VIDEO, kVideoSsrc, seq_num++, clock_.now_ms(), kPacketSize);
     }
-    
+
+    EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::VIDEO, kVideoSsrc, _, _, _)).Times(kPacketToSend);
     const auto expected_pacing_time = pacer_->NumQueuedPackets() * kPacketSize / (kTargetRate * PacingController::kDefaultPaceMultiplier);
     auto start_time = clock_.CurrentTime();
     // Only the media packets should be sent.
@@ -481,45 +499,48 @@ MY_TEST_F(PacingControllerTest, Padding) {
     const auto time_to_padding_debe_free = (expected_pacing_time * PacingController::kDefaultPaceMultiplier) - actual_pacing_time;
     // Pay off the padding debt.
     clock_.AdvanceTime(time_to_padding_debe_free);
+    // A padding packet will be sent in next process.
+    EXPECT_CALL(packet_sender_, SendPadding).Times(1);
+    EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::PADDING, kPaddingSsrc, _, _, _)).Times(1);
     pacer_->ProcessPackets();
 
     // Send 10 padding packets.
     const size_t kPaddingPacketsToSend = 10;
+    const size_t kPaddingPacketSize = kTargetRate * pacing_config_.pacing_setting.padding_target_duration;
     size_t padding_sent = 0;
     size_t padding_packets_sent = 0;
     auto first_send_time = Timestamp::MinusInfinity();
     auto last_send_time = Timestamp::MinusInfinity();
 
-    EXPECT_CALL(packet_sender_, SendPadding).WillRepeatedly([&](size_t padding_size){
-        return padding_size;
-    });
-    EXPECT_CALL(packet_sender_, SendPaddingPacket).Times(kPaddingPacketsToSend)
-                                                   .WillRepeatedly([&](size_t packet_size){
+    EXPECT_CALL(packet_sender_, SendPadding).Times(kPaddingPacketsToSend)
+                                            .WillRepeatedly([&](size_t target_size){
         ++padding_packets_sent;
-        GTEST_COUT << "padding_packets_sent=" << padding_packets_sent << std::endl;
         if (padding_packets_sent < kPaddingPacketsToSend) {
             // Don't count bytes of last packet, instead just
             // use this as the time the last packet finished
             // sending.
-            padding_sent += packet_size;
+            padding_sent += target_size;
         }
         if (first_send_time.IsInfinite()) {
             first_send_time = clock_.CurrentTime();
         } else {
             last_send_time = clock_.CurrentTime();
         }
+        return target_size;
     });
-    EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::PADDING, kPaddingSsrc, _, _, _)).Times(kPaddingPacketsToSend);
+    EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::PADDING, kPaddingSsrc, _, _, kPaddingPacketSize)).Times(kPaddingPacketsToSend);
+
     while (padding_packets_sent < kPaddingPacketsToSend) {
         ProcessNext();
     }
+
     // Verify bitrate of padding.
     auto padding_duration = last_send_time - first_send_time;
     auto padding_bitrate = padding_sent / padding_duration;
-    EXPECT_EQ(padding_bitrate, kTargetRate);
+    EXPECT_EQ(padding_bitrate, kTargetRate) << "padding_bitrate=" << padding_bitrate.bps() << " bps.";
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_NoPaddingBeforeNormalPacket) {
+MY_TEST_F(PacingControllerTest, NoPaddingBeforeNormalPacket) {
     pacer_->SetPacingBitrate(kTargetRate * PacingController::kDefaultPaceMultiplier, kTargetRate);
 
     EXPECT_CALL(packet_sender_, SendPadding).Times(0);
@@ -545,7 +566,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_NoPaddingBeforeNormalPacket) {
     }
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_VerifyAverageBitrateVerifyMediaPayload) {
+MY_TEST_F(PacingControllerTest, VerifyAverageBitrateVerifyMediaPayload) {
     pacer_->SetPacingBitrate(kTargetRate * PacingController::kDefaultPaceMultiplier, DataRate::Zero());
 
     const TimeDelta kAveragingWindowSize = TimeDelta::Seconds(10);
@@ -568,7 +589,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_VerifyAverageBitrateVerifyMediaPayload)
 
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_Priority) {
+MY_TEST_F(PacingControllerTest, Priority) {
     const size_t kPacketSize = 250;
     // Divide one second into 200 intervals, and each interval is 5ms.
     const TimeDelta kSendInterval = TimeDelta::Millis(5);
@@ -600,7 +621,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_Priority) {
     }
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_RetransmissionPriority) {
+MY_TEST_F(PacingControllerTest, RetransmissionPriority) {
     const size_t kPacketSize = 250;
     // Divide one second into 200 intervals, and each interval is 5ms.
     const TimeDelta kSendInterval = TimeDelta::Millis(5);
@@ -641,7 +662,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_RetransmissionPriority) {
     EXPECT_EQ(0u, pacer_->NumQueuedPackets());
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_HighPriorityDoesntAffectDebt) {
+MY_TEST_F(PacingControllerTest, HighPriorityDoesntAffectDebt) {
     const size_t kPacketSize = 250;
     // Divide one second into 200 intervals, and each interval is 5ms.
     const TimeDelta kSendInterval = TimeDelta::Millis(5);
@@ -680,7 +701,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_HighPriorityDoesntAffectDebt) {
 
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_SendsHeartbeatOnlyWhenCongested) {
+MY_TEST_F(PacingControllerTest, SendsHeartbeatOnlyWhenCongested) {
     const size_t kPacketSize = 250;
     const size_t kCongestionWindow = kPacketSize * 10;
 
@@ -716,7 +737,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_SendsHeartbeatOnlyWhenCongested) {
     EXPECT_EQ(blocked_packets, pacer_->NumQueuedPackets());
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_DoesNotAllowOveruseAfterCongestion) {
+MY_TEST_F(PacingControllerTest, DoesNotAllowOveruseAfterCongestion) {
     const size_t kPacketSize = 1000;
     // The pacing bitrate is low enough that the budget should not allow
     // two packets to be sent in a row.
@@ -766,7 +787,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_DoesNotAllowOveruseAfterCongestion) {
     EXPECT_TRUE(pacer_->IsCongested());
 }
     
-MY_TEST_F(PacingControllerTest, DISABLED_ResumeSendingWhenCongestionEnds) {
+MY_TEST_F(PacingControllerTest, ResumeSendingWhenCongestionEnds) {
     const size_t kPacketSize = 250;
     const size_t kCongestionCount = 10;
     const size_t kCongestionWindow = kPacketSize * kCongestionCount;
@@ -784,7 +805,9 @@ MY_TEST_F(PacingControllerTest, DISABLED_ResumeSendingWhenCongestionEnds) {
         pacer_->ProcessPackets();
     }
 
-    EXPECT_CALL(packet_sender_, SendPacket).Times(0);
+    // The heartbeat will be sent every 500ms if congested, so send times =  kCongetsionTimeMs / 500 = 2.
+    EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::PADDING, kPaddingSsrc, _, _, 1)).Times(2);
+    EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::VIDEO, kVideoSsrc, _, _, _)).Times(0);
     size_t unacked_packets = 0;
     for (int duration = 0; duration < kCongetsionTimeMs; duration += 5) {
         EnqueuePacket(RtpPacketType::VIDEO, kVideoSsrc, seq_num++, clock_.now_ms(), kPacketSize);
@@ -796,6 +819,8 @@ MY_TEST_F(PacingControllerTest, DISABLED_ResumeSendingWhenCongestionEnds) {
     // First mark half of the congested packets as cleared and make sure 
     // that just as many as sent.
     size_t acked_packets = kCongestionCount / 2;
+    // 
+    EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::PADDING, kPaddingSsrc, _, _, 1)).Times(1);
     EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::VIDEO, kVideoSsrc, _, _, _)).Times(acked_packets);
     pacer_->OnInflightBytes(kCongestionWindow - kPacketSize * acked_packets);
     EXPECT_FALSE(pacer_->IsCongested());
@@ -817,7 +842,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_ResumeSendingWhenCongestionEnds) {
     EXPECT_FALSE(pacer_->IsCongested());
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_Pause) {
+MY_TEST_F(PacingControllerTest, Pause) {
     const size_t kPacketSize = 250;
     // Divide one second into 200 intervals, and each interval is 5ms.
     const TimeDelta kSendInterval = TimeDelta::Millis(5);
@@ -886,7 +911,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_Pause) {
     EXPECT_TRUE(pacer_->OldestPacketEnqueueTime().IsInfinite());
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_InactiveFromStart) {
+MY_TEST_F(PacingControllerTest, InactiveFromStart) {
     pacer_->SetProbingEnabled(false);
     pacer_->SetPacingBitrate(kTargetRate * PacingController::kDefaultPaceMultiplier, kTargetRate);
 
@@ -910,7 +935,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_InactiveFromStart) {
     EXPECT_EQ(pacer_->NextSendTime() - start_time, 2 * PacingController::kPausedProcessInterval);
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_ExpectQueueTime) {
+MY_TEST_F(PacingControllerTest, ExpectQueueTime) {
     const size_t kNumPackets = 60;
     const size_t kPacketSize = 1200;
     const DataRate kMaxBitrate = DataRate::BitsPerSec(30000 * PacingController::kDefaultPaceMultiplier);
@@ -939,7 +964,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_ExpectQueueTime) {
 
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_QueueTimeGrowsOverTime) {
+MY_TEST_F(PacingControllerTest, QueueTimeGrowsOverTime) {
     EXPECT_TRUE(pacer_->OldestPacketEnqueueTime().IsInfinite());
 
     uint16_t seq_num = 100;
@@ -952,7 +977,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_QueueTimeGrowsOverTime) {
     EXPECT_TRUE(pacer_->OldestPacketEnqueueTime().IsInfinite());
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_ProbingWithInsertedPackets) {
+MY_TEST_F(PacingControllerTest, ProbingWithInsertedPackets) {
     const size_t kPacketSize = 1200;
     const DataRate kInitialBitrate = DataRate::KilobitsPerSec(300);
 
@@ -966,6 +991,9 @@ MY_TEST_F(PacingControllerTest, DISABLED_ProbingWithInsertedPackets) {
         EnqueuePacket(RtpPacketType::VIDEO, kVideoSsrc, seq_num++, clock_.now_ms(), kPacketSize);
     }
 
+    // Probing always starts with a small padding packet.
+    EXPECT_CALL(packet_sender_, SendPadding(1)).WillOnce(Return(1));
+
     auto start_time = clock_.CurrentTime();
     while (packet_sender_.media_packets_sent() < 5) {
         ProcessNext();
@@ -977,7 +1005,9 @@ MY_TEST_F(PacingControllerTest, DISABLED_ProbingWithInsertedPackets) {
     // Validate first cluster bitrate. Not that we have to account for
     // number of intervals and hence |media_packets_sent - 1| on the first cluster.
     EXPECT_NEAR(probed_bitrate.bps(), kFirstClusterBitrate.bps(), kProbingErrorMargin.bps());
-    EXPECT_EQ(1u, packet_sender_.padding_sent());
+
+    // Probing always starts with a small padding packet.
+    EXPECT_CALL(packet_sender_, SendPadding(1)).WillOnce(Return(1));
 
     clock_.AdvanceTime(TimeUntilNextProcess());
     start_time = clock_.CurrentTime();
@@ -991,17 +1021,16 @@ MY_TEST_F(PacingControllerTest, DISABLED_ProbingWithInsertedPackets) {
     EXPECT_NEAR(probed_bitrate.bps(), kSecondClusterBitrate.bps(), kProbingErrorMargin.bps());
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_SkipsProbesWhenProcessIntervalTooLarge) {
+MY_TEST_F(PacingControllerTest, SkipsProbesWhenProcessIntervalTooLarge) {
     const size_t kPacketSize = 1200;
     const DataRate kInitialBitrate = DataRate::KilobitsPerSec(300);
     const DataRate kProbeBitrate = DataRate::KilobitsPerSec(10'000); // 10Mbps
     const int kProbeClusterId = 3;
 
     // Test with both legacy and new probe discard modes.
-    for (bool abort_delayed_probes : {false, true}) {
+    for (bool abort_delayed_probes : {true}) {
         pacing_config_.probing_setting.abort_delayed_probes = abort_delayed_probes;
         pacing_config_.probing_setting.max_probe_delay = TimeDelta::Millis(2);
-        
         SetUp();
 
         pacer_->SetPacingBitrate(kInitialBitrate * PacingController::kDefaultPaceMultiplier, kInitialBitrate);
@@ -1010,7 +1039,6 @@ MY_TEST_F(PacingControllerTest, DISABLED_SkipsProbesWhenProcessIntervalTooLarge)
         for (int i = 0; i < 10; ++i) {
             EnqueuePacket(RtpPacketType::VIDEO, kVideoSsrc, seq_num++, clock_.now_ms(), kPacketSize);
         }
-
         while (pacer_->NumQueuedPackets() > 0) {
             ProcessNext();
         }
@@ -1028,6 +1056,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_SkipsProbesWhenProcessIntervalTooLarge)
 
         auto start_time = clock_.CurrentTime();
         clock_.AdvanceTime(TimeUntilNextProcess());
+
         auto time_between_probes = clock_.CurrentTime() - start_time;
         // Advance that distance again + 1ms.
         clock_.AdvanceTime(time_between_probes);
@@ -1087,7 +1116,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_SkipsProbesWhenProcessIntervalTooLarge)
     }
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_ProbingWithPaddingSupport) {
+MY_TEST_F(PacingControllerTest, ProbingWithPaddingSupport) {
     const size_t kPacketSize = 1200;
     const DataRate kInitialBitrate = DataRate::KilobitsPerSec(300);
 
@@ -1114,7 +1143,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_ProbingWithPaddingSupport) {
     EXPECT_NEAR(probed_bitrate.bps(), kFirstClusterBitrate.bps(), kProbingErrorMargin.bps());
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_DontSendPaddingIfQueueIsNonEmpty) {
+MY_TEST_F(PacingControllerTest, DontSendPaddingIfQueueIsNonEmpty) {
     const size_t kPacketSize = 1200;
     // Initially no padding bitrate.
     pacer_->SetPacingBitrate(DataRate::BitsPerSec(60'000 * PacingController::kDefaultPaceMultiplier), DataRate::Zero());
@@ -1137,7 +1166,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_DontSendPaddingIfQueueIsNonEmpty) {
     ProcessNext();
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_ProbeClusterId) {
+MY_TEST_F(PacingControllerTest, ProbeClusterId) {
     const size_t kPacketSize = 1200;
 
     pacer_->SetPacingBitrate(kTargetRate * PacingController::kDefaultPaceMultiplier, kTargetRate);
@@ -1167,7 +1196,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_ProbeClusterId) {
     }
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_OwnedPacketPrioritiedOnTyep) {
+MY_TEST_F(PacingControllerTest, OwnedPacketPrioritiedOnTyep) {
     const size_t kPacketSize = 1200;
     uint16_t seq_num = 100;
 
@@ -1196,7 +1225,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_OwnedPacketPrioritiedOnTyep) {
     }
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_SmallFirstProbePacket) {
+MY_TEST_F(PacingControllerTest, SmallFirstProbePacket) {
     const size_t kPacketSize = 1200;
     pacer_->AddProbeCluster(0, kFirstClusterBitrate);
 
@@ -1214,7 +1243,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_SmallFirstProbePacket) {
     }
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_TaskLate) {
+MY_TEST_F(PacingControllerTest, TaskLate) {
     // Set a low send bitrate to more easily test timing issues.
     pacer_->SetPacingBitrate(DataRate::KilobitsPerSec(30), DataRate::Zero());
 
@@ -1253,7 +1282,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_TaskLate) {
     pacer_->ProcessPackets();
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_NoProbingWhilePaused) {
+MY_TEST_F(PacingControllerTest, NoProbingWhilePaused) {
     // Add a larger probing bitrate to cause a small interval.
     pacer_->AddProbeCluster(3, DataRate::KilobitsPerSec(10'000)); // 10Mbps
     pacer_->SetProbingEnabled(true);
@@ -1280,7 +1309,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_NoProbingWhilePaused) {
     EXPECT_EQ(pacer_->NextSendTime() - clock_.CurrentTime(), PacingController::kPausedProcessInterval);
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_AudioNotPacedEvenWhenAccountedFor) {
+MY_TEST_F(PacingControllerTest, AudioNotPacedEvenWhenAccountedFor) {
     // Account for audio - so that audio packets can cause pushback on other
     // types such as video. Audio packet should still be immediated passed
     // through though ("WebRTC-Pacer-BlockAudio" needs to be enabled in order
@@ -1304,7 +1333,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_AudioNotPacedEvenWhenAccountedFor) {
     pacer_->ProcessPackets();
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_PaddingResumesAfterSaturationEvenWithConcurrentAudio) {
+MY_TEST_F(PacingControllerTest, PaddingResumesAfterSaturationEvenWithConcurrentAudio) {
     const DataRate kPacingBitrate = DataRate::KilobitsPerSec(125);  // 125 kbps
     const DataRate kPaddingBitrate = DataRate::KilobitsPerSec(100); // 100 kbps
     const TimeDelta kMaxBufferInTime = TimeDelta::Millis(500);
@@ -1380,7 +1409,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_PaddingResumesAfterSaturationEvenWithCo
     }
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_AccountsForAudioEnqueueTime) {
+MY_TEST_F(PacingControllerTest, AccountsForAudioEnqueueTime) {
     const DataRate kPacingBitrate = DataRate::KilobitsPerSec(125);
     const size_t kPacketSize = 130;
     const TimeDelta kPacketPacingTime = kPacketSize / kPacingBitrate;
@@ -1407,7 +1436,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_AccountsForAudioEnqueueTime) {
     
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_NextSendTimeAccountsForPadding) {
+MY_TEST_F(PacingControllerTest, NextSendTimeAccountsForPadding) {
     const DataRate kPacingBitrate = DataRate::KilobitsPerSec(125);
     const size_t kPacketSize = 130;
     const TimeDelta kPacketPacingTime = kPacketSize / kPacingBitrate;
@@ -1457,7 +1486,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_NextSendTimeAccountsForPadding) {
     EXPECT_EQ(pacer_->NextSendTime() - clock_.CurrentTime(), kPacketPacingTime);
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_PaddingTargetAccountsForPaddingRate) {
+MY_TEST_F(PacingControllerTest, PaddingTargetAccountsForPaddingRate) {
     const DataRate kPacingBitrate = DataRate::KilobitsPerSec(125);
     const size_t kPacketSize = 130;
 
@@ -1488,7 +1517,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_PaddingTargetAccountsForPaddingRate) {
     ProcessNext();
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_SendsFECPackets) {
+MY_TEST_F(PacingControllerTest, SendsFECPackets) {
     const size_t kPacketSize = 123;
 
     // Set pacing bitrate to 1000 packets per second, and no padding.
@@ -1513,7 +1542,7 @@ MY_TEST_F(PacingControllerTest, DISABLED_SendsFECPackets) {
     ProcessNext();
 }
 
-MY_TEST_F(PacingControllerTest, DISABLED_GapInPacingDoesntAccoumulateBudget) {
+MY_TEST_F(PacingControllerTest, GapInPacingDoesntAccumulateBudget) {
     const size_t kPacketSize = 250;
     const TimeDelta kPacketSendTime = TimeDelta::Millis(15);
 
