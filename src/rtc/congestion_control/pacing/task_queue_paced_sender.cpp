@@ -1,6 +1,8 @@
 #include "rtc/congestion_control/pacing/task_queue_paced_sender.hpp"
 #include "rtc/base/time/clock.hpp"
 
+#include "testing/defines.hpp"
+
 namespace naivertc {
 namespace {
 
@@ -8,94 +10,125 @@ constexpr float kDefaultSmoothingCoeff = 0.95;
   
 } // namespace
 
-TaskQueuePacedSender::TaskQueuePacedSender(const Configuration& config, 
+TaskQueuePacedSender::TaskQueuePacedSender(const Configuration& config,
+                                           TaskQueueImpl* task_queue,
                                            TimeDelta max_hold_back_window,
                                            int max_hold_window_in_packets) 
     : clock_(config.clock),
       max_hold_back_window_(max_hold_back_window),
       max_hold_window_in_packets_(max_hold_window_in_packets),
       pacing_controller_(config),
-      task_queue_("TaskQueuePacedSender.task.queue") {
+      task_queue_(task_queue) {
+    assert(task_queue != nullptr);
 }
     
 TaskQueuePacedSender::~TaskQueuePacedSender() {
     // Post an immediate task to mark the queue as shutting down.
     // The task queue desctructor will wait for pending tasks to
     // complete before continuing.
-    task_queue_.Post([this](){
+    task_queue_->Post([this](){
         is_shutdown_ = true;
     });
 }
 
 void TaskQueuePacedSender::Pause() {
-    task_queue_.Post([this](){
+    task_queue_->Post([this](){
         pacing_controller_.Pause();
     });
 }
 
 void TaskQueuePacedSender::Resume() {
-    task_queue_.Post([this](){
+    task_queue_->Post([this](){
         pacing_controller_.Resume();
-        MaybeProcessPacketsImmediately();
+        RescheduleProcess();
     });
 }
 
 void TaskQueuePacedSender::EnsureStarted() {
-    task_queue_.Post([this](){
+    task_queue_->Post([this](){
         is_started_ = true;
-        MaybeProcessPacketsImmediately();
+        RescheduleProcess();
     });
 }
 
 void TaskQueuePacedSender::SetAccountForAudioPackets(bool account_for_audio) {
-    task_queue_.Post([this, account_for_audio](){
+    task_queue_->Post([this, account_for_audio](){
         pacing_controller_.set_account_for_audio(account_for_audio);
-        MaybeProcessPacketsImmediately();
+        RescheduleProcess();
     });
 }
 
 void TaskQueuePacedSender::SetIncludeOverhead() {
-    task_queue_.Post([this](){
+    task_queue_->Post([this](){
         pacing_controller_.set_include_overhead();
-        MaybeProcessPacketsImmediately();
+        RescheduleProcess();
     });
 }
 
 void TaskQueuePacedSender::SetTransportOverhead(size_t overhead_per_packet) {
-    task_queue_.Post([this, overhead_per_packet](){
+    task_queue_->Post([this, overhead_per_packet](){
         pacing_controller_.set_transport_overhead(overhead_per_packet);
-        MaybeProcessPacketsImmediately();
+        RescheduleProcess();
     });
 }
 
 void TaskQueuePacedSender::SetQueueTimeCap(TimeDelta cap) {
-    task_queue_.Post([this, cap](){
+    task_queue_->Post([this, cap](){
         pacing_controller_.set_queue_time_cap(cap);
-        MaybeProcessPacketsImmediately();
+        RescheduleProcess();
+    });
+}
+
+void TaskQueuePacedSender::SetProbingEnabled(bool enabled) {
+    task_queue_->Post([this, enabled](){
+        pacing_controller_.SetProbingEnabled(enabled);
+        RescheduleProcess();
+    });
+}
+
+void TaskQueuePacedSender::SetPacingBitrates(DataRate pacing_bitrate, 
+                                            DataRate padding_bitrate) {
+    task_queue_->Post([this, pacing_bitrate, padding_bitrate](){
+        pacing_controller_.SetPacingBitrates(pacing_bitrate, padding_bitrate);
+        RescheduleProcess();
+    });
+}
+
+void TaskQueuePacedSender::SetCongestionWindow(size_t congestion_window_size) {
+    task_queue_->Post([this, congestion_window_size](){
+        pacing_controller_.SetCongestionWindow(congestion_window_size);
+        RescheduleProcess();
+    });
+}
+
+void TaskQueuePacedSender::OnInflightBytes(size_t inflight_bytes) {
+    task_queue_->Post([this, inflight_bytes](){
+        pacing_controller_.OnInflightBytes(inflight_bytes);
+        RescheduleProcess();
     });
 }
 
 void TaskQueuePacedSender::AddProbeCluster(int cluster_id, DataRate target_bitrate) {
-    task_queue_.Post([this, cluster_id, target_bitrate](){
+    task_queue_->Post([this, cluster_id, target_bitrate](){
         pacing_controller_.AddProbeCluster(cluster_id, target_bitrate);
-        MaybeProcessPacketsImmediately();
+        RescheduleProcess();
     });
 }
 
 void TaskQueuePacedSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
-    task_queue_.Post([this, packets=std::move(packets)]() mutable {
+    task_queue_->Post([this, packets=std::move(packets)]() mutable {
         for (auto& packet : packets) {
             smoothed_packet_size_ = kDefaultSmoothingCoeff * smoothed_packet_size_ + 
                                     (1 - kDefaultSmoothingCoeff) * packet.size();
             pacing_controller_.EnqueuePacket(std::move(packet));
         }
-        MaybeProcessPacketsImmediately();
+        RescheduleProcess();
     });
 }
 
 // Private methods
 void TaskQueuePacedSender::MaybeProcessPackets(Timestamp scheduled_process_time) {
-    RTC_RUN_ON(&task_queue_);
+    RTC_RUN_ON(task_queue_);
 
     if (is_shutdown_ || !is_started_) {
         return;
@@ -140,7 +173,12 @@ void TaskQueuePacedSender::MaybeProcessPackets(Timestamp scheduled_process_time)
         if (next_process_time.IsMinusInfinity()) {
             time_to_next_process = TimeDelta::Zero();
         } else {
+            auto old_process_time = *time_to_next_process;
             time_to_next_process = std::max(TimeDelta::Zero(), (next_process_time - now).RoundDownTo(TimeDelta::Millis(1)));
+            GTEST_COUT << "old_process_time=" << old_process_time.ms() 
+                        << " ms, rounded_process_time=" << time_to_next_process->ms()
+                        << " ms\n";
+            
         }
     } else if (next_scheduled_process_time_.IsMinusInfinity() ||
                next_process_time <= next_scheduled_process_time_ - hold_back_window) {
@@ -154,7 +192,7 @@ void TaskQueuePacedSender::MaybeProcessPackets(Timestamp scheduled_process_time)
         next_scheduled_process_time_ = next_process_time;
 
         // Schedule the next process.
-        task_queue_.PostDelayed(*time_to_next_process, [this, next_process_time](){
+        task_queue_->PostDelayed(*time_to_next_process, [this, next_process_time](){
             MaybeProcessPackets(next_process_time);
         });
     }
@@ -162,12 +200,13 @@ void TaskQueuePacedSender::MaybeProcessPackets(Timestamp scheduled_process_time)
     UpdateStats();
 }
 
-void TaskQueuePacedSender::MaybeProcessPacketsImmediately() {
-     MaybeProcessPackets(Timestamp::MinusInfinity());
+void TaskQueuePacedSender::RescheduleProcess() {
+    RTC_RUN_ON(task_queue_);
+    MaybeProcessPackets(Timestamp::MinusInfinity());
 }
 
 void TaskQueuePacedSender::UpdateStats() {
-    RTC_RUN_ON(&task_queue_);
+    RTC_RUN_ON(task_queue_);
     Stats new_stats;
     new_stats.expected_queue_time = pacing_controller_.ExpectedQueueTime();
     new_stats.first_sent_packet_time = pacing_controller_.first_sent_packet_time();
@@ -177,7 +216,7 @@ void TaskQueuePacedSender::UpdateStats() {
 }
 
 TaskQueuePacedSender::Stats TaskQueuePacedSender::GetStats() const {
-    RTC_RUN_ON(&task_queue_);
+    RTC_RUN_ON(task_queue_);
     return current_stats_;
 }
     

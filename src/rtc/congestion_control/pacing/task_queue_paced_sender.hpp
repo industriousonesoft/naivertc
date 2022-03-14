@@ -4,7 +4,7 @@
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/congestion_control/pacing/pacing_controller.hpp"
 #include "rtc/base/numerics/exp_filter.hpp"
-#include "rtc/base/task_utils/task_queue.hpp"
+#include "rtc/base/task_utils/task_queue_impl.hpp"
 
 namespace naivertc {
 
@@ -14,7 +14,8 @@ class TaskQueuePacedSender : public RtpPacketSender {
 public:
     using Configuration = PacingController::Configuration;
 public:
-    TaskQueuePacedSender(const Configuration& config, 
+    TaskQueuePacedSender(const Configuration& config,
+                         TaskQueueImpl* task_queue,
                          TimeDelta max_hold_back_window = PacingController::kMaxEarlyProbeProcessing,
                          int max_hold_window_in_packets = -1);
     ~TaskQueuePacedSender() override;
@@ -28,6 +29,12 @@ public:
     void SetTransportOverhead(size_t overhead_per_packet);
     void SetQueueTimeCap(TimeDelta cap);
 
+    void SetProbingEnabled(bool enabled);
+    void SetPacingBitrates(DataRate pacing_bitrate, 
+                           DataRate padding_bitrate);
+    void SetCongestionWindow(size_t congestion_window_size);
+    void OnInflightBytes(size_t inflight_bytes);
+
     void AddProbeCluster(int cluster_id, DataRate target_bitrate);
 
     // Implements RtpPacketSender
@@ -35,7 +42,7 @@ public:
 
 private:
     void MaybeProcessPackets(Timestamp scheduled_process_time);
-    void MaybeProcessPacketsImmediately();
+    void RescheduleProcess();
 
     struct Stats;
     void UpdateStats();
@@ -77,7 +84,7 @@ private:
     
     PacingController pacing_controller_;
 
-    TaskQueue task_queue_;
+    TaskQueueImpl* const task_queue_;
 };
     
 } // namespace naivertc
