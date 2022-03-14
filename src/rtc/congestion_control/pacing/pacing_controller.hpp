@@ -95,8 +95,8 @@ public:
 
     void SetProbingEnabled(bool enabled);
 
-    void SetPacingBitrate(DataRate pacing_bitrate, 
-                          DataRate padding_bitrate);
+    void SetPacingBitrates(DataRate pacing_bitrate, 
+                           DataRate padding_bitrate);
 
     void SetCongestionWindow(size_t congestion_window_size);
     void OnInflightBytes(size_t inflight_bytes);

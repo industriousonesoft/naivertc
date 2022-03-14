@@ -3,7 +3,7 @@
 
 #include <plog/Log.h>
 
-// #include "testing/defines.hpp"
+#include "testing/defines.hpp"
 
 namespace naivertc {
 namespace {
@@ -122,8 +122,8 @@ void PacingController::SetProbingEnabled(bool enabled) {
     prober_.SetEnabled(enabled);
 }
 
-void PacingController::SetPacingBitrate(DataRate pacing_bitrate, 
-                                        DataRate padding_bitrate) {
+void PacingController::SetPacingBitrates(DataRate pacing_bitrate, 
+                                         DataRate padding_bitrate) {
     media_bitrate_ = pacing_bitrate;
     padding_bitrate_ = padding_bitrate;
     pacing_bitrate_ = pacing_bitrate;
