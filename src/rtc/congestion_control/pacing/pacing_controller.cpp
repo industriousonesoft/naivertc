@@ -86,8 +86,20 @@ void PacingController::set_account_for_audio(bool account_for_audio) {
     account_for_audio_ = account_for_audio;
 }
 
+TimeDelta PacingController::queue_time_cap() const {
+    return queue_time_cap_;
+}
+    
+void PacingController::set_queue_time_cap(TimeDelta cap) {
+    queue_time_cap_ = cap;
+}
+
 std::optional<Timestamp> PacingController::first_sent_packet_time() const {
     return first_sent_packet_time_;
+}
+
+DataRate PacingController::pacing_bitrate() const {
+    return pacing_bitrate_;
 }
 
 void PacingController::Pause() {
@@ -421,8 +433,16 @@ bool PacingController::IsCongested() const {
     return false;
 }
 
+bool PacingController::IsProbing() const {
+    return prober_.IsProbing();
+}
+
 size_t PacingController::NumQueuedPackets() const {
     return packet_queue_.num_packets();
+}
+
+size_t PacingController::QueuedPacketSize() const {
+    return packet_queue_.queued_size();
 }
 
 Timestamp PacingController::OldestPacketEnqueueTime() const {

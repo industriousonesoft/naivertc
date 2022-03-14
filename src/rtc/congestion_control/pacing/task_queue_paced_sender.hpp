@@ -19,8 +19,27 @@ public:
                          int max_hold_window_in_packets = -1);
     ~TaskQueuePacedSender() override;
 
+    void Pause();
+    void Resume();
+
+    void EnsureStarted();
+    void SetAccountForAudioPackets(bool account_for_audio);
+    void SetIncludeOverhead();
+    void SetTransportOverhead(size_t overhead_per_packet);
+    void SetQueueTimeCap(TimeDelta cap);
+
+    void AddProbeCluster(int cluster_id, DataRate target_bitrate);
+
     // Implements RtpPacketSender
     void EnqueuePackets(std::vector<RtpPacketToSend> packets) override;
+
+private:
+    void MaybeProcessPackets(Timestamp scheduled_process_time);
+    void MaybeProcessPacketsImmediately();
+
+    struct Stats;
+    void UpdateStats();
+    Stats GetStats() const;
 
 private:
     struct Stats {
@@ -36,11 +55,11 @@ private:
     const int max_hold_window_in_packets_;
 
     // We want only one (valid) delayed process task in flight at a time.
-    // If the value of `next_process_time_` is finite, it is an id for a
+    // If the value of `next_scheduled_time_` is finite, it is an id for a
     // delayed task that will call MaybeProcessPackets() with that time
     // as parameter.
     // Timestamp::MinusInfinity() indicates no valid pending task.
-    Timestamp next_process_time_ = Timestamp::MinusInfinity();
+    Timestamp next_scheduled_process_time_ = Timestamp::MinusInfinity();
 
     // Indicates if this task queue is started. If not, don't allow
     // posting delayed tasks yet.
@@ -50,14 +69,15 @@ private:
     // posting any more delayed tasks as that can cause the task queue to
     // never drain.
     bool is_shutdown_ = false;
+
+    // Smoothed size of enqueued packtes, in bytes.
+    double smoothed_packet_size_ = 0.0;
+
+    Stats current_stats_;
     
     PacingController pacing_controller_;
 
-    // Filtered size of enqueued packtes, in bytes.
-    ExpFilter packet_size_;
-
     TaskQueue task_queue_;
-
 };
     
 } // namespace naivertc

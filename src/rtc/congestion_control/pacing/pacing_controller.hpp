@@ -83,7 +83,12 @@ public:
     bool account_for_audio() const;
     void set_account_for_audio(bool account_for_audio);
 
+    TimeDelta queue_time_cap() const;
+    void set_queue_time_cap(TimeDelta cap);
+
     std::optional<Timestamp> first_sent_packet_time() const;
+
+    DataRate pacing_bitrate() const;
 
     void Pause();
     void Resume();
@@ -108,8 +113,10 @@ public:
     Timestamp NextSendTime() const;
 
     bool IsCongested() const;
+    bool IsProbing() const;
 
     size_t NumQueuedPackets() const;
+    size_t QueuedPacketSize() const;
 
     Timestamp OldestPacketEnqueueTime() const;
 
