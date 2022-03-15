@@ -19,7 +19,7 @@ SendSideBwe::SendSideBwe(Configuration config)
       ack_bitrate_(std::nullopt),
       last_rtt_(TimeDelta::Zero()),
       remb_limit_(DataRate::PlusInfinity()),
-      use_remb_limit_cpas_only_(true),
+      use_remb_as_limit_cap_(false),
       delay_based_limit_(DataRate::PlusInfinity()),
       time_first_report_(Timestamp::MinusInfinity()),
       time_last_decrease_(Timestamp::MinusInfinity()),
@@ -33,7 +33,7 @@ SendSideBwe::SendSideBwe(Configuration config)
 SendSideBwe::~SendSideBwe() = default;
 
 DataRate SendSideBwe::target_bitate() const {
-    return curr_bitrate_;
+    return Clamp(curr_bitrate_);
 }
 
 DataRate SendSideBwe::min_bitate() const {
@@ -221,31 +221,33 @@ void SendSideBwe::UpdateEstimate(Timestamp report_time) {
 
 // Private methods
 DataRate SendSideBwe::Clamp(DataRate bitrate) const {
-    DataRate upper_limit = remb_limit_;
-    if (!use_remb_limit_cpas_only_) {
-        // The delay based limit.
-        upper_limit = std::min(delay_based_limit_, remb_limit_);
-        // The configured max limit.
-        upper_limit = std::min(upper_limit, max_configured_bitrate_);
+    // Using REMB as limit cap.
+    if (use_remb_as_limit_cap_ && remb_limit_.IsFinite()) {
+        bitrate = std::min(bitrate, remb_limit_);
     }
-    if (bitrate > upper_limit) {
-        bitrate = upper_limit;
-    }
-    if (bitrate < min_configured_bitrate_) {
-        PLOG_WARNING << "The estimated bitrate " << bitrate.bps() << " bps "
-                     << "is below the configured min bitrate " << min_configured_bitrate_.bps() << " bps.";
-        bitrate = min_configured_bitrate_;
-    }
-    return bitrate;
+    // Limit the bitrate below the max configured bitrate.
+    return std::min(bitrate, max_configured_bitrate_);
 }
 
-void SendSideBwe::UpdateTargetBitrate(DataRate bitrate, 
-                                      Timestamp report_time) {
-    curr_bitrate_ = Clamp(bitrate);
+DataRate SendSideBwe::GetUpperLimit() const {
+    // The upper limit of bitrate is based on delay based
+    // limit.
+    return Clamp(delay_based_limit_);
+}
+
+void SendSideBwe::UpdateTargetBitrate(DataRate new_bitrate, 
+                                      Timestamp at_time) {
+    new_bitrate = std::min(new_bitrate, GetUpperLimit());
+    if (new_bitrate < min_configured_bitrate_) {
+        PLOG_WARNING << "The estimated bitrate " << new_bitrate.bps() << " bps "
+                     << "is below the configured min bitrate " << min_configured_bitrate_.bps() << " bps.";
+        new_bitrate = min_configured_bitrate_;
+    }
+    curr_bitrate_ = new_bitrate;
     // Make sure that we have measured a throughput before updating the link capacity.
     if (ack_bitrate_) {
         // Use the smaller as the linker capacity estimate.
-        linker_capacity_tracker_.OnCapacityEstimate(std::min(*ack_bitrate_, curr_bitrate_), report_time);
+        linker_capacity_tracker_.OnCapacityEstimate(std::min(*ack_bitrate_, curr_bitrate_), at_time);
     }
 }
 

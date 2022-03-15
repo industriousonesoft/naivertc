@@ -73,6 +73,7 @@ public:
 
 private:
     DataRate Clamp(DataRate bitrate) const;
+    DataRate GetUpperLimit() const;
     void ApplyLimits(Timestamp report_time);
     void UpdateTargetBitrate(DataRate bitrate, 
                              Timestamp report_time);
@@ -95,7 +96,7 @@ private:
     // This is typically signalled using the REMB (Receiver Estimated Maximum Bitrate) message
     // and is used when we don't have any send side delay based estimate.
     DataRate remb_limit_;
-    bool use_remb_limit_cpas_only_;
+    bool use_remb_as_limit_cap_;
     DataRate delay_based_limit_;
     Timestamp time_first_report_;
     Timestamp time_last_decrease_;
