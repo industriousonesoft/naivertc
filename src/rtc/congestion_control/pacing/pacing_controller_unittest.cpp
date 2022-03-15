@@ -220,7 +220,7 @@ MY_TEST_F(PacingControllerTest, DefaultNoPaddingInSilence) {
 }
 
 MY_TEST_F(PacingControllerTest, EnablePaddingInSilence) {
-    pacing_config_.pacing_setting.send_padding_if_silent = true;
+    pacing_config_.pacing_settings.send_padding_if_silent = true;
     SetUp();
     pacer_->SetPacingBitrates(kTargetRate, DataRate::Zero());
     // Video packet to reset last send time and provide padding data.
@@ -237,7 +237,7 @@ MY_TEST_F(PacingControllerTest, EnablePaddingInSilence) {
 }
 
 MY_TEST_F(PacingControllerTest, CongestionWindowAffects) {
-    pacing_config_.pacing_setting.pacing_audio = true;
+    pacing_config_.pacing_settings.pacing_audio = true;
     SetUp();
     pacer_->SetPacingBitrates(kTargetRate, DataRate::Zero());
 
@@ -317,7 +317,7 @@ MY_TEST_F(PacingControllerTest, DefaultDebtNotAffectAudio) {
 }
 
 MY_TEST_F(PacingControllerTest, DebtAffectsAudio) {
-    pacing_config_.pacing_setting.pacing_audio = true;
+    pacing_config_.pacing_settings.pacing_audio = true;
     SetUp();
     EXPECT_FALSE(pacer_->IsCongested());
 
@@ -506,7 +506,7 @@ MY_TEST_F(PacingControllerTest, Padding) {
 
     // Send 10 padding packets.
     const size_t kPaddingPacketsToSend = 10;
-    const size_t kPaddingPacketSize = kTargetRate * pacing_config_.pacing_setting.padding_target_duration;
+    const size_t kPaddingPacketSize = kTargetRate * pacing_config_.pacing_settings.padding_target_duration;
     size_t padding_sent = 0;
     size_t padding_packets_sent = 0;
     auto first_send_time = Timestamp::MinusInfinity();
@@ -1029,8 +1029,8 @@ MY_TEST_F(PacingControllerTest, SkipsProbesWhenProcessIntervalTooLarge) {
 
     // Test with both legacy and new probe discard modes.
     for (bool abort_delayed_probes : {true}) {
-        pacing_config_.probing_setting.abort_delayed_probes = abort_delayed_probes;
-        pacing_config_.probing_setting.max_probe_delay = TimeDelta::Millis(2);
+        pacing_config_.probing_settings.abort_delayed_probes = abort_delayed_probes;
+        pacing_config_.probing_settings.max_probe_delay = TimeDelta::Millis(2);
         SetUp();
 
         pacer_->SetPacingBitrates(kInitialBitrate * PacingController::kDefaultPaceMultiplier, kInitialBitrate);
@@ -1073,7 +1073,7 @@ MY_TEST_F(PacingControllerTest, SkipsProbesWhenProcessIntervalTooLarge) {
 
         // Advance to within max probe delay, should still return same next time.
         // |now - next_probe_time == max_probe_delay|
-        clock_.AdvanceTime(pacing_config_.probing_setting.max_probe_delay);
+        clock_.AdvanceTime(pacing_config_.probing_settings.max_probe_delay);
         EXPECT_EQ(pacer_->NextSendTime(), next_probe_time);
 
         // Too delay to probe, drop it. |now - next_probe_time > max_probe_delay|
@@ -1492,7 +1492,7 @@ MY_TEST_F(PacingControllerTest, PaddingTargetAccountsForPaddingRate) {
 
     // Reset pacer with explicitly set padding target of 10ms.
     const TimeDelta kPaddingTarget = TimeDelta::Millis(10);
-    pacing_config_.pacing_setting.padding_target_duration = kPaddingTarget; // 10ms
+    pacing_config_.pacing_settings.padding_target_duration = kPaddingTarget; // 10ms
     SetUp();
 
     // Start with pacing and padding bitrate equal.

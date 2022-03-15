@@ -43,8 +43,10 @@ bool BitrateProber::IsProbing() const {
 void BitrateProber::OnIncomingPacket(size_t packet_size) {
     // Don't initialize probing unless we have something large enough
     // to start probing.
-    if (probing_state_ == ProbingState::INACTIVE && !clusters_.empty() &&
-        packet_size >= std::min(RecommendedMinProbeSize(), kMinProbePacketSize)) {
+    if (probing_state_ == ProbingState::INACTIVE && 
+        !clusters_.empty() &&
+        packet_size >= std::min(RecommendedMinProbeSize(), 
+                                kMinProbePacketSize)) {
         // Send next probe immediately.
         next_time_to_probe_ = Timestamp::MinusInfinity();
         probing_state_ = ProbingState::ACTIVE;

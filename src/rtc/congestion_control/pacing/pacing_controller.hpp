@@ -41,11 +41,11 @@ public:
         TimeDelta padding_target_duration = TimeDelta::Millis(5);
     };
 
-    using ProbingSetting = BitrateProber::Configuration;
+    using ProbingSettings = BitrateProber::Configuration;
     // Configuration
     struct Configuration {
-        PacingSettings pacing_setting;
-        ProbingSetting probing_setting;
+        PacingSettings pacing_settings;
+        ProbingSettings probing_settings;
 
         Clock* clock = nullptr;
         PacketSender* packet_sender = nullptr;
@@ -151,7 +151,7 @@ private:
     inline TimeDelta TimeToPayOffPaddingDebt() const;
                 
 private:
-    const PacingSettings pacing_setting_;
+    const PacingSettings pacing_settings_;
     Clock* const clock_;
     PacketSender* const packet_sender_;
 
