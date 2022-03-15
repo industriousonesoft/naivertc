@@ -4,10 +4,11 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#define ENABLE_UNIT_TESTS 1
+#define ENABLE_UNIT_TESTS 0
 #include "testing/defines.hpp"
 
 using ::testing::_;
+using ::testing::AtLeast;
 
 namespace naivertc {
 namespace test {
@@ -27,11 +28,20 @@ class MockPacketSender : public PacingController::PacketSender {
 public:
     void SendPacket(RtpPacketToSend packet,
                     const PacedPacketInfo& cluster_info) override {
-        SendPacket(packet.packet_type(), packet.ssrc());
+        if (cluster_info.probe_cluster.has_value()) {
+            SendProbePacket(packet.packet_type(), packet.ssrc(), cluster_info.probe_cluster->id);
+        } else {
+            SendPacket(packet.packet_type(), packet.ssrc());
+        }
+        data_sent_ += packet.payload_size() + packet.padding_size();
     }
     MOCK_METHOD(void,
                 SendPacket,
                 (RtpPacketType, uint32_t ssrc));
+
+    MOCK_METHOD(void,
+                SendProbePacket,
+                (RtpPacketType, uint32_t ssrc, int probe_cluster_id));
                 
     MOCK_METHOD(std::vector<RtpPacketToSend>,
                 FetchFecPackets,
@@ -41,6 +51,10 @@ public:
                 GeneratePadding,
                 (size_t target_size),
                 (override));
+
+    size_t data_sent() const { return data_sent_; }
+private:
+    size_t data_sent_ = 0;
 };
 
 class T(TaskQueuePacedSenderTest) : public ::testing::Test {
@@ -50,18 +64,29 @@ public:
           task_queue_(time_controller_.CreateTaskQueue()) {}
 
     void SetUp() override {
-        CreatePacer();
+        ResetPacer();
     }
 
-    void CreatePacer(TimeDelta max_holdback_window = PacingController::kMaxEarlyProbeProcessing, 
+    void ResetPacer(TimeDelta max_holdback_window = PacingController::kMaxEarlyProbeProcessing, 
                      int max_hold_window_in_packets = kNoPacketHoldback) {
         TaskQueuePacedSender::Configuration config;
         config.clock = time_controller_.Clock();
         config.packet_sender = &packet_sender_;
-        pacer_ = std::make_unique<TaskQueuePacedSender>(config,
-                                                        task_queue_.get(),
-                                                        max_holdback_window, 
-                                                        max_hold_window_in_packets);
+        pacer_.reset(new TaskQueuePacedSender(config,
+                                              task_queue_.get(),
+                                              max_holdback_window, 
+                                              max_hold_window_in_packets));
+    }
+
+     void ResetPacer(PacingController::ProbingSettings probing_settings) {
+        TaskQueuePacedSender::Configuration config;
+        config.clock = time_controller_.Clock();
+        config.packet_sender = &packet_sender_;
+        config.probing_settings = probing_settings;
+        pacer_.reset(new TaskQueuePacedSender(config,
+                                              task_queue_.get(),
+                                              PacingController::kMaxEarlyProbeProcessing, 
+                                              kNoPacketHoldback));
     }
 
     std::vector<RtpPacketToSend> 
@@ -200,10 +225,10 @@ MY_TEST_F(TaskQueuePacedSenderTest, ReschedulesProcessOnBitrateChange) {
 }
 
 MY_TEST_F(TaskQueuePacedSenderTest, SendsAudioImmediately) {
-    const DataRate kPacingDataRate = DataRate::KilobitsPerSec(125); // 125kbps
-    const TimeDelta kPacketPacingTime = kDefaultPacketSize / kPacingDataRate;
+    const DataRate kPacingBitrate = DataRate::KilobitsPerSec(125); // 125kbps
+    const TimeDelta kPacketPacingTime = kDefaultPacketSize / kPacingBitrate;
 
-    pacer_->SetPacingBitrates(kPacingDataRate, DataRate::Zero());
+    pacer_->SetPacingBitrates(kPacingBitrate, DataRate::Zero());
     pacer_->EnsureStarted();
 
     // Add some initial video packets, only one should be sent.
@@ -222,14 +247,14 @@ MY_TEST_F(TaskQueuePacedSenderTest, SendsAudioImmediately) {
 
 MY_TEST_F(TaskQueuePacedSenderTest, SleepsDuringHoldBackWindow) {
     const TimeDelta kMaxHoldBackWindow = TimeDelta::Millis(5);
-    CreatePacer(kMaxHoldBackWindow);
+    ResetPacer(kMaxHoldBackWindow);
 
     // Set rates so one packet adds one ms of buffer level.
     const TimeDelta kPacketPacingTime = TimeDelta::Millis(1);
     // Send one packet per millis second.
-    const DataRate kPacingDataRate = kDefaultPacketSize / kPacketPacingTime;
+    const DataRate kPacingBitrate = kDefaultPacketSize / kPacketPacingTime;
 
-    pacer_->SetPacingBitrates(kPacingDataRate, DataRate::Zero());
+    pacer_->SetPacingBitrates(kPacingBitrate, DataRate::Zero());
     pacer_->EnsureStarted();
 
     // Add 10 packets. The first should be sent immediately since the buffers
@@ -247,6 +272,256 @@ MY_TEST_F(TaskQueuePacedSenderTest, SleepsDuringHoldBackWindow) {
     // have been sent up til now will be sent.
     EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::VIDEO, kVideoSsrc)).Times(5);
     time_controller_.AdvanceTime(TimeDelta::Millis(1));
+}
+
+MY_TEST_F(TaskQueuePacedSenderTest, ProbingOverridesHoldBackWindow) {
+    const TimeDelta kMaxHoldBackWindow = TimeDelta::Millis(5);
+    ResetPacer(kMaxHoldBackWindow);
+
+    // Set rates so one packet adds one ms of buffer level.
+    const TimeDelta kPacketPacingTime = TimeDelta::Millis(1);
+    // Send one packet per millis second.
+    const DataRate kPacingBitrate = kDefaultPacketSize / kPacketPacingTime;
+
+    pacer_->SetPacingBitrates(kPacingBitrate, DataRate::Zero());
+    pacer_->EnsureStarted();
+
+    // Add 10 packets. The first should be sent immediately since the buffers
+    // are clear. This will also trigger the probe to start.
+    EXPECT_CALL(packet_sender_, SendProbePacket(RtpPacketType::VIDEO, kVideoSsrc, 17)).Times(AtLeast(1));
+    pacer_->AddProbeCluster(17, kPacingBitrate * 2);
+    pacer_->EnqueuePackets(GeneratePackets(RtpPacketType::VIDEO, 10));
+    time_controller_.AdvanceTime(TimeDelta::Zero());
+
+    // Advance time to 1ms before the hold back window ends. Packets should be
+    // flying.
+    EXPECT_CALL(packet_sender_, SendProbePacket(RtpPacketType::VIDEO, kVideoSsrc, 17)).Times(AtLeast(1));
+    time_controller_.AdvanceTime(kMaxHoldBackWindow - TimeDelta::Millis(1));
+}
+
+MY_TEST_F(TaskQueuePacedSenderTest, SchedulesProbeAtSetTime) {
+    PacingController::ProbingSettings probing_settings;
+    probing_settings.min_probe_delta = TimeDelta::Millis(1);
+    ResetPacer(probing_settings);
+
+    // Set bitrates so one packet adds 4ms of buffer level.
+    const size_t kPacketSize = kDefaultPacketSize;
+    const TimeDelta kPacketPacingTime = TimeDelta::Millis(4);
+    const DataRate kPacingBitrate = kPacketSize / kPacketPacingTime;
+
+    pacer_->SetPacingBitrates(kPacingBitrate, DataRate::Zero());
+    pacer_->EnsureStarted();
+
+    EXPECT_CALL(packet_sender_, GeneratePadding(_)).WillRepeatedly([&](size_t target_size){
+        return GeneratePadding(target_size);
+    });
+
+    // Enqueue two packets, only the first is sent immediately and the next
+    // will be scheduled for sending in 4ms.
+    pacer_->EnqueuePackets(GeneratePackets(RtpPacketType::VIDEO, 2));
+    EXPECT_CALL(packet_sender_, SendPacket(RtpPacketType::VIDEO, kVideoSsrc)).Times(1);
+
+    // Advance to less than 3ms before the next packet send time.
+    time_controller_.AdvanceTime(TimeDelta::Micros(1001));
+
+    // Trigger a probe at 4x the current pacing bitrate and insert
+    // the number of packets the probe needs.
+    const DataRate kProbeBitrate = 4 * kPacingBitrate;
+    const int kProbeClusterId = 1;
+    pacer_->AddProbeCluster(kProbeClusterId, kProbeBitrate);
+
+    const TimeDelta kProbeTimeDelta = TimeDelta::Millis(2);
+    const size_t kProbeSize = kProbeBitrate * kProbeTimeDelta;
+    // Round up.
+    const size_t kNumberPacketsInProbe = (kProbeSize + kPacketSize - 1) / kPacketSize;
+    GTEST_COUT << "kNumberPacketsInProbe=" << kNumberPacketsInProbe << std::endl;
+    EXPECT_CALL(packet_sender_, SendProbePacket(_, _, kProbeClusterId))
+        .Times(kNumberPacketsInProbe + /*Probing starts with a small packet*/1);
+    pacer_->EnqueuePackets(GeneratePackets(RtpPacketType::VIDEO, kNumberPacketsInProbe));
+    time_controller_.AdvanceTime(TimeDelta::Zero());
+
+    // The pacer should have scheduled the next probe to be sent in
+    // kProbeTimeDelta. That there was existing scheduled call less than
+    // PacingController::kMaxEarlyProbeProcessing before this should not matter.
+    EXPECT_CALL(packet_sender_, SendProbePacket(_, _, kProbeClusterId))
+        .Times(AtLeast(1));
+    time_controller_.AdvanceTime(TimeDelta::Millis(2));
+}
+
+MY_TEST_F(TaskQueuePacedSenderTest, NoMinSleepTimeWhenProbing) {
+    // Set min_probe_delta to be less than kMinSleepTime (1ms).
+    const TimeDelta kMinProbeDelta = TimeDelta::Micros(100);
+    PacingController::ProbingSettings probing_settings;
+    probing_settings.min_probe_delta = kMinProbeDelta;
+    ResetPacer(probing_settings);
+
+    // Set rates so one packet adds 4ms of buffer level.
+    const size_t kPacketSize = kDefaultPacketSize;
+    const TimeDelta kPacketPacingTime = TimeDelta::Millis(4);
+    const DataRate kPacingBitrate = kPacketSize / kPacketPacingTime;
+    pacer_->SetPacingBitrates(kPacingBitrate, /*padding_rate=*/DataRate::Zero());
+    pacer_->EnsureStarted();
+    EXPECT_CALL(packet_sender_, GeneratePadding)
+        .WillRepeatedly([&](size_t target_size) { return GeneratePadding(target_size); });
+
+    // Set a high probe rate.
+    const int kProbeClusterId = 1;
+    DataRate kProbingBitrate = kPacingBitrate * 10; 
+    pacer_->AddProbeCluster(kProbeClusterId, kProbingBitrate);
+
+    // Advance time less than PacingController::kMinSleepTime, probing packets
+    // for the first millisecond should be sent immediately. Min delta between
+    // probes is 2x 100us, meaning 4 times per ms we will get least one call to
+    // SendPacket().
+    EXPECT_CALL(packet_sender_, SendProbePacket(_, _, kProbeClusterId)).Times(AtLeast(4));
+
+    // Add one packet to kickstart probing, the rest will be padding packets.
+    pacer_->EnqueuePackets(GeneratePackets(RtpPacketType::VIDEO, 1));
+    time_controller_.AdvanceTime(kMinProbeDelta);
+
+    // Verify the amount of probing data sent.
+    // Probe always starts with a small (1 byte) padding packet that's not
+    // counted into the probe rate here.
+    EXPECT_EQ(packet_sender_.data_sent(), kProbingBitrate * TimeDelta::Millis(1) + 1);
+}
+
+MY_TEST_F(TaskQueuePacedSenderTest, PacketBasedHoldback) {
+    const TimeDelta kFixedHodlbackWindow = TimeDelta::Millis(10);
+    const int kPacketBasedHoldback = 5;
+    ResetPacer(kFixedHodlbackWindow, kPacketBasedHoldback);
+
+    // Set rates so one packet adds one ms of buffer level.
+    const size_t kPacketSize = kDefaultPacketSize;
+    const TimeDelta kPacketPacingTime = TimeDelta::Millis(1);
+    const DataRate kPacingDataRate = kPacketSize / kPacketPacingTime;
+    const TimeDelta kExpectedHoldbackWindow = kPacketPacingTime * kPacketBasedHoldback;
+    // `kFixedCoalescingWindow` sets the upper bound for the window.
+    ASSERT_GE(kFixedHodlbackWindow, kExpectedHoldbackWindow);
+
+    pacer_->SetPacingBitrates(kPacingDataRate, DataRate::Zero());
+    pacer_->EnsureStarted();
+
+    // Add some packets and wait till all have been sent, so that the pacer
+    // has a valid estimate of packet size.
+    const int kNumWarmupPackets = 40;
+    EXPECT_CALL(packet_sender_, SendPacket).Times(kNumWarmupPackets);
+    pacer_->EnqueuePackets(GeneratePackets(RtpPacketType::VIDEO, kNumWarmupPackets));
+    // Wait until all packes have been sent, with a 2x margin.
+    time_controller_.AdvanceTime(kPacketPacingTime * (kNumWarmupPackets * 2));
+
+    // Enqueue packets. Expect only the first one to be sent immediately.
+    EXPECT_CALL(packet_sender_, SendPacket).Times(1);
+    pacer_->EnqueuePackets(GeneratePackets(RtpPacketType::VIDEO, kPacketBasedHoldback));
+    time_controller_.AdvanceTime(TimeDelta::Zero());
+
+    // Advance time to 1ms before the holdback window ends.
+    EXPECT_CALL(packet_sender_, SendPacket).Times(0);
+    time_controller_.AdvanceTime(kExpectedHoldbackWindow - TimeDelta::Millis(1));
+
+    // Advance past where the holdback window should end.
+    EXPECT_CALL(packet_sender_, SendPacket).Times(kPacketBasedHoldback - 1);
+    time_controller_.AdvanceTime(TimeDelta::Millis(1));
+}
+
+MY_TEST_F(TaskQueuePacedSenderTest, FixedHoldBackHasPriorityOverPackets) {
+    const TimeDelta kFixedHodlbackWindow = TimeDelta::Millis(2);
+    const int kPacketBasedHoldback = 5;
+    ResetPacer(kFixedHodlbackWindow, kPacketBasedHoldback);
+
+    // Set rates so one packet adds one ms of buffer level.
+    const size_t kPacketSize = kDefaultPacketSize;
+    const TimeDelta kPacketPacingTime = TimeDelta::Millis(1);
+    const DataRate kPacingDataRate = kPacketSize / kPacketPacingTime;
+    const TimeDelta kExpectedPacketHoldbackWindow = kPacketPacingTime * kPacketBasedHoldback;
+    // |kFixedHodlbackWindow| sets the upper bound for the window.
+    ASSERT_LT(kFixedHodlbackWindow, kExpectedPacketHoldbackWindow);
+
+    pacer_->SetPacingBitrates(kPacingDataRate, DataRate::Zero());
+    pacer_->EnsureStarted();
+
+    // Add some packets and wait till all have been sent, so that the pacer
+    // has a valid estimate of packet size.
+    const int kNumWarmupPackets = 40;
+    EXPECT_CALL(packet_sender_, SendPacket).Times(kNumWarmupPackets);
+    pacer_->EnqueuePackets(GeneratePackets(RtpPacketType::VIDEO, kNumWarmupPackets));
+    // Wait until all packes have been sent, with a 2x margin.
+    time_controller_.AdvanceTime(kPacketPacingTime * (kNumWarmupPackets * 2));
+
+    // Enqueue packets. Expect only the first one to be sent immediately.
+    EXPECT_CALL(packet_sender_, SendPacket).Times(1);
+    pacer_->EnqueuePackets(GeneratePackets(RtpPacketType::VIDEO, kPacketBasedHoldback));
+    time_controller_.AdvanceTime(TimeDelta::Zero());
+
+    // Advance time to the fixed holdback window, that should take presedence so
+    // at least some of the packets should be sent.
+    EXPECT_CALL(packet_sender_, SendPacket).Times(AtLeast(1));
+    time_controller_.AdvanceTime(kFixedHodlbackWindow);
+}
+
+MY_TEST_F(TaskQueuePacedSenderTest, Stats) {
+    const auto kStartTime = time_controller_.Clock()->CurrentTime();
+    // Simulate ~2mbps video stream, covering one second.
+    static constexpr size_t kPacketsToSend = 200;
+    static constexpr DataRate kPacingRate = DataRate::BytesPerSec(kDefaultPacketSize * kPacketsToSend);
+    pacer_->SetPacingBitrates(kPacingRate, DataRate::Zero());
+    pacer_->EnsureStarted();
+
+    // Allowed `QueueSizeData` and `ExpectedQueueTime` deviation.
+    static constexpr size_t kAllowedPacketsDeviation = 1;
+    static constexpr size_t kAllowedQueueSizeDeviation = kDefaultPacketSize * kAllowedPacketsDeviation;
+    static constexpr TimeDelta kAllowedQueueTimeDeviation = kAllowedQueueSizeDeviation / kPacingRate;
+
+    size_t expected_queue_size = 0;
+    TimeDelta expected_queue_time = TimeDelta::MinusInfinity();
+
+    EXPECT_CALL(packet_sender_, SendPacket).Times(kPacketsToSend);
+
+    // Stats before insert any packets.
+    auto stats = pacer_->GetStats();
+    EXPECT_TRUE(stats.oldest_packet_enqueue_time.IsMinusInfinity());
+    EXPECT_FALSE(stats.first_sent_packet_time.has_value());
+    EXPECT_EQ(0u, stats.queue_size);
+    EXPECT_TRUE(stats.expected_queue_time.IsZero());
+
+    pacer_->EnqueuePackets(GeneratePackets(RtpPacketType::VIDEO, kPacketsToSend));
+
+    // Advance to 200ms.
+    time_controller_.AdvanceTime(TimeDelta::Millis(200));
+    stats = pacer_->GetStats();
+    auto oldest_packet_wait_time = (time_controller_.Clock()->CurrentTime() - stats.oldest_packet_enqueue_time);
+    EXPECT_EQ(oldest_packet_wait_time, TimeDelta::Millis(200));
+    EXPECT_EQ(stats.first_sent_packet_time, kStartTime);
+
+    expected_queue_size = kPacingRate * TimeDelta::Millis(800);
+    expected_queue_time = expected_queue_size / kPacingRate;
+    stats = pacer_->GetStats();
+    EXPECT_NEAR(stats.queue_size, expected_queue_size,
+                kAllowedQueueSizeDeviation);
+    EXPECT_NEAR(stats.expected_queue_time.ms(), expected_queue_time.ms(),
+                kAllowedQueueTimeDeviation.ms());
+
+    // Advance to 500ms.
+    time_controller_.AdvanceTime(TimeDelta::Millis(300));
+    stats = pacer_->GetStats();
+    oldest_packet_wait_time = (time_controller_.Clock()->CurrentTime() - stats.oldest_packet_enqueue_time);
+    EXPECT_EQ(oldest_packet_wait_time, TimeDelta::Millis(500));
+    EXPECT_EQ(stats.first_sent_packet_time, kStartTime);
+
+    expected_queue_size = kPacingRate * TimeDelta::Millis(500);
+    expected_queue_time = expected_queue_size / kPacingRate;
+    EXPECT_NEAR(stats.queue_size, expected_queue_size,
+                kAllowedQueueSizeDeviation);
+    EXPECT_NEAR(stats.expected_queue_time.ms(), expected_queue_time.ms(),
+                kAllowedQueueTimeDeviation.ms());
+
+    // Advance to 1000ms+, expect all packets to be sent.
+    time_controller_.AdvanceTime(TimeDelta::Millis(500) +
+                                kAllowedQueueTimeDeviation);
+    stats = pacer_->GetStats();
+    EXPECT_TRUE(stats.oldest_packet_enqueue_time.IsMinusInfinity());
+    EXPECT_EQ(stats.first_sent_packet_time, kStartTime);
+    EXPECT_EQ(0u, stats.queue_size);
+    EXPECT_TRUE(stats.expected_queue_time.IsZero());
 }
 
 } // namespace test

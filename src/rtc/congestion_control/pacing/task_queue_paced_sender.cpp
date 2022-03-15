@@ -126,6 +126,11 @@ void TaskQueuePacedSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) 
     });
 }
 
+TaskQueuePacedSender::Stats TaskQueuePacedSender::GetStats() const {
+    std::lock_guard lock(stats_mutex_);
+    return current_stats_;
+}
+
 // Private methods
 void TaskQueuePacedSender::MaybeProcessPackets(Timestamp scheduled_process_time) {
     RTC_RUN_ON(task_queue_);
@@ -161,38 +166,35 @@ void TaskQueuePacedSender::MaybeProcessPackets(Timestamp scheduled_process_time)
         smoothed_packet_size_ > 0) {
         // Using double for high precision. 
         TimeDelta avg_packet_send_time = TimeDelta::Millis(smoothed_packet_size_ * 8000 / pacing_bitrate.bps<double>());
+        // Choose the smaller one between fixed holdback window and dynamic holdback window.
         hold_back_window = std::min(hold_back_window, avg_packet_send_time * max_hold_window_in_packets_);
     }
 
-    std::optional<TimeDelta> time_to_next_process;
+    std::optional<TimeDelta> delay_to_next_process;
+    // NOTE: Probing will override holdback window if we're in probing.
     if (pacing_controller_.IsProbing() && 
         next_process_time != next_scheduled_process_time_) {
         // If we're probing and there isn't already a wakeup scheduled for the 
         // next process time, always post a task and just round sleep time down
         // to the nearest millisecond.
         if (next_process_time.IsMinusInfinity()) {
-            time_to_next_process = TimeDelta::Zero();
+            delay_to_next_process = TimeDelta::Zero();
         } else {
-            auto old_process_time = *time_to_next_process;
-            time_to_next_process = std::max(TimeDelta::Zero(), (next_process_time - now).RoundDownTo(TimeDelta::Millis(1)));
-            GTEST_COUT << "old_process_time=" << old_process_time.ms() 
-                        << " ms, rounded_process_time=" << time_to_next_process->ms()
-                        << " ms\n";
-            
+            delay_to_next_process = std::max(TimeDelta::Zero(), (next_process_time - now).RoundDownTo(TimeDelta::Millis(1)));
         }
     } else if (next_scheduled_process_time_.IsMinusInfinity() ||
                next_process_time <= next_scheduled_process_time_ - hold_back_window) {
         // Schdule a new task since there is none currently scheduled (|next_scheduled_process_time_| is infinite),
         // or the new process is at least one holdback window earlier than whatever is currently scheduled.
-        time_to_next_process = std::max(next_process_time - now, hold_back_window);
+        delay_to_next_process = std::max(next_process_time - now, hold_back_window);
     }
 
-    if (time_to_next_process) {
+    if (delay_to_next_process) {
         // Set a new scheduled process time and post a delayed task.
         next_scheduled_process_time_ = next_process_time;
 
         // Schedule the next process.
-        task_queue_->PostDelayed(*time_to_next_process, [this, next_process_time](){
+        task_queue_->PostDelayed(*delay_to_next_process, [this, next_process_time](){
             MaybeProcessPackets(next_process_time);
         });
     }
@@ -213,11 +215,6 @@ void TaskQueuePacedSender::UpdateStats() {
     new_stats.oldest_packet_enqueue_time = pacing_controller_.OldestPacketEnqueueTime();
     new_stats.queue_size = pacing_controller_.QueuedPacketSize();
     current_stats_ = new_stats;
-}
-
-TaskQueuePacedSender::Stats TaskQueuePacedSender::GetStats() const {
-    RTC_RUN_ON(task_queue_);
-    return current_stats_;
 }
     
 } // namespace naivertc

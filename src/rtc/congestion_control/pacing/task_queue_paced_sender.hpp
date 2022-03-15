@@ -6,6 +6,8 @@
 #include "rtc/base/numerics/exp_filter.hpp"
 #include "rtc/base/task_utils/task_queue_impl.hpp"
 
+#include <mutex>
+
 namespace naivertc {
 
 class Clock;
@@ -13,6 +15,15 @@ class Clock;
 class TaskQueuePacedSender : public RtpPacketSender {
 public:
     using Configuration = PacingController::Configuration;
+
+    // Stats
+    struct Stats {
+        Timestamp oldest_packet_enqueue_time = Timestamp::MinusInfinity();
+        size_t queue_size = 0;
+        TimeDelta expected_queue_time = TimeDelta::Zero();
+        std::optional<Timestamp> first_sent_packet_time;
+    };
+
 public:
     TaskQueuePacedSender(const Configuration& config,
                          TaskQueueImpl* task_queue,
@@ -40,21 +51,12 @@ public:
     // Implements RtpPacketSender
     void EnqueuePackets(std::vector<RtpPacketToSend> packets) override;
 
-private:
-    void MaybeProcessPackets(Timestamp scheduled_process_time);
-    void RescheduleProcess();
-
-    struct Stats;
-    void UpdateStats();
     Stats GetStats() const;
 
 private:
-    struct Stats {
-        Timestamp oldest_packet_enqueue_time = Timestamp::MinusInfinity();
-        size_t queue_size = 0;
-        TimeDelta expected_queue_time = TimeDelta::Zero();
-        std::optional<Timestamp> first_sent_packet_time;
-    };
+    void MaybeProcessPackets(Timestamp scheduled_process_time);
+    void RescheduleProcess();
+    void UpdateStats();
 
 private:
     Clock* const clock_;
@@ -84,6 +86,7 @@ private:
     
     PacingController pacing_controller_;
 
+    mutable std::mutex stats_mutex_;
     TaskQueueImpl* const task_queue_;
 };
     
