@@ -41,11 +41,11 @@ public:
         TimeDelta padding_target_duration = TimeDelta::Millis(5);
     };
 
-    using ProbingSetting = BitrateProber::Configuration;
+    using ProbingSettings = BitrateProber::Configuration;
     // Configuration
     struct Configuration {
-        PacingSettings pacing_setting;
-        ProbingSetting probing_setting;
+        PacingSettings pacing_settings;
+        ProbingSettings probing_settings;
 
         Clock* clock = nullptr;
         PacketSender* packet_sender = nullptr;
@@ -83,15 +83,20 @@ public:
     bool account_for_audio() const;
     void set_account_for_audio(bool account_for_audio);
 
+    TimeDelta queue_time_cap() const;
+    void set_queue_time_cap(TimeDelta cap);
+
     std::optional<Timestamp> first_sent_packet_time() const;
+
+    DataRate pacing_bitrate() const;
 
     void Pause();
     void Resume();
 
     void SetProbingEnabled(bool enabled);
 
-    void SetPacingBitrate(DataRate pacing_bitrate, 
-                          DataRate padding_bitrate);
+    void SetPacingBitrates(DataRate pacing_bitrate, 
+                           DataRate padding_bitrate);
 
     void SetCongestionWindow(size_t congestion_window_size);
     void OnInflightBytes(size_t inflight_bytes);
@@ -108,8 +113,10 @@ public:
     Timestamp NextSendTime() const;
 
     bool IsCongested() const;
+    bool IsProbing() const;
 
     size_t NumQueuedPackets() const;
+    size_t QueuedPacketSize() const;
 
     Timestamp OldestPacketEnqueueTime() const;
 
@@ -144,7 +151,7 @@ private:
     inline TimeDelta TimeToPayOffPaddingDebt() const;
                 
 private:
-    const PacingSettings pacing_setting_;
+    const PacingSettings pacing_settings_;
     Clock* const clock_;
     PacketSender* const packet_sender_;
 

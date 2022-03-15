@@ -48,12 +48,12 @@ const TimeDelta PacingController::kPausedProcessInterval = kCongestedPacketInter
 const TimeDelta PacingController::kMaxEarlyProbeProcessing = TimeDelta::Millis(1); // 1 ms
 
 PacingController::PacingController(const Configuration& config) 
-    : pacing_setting_(config.pacing_setting),
+    : pacing_settings_(config.pacing_settings),
       clock_(config.clock),
       packet_sender_(config.packet_sender),
       last_process_time_(clock_->CurrentTime()),
       last_send_time_(last_process_time_),
-      prober_(config.probing_setting),
+      prober_(config.probing_settings),
       packet_queue_(last_process_time_),
       queue_time_cap_(kMaxExpectedQueueTime) {}
 
@@ -72,7 +72,7 @@ size_t PacingController::transport_overhead() const {
 }
 
 void PacingController::set_transport_overhead(size_t overhead_per_packet) {
-    if (pacing_setting_.ignore_transport_overhead) {
+    if (pacing_settings_.ignore_transport_overhead) {
         return;
     }
     packet_queue_.set_transport_overhead(overhead_per_packet);
@@ -86,8 +86,20 @@ void PacingController::set_account_for_audio(bool account_for_audio) {
     account_for_audio_ = account_for_audio;
 }
 
+TimeDelta PacingController::queue_time_cap() const {
+    return queue_time_cap_;
+}
+    
+void PacingController::set_queue_time_cap(TimeDelta cap) {
+    queue_time_cap_ = cap;
+}
+
 std::optional<Timestamp> PacingController::first_sent_packet_time() const {
     return first_sent_packet_time_;
+}
+
+DataRate PacingController::pacing_bitrate() const {
+    return pacing_bitrate_;
 }
 
 void PacingController::Pause() {
@@ -110,8 +122,8 @@ void PacingController::SetProbingEnabled(bool enabled) {
     prober_.SetEnabled(enabled);
 }
 
-void PacingController::SetPacingBitrate(DataRate pacing_bitrate, 
-                                        DataRate padding_bitrate) {
+void PacingController::SetPacingBitrates(DataRate pacing_bitrate, 
+                                         DataRate padding_bitrate) {
     media_bitrate_ = pacing_bitrate;
     padding_bitrate_ = padding_bitrate;
     pacing_bitrate_ = pacing_bitrate;
@@ -163,6 +175,7 @@ bool PacingController::AddProbeCluster(int cluster_id,
 void PacingController::ProcessPackets() {
     auto now = clock_->CurrentTime();
     auto target_send_time = NextSendTime();
+    // NOTE: Probing should be processed earlier.
     TimeDelta early_execute_margin = prober_.IsProbing() ? kMaxEarlyProbeProcessing : TimeDelta::Zero();
 
     if (target_send_time.IsMinusInfinity()) {
@@ -216,7 +229,7 @@ void PacingController::ProcessPackets() {
         size_t queued_packet_size = packet_queue_.queued_size();
         if (queued_packet_size > 0) {
             packet_queue_.UpdateEnqueueTime(now);
-            if (pacing_setting_.drain_large_queue) {
+            if (pacing_settings_.drain_large_queue) {
                 auto avg_time_left = std::max(TimeDelta::Millis(1), queue_time_cap_ - packet_queue_.AverageQueueTime());
                 // The minimum bitrate required to drain queue.
                 auto min_drain_bitrate_required = queued_packet_size / avg_time_left;
@@ -250,7 +263,7 @@ void PacingController::ProcessPackets() {
     size_t sent_bytes = 0;
 
     // NOTE: 进入process循环后会根据包的优先级进行处理，即先发送优先级高的包：
-    // audio > retransmission > video&FEC > padding.
+    // probe > audio > paced packets (retransmission > video|FEC) > padding.
     // 如果当前优先级的包已经发送完，则检查并发送下一个优先级的包，以此类推。直到
     // 在此次需要发送的包都已经全部发送，或因probe才会退出循环。
     while (!paused_) {
@@ -372,7 +385,7 @@ Timestamp PacingController::NextSendTime() const {
     }
 
     // If not pacing audio, audio packet takes a higher priority.
-    if (!pacing_setting_.pacing_audio) {
+    if (!pacing_settings_.pacing_audio) {
         // return the enqueue time if the current leading packet is audio.
         auto audio_enqueue_time = packet_queue_.LeadingAudioPacketEnqueueTime();
         if (audio_enqueue_time) {
@@ -407,7 +420,7 @@ Timestamp PacingController::NextSendTime() const {
     }
 
     // Send padding as heartbeat if necessary.
-    if (pacing_setting_.send_padding_if_silent) {
+    if (pacing_settings_.send_padding_if_silent) {
         return last_send_time_ + kPausedProcessInterval;
     }
 
@@ -421,8 +434,16 @@ bool PacingController::IsCongested() const {
     return false;
 }
 
+bool PacingController::IsProbing() const {
+    return prober_.IsProbing();
+}
+
 size_t PacingController::NumQueuedPackets() const {
     return packet_queue_.num_packets();
+}
+
+size_t PacingController::QueuedPacketSize() const {
+    return packet_queue_.queued_size();
 }
 
 Timestamp PacingController::OldestPacketEnqueueTime() const {
@@ -501,7 +522,7 @@ void PacingController::AddDebt(size_t sent_bytes) {
 }
 
 bool PacingController::IsTimeToSendHeartbeat(Timestamp at_time) const {
-    if (pacing_setting_.send_padding_if_silent || 
+    if (pacing_settings_.send_padding_if_silent || 
         paused_ || 
         IsCongested() || 
         packet_counter_ == 0) {
@@ -548,7 +569,7 @@ std::optional<RtpPacketToSend> PacingController::NextPacketToSend(const PacedPac
 
     // NOTE: 音频包由于音频对连续性要求高，且因本身体积小不易丢包，因此可以选择忽略网络拥塞情况。
     // Check if the next packet to send is a unpaced audio packet.
-    bool has_unpaced_audio_packet = !pacing_setting_.pacing_audio && packet_queue_.LeadingAudioPacketEnqueueTime().has_value();
+    bool has_unpaced_audio_packet = !pacing_settings_.pacing_audio && packet_queue_.LeadingAudioPacketEnqueueTime().has_value();
     bool is_probing = pacing_info.probe_cluster.has_value();
     // If the next packet is not neither a audio nor used to probe,
     // we need to check it futher.
@@ -613,7 +634,7 @@ size_t PacingController::PaddingSizeToAdd(size_t recommended_probe_size, size_t 
 
     // Only add new padding till all padding debt has paid off.
     if (padding_bitrate_ > DataRate::Zero() && padding_debt_ == 0) {
-        return pacing_setting_.padding_target_duration * padding_bitrate_;
+        return pacing_settings_.padding_target_duration * padding_bitrate_;
     }
 
     return 0;
