@@ -4,7 +4,7 @@
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/base/task_utils/repeating_task.hpp"
-#include "rtc/congestion_control/controllers/network_controller_interface.hpp"
+#include "rtc/congestion_control/send_side/network_controller_interface.hpp"
 #include "rtc/congestion_control/components/network_transport_statistician.hpp"
 
 #include <unordered_map>

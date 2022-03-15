@@ -1,7 +1,7 @@
 #include "rtc/call/rtp_send_controller.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/transport_feedback.hpp"
-#include "rtc/congestion_control/controllers/goog_cc/goog_cc_network_controller.hpp"
+#include "rtc/congestion_control/send_side/goog_cc/goog_cc_network_controller.hpp"
 
 namespace naivertc {
 namespace {
@@ -22,7 +22,7 @@ RtpSendController::RtpSendController(Clock* clock)
     : clock_(clock),
       worker_queue_("RtpSendController.worker.queue"),
       update_interval_(kUpdateInterval),
-      network_controller_(std::make_unique<GoogCcNetworkController>(BuildGoogCCConfig(clock_))),
+      network_controller_(std::make_unique<GoogCcNetworkController>(BuildGoogCCConfig(clock_), /*packet_feedback_only=*/false)),
       last_report_block_time_(clock_->CurrentTime()) {
     assert(clock != nullptr);
     if (update_interval_.IsFinite()) {
@@ -44,11 +44,11 @@ RtpSendController::~RtpSendController() {
 
 // Private methods
 void RtpSendController::OnReceivedEstimatedBitrateBps(uint32_t bitrate_bps) {
-    DataRate bitrate = DataRate::BitsPerSec(bitrate_bps);
+    DataRate remb = DataRate::BitsPerSec(bitrate_bps);
     Timestamp recv_time = Timestamp::Millis(clock_->now_ms());
-    worker_queue_.Post([this, bitrate, recv_time](){
+    worker_queue_.Post([this, remb, recv_time](){
         if (network_controller_) {
-            OnNetworkControlUpdate(network_controller_->OnRemoteBitrateUpdated(bitrate, recv_time));
+            OnNetworkControlUpdate(network_controller_->OnRembUpdated(remb, recv_time));
         }
     });
 }
