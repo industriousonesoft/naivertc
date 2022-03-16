@@ -237,10 +237,10 @@ void CopyOnWriteBuffer::CloneIfNecessary(size_t new_capacity) {
         if (new_capacity > capacity()) {
             buffer_->reserve(new_capacity);
         }
-        return;
+    } else {
+        buffer_ = std::make_shared<BinaryBuffer>(buffer_->data(), buffer_->data() + buffer_->size());
+        buffer_->reserve(new_capacity);
     }
-    buffer_ = std::make_shared<BinaryBuffer>(buffer_->data(), buffer_->data() + buffer_->size());
-    buffer_->reserve(new_capacity);
 }
 
 void CopyOnWriteBuffer::CreateEmptyBufferIfNecessary() {
