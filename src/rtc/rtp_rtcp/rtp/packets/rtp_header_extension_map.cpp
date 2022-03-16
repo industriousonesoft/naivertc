@@ -22,6 +22,7 @@ constexpr ExtensionInfo kExtensions[] = {
     CreateExtensionInfo<AbsoluteCaptureTime>(),
     CreateExtensionInfo<TransmissionTimeOffset>(),
     CreateExtensionInfo<TransportSequenceNumber>(),
+    CreateExtensionInfo<TransportSequenceNumberV2>(),
     CreateExtensionInfo<PlayoutDelayLimits>(),
     CreateExtensionInfo<RtpMid>(),
     CreateExtensionInfo<RtpStreamId>(),

@@ -162,7 +162,7 @@ template <typename Extension>
 std::optional<typename Extension::ValueType> RtpPacket::GetExtension() const {
     std::optional<typename Extension::ValueType> result;
     auto raw = FindExtension(Extension::kType);
-    if (raw.empty() || !Extension::Parse(raw.data(), raw.size(), &result.emplace())) {
+    if (raw.empty() || !Extension::Parse(raw, &result.emplace())) {
         return std::nullopt;
     }
     return result;
@@ -174,7 +174,7 @@ bool RtpPacket::SetExtension(const Values&... values) {
     auto buffer = AllocateExtension(Extension::kType, value_size);
     if (buffer.empty())
         return false;
-    return Extension::PackInto(buffer.data(), buffer.size(), values...);
+    return Extension::Write(buffer, values...);
 }
 
 template <typename Extension>
