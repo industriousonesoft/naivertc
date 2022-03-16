@@ -60,6 +60,28 @@ inline T division_with_roundup(T numerator, T denominator) {
     return (numerator + denominator / 2) / denominator;
 }
 
+// to_u_type
+// C++11
+// template<typename T> 
+// constexpr typename std::underlying_type<T>::type
+// to_u_type(T enumerator) {
+//     return static_cast<typename std::underlying_type<T>::type>(enumerator);
+// }
+
+// C++14
+template<typename T> 
+constexpr typename std::underlying_type_t<T>
+to_u_type(T enumerator) {
+    return static_cast<typename std::underlying_type_t<T>>(enumerator);
+}
+
+// C++14 & auto
+// template<typename T> 
+// constexpr auto
+// to_u_type(T enumerator) {
+//     return static_cast<typename std::underlying_type_t<T>>(enumerator);
+// }
+
 }
 
 } // namespace utils
