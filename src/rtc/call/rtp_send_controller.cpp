@@ -94,6 +94,14 @@ void RtpSendController::OnReceivedRtcpReceiveReport(const std::vector<RtcpReport
     });
 }
 
+// void RtpSendController::OnReceivedPacket(const ReceivedPacket& recv_packet) {
+//     worker_queue_.Post([this, recv_packet](){
+//         if (network_controller_) {
+//             OnNetworkControlUpdate(network_controller_->OnReceivedPacket(recv_packet));
+//         }
+//     });
+// }
+
 // Private methods
 void RtpSendController::OnNetworkControlUpdate(NetworkControlUpdate update) {
     RTC_RUN_ON(&worker_queue_);
