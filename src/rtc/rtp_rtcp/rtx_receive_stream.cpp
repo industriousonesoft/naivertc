@@ -6,7 +6,7 @@
 namespace naivertc {
 
 RtxReceiveStream::RtxReceiveStream(uint32_t media_ssrc,
-                                   std::map<int, int> associated_payload_types,
+                                   std::unordered_map<int, int> associated_payload_types,
                                    RtpPacketSink* media_packet_sink) 
     : media_ssrc_(media_ssrc),
       associated_payload_types_(std::move(associated_payload_types)),

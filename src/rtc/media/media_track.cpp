@@ -22,10 +22,6 @@ MediaTrack::Kind ToKind(sdp::MediaEntry::Kind kind) {
 RtpParameters ParseRtpParameters(const sdp::Media& media) {
     RtpParameters rtp_parameters;
     // Ssrcs
-    // Media ssrc
-    if (!media.media_ssrcs().empty()) {
-        rtp_parameters.local_media_ssrc = media.media_ssrcs()[0];
-    }
     // Rtx ssrc
     if (!media.rtx_ssrcs().empty()) {
         rtp_parameters.rtx_send_ssrc = media.rtx_ssrcs()[0];
@@ -145,17 +141,37 @@ void MediaTrack::OnNegotiated(const sdp::Description& local_sdp,
         // Sendable
         if (local_media->direction() == sdp::Direction::SEND_ONLY ||
             local_media->direction() == sdp::Direction::SEND_RECV) {
-            auto rtp_params = ParseRtpParameters(*local_media);
-            rtp_params.extmap_allow_mixed = local_sdp.extmap_allow_mixed();
-            call_->AddVideoSendStream(std::move(rtp_params));
+            // Add video send stream.
+            if (!local_media->media_ssrcs().empty()) {
+                auto rtp_params = ParseRtpParameters(*local_media);
+                // Local media SSRC.
+                rtp_params.local_media_ssrc = local_media->media_ssrcs()[0];
+                // Don't care remote media SSRC.
+                rtp_params.remote_media_ssrc = std::nullopt;
+                rtp_params.extmap_allow_mixed = local_sdp.extmap_allow_mixed();
+                call_->AddVideoSendStream(rtp_params);
+            } else {
+                PLOG_WARNING << "Failed to add video send stream as no media stream found.";
+            }
         }
 
         // Receivable
         if (local_media->direction() == sdp::Direction::RECV_ONLY ||
             local_media->direction() == sdp::Direction::SEND_RECV) {
-            auto rtp_params = ParseRtpParameters(*remote_media);
-            rtp_params.extmap_allow_mixed = local_sdp.extmap_allow_mixed();
-            call_->AddVideoRecvStream(std::move(rtp_params));
+            // Add video receive stream.
+            if (!remote_media->media_ssrcs().empty()) {
+                auto rtp_params = ParseRtpParameters(*remote_media);
+                // Local media SSRC.
+                if (!local_media->media_ssrcs().empty()) {
+                    rtp_params.local_media_ssrc = local_media->media_ssrcs()[0];
+                } else {
+                    rtp_params.local_media_ssrc = 1; // Receive only.
+                }
+                // Remote media SSRC.
+                rtp_params.remote_media_ssrc = remote_media->media_ssrcs()[0];
+                rtp_params.extmap_allow_mixed = local_sdp.extmap_allow_mixed();
+                call_->AddVideoRecvStream(rtp_params);
+            }
         }
 
     } else if (kind_ == Kind::AUDIO) {

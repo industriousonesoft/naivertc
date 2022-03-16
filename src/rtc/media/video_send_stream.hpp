@@ -14,7 +14,7 @@
 namespace naivertc {
 
 class VideoSendStream : public VideoEncodedFrameSink,
-                                       public MediaSendStream {
+                        public MediaSendStream {
 public:
     using Configuration = RtpVideoSender::Configuration;
 public:

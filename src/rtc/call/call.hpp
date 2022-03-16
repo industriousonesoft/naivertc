@@ -16,14 +16,16 @@ namespace naivertc {
 class Clock;
 class RtcMediaTransport;
 class VideoSendStream;
+class VideoReceiveStream;
+class MediaReceiveStream;
 
 class Call {
 public:
     Call(Clock* clock, RtcMediaTransport* send_transport);
     ~Call();
 
-    void AddVideoSendStream(RtpParameters rtp_params);
-    void AddVideoRecvStream(RtpParameters rtp_params);
+    void AddVideoSendStream(const RtpParameters& rtp_params);
+    void AddVideoRecvStream(const RtpParameters& rtp_params);
 
     void Clear();
 
@@ -36,8 +38,10 @@ private:
     Clock* const clock_;
     RtcMediaTransport* send_transport_;
 
-    std::unordered_map<uint32_t, rtp::HeaderExtensionMap> recv_rtp_ext_maps_;
     std::set<std::unique_ptr<VideoSendStream>> video_send_streams_;
+    std::set<std::unique_ptr<VideoReceiveStream>> video_recv_streams_;
+
+    std::unordered_map<uint32_t, MediaReceiveStream*> recv_streams_by_ssrc_;
 
     RtpDemuxer rtp_demuxer_;
     RtpSendController send_controller_;

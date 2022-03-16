@@ -18,15 +18,15 @@
 namespace naivertc {
 
 class VideoReceiveStream : public MediaReceiveStream,
-                                          RtpVideoReceiver::CompleteFrameReceiver {
+                           public RtpVideoReceiver::CompleteFrameReceiver {
 public:
     using Configuration = struct RtpVideoReceiver::Configuration;  
 public:
     VideoReceiveStream(const Configuration& config);
     ~VideoReceiveStream() override;
 
-    const Configuration* config() const;
     std::vector<uint32_t> ssrcs() const override;
+    const RtpParameters* rtp_params() const override;
 
     // Implements RtpPacketSink
     void OnRtpPacket(RtpPacketReceived in_packet) override;
@@ -39,7 +39,7 @@ public:
 private:
     SequenceChecker sequence_checker_;
     std::unique_ptr<TaskQueue> decode_queue_;
-   
+
     std::vector<uint32_t> ssrcs_;
 
     std::unique_ptr<RtpReceiveStatistics> rtp_receive_stats_;

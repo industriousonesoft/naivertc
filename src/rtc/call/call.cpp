@@ -2,9 +2,34 @@
 #include "rtc/base/time/clock.hpp"
 #include "rtc/transports/rtc_transport_media.hpp"
 #include "rtc/media/video_send_stream.hpp"
+#include "rtc/media/video_receive_stream.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 
 namespace naivertc {
+namespace {
+
+bool UseSendSideBwe(const std::vector<RtpExtension>& extensions) {
+    for (const auto& extension : extensions) {
+        if (extension.uri == RtpExtension::kTransportSequenceNumberUri ||
+            extension.uri == RtpExtension::kTransportSequenceNumberV2Uri) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SendPeriodicFeedback(const std::vector<RtpExtension>& extensions) {
+    for (const auto& extension : extensions) {
+        // NOTE: Indicates the receiver will not send transport feedback periodically,
+        // but responding to the feedback request sent by send side.
+        if (extension.uri == RtpExtension::kTransportSequenceNumberV2Uri) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
 
 Call::Call(Clock* clock, RtcMediaTransport* send_transport) 
     : clock_(clock),
@@ -25,25 +50,37 @@ void Call::DeliverRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
             PLOG_WARNING << "Failed to parse the incoming RTP packet before demuxing. Drop it.";
             return;
         }
-        rtp_demuxer_.DeliverRtpPacket(std::move(received_packet));
-        auto it = recv_rtp_ext_maps_.find(received_packet.ssrc());
-        if (it == recv_rtp_ext_maps_.end()) {
+        auto it = recv_streams_by_ssrc_.find(received_packet.ssrc());
+        if (it == recv_streams_by_ssrc_.end()) {
             PLOG_WARNING << "Failed to look up RTP header extension for ssrc=" << received_packet.ssrc();
             return;
         }
         // Identify header extensions.
-        received_packet.SetHeaderExtensionMap(it->second);
+        auto header_extension = rtp::HeaderExtensionMap(it->second->rtp_params()->extensions);
+        header_extension.set_extmap_allow_mixed(it->second->rtp_params()->extmap_allow_mixed);
+        received_packet.SetHeaderExtensionMap(std::move(header_extension));
+
+        // Deliver RTP packet.
+        if (!rtp_demuxer_.DeliverRtpPacket(std::move(received_packet))) {
+            PLOG_WARNING << "No sink found for packet with ssrc=" << received_packet.ssrc();
+        }
+
     }
 }
 
-void Call::AddVideoSendStream(RtpParameters rtp_params) {
+void Call::AddVideoSendStream(const RtpParameters& rtp_params) {
     RTC_RUN_ON(&worker_queue_checker_);
+    if (!UseSendSideBwe(rtp_params.extensions)) {
+        PLOG_WARNING << "The transport sequence number extension is required to enable send-side bandwidth estimation.";
+        return;
+    }
+    
     if (rtp_params.local_media_ssrc > 0) {
         // Add video send stream.
         VideoSendStream::Configuration send_config;
         send_config.clock = clock_;
         send_config.send_transport = send_transport_;
-        send_config.rtp = std::move(rtp_params);
+        send_config.rtp = rtp_params;
         send_config.observers.bandwidth_observer = &send_controller_;
         send_config.observers.rtcp_transport_feedback_observer = &send_controller_;
         send_config.observers.rtp_transport_feedback_observer = &send_controller_;
@@ -56,11 +93,31 @@ void Call::AddVideoSendStream(RtpParameters rtp_params) {
     }
 }
 
-void Call::AddVideoRecvStream(RtpParameters rtp_params) {
+void Call::AddVideoRecvStream(const RtpParameters& rtp_params) {
     RTC_RUN_ON(&worker_queue_checker_);
+    if (!UseSendSideBwe(rtp_params.extensions)) {
+        PLOG_WARNING << "The transport sequence number extension is required to enable send-side bandwidth estimation.";
+        return;
+    }
 
-    // auto header_extension = rtp::HeaderExtensionMap(rtp_params.extensions)
-    // header_extension.set_extmap_allow_mixed(rtp_params.extmap_allow_mixed);
+    if (rtp_params.local_media_ssrc > 0) {
+        VideoReceiveStream::Configuration recv_config;
+        recv_config.clock = clock_;
+        recv_config.send_transport = send_transport_;
+        recv_config.rtp = rtp_params;
+        auto recv_stream = std::make_unique<VideoReceiveStream>(recv_config);
+        
+        for (uint32_t ssrc : recv_stream->ssrcs()) {
+            // Added as RTP sink.
+            rtp_demuxer_.AddRtcpSink(ssrc, recv_stream.get());
+            // Added as RTCP sink.
+            rtp_demuxer_.AddRtcpSink(ssrc, recv_stream.get());
+            // Rtp header extenson map.
+            recv_streams_by_ssrc_.emplace(ssrc, recv_stream.get());
+        }
+        video_recv_streams_.insert(std::move(recv_stream));
+    }
+    
 }
 
 void Call::Clear() {
@@ -69,6 +126,7 @@ void Call::Clear() {
 }
 
 void Call::Send(video::EncodedFrame encoded_frame) {
+    RTC_RUN_ON(&worker_queue_checker_);
     if (video_send_streams_.empty()) {
         return;
     }
