@@ -9,14 +9,26 @@ VideoReceiveStream::VideoReceiveStream(const Configuration& config)
       frame_buffer_(std::make_unique<rtp::video::jitter::FrameBuffer>(config.clock, timing_.get(), decode_queue_.get(), nullptr)),
       rtp_video_receiver_(config, rtp_receive_stats_.get(), this) {
 
-    rtp_demuxer_.AddRtpSink(config.local_ssrc, &rtp_video_receiver_);
+    // Media ssrc
+    if (config.rtp.local_media_ssrc >= 0) {
+        ssrcs_.push_back(config.rtp.local_media_ssrc);
+    }
+    // RTX ssrc
+    if (config.rtp.rtx_send_ssrc) {
+        ssrcs_.push_back(*config.rtp.rtx_send_ssrc);
+    }
+    // FLEX_FEC ssrc
+    if (config.rtp.flexfec.payload_type >= 0) {
+        ssrcs_.push_back(config.rtp.flexfec.ssrc);
+    }
 
+    rtp_demuxer_.AddRtpSink(config.rtp.local_media_ssrc, &rtp_video_receiver_);
     // RTX stream
-    if (config.rtx_ssrc > 0) {
-        rtx_recv_stream_ = std::make_unique<RtxReceiveStream>(config.local_ssrc, 
-                                                              config.rtx_associated_payload_types, 
+    if (config.rtp.rtx_send_ssrc > 0) {
+        rtx_recv_stream_ = std::make_unique<RtxReceiveStream>(config.rtp.local_media_ssrc, 
+                                                              config.rtp.rtx_associated_payload_types(), 
                                                               &rtp_video_receiver_);
-        rtp_demuxer_.AddRtpSink(config.rtx_ssrc, rtx_recv_stream_.get());
+        rtp_demuxer_.AddRtpSink(*config.rtp.rtx_send_ssrc, rtx_recv_stream_.get());
     }
 }
 
@@ -27,6 +39,11 @@ VideoReceiveStream::~VideoReceiveStream() {
 std::vector<uint32_t> VideoReceiveStream::ssrcs() const {
     RTC_RUN_ON(&sequence_checker_);
     return ssrcs_;
+}
+
+const RtpParameters* VideoReceiveStream::rtp_params() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return rtp_video_receiver_.rtp_params();
 }
 
 void VideoReceiveStream::OnRtpPacket(RtpPacketReceived in_packet) {

@@ -18,7 +18,7 @@ enum RtpExtensionType : int {
     kRtpExtensionAbsoluteCaptureTime,
     // kRtpExtensionVideoRotation,
     kRtpExtensionTransportSequenceNumber,
-    // kRtpExtensionTransportSequenceNumber02,
+    kRtpExtensionTransportSequenceNumber02,
     kRtpExtensionPlayoutDelay,
     // kRtpExtensionVideoContentType,
     // kRtpExtensionVideoLayersAllocation,
@@ -63,8 +63,9 @@ struct RtpExtension {
     // Header extension for transport sequence number, see url for details:
     // http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions
     static constexpr char kTransportSequenceNumberUri[] =
-        "http://www.ietf.org/id/"
-        "draft-holmer-rmcat-transport-wide-cc-extensions-01";
+        "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01";
+    static constexpr char kTransportSequenceNumberV2Uri[] =
+        "http://www.webrtc.org/experiments/rtp-hdrext/transport-wide-cc-02";
 
     // This extension allows applications to adaptively limit the playout delay
     // on frames as per the current needs. For example, a gaming application

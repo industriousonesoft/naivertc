@@ -7,7 +7,7 @@
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/rtp_rtcp/base/rtp_packet_sink.hpp"
 
-#include <map>
+#include <unordered_map>
 #include <functional>
 
 namespace naivertc {
@@ -18,7 +18,7 @@ namespace naivertc {
 class RtxReceiveStream : public RtpPacketSink {
 public:
     RtxReceiveStream(uint32_t media_ssrc,
-                     std::map<int, int> associated_payload_types,
+                     std::unordered_map<int, int> associated_payload_types,
                      RtpPacketSink* media_packet_sink);
     ~RtxReceiveStream();
 
@@ -27,7 +27,7 @@ public:
 private:
     SequenceChecker sequence_checker_;
     const uint32_t media_ssrc_;
-    const std::map<int, int> associated_payload_types_;
+    const std::unordered_map<int, int> associated_payload_types_;
 
     RtpPacketSink* const media_packet_sink_ = nullptr;
 };

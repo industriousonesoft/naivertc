@@ -1,6 +1,7 @@
 #include "rtc/rtp_rtcp/rtp_video_sender.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/flex/fec_generator_flex.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/ulp/fec_generator_ulp.hpp"
+#include "common/utils_numeric.hpp"
 
 #include <plog/Log.h>
 
@@ -111,7 +112,7 @@ void RtpVideoSender::InitRtpRtcpModules(const RtpParameters& rtp_params) {
     // RTX
     if (rtp_params.media_rtx_payload_type) {
         rtp_sender_->SetRtxPayloadType(*rtp_params.media_rtx_payload_type, rtp_params.media_payload_type);
-        rtp_sender_->set_rtx_mode(RtxMode::RETRANSMITTED | RtxMode::REDUNDANT_PAYLOADS);
+        rtp_sender_->set_rtx_mode(kRtxRetransmitted | kRtxRedundantPayloads);
     }
     // RED + RTX
     if (rtp_params.ulpfec.red_rtx_payload_type) {

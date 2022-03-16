@@ -38,7 +38,7 @@ public:
     // Called when a packet is sent on the network.
     RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnSentPacket(const SentPacket&) = 0;
     // Called when a packet is received from the remote.
-    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnReceivedPacket(const ReceivedPacket&) = 0;
+    // RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnReceivedPacket(const ReceivedPacket&) = 0;
     // Called when the stream specific configuration has been updated.
     RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnStreamsConfig(const StreamsConfig&) = 0;
     // Called when target transfer rate constraints has been changed.

@@ -438,6 +438,7 @@ set(LIB_SOURCES
 
     # rtc -> rtp_rtcp -> base
     src/rtc/rtp_rtcp/base/rtp_utils.cpp
+    src/rtc/rtp_rtcp/base/rtp_parameters.cpp
     src/rtc/rtp_rtcp/base/rtp_statistic_structs.cpp
     src/rtc/rtp_rtcp/base/rtcp_statistic_structs.cpp
 

@@ -16,6 +16,7 @@
 #include "rtc/media/video/codecs/h264/sps_pps_tracker.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/rtp_rtcp/base/rtp_packet_sink.hpp"
+#include "rtc/rtp_rtcp/base/rtp_parameters.hpp"
 
 #include <memory>
 #include <map>
@@ -24,34 +25,19 @@
 
 namespace naivertc {
 
+class Clock;
 class RtpPacketReceived;
 class CopyOnWriteBuffer;
 class RtpReceiveStatistics;
 
 class RtpVideoReceiver : public RecoveredPacketReceiver,
-                                        public RtpPacketSink {
+                         public RtpPacketSink {
 public:
     struct Configuration {
-        // Sender SSRC used for sending RTCP (such as receiver reports).
-        uint32_t local_ssrc = 0;
-        // Synchronization source to be received.
-        uint32_t remote_ssrc = 0;
-
-        int ulpfec_payload_type = -1;
-        int red_payload_type = -1;
-
-        // For RTX to be enabled, both rtx_ssrc and maping are needed.
-        uint32_t rtx_ssrc = 0;
-        // Map from RTX payload type -> media payload type.
-        std::map<int, int> rtx_associated_payload_types;
-
-        // Set if the stream is protected using FlexFEC.
-        bool protected_by_flexfec = false;
-
-        bool nack_enabled = false;
-
         Clock* clock = nullptr;
         RtcMediaTransport* send_transport = nullptr;
+
+        RtpParameters rtp;
     };
 
     // CompleteFrameReceiver
@@ -62,10 +48,12 @@ public:
     };
 
 public:
-    RtpVideoReceiver(Configuration config,
+    RtpVideoReceiver(const Configuration& config,
                      RtpReceiveStatistics* rtp_recv_stats,
                      CompleteFrameReceiver* complete_frame_receiver);
     ~RtpVideoReceiver() override;
+
+    const RtpParameters* rtp_params() const;
 
     void OnRtcpPacket(CopyOnWriteBuffer in_packet);
     void OnRtpPacket(RtpPacketReceived in_packet) override;
@@ -118,10 +106,13 @@ private:
 
     // Implements RecoveredPacketReceiver.
     void OnRecoveredPacket(CopyOnWriteBuffer packet) override;
+
+    bool IsRedPacket(int payload_type) const;
     
 private:
     SequenceChecker sequence_checker_;
-    const Configuration config_;
+    Clock* const clock_;
+    const RtpParameters rtp_params_;
     CompleteFrameReceiver* complete_frame_receiver_;
     std::unique_ptr<RtcpResponser> rtcp_responser_;
     RtcpFeedbackBuffer rtcp_feedback_buffer_;

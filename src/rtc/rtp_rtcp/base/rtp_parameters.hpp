@@ -7,6 +7,7 @@
 #include "rtc/rtp_rtcp/base/rtp_extensions.hpp"
 
 #include <optional>
+#include <unordered_map>
 
 namespace naivertc {
 
@@ -14,14 +15,18 @@ constexpr size_t kDefaultMaxPacketSize = kIpPacketSize - kTransportOverhead;
 
 // RtpParameters
 struct RtpParameters {
+    bool is_audio = false;
+
     // SSRC used for the local media stream.
     uint32_t local_media_ssrc = 0;
     // Payload type used for media payload on the media stream.
     int media_payload_type = -1;
     // RTX payload type used for media payload on the RTX stream.
-    std::optional<int> media_rtx_payload_type = -1;
+    std::optional<int> media_rtx_payload_type = std::nullopt;
 
     std::optional<uint32_t> rtx_send_ssrc = std::nullopt;
+   
+    std::optional<uint32_t> remote_media_ssrc = std::nullopt;
 
     // Corresponds to the SDP attribute extmap-allow-mixed
     bool extmap_allow_mixed = false;
@@ -45,7 +50,7 @@ struct RtpParameters {
         // Payload type used for RED packets.
         int red_payload_type = -1;
         // RTX payload type used for RED payload.
-        std::optional<int> red_rtx_payload_type = -1;
+        std::optional<int> red_rtx_payload_type = std::nullopt;
     } ulpfec;
 
     // Flexfec: Separate stream
@@ -57,6 +62,9 @@ struct RtpParameters {
         // The media stream being protected by this FlexFEC stream.
         uint32_t protected_media_ssrc = 0;
     } flexfec;
+
+    std::unordered_map</*rtx_payload_type=*/int, /*original_payload_type=*/int> 
+    rtx_associated_payload_types() const;
 };
 
 // RtpSenderObservers

@@ -25,7 +25,7 @@ public:
     NetworkControlUpdate OnRttUpdated(TimeDelta rtt, Timestamp receive_time) override;
     NetworkControlUpdate OnTransportLostReport(const TransportLossReport&) override;
     NetworkControlUpdate OnSentPacket(const SentPacket&) override;
-    NetworkControlUpdate OnReceivedPacket(const ReceivedPacket&) override;
+    // NetworkControlUpdate OnReceivedPacket(const ReceivedPacket&) override;
     NetworkControlUpdate OnStreamsConfig(const StreamsConfig&) override;
     NetworkControlUpdate OnTargetBitrateConstraints(const TargetBitrateConstraints&) override;
     NetworkControlUpdate OnTransportPacketsFeedback(const TransportPacketsFeedback&) override;
@@ -80,7 +80,7 @@ private:
 
     std::optional<uint8_t> last_estimated_fraction_loss_ = 0;
     TimeDelta last_estimated_rtt = TimeDelta::PlusInfinity();
-    Timestamp last_packet_received_time_ = Timestamp::MinusInfinity();
+    // Timestamp last_packet_received_time_ = Timestamp::MinusInfinity();
 
     double pacing_factor_;
     DataRate max_padding_bitrate_;

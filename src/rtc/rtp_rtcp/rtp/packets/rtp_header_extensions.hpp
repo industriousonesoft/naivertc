@@ -5,6 +5,7 @@
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/base/rtp_extensions.hpp"
 #include "rtc/media/video/common.hpp"
+#include "common/array_view.hpp"
 
 #include <vector>
 #include <string>
@@ -25,8 +26,8 @@ public:
         return static_cast<uint32_t>(((time_ms << 18) + 500) / 1000) & 0x00FFFFFF;
     }
 
-    static bool Parse(const uint8_t* buffer, size_t buffer_size, uint32_t* time_24bits);
-    static bool PackInto(uint8_t* buffer, size_t buffer_size, uint32_t time_24bits);
+    static bool Parse(ArrayView<const uint8_t> data, uint32_t* time_24bits);
+    static bool Write(ArrayView<uint8_t> data, uint32_t time_24bits);
     static size_t ValueSize(uint32_t time_24bits) { return kValueSizeBytes; };
 };
 
@@ -80,8 +81,8 @@ public:
     static constexpr uint8_t kValueSizeBytesWithoutEstimatedCaptureClockOffset = 8;
     static constexpr std::string_view kUri = RtpExtension::kAbsoluteCaptureTimeUri;
 
-    static bool Parse(const uint8_t* buffer, size_t buffer_size, TimeInfo* time_info);
-    static bool PackInto(uint8_t* buffer, size_t buffer_size, const TimeInfo& time_info);
+    static bool Parse(ArrayView<const uint8_t> data, TimeInfo* time_info);
+    static bool Write(ArrayView<uint8_t> data, const TimeInfo& time_info);
     static size_t ValueSize(const TimeInfo& time_info);
 private:
 
@@ -95,8 +96,8 @@ public:
     static constexpr uint8_t kValueSizeBytes = 3;
     static constexpr std::string_view kUri = RtpExtension::kTimestampOffsetUri;
 
-    static bool Parse(const uint8_t* buffer, size_t buffer_size, int32_t* rtp_time_24bits);
-    static bool PackInto(uint8_t* buffer, size_t buffer_size, int32_t rtp_time_24bits);
+    static bool Parse(ArrayView<const uint8_t> data, int32_t* rtp_time_24bits);
+    static bool Write(ArrayView<uint8_t> data, int32_t rtp_time_24bits);
     static size_t ValueSize(int32_t rtp_time_24bits) { return kValueSizeBytes; };
 };
 
@@ -108,9 +109,43 @@ public:
     static constexpr uint8_t kValueSizeBytes = 2;
     static constexpr std::string_view kUri = RtpExtension::kTransportSequenceNumberUri;
 
-    static bool Parse(const uint8_t* buffer, size_t buffer_size, uint16_t* transport_sequence_number);
-    static bool PackInto(uint8_t* buffer, size_t buffer_size, uint16_t transport_sequence_number);
+    static bool Parse(ArrayView<const uint8_t> data, uint16_t* transport_sequence_number);
+    static bool Write(ArrayView<uint8_t> data, uint16_t transport_sequence_number);
     static size_t ValueSize(uint16_t transport_sequence_number) { return kValueSizeBytes; };
+};
+
+class TransportSequenceNumberV2 final {
+public:
+    struct FeedbackRequest {
+        // Determines whether the recv delta as specified in
+        // https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
+        // should be included.
+        bool include_timestamps;
+        // Include feedback of received packets in the range [sequence_number -
+        // sequence_count + 1, sequence_number]. That is, no feedback will be sent if
+        // sequence_count is zero.
+        int sequence_count;
+    };
+public:
+    static constexpr RtpExtensionType kType = kRtpExtensionTransportSequenceNumber02;
+    static constexpr uint8_t kValueSizeBytes = 4;
+    static constexpr uint8_t kValueSizeBytesWithoutFeedbackRequest = 2;
+    static constexpr std::string_view kUri = RtpExtension::kTransportSequenceNumberV2Uri;
+
+    static bool Parse(ArrayView<const uint8_t> data,
+                      uint16_t* transport_sequence_number,
+                      std::optional<FeedbackRequest>* feedback_request);
+    static size_t ValueSize( uint16_t /*transport_sequence_number*/,
+                            const std::optional<FeedbackRequest>& feedback_request) {
+        return feedback_request ? kValueSizeBytes
+                                : kValueSizeBytesWithoutFeedbackRequest;
+    }
+    static bool Write(ArrayView<uint8_t> data,
+                         uint16_t transport_sequence_number,
+                         const std::optional<FeedbackRequest>& feedback_request);
+
+private:
+    static constexpr uint16_t kIncludeTimestampsBit = 1 << 15;
 };
 
 // PlayoutDelayLimits
@@ -138,8 +173,8 @@ public:
     // Maximum playout delay value in milliseconds.
     static constexpr int kMaxMs = 0xfff * kGranularityMs;  // 40950.
 
-    static bool Parse(const uint8_t* buffer, size_t buffer_size, ValueType* playout_delay);
-    static bool PackInto(uint8_t* buffer, size_t buffer_size, const ValueType& playout_delay);
+    static bool Parse(ArrayView<const uint8_t> data, ValueType* playout_delay);
+    static bool Write(ArrayView<uint8_t> data, const ValueType& playout_delay);
     static size_t ValueSize(const ValueType& playout_delay) { return kValueSizeBytes; };
 };
 
@@ -151,8 +186,8 @@ public:
     // String RTP header extensions are limited to 16 bytes because it is the
     // maximum length that can be encoded with one-byte header extensions.
     static constexpr uint8_t kMaxValueSizeBytes = 16;
-    static bool Parse(const uint8_t* buffer, size_t buffer_size, std::string* value);
-    static bool PackInto(uint8_t* buffer, size_t buffer_size, const std::string& value);
+    static bool Parse(ArrayView<const uint8_t> data, std::string* value);
+    static bool Write(ArrayView<uint8_t> data, const std::string& value);
     static size_t ValueSize(const std::string value) { return value.size(); };
 
 };

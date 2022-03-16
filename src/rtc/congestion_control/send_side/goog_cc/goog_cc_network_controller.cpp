@@ -117,8 +117,12 @@ NetworkControlUpdate GoogCcNetworkController::OnPeriodicUpdate(const PeriodicUpd
     }
 
     // Update congestion window.
+    // FIXME: WebRTC中使用|last_packet_received_time_|作为更新的条件之一，
+    // 而|last_packet_received_time_|必须是接收端（即可接收RTP包）才可能被更新。换言之，
+    // 如果是send-only则不可触发一下的更新。我觉得这是不合理的，且函数UpdateCongestionWindow
+    // 并不会使用|last_packet_received_time_|。
     if (rate_control_settings_.UseCongestionWindow() && 
-        last_packet_received_time_.IsFinite() && 
+        // last_packet_received_time_.IsFinite() && 
         !feedback_max_rtts_.empty()) {
         UpdateCongestionWindow();
     }
@@ -187,10 +191,10 @@ NetworkControlUpdate GoogCcNetworkController::OnSentPacket(const SentPacket& sen
     }
 }
 
-NetworkControlUpdate GoogCcNetworkController::OnReceivedPacket(const ReceivedPacket& received_packet) {
-    last_packet_received_time_ = received_packet.receive_time;
-    return NetworkControlUpdate();
-}
+// NetworkControlUpdate GoogCcNetworkController::OnReceivedPacket(const ReceivedPacket& received_packet) {
+//     last_packet_received_time_ = received_packet.receive_time;
+//     return NetworkControlUpdate();
+// }
 
 NetworkControlUpdate GoogCcNetworkController::OnStreamsConfig(const StreamsConfig& msg) {
     NetworkControlUpdate update;

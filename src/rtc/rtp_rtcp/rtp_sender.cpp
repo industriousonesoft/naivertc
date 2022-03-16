@@ -22,7 +22,7 @@ RtpSender::RtpSenderContext::RtpSenderContext(const RtpConfiguration& config,
 
 // RtpSender
 RtpSender::RtpSender(const RtpConfiguration& config)
-    : rtx_mode_(RtxMode::OFF),
+    : rtx_mode_(kRtxOff),
       clock_(config.clock),
       header_extension_map_(config.extmap_allow_mixed),
       ctx_(std::make_unique<RtpSenderContext>(config, &header_extension_map_)),
@@ -255,7 +255,7 @@ int32_t RtpSender::ResendPacket(uint16_t seq_num) {
     }
 
     const int32_t packet_size = static_cast<int32_t>(stored_packet->packet_size);
-    const bool rtx_enabled = (rtx_mode_ & RtxMode::RETRANSMITTED);
+    const bool rtx_enabled = (rtx_mode_ & kRtxRetransmitted);
 
     auto packet = ctx_->packet_history.GetPacketAndMarkAsPending(seq_num, [&](const RtpPacketToSend& stored_packet){
         // TODO: Check if we're overusing retransmission bitrate.

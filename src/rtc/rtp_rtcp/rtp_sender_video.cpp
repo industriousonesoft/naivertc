@@ -38,7 +38,7 @@ bool RtpSenderVideo::Send(int payload_type,
         packet_capacity -= packet_sender_->FecPacketOverhead();
     }
     // Reserve overhead size of RTX packet
-    if (packet_sender_->rtx_mode() != RtxMode::OFF) {
+    if (packet_sender_->rtx_mode() != kRtxOff) {
         packet_capacity -= kRtxHeaderSize;
     }
 
