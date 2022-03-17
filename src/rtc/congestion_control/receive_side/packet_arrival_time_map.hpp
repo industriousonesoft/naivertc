@@ -5,6 +5,10 @@
 
 namespace naivertc {
 
+// PacketArrivalTimeMap is an optimized map of packet id to packet arrival
+// time, limited in size to never exceed `kMaxNumberOfPackets`. It will grow as
+// needed, and remove old packets, and will expand to allow earlier packets to
+// be added (out-of-order).
 class PacketArrivalTimeMap {
 public:
     static constexpr size_t kMaxNumberOfPackets = (1 << 15); // 32768
