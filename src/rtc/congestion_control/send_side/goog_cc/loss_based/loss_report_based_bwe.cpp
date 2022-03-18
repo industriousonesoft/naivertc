@@ -1,5 +1,7 @@
 #include "rtc/congestion_control/send_side/goog_cc/loss_based/loss_report_based_bwe.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
 namespace {
 
@@ -31,6 +33,9 @@ void LossReportBasedBwe::OnPacketsLostReport(int64_t num_packets_lost,
     assert(num_packets >= num_packets_lost);
     accumulated_packets_ += num_packets;
     accumulated_lost_packets_ += num_packets_lost;
+
+    PLOG_VERBOSE_IF(true) << "num_packets_lost=" << num_packets_lost
+                          << " - num_packets=" << num_packets;
 
     // Don't generate a loss rate until it can be based on enough packets.
     if (accumulated_packets_ < kMinLossReportWindow) {

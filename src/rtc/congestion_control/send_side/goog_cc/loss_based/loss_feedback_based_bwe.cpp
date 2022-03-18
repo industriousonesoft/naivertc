@@ -1,5 +1,7 @@
 #include "rtc/congestion_control/send_side/goog_cc/loss_based/loss_feedback_based_bwe.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
 namespace {
 
@@ -96,6 +98,12 @@ void LossFeedbackBasedBwe::OnPacketFeedbacks(const std::vector<PacketResult>& pa
         loss_count += pkt_feedback.IsLost() ? 1 : 0;
     }
     double loss_ratio = static_cast<double>(loss_count) / packet_feedbacks.size();
+    if (loss_ratio > 0) {
+        PLOG_VERBOSE_IF(false) << "loss_count=" << loss_count
+                               << " - loss_ratio=" << loss_ratio
+                               << " - num_packets=" << packet_feedbacks.size();
+    }
+
     const TimeDelta elapsed_time = time_last_loss_packet_report_.IsFinite()
                                   ? at_time - time_last_loss_packet_report_
                                   : kDefaultRtcpFeedbackInterval;
@@ -156,21 +164,24 @@ void LossFeedbackBasedBwe::OnAcknowledgedBitrate(DataRate acked_bitrate,
     if (loss_report_valid && config_.allow_resets &&
         loss_ratio_estimate_for_increase < ThresholdToReset()) {
         loss_based_bitrate_ = expected_birate;
+        PLOG_VERBOSE << "Reset loss_based_bitrate=" << expected_birate.bps() << " bps.";
     } 
     // Increase
     else if (loss_report_valid && loss_ratio_estimate_for_increase < ThresholdToIncrease()) {
         // Increase bitrate by RTT-adptive ratio.
-        DataRate new_bibtrate = min_bitrate * CalcIncreaseFactor(config_, rtt) + config_.increase_offset;
+        double fractor = CalcIncreaseFactor(config_, rtt);
+        DataRate new_bitrate = min_bitrate * fractor + config_.increase_offset;
 
         const DataRate increased_bibtrate_cap = BitrateFromLossRatio(loss_ratio_estimate_for_increase,
                                                                      config_.loss_bandwidth_balance_increase,
                                                                      config_.loss_bandwidth_balance_exponent);
         // Limit the new bitrate below the cap.
-        new_bibtrate = std::min(new_bibtrate, increased_bibtrate_cap);
-        if (new_bibtrate > loss_based_bitrate_) {
-            loss_based_bitrate_ = new_bibtrate;
+        new_bitrate = std::min(new_bitrate, increased_bibtrate_cap);
+        if (new_bitrate > loss_based_bitrate_) {
+            loss_based_bitrate_ = new_bitrate;
         }
         state = RateControlState::INCREASE;
+        PLOG_VERBOSE_IF(false) << "Increased bitrate=" << new_bitrate.bps() << " bps.";
     } 
     // Decrease
     else if (loss_ratio_estimate_for_decrease > ThresholdToDecrease() && allow_to_decrease) {
@@ -188,6 +199,7 @@ void LossFeedbackBasedBwe::OnAcknowledgedBitrate(DataRate acked_bitrate,
             loss_based_bitrate_ = new_bitrate;
         }
         state = RateControlState::DECREASE;
+        PLOG_VERBOSE << "Decreased bitrate=" << new_bitrate.bps() << " bps.";
     } else {
         // Hold
     }

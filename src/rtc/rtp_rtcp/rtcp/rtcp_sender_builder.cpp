@@ -272,8 +272,8 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
     uint32_t rtp_timestamp = last_rtp_timestamp_ +
                 ((ctx.now_time.us() + 500) / 1000 - last_frame_capture_time_ms_.value()) * rtp_rate;
 
-    PLOG_INFO << " Build SR: last_rtp_timestamp= " << last_rtp_timestamp_ 
-              << " rtp_timestamp= " << rtp_timestamp;
+    // PLOG_INFO_IF(false) << " Build SR: last_rtp_timestamp= " << last_rtp_timestamp_ 
+    //                     << " rtp_timestamp= " << rtp_timestamp;
 
     rtcp::SenderReport sr;
     sr.set_sender_ssrc(local_ssrc_);

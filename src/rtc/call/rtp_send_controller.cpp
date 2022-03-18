@@ -34,6 +34,10 @@ RtpSendController::RtpSendController(Clock* clock)
 }
 
 RtpSendController::~RtpSendController() {
+    Clear();
+}
+
+void RtpSendController::Clear() {
     worker_queue_.Invoke<void>([this](){
         if (controller_task_ && controller_task_->Running()) {
             controller_task_->Stop();

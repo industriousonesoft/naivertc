@@ -64,7 +64,6 @@ void Call::DeliverRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp) {
         if (!rtp_demuxer_.DeliverRtpPacket(std::move(received_packet))) {
             PLOG_WARNING << "No sink found for packet with ssrc=" << received_packet.ssrc();
         }
-
     }
 }
 
@@ -123,6 +122,10 @@ void Call::AddVideoRecvStream(const RtpParameters& rtp_params) {
 void Call::Clear() {
     RTC_RUN_ON(&worker_queue_checker_);
     rtp_demuxer_.Clear();
+    send_controller_.Clear();
+    video_send_streams_.clear();
+    video_recv_streams_.clear();
+    recv_streams_by_ssrc_.clear();
 }
 
 void Call::Send(video::EncodedFrame encoded_frame) {

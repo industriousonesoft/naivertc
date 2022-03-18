@@ -129,10 +129,10 @@ float ThroughputEstimator::UpdateWindow(int64_t now_ms,
     if (curr_window_ms_ >= rate_window_ms) {
         *is_small_sample = accumulated_bytes_ < config_.small_sample_threshold;
         bitrate_sample_kbps = 8.0f * accumulated_bytes_ / static_cast<float>(rate_window_ms);
-        PLOG_INFO << "Estimated bitrate=" << bitrate_sample_kbps 
-                  << " kbps with accumulated bytes=" << accumulated_bytes_
-                  << " during rate window: " << rate_window_ms 
-                  << " ms."<< std::endl;
+        PLOG_INFO_IF(false) << "Estimated bitrate=" << bitrate_sample_kbps 
+                            << " kbps with accumulated bytes=" << accumulated_bytes_
+                            << " during rate window: " << rate_window_ms 
+                            << " ms."<< std::endl;
         curr_window_ms_ -= rate_window_ms;
         accumulated_bytes_ = 0;
     }

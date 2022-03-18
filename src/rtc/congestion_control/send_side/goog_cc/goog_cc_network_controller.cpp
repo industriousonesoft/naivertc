@@ -449,12 +449,12 @@ void GoogCcNetworkController::MaybeTriggerOnNetworkChanged(NetworkControlUpdate*
         
         update->pacer_config = GetPacerConfig(at_time);
 
-        PLOG_VERBOSE << "last_loss_based_target_bitrate_bps=" << loss_based_target_bitrate.bps()
-                     << ", pushback_target_bitrate_bps=" << pushback_target_rate.bps()
-                     << ", stable_target_bitrate_bps=" << stable_target_bitrate.bps()
-                     << ", estimated_rtt_ms=" << rtt.ms()
-                     << ", estimated_fraction_loss=" << target_bitrate_msg.network_estimate.loss_rate_ratio
-                     << ", at time: " << at_time.ms();
+        PLOG_INFO_IF(true) << "last_loss_based_target_bitrate_bps=" << loss_based_target_bitrate.bps()
+                            << ", pushback_target_bitrate_bps=" << pushback_target_rate.bps()
+                            << ", stable_target_bitrate_bps=" << stable_target_bitrate.bps()
+                            << ", estimated_rtt_ms=" << rtt.ms()
+                            << ", estimated_fraction_loss=" << target_bitrate_msg.network_estimate.loss_rate_ratio
+                            << ", at time: " << at_time.ms();
     }
         
 }

@@ -2,11 +2,6 @@
 
 #include <plog/Log.h>
 
-#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 0)
-#if ENABLE_TEST_DEBUG
-#include "testing/defines.hpp"
-#endif
-
 namespace naivertc {
 namespace {
 
@@ -73,9 +68,6 @@ DelayBasedBwe::Result DelayBasedBwe::IncomingPacketFeedbacks(const TransportPack
         auto curr_state = Detect(packet_feedback, feedback_report.receive_time);
         if (prev_state == BandwidthUsage::UNDERUSING &&
             curr_state == BandwidthUsage::NORMAL) {
-#if ENABLE_TEST_DEBUG
-            GTEST_COUT << "Recovered from underuse." << std::endl;
-#endif
             recovered_from_underuse = true;
         }
         prev_state = curr_state;
@@ -151,11 +143,9 @@ BandwidthUsage DelayBasedBwe::Detect(const PacketResult& packet_feedback,
                                                           packet_size);                                     
     // Detected two adjacent packet groups.
     if (deltas) {
-#if ENABLE_TEST_DEBUG
-    // GTEST_COUT << "inter-departure=" << deltas->send_time_delta.ms() << " - "
-    //            << "inter-arrval=" << deltas->arrival_time_delta.ms()
-    //            << std::endl;
-#endif
+        PLOG_VERBOSE_IF(false) << "inter-departure=" << deltas->send_time_delta.ms()
+                               << " - inter-arrval=" << deltas->arrival_time_delta.ms()
+                               << std::endl;
         delay_detector_for_packet->Update(deltas->arrival_time_delta.ms(),
                                           deltas->send_time_delta.ms(),
                                           packet_feedback.sent_packet.send_time.ms(),
@@ -170,6 +160,10 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
                                                          bool recovered_from_underuse,
                                                          bool in_alr,
                                                          Timestamp at_time) {
+    PLOG_VERBOSE_IF(false) << "acked_bitrate=" << acked_bitrate.value_or(DataRate::Zero()).bps()
+                           << " bps - probe_bitrate=" << probe_bitrate.value_or(DataRate::Zero()).bps()
+                           << " bps - in_alr: " << (in_alr ? "true" : "false")
+                           << " - recovered_from_underuse: " << (recovered_from_underuse ? "true" : "false");
     Result ret;
     BandwidthUsage detected_state = active_delay_detector_->State();
     // Currently overusing the bandwidth.
@@ -220,14 +214,12 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
     if ((ret.updated && prev_bitrate_ != ret.target_bitrate) ||
         detected_state != prev_state_) {
         auto curr_bitrate = ret.updated ? ret.target_bitrate : prev_bitrate_;
-#if ENABLE_TEST_DEBUG
-        if (prev_state_ != detected_state || prev_bitrate_ != curr_bitrate) {
-            GTEST_COUT << "state: " << prev_state_ << " => " << detected_state << " - "
-                       << "bitrate: " << prev_bitrate_.bps<double>() << " => " << curr_bitrate.bps<double>() << " - "
-                       << "at_time: " << at_time.ms()
-                       << std::endl;
-        }
-#endif 
+        PLOG_VERBOSE << "state: " << prev_state_ << " => " << detected_state
+                     << "- bitrate: " << prev_bitrate_.kbps<double>() 
+                     << " kbps => " << curr_bitrate.kbps<double>() 
+                     << " kbps - is probed: " << (ret.probe ? "true" : "false")
+                     << "at_time: " << at_time.ms()
+                     << std::endl;
         prev_bitrate_ = curr_bitrate;
         prev_state_ = detected_state;
     }

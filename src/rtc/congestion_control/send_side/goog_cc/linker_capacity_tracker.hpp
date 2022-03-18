@@ -25,7 +25,7 @@ public:
     // since congestion has detected by the RTT estimate (with backoff).
     void OnRttBackoffEstimate(DataRate bitrate,
                               Timestamp at_time);
-    void OnCapacityEstimate(DataRate bitrate, 
+    void OnBitrateUpdated(DataRate bitrate, 
                             Timestamp at_time);
 
     DataRate estimate() const;
