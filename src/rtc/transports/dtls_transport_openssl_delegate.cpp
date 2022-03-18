@@ -238,18 +238,9 @@ bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
 }
 
 int DtlsTransport::OnDtlsWrite(CopyOnWriteBuffer data) {
-    if (sequence_checker_.IsCurrent()) {
+    return attached_queue_->Invoke<int>([this, data=std::move(data)](){
         return HandleDtlsWrite(std::move(data));
-    } else {
-        std::unique_lock lock(mutex_);
-        int ret = -1;
-        attached_queue_->Post([this, data=std::move(data), &ret](){
-            ret = HandleDtlsWrite(std::move(data));
-            cond_.notify_one();
-        });
-        cond_.wait(lock);
-        return ret;
-    }
+    });
 }
 
 // Callback methods
@@ -347,7 +338,7 @@ int DtlsTransport::BioMethodWrite(BIO* bio, const char* in_data, int in_size) {
     if (WeakPtrManager::SharedInstance()->Lock(transport)) {
         auto bytes = reinterpret_cast<const uint8_t*>(in_data);
         int write_size = transport->OnDtlsWrite(CopyOnWriteBuffer(bytes, in_size));
-        PLOG_VERBOSE << "Handle DTLS size: " << in_size << " : " << write_size;
+        // PLOG_VERBOSE << "Handle DTLS size: " << in_size << " : " << write_size;
         return in_size;
     }
     return -1;

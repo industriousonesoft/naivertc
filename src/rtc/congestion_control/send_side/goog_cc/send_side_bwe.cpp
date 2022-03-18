@@ -80,6 +80,7 @@ void SendSideBwe::OnDelayBasedBitrate(DataRate bitrate,
     linker_capacity_tracker_.OnDelayBasedEstimate(bitrate, report_time);
     delay_based_limit_ = bitrate.IsZero() ? DataRate::PlusInfinity()
                                           : bitrate;
+    PLOG_VERBOSE << "delay_based_limit=" << delay_based_limit_.bps() << " bps.";
     ApplyLimits(report_time);
 }
 
@@ -102,6 +103,7 @@ void SendSideBwe::OnSentPacket(const SentPacket& sent_packet) {
 
 void SendSideBwe::OnRemb(DataRate bitrate,
                          Timestamp report_time) {
+    PLOG_VERBOSE << "updated REMB=" << bitrate.bps() << " bps.";
     remb_limit_ = bitrate.IsZero() ? DataRate::PlusInfinity()
                                    : bitrate;
     ApplyLimits(report_time);
@@ -125,6 +127,7 @@ void SendSideBwe::OnRtt(TimeDelta rtt,
     // Update RTT if we were able to compute an RTT based on this RTCP.
     // FlexFEC doesn't send RTCP SR, which means we won't be able to compute RTT.
     if (rtt > TimeDelta::Zero()) {
+        PLOG_VERBOSE << "Rtt: " << last_rtt_.ms() << " ms -> " << rtt.ms() << " ms.";
         last_rtt_ = rtt;
     }
 }
@@ -212,7 +215,8 @@ void SendSideBwe::UpdateEstimate(Timestamp report_time) {
                                                                 report_time);
     UpdateTargetBitrate(new_bitrate, report_time);
     // NOTE: |rtt_backoff_|和|loss_report_based_bwe_|的降码逻辑都是基于
-    // 当前码率和距离上一次降低码率的时长，因此做一些需要同步。
+    // 当前码率|curr_bitrate_|，因此当|loss_report_based_bwe_|降低码率时
+    // 需更新相应的时间。
     if (state == RateControlState::DECREASE) {
         time_last_decrease_ = report_time;
     }
@@ -243,11 +247,15 @@ void SendSideBwe::UpdateTargetBitrate(DataRate new_bitrate,
                      << "is below the configured min bitrate " << min_configured_bitrate_.bps() << " bps.";
         new_bitrate = min_configured_bitrate_;
     }
-    curr_bitrate_ = new_bitrate;
+    if (curr_bitrate_ != new_bitrate) {
+        PLOG_INFO_IF(false) << "Update bitrate from " << curr_bitrate_.bps()
+                           << " bps to " << new_bitrate.bps() << " bps.";
+        curr_bitrate_ = new_bitrate;
+    }
     // Make sure that we have measured a throughput before updating the link capacity.
     if (ack_bitrate_) {
         // Use the smaller as the linker capacity estimate.
-        linker_capacity_tracker_.OnCapacityEstimate(std::min(*ack_bitrate_, curr_bitrate_), at_time);
+        linker_capacity_tracker_.OnBitrateUpdated(std::min(*ack_bitrate_, curr_bitrate_), at_time);
     }
 }
 

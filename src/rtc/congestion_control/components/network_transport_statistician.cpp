@@ -100,13 +100,12 @@ NetworkTransportStatistician::ProcessTransportFeedback(const rtcp::TransportFeed
         PLOG_WARNING << "Received a empty transport feedback packet.";
         return std::nullopt;
     }
-
-    Timestamp last_acked_recv_time = Timestamp::MinusInfinity();
-
+    
     TransportPacketsFeedback report;
     report.receive_time = receive_time;
     report.prior_in_flight = inflight_bytes_;
-    if (ParsePacketFeedbacks(feedback, receive_time, report)) {
+    if (!ParsePacketFeedbacks(feedback, receive_time, report)) {
+        PLOG_WARNING << "Failed to parse packet feedbacks.";
         return std::nullopt;
     }
 

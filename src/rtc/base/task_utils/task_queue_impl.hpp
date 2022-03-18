@@ -3,6 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/units/time_delta.hpp"
+#include "rtc/base/synchronization/event.hpp"
 
 #include <functional>
 
@@ -20,7 +21,7 @@ public:
     virtual void Delete() = 0;
 
     // Scheduls a task to execute. Tasks are executed in FIFO order.
-    virtual void Post(std::function<void()> handler) = 0;
+    virtual void Post(std::function<void()> handler) {};
 
     // Scheduls a task to execute a specified delay from when the call is made.
     virtual void PostDelayed(TimeDelta delay, std::function<void()> handler) = 0;
@@ -31,6 +32,24 @@ public:
 
     // Returns true if this task queue is running the current thread.
     bool IsCurrent() const { return Current() == this; }
+
+    // Convenience method to invoke a functor on another thread, which
+    // blocks the current thread until execution is complete.
+    template<typename ReturnT,
+             typename = typename std::enable_if<std::is_void<ReturnT>::value>::type>
+    void Invoke(std::function<void()> handler) {
+        InvokeInternal(std::move(handler));
+    }
+
+    template<typename ReturnT,
+             typename = typename std::enable_if<!std::is_void<ReturnT>::value>::type>
+    ReturnT Invoke(std::function<ReturnT()> handler) {
+        ReturnT ret;
+        InvokeInternal([&ret, handler=std::move(handler)](){
+            ret = handler();
+        });
+        return ret;
+    }
 
 protected:
     // Users of the TaskQueue should call Delete instead of 
@@ -47,6 +66,12 @@ protected:
     private:
         TaskQueueImpl* const previous_;
     };
+
+private:
+    void InvokeInternal(std::function<void()> handler);
+
+private:
+    mutable Event event_;
 };
 
 #define RTC_RUN_ON(x)   \

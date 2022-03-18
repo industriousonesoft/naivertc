@@ -291,18 +291,9 @@ void SctpTransport::OnSctpUpCall() {
 }
 
 bool SctpTransport::OnSctpWrite(CopyOnWriteBuffer data, uint8_t tos, uint8_t set_df) {
-	if (sequence_checker_.IsCurrent()) {
+	return attached_queue_->Invoke<bool>([this, data=std::move(data)](){
 		return HandleSctpWrite(std::move(data));
-	} else {
-		std::unique_lock lock(mutex_);
-		bool bRet = false;
-		attached_queue_->Post([this, data=std::move(data), &bRet](){
-			bRet = HandleSctpWrite(std::move(data));
-			cond_.notify_one();
-		});
-		cond_.wait(lock);
-		return bRet;
-	}
+	});
 }
 
 // usrsctp callbacks

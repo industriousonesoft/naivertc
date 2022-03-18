@@ -9,8 +9,6 @@
 
 #include <optional>
 #include <functional>
-#include <mutex>
-#include <condition_variable>
 
 namespace naivertc {
 
@@ -92,9 +90,6 @@ private:
     uint8_t ssl_read_buffer_[DEFAULT_SSL_BUFFER_SIZE];
 
     VerifyCallback verify_callback_ = nullptr;
-
-    std::mutex mutex_;
-    std::condition_variable cond_;
 };
 
 }

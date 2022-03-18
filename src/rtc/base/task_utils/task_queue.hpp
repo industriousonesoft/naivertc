@@ -4,14 +4,6 @@
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue_impl.hpp"
 
-#define SUPPORT_YIELD
-#if defined(SUPPORT_YIELD)
-#include "rtc/base/synchronization/event.hpp"
-#else
-#include <mutex>
-#include <condition_variable>
-#endif
-
 namespace naivertc {
 
 class TaskQueue {
@@ -24,25 +16,21 @@ public:
     TaskQueue(std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> task_queue_impl);
     ~TaskQueue();
 
-    void Post(std::function<void()> handler) const;
-    void PostDelayed(TimeDelta delay, std::function<void()> handler) const;
+    void Post(std::function<void()> handler);
+    void PostDelayed(TimeDelta delay, std::function<void()> handler);
   
     // Convenience method to invoke a functor on another thread, which
     // blocks the current thread until execution is complete.
     template<typename ReturnT,
              typename = typename std::enable_if<std::is_void<ReturnT>::value>::type>
-    void Invoke(std::function<void()> handler) const {
-        InvokeInternal(std::move(handler));
+    void Invoke(std::function<void()> handler) {
+        impl_->Invoke<void>(std::move(handler));
     }
 
     template<typename ReturnT,
              typename = typename std::enable_if<!std::is_void<ReturnT>::value>::type>
-    ReturnT Invoke(std::function<ReturnT()> handler) const {
-        ReturnT ret;
-        InvokeInternal([&ret, handler=std::move(handler)](){
-            ret = handler();
-        });
-        return ret;
+    ReturnT Invoke(std::function<ReturnT()> handler) {
+        return impl_->Invoke<ReturnT>(std::move(handler));
     }
 
     bool IsCurrent() const;
@@ -51,17 +39,7 @@ public:
     TaskQueueImpl* Get() { return impl_; }
 
 private:
-    void InvokeInternal(std::function<void()> handler) const;
-
-private:
     TaskQueueImpl* const impl_;
-#if defined(SUPPORT_YIELD)
-    // NOTE: Using Event instead of std::mutex for YieldPolicy tests.
-    mutable Event event_;
-#else
-    mutable std::mutex mutex_;
-    mutable std::condition_variable cond_;
-#endif
 };
 
 } // namespace naivertc

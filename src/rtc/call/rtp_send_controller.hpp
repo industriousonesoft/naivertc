@@ -20,6 +20,8 @@ public:
     RtpSendController(Clock* clock);
     ~RtpSendController() override;
 
+    void Clear();
+
 private:
     // Implements RtpTransportFeedbackObserver
     void OnAddPacket(const RtpPacketSendInfo& feedback) override;

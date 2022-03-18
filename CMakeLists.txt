@@ -285,6 +285,12 @@ set(LIB_HEADERS
     src/rtc/congestion_control/components/inter_arrival_delta.hpp
     src/rtc/congestion_control/components/rtt_based_backoff.hpp
     src/rtc/congestion_control/components/alr_detector.hpp
+
+    # rtc -> congestion_control -> pacing
+    src/rtc/congestion_control/pacing/bitrate_prober.hpp
+    src/rtc/congestion_control/pacing/round_robin_packet_queue.hpp
+    src/rtc/congestion_control/pacing/pacing_controller.hpp
+    src/rtc/congestion_control/pacing/task_queue_paced_sender.hpp
     
     # rtc -> congestion_control -> send_side -> goog_cc -> delay_based
     src/rtc/congestion_control/send_side/goog_cc/delay_based/trendline_estimator.hpp
@@ -312,11 +318,9 @@ set(LIB_HEADERS
     src/rtc/congestion_control/send_side/goog_cc/goog_cc_network_controller.hpp
     src/rtc/congestion_control/send_side/goog_cc/congestion_window_pushback_controller.hpp
 
-    # rtc -> congestion_control -> pacing
-    src/rtc/congestion_control/pacing/bitrate_prober.hpp
-    src/rtc/congestion_control/pacing/round_robin_packet_queue.hpp
-    src/rtc/congestion_control/pacing/pacing_controller.hpp
-    src/rtc/congestion_control/pacing/task_queue_paced_sender.hpp
+    # rtc -> congestion_control -> receive_side
+    src/rtc/congestion_control/receive_side/packet_arrival_time_map.hpp
+    src/rtc/congestion_control/receive_side/remote_estimator_proxy.hpp
 
 )
 
@@ -562,6 +566,13 @@ set(LIB_SOURCES
     src/rtc/congestion_control/components/rtt_based_backoff.cpp
     src/rtc/congestion_control/components/alr_detector.cpp
 
+    # rtc -> congestion_control -> pacing
+    src/rtc/congestion_control/pacing/bitrate_prober.cpp
+    src/rtc/congestion_control/pacing/round_robin_packet_queue.cpp
+    src/rtc/congestion_control/pacing/round_robin_packet_queue_augxiliaries.cpp
+    src/rtc/congestion_control/pacing/pacing_controller.cpp
+    src/rtc/congestion_control/pacing/task_queue_paced_sender.cpp
+
     # rtc -> congestion_control -> send_side -> goog_cc -> delay_based
     src/rtc/congestion_control/send_side/goog_cc/delay_based/overuse_detector.cpp
     src/rtc/congestion_control/send_side/goog_cc/delay_based/trendline_estimator.cpp
@@ -587,12 +598,9 @@ set(LIB_SOURCES
     src/rtc/congestion_control/send_side/goog_cc/goog_cc_network_controller.cpp
     src/rtc/congestion_control/send_side/goog_cc/congestion_window_pushback_controller.cpp
 
-    # rtc -> congestion_control -> pacing
-    src/rtc/congestion_control/pacing/bitrate_prober.cpp
-    src/rtc/congestion_control/pacing/round_robin_packet_queue.cpp
-    src/rtc/congestion_control/pacing/round_robin_packet_queue_augxiliaries.cpp
-    src/rtc/congestion_control/pacing/pacing_controller.cpp
-    src/rtc/congestion_control/pacing/task_queue_paced_sender.cpp
+    # rtc -> congestion_control -> receive_side
+    src/rtc/congestion_control/receive_side/packet_arrival_time_map.cpp
+    src/rtc/congestion_control/receive_side/remote_estimator_proxy.cpp
 
 )
 
@@ -846,6 +854,11 @@ set(UNITTEST_SOURCES
     src/rtc/congestion_control/components/interval_budget_unittest.cpp
     src/rtc/congestion_control/components/alr_detector_unittest.cpp
 
+    # rtc -> congestion_control -> pacing
+    src/rtc/congestion_control/pacing/bitrate_prober_unittest.cpp
+    src/rtc/congestion_control/pacing/pacing_controller_unittest.cpp
+    src/rtc/congestion_control/pacing/task_queue_paced_sender_unittest.cpp
+
     # rtc -> congestion_control -> send_side -> goog_cc -> delay_based
     src/rtc/congestion_control/send_side/goog_cc/delay_based/trendline_estimator_unittest.cpp
     src/rtc/congestion_control/send_side/goog_cc/delay_based/aimd_rate_control_unittest.cpp
@@ -863,10 +876,8 @@ set(UNITTEST_SOURCES
     src/rtc/congestion_control/send_side/goog_cc/send_side_bwe_unittest.cpp
     src/rtc/congestion_control/send_side/goog_cc/congestion_window_pushback_controller_unittest.cpp
 
-    # rtc -> congestion_control -> pacing
-    src/rtc/congestion_control/pacing/bitrate_prober_unittest.cpp
-    src/rtc/congestion_control/pacing/pacing_controller_unittest.cpp
-    src/rtc/congestion_control/pacing/task_queue_paced_sender_unittest.cpp
+    # rtc -> congestion_control -> receive_side
+    src/rtc/congestion_control/receive_side/packet_arrival_time_map_unittest.cpp
     
 )
 

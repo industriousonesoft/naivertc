@@ -3,6 +3,7 @@
 
 #include "rtc/base/units/time_delta.hpp"
 #include "rtc/base/units/timestamp.hpp"
+#include "rtc/congestion_control/receive_side/packet_arrival_time_map.hpp"
 
 #include <vector>
 #include <optional>
@@ -38,6 +39,8 @@ private:
     const SendFeedbackConfig send_config_;
     Clock* const clock_;
     FeedbackSender* const feedback_sender_;
+
+    PacketArrivalTimeMap packet_arrival_times_;
 };
     
 } // namespace naivertc
