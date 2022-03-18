@@ -11,8 +11,6 @@
 #include <functional>
 #include <optional>
 #include <queue>
-#include <mutex>
-#include <condition_variable>
 
 namespace naivertc {
 
@@ -131,8 +129,6 @@ private:
     SctpMessageReceivedCallback sctp_message_received_callback_ = nullptr;
     ReadyToSendCallback ready_to_send_callback_ = nullptr;
 
-    std::mutex mutex_;
-    std::condition_variable cond_;
 };
 
 }

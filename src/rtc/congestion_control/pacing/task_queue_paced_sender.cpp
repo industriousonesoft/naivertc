@@ -126,9 +126,10 @@ void TaskQueuePacedSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) 
     });
 }
 
-TaskQueuePacedSender::Stats TaskQueuePacedSender::GetStats() const {
-    std::lock_guard lock(stats_mutex_);
-    return current_stats_;
+TaskQueuePacedSender::Stats TaskQueuePacedSender::GetStats() {
+    task_queue_->Invoke<Stats>([&](){
+        return current_stats_;
+    });
 }
 
 // Private methods

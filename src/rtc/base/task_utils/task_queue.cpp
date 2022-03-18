@@ -34,41 +34,16 @@ TaskQueue::~TaskQueue() {
     PLOG_VERBOSE << __FUNCTION__ << " did destroy.";
 }
 
-void TaskQueue::Post(std::function<void()> handler) const{
+void TaskQueue::Post(std::function<void()> handler) {
     impl_->Post(std::move(handler));
 }
 
-void TaskQueue::PostDelayed(TimeDelta delay, std::function<void()> handler) const{
+void TaskQueue::PostDelayed(TimeDelta delay, std::function<void()> handler) {
     impl_->PostDelayed(delay, std::move(handler));
 }
 
 bool TaskQueue::IsCurrent() const {
     return impl_->IsCurrent();
-}
-
-// Private methods
-void TaskQueue::InvokeInternal(std::function<void()> handler) const {
-    if (IsCurrent()) {
-        handler();
-    } else {
-#if !defined(SUPPORT_YIELD)
-        // FIXME: `mutex + condiction` will block the caller thread sometimes, and i have no idea about this.
-        std::unique_lock<std::mutex> lock(mutex_);
-#endif
-        impl_->Post([this, handler=std::move(handler)]{
-            handler();
-#if defined(SUPPORT_YIELD)
-            event_.Set();
-#else
-            cond_.notify_one();
-#endif
-        });
-#if defined(SUPPORT_YIELD)
-        event_.WaitForever();
-#else
-        cond_.wait(lock);
-#endif
-    }
 }
 
 } // namespace naivertc

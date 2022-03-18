@@ -51,7 +51,7 @@ public:
     // Implements RtpPacketSender
     void EnqueuePackets(std::vector<RtpPacketToSend> packets) override;
 
-    Stats GetStats() const;
+    Stats GetStats();
 
 private:
     void MaybeProcessPackets(Timestamp scheduled_process_time);
@@ -86,7 +86,6 @@ private:
     
     PacingController pacing_controller_;
 
-    mutable std::mutex stats_mutex_;
     TaskQueueImpl* const task_queue_;
 };
     
