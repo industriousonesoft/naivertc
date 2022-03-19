@@ -3,6 +3,8 @@
 #include "rtc/rtp_rtcp/rtcp/packets/transport_feedback.hpp"
 #include "rtc/congestion_control/send_side/goog_cc/goog_cc_network_controller.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
 namespace {
 
@@ -42,7 +44,6 @@ void RtpSendController::Clear() {
         if (controller_task_ && controller_task_->Running()) {
             controller_task_->Stop();
         }
-        controller_task_.reset();
     });
 }
 
