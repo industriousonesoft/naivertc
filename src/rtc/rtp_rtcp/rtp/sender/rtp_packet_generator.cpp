@@ -1,12 +1,17 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "rtc/base/memory/byte_io_writer.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
-
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 
 #include <plog/Log.h>
 
 namespace naivertc {
 namespace {
+
+// Max in the RFC 3550 is 255 bytes, we limit it to be modulus 32 for SRTP.
+constexpr size_t kMaxPaddingSize = 224;
+constexpr size_t kMinAudioPaddingSize = 50;
+// Min size needed to get payload padding from packet history.
+constexpr int kMinPayloadPaddingBytes = 50;
 
 template <typename Extension>
 constexpr rtp::ExtensionSize CreateExtensionSize() {
@@ -58,19 +63,29 @@ constexpr rtp::ExtensionSize kAudioExtensionSizes[] = {
     CreateMaxExtensionSize<rtp::RtpMid>(),
 };
 
+bool HasBweExtension(const rtp::HeaderExtensionMap& extension_map) {
+    return extension_map.IsRegistered(kRtpExtensionTransportSequenceNumber) ||
+           extension_map.IsRegistered(kRtpExtensionTransportSequenceNumber02) ||
+           extension_map.IsRegistered(kRtpExtensionAbsoluteSendTime) ||
+           extension_map.IsRegistered(kRtpExtensionTransmissionTimeOffset);
+}
+
 } // namespace 
 
-RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config, 
-                                       rtp::HeaderExtensionMap* header_extension_map) 
+RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config,
+                                       RtpPacketHistory* packet_history) 
     : is_audio_(config.audio),
-      ssrc_(config.local_media_ssrc),
+      media_ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),
+      rtx_mode_(kRtxOff),
       max_packet_size_(kIpPacketSize - kTransportOverhead), // Default is UDP/IPv4.
       max_media_packet_header_size_(kRtpHeaderSize),
       max_fec_or_padding_packet_header_size_(kRtpHeaderSize),
-      header_extension_map_(header_extension_map) {
+      max_padding_size_factor_(config.max_padding_size_factor),
+      rtp_header_extension_map_(config.extmap_allow_mixed),
+      packet_history_(packet_history) {
 
-    assert(header_extension_map_ != nullptr);
+    assert(packet_history_ != nullptr);
 
     // Update media and fec/padding header sizes.
     UpdateHeaderSizes();
@@ -78,9 +93,9 @@ RtpPacketGenerator::RtpPacketGenerator(const RtpConfiguration& config,
 
 RtpPacketGenerator::~RtpPacketGenerator() {}
 
-uint32_t RtpPacketGenerator::ssrc() const {
+uint32_t RtpPacketGenerator::media_ssrc() const {
     RTC_RUN_ON(&sequence_checker_);
-    return ssrc_;
+    return media_ssrc_;
 }
 
 void RtpPacketGenerator::set_csrcs(const std::vector<uint32_t>& csrcs) {
@@ -101,6 +116,26 @@ void RtpPacketGenerator::set_max_rtp_packet_size(size_t max_size) {
     max_packet_size_ = max_size;
 }
 
+bool RtpPacketGenerator::Register(std::string_view uri, int id) {
+    RTC_RUN_ON(&sequence_checker_);
+    bool ret = rtp_header_extension_map_.RegisterByUri(uri, id);
+    supports_bwe_extension_ = HasBweExtension(rtp_header_extension_map_);
+    UpdateHeaderSizes();
+    return ret;
+}
+
+bool RtpPacketGenerator::IsRegistered(RtpExtensionType type) {
+    RTC_RUN_ON(&sequence_checker_);
+    return rtp_header_extension_map_.IsRegistered(type);
+}
+
+void RtpPacketGenerator::Deregister(std::string_view uri) {
+    RTC_RUN_ON(&sequence_checker_);
+    rtp_header_extension_map_.Deregister(uri);
+    supports_bwe_extension_ = HasBweExtension(rtp_header_extension_map_);
+    UpdateHeaderSizes();
+}
+
 RtpPacketToSend RtpPacketGenerator::GeneratePacket() const {
     RTC_RUN_ON(&sequence_checker_);
     // TODO: Find better motivator and value for extra capacity.
@@ -110,8 +145,8 @@ RtpPacketToSend RtpPacketGenerator::GeneratePacket() const {
     // While sending slightly oversized packet increase chance of dropped packet,
     // it is better than crash on drop packet without trying to send it.
     static constexpr int kExtraCapacity = 16;
-    auto packet = RtpPacketToSend(header_extension_map_, max_packet_size_ + kExtraCapacity);
-    packet.set_ssrc(ssrc_);
+    auto packet = RtpPacketToSend(&rtp_header_extension_map_, max_packet_size_ + kExtraCapacity);
+    packet.set_ssrc(media_ssrc_);
     packet.set_csrcs(csrcs_);
     
     // Reserver extensions below if registered, those will be set 
@@ -135,6 +170,17 @@ size_t RtpPacketGenerator::MaxFecOrPaddingPacketHeaderSize() const {
 }
 
 // RTX
+int RtpPacketGenerator::rtx_mode() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return rtx_mode_;
+}
+    
+void RtpPacketGenerator::set_rtx_mode(int mode) {
+    RTC_RUN_ON(&sequence_checker_);
+    rtx_mode_ = mode;
+}
+
+
 std::optional<uint32_t> RtpPacketGenerator::rtx_ssrc() const {
     RTC_RUN_ON(&sequence_checker_);
     return rtx_ssrc_;
@@ -191,12 +237,121 @@ std::optional<RtpPacketToSend> RtpPacketGenerator::BuildRtxPacket(const RtpPacke
     return rtx_packet;
 }
 
+// Padding
+bool RtpPacketGenerator::SupportsPadding() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return supports_bwe_extension_;
+}
+
+bool RtpPacketGenerator::SupportsRtxPayloadPadding() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return supports_bwe_extension_ && (rtx_mode_ & kRtxRedundantPayloads);
+}
+
+std::vector<RtpPacketToSend> RtpPacketGenerator::GeneratePadding(size_t target_packet_size, 
+                                                                 bool media_has_been_sent,
+                                                                 bool can_send_padding_on_media_ssrc) {
+    std::vector<RtpPacketToSend> padding_packets;
+    // Limit overshoot, generate <= |max_padding_size_factor_ * target_packet_size|
+    // FIXME: Why is |max_padding_size_factor_ - 1.0| not |max_padding_size_factor_|?
+    const size_t max_overshoot_bytes = static_cast<size_t>(((max_padding_size_factor_ - 1.0) * target_packet_size) + 0.5);
+    size_t bytes_left = target_packet_size;
+    // Generates a RTX packet as padding packet and regards the payload as padding data.
+    if (SupportsRtxPayloadPadding()) {
+        while (bytes_left >= kMinPayloadPaddingBytes) {
+            auto packet = packet_history_->GetPayloadPaddingPacket([&](const RtpPacketToSend& packet) 
+                -> std::optional<RtpPacketToSend> {
+                if (packet.payload_size() + kRtxHeaderSize > max_overshoot_bytes + bytes_left) {
+                    return std::nullopt;
+                }
+                return BuildRtxPacket(packet);
+            });
+            if (!packet) {
+                break;
+            }
+
+            bytes_left -= std::min(bytes_left, packet->payload_size());
+            packet->set_packet_type(RtpPacketType::PADDING);
+            padding_packets.push_back(std::move(*packet));
+        }
+    }
+
+    // Generates a padding packet with empty payload and padding data.
+
+    // The max payload size per padding pakcet.
+    const size_t max_payload_size = max_packet_size_ - max_fec_or_padding_packet_header_size_;
+    // Always send full padding packets. This is accounted for by the
+    // RtpPacketSender, which will make sure we don't send too much padding even
+    // if a single packet is larger than requested.
+    // We do this to avoid frequently sending small packets on higher bitrates.
+    size_t padding_bytes_in_packet = std::min(max_payload_size, kMaxPaddingSize);
+    if (is_audio_) {
+        // Allow smaller padding packet for audio.
+        padding_bytes_in_packet = std::min(padding_bytes_in_packet, std::max(bytes_left, kMinAudioPaddingSize));
+    }
+
+    while (bytes_left) {
+        auto padding_packet = RtpPacketToSend(&rtp_header_extension_map_);
+        padding_packet.set_packet_type(RtpPacketType::PADDING);
+        padding_packet.set_marker(false);
+        
+        if (rtx_mode_ == kRtxOff) {
+            // Send padding packet on media ssrc.
+
+            // Check if we can send padding on media ssrc.
+            if (!can_send_padding_on_media_ssrc) {
+                break;
+            }
+            padding_packet.set_ssrc(media_ssrc_);
+        } else {
+            // Send padding packet on RTX ssrc.
+
+            // Without abs-send-time or transport sequence number a media packet
+            // must be sent before padding so that the timestamps used for
+            // estimation are correct.
+            if (!media_has_been_sent &&
+                !(rtp_header_extension_map_.IsRegistered(kRtpExtensionAbsoluteSendTime) ||
+                  rtp_header_extension_map_.IsRegistered(kRtpExtensionTransportSequenceNumber))) {
+                break;
+            }
+
+            assert(rtx_ssrc_.has_value());
+            assert(!rtx_payload_type_map_.empty());
+
+            padding_packet.set_ssrc(*rtx_ssrc_);
+            // Set as RTX payload type.
+            padding_packet.set_payload_type(rtx_payload_type_map_.begin()->second);
+        }
+
+        // Reserver rtp header extensions can be used in Padding packet.
+
+        // Transport sequence number extension.
+        if (rtp_header_extension_map_.IsRegistered(kRtpExtensionTransportSequenceNumber)) {
+            padding_packet.ReserveExtension<rtp::TransportSequenceNumber>();
+        }
+        // Transmission time offset extension.
+        if (rtp_header_extension_map_.IsRegistered(kRtpExtensionTransmissionTimeOffset)) {
+            padding_packet.ReserveExtension<rtp::TransmissionTimeOffset>();
+        }
+        // Absolute send time extension.
+        if (rtp_header_extension_map_.IsRegistered(kRtpExtensionAbsoluteSendTime)) {
+            padding_packet.ReserveExtension<rtp::AbsoluteSendTime>();
+        }
+
+        padding_packet.SetPadding(padding_bytes_in_packet);
+        bytes_left -= std::min(bytes_left, padding_bytes_in_packet);
+        padding_packets.push_back(std::move(padding_packet));
+    }
+    
+    return padding_packets;
+}
+
 // Private methods
 void RtpPacketGenerator::UpdateHeaderSizes() {
     const size_t rtp_header_size = kRtpHeaderSize + sizeof(uint32_t) * csrcs_.size();
     // Calculate the maximum size of FEC/Padding packet.
     max_fec_or_padding_packet_header_size_ = rtp_header_size + 
-                                             header_extension_map_->CalculateSize(kFecOrPaddingExtensionSizes);
+                                             rtp_header_extension_map_.CalculateSize(kFecOrPaddingExtensionSizes);
 
     // TODO: Calculate the maximum header size of media packet.
 

@@ -29,9 +29,11 @@ public:
     void SetRtpState(const RtpState& state);
     void PupulateRtpState(RtpState& state);
 
+    bool CanSendPaddingOnMeidaSsrc() const;
+
 private:
     void UpdateLastPacketState(const RtpPacketToSend& packet);
-    bool PopulatePaddingFields(RtpPacketToSend& packet);
+    void PopulatePaddingFields(RtpPacketToSend& packet);
 
 private:
     const uint32_t media_ssrc_;

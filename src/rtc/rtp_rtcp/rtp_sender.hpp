@@ -13,14 +13,13 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 
 namespace naivertc {
 
 class RtpSender : public RtcpNackListObserver,
-                                 public RtcpReportBlocksObserver,
-                                 public RtpSendStatsProvider {
+                  public RtcpReportBlocksObserver,
+                  public RtpSendStatsProvider {
 public:
     RtpSender(const RtpConfiguration& config);
     ~RtpSender() override;
@@ -33,7 +32,7 @@ public:
  
     RtpPacketToSend GeneratePacket() const;
 
-    // Send
+    // Enqueue
     bool EnqueuePacket(RtpPacketToSend packet);
     bool EnqueuePackets(std::vector<RtpPacketToSend> packets);
 
@@ -58,10 +57,12 @@ public:
     bool fec_enabled() const;
     bool red_enabled() const;
     size_t FecPacketOverhead() const;
+    std::vector<RtpPacketToSend> FetchFecPackets() const;
 
     // Padding
     std::vector<RtpPacketToSend> GeneratePadding(size_t target_packet_size, 
-                                                 bool media_has_been_sent);
+                                                 bool media_has_been_sent,
+                                                 bool can_send_padding_on_media_ssrc);
 
     // Implements RtcpNackListObserver
     void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t rrt_ms) override;
@@ -78,21 +79,17 @@ private:
 private:
     // RtpSenderContext
     struct RtpSenderContext {
-        RtpSenderContext(const RtpConfiguration& config, 
-                         rtp::HeaderExtensionMap* header_extension_map);
+        RtpSenderContext(const RtpConfiguration& config);
 
         RtpPacketSequencer packet_sequencer;
-        RtpPacketGenerator packet_generator;
         RtpPacketHistory packet_history;
+        RtpPacketGenerator packet_generator;
         RtpPacketEgresser packet_egresser;
         RtpPacketEgresser::NonPacedPacketSender non_paced_sender;
     };
 private:
     SequenceChecker sequence_checker_;
-    int rtx_mode_;
     Clock* const clock_;
-
-    rtp::HeaderExtensionMap header_extension_map_;
 
     std::unique_ptr<RtpSenderContext> ctx_;
 

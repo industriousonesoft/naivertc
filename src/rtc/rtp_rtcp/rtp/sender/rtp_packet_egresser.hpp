@@ -44,7 +44,7 @@ public:
     };
 public:
     RtpPacketEgresser(const RtpConfiguration& config,
-                      RtpPacketHistory* const packet_history);
+                      RtpPacketHistory* packet_history);
     ~RtpPacketEgresser();
 
     uint32_t ssrc() const;

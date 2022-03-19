@@ -38,6 +38,11 @@ struct RtpConfiguration {
     // overhead.
     bool enable_rtx_padding_prioritization = true;
 
+    // Too low factor means RTX payload padding is rarely used and ineffective.
+    // Too high means we risk interrupting regular media packets.
+    // In practice, 3x seems to yield reasonable results.
+    double max_padding_size_factor = 3.0;
+
     Clock* clock;
     
     RtcMediaTransport* send_transport = nullptr;
