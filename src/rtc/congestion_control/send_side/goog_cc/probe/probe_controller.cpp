@@ -284,6 +284,7 @@ std::vector<ProbeClusterConfig> ProbeController::InitProbing(std::vector<DataRat
             config.target_bitrate = max_probe_bitrate;
             // No need to probe further as we will 
             // probe the max probe bitrate.
+            PLOG_DEBUG_IF(true) << "Not probing further as target bitrate > max probe bitrate = " << max_probe_bitrate.bps() << " bps."; 
             probe_further = false;
         } else {
             config.target_bitrate = bitrate;
@@ -298,6 +299,7 @@ std::vector<ProbeClusterConfig> ProbeController::InitProbing(std::vector<DataRat
         // Set the max birate as the min birate to probe further
         if (!max_bitrate.IsZero()) {
             min_bitrate_to_probe_further_.emplace(max_bitrate * config_.further_probe_scale);
+            PLOG_DEBUG_IF(true) << "Next bitrate to probe further: " << min_bitrate_to_probe_further_->bps() << " bps.";
         }
     } else {
         probing_state_ = ProbingState::DONE;

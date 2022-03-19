@@ -138,7 +138,7 @@ NetworkControlUpdate GoogCcNetworkController::OnPeriodicUpdate(const PeriodicUpd
 
 NetworkControlUpdate GoogCcNetworkController::OnRembUpdated(DataRate remb, Timestamp receive_time) {
     if (packet_feedback_only_) {
-        PLOG_ERROR << "Received REMB for packet feedback only GoogCC.";
+        PLOG_WARNING << "Received REMB for packet feedback only GoogCC, droping it.";
         return NetworkControlUpdate();
     }
     send_side_bwe_->OnRemb(remb, receive_time);
@@ -449,12 +449,16 @@ void GoogCcNetworkController::MaybeTriggerOnNetworkChanged(NetworkControlUpdate*
         
         update->pacer_config = GetPacerConfig(at_time);
 
-        PLOG_INFO_IF(true) << "last_loss_based_target_bitrate_bps=" << loss_based_target_bitrate.bps()
+        constexpr TimeDelta kLogInterval = TimeDelta::Seconds(5);
+        if (at_time - last_logging_time_ >= kLogInterval) {
+            last_logging_time_ = at_time;
+            PLOG_INFO_IF(true) << "last_loss_based_target_bitrate_bps=" << loss_based_target_bitrate.bps()
                             << ", pushback_target_bitrate_bps=" << pushback_target_rate.bps()
                             << ", stable_target_bitrate_bps=" << stable_target_bitrate.bps()
                             << ", estimated_rtt_ms=" << rtt.ms()
                             << ", estimated_fraction_loss=" << target_bitrate_msg.network_estimate.loss_rate_ratio
                             << ", at time: " << at_time.ms();
+        }
     }
         
 }

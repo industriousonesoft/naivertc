@@ -214,12 +214,12 @@ DelayBasedBwe::Result DelayBasedBwe::MaybeUpdateEstimate(std::optional<DataRate>
     if ((ret.updated && prev_bitrate_ != ret.target_bitrate) ||
         detected_state != prev_state_) {
         auto curr_bitrate = ret.updated ? ret.target_bitrate : prev_bitrate_;
-        PLOG_VERBOSE << "state: " << prev_state_ << " => " << detected_state
-                     << "- bitrate: " << prev_bitrate_.kbps<double>() 
-                     << " kbps => " << curr_bitrate.kbps<double>() 
-                     << " kbps - is probed: " << (ret.probe ? "true" : "false")
-                     << "at_time: " << at_time.ms()
-                     << std::endl;
+        PLOG_VERBOSE_IF(false) << "state: " << prev_state_ << " => " << detected_state
+                               << "- bitrate: " << prev_bitrate_.kbps<double>() 
+                               << " kbps => " << curr_bitrate.kbps<double>() 
+                               << " kbps - is probed: " << (ret.probe ? "true" : "false")
+                               << "at_time: " << at_time.ms()
+                               << std::endl;
         prev_bitrate_ = curr_bitrate;
         prev_state_ = detected_state;
     }

@@ -80,7 +80,7 @@ void SendSideBwe::OnDelayBasedBitrate(DataRate bitrate,
     linker_capacity_tracker_.OnDelayBasedEstimate(bitrate, report_time);
     delay_based_limit_ = bitrate.IsZero() ? DataRate::PlusInfinity()
                                           : bitrate;
-    PLOG_VERBOSE << "delay_based_limit=" << delay_based_limit_.bps() << " bps.";
+    PLOG_VERBOSE_IF(false) << "delay_based_limit=" << delay_based_limit_.bps() << " bps.";
     ApplyLimits(report_time);
 }
 
