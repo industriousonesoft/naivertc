@@ -851,6 +851,7 @@ set(UNITTEST_SOURCES
     src/rtc/transports/ice_transport_description_unittest.cpp
 
     # rtc -> congestion_control -> components
+    src/rtc/congestion_control/components/inter_arrival_delta_unittest.cpp
     src/rtc/congestion_control/components/interval_budget_unittest.cpp
     src/rtc/congestion_control/components/alr_detector_unittest.cpp
 

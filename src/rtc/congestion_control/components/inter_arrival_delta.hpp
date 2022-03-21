@@ -19,7 +19,9 @@ public:
     static constexpr TimeDelta kArrivalTimeOffsetThreshold = TimeDelta::Seconds(3);
 
     struct Result {
+        // Inter-depature
         TimeDelta send_time_delta = TimeDelta::Zero();
+        // Inter-arrival
         TimeDelta arrival_time_delta = TimeDelta::Zero();
         int packet_size_delta = 0;
     };
@@ -34,7 +36,7 @@ public:
 
     std::optional<Result> ComputeDeltas(Timestamp send_time, 
                                         Timestamp arrival_time, 
-                                        Timestamp system_time,
+                                        Timestamp at_time,
                                         size_t packet_size);
 
     void Reset();
@@ -72,7 +74,7 @@ private:
     const TimeDelta send_time_group_span_;
     PacketGroup curr_packet_group_;
     PacketGroup prev_packet_group_;
-    size_t num_consecutive_reordered_packets_;
+    size_t num_consecutive_reordered_packet_groups_;
 };
     
 } // namespace naivertc
