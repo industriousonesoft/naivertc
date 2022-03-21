@@ -166,8 +166,8 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp
     src/rtc/rtp_rtcp/base/rtp_extensions.hpp
     src/rtc/rtp_rtcp/base/rtp_parameters.hpp
-    src/rtc/rtp_rtcp/base/rtp_statistic_structs.hpp
-    src/rtc/rtp_rtcp/base/rtcp_statistic_structs.hpp
+    src/rtc/rtp_rtcp/base/rtp_statistic_types.hpp
+    src/rtc/rtp_rtcp/base/rtcp_statistic_types.hpp
     src/rtc/rtp_rtcp/base/rtp_utils.hpp
     src/rtc/rtp_rtcp/base/rtp_packet_sink.hpp
 
@@ -444,8 +444,8 @@ set(LIB_SOURCES
     # rtc -> rtp_rtcp -> base
     src/rtc/rtp_rtcp/base/rtp_utils.cpp
     src/rtc/rtp_rtcp/base/rtp_parameters.cpp
-    src/rtc/rtp_rtcp/base/rtp_statistic_structs.cpp
-    src/rtc/rtp_rtcp/base/rtcp_statistic_structs.cpp
+    src/rtc/rtp_rtcp/base/rtp_statistic_types.cpp
+    src/rtc/rtp_rtcp/base/rtcp_statistic_types.cpp
 
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp

@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/base/rtcp_statistic_structs.hpp"
+#include "rtc/rtp_rtcp/base/rtcp_statistic_types.hpp"
 
 namespace naivertc {
 

@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
 #include "rtc/congestion_control/base/bwe_types.hpp"
-#include "rtc/rtp_rtcp/base/rtp_statistic_structs.hpp"
+#include "rtc/rtp_rtcp/base/rtp_statistic_types.hpp"
 #include "rtc/rtp_rtcp/components/num_unwrapper.hpp"
 
 #include <map>

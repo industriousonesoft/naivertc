@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/base/rtp_statistic_structs.hpp"
+#include "rtc/rtp_rtcp/base/rtp_statistic_types.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet.hpp"
 #include "rtc/rtp_rtcp/rtcp/rtcp_packet.hpp"
 
