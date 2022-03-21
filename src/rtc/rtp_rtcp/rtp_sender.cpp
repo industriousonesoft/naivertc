@@ -82,7 +82,7 @@ bool RtpSender::EnqueuePacket(RtpPacketToSend packet) {
     RTC_RUN_ON(&sequence_checker_);
 
     // Assigns sequence number for per packet.
-    if (!ctx_->packet_sequencer.AssignSequenceNumber(packet)) {
+    if (!ctx_->packet_sequencer.Sequence(packet)) {
         PLOG_WARNING << "Failed to assign sequence number for packet with type : " << int(packet.packet_type());
         return false;
     }
@@ -104,7 +104,7 @@ bool RtpSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
     // TODO: Optimization: move the oprations below to downstream?
     for (auto& packet : packets) {
         // Assigns sequence number for per packet.
-        if (!ctx_->packet_sequencer.AssignSequenceNumber(packet)) {
+        if (!ctx_->packet_sequencer.Sequence(packet)) {
             PLOG_WARNING << "Failed to assign sequence number for packet with type : " << int(packet.packet_type());
             return false;
         }
@@ -249,6 +249,27 @@ RtpSendStats RtpSender::GetSendStats() {
     return send_feedback;
 }
 
+bool RtpSender::TrySendPacket(RtpPacketToSend packet, 
+                              const PacedPacketInfo& pacing_info) {
+    RTC_RUN_ON(&sequence_checker_);
+    // Check if we can send Padding packet on media SSRC.
+    if (packet.packet_type() == RtpPacketType::PADDING &&
+        packet.ssrc() == ctx_->packet_generator.media_ssrc() &&
+        !ctx_->packet_sequencer.CanSendPaddingOnMeidaSsrc()) {
+        // New media packet preempted this generated padding packet, discard it.
+        return false;
+    }
+
+    bool is_flexfec = packet.packet_type() == RtpPacketType::FEC &&
+                      ctx_->packet_egresser.flex_fec_ssrc() &&
+                      packet.ssrc() == ctx_->packet_egresser.flex_fec_ssrc();
+    // ULP_FEC 
+    if (!is_flexfec) {
+        ctx_->packet_sequencer.Sequence(packet);
+    }
+    return ctx_->packet_egresser.SendPacket(std::move(packet), pacing_info);
+}
+
 // Private methods
 int32_t RtpSender::ResendPacket(uint16_t seq_num) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
@@ -270,7 +291,7 @@ int32_t RtpSender::ResendPacket(uint16_t seq_num) {
             retransmit_packet = ctx_->packet_generator.BuildRtxPacket(stored_packet);
             if (retransmit_packet) {
                 // Replace with RTX sequence number.
-                ctx_->packet_sequencer.AssignSequenceNumber(*retransmit_packet);
+                ctx_->packet_sequencer.Sequence(*retransmit_packet);
             }
         }else {
             // Retransmitted by the media stream.

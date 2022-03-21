@@ -305,6 +305,7 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(const T
     send_side_bwe_->IncomingPacketFeedbacks(report);
     // Ready to estimate the probe birate.
     for (const auto& feedback : sorted_received_packets) {
+        // Probe cluster feedback
         if (feedback.sent_packet.pacing_info.probe_cluster) {
             probe_bitrate_estimator_->IncomingProbePacketFeedback(feedback);
         }

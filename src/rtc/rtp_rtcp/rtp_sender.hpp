@@ -32,9 +32,13 @@ public:
  
     RtpPacketToSend GeneratePacket() const;
 
-    // Enqueue
+    // Enqueue to pacer.
     bool EnqueuePacket(RtpPacketToSend packet);
     bool EnqueuePackets(std::vector<RtpPacketToSend> packets);
+
+    // Try send packet directly.
+    bool TrySendPacket(RtpPacketToSend packet, 
+                       const PacedPacketInfo& pacing_info);
 
     // Rtp header extensions
     bool Register(std::string_view uri, int id);

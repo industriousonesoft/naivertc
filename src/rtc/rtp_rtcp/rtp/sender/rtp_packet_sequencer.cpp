@@ -29,7 +29,7 @@ RtpPacketSequencer::RtpPacketSequencer(const RtpConfiguration& config)
 
 RtpPacketSequencer::~RtpPacketSequencer() {}
 
-bool RtpPacketSequencer::AssignSequenceNumber(RtpPacketToSend& packet) {
+bool RtpPacketSequencer::Sequence(RtpPacketToSend& packet) {
     if (packet.ssrc() == media_ssrc_) {
         if (packet.packet_type() == RtpPacketType::RETRANSMISSION) {
             // Retransmission of an already sequenced packet, ignoring.

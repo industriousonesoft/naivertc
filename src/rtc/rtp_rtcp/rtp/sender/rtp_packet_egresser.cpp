@@ -64,24 +64,26 @@ std::optional<uint32_t> RtpPacketEgresser::flex_fec_ssrc() const {
     return flex_fec_ssrc_;
 }
 
- void RtpPacketEgresser::SetFecProtectionParameters(const FecProtectionParams& delta_params,
-                                                    const FecProtectionParams& key_params) {
+void RtpPacketEgresser::SetFecProtectionParameters(const FecProtectionParams& delta_params,
+                                                   const FecProtectionParams& key_params) {
     RTC_RUN_ON(&sequence_checker_);
     pending_fec_params_.emplace(delta_params, key_params);
 }
 
-void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
+bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
+                                   std::optional<const PacedPacketInfo> pacing_info) {
     RTC_RUN_ON(&sequence_checker_);
     if (packet.empty()) {
-        return;
+        return false;
     }
     if (!VerifySsrcs(packet)) {
-        return;
+        return false;
     }
 
-    if (packet.packet_type() == RtpPacketType::RETRANSMISSION && !packet.retransmitted_sequence_number().has_value()) {
+    if (packet.packet_type() == RtpPacketType::RETRANSMISSION && 
+        !packet.retransmitted_sequence_number().has_value()) {
         PLOG_WARNING << "Retransmission RTP packet can not send without retransmitted sequence number.";
-        return;
+        return false;
     }
 
     // TODO: Update sequence number info map
@@ -136,7 +138,7 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
     if (packet_id) {
         PLOG_VERBOSE_IF(false) << "Will send packet with transport sequence number: " << *packet_id;
         options.packet_id = packet_id;
-        AddPacketToTransportFeedback(*packet_id, packet);
+        AddPacketToTransportFeedback(*packet_id, packet, pacing_info);
     }
 
     if (packet_type != RtpPacketType::PADDING &&
@@ -175,6 +177,8 @@ void RtpPacketEgresser::SendPacket(RtpPacketToSend packet) {
             UpdateSentStatistics(now_ms, std::move(send_stats));
         });
     }
+
+    return send_success;
 }
 
 std::vector<RtpPacketToSend> RtpPacketEgresser::FetchFecPackets() const {
@@ -260,7 +264,8 @@ bool RtpPacketEgresser::VerifySsrcs(const RtpPacketToSend& packet) {
 }
 
 void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id, 
-                                                     const RtpPacketToSend& packet) {
+                                                     const RtpPacketToSend& packet,
+                                                     std::optional<const PacedPacketInfo> pacing_info) {
     if (transport_feedback_observer_) {
         const size_t packet_size = send_side_bwe_with_overhead_ ? packet.size() 
                                                                 : packet.payload_size() + packet.padding_size();
@@ -272,6 +277,7 @@ void RtpPacketEgresser::AddPacketToTransportFeedback(uint16_t packet_id,
         packet_info.packet_type = packet.packet_type();
         packet_info.ssrc = packet.ssrc();
         packet_info.sequence_number = packet.sequence_number();
+        packet_info.pacing_info = pacing_info;
 
         switch (packet.packet_type())
         {

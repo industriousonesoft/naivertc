@@ -32,7 +32,7 @@ public:
 class SequenceNumberAssigner {
 public:
     virtual ~SequenceNumberAssigner() = default;
-    virtual bool AssignSequenceNumber(RtpPacketToSend& packet) = 0;
+    virtual bool Sequence(RtpPacketToSend& packet) = 0;
 };
 
 // NackSender

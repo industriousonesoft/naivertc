@@ -54,7 +54,8 @@ public:
     void SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                     const FecProtectionParams& key_params);
 
-    void SendPacket(RtpPacketToSend packet);
+    bool SendPacket(RtpPacketToSend packet,
+                    std::optional<const PacedPacketInfo> pacing_info = std::nullopt);
 
     std::vector<RtpPacketToSend> FetchFecPackets() const;
 
@@ -88,7 +89,8 @@ private:
     bool VerifySsrcs(const RtpPacketToSend& packet);
 
     void AddPacketToTransportFeedback(uint16_t packet_id, 
-                                      const RtpPacketToSend& packet);
+                                      const RtpPacketToSend& packet,
+                                      std::optional<const PacedPacketInfo> pacing_info);
 
     void UpdateSentStatistics(const int64_t now_ms, 
                               SendStats send_stats);

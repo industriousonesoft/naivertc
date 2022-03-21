@@ -5,9 +5,11 @@
 #include "rtc/base/units/data_rate.hpp"
 #include "rtc/base/units/timestamp.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
+#include "rtc/congestion_control/pacing/pacing_types.hpp"
 
 #include <list>
 #include <map>
+#include <optional>
 
 namespace naivertc {
 
@@ -77,7 +79,8 @@ struct RtpPacketSendInfo {
     size_t packet_size = 0;
     uint16_t sequence_number;
     std::optional<uint32_t> media_ssrc;
-    std::optional<RtpPacketType> packet_type;
+    std::optional<RtpPacketType> packet_type = std::nullopt;
+    std::optional<PacedPacketInfo> pacing_info = std::nullopt;
 };
 
 // RtpSentPacket
