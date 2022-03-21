@@ -231,9 +231,9 @@ void RtpSender::OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& r
 
     for (const auto& rb : report_blocks) {
         if (media_ssrc == rb.source_ssrc) {
-            // TODO: Received Ack on media ssrc.
+            ctx_->packet_generator.OnReceivedAckOnMediaSsrc();
         } else if (rtx_ssrc && *rtx_ssrc == rb.source_ssrc) {
-            // TODO: Received Ack on rtx ssrc.
+            ctx_->packet_generator.OnReceivedAckOnRtxSsrc();
         }
     }
 }

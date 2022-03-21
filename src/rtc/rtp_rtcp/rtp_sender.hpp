@@ -96,7 +96,7 @@ private:
     FecGenerator* const fec_generator_;
     RtpPacketSender* const paced_sender_;
 
-    uint32_t timestamp_offset_;
+    uint32_t timestamp_offset_ = 0;
 };
     
 } // namespace naivertc

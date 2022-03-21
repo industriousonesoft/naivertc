@@ -12,6 +12,7 @@
 #include <vector>
 #include <optional>
 #include <functional>
+#include <string>
 
 namespace naivertc {
 
@@ -33,6 +34,9 @@ public:
 
     size_t max_rtp_packet_size() const;
     void set_max_rtp_packet_size(size_t max_size);
+
+    void set_mid(const std::string& mid);
+    void set_rid(const std::string& rid);
 
     // Rtp header extensions
     bool Register(RtpExtensionType type, int id);
@@ -64,6 +68,9 @@ public:
 
     void UpdateHeaderSizes();
 
+    void OnReceivedAckOnMediaSsrc();
+    void OnReceivedAckOnRtxSsrc();
+
 private:
     int32_t ResendPacket(uint16_t packet_id);
     static void CopyHeaderAndExtensionsToRtxPacket(const RtpPacketToSend& packet, 
@@ -79,16 +86,23 @@ private:
     size_t max_media_packet_header_size_;
     size_t max_fec_or_padding_packet_header_size_;
     const double max_padding_size_factor_;
+    const bool always_send_mid_and_rid_;
     // Mapping rtx_payload_type_map_[associated] = rtx.
     rtp::HeaderExtensionMap rtp_header_extension_map_;
 
     RtpPacketHistory* const packet_history_;
 
+    // RID value to send in the RID or RepairedRID header extension.
+    std::string rid_;
+    // MID value to send in the MID header extension.
+    std::string mid_;
+
     bool supports_bwe_extension_ = false;
+    bool media_ssrc_has_acked_ = false;
+    bool rtx_ssrc_has_acked_ = false;
 
     std::map<int8_t, int8_t> rtx_payload_type_map_;
     std::vector<uint32_t> csrcs_;
-
 };
     
 } // namespace naivertc
