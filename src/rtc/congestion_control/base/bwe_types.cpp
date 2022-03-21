@@ -1,4 +1,4 @@
-#include "rtc/congestion_control/base/network_types.hpp"
+#include "rtc/congestion_control/base/bwe_types.hpp"
 
 namespace naivertc {
 

@@ -127,7 +127,7 @@ void TaskQueuePacedSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) 
 }
 
 TaskQueuePacedSender::Stats TaskQueuePacedSender::GetStats() {
-    task_queue_->Invoke<Stats>([&](){
+    return task_queue_->Invoke<Stats>([&](){
         return current_stats_;
     });
 }

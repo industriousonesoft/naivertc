@@ -276,7 +276,7 @@ set(LIB_HEADERS
 
     # rtc -> congestion_control -> base
     src/rtc/congestion_control/base/bwe_defines.hpp
-    src/rtc/congestion_control/base/network_types.hpp
+    src/rtc/congestion_control/base/bwe_types.hpp
     src/rtc/congestion_control/base/rate_control_settings.hpp
 
     # rtc -> congestion_control -> components
@@ -287,6 +287,7 @@ set(LIB_HEADERS
     src/rtc/congestion_control/components/alr_detector.hpp
 
     # rtc -> congestion_control -> pacing
+    src/rtc/congestion_control/pacing/pacing_types.hpp
     src/rtc/congestion_control/pacing/bitrate_prober.hpp
     src/rtc/congestion_control/pacing/round_robin_packet_queue.hpp
     src/rtc/congestion_control/pacing/pacing_controller.hpp
@@ -556,7 +557,7 @@ set(LIB_SOURCES
 
     # rtc -> congestion_control -> base
     src/rtc/congestion_control/base/bwe_defines.cpp
-    src/rtc/congestion_control/base/network_types.cpp
+    src/rtc/congestion_control/base/bwe_types.cpp
     src/rtc/congestion_control/base/rate_control_settings.cpp
 
     # rtc -> congestion_control -> components

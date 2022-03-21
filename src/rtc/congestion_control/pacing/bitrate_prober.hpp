@@ -3,7 +3,7 @@
 
 #include "rtc/base/units/data_rate.hpp"
 #include "rtc/base/units/timestamp.hpp"
-#include "rtc/congestion_control/base/network_types.hpp"
+#include "rtc/congestion_control/base/bwe_types.hpp"
 
 #include <deque>
 
