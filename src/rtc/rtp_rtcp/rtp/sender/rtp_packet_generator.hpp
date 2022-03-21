@@ -35,6 +35,7 @@ public:
     void set_max_rtp_packet_size(size_t max_size);
 
     // Rtp header extensions
+    bool Register(RtpExtensionType type, int id);
     bool Register(std::string_view uri, int id);
     bool IsRegistered(RtpExtensionType type);
     void Deregister(std::string_view uri);

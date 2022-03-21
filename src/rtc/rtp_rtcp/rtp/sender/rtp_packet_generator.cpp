@@ -116,6 +116,14 @@ void RtpPacketGenerator::set_max_rtp_packet_size(size_t max_size) {
     max_packet_size_ = max_size;
 }
 
+bool RtpPacketGenerator::Register(RtpExtensionType type, int id) {
+    RTC_RUN_ON(&sequence_checker_);
+    bool ret = rtp_header_extension_map_.RegisterByType(type, id);
+    supports_bwe_extension_ = HasBweExtension(rtp_header_extension_map_);
+    UpdateHeaderSizes();
+    return ret;
+}
+
 bool RtpPacketGenerator::Register(std::string_view uri, int id) {
     RTC_RUN_ON(&sequence_checker_);
     bool ret = rtp_header_extension_map_.RegisterByUri(uri, id);
@@ -293,6 +301,7 @@ std::vector<RtpPacketToSend> RtpPacketGenerator::GeneratePadding(size_t target_p
     while (bytes_left) {
         auto padding_packet = RtpPacketToSend(&rtp_header_extension_map_);
         padding_packet.set_packet_type(RtpPacketType::PADDING);
+        // NOTE: We can distinguish padding packet from media packet by marker flag.
         padding_packet.set_marker(false);
         
         if (rtx_mode_ == kRtxOff) {
