@@ -33,7 +33,6 @@ public:
             std::is_convertible<decltype(std::declval<U>().size()), std::size_t>::value
         >::type* = nullptr
     >
-    // FIXME: 通过右值引用实现T to const T的转换？
     ArrayView(const U& u) noexcept : ArrayView(u.data(), u.size()) {}
 
     // std::vector<T> to ArraryView<T>

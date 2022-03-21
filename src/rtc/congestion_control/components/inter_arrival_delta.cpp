@@ -13,13 +13,13 @@ constexpr TimeDelta kMaxBurstDuration = TimeDelta::Millis(100); // 100ms
 
 InterArrivalDelta::InterArrivalDelta(TimeDelta send_time_group_span) 
     : send_time_group_span_(send_time_group_span),
-      num_consecutive_reordered_packets_(0) {}
+      num_consecutive_reordered_packet_groups_(0) {}
 
 InterArrivalDelta::~InterArrivalDelta() = default;
 
 std::optional<InterArrivalDelta::Result> InterArrivalDelta::ComputeDeltas(Timestamp send_time, 
                                                                           Timestamp arrival_time, 
-                                                                          Timestamp system_time,
+                                                                          Timestamp at_time,
                                                                           size_t packet_size) {
     std::optional<InterArrivalDelta::Result> ret = std::nullopt;
     // We don't have enough data to update the filter, 
@@ -32,13 +32,15 @@ std::optional<InterArrivalDelta::Result> InterArrivalDelta::ComputeDeltas(Timest
         // Reordered packet.
         return std::nullopt;
     } else if (IsNewPacketGroup(arrival_time, send_time)) {
-        // Detected a new packet group, and the previous packet group is ready.
+        // Detected a new packet group, and the current packet group is completed.
         InterArrivalDelta::Result deltas;
+        // At least two completed group needed to calculate the deltas.
         if (prev_packet_group_.IsCompleted()) {
             // Inter-depature
             deltas.send_time_delta = curr_packet_group_.last_packet_send_time - prev_packet_group_.last_packet_send_time;
             // Inter-arrival
             deltas.arrival_time_delta = curr_packet_group_.last_packet_arrival_time - prev_packet_group_.last_packet_arrival_time;
+            // System offset
             TimeDelta system_time_delta = curr_packet_group_.last_system_time - prev_packet_group_.last_system_time;
             if (deltas.arrival_time_delta - system_time_delta >= kArrivalTimeOffsetThreshold) {
                 PLOG_WARNING << "The arrival time clock offset has changed (diff = "
@@ -50,22 +52,23 @@ std::optional<InterArrivalDelta::Result> InterArrivalDelta::ComputeDeltas(Timest
             if (deltas.arrival_time_delta < TimeDelta::Zero()) {
                 // The group of packets has been reordered since receiving its local
                 // arrival timestamp.
-                ++num_consecutive_reordered_packets_;
-                if (num_consecutive_reordered_packets_ >= kReorderedResetThreshold) {
-                    PLOG_WARNING << "Packets between send burst arrived out of order, resetting."
-                                 << " arrival_time_delta = " << deltas.arrival_time_delta.ms()
-                                 << ", send_time_delta = " << deltas.send_time_delta.ms();
+                ++num_consecutive_reordered_packet_groups_;
+                if (num_consecutive_reordered_packet_groups_ >= kReorderedResetThreshold) {
+                    PLOG_WARNING << "Packets between send group have arrived out of order, resetting."
+                                 << " Inter-arrival = " << deltas.arrival_time_delta.ms()
+                                 << ", Inter-depature = " << deltas.send_time_delta.ms();
                     Reset();
                 }
                 return std::nullopt;
             } else {
-                num_consecutive_reordered_packets_ = 0;
+                num_consecutive_reordered_packet_groups_ = 0;
             }
             deltas.packet_size_delta = static_cast<int>(curr_packet_group_.size) - static_cast<int>(prev_packet_group_.size);
             ret.emplace(std::move(deltas));
         }
+        // The current packet is completed.
         prev_packet_group_ = curr_packet_group_;
-        // Reset the current packet group
+        // Update the current packet group with the new group.
         curr_packet_group_.first_packet_send_time = send_time;
         curr_packet_group_.last_packet_send_time = send_time;
         curr_packet_group_.first_packet_arrival_time = arrival_time;
@@ -79,7 +82,7 @@ std::optional<InterArrivalDelta::Result> InterArrivalDelta::ComputeDeltas(Timest
     // Accumulate the packet size.
     curr_packet_group_.size += packet_size;
     curr_packet_group_.last_packet_arrival_time = arrival_time;
-    curr_packet_group_.last_system_time = system_time;
+    curr_packet_group_.last_system_time = at_time;
 
     return ret;
 }
@@ -127,7 +130,7 @@ bool InterArrivalDelta::BelongsToBurst(Timestamp arrival_time, Timestamp send_ti
 }
 
 void InterArrivalDelta::Reset() {
-    num_consecutive_reordered_packets_ = 0;
+    num_consecutive_reordered_packet_groups_ = 0;
     curr_packet_group_.Reset();
     prev_packet_group_.Reset();
 }

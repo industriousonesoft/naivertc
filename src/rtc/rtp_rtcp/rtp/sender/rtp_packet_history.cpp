@@ -25,7 +25,7 @@ RtpPacketHistory::StoredPacket::StoredPacket(
 
 // RtpPacketHistory
 bool RtpPacketHistory::StoredPacket::Compare::operator()(StoredPacket* lhs,
-                                                             StoredPacket* rhs) const {
+                                                         StoredPacket* rhs) const {
     // Prefer to send packets we haven't already sent as padding.
     if (lhs->num_retransmitted != rhs->num_retransmitted) {
         return lhs->num_retransmitted < rhs->num_retransmitted;

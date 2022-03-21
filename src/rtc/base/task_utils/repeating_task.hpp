@@ -27,16 +27,13 @@ public:
 public:
     ~RepeatingTask();
 
-    // Stops future invocations of the repeating task.
-    // The task is guaranteed to not be running after calling
-    // this function, unless it is called from the clouser itself.
-    // NOTE: Can only be called from the task queue where the task 
-    // is running.
+    // Blocks the current thread until all the pending tasks has been executed. 
+    // The future invocations of the repeating task is guaranteed to not be 
+    // running after calling this function, unless this function is called from 
+    // the clouser itself.
     void Stop();
 
     // Returns true untill Stop() was called.
-    // NOTE: Can only be called from the task queue where the task 
-    // is running.
     bool Running() const;
     
 private:

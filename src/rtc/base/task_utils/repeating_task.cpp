@@ -35,17 +35,20 @@ void RepeatingTask::Start(TimeDelta delay) {
 }
 
 bool RepeatingTask::Running() const {
-    RTC_RUN_ON(task_queue_);
-    return !is_stoped_;
+    return task_queue_->Invoke<bool>([this](){
+        return !is_stoped_;
+    });
 }
 
 void RepeatingTask::Stop() {
-    RTC_RUN_ON(task_queue_);
-    is_stoped_ = true;
+    task_queue_->Invoke<void>([this](){
+        is_stoped_ = true;
+    });
 }
 
 // Private methods
 void RepeatingTask::ScheduleTaskAfter(TimeDelta delay) {
+    RTC_RUN_ON(task_queue_);
     Timestamp execution_time = clock_->CurrentTime() + delay;
     task_queue_->PostDelayed(delay, [this, execution_time](){
         this->MaybeExecuteTask(execution_time);
@@ -53,6 +56,7 @@ void RepeatingTask::ScheduleTaskAfter(TimeDelta delay) {
 }
 
 void RepeatingTask::MaybeExecuteTask(Timestamp execution_time) {
+    RTC_RUN_ON(task_queue_);
     if (this->is_stoped_) {
         return;
     }
@@ -70,6 +74,7 @@ void RepeatingTask::MaybeExecuteTask(Timestamp execution_time) {
 }
 
 void RepeatingTask::ExecuteTask() {
+    RTC_RUN_ON(task_queue_);
     if (this->task_clouser_) {
         TimeDelta interval = this->task_clouser_();
         if (interval.ms() > 0) {

@@ -5,7 +5,7 @@
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_to_send.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp"
-#include "rtc/rtp_rtcp/base/rtp_statistic_structs.hpp"
+#include "rtc/rtp_rtcp/base/rtp_statistic_types.hpp"
 
 namespace naivertc {
 
@@ -24,14 +24,16 @@ public:
     // Assigns sequence number, and in the case of non-RTX padding also timestamps and payload type.
     // Returns false if sequencing failed, which it can do for instance if the packet to sequence
     // is padding on the media ssrc, but the media is mid frame (the last marker bit is false).
-    bool AssignSequenceNumber(RtpPacketToSend& packet) override;
+    bool Sequence(RtpPacketToSend& packet) override;
 
     void SetRtpState(const RtpState& state);
     void PupulateRtpState(RtpState& state);
 
+    bool CanSendPaddingOnMeidaSsrc() const;
+
 private:
     void UpdateLastPacketState(const RtpPacketToSend& packet);
-    bool PopulatePaddingFields(RtpPacketToSend& packet);
+    void PopulatePaddingFields(RtpPacketToSend& packet);
 
 private:
     const uint32_t media_ssrc_;

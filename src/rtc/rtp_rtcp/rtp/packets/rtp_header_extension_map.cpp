@@ -154,6 +154,7 @@ size_t HeaderExtensionMap::CalculateSize(ArrayView<const ExtensionSize> extensio
     size_t num_extensions = 0;
     size_t each_extension_header_size = 1;
     for (const auto& extension : extensions) {
+        // Filter the unregistered extensions.
         size_t id = GetId(extension.type);
         if (id != RtpExtension::kInvalidId) {
             continue;

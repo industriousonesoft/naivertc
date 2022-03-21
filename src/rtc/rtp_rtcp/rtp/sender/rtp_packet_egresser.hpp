@@ -6,7 +6,7 @@
 #include "rtc/base/task_utils/repeating_task.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
-#include "rtc/rtp_rtcp/base/rtp_statistic_structs.hpp"
+#include "rtc/rtp_rtcp/base/rtp_statistic_types.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
@@ -44,7 +44,7 @@ public:
     };
 public:
     RtpPacketEgresser(const RtpConfiguration& config,
-                      RtpPacketHistory* const packet_history);
+                      RtpPacketHistory* packet_history);
     ~RtpPacketEgresser();
 
     uint32_t ssrc() const;
@@ -54,7 +54,8 @@ public:
     void SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                     const FecProtectionParams& key_params);
 
-    void SendPacket(RtpPacketToSend packet);
+    bool SendPacket(RtpPacketToSend packet,
+                    std::optional<const PacedPacketInfo> pacing_info = std::nullopt);
 
     std::vector<RtpPacketToSend> FetchFecPackets() const;
 
@@ -88,7 +89,8 @@ private:
     bool VerifySsrcs(const RtpPacketToSend& packet);
 
     void AddPacketToTransportFeedback(uint16_t packet_id, 
-                                      const RtpPacketToSend& packet);
+                                      const RtpPacketToSend& packet,
+                                      std::optional<const PacedPacketInfo> pacing_info);
 
     void UpdateSentStatistics(const int64_t now_ms, 
                               SendStats send_stats);

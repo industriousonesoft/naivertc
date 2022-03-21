@@ -7,25 +7,22 @@
 namespace naivertc {
 namespace {
 
-constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 -1.
+constexpr uint16_t kMaxInitRtpSeqNumber = 32767;  // 2^15 - 1
     
 } // namespace
 
 // RtpSenderContext
-RtpSender::RtpSenderContext::RtpSenderContext(const RtpConfiguration& config, 
-                                              rtp::HeaderExtensionMap* header_extension_map) 
+RtpSender::RtpSenderContext::RtpSenderContext(const RtpConfiguration& config) 
     : packet_sequencer(config),
-      packet_generator(config, header_extension_map),
       packet_history(config.clock, config.enable_rtx_padding_prioritization),
+      packet_generator(config, &packet_history),
       packet_egresser(config, &packet_history),
       non_paced_sender(&packet_egresser, &packet_sequencer) {}
 
 // RtpSender
 RtpSender::RtpSender(const RtpConfiguration& config)
-    : rtx_mode_(kRtxOff),
-      clock_(config.clock),
-      header_extension_map_(config.extmap_allow_mixed),
-      ctx_(std::make_unique<RtpSenderContext>(config, &header_extension_map_)),
+    : clock_(config.clock),
+      ctx_(std::make_unique<RtpSenderContext>(config)),
       fec_generator_(config.fec_generator),
       paced_sender_(config.paced_sender ? config.paced_sender : &ctx_->non_paced_sender) {
     RTC_RUN_ON(&sequence_checker_);
@@ -58,12 +55,12 @@ void RtpSender::set_max_rtp_packet_size(size_t max_size) {
 
 int RtpSender::rtx_mode() const {
     RTC_RUN_ON(&sequence_checker_);
-    return rtx_mode_;
+    return ctx_->packet_generator.rtx_mode();
 }
     
 void RtpSender::set_rtx_mode(int mode) {
     RTC_RUN_ON(&sequence_checker_);
-    rtx_mode_ = mode;
+    ctx_->packet_generator.set_rtx_mode(mode);
 }
 
 std::optional<uint32_t> RtpSender::rtx_ssrc() const {
@@ -85,7 +82,7 @@ bool RtpSender::EnqueuePacket(RtpPacketToSend packet) {
     RTC_RUN_ON(&sequence_checker_);
 
     // Assigns sequence number for per packet.
-    if (!ctx_->packet_sequencer.AssignSequenceNumber(packet)) {
+    if (!ctx_->packet_sequencer.Sequence(packet)) {
         PLOG_WARNING << "Failed to assign sequence number for packet with type : " << int(packet.packet_type());
         return false;
     }
@@ -107,7 +104,7 @@ bool RtpSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
     // TODO: Optimization: move the oprations below to downstream?
     for (auto& packet : packets) {
         // Assigns sequence number for per packet.
-        if (!ctx_->packet_sequencer.AssignSequenceNumber(packet)) {
+        if (!ctx_->packet_sequencer.Sequence(packet)) {
             PLOG_WARNING << "Failed to assign sequence number for packet with type : " << int(packet.packet_type());
             return false;
         }
@@ -122,17 +119,17 @@ bool RtpSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
 
 bool RtpSender::Register(std::string_view uri, int id) {
     RTC_RUN_ON(&sequence_checker_);
-    return header_extension_map_.RegisterByUri(uri, id);
+    return ctx_->packet_generator.Register(uri, id);;
 }
 
 bool RtpSender::IsRegistered(RtpExtensionType type) {
     RTC_RUN_ON(&sequence_checker_);
-    return header_extension_map_.IsRegistered(type);
+    return ctx_->packet_generator.IsRegistered(type);
 }
 
 void RtpSender::Deregister(std::string_view uri) {
     RTC_RUN_ON(&sequence_checker_);
-    header_extension_map_.Deregister(uri);
+    ctx_->packet_generator.Deregister(uri);
 }
 
 void RtpSender::SetStorePacketsStatus(const bool enable, const uint16_t number_to_store) {
@@ -190,11 +187,19 @@ size_t RtpSender::FecPacketOverhead() const {
     return overhead;
 }
 
+std::vector<RtpPacketToSend> RtpSender::FetchFecPackets() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return ctx_->packet_egresser.FetchFecPackets();
+}
+
+// Padding
 std::vector<RtpPacketToSend> RtpSender::GeneratePadding(size_t target_packet_size, 
-                                                        bool media_has_been_sent) {
-    std::vector<RtpPacketToSend> paddings;
-    // TODO: Generate padding packet.
-    return paddings;
+                                                        bool media_has_been_sent,
+                                                        bool can_send_padding_on_media_ssrc) {
+    RTC_RUN_ON(&sequence_checker_);
+    return ctx_->packet_generator.GeneratePadding(target_packet_size,
+                                                  media_has_been_sent,
+                                                  can_send_padding_on_media_ssrc);
 }
 
 // Nack
@@ -221,14 +226,14 @@ void RtpSender::OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t r
 // Report blocks
 void RtpSender::OnReceivedRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks) {
     RTC_RUN_ON(&sequence_checker_);
-    uint32_t media_ssrc = ctx_->packet_generator.ssrc();
+    uint32_t media_ssrc = ctx_->packet_generator.media_ssrc();
     std::optional<uint32_t> rtx_ssrc = ctx_->packet_generator.rtx_ssrc();
 
     for (const auto& rb : report_blocks) {
         if (media_ssrc == rb.source_ssrc) {
-            // TODO: Received Ack on media ssrc.
+            ctx_->packet_generator.OnReceivedAckOnMediaSsrc();
         } else if (rtx_ssrc && *rtx_ssrc == rb.source_ssrc) {
-            // TODO: Received Ack on rtx ssrc.
+            ctx_->packet_generator.OnReceivedAckOnRtxSsrc();
         }
     }
 }
@@ -244,6 +249,27 @@ RtpSendStats RtpSender::GetSendStats() {
     return send_feedback;
 }
 
+bool RtpSender::TrySendPacket(RtpPacketToSend packet, 
+                              const PacedPacketInfo& pacing_info) {
+    RTC_RUN_ON(&sequence_checker_);
+    // Check if we can send Padding packet on media SSRC.
+    if (packet.packet_type() == RtpPacketType::PADDING &&
+        packet.ssrc() == ctx_->packet_generator.media_ssrc() &&
+        !ctx_->packet_sequencer.CanSendPaddingOnMeidaSsrc()) {
+        // New media packet preempted this generated padding packet, discard it.
+        return false;
+    }
+
+    bool is_flexfec = packet.packet_type() == RtpPacketType::FEC &&
+                      ctx_->packet_egresser.flex_fec_ssrc() &&
+                      packet.ssrc() == ctx_->packet_egresser.flex_fec_ssrc();
+    // ULP_FEC 
+    if (!is_flexfec) {
+        ctx_->packet_sequencer.Sequence(packet);
+    }
+    return ctx_->packet_egresser.SendPacket(std::move(packet), pacing_info);
+}
+
 // Private methods
 int32_t RtpSender::ResendPacket(uint16_t seq_num) {
     // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
@@ -255,7 +281,7 @@ int32_t RtpSender::ResendPacket(uint16_t seq_num) {
     }
 
     const int32_t packet_size = static_cast<int32_t>(stored_packet->packet_size);
-    const bool rtx_enabled = (rtx_mode_ & kRtxRetransmitted);
+    const bool rtx_enabled = (rtx_mode() & kRtxRetransmitted);
 
     auto packet = ctx_->packet_history.GetPacketAndMarkAsPending(seq_num, [&](const RtpPacketToSend& stored_packet){
         // TODO: Check if we're overusing retransmission bitrate.
@@ -265,7 +291,7 @@ int32_t RtpSender::ResendPacket(uint16_t seq_num) {
             retransmit_packet = ctx_->packet_generator.BuildRtxPacket(stored_packet);
             if (retransmit_packet) {
                 // Replace with RTX sequence number.
-                ctx_->packet_sequencer.AssignSequenceNumber(*retransmit_packet);
+                ctx_->packet_sequencer.Sequence(*retransmit_packet);
             }
         }else {
             // Retransmitted by the media stream.

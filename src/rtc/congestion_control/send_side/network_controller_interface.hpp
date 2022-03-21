@@ -2,7 +2,7 @@
 #define _RTC_CONGESTION_CONTROL_NETWORK_CONTROLLER_INTERFACE_H_
 
 #include "base/defines.hpp"
-#include "rtc/congestion_control/base/network_types.hpp"
+#include "rtc/congestion_control/base/bwe_types.hpp"
 #include "rtc/congestion_control/base/rate_control_settings.hpp"
 
 namespace naivertc {

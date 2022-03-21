@@ -26,10 +26,10 @@ void RtpPacketEgresser::NonPacedPacketSender::EnqueuePackets(std::vector<RtpPack
         // 2）使用RED封装作为冗余编码传输
         // webRTC中的实现FlexFEX有独立的SSRC(意味着sequence number也是独立的)
         // 而UlpFEX则是和原媒体流共用SSRC，因此需要给生成的fec包设置新的sequence number
-        const bool fec_red_enabled = !sender_->flex_fec_ssrc();
+        const bool ulpfec_red_enabled = !sender_->flex_fec_ssrc();
         for (auto& packet : fec_packets) {
-            if (fec_red_enabled) {
-                seq_num_assigner_->AssignSequenceNumber(packet);
+            if (ulpfec_red_enabled) {
+                seq_num_assigner_->Sequence(packet);
             }
             PrepareForSend(packet);
         }

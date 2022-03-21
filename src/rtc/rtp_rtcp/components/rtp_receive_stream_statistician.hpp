@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/rtp_rtcp/components/num_unwrapper.hpp"
-#include "rtc/rtp_rtcp/base/rtp_statistic_structs.hpp"
+#include "rtc/rtp_rtcp/base/rtp_statistic_types.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/report_block.hpp"
 #include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"

@@ -38,7 +38,7 @@ void NetworkTransportStatistician::AddPacket(const RtpPacketSendInfo& packet_inf
     feedback.sent.packet_id = seq_num_unwrapper_.Unwrap(packet_info.packet_id);
     feedback.sent.size = packet_info.packet_size + overhead_bytes;
     feedback.sent.is_audio = packet_info.packet_type == RtpPacketType::AUDIO;
-    // TODO: Add PacingInfo
+    feedback.sent.pacing_info = packet_info.pacing_info.value_or(PacedPacketInfo());
 
     // Erases the old items in |packet_fb_history_|.
     while (!packet_fb_history_.empty() && 

@@ -53,6 +53,7 @@ set(LIB_HEADERS
     src/common/weak_ptr_manager.hpp
     src/common/numeric_range_checker.hpp
     src/common/array_view.hpp
+    src/common/array_size.hpp
     src/common/thread_utils.hpp
 
     # rtc
@@ -61,7 +62,6 @@ set(LIB_HEADERS
     src/rtc/base/dscp.hpp
     src/rtc/base/packet_options.hpp
     src/rtc/base/copy_on_write_buffer.hpp
-    src/rtc/base/arraysize.hpp
     src/rtc/base/memory/byte_io.hpp
     src/rtc/base/memory/byte_io_reader.hpp
     src/rtc/base/memory/byte_io_writer.hpp
@@ -166,8 +166,8 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp
     src/rtc/rtp_rtcp/base/rtp_extensions.hpp
     src/rtc/rtp_rtcp/base/rtp_parameters.hpp
-    src/rtc/rtp_rtcp/base/rtp_statistic_structs.hpp
-    src/rtc/rtp_rtcp/base/rtcp_statistic_structs.hpp
+    src/rtc/rtp_rtcp/base/rtp_statistic_types.hpp
+    src/rtc/rtp_rtcp/base/rtcp_statistic_types.hpp
     src/rtc/rtp_rtcp/base/rtp_utils.hpp
     src/rtc/rtp_rtcp/base/rtp_packet_sink.hpp
 
@@ -276,7 +276,7 @@ set(LIB_HEADERS
 
     # rtc -> congestion_control -> base
     src/rtc/congestion_control/base/bwe_defines.hpp
-    src/rtc/congestion_control/base/network_types.hpp
+    src/rtc/congestion_control/base/bwe_types.hpp
     src/rtc/congestion_control/base/rate_control_settings.hpp
 
     # rtc -> congestion_control -> components
@@ -287,6 +287,7 @@ set(LIB_HEADERS
     src/rtc/congestion_control/components/alr_detector.hpp
 
     # rtc -> congestion_control -> pacing
+    src/rtc/congestion_control/pacing/pacing_types.hpp
     src/rtc/congestion_control/pacing/bitrate_prober.hpp
     src/rtc/congestion_control/pacing/round_robin_packet_queue.hpp
     src/rtc/congestion_control/pacing/pacing_controller.hpp
@@ -443,8 +444,8 @@ set(LIB_SOURCES
     # rtc -> rtp_rtcp -> base
     src/rtc/rtp_rtcp/base/rtp_utils.cpp
     src/rtc/rtp_rtcp/base/rtp_parameters.cpp
-    src/rtc/rtp_rtcp/base/rtp_statistic_structs.cpp
-    src/rtc/rtp_rtcp/base/rtcp_statistic_structs.cpp
+    src/rtc/rtp_rtcp/base/rtp_statistic_types.cpp
+    src/rtc/rtp_rtcp/base/rtcp_statistic_types.cpp
 
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
@@ -556,7 +557,7 @@ set(LIB_SOURCES
 
     # rtc -> congestion_control -> base
     src/rtc/congestion_control/base/bwe_defines.cpp
-    src/rtc/congestion_control/base/network_types.cpp
+    src/rtc/congestion_control/base/bwe_types.cpp
     src/rtc/congestion_control/base/rate_control_settings.cpp
 
     # rtc -> congestion_control -> components
@@ -851,6 +852,7 @@ set(UNITTEST_SOURCES
     src/rtc/transports/ice_transport_description_unittest.cpp
 
     # rtc -> congestion_control -> components
+    src/rtc/congestion_control/components/inter_arrival_delta_unittest.cpp
     src/rtc/congestion_control/components/interval_budget_unittest.cpp
     src/rtc/congestion_control/components/alr_detector_unittest.cpp
 

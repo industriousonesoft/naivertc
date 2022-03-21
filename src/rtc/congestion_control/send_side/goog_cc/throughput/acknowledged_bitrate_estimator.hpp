@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/units/timestamp.hpp"
-#include "rtc/congestion_control/base/network_types.hpp"
+#include "rtc/congestion_control/base/bwe_types.hpp"
 #include "rtc/congestion_control/send_side/goog_cc/throughput/throughput_estimator.hpp"
 
 #include <optional>

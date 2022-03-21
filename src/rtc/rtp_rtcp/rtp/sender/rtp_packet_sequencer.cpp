@@ -1,14 +1,14 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
 
 namespace {
 // RED header is first byte of payload, if present.
 constexpr size_t kRedForFecHeaderLength = 1;
-
 // Timestamps use a 90kHz clock.
 constexpr uint32_t kTimestampTicksPerMs = 90;
-
 constexpr int8_t kInvalidPayloadType = -1;
 
 }  // namespace
@@ -29,27 +29,29 @@ RtpPacketSequencer::RtpPacketSequencer(const RtpConfiguration& config)
 
 RtpPacketSequencer::~RtpPacketSequencer() {}
 
-bool RtpPacketSequencer::AssignSequenceNumber(RtpPacketToSend& packet) {
-    if (packet.packet_type() == RtpPacketType::PADDING && !PopulatePaddingFields(packet)) {
-        // This padding packet can't be sent with current state, return without
-        // updating the sequence number.
-        return false;
-    }
-
+bool RtpPacketSequencer::Sequence(RtpPacketToSend& packet) {
     if (packet.ssrc() == media_ssrc_) {
+        if (packet.packet_type() == RtpPacketType::RETRANSMISSION) {
+            // Retransmission of an already sequenced packet, ignoring.
+            return true;
+        } else if (packet.packet_type() == RtpPacketType::PADDING) {
+            PopulatePaddingFields(packet);
+        }
         packet.set_sequence_number(media_seq_num_++);
         if (packet.packet_type() != RtpPacketType::PADDING) {
             UpdateLastPacketState(packet);
         }
         return true;
-    }
-
-    if (packet.ssrc() == rtx_ssrc_) {
+    } else if (packet.ssrc() == rtx_ssrc_) {
+        if (packet.packet_type() == RtpPacketType::PADDING) {
+            PopulatePaddingFields(packet);
+        }
         packet.set_sequence_number(rtx_seq_num_++);
         return true;
+    } else {
+        PLOG_WARNING << "Unexpected ssrc: " << packet.ssrc();
+        return false;
     }
-    
-    return false;
 }
 
 void RtpPacketSequencer::SetRtpState(const RtpState& state) {
@@ -87,28 +89,16 @@ void RtpPacketSequencer::UpdateLastPacketState(const RtpPacketToSend& packet) {
 
 }
 
-bool RtpPacketSequencer::PopulatePaddingFields(RtpPacketToSend& packet) {
+void RtpPacketSequencer::PopulatePaddingFields(RtpPacketToSend& packet) {
     if (packet.ssrc() == media_ssrc_) {
-        if (last_payload_type_ == kInvalidPayloadType) {
-            return false;
-        }
-
-        // Without RTX we can't send padding in the middle of frames.
-        // For audio marker bits dosen't mark the end of a frame and
-        // frames are usually a single packet, so for now we don't apply
-        // this rule for audio.
-        if (require_marker_before_media_padding_ && !last_packet_marker_bit_) {
-            return false;
-        }
-
+        assert(CanSendPaddingOnMeidaSsrc());
         packet.set_timestamp(last_rtp_timestamp_);
         packet.set_capture_time_ms(last_capture_time_ms_);
         packet.set_payload_type(last_payload_type_);
-        return true;
     } else if (packet.ssrc() == rtx_ssrc_) {
         if (packet.payload_size() > 0) {
             // This is payload padding packet, don't update timestamp fields/
-            return true;
+            return;
         }
 
         packet.set_timestamp(last_rtp_timestamp_);
@@ -124,9 +114,23 @@ bool RtpPacketSequencer::PopulatePaddingFields(RtpPacketToSend& packet) {
                 packet.set_capture_time_ms(packet.capture_time_ms() + now_ms - last_timestamp_time_ms_);
             }
         }
-        return true;
     }
-    return false;
+}
+
+bool RtpPacketSequencer::CanSendPaddingOnMeidaSsrc() const {
+    if (last_payload_type_ == kInvalidPayloadType) {
+        return false;
+    }
+
+    // Without RTX we can't send padding in the middle of frames.
+    // For audio marker bits dosen't mark the end of a frame and
+    // frames are usually a single packet, so for now we don't apply
+    // this rule for audio.
+    if (require_marker_before_media_padding_ && !last_packet_marker_bit_) {
+        return false;
+    }
+
+    return true;
 }
     
 } // namespace naivertc

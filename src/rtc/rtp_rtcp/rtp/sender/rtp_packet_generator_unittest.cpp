@@ -1,5 +1,5 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_generator.hpp"
-#include "rtc/rtp_rtcp/rtp/packets/rtp_header_extension_map.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 
 #include <gtest/gtest.h>
 
@@ -33,8 +33,9 @@ public:
         : clock_(1000) {};
 
     void SetUp() override {
+        packet_history_ = std::make_unique<RtpPacketHistory>(&clock_, false);
         auto config = GetDefaultConfig();
-        packet_generator_ = std::make_unique<RtpPacketGenerator>(config, &header_extension_map_);
+        packet_generator_ = std::make_unique<RtpPacketGenerator>(config, packet_history_.get());
     }
 
     RtpConfiguration GetDefaultConfig() {
@@ -48,7 +49,7 @@ public:
 
 protected:
     SimulatedClock clock_;
-    rtp::HeaderExtensionMap header_extension_map_;
+    std::unique_ptr<RtpPacketHistory> packet_history_;
     std::unique_ptr<RtpPacketGenerator> packet_generator_;
 };
 
@@ -58,16 +59,16 @@ MY_TEST_F(RtpPacketGeneratorTest, GeneratePacketSetSsrc) {
     packet_generator_->set_csrcs(csrcs);
     auto new_packet = packet_generator_->GeneratePacket();
 
-    EXPECT_EQ(packet_generator_->ssrc(), new_packet.ssrc());
+    EXPECT_EQ(packet_generator_->media_ssrc(), new_packet.ssrc());
     EXPECT_EQ(csrcs, new_packet.csrcs());
 }
 
 MY_TEST_F(RtpPacketGeneratorTest, GeneratePacketReserveExtensions) {
-    header_extension_map_.Register<rtp::AbsoluteSendTime>(kAbsoluteSendTimeExtensionId);
-    header_extension_map_.Register<rtp::TransmissionTimeOffset>(kTransmissionOffsetExtensionId);
-    header_extension_map_.Register<rtp::TransportSequenceNumber>(kTransportSequenceNumberExtensionId);
-    header_extension_map_.Register<rtp::AbsoluteCaptureTime>(kAbsolutedCaptureTimeExtensionId);
-    header_extension_map_.Register<rtp::PlayoutDelayLimits>(kPlayoutDelayLimitsExtensionId);
+    packet_generator_->Register(rtp::AbsoluteSendTime::kType, kAbsoluteSendTimeExtensionId);
+    packet_generator_->Register(rtp::TransmissionTimeOffset::kType, kTransmissionOffsetExtensionId);
+    packet_generator_->Register(rtp::TransportSequenceNumber::kType, kTransportSequenceNumberExtensionId);
+    packet_generator_->Register(rtp::AbsoluteCaptureTime::kType, kAbsolutedCaptureTimeExtensionId);
+    packet_generator_->Register(rtp::PlayoutDelayLimits::kType, kPlayoutDelayLimitsExtensionId);
 
     auto new_packet = packet_generator_->GeneratePacket();
 

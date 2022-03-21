@@ -90,6 +90,8 @@ private:
     std::optional<size_t> curr_congestion_window_;
 
     std::optional<Configuration> initial_config_;
+
+    Timestamp last_logging_time_ = Timestamp::MinusInfinity();
 };
     
 } // namespace naivertc

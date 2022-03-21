@@ -1,5 +1,5 @@
 #include "rtc/congestion_control/send_side/goog_cc/delay_based/delay_based_bwe_unittest_helper.hpp"
-#include "rtc/congestion_control/base/network_types.hpp"
+#include "rtc/congestion_control/pacing/pacing_types.hpp"
 
 namespace naivertc {
 namespace test {

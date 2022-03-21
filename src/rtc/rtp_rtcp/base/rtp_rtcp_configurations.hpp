@@ -3,7 +3,7 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
-#include "rtc/rtp_rtcp/base/rtp_statistic_structs.hpp"
+#include "rtc/rtp_rtcp/base/rtp_statistic_types.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/transports/rtc_transport_media.hpp"
 
@@ -37,6 +37,18 @@ struct RtpConfiguration {
     // If false, the last packet will always be picked. This may reduce CPU
     // overhead.
     bool enable_rtx_padding_prioritization = true;
+
+    // Too low factor means RTX payload padding is rarely used and ineffective.
+    // Too high means we risk interrupting regular media packets.
+    // In practice, 3x seems to yield reasonable results.
+    double max_padding_size_factor = 3.0;
+
+    // If true, the RTP sender will always annotate outgoing packets with
+    // MID and RID header extensions, if provided and negotiated.
+    // If false, the RTP sender will stop sending MID and RID header extensions,
+    // when it knows that the receiver is ready to demux based on SSRC. This is
+    // done by RTCP RR acking.
+    bool always_send_mid_and_rid = false;
 
     Clock* clock;
     
