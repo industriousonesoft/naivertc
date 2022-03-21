@@ -53,6 +53,7 @@ set(LIB_HEADERS
     src/common/weak_ptr_manager.hpp
     src/common/numeric_range_checker.hpp
     src/common/array_view.hpp
+    src/common/array_size.hpp
     src/common/thread_utils.hpp
 
     # rtc
@@ -61,7 +62,6 @@ set(LIB_HEADERS
     src/rtc/base/dscp.hpp
     src/rtc/base/packet_options.hpp
     src/rtc/base/copy_on_write_buffer.hpp
-    src/rtc/base/arraysize.hpp
     src/rtc/base/memory/byte_io.hpp
     src/rtc/base/memory/byte_io_reader.hpp
     src/rtc/base/memory/byte_io_writer.hpp

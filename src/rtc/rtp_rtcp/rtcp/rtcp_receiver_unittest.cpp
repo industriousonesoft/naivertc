@@ -2,7 +2,7 @@
 #include "testing/simulated_clock.hpp"
 #include "rtc/base/time/ntp_time_util.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/compound_packet.hpp"
-#include "rtc/base/arraysize.hpp"
+#include "common/array_size.hpp"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -765,7 +765,7 @@ MY_TEST(RtcpReceiverTest, Nack) {
     const uint16_t kNackList1[] = {1, 2, 3, 5};
     const uint16_t kNackList23[] = {5, 7, 30, 40, 41, 58, 59, 61, 63};
     const size_t kNackListLength2 = 4;
-    const size_t kNackListLength3 = arraysize(kNackList23) - kNackListLength2;
+    const size_t kNackListLength3 = arraySize(kNackList23) - kNackListLength2;
     std::set<uint16_t> nack_set;
     nack_set.insert(std::begin(kNackList1), std::end(kNackList1));
     nack_set.insert(std::begin(kNackList23), std::end(kNackList23));
@@ -773,7 +773,7 @@ MY_TEST(RtcpReceiverTest, Nack) {
     auto nack1 = std::make_unique<rtcp::Nack>();
     nack1->set_sender_ssrc(kSenderSsrc);
     nack1->set_media_ssrc(kReceiverMainSsrc);
-    nack1->set_packet_ids(kNackList1, arraysize(kNackList1));
+    nack1->set_packet_ids(kNackList1, arraySize(kNackList1));
 
     EXPECT_CALL(mocks.nack_list_observer,
                 OnReceivedNack(ElementsAreArray(kNackList1), _));
@@ -781,9 +781,9 @@ MY_TEST(RtcpReceiverTest, Nack) {
                 RtcpPacketTypesCounterUpdated(
                     kReceiverMainSsrc,
                     AllOf(Field(&RtcpPacketTypeCounter::nack_requests,
-                                arraysize(kNackList1)),
+                                arraySize(kNackList1)),
                             Field(&RtcpPacketTypeCounter::unique_nack_requests,
-                                arraysize(kNackList1)))));
+                                arraySize(kNackList1)))));
     receiver.IncomingRtcpPacket(nack1->Build());
 
     auto nack2 = std::make_unique<rtcp::Nack>();
@@ -806,7 +806,7 @@ MY_TEST(RtcpReceiverTest, Nack) {
                 RtcpPacketTypesCounterUpdated(
                     kReceiverMainSsrc,
                     AllOf(Field(&RtcpPacketTypeCounter::nack_requests,
-                                arraysize(kNackList1) + arraysize(kNackList23)),
+                                arraySize(kNackList1) + arraySize(kNackList23)),
                             Field(&RtcpPacketTypeCounter::unique_nack_requests,
                                 nack_set.size()))));
     receiver.IncomingRtcpPacket(two_nacks.Build());
