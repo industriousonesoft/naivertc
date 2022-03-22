@@ -2,13 +2,15 @@
 
 namespace naivertc {
 // RtcpContext
-RtcpSender::RtcpContext::RtcpContext(const RtpSendStats& rtp_send_stats,
-                                     const RtcpReceiveFeedback& rtcp_receive_feedback,
+RtcpSender::RtcpContext::RtcpContext(const RtpSendStats* rtp_send_stats,
+                                     const RtcpSenderReportStats* last_sr_stats,
+                                     ArrayView<const rtcp::Dlrr::TimeInfo> last_xr_rtis,
                                      const uint16_t* nack_list,
                                      size_t nack_size,
                                      Timestamp now_time)
     : rtp_send_stats(rtp_send_stats),
-      rtcp_receive_feedback(rtcp_receive_feedback),
+      last_sr_stats(last_sr_stats),
+      last_xr_rtis(last_xr_rtis),
       nack_list(nack_list),
       nack_size(nack_size),
       now_time(now_time) {}

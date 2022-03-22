@@ -152,7 +152,7 @@ MY_TEST(RtcpReceiverTest, InjectSrPacket) {
     RtcpReceiver receiver(DefaultConfiguration(&mocks));
     receiver.set_remote_ssrc(kSenderSsrc);
 
-    EXPECT_FALSE(receiver.GetLastSenderReportStats().has_value());
+    EXPECT_FALSE(receiver.GetLastSrStats().has_value());
 
     int64_t now_ms = mocks.clock.now_ms();
     rtcp::SenderReport sr;
@@ -162,7 +162,7 @@ MY_TEST(RtcpReceiverTest, InjectSrPacket) {
                 OnReceivedRtcpReceiveReport(IsEmpty(), _));
     receiver.IncomingRtcpPacket(sr.Build());
 
-    EXPECT_TRUE(receiver.GetLastSenderReportStats().has_value());
+    EXPECT_TRUE(receiver.GetLastSrStats().has_value());
 }
 
 MY_TEST(RtcpReceiverTest, InjectSrPacketFromUnknownSender) {
@@ -178,7 +178,7 @@ MY_TEST(RtcpReceiverTest, InjectSrPacketFromUnknownSender) {
                 OnReceivedRtcpReceiveReport(_, _));
     receiver.IncomingRtcpPacket(sr.Build());
 
-    EXPECT_FALSE(receiver.GetLastSenderReportStats().has_value());
+    EXPECT_FALSE(receiver.GetLastSrStats().has_value());
 }
 
 MY_TEST(RtcpReceiverTest, InjectSrPacketCalculatesRTT) {

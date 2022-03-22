@@ -2,6 +2,7 @@
 #define _RTC_RTP_RTCP_RTCP_SENDER_H_
 
 #include "base/defines.hpp"
+#include "common/array_view.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/base/units/time_delta.hpp"
@@ -90,14 +91,16 @@ private:
     // RtcpContext
     class RtcpContext {
     public:
-        RtcpContext(const RtpSendStats& rtp_send_stats,
-                    const RtcpReceiveFeedback& rtcp_receive_feedback,
+        RtcpContext(const RtpSendStats* rtp_send_stats,
+                    const RtcpSenderReportStats* last_sr_stats,
+                    ArrayView<const rtcp::Dlrr::TimeInfo> last_xr_rtis,
                     const uint16_t* nack_list,
                     size_t nack_size,
                     Timestamp now_time);
 
-        const RtpSendStats& rtp_send_stats;
-        const RtcpReceiveFeedback& rtcp_receive_feedback;
+        const RtpSendStats* rtp_send_stats;
+        const RtcpSenderReportStats* last_sr_stats;
+        ArrayView<const rtcp::Dlrr::TimeInfo> last_xr_rtis;
         const uint16_t* nack_list;
         size_t nack_size;
         const Timestamp now_time;
@@ -154,7 +157,7 @@ private:
                                  PacketSender& sender);
 
     void PrepareReport(const RtcpContext& ctx);
-    std::vector<rtcp::ReportBlock> CreateReportBlocks(const RtcpReceiveFeedback rtcp_receive_feedback);
+    std::vector<rtcp::ReportBlock> CreateReportBlocks(const RtcpSenderReportStats* last_sr_stats);
 
     void BuildSR(const RtcpContext& ctx, PacketSender& sender);
     void BuildRR(const RtcpContext& ctx, PacketSender& sender);

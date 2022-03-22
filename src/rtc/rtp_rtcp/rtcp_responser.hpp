@@ -13,7 +13,7 @@
 namespace naivertc {
 
 class RtcpResponser : public KeyFrameRequestSender,
-                                     public RtcpReceiveFeedbackProvider {
+                      public RtcpReceiveFeedbackProvider {
 public:
     RtcpResponser(const RtcpConfiguration& config);
     ~RtcpResponser() override;
@@ -48,7 +48,8 @@ public:
     void RequestKeyFrame() override;
 
     // Implements RtcpReceiveFeedbackProvider
-    RtcpReceiveFeedback GetReceiveFeedback() override;
+    std::optional<RtcpSenderReportStats> GetLastSrStats() override;
+    std::vector<rtcp::Dlrr::TimeInfo> ConsumeXrDlrrTimeInfos() override;
 
 private:
     bool TimeToSendFullNackList(int64_t now_ms) const;

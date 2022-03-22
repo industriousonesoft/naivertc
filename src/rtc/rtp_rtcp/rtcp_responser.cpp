@@ -165,12 +165,14 @@ void RtcpResponser::RequestKeyFrame() {
     rtcp_sender_.SendRtcp(RtcpPacketType::PLI);
 }
 
-RtcpReceiveFeedback RtcpResponser::GetReceiveFeedback() {
+std::optional<RtcpSenderReportStats> RtcpResponser::GetLastSrStats() {
     RTC_RUN_ON(&sequence_checker_);
-    RtcpReceiveFeedback receive_feedback;
-    receive_feedback.last_sr_stats = rtcp_receiver_.GetLastSenderReportStats();
-    receive_feedback.last_xr_rtis = rtcp_receiver_.ConsumeXrDlrrTimeInfos();
-    return receive_feedback;
+    return rtcp_receiver_.GetLastSrStats();
+}
+
+std::vector<rtcp::Dlrr::TimeInfo> RtcpResponser::ConsumeXrDlrrTimeInfos() {
+    RTC_RUN_ON(&sequence_checker_);
+    return rtcp_receiver_.ConsumeXrDlrrTimeInfos();
 }
 
 // Private methods

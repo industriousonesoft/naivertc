@@ -88,7 +88,7 @@ void RtpVideoReceiver::OnRtcpPacket(CopyOnWriteBuffer in_packet) {
         return;
     }
 
-    auto last_sr_stats = rtcp_responser_->GetReceiveFeedback().last_sr_stats;
+    auto last_sr_stats = rtcp_responser_->GetLastSrStats();
     if (!last_sr_stats) {
         // Waiting for the first RTCP sender report.
         return;

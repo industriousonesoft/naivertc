@@ -118,7 +118,7 @@ void RtcpReceiver::IncomingRtcpPacket(CopyOnWriteBuffer packet) {
     HandleParseResult(packet_info);
 }
 
-std::optional<RtcpSenderReportStats> RtcpReceiver::GetLastSenderReportStats() const {
+std::optional<RtcpSenderReportStats> RtcpReceiver::GetLastSrStats() const {
     RTC_RUN_ON(&sequence_checker_);
     if (!last_sr_stats_.arrival_ntp_time.Valid()) {
         return std::nullopt;

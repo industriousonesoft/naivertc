@@ -55,7 +55,7 @@ public:
 
     void IncomingRtcpPacket(CopyOnWriteBuffer packet);
 
-    std::optional<RtcpSenderReportStats> GetLastSenderReportStats() const;
+    std::optional<RtcpSenderReportStats> GetLastSrStats() const;
 
     std::optional<RttStats> GetRttStats(uint32_t ssrc) const;
 
