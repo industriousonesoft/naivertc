@@ -14,6 +14,7 @@ constexpr auto kUpdateInterval = TimeDelta::Millis(BitrateStatistics::kDefauleWi
 } // namespace
 
 RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
+                                     SequenceNumberAssigner* seq_num_assigner,
                                      RtpPacketHistory* const packet_history) 
         : is_audio_(config.audio),
           send_side_bwe_with_overhead_(config.send_side_bwe_with_overhead),
@@ -24,8 +25,7 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           send_transport_(config.send_transport),
           packet_history_(packet_history),
           fec_generator_(config.fec_generator),
-          sliding_sum_delay_ms_(0),
-          accumulated_delay_ms_(0),
+          seq_num_assigner_(seq_num_assigner),
           max_delay_it_(send_delays_.end()),
           worker_queue_(TaskQueueImpl::Current()),
           send_delay_observer_(config.send_delay_observer),
@@ -64,6 +64,11 @@ std::optional<uint32_t> RtpPacketEgresser::flex_fec_ssrc() const {
     return flex_fec_ssrc_;
 }
 
+bool RtpPacketEgresser::media_has_been_sent() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return media_has_been_sent_;
+}
+
 void RtpPacketEgresser::SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                                    const FecProtectionParams& key_params) {
     RTC_RUN_ON(&sequence_checker_);
@@ -79,12 +84,13 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
     if (!VerifySsrcs(packet)) {
         return false;
     }
-
     if (packet.packet_type() == RtpPacketType::RETRANSMISSION && 
         !packet.retransmitted_sequence_number().has_value()) {
         PLOG_WARNING << "Retransmission RTP packet can not send without retransmitted sequence number.";
         return false;
     }
+
+    auto packet_id = PrepareForSend(packet);
 
     // TODO: Update sequence number info map
 
@@ -133,8 +139,8 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
     
     PacketOptions options(is_audio_ ? PacketKind::AUDIO : PacketKind::VIDEO);
 
-    // Retrive transport sequence number
-    auto packet_id = packet.GetExtension<rtp::TransportSequenceNumber>();
+    // Report transport feedback.
+    // // auto packet_id = packet.GetExtension<rtp::TransportSequenceNumber>();
     if (packet_id) {
         PLOG_VERBOSE_IF(false) << "Will send packet with transport sequence number: " << *packet_id;
         options.packet_id = packet_id;
@@ -403,6 +409,22 @@ void RtpPacketEgresser::PeriodicUpdate() {
         send_bitrates_observer_->OnSendBitratesUpdated(CalcTotalSendBitrate(now_ms).bps(),
                                                        CalcSendBitrate(RtpPacketType::RETRANSMISSION, now_ms).bps(), 
                                                        ssrc_);
+    }
+}
+
+std::optional<uint16_t> RtpPacketEgresser::PrepareForSend(RtpPacketToSend& packet) {
+    // Assign sequence numbers, but not for flexfec which is already running on
+    // an internally maintained sequence number series.
+    if (!flex_fec_ssrc_ || packet.ssrc() != *flex_fec_ssrc_) {
+        seq_num_assigner_->Sequence(packet);
+    }
+    // Assign transport sequence number.
+    uint16_t packet_id = (++transport_sequence_number_) & 0xFFFF;
+    if (packet.SetExtension<rtp::TransportSequenceNumber>(packet_id)) {
+        return packet_id;
+    } else {
+        --transport_sequence_number_;
+        return std::nullopt;
     }
 }
     

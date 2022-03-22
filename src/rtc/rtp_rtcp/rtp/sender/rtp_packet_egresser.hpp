@@ -29,27 +29,25 @@ public:
     // 不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
     class NonPacedPacketSender final : public RtpPacketSender {
     public:
-        NonPacedPacketSender(RtpPacketEgresser* const sender, 
-                             SequenceNumberAssigner* seq_num_assigner);
+        NonPacedPacketSender(RtpPacketEgresser* const sender);
         ~NonPacedPacketSender() override;
 
         void EnqueuePackets(std::vector<RtpPacketToSend> packets) override;
 
     private:
-        void PrepareForSend(RtpPacketToSend& packet);
-    private:
-        uint16_t transport_sequence_number_;
         RtpPacketEgresser* const sender_;
-        SequenceNumberAssigner* const seq_num_assigner_;
     };
 public:
     RtpPacketEgresser(const RtpConfiguration& config,
+                      SequenceNumberAssigner* seq_num_assigner,
                       RtpPacketHistory* packet_history);
     ~RtpPacketEgresser();
 
     uint32_t ssrc() const;
     std::optional<uint32_t> rtx_ssrc() const;
     std::optional<uint32_t> flex_fec_ssrc() const;
+
+    bool media_has_been_sent() const;
    
     void SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                     const FecProtectionParams& key_params);
@@ -105,6 +103,10 @@ private:
     void RecalculateMaxDelay();
 
     void PeriodicUpdate();
+
+    // Assign sequence number and transport sequence number.
+    // Return transport sequence number if exists.
+    std::optional<uint16_t> PrepareForSend(RtpPacketToSend& packet);
   
 private:
     friend class NonPacedPacketSender;
@@ -123,18 +125,20 @@ private:
     
     RtpPacketHistory* const packet_history_;
     FecGenerator* const fec_generator_;
+    SequenceNumberAssigner* const seq_num_assigner_;
 
     std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;
 
     bool media_has_been_sent_ = false;
+    uint64_t transport_sequence_number_ = 0;
 
     RtpStreamDataCounters rtp_send_counter_;
     RtpStreamDataCounters rtx_send_counter_;
     std::unordered_map<RtpPacketType, BitrateStatistics> send_bitrate_stats_;
 
     // The sum of delays over a sliding window.
-    int64_t sliding_sum_delay_ms_;
-    uint64_t accumulated_delay_ms_;
+    int64_t sliding_sum_delay_ms_ = 0;
+    uint64_t accumulated_delay_ms_ = 0;
     SendDelayMap send_delays_;
     SendDelayMap::iterator max_delay_it_;
 

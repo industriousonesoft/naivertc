@@ -16,8 +16,8 @@ RtpSender::RtpSenderContext::RtpSenderContext(const RtpConfiguration& config)
     : packet_sequencer(config),
       packet_history(config.clock, config.enable_rtx_padding_prioritization),
       packet_generator(config, &packet_history),
-      packet_egresser(config, &packet_history),
-      non_paced_sender(&packet_egresser, &packet_sequencer) {}
+      packet_egresser(config, &packet_sequencer, &packet_history),
+      non_paced_sender(&packet_egresser) {}
 
 // RtpSender
 RtpSender::RtpSender(const RtpConfiguration& config)
@@ -81,12 +81,6 @@ RtpPacketToSend RtpSender::GeneratePacket() const {
 bool RtpSender::EnqueuePacket(RtpPacketToSend packet) {
     RTC_RUN_ON(&sequence_checker_);
 
-    // Assigns sequence number for per packet.
-    if (!ctx_->packet_sequencer.Sequence(packet)) {
-        PLOG_WARNING << "Failed to assign sequence number for packet with type : " << int(packet.packet_type());
-        return false;
-    }
-
     // Sets capture time if necessary.
     if (packet.capture_time_ms() <= 0) {
         packet.set_capture_time_ms(clock_->now_ms());
@@ -101,13 +95,7 @@ bool RtpSender::EnqueuePacket(RtpPacketToSend packet) {
 bool RtpSender::EnqueuePackets(std::vector<RtpPacketToSend> packets) {
     RTC_RUN_ON(&sequence_checker_);
     int64_t now_ms = clock_->now_ms();
-    // TODO: Optimization: move the oprations below to downstream?
     for (auto& packet : packets) {
-        // Assigns sequence number for per packet.
-        if (!ctx_->packet_sequencer.Sequence(packet)) {
-            PLOG_WARNING << "Failed to assign sequence number for packet with type : " << int(packet.packet_type());
-            return false;
-        }
         // Sets capture time if necessary.
         if (packet.capture_time_ms() <= 0) {
             packet.set_capture_time_ms(now_ms);
@@ -193,13 +181,11 @@ std::vector<RtpPacketToSend> RtpSender::FetchFecPackets() const {
 }
 
 // Padding
-std::vector<RtpPacketToSend> RtpSender::GeneratePadding(size_t target_packet_size, 
-                                                        bool media_has_been_sent,
-                                                        bool can_send_padding_on_media_ssrc) {
+std::vector<RtpPacketToSend> RtpSender::GeneratePadding(size_t target_packet_size) {
     RTC_RUN_ON(&sequence_checker_);
     return ctx_->packet_generator.GeneratePadding(target_packet_size,
-                                                  media_has_been_sent,
-                                                  can_send_padding_on_media_ssrc);
+                                                  ctx_->packet_egresser.media_has_been_sent(),
+                                                  ctx_->packet_sequencer.CanSendPaddingOnMeidaSsrc());
 }
 
 // Nack
@@ -259,14 +245,6 @@ bool RtpSender::TrySendPacket(RtpPacketToSend packet,
         // New media packet preempted this generated padding packet, discard it.
         return false;
     }
-
-    bool is_flexfec = packet.packet_type() == RtpPacketType::FEC &&
-                      ctx_->packet_egresser.flex_fec_ssrc() &&
-                      packet.ssrc() == ctx_->packet_egresser.flex_fec_ssrc();
-    // ULP_FEC 
-    if (!is_flexfec) {
-        ctx_->packet_sequencer.Sequence(packet);
-    }
     return ctx_->packet_egresser.SendPacket(std::move(packet), pacing_info);
 }
 
@@ -289,10 +267,6 @@ int32_t RtpSender::ResendPacket(uint16_t seq_num) {
         // Retransmitted by the RTX stream.
         if (rtx_enabled) {
             retransmit_packet = ctx_->packet_generator.BuildRtxPacket(stored_packet);
-            if (retransmit_packet) {
-                // Replace with RTX sequence number.
-                ctx_->packet_sequencer.Sequence(*retransmit_packet);
-            }
         }else {
             // Retransmitted by the media stream.
             retransmit_packet = stored_packet;
@@ -303,6 +277,11 @@ int32_t RtpSender::ResendPacket(uint16_t seq_num) {
         return retransmit_packet;
     });
 
+    if (packet_size == 0) {
+        // Packet not found or already queued for retransmission, ignore.
+        return 0;
+    }
+    
     if (!packet) {
         return -1;
     }

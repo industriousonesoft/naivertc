@@ -21,7 +21,7 @@ public:
     RtpPacketToSend& operator=(RtpPacketToSend&& packet);
     ~RtpPacketToSend();
 
-    uint16_t capture_time_ms() const { return capture_time_ms_; }
+    int64_t capture_time_ms() const { return capture_time_ms_; }
     void set_capture_time_ms(int64_t time_ms) { capture_time_ms_ = time_ms; }
 
     RtpPacketType packet_type() const { return packet_type_; }
