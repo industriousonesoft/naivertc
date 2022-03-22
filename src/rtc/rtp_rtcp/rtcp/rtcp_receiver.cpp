@@ -162,6 +162,9 @@ std::vector<rtcp::Dlrr::TimeInfo> RtcpReceiver::ConsumeXrDlrrTimeInfos() {
     RTC_RUN_ON(&sequence_checker_);
     const size_t num_time_infos = std::min(rrtrs_.size(), rtcp::ExtendedReports::kMaxNumberOfDlrrTimeInfos);
     std::vector<rtcp::Dlrr::TimeInfo> time_infos;
+    if (num_time_infos == 0) {
+        return time_infos;
+    }
     time_infos.reserve(num_time_infos);
 
     const uint32_t now_ntp = CompactNtp(clock_->CurrentNtpTime());
