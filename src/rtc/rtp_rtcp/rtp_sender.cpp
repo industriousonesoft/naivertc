@@ -250,19 +250,12 @@ bool RtpSender::TrySendPacket(RtpPacketToSend packet,
 
 // Private methods
 int32_t RtpSender::ResendPacket(uint16_t seq_num) {
-    // Try to find packet in RTP packet history(Also verify RTT in GetPacketState), 
-    // so that we don't retransmit too often.
-    std::optional<RtpPacketHistory::PacketState> stored_packet = ctx_->packet_history.GetPacketState(seq_num);
-    if (!stored_packet.has_value() || stored_packet->pending_transmission) {
-        // Packet not found or already queued for retransmission, ignore.
-        return 0;
-    }
-
-    const int32_t packet_size = static_cast<int32_t>(stored_packet->packet_size);
+    int32_t packet_size = 0;
     const bool rtx_enabled = (rtx_mode() & kRtxRetransmitted);
 
     auto packet = ctx_->packet_history.GetPacketAndMarkAsPending(seq_num, [&](const RtpPacketToSend& stored_packet){
         // TODO: Check if we're overusing retransmission bitrate.
+        packet_size = stored_packet.size();
         std::optional<RtpPacketToSend> retransmit_packet;
         // Retransmitted by the RTX stream.
         if (rtx_enabled) {

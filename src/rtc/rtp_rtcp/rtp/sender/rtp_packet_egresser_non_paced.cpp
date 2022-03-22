@@ -1,5 +1,4 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
-#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 
 namespace naivertc {
 

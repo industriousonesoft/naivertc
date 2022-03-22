@@ -106,10 +106,8 @@ private:
 
     void PeriodicUpdate();
 
-    // Assign sequence number and transport sequence number.
-    // Return transport sequence number if exists.
-    std::optional<uint16_t> PrepareForSend(RtpPacketToSend& packet);
-  
+    void PrepareForSend(RtpPacketToSend& packet);
+
 private:
     friend class NonPacedPacketSender;
 
@@ -132,7 +130,7 @@ private:
     std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;
 
     bool media_has_been_sent_ = false;
-    uint64_t transport_sequence_number_ = 0;
+    uint64_t transport_sequence_number_;
 
     RtpStreamDataCounters rtp_send_counter_;
     RtpStreamDataCounters rtx_send_counter_;

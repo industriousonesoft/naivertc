@@ -169,7 +169,7 @@ std::optional<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uint1
 }
 
 std::optional<RtpPacketToSend> RtpPacketHistory::GetPacketAndMarkAsPending(uint16_t sequence_number, 
-                                                                               EncapsulateCallback encapsulate) {
+                                                                           EncapsulateCallback encapsulate) {
     RTC_RUN_ON(&sequence_checker_);
     if (mode_ == StorageMode::DISABLE) {
         return std::nullopt;
