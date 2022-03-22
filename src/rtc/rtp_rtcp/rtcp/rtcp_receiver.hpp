@@ -61,7 +61,7 @@ public:
 
     std::vector<RtcpReportBlock> GetLatestReportBlocks() const;
 
-    std::optional<int64_t> GetLatestXrRrRtt() const;
+    std::optional<TimeDelta> GetLatestXrRrRtt() const;
 
     std::vector<rtcp::Dlrr::TimeInfo> ConsumeXrDlrrTimeInfos();
 

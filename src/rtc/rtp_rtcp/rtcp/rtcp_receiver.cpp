@@ -149,11 +149,11 @@ int64_t RtcpReceiver::LastReceivedReportBlockMs() const {
     return last_time_received_rb_.IsFinite() ? last_time_received_rb_.ms() : 0;
 }
 
-std::optional<int64_t> RtcpReceiver::GetLatestXrRrRtt() const {
+std::optional<TimeDelta> RtcpReceiver::GetLatestXrRrRtt() const {
     RTC_RUN_ON(&sequence_checker_);
     if (xr_rr_rtt_ms_ > 0) {
         // TODO: Do we need to reset after read?
-        return xr_rr_rtt_ms_;
+        return TimeDelta::Millis(xr_rr_rtt_ms_);
     }
     return std::nullopt;
 }
@@ -265,7 +265,10 @@ void RtcpReceiver::RttPeriodicUpdate() {
             PLOG_WARNING << "Timeout: No increase in RTCP RR extended highest sequence number.";
         }
     } else {
-        // TODO: Report RTT from receiver.
+        // Report RTT from receiver.
+        curr_rtt = GetLatestXrRrRtt();
+        // Reset and waits for new RTT.
+        xr_rr_rtt_ms_ = 0;
     }
 
     if (curr_rtt) {
