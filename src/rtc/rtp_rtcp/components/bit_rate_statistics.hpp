@@ -31,7 +31,7 @@ public:
 
     std::optional<DataRate> Rate(int64_t now_ms);
 
-#if ENABLE_TESTS
+#if defined(NAIVERTC_UNIT_TESTS)
     size_t num_bucket() const { return buckets_.size(); }
     int64_t total_accumulated_bytes() const { return total_accumulated_bytes_; }
     int64_t total_num_samples() const { return total_num_samples_; }

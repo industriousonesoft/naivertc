@@ -4,11 +4,7 @@ namespace naivertc {
 
 SequenceChecker::SequenceChecker() 
     : attached_(true),
-      attached_queue_(TaskQueueImpl::Current()) {
-#if !ENABLE_TESTS
-    assert(attached_queue_ != nullptr && "No task queue can be attached to.");
-#endif
-}
+      attached_queue_(TaskQueueImpl::Current()) {}
 
 SequenceChecker::~SequenceChecker() = default;
 

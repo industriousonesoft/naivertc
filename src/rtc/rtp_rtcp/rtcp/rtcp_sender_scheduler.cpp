@@ -14,7 +14,7 @@ void RtcpSender::MaybeSendRtcp() {
 void RtcpSender::ScheduleForNextRtcpSend(TimeDelta delay) {
     RTC_RUN_ON(&sequence_checker_);
     next_time_to_send_rtcp_ = clock_->CurrentTime() + delay;
-#if ENABLE_TESTS
+#if defined(NAIVERTC_UNIT_TESTS)
     // NOTE: The unit tests not supports the task queue so far.
     return;
 #endif

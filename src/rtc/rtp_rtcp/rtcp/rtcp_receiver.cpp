@@ -70,7 +70,7 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config)
         registered_ssrcs_[kFlexFecSsrcIndex] = config.fec_ssrc.value();
     }
 
-#if !ENABLE_TESTS
+#if !defined(NAIVERTC_UNIT_TESTS)
     // RTT update repeated task.
     rtt_update_task_ = RepeatingTask::DelayedStart(clock_, work_queue_, kRttUpdateInterval, [this](){
         RttPeriodicUpdate();
@@ -81,7 +81,7 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config)
 
 RtcpReceiver::~RtcpReceiver() {
     RTC_RUN_ON(&sequence_checker_);
-#if !ENABLE_TESTS
+#if !defined(NAIVERTC_UNIT_TESTS)
     rtt_update_task_->Stop();
     rtt_update_task_.reset();
 #endif

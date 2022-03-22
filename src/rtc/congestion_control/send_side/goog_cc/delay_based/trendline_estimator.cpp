@@ -4,8 +4,7 @@
 
 #include <algorithm>
 
-#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 0)
-#if ENABLE_TEST_DEBUG
+#if defined(NAIVERTC_UNIT_TESTS)
 #include "testing/defines.hpp"
 #endif
 
