@@ -28,10 +28,10 @@ RtpSender::RtpSender(const RtpConfiguration& config)
     RTC_RUN_ON(&sequence_checker_);
 
     timestamp_offset_ = utils::random::generate_random<uint32_t>();
-
     // Random start, 16bits, can not be 0.
     ctx_->packet_sequencer.set_rtx_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
     ctx_->packet_sequencer.set_media_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
+    ctx_->packet_egresser.set_transport_seq_num(utils::random::random<uint16_t>(1, kMaxInitRtpSeqNumber));
 }
 
 RtpSender::~RtpSender() {

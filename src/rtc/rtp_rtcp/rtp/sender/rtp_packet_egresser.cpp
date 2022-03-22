@@ -69,6 +69,11 @@ bool RtpPacketEgresser::media_has_been_sent() const {
     return media_has_been_sent_;
 }
 
+void RtpPacketEgresser::set_transport_seq_num(uint16_t seq_num) {
+    RTC_RUN_ON(&sequence_checker_);
+    transport_sequence_number_ = static_cast<uint64_t>(seq_num);
+}
+
 void RtpPacketEgresser::SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                                    const FecProtectionParams& key_params) {
     RTC_RUN_ON(&sequence_checker_);

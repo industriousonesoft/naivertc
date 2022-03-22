@@ -48,6 +48,8 @@ public:
     std::optional<uint32_t> flex_fec_ssrc() const;
 
     bool media_has_been_sent() const;
+
+    void set_transport_seq_num(uint16_t seq_num);
    
     void SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                     const FecProtectionParams& key_params);
