@@ -31,12 +31,11 @@ public:
 
     std::optional<DataRate> Rate(int64_t now_ms);
 
-#if defined(NAIVERTC_UNIT_TESTS)
+    // For unit tests
     size_t num_bucket() const { return buckets_.size(); }
     int64_t total_accumulated_bytes() const { return total_accumulated_bytes_; }
     int64_t total_num_samples() const { return total_num_samples_; }
     bool is_overflow() const { return is_overflow_; }
-#endif
 
 private:
     void EraseObsoleteBuckets(int64_t now_ms);

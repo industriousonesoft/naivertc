@@ -5,6 +5,8 @@
 
 #include <plog/Log.h>
 
+#define ENABLE_UNIT_TESTS 0
+
 namespace naivertc {
 namespace {
 constexpr uint32_t kTimestampTicksPerMs = 90;
@@ -35,7 +37,7 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           send_bitrates_observer_(config.send_bitrates_observer),
           transport_feedback_observer_(config.transport_feedback_observer),
           stream_data_counters_observer_(config.stream_data_counters_observer) {
-#if !defined(NAIVERTC_UNIT_TESTS)
+#if !ENABLE_UNIT_TESTS
     assert(worker_queue_ != nullptr);
     if (send_bitrates_observer_) {
         update_task_ = RepeatingTask::DelayedStart(clock_, worker_queue_, kUpdateInterval, [this](){
@@ -51,6 +53,7 @@ RtpPacketEgresser::~RtpPacketEgresser() {
     if (update_task_ && update_task_->Running()) {
         update_task_->Stop();
     }
+    update_task_.reset();
 }
 
 uint32_t RtpPacketEgresser::ssrc() const { 
@@ -107,7 +110,7 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
         return false;
     }
 
-#if !defined(NAIVERTC_UNIT_TESTS)
+#if !ENABLE_UNIT_TESTS
     PrepareForSend(packet);
 #endif
 
@@ -200,7 +203,7 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
 
         // TODO: Add support for FEC protecting all header extensions, 
         // add media packet to generator here instead.
-#if defined(NAIVERTC_UNIT_TESTS)
+#if ENABLE_UNIT_TESTS
         UpdateSentStatistics(now_ms, std::move(send_stats));
 #else
         worker_queue_->Post([this, now_ms, send_stats=std::move(send_stats)](){

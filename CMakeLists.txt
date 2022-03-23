@@ -885,10 +885,6 @@ set(UNITTEST_SOURCES
 # EXCLUDE_FROM_ALL表示指定的target(或某个模块下的所有target)不会被加入默认编译的all target列表中，即不会自动编译，需要手动编译
 add_executable(naivertc_unittest EXCLUDE_FROM_ALL ${TESTING_SOURCES} ${UNITTEST_SOURCES})
 
-target_compile_definitions(naivertc_unittest PUBLIC 
-    NAIVERTC_UNIT_TESTS
-)
-
 set_target_properties(naivertc_unittest PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
 
 target_link_libraries(naivertc_unittest PRIVATE gtest gtest_main gmock gmock_main)

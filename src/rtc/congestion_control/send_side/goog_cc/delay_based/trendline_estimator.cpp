@@ -4,10 +4,6 @@
 
 #include <algorithm>
 
-#if defined(NAIVERTC_UNIT_TESTS)
-#include "testing/defines.hpp"
-#endif
-
 namespace naivertc {
 namespace {
 
