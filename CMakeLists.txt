@@ -88,6 +88,7 @@ set(LIB_HEADERS
     src/rtc/base/task_utils/task_queue.hpp
     src/rtc/base/task_utils/task_queue_impl.hpp
     src/rtc/base/task_utils/task_queue_impl_boost.hpp
+    src/rtc/base/task_utils/queued_task.hpp
     src/rtc/base/synchronization/event.hpp
     src/rtc/base/synchronization/yield_policy.hpp
     src/rtc/base/synchronization/sequence_checker.hpp

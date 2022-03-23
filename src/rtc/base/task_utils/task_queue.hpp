@@ -16,20 +16,26 @@ public:
     TaskQueue(std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> task_queue_impl);
     ~TaskQueue();
 
-    void Post(std::function<void()> handler);
-    void PostDelayed(TimeDelta delay, std::function<void()> handler);
-  
+    void Post(QueuedTask&& task);
+    void PostDelayed(TimeDelta delay, QueuedTask&& task);
+
+    void Post(std::function<void()>&& handler) {
+        Post(QueuedTask(std::move(handler)));
+    }
+    void PostDelayed(TimeDelta delay, std::function<void()>&& handler) {
+        PostDelayed(delay, QueuedTask(std::move(handler)));
+    }
+
     // Convenience method to invoke a functor on another thread, which
     // blocks the current thread until execution is complete.
     template<typename ReturnT,
              typename = typename std::enable_if<std::is_void<ReturnT>::value>::type>
-    void Invoke(std::function<void()> handler) {
+    void Invoke(std::function<void()>&& handler) {
         impl_->Invoke<void>(std::move(handler));
     }
-
     template<typename ReturnT,
              typename = typename std::enable_if<!std::is_void<ReturnT>::value>::type>
-    ReturnT Invoke(std::function<ReturnT()> handler) {
+    ReturnT Invoke(std::function<ReturnT()>&& handler) {
         return impl_->Invoke<ReturnT>(std::move(handler));
     }
 

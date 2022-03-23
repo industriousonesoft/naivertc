@@ -68,19 +68,4 @@ TaskQueueImpl::CurrentTaskQueueSetter::~CurrentTaskQueueSetter() {
 #error "Platform unsupport TLS(thread-local storage)."
 #endif // defined(RTC_SUPPORT_THREAD_LOCAL)
 
-// Private methods
-void TaskQueueImpl::InvokeInternal(std::function<void()> handler) {
-    if (IsCurrent()) {
-        handler();
-    } else {
-        Post([this, handler=std::move(handler)]{
-            handler();
-            event_.Set();
-        });
-        // FIXME: using mutex and condiction will block the caller thread sometimes, 
-        // and i have no idea about this.
-        event_.WaitForever();
-    }
-}
-
 } // namespace naivertc

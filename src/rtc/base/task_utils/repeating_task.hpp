@@ -4,7 +4,6 @@
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/base/units/time_delta.hpp"
-#include "rtc/base/task_utils/task_queue_impl.hpp"
 
 #include <plog/Log.h>
 
@@ -12,6 +11,9 @@
 #include <functional>
 
 namespace naivertc {
+
+class TaskQueueImpl;
+
 class RepeatingTask final {
 public:
     using TaskClouser = std::function<TimeDelta(void)>;

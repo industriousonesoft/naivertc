@@ -4,6 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/units/time_delta.hpp"
 #include "rtc/base/synchronization/event.hpp"
+#include "rtc/base/task_utils/queued_task.hpp"
 
 #include <functional>
 
@@ -15,16 +16,56 @@ public:
         void operator()(TaskQueueImpl* task_queue) const { task_queue->Delete(); }
     };
 public:
+    virtual ~TaskQueueImpl() = default;
     // Starts destruction of the task queue.
     // On return ensures no task are running and no new tasks are 
     // able to start on the task queue.
     virtual void Delete() = 0;
 
-    // Scheduls a task to execute. Tasks are executed in FIFO order.
-    virtual void Post(std::function<void()> handler) {};
+    // Scheduls a closure to execute. Tasks are executed in FIFO order.
+    virtual void Post(QueuedTask&& task) { RTC_NOTREACHED(); };
+    // Scheduls a closure to execute a specified delay from when the call is made.
+    virtual void PostDelayed(TimeDelta delay, QueuedTask&& task) { RTC_NOTREACHED(); };
 
-    // Scheduls a task to execute a specified delay from when the call is made.
-    virtual void PostDelayed(TimeDelta delay, std::function<void()> handler) = 0;
+    void Post(std::function<void()>&& handler) {
+        Post(QueuedTask(std::move(handler)));
+    }
+    void PostDelayed(TimeDelta delay, std::function<void()>&& handler) {
+        PostDelayed(delay, QueuedTask(std::move(handler)));
+    }
+
+    // Convenience method to invoke a functor on another thread, which
+    // blocks the current thread until execution is complete.
+    template<typename ReturnT,
+             typename = typename std::enable_if<std::is_void<ReturnT>::value>::type>
+    void Invoke(std::function<void()>&& handler) {
+        if (IsCurrent()) {
+            handler();
+        } else {
+            Post([this, handler=std::move(handler)]() {
+                handler();
+                event_.Set();
+            });
+            event_.WaitForever();
+        }
+    }
+    template<typename ReturnT,
+             typename = typename std::enable_if<!std::is_void<ReturnT>::value>::type>
+    ReturnT Invoke(std::function<ReturnT()>&& handler) {
+        ReturnT ret;
+        if (IsCurrent()) {
+            ret = handler();
+        } else {
+            Post([this, &ret, handler=std::move(handler)]() {
+                ret = handler();
+                event_.Set();
+            });
+            // FIXME: using mutex and condiction will block the caller thread sometimes, 
+            // and i have no idea about this.
+            event_.WaitForever();
+        }
+        return ret;
+    }
 
     // Returns the task queue that is running the current thread.
     // Returns nullptr if this thread is not associated with any task queue.
@@ -32,29 +73,6 @@ public:
 
     // Returns true if this task queue is running the current thread.
     bool IsCurrent() const { return Current() == this; }
-
-    // Convenience method to invoke a functor on another thread, which
-    // blocks the current thread until execution is complete.
-    template<typename ReturnT,
-             typename = typename std::enable_if<std::is_void<ReturnT>::value>::type>
-    void Invoke(std::function<void()> handler) {
-        InvokeInternal(std::move(handler));
-    }
-
-    template<typename ReturnT,
-             typename = typename std::enable_if<!std::is_void<ReturnT>::value>::type>
-    ReturnT Invoke(std::function<ReturnT()> handler) {
-        ReturnT ret;
-        InvokeInternal([&ret, handler=std::move(handler)](){
-            ret = handler();
-        });
-        return ret;
-    }
-
-protected:
-    // Users of the TaskQueue should call Delete instead of 
-    // directly deleting this instance.
-    virtual ~TaskQueueImpl() = default;
 
 protected:
     class CurrentTaskQueueSetter {
@@ -66,9 +84,6 @@ protected:
     private:
         TaskQueueImpl* const previous_;
     };
-
-private:
-    void InvokeInternal(std::function<void()> handler);
 
 private:
     mutable Event event_;

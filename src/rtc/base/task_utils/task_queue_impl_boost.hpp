@@ -19,8 +19,8 @@ public:
     static std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> Create(std::string name);
 public:
     void Delete() override;
-    void Post(std::function<void()> handler) override;
-    void PostDelayed(TimeDelta delay, std::function<void()> handler) override;
+    void Post(QueuedTask&& task) override;
+    void PostDelayed(TimeDelta delay, QueuedTask&& task) override;
 
 private:
     // Users of the TaskQueue should call Create instead of 
@@ -30,7 +30,7 @@ private:
     // directly deleting this instance.
     ~TaskQueueImplBoost() override;
 
-    void ScheduleTaskAfter(TimeDelta delay, std::function<void()> handler);
+    void ScheduleTaskAfter(TimeDelta delay, QueuedTask&& task);
 private:
     boost::asio::io_context ioc_;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard_;

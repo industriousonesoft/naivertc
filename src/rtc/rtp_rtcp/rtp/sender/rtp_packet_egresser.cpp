@@ -436,6 +436,7 @@ void RtpPacketEgresser::RecalculateMaxDelay() {
 }
 
 void RtpPacketEgresser::PeriodicUpdate() {
+    RTC_RUN_ON(worker_queue_);
     if (send_bitrates_observer_) {
         const int64_t now_ms = clock_->now_ms();
         send_bitrates_observer_->OnSendBitratesUpdated(CalcTotalSendBitrate(now_ms).bps(),

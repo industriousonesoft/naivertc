@@ -34,12 +34,12 @@ TaskQueue::~TaskQueue() {
     PLOG_VERBOSE << __FUNCTION__ << " did destroy.";
 }
 
-void TaskQueue::Post(std::function<void()> handler) {
-    impl_->Post(std::move(handler));
+void TaskQueue::Post(QueuedTask&& task) {
+    impl_->Post(std::move(task));
 }
 
-void TaskQueue::PostDelayed(TimeDelta delay, std::function<void()> handler) {
-    impl_->PostDelayed(delay, std::move(handler));
+void TaskQueue::PostDelayed(TimeDelta delay, QueuedTask&& task) {
+    impl_->PostDelayed(delay, std::move(task));
 }
 
 bool TaskQueue::IsCurrent() const {
