@@ -88,6 +88,8 @@ set(LIB_HEADERS
     src/rtc/base/task_utils/task_queue.hpp
     src/rtc/base/task_utils/task_queue_impl.hpp
     src/rtc/base/task_utils/task_queue_impl_boost.hpp
+    src/rtc/base/task_utils/queued_task.hpp
+    src/rtc/base/task_utils/pending_task_safety_flag.hpp
     src/rtc/base/synchronization/event.hpp
     src/rtc/base/synchronization/yield_policy.hpp
     src/rtc/base/synchronization/sequence_checker.hpp
@@ -358,6 +360,7 @@ set(LIB_SOURCES
     src/rtc/base/task_utils/task_queue.cpp
     src/rtc/base/task_utils/task_queue_impl.cpp
     src/rtc/base/task_utils/task_queue_impl_boost.cpp
+    src/rtc/base/task_utils/pending_task_safety_flag.cpp
     src/rtc/base/synchronization/event.cpp
     # src/rtc/base/synchronization/event_win.cpp
     src/rtc/base/synchronization/event_posix.cpp
@@ -698,7 +701,6 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/examples/streamer ${CMAKE_CURRENT_BINARY_
 # test
 if(ENABLE_TESTS)
 
-target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_TESTS=1)
 # google test
 add_subdirectory(deps/googletest)
 
@@ -892,10 +894,6 @@ target_link_libraries(naivertc_unittest PRIVATE gtest gtest_main gmock gmock_mai
 target_link_libraries(naivertc_unittest PRIVATE ${PROJECT_NAME})
 
 # add_test(NAME unittest COMMAND naivertc_unittest)
-
-else()
-
-target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_TESTS=0)
 
 endif()
 

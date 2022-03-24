@@ -64,9 +64,7 @@ public:
     std::vector<RtpPacketToSend> FetchFecPackets() const;
 
     // Padding
-    std::vector<RtpPacketToSend> GeneratePadding(size_t target_packet_size, 
-                                                 bool media_has_been_sent,
-                                                 bool can_send_padding_on_media_ssrc);
+    std::vector<RtpPacketToSend> GeneratePadding(size_t target_packet_size);
 
     // Implements RtcpNackListObserver
     void OnReceivedNack(const std::vector<uint16_t>& nack_list, int64_t rrt_ms) override;

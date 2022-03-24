@@ -81,9 +81,11 @@ bool RtcpSender::BuildCompoundRtcpPacket(RtcpPacketType rtcp_packt_type,
     // RtcpContext                                   
     // We need to send out NTP even if we haven't received any reports
     auto rtp_send_stats = rtp_send_stats_provider_->GetSendStats();
-    auto rtcp_receive_feedback = rtcp_receive_feedback_provider_->GetReceiveFeedback();
-    RtcpContext context(rtp_send_stats, 
-                        rtcp_receive_feedback, 
+    auto last_sr_stats = rtcp_receive_feedback_provider_->GetLastSrStats();
+    auto last_xr_rtis = rtcp_receive_feedback_provider_->ConsumeXrDlrrTimeInfos();
+    RtcpContext context(&rtp_send_stats, 
+                        (last_sr_stats ? &last_sr_stats.value() : nullptr),
+                        last_xr_rtis,
                         nack_list,
                         nack_size,
                         clock_->CurrentTime());
@@ -175,7 +177,7 @@ void RtcpSender::PrepareReport(const RtcpContext& ctx) {
             SetFlag(RtcpPacketType::XR_RECEIVER_REFERENCE_TIME, true);
         }
         // Dlrr
-        if (!ctx.rtcp_receive_feedback.last_xr_rtis.empty()) {
+        if (!ctx.last_xr_rtis.empty()) {
             SetFlag(RtcpPacketType::XR_DLRR_REPORT_BLOCK, true);
         }
         // TODO: Support TargetBirate block.
@@ -186,7 +188,7 @@ void RtcpSender::PrepareReport(const RtcpContext& ctx) {
     // Send video rtcp packets
     if (!audio_ && sending_) {
         // Calculate bandwidth for video
-        int send_bitrate_kbit = ctx.rtp_send_stats.send_bitrate.kbps();
+        int send_bitrate_kbit = ctx.rtp_send_stats->send_bitrate.kbps();
         if (send_bitrate_kbit != 0) {
             // FIXME: Why ? 360 / send bandwidth in kbit/s.
             min_interval = std::min(TimeDelta::Millis(360000 / send_bitrate_kbit), report_interval_);
@@ -210,7 +212,7 @@ void RtcpSender::PrepareReport(const RtcpContext& ctx) {
     assert(!(IsFlagPresent(RtcpPacketType::SR) && IsFlagPresent(RtcpPacketType::RR)));
 }
 
-std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const RtcpReceiveFeedback rtcp_receive_feedback) {
+std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const RtcpSenderReportStats* last_sr_stats) {
     std::vector<rtcp::ReportBlock> report_blocks;
     if (!report_block_provider_) {
         return report_blocks;
@@ -228,7 +230,6 @@ std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const RtcpReceiveF
     //     |           <----RR----          |
     //     |<----------                     |
     //     |                                |
-    auto last_sr_stats = rtcp_receive_feedback.last_sr_stats;
     if (!report_blocks.empty() && last_sr_stats) {
         uint32_t last_sr_send_ntp_timestamp = ((last_sr_stats->send_ntp_time.seconds() & 0x0000FFFF) << 16) +
                                               ((last_sr_stats->send_ntp_time.fractions() & 0xFFFF0000) >> 16);
@@ -279,9 +280,9 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
     sr.set_sender_ssrc(local_ssrc_);
     sr.set_ntp(clock_->ConvertTimestampToNtpTime(ctx.now_time));
     sr.set_rtp_timestamp(rtp_timestamp);
-    sr.set_sender_packet_count(ctx.rtp_send_stats.packets_sent);
-    sr.set_sender_octet_count(ctx.rtp_send_stats.media_bytes_sent);
-    sr.SetReportBlocks(CreateReportBlocks(ctx.rtcp_receive_feedback));
+    sr.set_sender_packet_count(ctx.rtp_send_stats->packets_sent);
+    sr.set_sender_octet_count(ctx.rtp_send_stats->media_bytes_sent);
+    sr.SetReportBlocks(CreateReportBlocks(ctx.last_sr_stats));
     sender.AppendPacket(sr);
 }
 
@@ -289,7 +290,7 @@ void RtcpSender::BuildSR(const RtcpContext& ctx, PacketSender& sender) {
 void RtcpSender::BuildRR(const RtcpContext& ctx, PacketSender& sender) {
     rtcp::ReceiverReport rr;
     rr.set_sender_ssrc(local_ssrc_);
-    rr.SetReportBlocks(CreateReportBlocks(ctx.rtcp_receive_feedback));
+    rr.SetReportBlocks(CreateReportBlocks(ctx.last_sr_stats));
     sender.AppendPacket(rr);
 }
 
@@ -382,7 +383,7 @@ void RtcpSender::BuildExtendedReports(const RtcpContext& ctx, PacketSender& send
     }
 
     // The receive time infos from sender
-    for (const rtcp::Dlrr::TimeInfo& time_info : ctx.rtcp_receive_feedback.last_xr_rtis) {
+    for (const rtcp::Dlrr::TimeInfo& time_info : ctx.last_xr_rtis) {
         xr.AddDlrrTimeInfo(time_info);
     }
 

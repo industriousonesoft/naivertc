@@ -1,8 +1,11 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
+#include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
 
 #include <plog/Log.h>
+
+#define ENABLE_UNIT_TESTS 0
 
 namespace naivertc {
 namespace {
@@ -14,6 +17,7 @@ constexpr auto kUpdateInterval = TimeDelta::Millis(BitrateStatistics::kDefauleWi
 } // namespace
 
 RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
+                                     SequenceNumberAssigner* seq_num_assigner,
                                      RtpPacketHistory* const packet_history) 
         : is_audio_(config.audio),
           send_side_bwe_with_overhead_(config.send_side_bwe_with_overhead),
@@ -24,8 +28,8 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           send_transport_(config.send_transport),
           packet_history_(packet_history),
           fec_generator_(config.fec_generator),
-          sliding_sum_delay_ms_(0),
-          accumulated_delay_ms_(0),
+          seq_num_assigner_(seq_num_assigner),
+          transport_sequence_number_(1),
           max_delay_it_(send_delays_.end()),
           worker_queue_(TaskQueueImpl::Current()),
           send_delay_observer_(config.send_delay_observer),
@@ -33,6 +37,7 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
           send_bitrates_observer_(config.send_bitrates_observer),
           transport_feedback_observer_(config.transport_feedback_observer),
           stream_data_counters_observer_(config.stream_data_counters_observer) {
+#if !ENABLE_UNIT_TESTS
     assert(worker_queue_ != nullptr);
     if (send_bitrates_observer_) {
         update_task_ = RepeatingTask::DelayedStart(clock_, worker_queue_, kUpdateInterval, [this](){
@@ -40,6 +45,7 @@ RtpPacketEgresser::RtpPacketEgresser(const RtpConfiguration& config,
             return kUpdateInterval;
         });
     }
+#endif
 }
  
 RtpPacketEgresser::~RtpPacketEgresser() {
@@ -47,6 +53,7 @@ RtpPacketEgresser::~RtpPacketEgresser() {
     if (update_task_ && update_task_->Running()) {
         update_task_->Stop();
     }
+    update_task_.reset();
 }
 
 uint32_t RtpPacketEgresser::ssrc() const { 
@@ -64,10 +71,28 @@ std::optional<uint32_t> RtpPacketEgresser::flex_fec_ssrc() const {
     return flex_fec_ssrc_;
 }
 
+bool RtpPacketEgresser::media_has_been_sent() const {
+    RTC_RUN_ON(&sequence_checker_);
+    return media_has_been_sent_;
+}
+
+void RtpPacketEgresser::set_transport_seq_num(uint16_t seq_num) {
+    RTC_RUN_ON(&sequence_checker_);
+    transport_sequence_number_ = static_cast<uint64_t>(seq_num);
+}
+
 void RtpPacketEgresser::SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                                    const FecProtectionParams& key_params) {
     RTC_RUN_ON(&sequence_checker_);
     pending_fec_params_.emplace(delta_params, key_params);
+}
+
+void RtpPacketEgresser::PrepareForSend(RtpPacketToSend& packet) {
+    // Assign sequence numbers, but not for flexfec which is already running on
+    // an internally maintained sequence number series.
+    if (!flex_fec_ssrc_ || packet.ssrc() != *flex_fec_ssrc_) {
+        seq_num_assigner_->Sequence(packet);
+    }
 }
 
 bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
@@ -79,12 +104,15 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
     if (!VerifySsrcs(packet)) {
         return false;
     }
-
     if (packet.packet_type() == RtpPacketType::RETRANSMISSION && 
         !packet.retransmitted_sequence_number().has_value()) {
         PLOG_WARNING << "Retransmission RTP packet can not send without retransmitted sequence number.";
         return false;
     }
+
+#if !ENABLE_UNIT_TESTS
+    PrepareForSend(packet);
+#endif
 
     // TODO: Update sequence number info map
 
@@ -117,29 +145,31 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
     // data after rtp header may be corrupted if these packets are protected by
     // the FEC.
     int64_t send_delay_ms = now_ms - packet.capture_time_ms();
-    if (packet.HasExtension<rtp::TransmissionTimeOffset>()) {
-        packet.SetExtension<rtp::TransmissionTimeOffset>(kTimestampTicksPerMs * send_delay_ms);
+    // TransmissionTimeOffset
+    packet.SetExtension<rtp::TransmissionTimeOffset>(kTimestampTicksPerMs * send_delay_ms);
+    // AbsoluteSendTime
+    packet.SetExtension<rtp::AbsoluteSendTime>(rtp::AbsoluteSendTime::MsTo24Bits(now_ms));
+    // TransportSequenceNumber
+    std::optional<uint16_t> packet_id = (transport_sequence_number_) & 0xFFFF;
+    if (packet.SetExtension<rtp::TransportSequenceNumber>(*packet_id)) {
+        ++transport_sequence_number_;
+    } else {
+        packet_id.reset();
     }
+    // TODO: Set VideoTimingExtension?
 
-    if (packet.HasExtension<rtp::AbsoluteSendTime>()) {
-        packet.SetExtension<rtp::AbsoluteSendTime>(rtp::AbsoluteSendTime::MsTo24Bits(now_ms));
-    }
-
-    // TODO: Update VideoTimingExtension?
-
-    auto packet_type = packet.packet_type();
-    const bool is_media = packet_type == RtpPacketType::AUDIO ||
-                          packet_type == RtpPacketType::VIDEO;
-    
     PacketOptions options(is_audio_ ? PacketKind::AUDIO : PacketKind::VIDEO);
-
-    // Retrive transport sequence number
-    auto packet_id = packet.GetExtension<rtp::TransportSequenceNumber>();
+    // Report transport feedback.
+    // // auto packet_id = packet.GetExtension<rtp::TransportSequenceNumber>();
     if (packet_id) {
         PLOG_VERBOSE_IF(false) << "Will send packet with transport sequence number: " << *packet_id;
         options.packet_id = packet_id;
         AddPacketToTransportFeedback(*packet_id, packet, pacing_info);
     }
+
+    const auto packet_type = packet.packet_type();
+    const bool is_media = packet_type == RtpPacketType::AUDIO ||
+                          packet_type == RtpPacketType::VIDEO;
 
     if (packet_type != RtpPacketType::PADDING &&
         packet_type != RtpPacketType::RETRANSMISSION) {
@@ -149,7 +179,7 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
             send_packet_observer_->OnSendPacket(*packet_id, packet.capture_time_ms(), packet_ssrc);
         }
     }
-
+    
     // Put packet in retransmission history or update pending status even if
     // actual sending fails.
     if (is_media && packet.allow_retransmission()) {
@@ -173,9 +203,14 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
 
         // TODO: Add support for FEC protecting all header extensions, 
         // add media packet to generator here instead.
-        worker_queue_->Post([this, now_ms, send_stats=std::move(send_stats)](){
+#if ENABLE_UNIT_TESTS
+        UpdateSentStatistics(now_ms, std::move(send_stats));
+#else
+        worker_queue_->Post(ToQueuedTask(task_safety_, [this, now_ms, send_stats=std::move(send_stats)](){
             UpdateSentStatistics(now_ms, std::move(send_stats));
-        });
+        }));
+#endif
+   
     }
 
     return send_success;
@@ -241,8 +276,11 @@ bool RtpPacketEgresser::SendPacketToNetwork(RtpPacketToSend packet, PacketOption
             sent_packet.size = sent_size;
             transport_feedback_observer_->OnSentPacket(sent_packet);
         }
+        return true;
+    } else {
+        return false;
     }
-    return false;
+    
 }
 
 bool RtpPacketEgresser::VerifySsrcs(const RtpPacketToSend& packet) {
@@ -398,6 +436,7 @@ void RtpPacketEgresser::RecalculateMaxDelay() {
 }
 
 void RtpPacketEgresser::PeriodicUpdate() {
+    RTC_RUN_ON(worker_queue_);
     if (send_bitrates_observer_) {
         const int64_t now_ms = clock_->now_ms();
         send_bitrates_observer_->OnSendBitratesUpdated(CalcTotalSendBitrate(now_ms).bps(),

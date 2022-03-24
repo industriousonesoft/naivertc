@@ -55,13 +55,13 @@ public:
 
     void IncomingRtcpPacket(CopyOnWriteBuffer packet);
 
-    std::optional<RtcpSenderReportStats> GetLastSenderReportStats() const;
+    std::optional<RtcpSenderReportStats> GetLastSrStats() const;
 
     std::optional<RttStats> GetRttStats(uint32_t ssrc) const;
 
     std::vector<RtcpReportBlock> GetLatestReportBlocks() const;
 
-    std::optional<int64_t> GetLatestXrRrRtt() const;
+    std::optional<TimeDelta> GetLatestXrRrRtt() const;
 
     std::vector<rtcp::Dlrr::TimeInfo> ConsumeXrDlrrTimeInfos();
 

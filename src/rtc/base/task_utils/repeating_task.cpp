@@ -1,48 +1,56 @@
 #include "rtc/base/task_utils/repeating_task.hpp"
+#include "rtc/base/task_utils/task_queue_impl.hpp"
 
 namespace naivertc {
 
 std::unique_ptr<RepeatingTask> RepeatingTask::DelayedStart(Clock* clock,
                                                            TaskQueueImpl* task_queue,
                                                            TimeDelta delay, 
-                                                           TaskClouser task_clouser) {
-    auto task = std::unique_ptr<RepeatingTask>(new RepeatingTask(clock, task_queue, std::move(task_clouser)));
+                                                           Clouser&& closure) {
+    auto safety_flag = PendingTaskSafetyFlag::CreateDetached();
+    auto task = std::unique_ptr<RepeatingTask>(new RepeatingTask(clock, 
+                                                                 task_queue, 
+                                                                 std::move(closure),
+                                                                 std::move(safety_flag)));
     task->Start(delay);
     return task;
 }
 
 RepeatingTask::RepeatingTask(Clock* clock,
                              TaskQueueImpl* task_queue,
-                             TaskClouser task_clouser) 
+                             Clouser&& closure,
+                             std::shared_ptr<PendingTaskSafetyFlag> safety_flag) 
     : clock_(clock),
       task_queue_(task_queue),
-      task_clouser_(std::move(task_clouser)),
-      is_stoped_(true) {
+      closure_(std::move(closure)),
+      safety_flag_(std::move(safety_flag)) {
     assert(task_queue != nullptr);
+    assert(safety_flag_ != nullptr);
 }
 
-RepeatingTask::~RepeatingTask() = default;
+RepeatingTask::~RepeatingTask() {
+    Stop();
+};
 
 void RepeatingTask::Start(TimeDelta delay) {
-    task_queue_->Post([this, delay](){
-        this->is_stoped_ = false;
+    task_queue_->Post(ToQueuedTask(safety_flag_, [this, delay](){
         if (delay.ms() <= 0) {
             this->ExecuteTask();
         } else {
             this->ScheduleTaskAfter(delay);
         }
-    });
+    }));
 }
 
 bool RepeatingTask::Running() const {
     return task_queue_->Invoke<bool>([this](){
-        return !is_stoped_;
+        return safety_flag_->alive();
     });
 }
 
 void RepeatingTask::Stop() {
     task_queue_->Invoke<void>([this](){
-        is_stoped_ = true;
+        safety_flag_->SetNotAlive();
     });
 }
 
@@ -50,16 +58,13 @@ void RepeatingTask::Stop() {
 void RepeatingTask::ScheduleTaskAfter(TimeDelta delay) {
     RTC_RUN_ON(task_queue_);
     Timestamp execution_time = clock_->CurrentTime() + delay;
-    task_queue_->PostDelayed(delay, [this, execution_time](){
-        this->MaybeExecuteTask(execution_time);
-    });
+    task_queue_->PostDelayed(delay, ToQueuedTask(safety_flag_, [this, execution_time](){
+        MaybeExecuteTask(execution_time);
+    }));
 }
 
 void RepeatingTask::MaybeExecuteTask(Timestamp execution_time) {
     RTC_RUN_ON(task_queue_);
-    if (this->is_stoped_) {
-        return;
-    }
     Timestamp now = clock_->CurrentTime();
     if (now >= execution_time) {
         ExecuteTask();
@@ -68,21 +73,19 @@ void RepeatingTask::MaybeExecuteTask(Timestamp execution_time) {
 
     PLOG_WARNING << "RepeatingTask: scheduled delayed called too early.";
     TimeDelta delay = execution_time - now;
-    task_queue_->PostDelayed(delay, [this, execution_time](){
-        this->MaybeExecuteTask(execution_time);
-    });
+    task_queue_->PostDelayed(delay, ToQueuedTask(safety_flag_, [this, execution_time](){
+        MaybeExecuteTask(execution_time);
+    }));
 }
 
 void RepeatingTask::ExecuteTask() {
     RTC_RUN_ON(task_queue_);
-    if (this->task_clouser_) {
-        TimeDelta interval = this->task_clouser_();
-        if (interval.ms() > 0) {
-            ScheduleTaskAfter(interval);
-        } else {
-            // Stop internally if the `interval` is not a positive number.
-            this->is_stoped_ = true;
-        }
+    TimeDelta interval = closure_();
+    if (interval.ms() > 0) {
+        ScheduleTaskAfter(interval);
+    } else {
+        // Stop internally if the `interval` is not a positive number.
+        safety_flag_->SetNotAlive();
     }
 }
     

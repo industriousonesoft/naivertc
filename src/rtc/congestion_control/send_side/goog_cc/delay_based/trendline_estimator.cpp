@@ -4,11 +4,6 @@
 
 #include <algorithm>
 
-#define ENABLE_TEST_DEBUG (ENABLE_TESTS && 0)
-#if ENABLE_TEST_DEBUG
-#include "testing/defines.hpp"
-#endif
-
 namespace naivertc {
 namespace {
 

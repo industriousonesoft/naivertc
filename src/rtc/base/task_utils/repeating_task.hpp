@@ -4,7 +4,7 @@
 #include "base/defines.hpp"
 #include "rtc/base/time/clock.hpp"
 #include "rtc/base/units/time_delta.hpp"
-#include "rtc/base/task_utils/task_queue_impl.hpp"
+#include "rtc/base/task_utils/queued_task.hpp"
 
 #include <plog/Log.h>
 
@@ -12,17 +12,20 @@
 #include <functional>
 
 namespace naivertc {
+
+class TaskQueueImpl;
+
 class RepeatingTask final {
 public:
-    using TaskClouser = std::function<TimeDelta(void)>;
+    using Clouser = std::function<TimeDelta(void)>;
     static std::unique_ptr<RepeatingTask> DelayedStart(Clock* clock,
                                                        TaskQueueImpl* task_queue,
                                                        TimeDelta delay,
-                                                       TaskClouser task);
+                                                       Clouser&& closure);
     static std::unique_ptr<RepeatingTask> Start(Clock* clock,
                                                 TaskQueueImpl* task_queue,
-                                                TaskClouser task) {
-        return RepeatingTask::DelayedStart(clock, task_queue, TimeDelta::Millis(0), std::move(task));
+                                                Clouser&& closure) {
+        return RepeatingTask::DelayedStart(clock, task_queue, TimeDelta::Millis(0), std::move(closure));
     }
 public:
     ~RepeatingTask();
@@ -37,7 +40,10 @@ public:
     bool Running() const;
     
 private:
-    RepeatingTask(Clock* clock,  TaskQueueImpl* task_queue, TaskClouser task);
+    RepeatingTask(Clock* clock, 
+                  TaskQueueImpl* task_queue, 
+                  Clouser&& closure, 
+                  std::shared_ptr<PendingTaskSafetyFlag> safety_flag);
     void Start(TimeDelta delay);
 private:
     void ScheduleTaskAfter(TimeDelta delay);
@@ -46,8 +52,8 @@ private:
 private:
     Clock* const clock_;
     TaskQueueImpl* const task_queue_;
-    const TaskClouser task_clouser_;
-    bool is_stoped_;
+    const Clouser closure_;
+    std::shared_ptr<PendingTaskSafetyFlag> safety_flag_;
 };
     
 } // namespace naivertc

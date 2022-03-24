@@ -63,8 +63,8 @@ public:
     using CurrentTaskQueueSetter = TaskQueueImpl::CurrentTaskQueueSetter;
 
     void Delete() override { RTC_NOTREACHED(); }
-    void Post(std::function<void()> handler) override { RTC_NOTREACHED(); }
-    void PostDelayed(TimeDelta delay, std::function<void()> handler) override { RTC_NOTREACHED(); }
+    void Post(std::unique_ptr<QueuedTask> task) override { RTC_NOTREACHED(); }
+    void PostDelayed(TimeDelta delay, std::unique_ptr<QueuedTask> task) override { RTC_NOTREACHED(); }
 };
     
 } // namespace naivertc

@@ -106,6 +106,7 @@ void Client::AddVideoTrack(std::string cname, std::string stream_id) {
             encoded_frame.set_codec_type(video::CodecType::H264);
             encoded_frame.set_timestamp(static_cast<uint32_t>(capture_time_ms * 90));
             encoded_frame.set_capture_time_ms(capture_time_ms);
+            encoded_frame.set_retransmission_allowed(true);
             video_track_->Send(std::move(encoded_frame));
         });
     });

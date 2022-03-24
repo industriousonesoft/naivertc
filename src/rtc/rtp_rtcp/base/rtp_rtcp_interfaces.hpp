@@ -216,7 +216,8 @@ public:
 class RtcpReceiveFeedbackProvider {
 public:
     virtual ~RtcpReceiveFeedbackProvider() = default;
-    virtual RtcpReceiveFeedback GetReceiveFeedback() = 0;
+    virtual std::optional<RtcpSenderReportStats> GetLastSrStats() = 0;
+    virtual std::vector<rtcp::Dlrr::TimeInfo> ConsumeXrDlrrTimeInfos() = 0;
 };
     
 } // namespace naivertc

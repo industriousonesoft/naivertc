@@ -95,8 +95,12 @@ class RtcpReceiveFeedbackProviderImpl : public RtcpReceiveFeedbackProvider {
 public:
     ~RtcpReceiveFeedbackProviderImpl() override = default;
 
-    RtcpReceiveFeedback GetReceiveFeedback() override {
-        return receive_feedback_;
+    std::optional<RtcpSenderReportStats> GetLastSrStats() override {
+        return std::nullopt;
+    }
+
+    std::vector<rtcp::Dlrr::TimeInfo> ConsumeXrDlrrTimeInfos() override {
+        return last_xr_rtis_;
     }
 
     void OnReceiveTimeInfo(uint32_t ssrc, 
@@ -106,11 +110,11 @@ public:
         time_info.ssrc = ssrc;
         time_info.last_rr = last_rr;
         time_info.delay_since_last_rr = delay_since_last_rr;
-        receive_feedback_.last_xr_rtis.push_back(time_info);
+        last_xr_rtis_.push_back(std::move(time_info));
     }
 
 private:
-    RtcpReceiveFeedback receive_feedback_;
+    std::vector<rtcp::Dlrr::TimeInfo> last_xr_rtis_;
 };
 
 // RtcpSenderTest
@@ -175,6 +179,7 @@ MY_TEST_F(RtcpSenderTest, SendSr) {
     NtpTime ntp = clock_.CurrentNtpTime();
     EXPECT_TRUE(rtcp_sender->SendRtcp(RtcpPacketType::SR));
     auto received_sr = parser()->sender_report();
+    ASSERT_TRUE(received_sr != nullptr);
     EXPECT_EQ(1, received_sr->num_packets());
     EXPECT_EQ(kSenderSsrc, received_sr->sender_ssrc());
     EXPECT_EQ(ntp, received_sr->ntp());

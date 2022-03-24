@@ -30,6 +30,7 @@ RtpPacketSequencer::RtpPacketSequencer(const RtpConfiguration& config)
 RtpPacketSequencer::~RtpPacketSequencer() {}
 
 bool RtpPacketSequencer::Sequence(RtpPacketToSend& packet) {
+    // Send on media SSRC.
     if (packet.ssrc() == media_ssrc_) {
         if (packet.packet_type() == RtpPacketType::RETRANSMISSION) {
             // Retransmission of an already sequenced packet, ignoring.
@@ -42,6 +43,7 @@ bool RtpPacketSequencer::Sequence(RtpPacketToSend& packet) {
             UpdateLastPacketState(packet);
         }
         return true;
+    // Send on RTX SSRC.
     } else if (packet.ssrc() == rtx_ssrc_) {
         if (packet.packet_type() == RtpPacketType::PADDING) {
             PopulatePaddingFields(packet);

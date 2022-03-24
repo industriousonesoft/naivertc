@@ -3,6 +3,8 @@
 
 #include <plog/Log.h>
 
+// #define ENABLE_UNIT_TESTS
+
 namespace naivertc {
 namespace {
 
@@ -70,7 +72,7 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config)
         registered_ssrcs_[kFlexFecSsrcIndex] = config.fec_ssrc.value();
     }
 
-#if !ENABLE_TESTS
+#if !defined(ENABLE_UNIT_TESTS)
     // RTT update repeated task.
     rtt_update_task_ = RepeatingTask::DelayedStart(clock_, work_queue_, kRttUpdateInterval, [this](){
         RttPeriodicUpdate();
@@ -81,7 +83,7 @@ RtcpReceiver::RtcpReceiver(const RtcpConfiguration& config)
 
 RtcpReceiver::~RtcpReceiver() {
     RTC_RUN_ON(&sequence_checker_);
-#if !ENABLE_TESTS
+#if !defined(ENABLE_UNIT_TESTS)
     rtt_update_task_->Stop();
     rtt_update_task_.reset();
 #endif
@@ -118,7 +120,7 @@ void RtcpReceiver::IncomingRtcpPacket(CopyOnWriteBuffer packet) {
     HandleParseResult(packet_info);
 }
 
-std::optional<RtcpSenderReportStats> RtcpReceiver::GetLastSenderReportStats() const {
+std::optional<RtcpSenderReportStats> RtcpReceiver::GetLastSrStats() const {
     RTC_RUN_ON(&sequence_checker_);
     if (!last_sr_stats_.arrival_ntp_time.Valid()) {
         return std::nullopt;
@@ -149,11 +151,11 @@ int64_t RtcpReceiver::LastReceivedReportBlockMs() const {
     return last_time_received_rb_.IsFinite() ? last_time_received_rb_.ms() : 0;
 }
 
-std::optional<int64_t> RtcpReceiver::GetLatestXrRrRtt() const {
+std::optional<TimeDelta> RtcpReceiver::GetLatestXrRrRtt() const {
     RTC_RUN_ON(&sequence_checker_);
     if (xr_rr_rtt_ms_ > 0) {
         // TODO: Do we need to reset after read?
-        return xr_rr_rtt_ms_;
+        return TimeDelta::Millis(xr_rr_rtt_ms_);
     }
     return std::nullopt;
 }
@@ -162,6 +164,9 @@ std::vector<rtcp::Dlrr::TimeInfo> RtcpReceiver::ConsumeXrDlrrTimeInfos() {
     RTC_RUN_ON(&sequence_checker_);
     const size_t num_time_infos = std::min(rrtrs_.size(), rtcp::ExtendedReports::kMaxNumberOfDlrrTimeInfos);
     std::vector<rtcp::Dlrr::TimeInfo> time_infos;
+    if (num_time_infos == 0) {
+        return time_infos;
+    }
     time_infos.reserve(num_time_infos);
 
     const uint32_t now_ntp = CompactNtp(clock_->CurrentNtpTime());
@@ -265,7 +270,10 @@ void RtcpReceiver::RttPeriodicUpdate() {
             PLOG_WARNING << "Timeout: No increase in RTCP RR extended highest sequence number.";
         }
     } else {
-        // TODO: Report RTT from receiver.
+        // Report RTT from receiver.
+        curr_rtt = GetLatestXrRrRtt();
+        // Reset and waits for new RTT.
+        xr_rr_rtt_ms_ = 0;
     }
 
     if (curr_rtt) {

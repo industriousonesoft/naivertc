@@ -8,11 +8,11 @@
 #include "rtc/rtp_rtcp/rtp_sender_video.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
+#include "rtc/rtp_rtcp/rtp/fec/fec_controller.hpp"
 #include "rtc/media/video/encoded_frame.hpp"
 #include "rtc/media/video/common.hpp"
 #include "rtc/transports/rtc_transport_media.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
-#include "rtc/rtp_rtcp/rtp/fec/fec_controller.hpp"
 
 #include <vector>
 
@@ -51,7 +51,8 @@ private:
     std::unique_ptr<RtpSender> rtp_sender_ = nullptr;
     std::unique_ptr<RtpSenderVideo> sender_video_ = nullptr;
     std::unique_ptr<FecGenerator> fec_generator_ = nullptr;
-    std::unique_ptr<FecGenerator> fec_controller_ = nullptr;
+    // TODO: Implement FecController.
+    std::unique_ptr<FecController> fec_controller_ = nullptr;
 };
 
 } // namespace naivertc

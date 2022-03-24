@@ -10,7 +10,7 @@
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
-#include "rtc/base/synchronization/sequence_checker.hpp"
+#include "rtc/base/task_utils/queued_task.hpp"
 
 #include <optional>
 #include <functional>
@@ -29,27 +29,27 @@ public:
     // 不同在于二者的发送逻辑不同，包括发送步幅和处理fec包等
     class NonPacedPacketSender final : public RtpPacketSender {
     public:
-        NonPacedPacketSender(RtpPacketEgresser* const sender, 
-                             SequenceNumberAssigner* seq_num_assigner);
+        NonPacedPacketSender(RtpPacketEgresser* const sender);
         ~NonPacedPacketSender() override;
 
         void EnqueuePackets(std::vector<RtpPacketToSend> packets) override;
 
     private:
-        void PrepareForSend(RtpPacketToSend& packet);
-    private:
-        uint16_t transport_sequence_number_;
         RtpPacketEgresser* const sender_;
-        SequenceNumberAssigner* const seq_num_assigner_;
     };
 public:
     RtpPacketEgresser(const RtpConfiguration& config,
+                      SequenceNumberAssigner* seq_num_assigner,
                       RtpPacketHistory* packet_history);
     ~RtpPacketEgresser();
 
     uint32_t ssrc() const;
     std::optional<uint32_t> rtx_ssrc() const;
     std::optional<uint32_t> flex_fec_ssrc() const;
+
+    bool media_has_been_sent() const;
+
+    void set_transport_seq_num(uint16_t seq_num);
    
     void SetFecProtectionParameters(const FecProtectionParams& delta_params,
                                     const FecProtectionParams& key_params);
@@ -105,7 +105,9 @@ private:
     void RecalculateMaxDelay();
 
     void PeriodicUpdate();
-  
+
+    void PrepareForSend(RtpPacketToSend& packet);
+
 private:
     friend class NonPacedPacketSender;
 
@@ -123,23 +125,26 @@ private:
     
     RtpPacketHistory* const packet_history_;
     FecGenerator* const fec_generator_;
+    SequenceNumberAssigner* const seq_num_assigner_;
 
     std::optional<std::pair<FecProtectionParams, FecProtectionParams>> pending_fec_params_;
 
     bool media_has_been_sent_ = false;
+    uint64_t transport_sequence_number_;
 
     RtpStreamDataCounters rtp_send_counter_;
     RtpStreamDataCounters rtx_send_counter_;
     std::unordered_map<RtpPacketType, BitrateStatistics> send_bitrate_stats_;
 
     // The sum of delays over a sliding window.
-    int64_t sliding_sum_delay_ms_;
-    uint64_t accumulated_delay_ms_;
+    int64_t sliding_sum_delay_ms_ = 0;
+    uint64_t accumulated_delay_ms_ = 0;
     SendDelayMap send_delays_;
     SendDelayMap::iterator max_delay_it_;
 
     TaskQueueImpl* worker_queue_;
     std::unique_ptr<RepeatingTask> update_task_;
+    ScopedTaskSafety task_safety_;
 
     RtpSendDelayObserver* const send_delay_observer_;
     RtpSendPacketObserver* const send_packet_observer_;

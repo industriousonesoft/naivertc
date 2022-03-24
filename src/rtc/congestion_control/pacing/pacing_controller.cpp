@@ -55,7 +55,9 @@ PacingController::PacingController(const Configuration& config)
       last_send_time_(last_process_time_),
       prober_(config.probing_settings),
       packet_queue_(last_process_time_),
-      queue_time_cap_(kMaxExpectedQueueTime) {}
+      queue_time_cap_(kMaxExpectedQueueTime) {
+    assert(packet_sender_ != nullptr);
+}
 
 PacingController::~PacingController() {}
 
