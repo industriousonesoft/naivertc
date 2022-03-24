@@ -5,20 +5,75 @@
 #include <plog/Log.h>
 
 namespace naivertc {
+namespace {
 
-std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> TaskQueueImplBoost::Create(std::string name) {
-    return std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter>(new TaskQueueImplBoost(std::move(name)));
+// ScopedTask
+struct ScopedTask {
+public: 
+    ScopedTask(std::unique_ptr<QueuedTask> queued_task) 
+        : queued_task_(std::move(queued_task)) {}
+    ScopedTask(ScopedTask&& other) 
+        : queued_task_(std::move(other.queued_task_)) {
+    }
+    ~ScopedTask() { queued_task_.reset(); }
+    ScopedTask& operator=(ScopedTask&& other) {
+        if (&other != this) {
+            queued_task_ = std::move(other.queued_task_);
+        }
+        return *this;
+    }
+
+    void operator()() {
+        if (queued_task_) {
+            queued_task_->Run();
+        }
+    }   
+
+private:
+    std::unique_ptr<QueuedTask> queued_task_;
+};
+
+} // namespace
+
+// Declaration
+class TaskQueueBoost final : public TaskQueueImpl {
+public:
+    TaskQueueBoost(std::string_view name);
+
+    void Delete() override;
+    void Post(std::unique_ptr<QueuedTask> task) override;
+    void PostDelayed(TimeDelta delay, std::unique_ptr<QueuedTask> task) override;
+
+private:
+    // Users of the TaskQueue should call Delete instead of 
+    // directly deleting this instance.
+    ~TaskQueueBoost() override;
+
+    void ScheduleTaskAfter(TimeDelta delay, ScopedTask&& scoped_task);
+
+private:
+    boost::asio::io_context ioc_;
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard_;
+    boost::asio::io_context::strand strand_;
+    std::unique_ptr<boost::thread> ioc_thread_;
+
+    std::list<boost::asio::deadline_timer*> pending_timers_;
+};
+
+// Implementation
+std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> CreateTaskQueueBoost(std::string_view name) {
+    return std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter>(new TaskQueueBoost(name));
 }
 
-TaskQueueImplBoost::TaskQueueImplBoost(std::string name) 
+TaskQueueBoost::TaskQueueBoost(std::string_view name) 
     : work_guard_(boost::asio::make_work_guard(ioc_)),
       strand_(ioc_) {
     // The thread will start immediately after created
     // ioc_thread_.reset(new boost::thread(boost::bind(&boost::asio::io_context::run, &ioc_)));
-    ioc_thread_.reset(new boost::thread([this, name=std::move(name)](){
+    ioc_thread_.reset(new boost::thread([this, name](){
         if (!name.empty()) {
             // FIXME: This seems not working?
-            SetCurrentThreadName(name.c_str());
+            SetCurrentThreadName(name.data());
         }
         // Set the current task queue of the thread.
         CurrentTaskQueueSetter set_current(this);
@@ -28,9 +83,9 @@ TaskQueueImplBoost::TaskQueueImplBoost(std::string name)
     }));
 }
 
-TaskQueueImplBoost::~TaskQueueImplBoost() = default;
+TaskQueueBoost::~TaskQueueBoost() = default;
 
-void TaskQueueImplBoost::Delete() {
+void TaskQueueBoost::Delete() {
     assert(IsCurrent() == false);
     // Indicate that the work is no longer working, ioc will exit later.
     work_guard_.reset();
@@ -55,20 +110,20 @@ void TaskQueueImplBoost::Delete() {
     delete this;
 }
 
-void TaskQueueImplBoost::Post(std::unique_ptr<QueuedTask> task) {
-    boost::asio::post(strand_, ScopedQueuedTask(std::move(task)));
+void TaskQueueBoost::Post(std::unique_ptr<QueuedTask> task) {
+    boost::asio::post(strand_, ScopedTask(std::move(task)));
 }
 
-void TaskQueueImplBoost::PostDelayed(TimeDelta delay, std::unique_ptr<QueuedTask> task) {
+void TaskQueueBoost::PostDelayed(TimeDelta delay, std::unique_ptr<QueuedTask> task) {
     if (IsCurrent()) {
         if (delay.ms() > 0) {
-            ScheduleTaskAfter(delay, ScopedQueuedTask(std::move(task)));
+            ScheduleTaskAfter(delay, ScopedTask(std::move(task)));
         } else {
-            boost::asio::post(strand_, ScopedQueuedTask(std::move(task)));
+            boost::asio::post(strand_, ScopedTask(std::move(task)));
         }
     } else {
         uint32_t posted_time_ms = utils::time::Time32InMillis();
-        boost::asio::post(strand_, [this, delay, posted_time_ms, scoped_task=ScopedQueuedTask(std::move(task))]() mutable {
+        boost::asio::post(strand_, [this, delay, posted_time_ms, scoped_task=ScopedTask(std::move(task))]() mutable {
             uint32_t elasped_ms = utils::time::Time32InMillis() - posted_time_ms;
             if (delay.ms() > elasped_ms) {
                 ScheduleTaskAfter(delay - TimeDelta::Millis(elasped_ms), std::move(scoped_task));
@@ -80,7 +135,7 @@ void TaskQueueImplBoost::PostDelayed(TimeDelta delay, std::unique_ptr<QueuedTask
 }
 
 // Private methods
-void TaskQueueImplBoost::ScheduleTaskAfter(TimeDelta delay, ScopedQueuedTask&& scoped_task) {
+void TaskQueueBoost::ScheduleTaskAfter(TimeDelta delay, ScopedTask&& scoped_task) {
     assert(IsCurrent());
     // Construct a timer without setting an expiry time.
     boost::asio::deadline_timer* timer = new boost::asio::deadline_timer(ioc_, boost::posix_time::milliseconds(delay.ms()));

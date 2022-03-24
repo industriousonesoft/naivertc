@@ -8,10 +8,10 @@
 namespace naivertc {
 namespace {
 
-std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> CreateTaskQueue(std::string name, TaskQueue::Kind kind) {
+std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> CreateTaskQueue(std::string_view name, TaskQueue::Kind kind) {
     switch (kind) {
     case TaskQueue::Kind::BOOST:
-        return TaskQueueImplBoost::Create(std::move(name));
+        return CreateTaskQueueBoost(name);
     default:
         return nullptr;
     }
@@ -19,8 +19,8 @@ std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> CreateTaskQueue(std::stri
 
 } // namespac 
 
-TaskQueue::TaskQueue(std::string name, Kind kind) 
-    : TaskQueue(CreateTaskQueue(std::move(name), kind)) {}
+TaskQueue::TaskQueue(std::string_view name, Kind kind) 
+    : TaskQueue(CreateTaskQueue(name, kind)) {}
 
 TaskQueue::TaskQueue(std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> task_queue_impl) 
     : impl_(task_queue_impl.release()) {}

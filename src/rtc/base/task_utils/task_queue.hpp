@@ -12,7 +12,7 @@ public:
         BOOST
     };
 public:
-    TaskQueue(std::string name, Kind kind = Kind::BOOST);
+    TaskQueue(std::string_view name, Kind kind = Kind::BOOST);
     TaskQueue(std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> task_queue_impl);
     ~TaskQueue();
 
