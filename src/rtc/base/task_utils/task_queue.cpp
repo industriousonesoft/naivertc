@@ -34,11 +34,11 @@ TaskQueue::~TaskQueue() {
     PLOG_VERBOSE << __FUNCTION__ << " did destroy.";
 }
 
-void TaskQueue::Post(QueuedTask&& task) {
+void TaskQueue::Post(std::unique_ptr<QueuedTask> task) {
     impl_->Post(std::move(task));
 }
 
-void TaskQueue::PostDelayed(TimeDelta delay, QueuedTask&& task) {
+void TaskQueue::PostDelayed(TimeDelta delay, std::unique_ptr<QueuedTask> task) {
     impl_->PostDelayed(delay, std::move(task));
 }
 

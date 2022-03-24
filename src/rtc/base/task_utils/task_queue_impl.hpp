@@ -23,15 +23,23 @@ public:
     virtual void Delete() = 0;
 
     // Scheduls a closure to execute. Tasks are executed in FIFO order.
-    virtual void Post(QueuedTask&& task) { RTC_NOTREACHED(); };
+    virtual void Post(std::unique_ptr<QueuedTask> task) { RTC_NOTREACHED(); };
     // Scheduls a closure to execute a specified delay from when the call is made.
-    virtual void PostDelayed(TimeDelta delay, QueuedTask&& task) { RTC_NOTREACHED(); };
+    virtual void PostDelayed(TimeDelta delay, std::unique_ptr<QueuedTask> task) { RTC_NOTREACHED(); };
 
-    void Post(std::function<void()>&& handler) {
-        Post(QueuedTask(std::move(handler)));
+    template<typename Closure,
+             typename std::enable_if<!std::is_convertible<
+                Closure,
+                std::unique_ptr<QueuedTask>>::value>::type* = nullptr>
+    void Post(Closure&& closure) {
+        Post(ToQueuedTask(std::forward<Closure>(closure)));
     }
-    void PostDelayed(TimeDelta delay, std::function<void()>&& handler) {
-        PostDelayed(delay, QueuedTask(std::move(handler)));
+    template<typename Closure,
+             typename std::enable_if<!std::is_convertible<
+                Closure,
+                std::unique_ptr<QueuedTask>>::value>::type* = nullptr>
+    void PostDelayed(TimeDelta delay, Closure&& closure) {
+        PostDelayed(delay, ToQueuedTask(std::forward<Closure>(closure)));
     }
 
     // Convenience method to invoke a functor on another thread, which
@@ -88,9 +96,6 @@ protected:
 private:
     mutable Event event_;
 };
-
-#define RTC_RUN_ON(x)   \
-    assert((x)->IsCurrent() && "TaskQueue doesn't match.")
     
 } // namespace naivertc
 

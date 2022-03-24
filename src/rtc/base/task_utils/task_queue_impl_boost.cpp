@@ -55,38 +55,38 @@ void TaskQueueImplBoost::Delete() {
     delete this;
 }
 
-void TaskQueueImplBoost::Post(QueuedTask&& task) {
-    boost::asio::post(strand_, std::move(task));
+void TaskQueueImplBoost::Post(std::unique_ptr<QueuedTask> task) {
+    boost::asio::post(strand_, ScopedQueuedTask(std::move(task)));
 }
 
-void TaskQueueImplBoost::PostDelayed(TimeDelta delay, QueuedTask&& task) {
+void TaskQueueImplBoost::PostDelayed(TimeDelta delay, std::unique_ptr<QueuedTask> task) {
     if (IsCurrent()) {
         if (delay.ms() > 0) {
-            ScheduleTaskAfter(delay, std::move(task));
+            ScheduleTaskAfter(delay, ScopedQueuedTask(std::move(task)));
         } else {
-            boost::asio::post(strand_, std::move(task));
+            boost::asio::post(strand_, ScopedQueuedTask(std::move(task)));
         }
     } else {
         uint32_t posted_time_ms = utils::time::Time32InMillis();
-        boost::asio::post(strand_, [this, delay, posted_time_ms, task = std::move(task)]() mutable {
+        boost::asio::post(strand_, [this, delay, posted_time_ms, scoped_task=ScopedQueuedTask(std::move(task))]() mutable {
             uint32_t elasped_ms = utils::time::Time32InMillis() - posted_time_ms;
             if (delay.ms() > elasped_ms) {
-                ScheduleTaskAfter(delay - TimeDelta::Millis(elasped_ms), std::move(task));
+                ScheduleTaskAfter(delay - TimeDelta::Millis(elasped_ms), std::move(scoped_task));
             } else {
-                boost::asio::post(strand_, std::move(task));
+                boost::asio::post(strand_, std::move(scoped_task));
             }
         });
     }
 }
 
 // Private methods
-void TaskQueueImplBoost::ScheduleTaskAfter(TimeDelta delay, QueuedTask&& task) {
+void TaskQueueImplBoost::ScheduleTaskAfter(TimeDelta delay, ScopedQueuedTask&& scoped_task) {
     assert(IsCurrent());
     // Construct a timer without setting an expiry time.
     boost::asio::deadline_timer* timer = new boost::asio::deadline_timer(ioc_, boost::posix_time::milliseconds(delay.ms()));
     // Start an asynchronous wait
-    timer->async_wait([this, timer, task = std::move(task)](const boost::system::error_code& error) mutable {
-        task();
+    timer->async_wait([this, timer, scoped_task=std::move(scoped_task)](const boost::system::error_code& error) mutable {
+        scoped_task();
         pending_timers_.remove(timer);
     });
     pending_timers_.push_back(timer);

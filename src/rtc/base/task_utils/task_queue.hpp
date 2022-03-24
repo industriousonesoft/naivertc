@@ -16,14 +16,22 @@ public:
     TaskQueue(std::unique_ptr<TaskQueueImpl, TaskQueueImpl::Deleter> task_queue_impl);
     ~TaskQueue();
 
-    void Post(QueuedTask&& task);
-    void PostDelayed(TimeDelta delay, QueuedTask&& task);
+    void Post(std::unique_ptr<QueuedTask> task);
+    void PostDelayed(TimeDelta delay, std::unique_ptr<QueuedTask> task);
 
-    void Post(std::function<void()>&& handler) {
-        Post(QueuedTask(std::move(handler)));
+    template<typename Closure,
+             typename std::enable_if<!std::is_convertible<
+                Closure,
+                std::unique_ptr<QueuedTask>>::value>::type* = nullptr>
+    void Post(Closure&& closure) {
+        Post(ToQueuedTask(std::forward<Closure>(closure)));
     }
-    void PostDelayed(TimeDelta delay, std::function<void()>&& handler) {
-        PostDelayed(delay, QueuedTask(std::move(handler)));
+    template<typename Closure,
+             typename std::enable_if<!std::is_convertible<
+                Closure,
+                std::unique_ptr<QueuedTask>>::value>::type* = nullptr>
+    void PostDelayed(TimeDelta delay, Closure&& closure) {
+        PostDelayed(delay, ToQueuedTask(std::forward<Closure>(closure)));
     }
 
     // Convenience method to invoke a functor on another thread, which

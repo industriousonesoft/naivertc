@@ -35,7 +35,7 @@ MY_TEST(SimulatedTimeControllerTest, TaskIsStoppedOnStop) {
     time_simulation.AdvanceTime(kShortInterval * (kShortIntervalCount + kMargin));
     EXPECT_EQ(counter.load(), kShortIntervalCount);
 
-    task_queue->Post(QueuedTask([repeating_task=repeating_task.get()](){
+    task_queue->Post(ToQueuedTask([repeating_task=repeating_task.get()](){
         repeating_task->Stop();
     }));
 
@@ -63,7 +63,7 @@ MY_TEST(SimulatedTimeControllerTest, DelayedTaskRunOnTime) {
     auto task_queue = time_simulation.CreateTaskQueue();
 
     bool delay_task_executed = false;
-    task_queue->PostDelayed(TimeDelta::Millis(10), QueuedTask([&](){
+    task_queue->PostDelayed(TimeDelta::Millis(10), ToQueuedTask([&](){
         delay_task_executed = true;
     }));
 

@@ -29,17 +29,17 @@ public:
 
     // TaskQueueImpl interface
     void Delete() RTC_LOCKS_EXCLUDED(lock_) override;
-    void Post(QueuedTask&& task) RTC_LOCKS_EXCLUDED(lock_) override;
-    void PostDelayed(TimeDelta delay, QueuedTask&& task) RTC_LOCKS_EXCLUDED(lock_) override;
+    void Post(std::unique_ptr<QueuedTask> task) RTC_LOCKS_EXCLUDED(lock_) override;
+    void PostDelayed(TimeDelta delay, std::unique_ptr<QueuedTask> task) RTC_LOCKS_EXCLUDED(lock_) override;
 
 private:
     SimulatedTimeController* const time_controller_;
 
     mutable std::mutex lock_;
 
-    using ReadyTaskDeque = std::deque<QueuedTask>;
+    using ReadyTaskDeque = std::deque<std::unique_ptr<QueuedTask>>;
     ReadyTaskDeque ready_tasks_ RTC_GUARDED_BY(lock_);
-    using DelayedTaskMap = std::map<Timestamp, std::vector<QueuedTask>>;
+    using DelayedTaskMap = std::map<Timestamp, std::vector<std::unique_ptr<QueuedTask>>>;
     DelayedTaskMap delayed_tasks_ RTC_GUARDED_BY(lock_);
 
     Timestamp next_run_time_ RTC_GUARDED_BY(lock_) = Timestamp::PlusInfinity();
