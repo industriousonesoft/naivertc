@@ -206,9 +206,9 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
 #if ENABLE_UNIT_TESTS
         UpdateSentStatistics(now_ms, std::move(send_stats));
 #else
-        worker_queue_->Post([this, now_ms, send_stats=std::move(send_stats)](){
+        worker_queue_->Post(ToQueuedTask(task_safety_, [this, now_ms, send_stats=std::move(send_stats)](){
             UpdateSentStatistics(now_ms, std::move(send_stats));
-        });
+        }));
 #endif
    
     }

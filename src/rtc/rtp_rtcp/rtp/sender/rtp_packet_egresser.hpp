@@ -10,7 +10,7 @@
 #include "rtc/rtp_rtcp/base/rtp_rtcp_interfaces.hpp"
 #include "rtc/rtp_rtcp/rtp/fec/fec_generator.hpp"
 #include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
-#include "rtc/base/synchronization/sequence_checker.hpp"
+#include "rtc/base/task_utils/queued_task.hpp"
 
 #include <optional>
 #include <functional>
@@ -144,6 +144,7 @@ private:
 
     TaskQueueImpl* worker_queue_;
     std::unique_ptr<RepeatingTask> update_task_;
+    ScopedTaskSafety task_safety_;
 
     RtpSendDelayObserver* const send_delay_observer_;
     RtpSendPacketObserver* const send_packet_observer_;

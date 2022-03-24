@@ -89,6 +89,7 @@ set(LIB_HEADERS
     src/rtc/base/task_utils/task_queue_impl.hpp
     src/rtc/base/task_utils/task_queue_impl_boost.hpp
     src/rtc/base/task_utils/queued_task.hpp
+    src/rtc/base/task_utils/pending_task_safety_flag.hpp
     src/rtc/base/synchronization/event.hpp
     src/rtc/base/synchronization/yield_policy.hpp
     src/rtc/base/synchronization/sequence_checker.hpp
@@ -359,6 +360,7 @@ set(LIB_SOURCES
     src/rtc/base/task_utils/task_queue.cpp
     src/rtc/base/task_utils/task_queue_impl.cpp
     src/rtc/base/task_utils/task_queue_impl_boost.cpp
+    src/rtc/base/task_utils/pending_task_safety_flag.cpp
     src/rtc/base/synchronization/event.cpp
     # src/rtc/base/synchronization/event_win.cpp
     src/rtc/base/synchronization/event_posix.cpp

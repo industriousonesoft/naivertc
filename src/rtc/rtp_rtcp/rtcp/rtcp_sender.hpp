@@ -14,7 +14,7 @@
 #include "rtc/rtp_rtcp/rtcp/packets/dlrr.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/report_block.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/loss_notification.hpp"
-#include "rtc/base/synchronization/sequence_checker.hpp"
+#include "rtc/base/task_utils/queued_task.hpp"
 
 #include <optional>
 #include <memory>
@@ -234,6 +234,7 @@ private:
     RtcpReceiveFeedbackProvider* const rtcp_receive_feedback_provider_ = nullptr;
 
     TaskQueueImpl* const work_queue_;
+    ScopedTaskSafety task_safety_;
 };
     
 } // namespace naivert 
