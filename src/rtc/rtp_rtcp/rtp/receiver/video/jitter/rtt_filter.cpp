@@ -97,7 +97,7 @@ void RttFilter::Reset() {
 }
 
 int64_t RttFilter::RttMs() const {
-    // FIXME: Why we need to round up a integer?
+    // FIXME: Why we need to round a integer?
     return static_cast<int64_t>(max_rtt_ + 0.5);
 }
 

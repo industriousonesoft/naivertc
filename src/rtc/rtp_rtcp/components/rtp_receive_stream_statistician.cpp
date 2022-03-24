@@ -140,10 +140,11 @@ std::optional<rtcp::ReportBlock> RtpReceiveStreamStatistician::GetReportBlock() 
 RtpReceiveStats RtpReceiveStreamStatistician::GetStates() const {
     RtpReceiveStats stats;
     stats.packets_lost = cumulative_loss_;
+    // TODO: Can we return a float instead?
     stats.jitter = jitter_q4_ >> 4;
     if (receive_counters_.last_packet_received_time_ms.has_value()) {
-        // TODO: how to understand `delta_internal_unix_epoch_ms_`?
-        // TODO: Why we need to add `delta_internal_unix_epoch_ms_`?
+        // NOTE: |delta_internal_unix_epoch_ms|是基于UTC计算得到的Unix epoch与本地的系统时间（不一定采用Unix epoch）的偏差。
+        // Convert time based on local system to time based on Unix epoch.
         stats.last_packet_received_time_ms = *receive_counters_.last_packet_received_time_ms + delta_internal_unix_epoch_ms_;
     }
     stats.packet_counter = receive_counters_.transmitted;
@@ -178,7 +179,7 @@ bool RtpReceiveStreamStatistician::HasReceivedRtpPacket() const {
 }
 
 bool RtpReceiveStreamStatistician::IsRetransmitedPacket(const RtpPacketReceived& packet, 
-                                                 int64_t receive_time_ms) const {
+                                                        int64_t receive_time_ms) const {
     uint32_t frequency_khz = packet.payload_type_frequency() / 1000;
     assert(frequency_khz > 0);
 
@@ -212,6 +213,8 @@ void RtpReceiveStreamStatistician::UpdateJitter(const RtpPacketReceived& packet,
     // The difference in the `relative transit time` for two packtes.
     // D(i,j) = (Rj - Ri) - (Sj - Si) = (Rj - Sj) - (Ri - Si)
     uint32_t receive_timestamp_diff = static_cast<uint32_t>(receive_diff_ms * packet.payload_type_frequency() / 1000);
+    // NOTE: No need to take account of wrap around as we will filter
+    // the crazy jumps below.
     uint32_t send_timestamp_diff = packet.timestamp() - last_packet_timestamp_;
     int32_t transit_timestamp_diff = receive_timestamp_diff - send_timestamp_diff;
 
@@ -219,7 +222,7 @@ void RtpReceiveStreamStatistician::UpdateJitter(const RtpPacketReceived& packet,
 
     // Use 5 seconds video frequency as the threshold.
     // NOTE: In case of a crazy jumps happens.
-    const int32_t JitterDiffThreshold = 450000; // 5 * 90000
+    const int32_t JitterDiffThreshold = 450000; // 5s * 90000kbps
     if (transit_timestamp_diff < JitterDiffThreshold) {
         // The interarrival jitter J is defined to be the mean deviation 
         // (smoothed absolute value) of the difference D in packet spacing 
@@ -228,13 +231,13 @@ void RtpReceiveStreamStatistician::UpdateJitter(const RtpPacketReceived& packet,
         // NOTE: We calculate in Q4 to avoid using float.
         int32_t jitter_diff_q4 = (transit_timestamp_diff << 4) - jitter_q4_;
         // Smoothing filter
-        jitter_q4_ += ((jitter_diff_q4 + /*round up*/8) >> 4);
+        jitter_q4_ += ((jitter_diff_q4 + /*round*/8) >> 4);
     }
 }
 
 bool RtpReceiveStreamStatistician::IsOutOfOrderPacket(const RtpPacketReceived& packet, 
-                                               int64_t unwrapped_seq_num, 
-                                               int64_t receive_time_ms) {
+                                                      int64_t unwrapped_seq_num, 
+                                                      int64_t receive_time_ms) {
     // Check if `packet` is second packet of a restarted stream.
     if (received_seq_out_of_order_.has_value()) {
         // Count the previous packet as a received packet.
