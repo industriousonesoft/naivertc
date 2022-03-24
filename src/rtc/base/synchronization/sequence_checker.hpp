@@ -3,11 +3,12 @@
 
 #include "base/defines.hpp"
 #include "base/thread_annotation.hpp"
-#include "rtc/base/task_utils/task_queue_impl.hpp"
 
 #include <mutex>
 
 namespace naivertc {
+
+class TaskQueueImpl;
 
 // SequenceChecker is a helper class used to help verify that
 // some methods of a class are called on the same task queue.
@@ -31,6 +32,9 @@ private:
     mutable bool attached_ RTC_GUARDED_BY(lock_);
     mutable const TaskQueueImpl* attached_queue_ RTC_GUARDED_BY(lock_);
 };
+
+#define RTC_RUN_ON(x)   \
+    assert((x)->IsCurrent() && "TaskQueue doesn't match.")
     
 } // namespace naivertc
 

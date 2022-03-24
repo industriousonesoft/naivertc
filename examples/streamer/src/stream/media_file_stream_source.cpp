@@ -1,6 +1,7 @@
 #include "stream/media_file_stream_source.hpp"
 
 #include "rtc/base/units/time_delta.hpp"
+#include "rtc/base/task_utils/task_queue_impl.hpp"
 
 #include <limits>
 #include <plog/Log.h>
