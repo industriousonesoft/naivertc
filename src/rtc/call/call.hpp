@@ -6,7 +6,6 @@
 #include "rtc/rtp_rtcp/base/rtp_parameters.hpp"
 #include "rtc/rtp_rtcp/components/rtp_demuxer.hpp"
 #include "rtc/media/video/encoded_frame.hpp"
-#include "rtc/call/rtp_send_controller.hpp"
 
 #include <unordered_map>
 #include <set>
@@ -18,6 +17,7 @@ class RtcMediaTransport;
 class VideoSendStream;
 class VideoReceiveStream;
 class MediaReceiveStream;
+class RtpSendController;
 
 class Call {
 public:
@@ -44,7 +44,7 @@ private:
     std::unordered_map<uint32_t, MediaReceiveStream*> recv_streams_by_ssrc_;
 
     RtpDemuxer rtp_demuxer_;
-    RtpSendController send_controller_;
+    std::unique_ptr<RtpSendController> send_controller_;
     
 };
     

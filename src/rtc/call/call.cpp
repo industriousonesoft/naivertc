@@ -4,6 +4,7 @@
 #include "rtc/media/video_send_stream.hpp"
 #include "rtc/media/video_receive_stream.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
+#include "rtc/call/rtp_send_controller.hpp"
 
 namespace naivertc {
 namespace {
@@ -34,7 +35,7 @@ bool SendPeriodicFeedback(const std::vector<RtpExtension>& extensions) {
 Call::Call(Clock* clock, RtcMediaTransport* send_transport) 
     : clock_(clock),
       send_transport_(send_transport),
-      send_controller_(clock_) {
+      send_controller_(std::make_unique<RtpSendController>(clock_)) {
     worker_queue_checker_.Detach();
 }
     
@@ -80,9 +81,9 @@ void Call::AddVideoSendStream(const RtpParameters& rtp_params) {
         send_config.clock = clock_;
         send_config.send_transport = send_transport_;
         send_config.rtp = rtp_params;
-        send_config.observers.bandwidth_observer = &send_controller_;
-        send_config.observers.rtcp_transport_feedback_observer = &send_controller_;
-        send_config.observers.rtp_transport_feedback_observer = &send_controller_;
+        send_config.observers.bandwidth_observer = send_controller_.get();
+        send_config.observers.rtcp_transport_feedback_observer = send_controller_.get();
+        send_config.observers.rtp_transport_feedback_observer = send_controller_.get();
         auto send_stream = std::make_unique<VideoSendStream>(send_config);
         // Added as RTCP sink.
         for (uint32_t ssrc : send_stream->ssrcs()) {
@@ -122,7 +123,7 @@ void Call::AddVideoRecvStream(const RtpParameters& rtp_params) {
 void Call::Clear() {
     RTC_RUN_ON(&worker_queue_checker_);
     rtp_demuxer_.Clear();
-    send_controller_.Clear();
+    send_controller_->Clear();
     video_send_streams_.clear();
     video_recv_streams_.clear();
     recv_streams_by_ssrc_.clear();

@@ -257,11 +257,11 @@ int32_t RtpSender::ResendPacket(uint16_t seq_num) {
         // TODO: Check if we're overusing retransmission bitrate.
         packet_size = stored_packet.size();
         std::optional<RtpPacketToSend> retransmit_packet;
-        // Retransmitted by the RTX stream.
+        // Retransmitted on RTX ssrc.
         if (rtx_enabled) {
             retransmit_packet = ctx_->packet_generator.BuildRtxPacket(stored_packet);
         }else {
-            // Retransmitted by the media stream.
+            // Retransmitted on media ssrc.
             retransmit_packet = stored_packet;
         }
         if (retransmit_packet) {

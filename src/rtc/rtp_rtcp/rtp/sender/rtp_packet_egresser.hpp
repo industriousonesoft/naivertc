@@ -3,7 +3,6 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/task_utils/task_queue.hpp"
-#include "rtc/base/task_utils/repeating_task.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_configurations.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/base/rtp_statistic_types.hpp"
@@ -19,6 +18,7 @@
 
 namespace naivertc {
 
+class RepeatingTask;
 class RtpPacketHistory;
 class RtpPacketSequencer;
 
