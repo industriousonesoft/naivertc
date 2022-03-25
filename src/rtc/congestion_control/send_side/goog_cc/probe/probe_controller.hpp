@@ -49,6 +49,7 @@ public:
                                                Timestamp at_time);
     std::vector<ProbeClusterConfig> OnMaxTotalAllocatedBitrate(DataRate max_total_allocated_bitrate,
                                                                Timestamp at_time);
+    std::vector<ProbeClusterConfig> OnNetworkAvailability(NetworkAvailability msg);                        
 
     std::vector<ProbeClusterConfig> OnEstimatedBitrate(DataRate estimate,
                                                        Timestamp at_time);
@@ -86,6 +87,7 @@ private:
 private:
     const Configuration config_;
     bool enable_periodic_alr_probing_ = false;
+    bool network_available_ = true;
     ProbingState probing_state_ = ProbingState::NEW;
 
     DataRate start_bitrate_ = DataRate::Zero();

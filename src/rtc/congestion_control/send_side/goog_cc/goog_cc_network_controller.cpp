@@ -71,6 +71,7 @@ GoogCcNetworkController::~GoogCcNetworkController() {}
 
 NetworkControlUpdate GoogCcNetworkController::OnNetworkAvailability(const NetworkAvailability& msg) {
     NetworkControlUpdate update;
+    update.probe_cluster_configs = probe_controller_->OnNetworkAvailability(msg);
     return update;
 }
 

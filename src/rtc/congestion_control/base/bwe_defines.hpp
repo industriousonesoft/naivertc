@@ -11,9 +11,11 @@ namespace naivertc {
 
 constexpr DataRate kDefaultMinBitrate = DataRate::BitsPerSec(5'000); // 5kbps
 constexpr DataRate kDefaultMaxBitrate = DataRate::BitsPerSec(1000'000'000); // 1000mbps
+constexpr DataRate kDefaultStartTargetBitrate = DataRate::BitsPerSec(300'000); // 300kbps
 
 constexpr TimeDelta kDefaultAcceptedQueuingDelay = TimeDelta::Millis(350); // 350ms
 constexpr DataRate kDefaultMinPushbackTargetBitrate = DataRate::BitsPerSec(30'000); // 30kbps
+
 
 enum class BandwidthUsage {
     NORMAL,

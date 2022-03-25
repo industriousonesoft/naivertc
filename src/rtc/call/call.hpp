@@ -34,6 +34,9 @@ public:
     void DeliverRtpPacket(CopyOnWriteBuffer in_packet, bool is_rtcp);
 
 private:
+    void OnAggregateNetworkStateChanged();
+
+private:
     SequenceChecker worker_queue_checker_;
     Clock* const clock_;
     RtcMediaTransport* send_transport_;

@@ -30,12 +30,19 @@ bool SendPeriodicFeedback(const std::vector<RtpExtension>& extensions) {
     return true;
 }
 
+std::unique_ptr<RtpSendController> CreateSendController(Clock* clock) {
+    RtpSendController::Configuration config;
+    config.clock = clock;
+    // TODO: Initial target bitrate settings.
+    return std::make_unique<RtpSendController>(config);
+}
+
 } // namespace
 
 Call::Call(Clock* clock, RtcMediaTransport* send_transport) 
     : clock_(clock),
       send_transport_(send_transport),
-      send_controller_(std::make_unique<RtpSendController>(clock_)) {
+      send_controller_(CreateSendController(clock_)) {
     worker_queue_checker_.Detach();
 }
     
@@ -91,6 +98,8 @@ void Call::AddVideoSendStream(const RtpParameters& rtp_params) {
         }
         video_send_streams_.insert(std::move(send_stream));
     }
+
+    OnAggregateNetworkStateChanged();
 }
 
 void Call::AddVideoRecvStream(const RtpParameters& rtp_params) {
@@ -117,7 +126,8 @@ void Call::AddVideoRecvStream(const RtpParameters& rtp_params) {
         }
         video_recv_streams_.insert(std::move(recv_stream));
     }
-    
+
+    OnAggregateNetworkStateChanged();
 }
 
 void Call::Clear() {
@@ -137,6 +147,14 @@ void Call::Send(video::EncodedFrame encoded_frame) {
     for (auto& send_stream: video_send_streams_) {
         send_stream->OnEncodedFrame(std::move(encoded_frame));
     }
+}
+
+// Private methods
+void Call::OnAggregateNetworkStateChanged() {
+    RTC_RUN_ON(&worker_queue_checker_);
+    bool have_video = !video_send_streams_.empty() || !video_recv_streams_.empty();
+
+    send_controller_->OnNetworkAvailability(have_video);
 }
     
 } // namespace naivertc
