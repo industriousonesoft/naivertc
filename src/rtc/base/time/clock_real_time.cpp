@@ -8,9 +8,9 @@ namespace {
 // 1) Calculate the offset between UTC and system clock
 // 2) Convert UTC offset to NTP offset
 int64_t NtpOffsetInUs() {
-    int64_t clock_time = utils::time::TimeInMicros();
+    int64_t system_time = utils::time::TimeInMicros();
     int64_t utc_time = utils::time::TimeUTCInMicros();
-    return (utc_time - clock_time /* Offset between UTC and system clock */) + kNtpJan1970Sec *  kNumMicrosecsPerSec;
+    return (utc_time - system_time /* Offset between UTC and system clock */) + kNtpJan1970Sec * kNumMicrosecsPerSec;
 }
 
 NtpTime TimeMicrosToNtp(int64_t time_us) {
