@@ -8,8 +8,6 @@ namespace {
 // 1) Calculate the offset between UTC and system clock
 // 2) Convert UTC offset to NTP offset
 int64_t NtpOffsetInUs() {
-    // Time interval in seconds between 1970 and 1900
-    constexpr int64_t kNtpJan1970Sec = 2208988800;
     int64_t clock_time = utils::time::TimeInMicros();
     int64_t utc_time = utils::time::TimeUTCInMicros();
     return (utc_time - clock_time /* Offset between UTC and system clock */) + kNtpJan1970Sec *  kNumMicrosecsPerSec;
@@ -36,10 +34,6 @@ NtpTime TimeMicrosToNtp(int64_t time_us) {
 } // namespace
 
 // RealTimeClock implements
-RealTimeClock::RealTimeClock() {}
-
-RealTimeClock::~RealTimeClock() {}
-
 Timestamp RealTimeClock::CurrentTime() {
     return Timestamp::Micros(utils::time::TimeInMicros());
 }

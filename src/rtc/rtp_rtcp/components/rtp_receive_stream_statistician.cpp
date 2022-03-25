@@ -1,4 +1,5 @@
 #include "rtc/rtp_rtcp/components/rtp_receive_stream_statistician.hpp"
+#include "common/utils_time.hpp"
 
 #include <plog/Log.h>
 
@@ -12,7 +13,7 @@ constexpr int64_t kStatisticsProcessIntervalMs = 1000; // 1s
 RtpReceiveStreamStatistician::RtpReceiveStreamStatistician(uint32_t ssrc, Clock* clock, int max_reordering_threshold) 
     : ssrc_(ssrc),
       clock_(clock),
-      delta_internal_unix_epoch_ms_(/*time based on Unix epoch*/(clock_->now_ntp_time_ms() - kNtpJan1970Ms) - clock_->now_ms()),
+      delta_internal_unix_epoch_ms_(utils::time::TimeUTCInMillis() - clock_->now_ms()),
       max_reordering_threshold_(max_reordering_threshold),
       enable_retransmit_detection_(false),
       cumulative_loss_is_capped_(false),
@@ -143,8 +144,8 @@ RtpReceiveStats RtpReceiveStreamStatistician::GetStates() const {
     // TODO: Can we return a float instead?
     stats.jitter = jitter_q4_ >> 4;
     if (receive_counters_.last_packet_received_time_ms.has_value()) {
-        // NOTE: |delta_internal_unix_epoch_ms|是基于UTC计算得到的Unix epoch与本地的系统时间（不一定采用Unix epoch）的偏差。
-        // Convert time based on local system to time based on Unix epoch.
+        // NOTE: |delta_internal_unix_epoch_ms|表示POSIX time（基于Unix epoch）与system time（不一定基于Unix epoch）之间的间隔时间。
+        // Convert time based on local system to POSIX time based on Unix epoch.
         stats.last_packet_received_time_ms = *receive_counters_.last_packet_received_time_ms + delta_internal_unix_epoch_ms_;
     }
     stats.packet_counter = receive_counters_.transmitted;

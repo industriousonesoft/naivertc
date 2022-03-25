@@ -50,6 +50,14 @@ int64_t TimeUTCInMicros() {
     #error "Unsupported plotform";
 #endif
 }
+
+int64_t TimeUTCInMillis() {
+    return TimeUTCInMicros() / kNumMicrosecsPerMillisec;
+}
+
+int64_t TimeUTCInSec() {
+    return TimeUTCInMicros() / kNumMicrosecsPerSec;
+}
     
 } // time
 } // namespace utils

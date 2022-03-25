@@ -16,7 +16,7 @@ Timestamp SimulatedClock::CurrentTime() {
 
 NtpTime SimulatedClock::ConvertTimestampToNtpTime(Timestamp timestamp) {
     int64_t now_us = timestamp.us();
-    uint32_t seconds = (now_us / 1'000'000) + kNtpJan1970s;
+    uint32_t seconds = (now_us / 1'000'000) + kNtpJan1970Sec;
     uint32_t fractions = static_cast<uint32_t>(
         (now_us % 1'000'000) * kMagicNtpFractionalUnit / 1'000'000);
     return NtpTime(seconds, fractions);
