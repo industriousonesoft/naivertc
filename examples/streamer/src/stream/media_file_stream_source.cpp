@@ -75,7 +75,7 @@ void MediaFileStreamSource::LoadNextSample() {
             sample_callback_({}, false, clock_.now_ms());
         }
         is_stoped_ = true;
-        PLOG_VERBOSE << "Media file source stoped.";
+        PLOG_WARNING << "Failed to open media file at path: " << file_path;
         return;
     }
 
