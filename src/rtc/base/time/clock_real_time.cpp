@@ -25,9 +25,8 @@ NtpTime TimeMicrosToNtp(int64_t time_us) {
     uint32_t ntp_seconds = static_cast<uint64_t>(time_ntp_us / kNumMicrosecsPerSec);
 
     // Scale fractions of the second to NTP resolution.
-    constexpr int64_t kNtpFractionsInSecond = 1LL << 32;
     int64_t us_fractions = time_ntp_us %  kNumMicrosecsPerSec;
-    uint32_t ntp_fractions = us_fractions * kNtpFractionsInSecond / kNumMicrosecsPerSec;
+    uint32_t ntp_fractions = us_fractions * NtpTime::kFractionsPerSecond / kNumMicrosecsPerSec;
 
     return NtpTime(ntp_seconds, ntp_fractions);
 }
