@@ -218,6 +218,9 @@ std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const RtcpSenderRe
         return report_blocks;
     }
     
+    // TODO: Support sending more than `RTCP_MAX_REPORT_BLOCKS` per
+    // compound rtcp packet when single rtcp module is used for multiple media
+    // streams.
     report_blocks = report_block_provider_->GetRtcpReportBlocks(KMaxRtcpReportBlocksNum);
 
     // How to calculate RTT: https://blog.jianchihu.net/webrtc-research-stats-rtt.html
@@ -245,6 +248,9 @@ std::vector<rtcp::ReportBlock> RtcpSender::CreateReportBlocks(const RtcpSenderRe
         // Delay since the last RR
         uint32_t delay_since_last_sr = now - receive_time;
 
+        // TODO: Instead of setting same value on all report blocks,
+        // set only when media_ssrc match sender ssrc of the sender report
+        // remote times were taken from.
         for (auto& report_block : report_blocks) {
             report_block.set_last_sr_ntp_timestamp(last_sr_send_ntp_timestamp);
             report_block.set_delay_sr_since_last_sr(delay_since_last_sr);
