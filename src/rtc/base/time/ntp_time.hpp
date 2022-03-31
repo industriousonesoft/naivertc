@@ -10,6 +10,9 @@
 
 namespace naivertc {
 
+// Magic NTP fractional unit
+constexpr double kMagicNtpFractionalUnit = 4.294967296E+9; // 2^32
+
 // NTP协议使用的基准点是：1900-1-1-0:0:0（UTC）
 class NtpTime {
 public:

@@ -2,6 +2,7 @@
 #include "rtc/rtp_rtcp/rtp/packets/rtp_header_extensions.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_history.hpp"
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_sequencer.hpp"
+#include "rtc/base/task_utils/repeating_task.hpp"
 
 #include <plog/Log.h>
 
@@ -168,9 +169,6 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
     }
 
     const auto packet_type = packet.packet_type();
-    const bool is_media = packet_type == RtpPacketType::AUDIO ||
-                          packet_type == RtpPacketType::VIDEO;
-
     if (packet_type != RtpPacketType::PADDING &&
         packet_type != RtpPacketType::RETRANSMISSION) {
         // No include Padding or Retransmission packet.
@@ -180,11 +178,13 @@ bool RtpPacketEgresser::SendPacket(RtpPacketToSend packet,
         }
     }
     
-    // Put packet in retransmission history or update pending status even if
-    // actual sending fails.
+    const bool is_media = packet_type == RtpPacketType::AUDIO ||
+                          packet_type == RtpPacketType::VIDEO;
     if (is_media && packet.allow_retransmission()) {
+        // Put packet in retransmission history
         packet_history_->PutRtpPacket(packet, now_ms);
     } else if (packet.retransmitted_sequence_number()) {
+        // Update pending status even if actual sending fails.
         packet_history_->MarkPacketAsSent(*packet.retransmitted_sequence_number());
     }
 

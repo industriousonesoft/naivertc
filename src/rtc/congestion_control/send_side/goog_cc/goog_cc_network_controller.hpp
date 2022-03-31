@@ -21,8 +21,8 @@ public:
     NetworkControlUpdate OnNetworkAvailability(const NetworkAvailability&) override;
     NetworkControlUpdate OnNetworkRouteChange(const NetworkRouteChange&) override;
     NetworkControlUpdate OnPeriodicUpdate(const PeriodicUpdate&) override;
-    NetworkControlUpdate OnRembUpdated(DataRate remb, Timestamp receive_time) override;
-    NetworkControlUpdate OnRttUpdated(TimeDelta rtt, Timestamp receive_time) override;
+    NetworkControlUpdate OnRembUpdated(DataRate, Timestamp) override;
+    NetworkControlUpdate OnRttUpdated(TimeDelta, Timestamp) override;
     NetworkControlUpdate OnTransportLostReport(const TransportLossReport&) override;
     NetworkControlUpdate OnSentPacket(const SentPacket&) override;
     // NetworkControlUpdate OnReceivedPacket(const ReceivedPacket&) override;

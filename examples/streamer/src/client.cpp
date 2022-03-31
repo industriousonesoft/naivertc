@@ -4,12 +4,13 @@
 
 #include <string>
 #include <iostream>
+#include <filesystem>
 
 namespace {
 
-const std::string kDefaultSamplesRootDir = "/Users/markcao/Documents/Github_Codes/naivertc/examples/streamer/samples/";
-const std::string kDefaultH264SamplesDir = kDefaultSamplesRootDir + "h264/";
-const std::string kDefaultOpusSamplesDir = kDefaultSamplesRootDir + "opus/";
+const std::string kDefaultSamplesDirRelPath = "/examples/streamer/samples/";
+const std::string kDefaultH264SamplesDir = kDefaultSamplesDirRelPath + "h264/";
+const std::string kDefaultOpusSamplesDir = kDefaultSamplesDirRelPath + "opus/";
 
 } // namespace
 
@@ -48,8 +49,11 @@ void Client::Stop() {
 // Private methods
 void Client::StartVideoStream(MediaStreamSource::SampleAvailableCallback callback) {
     worker_queue_->Post([this, callback=std::move(callback)](){
+        std::filesystem::path curr_dir = std::filesystem::current_path();
+        auto samples_dir_path = curr_dir.string() + kDefaultH264SamplesDir;
+        PLOG_VERBOSE << "samples_dir_path: " << samples_dir_path;
         if (!h264_file_stream_source_) {
-            h264_file_stream_source_.reset(new H264FileStreamSource(kDefaultH264SamplesDir, 30, true));
+            h264_file_stream_source_.reset(new H264FileStreamSource(samples_dir_path, 30, true));
             h264_file_stream_source_->OnSampleAvailable(std::move(callback));
         }
         if (!h264_file_stream_source_->IsRunning()) {

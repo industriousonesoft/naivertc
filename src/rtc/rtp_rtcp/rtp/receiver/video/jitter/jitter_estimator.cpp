@@ -228,7 +228,7 @@ int JitterEstimator::GetEstimatedJitter(double rtt_multiplier,
         }
     }
 
-    return static_cast<int>(std::max(0.0, curr_jitter_ms) + 0.5 /* Round up: to increase an figure to the next highest whole number */);                    
+    return static_cast<int>(std::max(0.0, curr_jitter_ms) + /*Round*/0.5);                    
 }
 
 void JitterEstimator::UpdateRtt(int64_t rtt_ms) {

@@ -16,11 +16,11 @@ public:
 
     void Reset();
 
-    std::pair<int64_t, bool> CalculateDelay(uint32_t timestamp, int64_t recv_time_ms);
+    std::pair<int64_t, bool> CalculateDelay(uint32_t send_timestamp, int64_t recv_time_ms);
 
 private:
     int64_t prev_recv_time_ms_;
-    uint32_t prev_timestamp_;
+    uint32_t prev_send_timestamp_;
     int32_t num_wrap_around_;
     int64_t diff_timestamp_;
 };

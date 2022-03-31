@@ -8,7 +8,7 @@
 namespace naivertc {
 namespace test {
 
-MY_TEST(ClockTest, NtpTime) {
+MY_TEST(ClockTest, SystemTimeToNtpTime) {
     auto clock = Clock::GetRealTimeClock();
 
     EXPECT_NE(clock, nullptr);
@@ -22,7 +22,7 @@ MY_TEST(ClockTest, NtpTime) {
     int64_t milliseconds_lower_bound = clock->now_ntp_time_ms();
     NtpTime ntp_time = clock->CurrentNtpTime();
     int64_t milliseconds_upper_bound = clock->now_ntp_time_ms();
-    EXPECT_GT(milliseconds_lower_bound / 1000, kNtpJan1970s);
+    EXPECT_GT(milliseconds_lower_bound / 1000, kNtpJan1970Sec);
     EXPECT_LE(milliseconds_lower_bound - 1, ntp_time.ToMs());
     EXPECT_GE(milliseconds_upper_bound + 1, ntp_time.ToMs());
 }

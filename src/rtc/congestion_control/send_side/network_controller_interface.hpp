@@ -30,9 +30,9 @@ public:
     // Called periodically with a periodicy.
     RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnPeriodicUpdate(const PeriodicUpdate&) = 0;
     // Called when the bitrate calculated by the remote is received.
-    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnRembUpdated(DataRate remb, Timestamp receive_time) = 0;
+    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnRembUpdated(DataRate, Timestamp) = 0;
     // Called when the RTT has been calculated by protocol sepcific mechanisms.
-    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnRttUpdated(TimeDelta rtt, Timestamp receive_time) = 0;
+    RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnRttUpdated(TimeDelta, Timestamp) = 0;
     // Called when a protocol specific calculation of packet loss has been made.
     RTC_MUST_USE_RESULT virtual NetworkControlUpdate OnTransportLostReport(const TransportLossReport&) = 0;
     // Called when a packet is sent on the network.

@@ -395,6 +395,7 @@ std::vector<RtpPacketToSend> RtpPacketGenerator::GeneratePadding(size_t target_p
     }
 
     while (bytes_left) {
+        // NOTE: the padding packets without FEC protection.
         auto padding_packet = RtpPacketToSend(&rtp_header_extension_map_);
         padding_packet.set_packet_type(RtpPacketType::PADDING);
         // NOTE: We can distinguish padding packet from media packet by marker flag.

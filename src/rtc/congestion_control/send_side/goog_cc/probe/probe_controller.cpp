@@ -76,8 +76,10 @@ std::vector<ProbeClusterConfig> ProbeController::OnBitrates(DataRate start_bitra
 
     switch (probing_state_) {
     case ProbingState::NEW:
-        // Initiation of probing to estimate initial channel capacity.
-        return InitExponentialProbing(at_time);
+        if (network_available_) {
+            // Initiation of probing to estimate initial channel capacity.
+            return InitExponentialProbing(at_time);
+        }
         break;
     case ProbingState::WAITING:
         break;
@@ -145,6 +147,23 @@ std::vector<ProbeClusterConfig> ProbeController::OnMaxTotalAllocatedBitrate(Data
         max_total_allocated_bitrate_ = max_total_allocated_bitrate;
         return std::vector<ProbeClusterConfig>();
     }
+}
+
+std::vector<ProbeClusterConfig> ProbeController::OnNetworkAvailability(NetworkAvailability msg) {
+    network_available_ = msg.network_available;
+
+    // Reset probe state if the network becomes unavailable.
+    if (!network_available_ && probing_state_ == ProbingState::WAITING) {
+        probing_state_ = ProbingState::DONE;
+        min_bitrate_to_probe_further_.reset();
+    }
+
+    if (network_available_ && 
+        probing_state_ == ProbingState::NEW && 
+        start_bitrate_ > DataRate::Zero()) {
+        return InitExponentialProbing(msg.at_time);
+    }
+    return std::vector<ProbeClusterConfig>();
 }
 
 std::vector<ProbeClusterConfig> ProbeController::OnEstimatedBitrate(DataRate estimate,
@@ -235,6 +254,7 @@ std::vector<ProbeClusterConfig> ProbeController::RequestProbe(Timestamp at_time)
 }
 
 void ProbeController::Reset(Timestamp at_time) {
+    network_available_ = true;
     probing_state_ = ProbingState::NEW;
 
     start_bitrate_ = DataRate::Zero();

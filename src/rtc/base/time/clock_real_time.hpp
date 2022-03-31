@@ -9,12 +9,8 @@ namespace naivertc {
 
 class RealTimeClock : public Clock {
 public:
-    RealTimeClock();
-    ~RealTimeClock();
-
     Timestamp CurrentTime() override;
     NtpTime ConvertTimestampToNtpTime(Timestamp timestamp) override;
-
 };
     
 } // namespace naivertc

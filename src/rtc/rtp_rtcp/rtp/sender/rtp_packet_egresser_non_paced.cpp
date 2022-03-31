@@ -1,5 +1,7 @@
 #include "rtc/rtp_rtcp/rtp/sender/rtp_packet_egresser.hpp"
 
+#include <plog/Log.h>
+
 namespace naivertc {
 
 RtpPacketEgresser::NonPacedPacketSender::NonPacedPacketSender(RtpPacketEgresser* const sender) 
