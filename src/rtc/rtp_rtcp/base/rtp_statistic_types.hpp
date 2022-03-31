@@ -103,7 +103,8 @@ struct RtpReceiveStats {
     int32_t packets_lost = 0;
     uint32_t jitter = 0;
 
-    std::optional<Timestamp> last_packet_received_time;
+    // The UTC time based on Unix epoch (1970年1月1日0点0分0秒 UTC).
+    std::optional<Timestamp> last_packet_received_posix_time;
     RtpPacketCounter packet_counter;
 };
 

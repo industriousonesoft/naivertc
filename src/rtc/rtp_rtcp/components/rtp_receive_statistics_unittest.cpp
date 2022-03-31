@@ -56,7 +56,7 @@ void IncrementSeqNum(RtpPacketReceived* packet) {
 class T(RtpReceiveStatisticsTest) : public ::testing::Test {
 public:
     T(RtpReceiveStatisticsTest)() 
-        : clock_(0),
+        : clock_(1000'000),
           receive_statistics_(&clock_) {
         packet1_ = CreateRtpPacket(kSsrc1, kPacketSize1);
         packet2_ = CreateRtpPacket(kSsrc2, kPacketSize2);

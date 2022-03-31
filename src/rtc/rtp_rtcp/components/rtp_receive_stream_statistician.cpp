@@ -13,7 +13,6 @@ constexpr TimeDelta kStatisticsProcessInterval = TimeDelta::Seconds(1); // 1s
 RtpReceiveStreamStatistician::RtpReceiveStreamStatistician(uint32_t ssrc, Clock* clock, int max_reordering_threshold) 
     : ssrc_(ssrc),
       clock_(clock),
-      delta_internal_unix_epoch_ms_(utils::time::TimeUTCInMillis() - clock_->now_ms()),
       max_reordering_threshold_(max_reordering_threshold),
       enable_retransmit_detection_(false),
       cumulative_loss_is_capped_(false),
@@ -144,9 +143,7 @@ RtpReceiveStats RtpReceiveStreamStatistician::GetStates() const {
     // TODO: Can we return a float instead?
     stats.jitter = jitter_q4_ >> 4;
     if (receive_counters_.last_packet_received_time.has_value()) {
-        // NOTE: |delta_internal_unix_epoch_ms|表示POSIX time（基于Unix epoch）与system time（不一定基于Unix epoch）之间的间隔时间。
-        // Convert time based on local system to POSIX time based on Unix epoch.
-        stats.last_packet_received_time = receive_counters_.last_packet_received_time.value() + TimeDelta::Millis(delta_internal_unix_epoch_ms_);
+        stats.last_packet_received_posix_time = ConvertToPosixTime(*receive_counters_.last_packet_received_time);
     }
     stats.packet_counter = receive_counters_.transmitted;
     return stats;
@@ -287,5 +284,14 @@ bool RtpReceiveStreamStatistician::IsOutOfOrderPacket(const RtpPacketReceived& p
 
     return true;
 } 
+
+Timestamp RtpReceiveStreamStatistician::ConvertToPosixTime(Timestamp system_time) const {
+    // The elapsed time between the system startup and Unix epoch.
+    static const TimeDelta kDeltaInternalUnixEpoch = TimeDelta::Millis(utils::time::TimeUTCInMillis() - clock_->now_ms());
+    // NOTE: |delta_internal_unix_epoch_ms|表示POSIX time（基于Unix epoch）与system time（不一定基于Unix epoch）之间的间隔时间。
+    // Convert time based on local system to POSIX time based on Unix epoch.
+    return system_time + kDeltaInternalUnixEpoch;
+}
+
     
 } // namespace naivertc

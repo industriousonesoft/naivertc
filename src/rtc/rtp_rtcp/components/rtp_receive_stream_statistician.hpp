@@ -41,11 +41,11 @@ private:
                             int64_t seq_num, 
                             int64_t receive_time_ms);
 
+    Timestamp ConvertToPosixTime(Timestamp system_time) const;
+
 private:
     const uint32_t ssrc_;
     Clock* const clock_;
-    // Delta used to map internal timestamps to Unix epoch ones.
-    const int64_t delta_internal_unix_epoch_ms_;
 
     int max_reordering_threshold_;
     bool enable_retransmit_detection_;
