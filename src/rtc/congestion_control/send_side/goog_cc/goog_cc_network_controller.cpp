@@ -384,7 +384,7 @@ NetworkControlUpdate GoogCcNetworkController::GetNetworkState(Timestamp at_time)
     // Using the estimated link capacity as the stable target bitrate.
     update.target_rate->stable_target_bitrate = send_side_bwe_->EstimatedLinkCapacity();
 
-    // update.pacer_config = 
+    update.pacer_config = GetPacerConfig(at_time);
     update.congestion_window = curr_congestion_window_;
     return update;
 }

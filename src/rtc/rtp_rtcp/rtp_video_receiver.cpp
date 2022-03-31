@@ -3,7 +3,7 @@
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 #include "rtc/rtp_rtcp/base/rtp_rtcp_defines.hpp"
 #include "rtc/rtp_rtcp/components/wrap_around_utils.hpp"
-#include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
+#include "rtc/rtp_rtcp/components/bitrate_statistics.hpp"
 
 #include <plog/Log.h>
 
