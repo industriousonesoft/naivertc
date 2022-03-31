@@ -115,8 +115,15 @@ void RtpSendController::OnAddPacket(const RtpPacketSendInfo& packet_info) {
 void RtpSendController::OnSentPacket(const RtpSentPacket& sent_packet) {
     task_queue_.Post([this, sent_packet](){
         auto sent_msg = transport_statistician_.ProcessSentPacket(sent_packet);
-        if (sent_msg && network_controller_) {
-            PostUpdates(network_controller_->OnSentPacket(*sent_msg));
+        if (sent_msg) {
+            // Only update outstanding data in pacer if:
+            // 1. Packet feedback is used.
+            // 2. The packet has not yet received an acknowledgement.
+            // 3. It's not a retransmission of an earlier packet.
+            pacer_->OnInflightBytes(transport_statistician_.GetInFlightBytes());
+            if (network_controller_) {
+                PostUpdates(network_controller_->OnSentPacket(*sent_msg));
+            }
         }
     });
 }
@@ -125,8 +132,14 @@ void RtpSendController::OnTransportFeedback(const rtcp::TransportFeedback& feedb
     Timestamp receive_time = clock_->CurrentTime();
     task_queue_.Post([this, feedback, receive_time](){
         auto feedback_msg = transport_statistician_.ProcessTransportFeedback(feedback, receive_time);
-        if (feedback_msg && network_controller_) {
-            PostUpdates(network_controller_->OnTransportPacketsFeedback(*feedback_msg));
+        if (feedback_msg) {
+            if (network_controller_) {
+                PostUpdates(network_controller_->OnTransportPacketsFeedback(*feedback_msg));
+            }
+            
+            // Only update outstanding data in pacer if any packet is first
+            // time acked.
+            pacer_->OnInflightBytes(transport_statistician_.GetInFlightBytes());
         }
     });
 }
@@ -163,7 +176,16 @@ void RtpSendController::MaybeCreateNetworkController() {
 
 void RtpSendController::PostUpdates(NetworkControlUpdate update) {
     RTC_RUN_ON(&task_queue_);
-
+    if (update.congestion_window) {
+        pacer_->SetCongestionWindow(*update.congestion_window);
+    }
+    if (update.pacer_config) {
+        pacer_->SetPacingBitrates(update.pacer_config->pacing_bitrate, update.pacer_config->padding_bitrate);
+    }
+    for (const auto& probe : update.probe_cluster_configs) {
+        pacer_->AddProbeCluster(probe.id, probe.target_bitrate);
+    }
+    // TODO: Control handler
 }
 
 void RtpSendController::HandleRtcpReportBlocks(const std::vector<RtcpReportBlock>& report_blocks,

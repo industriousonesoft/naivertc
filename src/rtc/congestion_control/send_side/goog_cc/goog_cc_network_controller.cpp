@@ -535,8 +535,8 @@ PacerConfig GoogCcNetworkController::GetPacerConfig(Timestamp at_time) const {
     PacerConfig config;
     config.at_time = at_time;
     config.time_window = TimeDelta::Seconds(1);
-    config.data_window = pacing_bitrate.bps() * config.time_window.ms() / 8000;
-    config.pad_window = padding_bitrate.bps() * config.time_window.ms() / 8000;
+    config.pacing_bitrate = pacing_bitrate;
+    config.padding_bitrate = padding_bitrate;
     return config;
 }
     

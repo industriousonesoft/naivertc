@@ -91,22 +91,25 @@ struct NetworkEstimate
 
 // PacerConfig
 struct PacerConfig {
-    // Pacer should send at most data_window bytes over time_window duration.
-    size_t data_window = 0;
-    // Pacer should send at least pad_window bytes over time_window duration.
-    size_t pad_window = 0;
+    DataRate pacing_bitrate = DataRate::Zero();
+    DataRate padding_bitrate = DataRate::Zero();
     TimeDelta time_window = TimeDelta::PlusInfinity();
-    DataRate data_rate() const { return DataRate::BitsPerSec(data_window * 8000 / time_window.ms()); }
-    DataRate pad_rate() const { return DataRate::BitsPerSec(pad_window * 8000 / time_window.ms()); }
     Timestamp at_time = Timestamp::PlusInfinity();
+
+    // Pacer should send at most data_window bytes over time_window duration.
+    size_t pacing_window() const { return pacing_bitrate * time_window; }
+    // Pacer should send at least pad_window bytes over time_window duration.
+    size_t padding_window() const { return padding_bitrate * time_window; }
 };
 
 // ProbeClusterConfig
 struct ProbeClusterConfig {
     int32_t id = 0;
-    int32_t target_probe_count = 0;
     DataRate target_bitrate = DataRate::Zero();
+
+    int32_t target_probe_count = 0;
     TimeDelta target_interval = TimeDelta::Zero();
+    
     Timestamp at_time = Timestamp::PlusInfinity();
 };
 

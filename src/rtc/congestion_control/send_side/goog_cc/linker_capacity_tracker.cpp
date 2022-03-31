@@ -52,10 +52,15 @@ void LinkerCapacityTracker::OnBitrateUpdated(DataRate bitrate,
         double alpha = delta.IsFinite() ? exp(-(delta / tracking_window_))
                                         : 0;
         // FIXME: |alpha|有时候的值会大于1，导致crash？
+        PLOG_WARNING_IF(alpha > 1) 
+            << "capacity bitrate=" << bitrate.bps() 
+            << " bps, updated bitrate=" << estimated_capacity_.bps()
+            << " bps, alpha="<< alpha
+            << " , delta=" << delta.ms()
+            << "ms, at_time=" << at_time.ms()
+            << "ms, last_update=" << time_last_capacity_udpate_.ms() << " ms.";
+
         estimated_capacity_ = alpha * estimated_capacity_ + (1 - alpha) * bitrate;
-         PLOG_DEBUG_IF(true) << "capacity bitrate=" << bitrate.bps() 
-                             << " bps, updated bitrate=" << estimated_capacity_.bps()
-                             << " bps, alpha="<< alpha;
     }
     time_last_capacity_udpate_ = at_time;
 }
