@@ -76,10 +76,10 @@ RtpStreamDataCounters& RtpStreamDataCounters::operator+=(const RtpStreamDataCoun
     this->transmitted += other.transmitted;
     this->retransmitted += other.retransmitted;
     this->fec += other.fec;
-    if (other.first_packet_time_ms != -1 &&
-        (other.first_packet_time_ms < this->first_packet_time_ms || this->first_packet_time_ms == -1)) {
+    if (other.first_packet_time.has_value() &&
+        (other.first_packet_time < this->first_packet_time || this->first_packet_time.has_value() == false)) {
         // Prefer the oldest time.
-        this->first_packet_time_ms = other.first_packet_time_ms;
+        this->first_packet_time = other.first_packet_time;
     }
     return *this;
 }
@@ -88,16 +88,20 @@ RtpStreamDataCounters& RtpStreamDataCounters::operator-=(const RtpStreamDataCoun
     this->transmitted -= other.transmitted;
     this->retransmitted -= other.retransmitted;
     this->fec -= other.fec;
-    if (other.first_packet_time_ms != -1 &&
-        (other.first_packet_time_ms > this->first_packet_time_ms || this->first_packet_time_ms == -1)) {
+    if (other.first_packet_time.has_value() &&
+        (other.first_packet_time > this->first_packet_time || this->first_packet_time.has_value() == false)) {
         // Prefer the youngest time.
-        this->first_packet_time_ms = other.first_packet_time_ms;
+        this->first_packet_time = other.first_packet_time;
     }
     return *this;
 }
 
-int64_t RtpStreamDataCounters::TimeSinceFirstPacketInMs(int64_t now_ms) const {
-    return (first_packet_time_ms == -1) ? -1 : (now_ms - first_packet_time_ms);
+std::optional<TimeDelta> RtpStreamDataCounters::TimeSinceFirstPacket(Timestamp at_time) const {
+    if (first_packet_time.has_value()) {
+        return at_time - *first_packet_time;
+    } else {
+        return std::nullopt;
+    }
 }
 
 size_t RtpStreamDataCounters::MediaPayloadBytes() const {

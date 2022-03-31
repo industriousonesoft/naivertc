@@ -92,15 +92,15 @@ private:
                                       const RtpPacketToSend& packet,
                                       std::optional<const PacedPacketInfo> pacing_info);
 
-    void UpdateSentStatistics(const int64_t now_ms, 
-                              SendStats send_stats);
+    void UpdateSentStatistics(SendStats send_stats, 
+                              Timestamp at_time);
     void UpdateDelayStatistics(int64_t send_delay_ms,
-                               int64_t now_ms,
-                               uint32_t ssrc);
+                               uint32_t ssrc,
+                               Timestamp at_time);
 
-    DataRate CalcTotalSendBitrate(const int64_t now_ms);
+    DataRate CalcTotalSendBitrate(Timestamp at_time);
     DataRate CalcSendBitrate(RtpPacketType packet_type, 
-                             const int64_t now_ms);
+                             Timestamp at_time);
 
     void RecalculateMaxDelay();
 

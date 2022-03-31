@@ -1,138 +1,149 @@
 #include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
 
+#include <plog/Log.h>
+
 #include <limits>
 
 namespace naivertc {
 
 // The window size of a single bucket is 1ms
-constexpr int64_t kSingleBucketWindowSizeMs = 1;
-constexpr int64_t kInvalidTimestamp = -1;
-constexpr size_t kMinNumSimplesRequired = 2;
+constexpr TimeDelta kSingleBucketWindowSize = TimeDelta::Millis(1);
 
 // Bucket
-BitrateStatistics::Bucket::Bucket(const int64_t timestamp) 
+BitrateStatistics::Bucket::Bucket(Timestamp timestamp) 
     : accumulated_bytes(0),
       num_samples(0),
-      timestamp(std::move(timestamp)),
-      is_overflow(false) {}
+      timestamp(std::move(timestamp)) {}
 
 BitrateStatistics::Bucket::~Bucket() = default;
 
 // BitrateStatistics
-BitrateStatistics::BitrateStatistics() 
-    : BitrateStatistics(kDefauleWindowSizeMs) {}
-
-BitrateStatistics::BitrateStatistics(const int64_t max_window_size_ms) 
-    : total_accumulated_bytes_(0),
-      total_num_samples_(0),
-      begin_timestamp_ms_(kInvalidTimestamp),
-      is_overflow_(false),
-      max_window_size_ms_(max_window_size_ms),
-      current_window_size_ms_(max_window_size_ms_) {}
+BitrateStatistics::BitrateStatistics(TimeDelta max_window_size) 
+    : accumulated_bytes_(0),
+      num_samples_(0),
+      first_update_time_(std::nullopt),
+      is_overflowed_(false),
+      max_window_size_(max_window_size),
+      current_window_size_(max_window_size_) {}
 
 BitrateStatistics::BitrateStatistics(const BitrateStatistics& other) 
     : buckets_(other.buckets_),
-      total_accumulated_bytes_(other.total_accumulated_bytes_),
-      total_num_samples_(other.total_num_samples_),
-      begin_timestamp_ms_(other.begin_timestamp_ms_),
-      is_overflow_(other.is_overflow_),
-      max_window_size_ms_(other.max_window_size_ms_),
-      current_window_size_ms_(other.current_window_size_ms_) {}
+      accumulated_bytes_(other.accumulated_bytes_),
+      num_samples_(other.num_samples_),
+      first_update_time_(other.first_update_time_),
+      is_overflowed_(other.is_overflowed_),
+      max_window_size_(other.max_window_size_),
+      current_window_size_(other.current_window_size_) {}
 
 BitrateStatistics::BitrateStatistics(BitrateStatistics&& other) = default;
 
 BitrateStatistics::~BitrateStatistics() {}
 
 void BitrateStatistics::Reset() {
-    total_accumulated_bytes_ = 0;
-    total_num_samples_ = 0;
-    begin_timestamp_ms_ = kInvalidTimestamp;
-    is_overflow_ = false;
-    current_window_size_ms_ = max_window_size_ms_;
+    accumulated_bytes_ = 0;
+    num_samples_ = 0;
+    first_update_time_ = std::nullopt;
+    is_overflowed_ = false;
+    current_window_size_ = max_window_size_;
     buckets_.clear();
 }
 
-void BitrateStatistics::Update(int64_t bytes, int64_t now_ms) {
-    EraseObsoleteBuckets(now_ms);
+void BitrateStatistics::Update(int64_t bytes, Timestamp at_time) {
+    EraseOld(at_time);
 
-    if (begin_timestamp_ms_ == kInvalidTimestamp) {
-        begin_timestamp_ms_ = now_ms;
+    if (!first_update_time_ || num_samples_ == 0) {
+        first_update_time_ = at_time;
     }
 
-    if (buckets_.empty() || now_ms > buckets_.back().timestamp) {
-        buckets_.emplace_back(now_ms);
+    if (buckets_.empty() || at_time != buckets_.back().timestamp) {
+        if (!buckets_.empty() && at_time < buckets_.back().timestamp) {
+            PLOG_WARNING << "Timestamp " << at_time.ms()
+                         << " is before the last added timestamp in the rate window: "
+                         << buckets_.back().timestamp.ms() << ", aligning to last.";
+            at_time = buckets_.back().timestamp;
+        }
+        buckets_.emplace_back(at_time);
     }
     Bucket& last_bucket = buckets_.back();
     last_bucket.accumulated_bytes += bytes;
     last_bucket.num_samples += 1;
     
-    if (std::numeric_limits<int64_t>::max() > total_accumulated_bytes_ + bytes) {
-        total_accumulated_bytes_ += bytes;
-        last_bucket.is_overflow = false;
+    if (accumulated_bytes_ + bytes < std::numeric_limits<int64_t>::max()) {
+        accumulated_bytes_ += bytes;
     } else {
-        is_overflow_ = true;
-        last_bucket.is_overflow = true;
+        is_overflowed_ = true;
     }
-    ++total_num_samples_;
+    ++num_samples_;
 }
 
-std::optional<DataRate> BitrateStatistics::Rate(int64_t now_ms) {
+std::optional<DataRate> BitrateStatistics::Rate(Timestamp at_time) const {
     // Erase the obsolete buckets
-    EraseObsoleteBuckets(now_ms);
+    // NOTE: Using const_cast is not pretty, but the alternative is to 
+    // declare most of the members as mutable.
+    const_cast<BitrateStatistics*>(this)->EraseOld(at_time);
 
-    // The active window size should be a single bucket window size at least.
-    int64_t active_window_size_ms = 0;
-    if (begin_timestamp_ms_ != kInvalidTimestamp && !is_overflow_) {
-        if (begin_timestamp_ms_ >= now_ms) {
-            return std::nullopt;
-        } else if (now_ms - begin_timestamp_ms_ >= current_window_size_ms_) {
-            active_window_size_ms = current_window_size_ms_;
+    TimeDelta active_window_size = TimeDelta::Zero();
+    if (first_update_time_) {
+        if (*first_update_time_ + current_window_size_ <= at_time) {
+            // If the data stream started before the window, treat
+            // window as full even if no data in view currently.
+            active_window_size = current_window_size_;
         } else {
-            active_window_size_ms = now_ms - begin_timestamp_ms_ + kSingleBucketWindowSizeMs;
-            // Only one single samples and not full window size are not enough for valid estimate.
-            if (total_num_samples_ < kMinNumSimplesRequired && 
-                active_window_size_ms < current_window_size_ms_) {
-                return std::nullopt;
-            } 
+            // the window size of a single bucket is 1ms, so even if |first_update_time_ == at_time|
+            // the window size should be 1ms.
+            active_window_size = at_time - *first_update_time_ + kSingleBucketWindowSize;
         }
-    } else {
-        // No sample in buckets or the accumulator has overflowed.
+    }
+
+    // If window is a single bucket or there is only one sample in a data set
+    // that has not grown to the full window size, or if the accumulator has
+    // overflowed, treat this as rate unavailable.
+    if (num_samples_ == 0 || 
+        active_window_size <= kSingleBucketWindowSize ||
+        (num_samples_ <= 1 && active_window_size < current_window_size_) ||
+        is_overflowed_) {
         return std::nullopt;
     }
-    float bits_per_sec = total_accumulated_bytes_ * 8000.0 / active_window_size_ms + 0.5f;
+
+    float bitrate_bps = accumulated_bytes_ * 8000.0 / active_window_size.ms() + 0.5f;
     // Better return unavailable rate than garbage value (undefined behavior).
-    if (bits_per_sec < 0 /* overflow */ || bits_per_sec > static_cast<float>(std::numeric_limits<int64_t>::max())) {
+    if (bitrate_bps > static_cast<float>(std::numeric_limits<int64_t>::max())) {
         return std::nullopt;
     }
-    return DataRate::BitsPerSec(static_cast<int64_t>(bits_per_sec));
+    return DataRate::BitsPerSec(static_cast<int64_t>(bitrate_bps));
 }
 
-bool BitrateStatistics::SetWindowSize(int64_t window_size_ms, int64_t now_ms) {
-    if (window_size_ms == 0 || window_size_ms > max_window_size_ms_) {
+bool BitrateStatistics::SetWindowSize(TimeDelta window_size, Timestamp at_time) {
+    if (window_size == TimeDelta::Zero() || window_size > max_window_size_) {
         return false;
     }
-    if (begin_timestamp_ms_ != kInvalidTimestamp && now_ms - begin_timestamp_ms_ > window_size_ms) {
-        begin_timestamp_ms_ = now_ms - window_size_ms + kSingleBucketWindowSizeMs;
+    if (first_update_time_) {
+        // If the window changes (e.g. decreases - removing data point, then
+        // increases again) we need to update the first timestamp mark as
+        // otherwise it indicates the window coveres a region of zeros, suddenly
+        // under-estimating the rate.
+        first_update_time_ = std::max(*first_update_time_, at_time - window_size + kSingleBucketWindowSize);
     }
-    current_window_size_ms_ = window_size_ms;
-    EraseObsoleteBuckets(now_ms);
+    current_window_size_ = window_size;
+    EraseOld(at_time);
     return true;
 }
 
 // Private methods
-void BitrateStatistics::EraseObsoleteBuckets(int64_t now_ms) {
-    // The result maybe lower than begin_timestamp_ms_ or a negative value, it still works.
-    const int64_t obsolete_timestamp = now_ms - current_window_size_ms_;
-    while (!buckets_.empty() && buckets_.front().timestamp <= obsolete_timestamp) {
-        const Bucket& obsolete_bucket = buckets_.front();
-        if (!obsolete_bucket.is_overflow) {
-            total_accumulated_bytes_ -= obsolete_bucket.accumulated_bytes;
-        }
-        total_num_samples_ -= obsolete_bucket.num_samples;
+void BitrateStatistics::EraseOld(Timestamp at_time) {
+    // New oldest time that is included in data set.
+    const Timestamp new_oldest_time = at_time - current_window_size_;
+
+    // Loop over buckets and remove too old data points.
+    while (!buckets_.empty() && 
+           buckets_.front().timestamp <= new_oldest_time) {
+        const Bucket& oldest_bucket = buckets_.front();
+        accumulated_bytes_ -= oldest_bucket.accumulated_bytes;
+        num_samples_ -= oldest_bucket.num_samples;
         buckets_.pop_front();
-        // Reset is_overflow_ when having obsolete buckets be removed
-        if (is_overflow_ && total_accumulated_bytes_ < std::numeric_limits<int64_t>::max()) {
-            is_overflow_ = false;
+        // Reset |is_overflowed_| when having obsolete buckets be removed
+        if (is_overflowed_ && accumulated_bytes_ < std::numeric_limits<int64_t>::max()) {
+            is_overflowed_ = false;
         }
     }
     

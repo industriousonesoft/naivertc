@@ -3,45 +3,46 @@
 
 #include "base/defines.hpp"
 #include "rtc/base/units/data_rate.hpp"
+#include "rtc/base/units/timestamp.hpp"
+#include "rtc/base/units/time_delta.hpp"
 
 #include <deque>
 #include <optional>
 
 namespace naivertc {
 
-// NOTE: 使用Timestamp无小数转换，不方便计算bit rate，因此使用int64_t替代
+// Class to estimate bitrates based on bytes in a sequence of 1-millisecond
+// intervals.
 // This class is not thread safe, the caller must provide that.
 class BitrateStatistics {
 public:
-    static const int kDefauleWindowSizeMs = 1000; // 1s
+    static constexpr TimeDelta kDefauleWindowSize = TimeDelta::Seconds(1); // 1s
 public:
-    // Using the default window size.
-    BitrateStatistics();
-    // We need the max_window_size_ms be specified.
-    BitrateStatistics(const int64_t max_window_size_ms);
+    // We need the max_window_size be specified.
+    BitrateStatistics(TimeDelta max_window_size = kDefauleWindowSize);
     BitrateStatistics(const BitrateStatistics&);
     BitrateStatistics(BitrateStatistics&&);
     ~BitrateStatistics();
 
     void Reset();
 
-    bool SetWindowSize(int64_t window_size_ms, int64_t now);
+    bool SetWindowSize(TimeDelta window_size_ms, Timestamp at_time);
 
-    void Update(int64_t bytes, int64_t now_ms);
+    void Update(int64_t bytes, Timestamp at_time);
 
-    std::optional<DataRate> Rate(int64_t now_ms);
+    std::optional<DataRate> Rate(Timestamp at_time) const;
 
     // For unit tests
     size_t num_bucket() const { return buckets_.size(); }
-    int64_t total_accumulated_bytes() const { return total_accumulated_bytes_; }
-    int64_t total_num_samples() const { return total_num_samples_; }
-    bool is_overflow() const { return is_overflow_; }
+    int64_t accumulated_bytes() const { return accumulated_bytes_; }
+    int64_t num_samples() const { return num_samples_; }
+    bool is_overflowed() const { return is_overflowed_; }
 
 private:
-    void EraseObsoleteBuckets(int64_t now_ms);
+    void EraseOld(Timestamp at_time);
 private:
     struct Bucket {
-        explicit Bucket(const int64_t timestamp);
+        explicit Bucket(Timestamp timestamp);
         ~Bucket();
 
         // Accumulated bytes recorded in this bucket.
@@ -49,26 +50,24 @@ private:
         // Number of samples in this bucket.
         size_t num_samples;
         // The timestamp this bucket corresponds to.
-        const int64_t timestamp;
-        // True is the accumulated_bytes of the bucket is not counted to total_accumulated_bytes_
-        bool is_overflow;
+        const Timestamp timestamp;
     };
 private:
     std::deque<Bucket> buckets_;
 
-    int64_t total_accumulated_bytes_;
+    int64_t accumulated_bytes_;
 
-    size_t total_num_samples_;
+    size_t num_samples_;
 
-    int64_t begin_timestamp_ms_;
+    std::optional<Timestamp> first_update_time_;
 
-    // True is total_accumulated_bytes_ has ever grown too larger to 
+    // True is accumulated_bytes_ has ever grown too larger to 
     // be greater than the max value in its integer type.
-    bool is_overflow_;
+    bool is_overflowed_;
 
     // The window sizes, in ms, over which the rate is calculated.
-    const int64_t max_window_size_ms_;
-    int64_t current_window_size_ms_;
+    const TimeDelta max_window_size_;
+    TimeDelta current_window_size_;
 
 };
 
