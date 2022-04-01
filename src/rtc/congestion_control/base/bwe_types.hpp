@@ -113,14 +113,14 @@ struct ProbeClusterConfig {
     Timestamp at_time = Timestamp::PlusInfinity();
 };
 
-// TargetTransferRate
-struct TargetTransferRate {
+// TargetTransferBitrate
+struct TargetTransferBitrate {
+    Timestamp at_time = Timestamp::PlusInfinity();
     // The estimate on which the target bitrate is based on.
     NetworkEstimate network_estimate;
     DataRate target_bitrate = DataRate::Zero();
     DataRate stable_target_bitrate = DataRate::Zero();
     double cwnd_reduce_ratio = 0;
-    Timestamp at_time = Timestamp::PlusInfinity();
 };
 
 // NetworkControlUpdate
@@ -128,7 +128,7 @@ struct NetworkControlUpdate {
     std::optional<size_t> congestion_window;
     std::optional<PacerConfig> pacer_config;
     std::vector<ProbeClusterConfig> probe_cluster_configs;
-    std::optional<TargetTransferRate> target_rate;
+    std::optional<TargetTransferBitrate> target_bitrate;
 
     void AppendProbes(std::vector<ProbeClusterConfig> config) {
         if (!config.empty()) {
@@ -177,7 +177,8 @@ struct StreamsConfig {
 
 // PeriodicUpdate
 struct PeriodicUpdate {
-    std::optional<size_t> pacer_queue;
+    // The queue size in pacer.
+    std::optional<size_t> pacer_queue_size;
     Timestamp at_time = Timestamp::PlusInfinity();
 };
     

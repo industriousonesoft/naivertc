@@ -36,6 +36,8 @@ public:
 private:
     void OnAggregateNetworkStateChanged();
 
+    void EnsureStarted();
+
 private:
     SequenceChecker worker_queue_checker_;
     Clock* const clock_;
@@ -48,6 +50,8 @@ private:
 
     RtpDemuxer rtp_demuxer_;
     std::unique_ptr<RtpSendController> send_controller_;
+
+    bool is_started_ = false;
     
 };
     

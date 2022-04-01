@@ -13,7 +13,8 @@
 namespace naivertc {
 
 class Clock;
-class NetworkControllerInterface;
+class TaskQueuePacedSender;
+class CongestionControlHandler;
 
 class RtpSendController : public RtcpBandwidthObserver,
                           public RtcpTransportFeedbackObserver,
@@ -22,16 +23,21 @@ public:
     struct Configuration {
         Clock* clock;
 
+        // Add pacing to congestion window pushback.
+        bool add_pacing_to_cwin = false;
+
         // Taraget bitrate settings.
-        std::optional<DataRate> min_bitrate;
-        std::optional<DataRate> max_bitrate;
-        std::optional<DataRate> starting_bitrate;
+        DataRate min_bitrate = kDefaultMinBitrate;
+        DataRate max_bitrate = kDefaultMaxBitrate;
+        DataRate starting_bitrate = kDefaultStartTargetBitrate;
     };
 public:
     RtpSendController(const Configuration& config);
     ~RtpSendController() override;
 
     void Clear();
+
+    void EnsureStarted();
 
     void OnNetworkAvailability(bool network_available);
 
@@ -49,6 +55,10 @@ public:
     void OnReceivedRtcpReceiveReport(const std::vector<RtcpReportBlock>& report_blocks,
                                      int64_t rtt_ms) override;
 
+    // Callbacks
+    using TargetTransferBitrateUpdateCallback = std::function<void(TargetTransferBitrate)>;
+    void OnTargetTransferBitrateUpdated(TargetTransferBitrateUpdateCallback&& callback);
+
 private:
     void MaybeCreateNetworkController();
 
@@ -60,12 +70,16 @@ private:
     void StartPeriodicTasks();
     void UpdatePeriodically();
 
+    void MaybeUpdateControlState();
+
 private:
     Clock* const clock_;
+    const bool add_pacing_to_cwin_;
+
     TaskQueue task_queue_;
     TaskQueue pacing_queue_;
-    std::unique_ptr<RepeatingTask> controller_task_;
 
+    bool is_started_ RTC_GUARDED_BY(task_queue_);
     bool network_available_ RTC_GUARDED_BY(task_queue_);
 
     NetworkTransportStatistician transport_statistician_ RTC_GUARDED_BY(task_queue_);
@@ -74,9 +88,14 @@ private:
     std::unique_ptr<NetworkControllerInterface> network_controller_ RTC_GUARDED_BY(task_queue_);
 
     std::unique_ptr<TaskQueuePacedSender> pacer_ RTC_GUARDED_BY(task_queue_);
+    std::unique_ptr<RepeatingTask> repeating_update_task_;
+
+    std::unique_ptr<CongestionControlHandler> control_handler_ RTC_GUARDED_BY(task_queue_);
 
     Timestamp last_report_block_time_ RTC_GUARDED_BY(task_queue_);
     std::unordered_map<uint32_t, RtcpReportBlock> last_report_blocks_ RTC_GUARDED_BY(task_queue_);
+
+    TargetTransferBitrateUpdateCallback target_transfer_bitrate_update_callback_ = nullptr;
 };
     
 } // namespace naivertc

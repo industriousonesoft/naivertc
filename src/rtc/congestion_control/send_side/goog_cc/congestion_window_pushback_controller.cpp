@@ -25,7 +25,7 @@ void CongestionWindwoPushbackController::OnInflightBytes(int64_t inflight_bytes)
     inflight_bytes_ = inflight_bytes;
 }
 
-void CongestionWindwoPushbackController::OnPacingQueue(int64_t pacing_bytes) {
+void CongestionWindwoPushbackController::OnPacingQueueSize(int64_t pacing_bytes) {
     pacing_bytes_ = pacing_bytes;
 }
 

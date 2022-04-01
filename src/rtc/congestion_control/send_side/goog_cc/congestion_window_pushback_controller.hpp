@@ -28,7 +28,7 @@ public:
     void set_congestion_window(size_t congestion_window);
 
     void OnInflightBytes(int64_t inflight_bytes);
-    void OnPacingQueue(int64_t pacing_bytes);
+    void OnPacingQueueSize(int64_t pacing_bytes);
 
     // Return pushback bitrate based on the target bitrate.
     DataRate AdjustTargetBitrate(DataRate target_bitrate);

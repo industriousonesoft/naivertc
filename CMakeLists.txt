@@ -288,6 +288,7 @@ set(LIB_HEADERS
     src/rtc/congestion_control/components/inter_arrival_delta.hpp
     src/rtc/congestion_control/components/rtt_based_backoff.hpp
     src/rtc/congestion_control/components/alr_detector.hpp
+    src/rtc/congestion_control/components/congestion_control_handler.hpp
 
     # rtc -> congestion_control -> pacing
     src/rtc/congestion_control/pacing/pacing_types.hpp
@@ -571,6 +572,7 @@ set(LIB_SOURCES
     src/rtc/congestion_control/components/inter_arrival_delta.cpp
     src/rtc/congestion_control/components/rtt_based_backoff.cpp
     src/rtc/congestion_control/components/alr_detector.cpp
+    src/rtc/congestion_control/components/congestion_control_handler.cpp
 
     # rtc -> congestion_control -> pacing
     src/rtc/congestion_control/pacing/bitrate_prober.cpp

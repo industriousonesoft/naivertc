@@ -254,9 +254,9 @@ int32_t RtpSender::ResendPacket(uint16_t seq_num) {
     const bool rtx_enabled = (rtx_mode() & kRtxRetransmitted);
 
     auto packet = ctx_->packet_history.GetPacketAndMarkAsPending(seq_num, [&](const RtpPacketToSend& stored_packet){
-        // TODO: Check if we're overusing retransmission bitrate.
         packet_size = stored_packet.size();
-        std::optional<RtpPacketToSend> retransmit_packet;
+        std::optional<RtpPacketToSend> retransmit_packet = std::nullopt;
+        // TODO: Check if we're overusing retransmission bitrate by BitrateLimiter.
         // Retransmitted on RTX ssrc.
         if (rtx_enabled) {
             retransmit_packet = ctx_->packet_generator.BuildRtxPacket(stored_packet);

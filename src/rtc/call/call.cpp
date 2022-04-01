@@ -152,9 +152,27 @@ void Call::Send(video::EncodedFrame encoded_frame) {
 // Private methods
 void Call::OnAggregateNetworkStateChanged() {
     RTC_RUN_ON(&worker_queue_checker_);
-    bool have_video = !video_send_streams_.empty() || !video_recv_streams_.empty();
+    EnsureStarted();
+
+    bool have_video = !video_send_streams_.empty() || 
+                      !video_recv_streams_.empty();
 
     send_controller_->OnNetworkAvailability(have_video);
+    
+}
+
+void Call::EnsureStarted() {
+    RTC_RUN_ON(&worker_queue_checker_);
+    if (is_started_) {
+        return;
+    }
+    is_started_ = true;
+
+    send_controller_->OnTargetTransferBitrateUpdated([this](TargetTransferBitrate target_bitrate){
+        
+    });
+
+    send_controller_->EnsureStarted();
 }
     
 } // namespace naivertc
