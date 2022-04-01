@@ -21,12 +21,6 @@ std::unique_ptr<TaskQueuePacedSender> CreatePacer(Clock* clock, TaskQueueImpl* p
     return std::make_unique<TaskQueuePacedSender>(config, pacing_queue);
 }
 
-TargetBitrateConstraints InitialTargetBitrateContraints(const RtpSendController::Configuration& config) {
-    TargetBitrateConstraints constraints;
-    
-    return constraints;
-}
-
 } // namespace
 
 RtpSendController::RtpSendController(const Configuration& config) 
@@ -37,14 +31,15 @@ RtpSendController::RtpSendController(const Configuration& config)
       pacer_(CreatePacer(clock_, pacing_queue_.Get())),
       last_report_block_time_(clock_->CurrentTime()) {
     assert(clock_ != nullptr);
-    // Initial
+
     task_queue_.Post([this, config](){
         network_config_.clock = clock_;
-        // Target bitrate settings
+        // Initial target bitrate settings.
         network_config_.constraints.min_bitrate = config.min_bitrate.value_or(kDefaultMinBitrate);
         network_config_.constraints.max_bitrate = config.max_bitrate.value_or(kDefaultMaxBitrate);
         network_config_.constraints.starting_bitrate = config.starting_bitrate.value_or(kDefaultStartTargetBitrate);
 
+        // Initial pacer.
         pacer_->SetPacingBitrates(config.starting_bitrate.value_or(kDefaultStartTargetBitrate), DataRate::Zero());
         pacer_->EnsureStarted();
     });

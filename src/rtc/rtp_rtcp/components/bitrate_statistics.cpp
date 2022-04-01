@@ -132,11 +132,11 @@ bool BitrateStatistics::SetWindowSize(TimeDelta window_size, Timestamp at_time) 
 // Private methods
 void BitrateStatistics::EraseOld(Timestamp at_time) {
     // New oldest time that is included in data set.
-    const Timestamp new_oldest_time = at_time - current_window_size_;
+    const Timestamp new_oldest_time = at_time - current_window_size_ + kSingleBucketWindowSize;
 
     // Loop over buckets and remove too old data points.
     while (!buckets_.empty() && 
-           buckets_.front().timestamp <= new_oldest_time) {
+           buckets_.front().timestamp < new_oldest_time) {
         const Bucket& oldest_bucket = buckets_.front();
         accumulated_bytes_ -= oldest_bucket.accumulated_bytes;
         num_samples_ -= oldest_bucket.num_samples;

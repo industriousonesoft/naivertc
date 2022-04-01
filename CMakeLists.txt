@@ -784,6 +784,7 @@ set(UNITTEST_SOURCES
 
     # rtc -> rtp_rtcp -> components
     src/rtc/rtp_rtcp/components/bitrate_statistics_unittest.cpp
+    src/rtc/rtp_rtcp/components/bitrate_limiter_unittest.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/wrap_around_utils_unittest.cpp

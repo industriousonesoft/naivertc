@@ -1,4 +1,4 @@
-#include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
+#include "rtc/rtp_rtcp/components/bitrate_statistics.hpp"
 
 #include <gtest/gtest.h>
 
