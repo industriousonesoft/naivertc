@@ -49,7 +49,7 @@ bool RepeatingTask::Running() const {
 }
 
 void RepeatingTask::Stop() {
-    task_queue_->Invoke<void>([this](){
+    task_queue_->Post([this](){
         safety_flag_->SetNotAlive();
     });
 }
