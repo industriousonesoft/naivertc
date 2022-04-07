@@ -69,11 +69,19 @@ void ThroughputEstimator::Update(Timestamp at_time, size_t acked_bytes, bool in_
     // The bitrate estimate uncertainty is increased with each update to model
     // that the bitrate changes over time.
     // FIXME: How to understand the formula below?
+    // 先验方差
     float pred_bitrate_estimate_var = bitrate_estimate_var_ + 5.f;
+    // 卡尔曼率滤波的后验期望的更新过程
+    // 后验期望: exp[k]+ = exp[k]ˉ + k*(y[k] - h* exp[k]ˉ)
+    // 其中 k = var[k]ˉ / (var[k]ˉ + sample_var) (var[k]ˉ 和 sample_var 分别为先验误差方差和观测误差方差)
     bitrate_estimate_kbps_ = (sample_var * bitrate_estimate_kbps_ +
                               pred_bitrate_estimate_var * bitrate_sample_kbps) /
                               (sample_var + pred_bitrate_estimate_var);
     bitrate_estimate_kbps_ = std::max(bitrate_estimate_kbps_, config_.estimate_floor.kbps<float>());
+    // 卡尔曼率滤波的后验方差的更新过程
+    // 后验方差: var[k] = (1 - k) * var[k]ˉ = var[k]ˉ *（(var[k]ˉ + sample_var) - var[k]ˉ）/ (var[k]ˉ + sample_var)
+    //                                     = var[k]ˉ * sample_var / (var[k]ˉ + sample_var)
+    // 其中 k = var[k]ˉ / (var[k]ˉ + sample_var) (var[k]ˉ 和 sample_var 分别为先验误差方差和观测误差方差)
     bitrate_estimate_var_ = sample_var * pred_bitrate_estimate_var / 
                             (sample_var + pred_bitrate_estimate_var);
 
@@ -101,9 +109,9 @@ void ThroughputEstimator::ExpectFastRateChange() {
 
 // Private methods
 float ThroughputEstimator::UpdateWindow(int64_t now_ms,
-                                     int bytes,
-                                     const int rate_window_ms,
-                                     bool* is_small_sample) {
+                                        int bytes,
+                                        const int rate_window_ms,
+                                        bool* is_small_sample) {
     // The incoming sample is not the first one.
     if (prev_time_ms_) {
         // Reset if time moves backwards.

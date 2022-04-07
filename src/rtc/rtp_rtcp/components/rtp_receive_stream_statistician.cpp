@@ -6,14 +6,13 @@
 namespace naivertc {
 namespace {
 constexpr int64_t kStatisticsTimeoutMs = 8000; // 8s
-constexpr int64_t kStatisticsProcessIntervalMs = 1000; // 1s
+constexpr TimeDelta kStatisticsProcessInterval = TimeDelta::Seconds(1); // 1s
 
 }  // namespace
 
 RtpReceiveStreamStatistician::RtpReceiveStreamStatistician(uint32_t ssrc, Clock* clock, int max_reordering_threshold) 
     : ssrc_(ssrc),
       clock_(clock),
-      delta_internal_unix_epoch_ms_(utils::time::TimeUTCInMillis() - clock_->now_ms()),
       max_reordering_threshold_(max_reordering_threshold),
       enable_retransmit_detection_(false),
       cumulative_loss_is_capped_(false),
@@ -26,7 +25,7 @@ RtpReceiveStreamStatistician::RtpReceiveStreamStatistician(uint32_t ssrc, Clock*
       last_received_seq_num_(-1),
       last_report_cumulative_loss_(0),
       last_report_max_seq_num_(-1),
-      bitrate_stats_(kStatisticsProcessIntervalMs) {}
+      bitrate_stats_(kStatisticsProcessInterval) {}
     
 RtpReceiveStreamStatistician::~RtpReceiveStreamStatistician() = default;
 
@@ -40,11 +39,11 @@ void RtpReceiveStreamStatistician::set_enable_retransmit_detection(bool enable) 
 
 void RtpReceiveStreamStatistician::OnRtpPacket(const RtpPacketReceived& packet) {
     assert(ssrc_ == packet.ssrc());
-    int64_t now_ms = clock_->now_ms();
+    auto at_time = clock_->CurrentTime();
 
-    bitrate_stats_.Update(packet.size(), now_ms);
+    bitrate_stats_.Update(packet.size(), clock_->CurrentTime());
 
-    receive_counters_.last_packet_received_time_ms = now_ms;
+    receive_counters_.last_packet_received_time = at_time;
     receive_counters_.transmitted.AddPacket(packet);
     --cumulative_loss_;
 
@@ -55,8 +54,8 @@ void RtpReceiveStreamStatistician::OnRtpPacket(const RtpPacketReceived& packet) 
         first_received_seq_num_ = unwrapped_seq_num;
         last_received_seq_num_ = unwrapped_seq_num - 1;
         last_report_max_seq_num_ = last_received_seq_num_;
-        receive_counters_.first_packet_time_ms = now_ms;
-    } else if (IsOutOfOrderPacket(packet, unwrapped_seq_num, now_ms)) {
+        receive_counters_.first_packet_time = at_time;
+    } else if (IsOutOfOrderPacket(packet, unwrapped_seq_num, at_time.ms())) {
         // Ignore the out-of-order packet for statistics.
         return;
     }
@@ -70,10 +69,10 @@ void RtpReceiveStreamStatistician::OnRtpPacket(const RtpPacketReceived& packet) 
     // packet received, calculate the new jitter.
     if (packet.timestamp() != last_packet_timestamp_ && 
         (receive_counters_.transmitted.num_packets - receive_counters_.retransmitted.num_packets) > 1) {
-        UpdateJitter(packet, now_ms);
+        UpdateJitter(packet, at_time.ms());
     }
     last_packet_timestamp_ = packet.timestamp();
-    last_receive_time_ms_ = now_ms;
+    last_receive_time_ms_ = at_time.ms();
 }
 
 std::optional<rtcp::ReportBlock> RtpReceiveStreamStatistician::GetReportBlock() {
@@ -143,10 +142,8 @@ RtpReceiveStats RtpReceiveStreamStatistician::GetStates() const {
     stats.packets_lost = cumulative_loss_;
     // TODO: Can we return a float instead?
     stats.jitter = jitter_q4_ >> 4;
-    if (receive_counters_.last_packet_received_time_ms.has_value()) {
-        // NOTE: |delta_internal_unix_epoch_ms|表示POSIX time（基于Unix epoch）与system time（不一定基于Unix epoch）之间的间隔时间。
-        // Convert time based on local system to POSIX time based on Unix epoch.
-        stats.last_packet_received_time_ms = *receive_counters_.last_packet_received_time_ms + delta_internal_unix_epoch_ms_;
+    if (receive_counters_.last_packet_received_time.has_value()) {
+        stats.last_packet_received_posix_time = ConvertToPosixTime(*receive_counters_.last_packet_received_time);
     }
     stats.packet_counter = receive_counters_.transmitted;
     return stats;
@@ -171,7 +168,7 @@ RtpStreamDataCounters RtpReceiveStreamStatistician::GetReceiveStreamDataCounters
 }
 
 std::optional<DataRate> RtpReceiveStreamStatistician::GetReceivedBitrate() {
-    return bitrate_stats_.Rate(clock_->now_ms());
+    return bitrate_stats_.Rate(clock_->CurrentTime());
 }
 
 // Private methods
@@ -287,5 +284,14 @@ bool RtpReceiveStreamStatistician::IsOutOfOrderPacket(const RtpPacketReceived& p
 
     return true;
 } 
+
+Timestamp RtpReceiveStreamStatistician::ConvertToPosixTime(Timestamp system_time) const {
+    // The elapsed time between the system startup and Unix epoch.
+    static const TimeDelta kDeltaInternalUnixEpoch = TimeDelta::Millis(utils::time::TimeUTCInMillis() - clock_->now_ms());
+    // NOTE: |delta_internal_unix_epoch_ms|表示POSIX time（基于Unix epoch）与system time（不一定基于Unix epoch）之间的间隔时间。
+    // Convert time based on local system to POSIX time based on Unix epoch.
+    return system_time + kDeltaInternalUnixEpoch;
+}
+
     
 } // namespace naivertc

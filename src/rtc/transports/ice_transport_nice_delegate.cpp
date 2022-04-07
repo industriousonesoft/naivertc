@@ -45,7 +45,7 @@ void IceTransport::InitNice(const Configuration& config) {
         throw std::runtime_error("Failed to add a nice stream");
     }
 
-    g_object_set(G_OBJECT(nice_agent_.get()), "controlling-mode", TRUE, nullptr);
+    g_object_set(G_OBJECT(nice_agent_.get()), "controlling-mode", TRUE, nullptr); // decided later
     g_object_set(G_OBJECT(nice_agent_.get()), "ice-udp", TRUE, nullptr);
     g_object_set(G_OBJECT(nice_agent_.get()), "ice-tcp", config.enable_ice_tcp ? TRUE : FALSE, nullptr);
 

@@ -56,7 +56,7 @@ void IncrementSeqNum(RtpPacketReceived* packet) {
 class T(RtpReceiveStatisticsTest) : public ::testing::Test {
 public:
     T(RtpReceiveStatisticsTest)() 
-        : clock_(0),
+        : clock_(1000'000),
           receive_statistics_(&clock_) {
         packet1_ = CreateRtpPacket(kSsrc1, kPacketSize1);
         packet2_ = CreateRtpPacket(kSsrc2, kPacketSize2);
@@ -206,12 +206,12 @@ MY_TEST_F(RtpReceiveStatisticsTest, GetReceiveStreamDataCounters) {
     ASSERT_TRUE(statistician != NULL);
 
     RtpStreamDataCounters counters = statistician->GetReceiveStreamDataCounters();
-    EXPECT_GT(counters.first_packet_time_ms, -1);
+    EXPECT_TRUE(counters.first_packet_time);
     EXPECT_EQ(1u, counters.transmitted.num_packets);
 
     receive_statistics_.OnRtpPacket(packet1_);
     counters = statistician->GetReceiveStreamDataCounters();
-    EXPECT_GT(counters.first_packet_time_ms, -1);
+    EXPECT_TRUE(counters.first_packet_time);
     EXPECT_EQ(2u, counters.transmitted.num_packets);
 }
 

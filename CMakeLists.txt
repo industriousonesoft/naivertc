@@ -174,7 +174,8 @@ set(LIB_HEADERS
     src/rtc/rtp_rtcp/base/rtp_packet_sink.hpp
 
     # rtp -> rtp_rtcp -> components
-    src/rtc/rtp_rtcp/components/bit_rate_statistics.hpp
+    src/rtc/rtp_rtcp/components/bitrate_statistics.hpp
+    src/rtc/rtp_rtcp/components/bitrate_limiter.hpp
     # src/rtc/rtp_rtcp/components/wrap_around_checker.hpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.hpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.hpp
@@ -287,6 +288,7 @@ set(LIB_HEADERS
     src/rtc/congestion_control/components/inter_arrival_delta.hpp
     src/rtc/congestion_control/components/rtt_based_backoff.hpp
     src/rtc/congestion_control/components/alr_detector.hpp
+    src/rtc/congestion_control/components/congestion_control_handler.hpp
 
     # rtc -> congestion_control -> pacing
     src/rtc/congestion_control/pacing/pacing_types.hpp
@@ -451,7 +453,8 @@ set(LIB_SOURCES
     src/rtc/rtp_rtcp/base/rtcp_statistic_types.cpp
 
     # rtc -> rtp_rtcp -> components
-    src/rtc/rtp_rtcp/components/bit_rate_statistics.cpp
+    src/rtc/rtp_rtcp/components/bitrate_statistics.cpp
+    src/rtc/rtp_rtcp/components/bitrate_limiter.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator.cpp
     src/rtc/rtp_rtcp/components/rtp_receive_statistics.cpp
@@ -569,6 +572,7 @@ set(LIB_SOURCES
     src/rtc/congestion_control/components/inter_arrival_delta.cpp
     src/rtc/congestion_control/components/rtt_based_backoff.cpp
     src/rtc/congestion_control/components/alr_detector.cpp
+    src/rtc/congestion_control/components/congestion_control_handler.cpp
 
     # rtc -> congestion_control -> pacing
     src/rtc/congestion_control/pacing/bitrate_prober.cpp
@@ -781,7 +785,8 @@ set(UNITTEST_SOURCES
     src/rtc/rtp_rtcp/rtp_sender_video_unittest.cpp
 
     # rtc -> rtp_rtcp -> components
-    src/rtc/rtp_rtcp/components/bit_rate_statistics_unittest.cpp
+    src/rtc/rtp_rtcp/components/bitrate_statistics_unittest.cpp
+    src/rtc/rtp_rtcp/components/bitrate_limiter_unittest.cpp
     src/rtc/rtp_rtcp/components/rtp_to_ntp_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/remote_ntp_time_estimator_unittest.cpp
     src/rtc/rtp_rtcp/components/wrap_around_utils_unittest.cpp

@@ -6,7 +6,7 @@
 #include "rtc/rtp_rtcp/rtp/packetizer/rtp_packetizer.hpp"
 #include "rtc/rtp_rtcp/rtp_video_header.hpp"
 #include "rtc/base/synchronization/sequence_checker.hpp"
-#include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
+#include "rtc/rtp_rtcp/components/bitrate_statistics.hpp"
 
 #include <memory>
 #include <optional>

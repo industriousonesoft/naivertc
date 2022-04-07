@@ -43,7 +43,6 @@ void LinkerCapacityTracker::OnRttBackoffEstimate(DataRate bitrate,
 
 void LinkerCapacityTracker::OnBitrateUpdated(DataRate bitrate, 
                                              Timestamp at_time) {
-    // FIXME: Make sure the linker capacity still in a high level?
     if (bitrate > estimated_capacity_) {
         // 距离上一次更新的时间越近，权重值越大。
         // Delta since last update.
@@ -51,11 +50,20 @@ void LinkerCapacityTracker::OnBitrateUpdated(DataRate bitrate,
         // Calculate the exponential smoothing faction: e^-x = 1 / e^x
         double alpha = delta.IsFinite() ? exp(-(delta / tracking_window_))
                                         : 0;
-        // FIXME: |alpha|有时候的值会大于1，导致crash？
-        estimated_capacity_ = alpha * estimated_capacity_ + (1 - alpha) * bitrate;
-         PLOG_DEBUG_IF(true) << "capacity bitrate=" << bitrate.bps() 
-                             << " bps, updated bitrate=" << estimated_capacity_.bps()
-                             << " bps, alpha="<< alpha;
+        // delta < 0
+        if (alpha > 1) {
+            estimated_capacity_ = alpha * estimated_capacity_ - (alpha - 1) * bitrate;
+        } else {
+            estimated_capacity_ = alpha * estimated_capacity_ + (1 - alpha) * bitrate;
+        }
+        
+        PLOG_WARNING_IF(false) 
+            << "capacity bitrate=" << bitrate.bps() 
+            << " bps, updated bitrate=" << estimated_capacity_.bps()
+            << " bps, alpha="<< alpha
+            << " , delta=" << delta.ms()
+            << "ms, at_time=" << at_time.ms()
+            << "ms, last_update=" << time_last_capacity_udpate_.ms() << " ms.";
     }
     time_last_capacity_udpate_ = at_time;
 }

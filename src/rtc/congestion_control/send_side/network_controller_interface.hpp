@@ -11,6 +11,7 @@ class Clock;
 
 class NetworkControllerInterface {
 public:
+    // Configuration
     struct Configuration {
         Clock* clock = nullptr;
         // The initial constraints to start with.

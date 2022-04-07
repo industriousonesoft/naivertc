@@ -167,7 +167,7 @@ bool RtpSenderVideo::Send(int payload_type,
 
 DataRate RtpSenderVideo::PacktizationOverheadBitrate() {
     RTC_RUN_ON(&sequence_checker_);
-    return packetization_overhead_bitrate_stats_.Rate(clock_->now_ms()).value_or(DataRate::Zero());
+    return packetization_overhead_bitrate_stats_.Rate(clock_->CurrentTime()).value_or(DataRate::Zero());
 }
 
 // Private methods
@@ -241,7 +241,7 @@ void RtpSenderVideo::CalcPacketizationOverhead(ArrayView<const RtpPacketToSend> 
     }
     // AV1 and H264 packetizers may produce less packetized bytes than unpacketized.
     if (packetized_payload_size >= unpacketized_payload_size) {
-        packetization_overhead_bitrate_stats_.Update(packetized_payload_size - unpacketized_payload_size, clock_->now_ms());
+        packetization_overhead_bitrate_stats_.Update(packetized_payload_size - unpacketized_payload_size, clock_->CurrentTime());
     }
 }
     

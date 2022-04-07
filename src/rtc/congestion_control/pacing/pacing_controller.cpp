@@ -130,9 +130,10 @@ void PacingController::SetPacingBitrates(DataRate pacing_bitrate,
     padding_bitrate_ = padding_bitrate;
     pacing_bitrate_ = pacing_bitrate;
 
-    PLOG_VERBOSE << "Set pacing bitrate=" << pacing_bitrate.bps() 
-                 << " bps, padding bitrate=" << padding_bitrate.bps()
-                 << " bps.";
+    PLOG_VERBOSE_IF(false) 
+        << "Set pacing bitrate=" << pacing_bitrate.bps() 
+        << " bps, padding bitrate=" << padding_bitrate.bps()
+        << " bps.";
 }
 
 void PacingController::SetCongestionWindow(size_t congestion_window_size) {

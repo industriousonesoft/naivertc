@@ -30,7 +30,6 @@ public:
 public:
     ~RepeatingTask();
 
-    // Blocks the current thread until all the pending tasks has been executed. 
     // The future invocations of the repeating task is guaranteed to not be 
     // running after calling this function, unless this function is called from 
     // the clouser itself.

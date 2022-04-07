@@ -56,15 +56,15 @@ struct RtpStreamDataCounters final {
     RtpStreamDataCounters& operator+=(const RtpStreamDataCounters& other);
     RtpStreamDataCounters& operator-=(const RtpStreamDataCounters& other);
 
-    int64_t TimeSinceFirstPacketInMs(int64_t now_ms) const;
+    std::optional<TimeDelta> TimeSinceFirstPacket(Timestamp at_time) const;
 
     // Returns the number of bytes corresponding to the actual media payload.
     size_t MediaPayloadBytes() const;
 
     // The time at which th first packet was sent/received.
-    int64_t first_packet_time_ms;
+    std::optional<Timestamp> first_packet_time;
     // The time at which the last packet was received.
-    std::optional<int64_t> last_packet_received_time_ms;
+    std::optional<Timestamp> last_packet_received_time;
     RtpPacketCounter transmitted;
     RtpPacketCounter retransmitted;
     RtpPacketCounter fec;
@@ -103,7 +103,8 @@ struct RtpReceiveStats {
     int32_t packets_lost = 0;
     uint32_t jitter = 0;
 
-    std::optional<int64_t> last_packet_received_time_ms;
+    // The UTC time based on Unix epoch (1970年1月1日0点0分0秒 UTC).
+    std::optional<Timestamp> last_packet_received_posix_time;
     RtpPacketCounter packet_counter;
 };
 

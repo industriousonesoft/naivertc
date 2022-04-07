@@ -7,7 +7,7 @@
 #include "rtc/rtp_rtcp/base/rtp_statistic_types.hpp"
 #include "rtc/rtp_rtcp/rtp/packets/rtp_packet_received.hpp"
 #include "rtc/rtp_rtcp/rtcp/packets/report_block.hpp"
-#include "rtc/rtp_rtcp/components/bit_rate_statistics.hpp"
+#include "rtc/rtp_rtcp/components/bitrate_statistics.hpp"
 
 namespace naivertc {
 
@@ -41,11 +41,11 @@ private:
                             int64_t seq_num, 
                             int64_t receive_time_ms);
 
+    Timestamp ConvertToPosixTime(Timestamp system_time) const;
+
 private:
     const uint32_t ssrc_;
     Clock* const clock_;
-    // Delta used to map internal timestamps to Unix epoch ones.
-    const int64_t delta_internal_unix_epoch_ms_;
 
     int max_reordering_threshold_;
     bool enable_retransmit_detection_;

@@ -15,7 +15,12 @@ UlpFecReceiver::UlpFecReceiver(uint32_t ssrc,
       recovered_packet_receiver_(recovered_packet_receiver),
       fec_decoder_(FecDecoder::CreateUlpFecDecoder(ssrc_)) {
 
-    fec_decoder_->OnRecoveredPacket(std::bind(&UlpFecReceiver::OnRecoveredPacket, this, std::placeholders::_1));
+    fec_decoder_->OnRecoveredPacket([this](const FecDecoder::RecoveredMediaPacket& recovered_packet){
+        ++packet_counter_.num_recovered_packets;
+        if (recovered_packet_receiver_) {
+            recovered_packet_receiver_->OnRecoveredPacket(recovered_packet.pkt);
+        }
+    });
 }
 
 UlpFecReceiver::~UlpFecReceiver() {
@@ -101,13 +106,6 @@ bool UlpFecReceiver::OnRedPacket(const RtpPacketReceived& rtp_packet, uint8_t ul
     }
 
     return true;
-}
-
-void UlpFecReceiver::OnRecoveredPacket(const FecDecoder::RecoveredMediaPacket& recovered_packet) {
-    ++packet_counter_.num_recovered_packets;
-    if (recovered_packet_receiver_) {
-        recovered_packet_receiver_->OnRecoveredPacket(recovered_packet.pkt);
-    }
 }
     
 } // namespace naivertc

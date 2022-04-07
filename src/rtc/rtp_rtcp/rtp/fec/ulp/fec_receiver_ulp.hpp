@@ -36,9 +36,6 @@ public:
     PacketCounter packet_counter() const { return packet_counter_; }
 
 private:
-    void OnRecoveredPacket(const FecDecoder::RecoveredMediaPacket& recovered_packet);
-
-private:
     const uint32_t ssrc_;
     Clock* const clock_;
     RecoveredPacketReceiver* recovered_packet_receiver_;
