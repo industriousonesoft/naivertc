@@ -90,13 +90,13 @@ void FecPacketMaskGenerator::GenerateUnequalProtectionMasks(size_t num_media_pac
 size_t FecPacketMaskGenerator::NumberOfFecPacketForImportantPackets(size_t num_media_packets,
                                                                     size_t num_fec_packets,
                                                                     size_t num_imp_packets) {
-    // FIXME: 此处为什么是0.5？
+    // The half of fec packets used to protect important packets.
     size_t max_num_fec_for_imp = num_fec_packets * 0.5;
 
     size_t num_fec_for_imp = num_imp_packets < max_num_fec_for_imp ? num_imp_packets : max_num_fec_for_imp;
 
     // Fall back to equal protection
-    // FIXME：怎么理解这个回滚条件？
+    // 如果只有一个FEC包，且普通包个数是重要包的2倍以上，则不再区分重要包和普通包。
     if (num_fec_packets == 1 && (num_media_packets > 2 * num_imp_packets)) {
         num_fec_for_imp = 0;
     }
@@ -123,6 +123,8 @@ void FecPacketMaskGenerator::GenerateRemainingProtectionMasks(size_t num_media_p
                                                               UEPMode mode,
                                                               uint8_t* packet_masks) {
     if (mode == UEPMode::OVERLAP || mode == UEPMode::BIAS_FIRST_PACKET) {
+        // Overlap：分配t个fec包给k个重要原始包做fec，剩下的fec包同时给普通版和重要包做fec。
+        // bias-first-packet: 全部fec包都对第一个包做编码。
         // Overlap and bias-first-packet protection mode will protect the imaport packets with remaining FEC packets.
         ArrayView<const uint8_t> packet_sub_masks = LookUpPacketMasks(num_media_packets, num_fec_remaining);
         FitSubMasks(num_mask_bytes, 
@@ -139,7 +141,7 @@ void FecPacketMaskGenerator::GenerateRemainingProtectionMasks(size_t num_media_p
             }
         }
     } else if (mode == UEPMode::NO_OVERLAP) {
-        // FIXME: 此处为什么是减去num_fec_for_imp_packets而非num_for_imp_packets？？
+        // No overlap: 分配t个fec包给k个重要原始包做fec，剩下的fec包给剩下的普通原始包。
         const size_t num_media_packets_remaining = num_media_packets - num_fec_for_imp_packets;
 
         const size_t num_sub_mask_bytes = PacketMaskSize(num_media_packets_remaining);
@@ -197,9 +199,9 @@ void FecPacketMaskGenerator::ShiftFitSubMask(size_t num_mask_bytes,
 }
 
 ArrayView<const uint8_t> FecPacketMaskGenerator::LookUpInFixedMaskTable(const uint8_t* mask_table, 
-                                                                        size_t media_packet_index, 
-                                                                        size_t fec_packet_index) {
-    if (media_packet_index >= mask_table[0]/* mask table size */) {
+                                                                        size_t num_media_packets, 
+                                                                        size_t num_fec_packets) {
+    if (num_media_packets >= mask_table[0]/* mask table size */) {
         return nullptr;
     }
 
@@ -209,7 +211,7 @@ ArrayView<const uint8_t> FecPacketMaskGenerator::LookUpInFixedMaskTable(const ui
     uint8_t entry_size_increment = kUlpFecPacketMaskSizeLBitClear; // 2
 
     // Hop over un-interesting array entries.
-    for (size_t i = 0; i < media_packet_index; ++i) {
+    for (size_t i = 0; i < num_media_packets; ++i) {
         if (i == kUlpFecMaxMediaPacketsLBitClear) {
             entry_size_increment = kUlpFecPacketMaskSizeLBitSet; // 6
         }
@@ -223,23 +225,23 @@ ArrayView<const uint8_t> FecPacketMaskGenerator::LookUpInFixedMaskTable(const ui
         }
     }
 
-    if (media_packet_index == kUlpFecMaxMediaPacketsLBitClear) {
+    if (num_media_packets == kUlpFecMaxMediaPacketsLBitClear) {
         entry_size_increment = kUlpFecPacketMaskSizeLBitSet;
     }
 
-    if (fec_packet_index >= entry[0]) {
+    if (num_fec_packets >= entry[0]) {
         return nullptr;
     }
 
     // Skip over the count byte
     ++entry;
 
-    for (size_t i = 0; i < fec_packet_index; ++i) {
+    for (size_t i = 0; i < num_fec_packets; ++i) {
         // Skip over the data
         entry += entry_size_increment * (i + 1);
     }
 
-    size_t size = entry_size_increment * (fec_packet_index + 1);
+    size_t size = entry_size_increment * (num_fec_packets + 1);
     return ArrayView<const uint8_t>(&entry[0], size);
 }
 

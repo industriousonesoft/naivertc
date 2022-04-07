@@ -7,7 +7,7 @@
 namespace naivertc {
 namespace {
     
-constexpr size_t kPacketMaskOffset = kFecLevel0HeaderSize + 2;
+constexpr size_t kPacketMaskOffset = kFecHeaderSize + 2;
     
 } // namespace
 
@@ -18,9 +18,9 @@ UlpFecHeaderReader::~UlpFecHeaderReader() {}
 
 size_t UlpFecHeaderReader::FecHeaderSize(size_t packet_mask_size) const {
     if (packet_mask_size <= kUlpFecPacketMaskSizeLBitClear) {
-        return kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitClear;
+        return kFecHeaderSize + kFecLevelHeaderSizeLBitClear;
     } else {
-        return kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet;
+        return kFecHeaderSize + kFecLevelHeaderSizeLBitSet;
     }
 }
 
@@ -55,7 +55,7 @@ bool UlpFecHeaderReader::ReadFecHeader(FecHeader& fec_header, CopyOnWriteBuffer&
     fec_header.seq_num_base = ByteReader<uint16_t>::ReadBigEndian(&data[2]);
     fec_header.packet_mask_offset = kPacketMaskOffset;
     fec_header.packet_mask_size = packet_mask_size;
-    fec_header.protection_length = ByteReader<uint16_t>::ReadBigEndian(&data[kFecLevel0HeaderSize /* 10 bytes */]);
+    fec_header.protection_length = ByteReader<uint16_t>::ReadBigEndian(&data[kFecHeaderSize /* 10 bytes */]);
 
     // Store length recovery field in temporary location in header.
     // This makes the header "compatible" with the corresponding

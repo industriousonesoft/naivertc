@@ -11,11 +11,11 @@ static constexpr size_t kUlpFecPacketMaskSizeLBitClear = 2;
 static constexpr size_t kUlpFecPacketMaskSizeLBitSet = 6;
 
 // FEC Level 0 header size in bytes.
-static constexpr size_t kFecLevel0HeaderSize = 10;
+static constexpr size_t kFecHeaderSize = 10;
 // FEC Level 1 (ULP) header size in bytes (L bit is set).
-static constexpr size_t kFecLevel1HeaderSizeLBitSet = 2 + kUlpFecPacketMaskSizeLBitSet;
+static constexpr size_t kFecLevelHeaderSizeLBitSet = 2 + kUlpFecPacketMaskSizeLBitSet;
 // FEC Level 1 (ULP) header size in bytes (L bit is cleared).
-static constexpr size_t kFecLevel1HeaderSizeLBitClear = 2 + kUlpFecPacketMaskSizeLBitClear;
+static constexpr size_t kFecLevelHeaderSizeLBitClear = 2 + kUlpFecPacketMaskSizeLBitClear;
     
 // UlpFec can protect packet size in bytes (givem L bit)
 static constexpr size_t kUlpFecMaxMediaPacketsLBitClear = 2 * 8; // 16

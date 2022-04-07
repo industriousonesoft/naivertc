@@ -69,8 +69,8 @@ private:
     // The algorithm is tailored to look up data in the PacketMaskBurstyTable or PacketMaskRandomTable.
     // These tables only cover fec code for up to 12 media packets.
     ArrayView<const uint8_t> LookUpInFixedMaskTable(const uint8_t* mask_table, 
-                                                    size_t media_packet_index, 
-                                                    size_t fec_packet_index);
+                                                    size_t num_media_packets, 
+                                                    size_t num_fec_packets);
 
     static void FitSubMasks(size_t num_mask_bytes, 
                             size_t num_sub_mask_bytes, 

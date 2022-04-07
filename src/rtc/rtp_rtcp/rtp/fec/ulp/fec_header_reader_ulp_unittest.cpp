@@ -12,11 +12,11 @@ namespace test {
 
 MY_TEST(UlpFecHeaderReaderTest, ReadFecHeaderWithLBitClear) {
     const uint8_t packet[] = {
-        // Level0
+        // FEC header
         0x00, 0x12, 0xab, 0xcd,  // L bit clear, "random" payload type and SN base
         0x12, 0x34, 0x56, 0x78,  // "random" TS recovery
         0xab, 0xcd,              // "random" length recovery
-        // Level1
+        // FEC Level
         0x11, 0x22, 0x33, 0x44,  // "random"  protection length and packet mask
 
         0x00, 0x00, 0x00, 0x00   // payload

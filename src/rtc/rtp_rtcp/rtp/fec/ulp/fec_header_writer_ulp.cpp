@@ -4,7 +4,7 @@
 namespace naivertc {
     
 UlpFecHeaderWriter::UlpFecHeaderWriter() 
-    : FecHeaderWriter(kUlpFecMaxMediaPackets, kMaxFecPackets, kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet) {}
+    : FecHeaderWriter(kUlpFecMaxMediaPackets, kMaxFecPackets, kFecHeaderSize + kFecLevelHeaderSizeLBitSet) {}
 
 UlpFecHeaderWriter::~UlpFecHeaderWriter() = default;
 
@@ -14,14 +14,14 @@ size_t UlpFecHeaderWriter::MinPacketMaskSize(const uint8_t* packet_mask, size_t 
 
 size_t UlpFecHeaderWriter::FecHeaderSize(size_t packet_mask_size) const {
     if (packet_mask_size <= kUlpFecPacketMaskSizeLBitClear) {
-        return kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitClear;
+        return kFecHeaderSize + kFecLevelHeaderSizeLBitClear;
     } else {
-        return kFecLevel0HeaderSize + kFecLevel1HeaderSizeLBitSet;
+        return kFecHeaderSize + kFecLevelHeaderSizeLBitSet;
     }
 }
 
 // https://datatracker.ietf.org/doc/html/rfc5109#section-7.3
-// FEC Level 0 Header, 10 octets.
+// FEC Header, 10 octets.
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -31,7 +31,7 @@ size_t UlpFecHeaderWriter::FecHeaderSize(size_t packet_mask_size) const {
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //   |        length recovery        |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// FEC Level 1 Header, 4 octets (L = 0) or 8 octets (L = 1).
+// FEC Level Header, 4 octets (L = 0) or 8 octets (L = 1).
 //    0                   1                   2                   3
 //    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -67,10 +67,10 @@ void UlpFecHeaderWriter::FinalizeFecHeader(uint32_t /* Unused by ULPFEC */,
     // Write sequence number base.
     ByteWriter<uint16_t>::WriteBigEndian(&data[2], seq_num_base);
 
-    // FEC level 0 header
+    // FEC header size
     const size_t fec_header_size = FecHeaderSize(packet_mask_size);
     // Set protection length field
-    ByteWriter<uint16_t>::WriteBigEndian(&data[kFecLevel0HeaderSize], fec_packet.size() - fec_header_size);
+    ByteWriter<uint16_t>::WriteBigEndian(&data[kFecHeaderSize], fec_packet.size() - fec_header_size);
     // Copy the packet mask
     memcpy(&data[12], packet_mask_data, packet_mask_size);
 }

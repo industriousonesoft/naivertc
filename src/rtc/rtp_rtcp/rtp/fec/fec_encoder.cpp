@@ -64,9 +64,11 @@ bool FecEncoder::Encode(const PacketList& media_packets,
                         FecMaskType fec_mask_type,
                         FecPacketList& generated_fec_packets) {
     const size_t num_media_packets = media_packets.size();
+    // No media packets can be protected.
     if (num_media_packets == 0) {
         return false;
     }
+    // Need more media packets to do unequal protection for the important packets.
     if (num_important_packets > num_media_packets) {
         return false;
     }
