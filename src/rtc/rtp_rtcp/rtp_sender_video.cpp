@@ -137,7 +137,8 @@ bool RtpSenderVideo::Send(int payload_type,
 
         // FIXME: Do we really need to build a red packet here, like what the WebRTC does? 
         // and I think we just need to set the red flag.
-        // NOTE: WebRTC中在此处新建伪RED包的作用似乎并不大，此处将未使用RED_FEC封装的包一律视为非RED包
+        // TODO：由于ULP_FEC的接收端在做恢复时需要同时获得RED封装的FEC包和Media包，
+        // 虽然可以将Media包和FEC包分开传入ULP_FEC的接收器，但是如果要兼容WebRTC还是需要做FEC封装！
         packet->set_is_red(false);
         packet->set_red_protection_need(packet_sender_->red_enabled());
         packet->set_packet_type(RtpPacketType::VIDEO);
