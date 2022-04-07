@@ -521,7 +521,7 @@ void GoogCcNetworkController::UpdateCongestionWindow() {
     // congestion time window = feedback_rtt + queuing_delay.
     TimeDelta time_window = min_feedback_max_rtt + rate_control_settings_.queuing_delay.value_or(TimeDelta::Zero());
 
-    size_t congestion_window = static_cast<size_t>(last_loss_based_target_bitrate_.bps() * time_window.ms() / 8000);
+    size_t congestion_window = last_loss_based_target_bitrate_ * time_window;
     if (curr_congestion_window_) {
         congestion_window = std::max(kMinCongestionWindow, /*smooth filter*/(*curr_congestion_window_ + congestion_window) / 2);
     } else {

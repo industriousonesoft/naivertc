@@ -44,6 +44,7 @@ DataRate CongestionWindwoPushbackController::AdjustTargetBitrate(DataRate target
     } else if (fill_ratio > 1.0) {
         encoding_bitrate_ratio_ *= 0.95;
     } else if (fill_ratio < 0.1) {
+        // Reset
         encoding_bitrate_ratio_ = kInitialEncodingBitrateRatio;
     } else {
         // fill ratio in range: [0.1, 1.0]
