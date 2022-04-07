@@ -67,7 +67,7 @@ void UlpFecHeaderWriter::FinalizeFecHeader(uint32_t /* Unused by ULPFEC */,
     // Write sequence number base.
     ByteWriter<uint16_t>::WriteBigEndian(&data[2], seq_num_base);
 
-    // FEC level 1 header
+    // FEC level 0 header
     const size_t fec_header_size = FecHeaderSize(packet_mask_size);
     // Set protection length field
     ByteWriter<uint16_t>::WriteBigEndian(&data[kFecLevel0HeaderSize], fec_packet.size() - fec_header_size);
