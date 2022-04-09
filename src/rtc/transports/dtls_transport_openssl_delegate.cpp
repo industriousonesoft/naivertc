@@ -38,7 +38,7 @@ void DtlsTransport::Init() {
 }
 
 void DtlsTransport::Cleanup() {
-    PLOG_VERBOSE << "SCTP cleanup";
+    PLOG_VERBOSE << "DTLS cleanup";
     // Nothing to do
 }
 
@@ -78,7 +78,7 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
 
         openssl::check(SSL_CTX_set_cipher_list(ctx_, "ALL:!LOW:!EXP:!RC4:!MD5:@STRENGTH"), "Failed to set SSL priorities.");
 
-        auto [x509, pkey] = config.certificate->credentials();
+        auto [x509, pkey] = config.certificate->GetCredentials();
         SSL_CTX_use_certificate(ctx_, x509);
         SSL_CTX_use_PrivateKey(ctx_, pkey);
 
@@ -123,7 +123,7 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
 
     }catch (const std::exception& exp) {
         DeinitDTLS();
-        PLOG_ERROR << exp.what();
+        PLOG_ERROR << "Failed to init DTLS transport (OpenSSL)" << exp.what();
     }
 }
 
@@ -237,12 +237,6 @@ bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
     } else {
         return true;
     }
-}
-
-int DtlsTransport::OnDtlsWrite(CopyOnWriteBuffer data) {
-    return attached_queue_->Invoke<int>([this, data=std::move(data)](){
-        return HandleDtlsWrite(std::move(data));
-    });
 }
 
 // Callback methods

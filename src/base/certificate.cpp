@@ -7,44 +7,114 @@
 #include <iomanip>
 
 namespace naivertc {
+namespace {
 
-Certificate::Certificate(std::string_view crt_pem, std::string_view key_pem) {
-#if !defined(USE_MBEDTLS)
-    BIO *bio = BIO_new(BIO_s_mem());
-	BIO_write(bio, crt_pem.data(), int(crt_pem.size()));
-	x509_ = std::shared_ptr<X509>(PEM_read_bio_X509(bio, nullptr, 0, 0), X509_free);
-	BIO_free(bio);
-	if (!x509_)
-		throw std::invalid_argument("Unable to import certificate PEM");
-
-	bio = BIO_new(BIO_s_mem());
-	BIO_write(bio, key_pem.data(), int(key_pem.size()));
-	pkey_ = std::shared_ptr<EVP_PKEY>(PEM_read_bio_PrivateKey(bio, nullptr, 0, 0), EVP_PKEY_free);
-	BIO_free(bio);
-	if (!x509_)
-		throw std::invalid_argument("Unable to import PEM key PEM");
-
-	fingerprint_ = MakeFingerprint(x509_.get());
-#endif
+// PEM to X509
+std::shared_ptr<X509> PEMToX509(std::string_view crt_pem) {
+    BIO* bio = BIO_new(BIO_s_mem());
+    if (!bio) {
+        return nullptr;
+    }
+    BIO_write(bio, crt_pem.data(), int(crt_pem.size()));
+    auto x509 = std::shared_ptr<X509>(PEM_read_bio_X509(bio, nullptr, 0, 0), X509_free);
+    BIO_free(bio);
+    if (!x509) {
+        PLOG_WARNING << "Failed to parse X509 in PEM.";
+    }
+    return x509;
 }
 
-#if !defined(USE_MBEDTLS)
+// X509 to PEM
+std::string X509ToPEM(X509* cert) {
+    if (!cert) {
+        return nullptr;
+    }
+    BIO* bio = BIO_new(BIO_s_mem());
+    if (!bio) {
+        return nullptr;
+    }
+    PEM_write_bio_X509(bio, cert);
+    BUF_MEM *bptr;
+    BIO_get_mem_ptr(bio, &bptr);
+    if (bptr->data == nullptr || bptr->length == 0) {
+        BIO_free(bio);
+        return nullptr;
+    }
+    auto crt_pem = std::string(bptr->data, bptr->length);
+    BIO_free(bio);
+    BUF_MEM_free(bptr);
+    return crt_pem;
+}
+
+// PEM to private key
+std::shared_ptr<EVP_PKEY> PEMToPrivateKey(std::string_view key_pem) {
+    BIO* bio = BIO_new(BIO_s_mem());
+    if (!bio) {
+        return nullptr;
+    }
+	BIO_write(bio, key_pem.data(), int(key_pem.size()));
+	auto pkey = std::shared_ptr<EVP_PKEY>(PEM_read_bio_PrivateKey(bio, nullptr, nullptr, nullptr), EVP_PKEY_free);
+	BIO_free(bio);
+	if (!pkey) {
+         PLOG_WARNING << "Failed to parse private key in PEM.";
+    }
+    return pkey;
+}
+
+// Private key to PEM
+std::string PrivateKeyToPEM(EVP_PKEY* pkey) {
+    if (!pkey) {
+        return nullptr;
+    }
+    BIO* bio = BIO_new(BIO_s_mem());
+    if (!bio) {
+        return nullptr;
+    }
+    PEM_write_bio_PrivateKey(bio, pkey, nullptr, nullptr, 0, nullptr, nullptr);
+    BUF_MEM *bptr;
+    BIO_get_mem_ptr(bio, &bptr);
+    if (bptr->data == nullptr || bptr->length == 0) {
+        BIO_free(bio);
+        return nullptr;
+    }
+    auto key_pem = std::string(bptr->data, bptr->length);
+    BIO_free(bio);
+    BUF_MEM_free(bptr);
+    return key_pem;
+}
+    
+} // namespace
+
+
+Certificate::Certificate(std::string_view crt_pem, std::string_view key_pem) 
+    : crt_pem_(crt_pem),
+      pkey_pem_(key_pem) {
+    
+    x509_ = PEMToX509(crt_pem);
+    pkey_ = PEMToPrivateKey(key_pem);
+	fingerprint_ = MakeFingerprint(x509_.get());
+}
+
 Certificate::Certificate(std::shared_ptr<X509> x509, std::shared_ptr<EVP_PKEY> pkey) 
     : x509_(x509),
-    pkey_(pkey) {
+      pkey_(pkey) {
+
+    crt_pem_ = X509ToPEM(x509.get());
+    pkey_pem_ = PrivateKeyToPEM(pkey.get());
     fingerprint_ = MakeFingerprint(x509.get());
 }
 
-std::tuple<X509 *, EVP_PKEY *> Certificate::credentials() const {
+std::tuple<X509 *, EVP_PKEY *> Certificate::GetCredentials() const {
     return {x509_.get(), pkey_.get()};
 }
-#endif
+
+std::tuple</*crt_pem*/std::string_view, /*key_pem*/std::string_view> Certificate::GetCredentialsInPEM() const {
+    return {crt_pem_, pkey_pem_};
+}
 
 Certificate::~Certificate() {
-#if !defined(USE_MBEDTLS)
     x509_.reset();
     pkey_.reset();
-#endif
 }
 
 const std::string Certificate::fingerprint() const {
@@ -55,7 +125,6 @@ std::string Certificate::fingerprint() {
     return fingerprint_;
 }
 
-#if !defined(USE_MBEDTLS)
 std::string Certificate::MakeFingerprint(X509* x509) {
     // SHA_265的长度为32个字节
     const size_t size = 32;
@@ -76,11 +145,9 @@ std::string Certificate::MakeFingerprint(X509* x509) {
     }
     return oss.str();
 }
-#endif
 
 std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, std::string_view common_name) {
 
-#if !defined(USE_MBEDTLS)
     PLOG_DEBUG << "Generating certificate with OpenSSL.";
 
     std::shared_ptr<X509> x509(X509_new(), X509_free);
@@ -164,9 +231,7 @@ std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, std::st
 
 	return std::make_shared<Certificate>(x509, pkey);
 
-#else
     return nullptr;
-#endif
 }
 
 const std::string COMMON_NAME = "libnaivertc";

@@ -60,7 +60,10 @@ private:
     bool IsHandshakeTimeout();
     virtual void DtlsHandshakeDone();
 
-#if !defined(USE_MBEDTLS)
+#if defined(USE_MBEDTLS)
+    static int MbedtlsNetSend(void *ctx, const unsigned char *buf, size_t len);
+    static int MbedtlsNetRecv(void *ctx, unsigned char *buf, size_t len);
+#else
     static openssl_bool CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx);
     static void InfoCallback(const SSL* ssl, int where, int ret);
     static openssl_bool BioMethodNew(BIO* bio);
@@ -80,7 +83,20 @@ private:
     const PacketOptions handshake_packet_options_;
     std::optional<PacketOptions> user_packet_options_;
 
-#if !defined(USE_MBEDTLS)
+#if defined(USE_MBEDTLS)
+    // mbedtls
+    mbedtls_ssl_cookie_ctx cookie_;
+    mbedtls_entropy_context entropy_;
+    mbedtls_ctr_drbg_context ctr_drbg_;
+    mbedtls_ssl_context ssl_;
+    mbedtls_ssl_config ssl_conf_;
+    mbedtls_timing_delay_context timer_;
+    mbedtls_x509_crt cert_;
+    mbedtls_pk_context pkey_;
+
+    std::optional<CopyOnWriteBuffer> curr_in_packet_;
+#else
+    // openssl
     SSL_CTX* ctx_ = NULL;
     SSL* ssl_ = NULL;
     BIO* in_bio_ = NULL;
@@ -89,9 +105,9 @@ private:
     // 全局变量声明式
     static BIO_METHOD* bio_methods_;
     static int transport_ex_index_;
+    static std::mutex global_mutex_;
 #endif
 
-    static std::mutex global_mutex_;
     static constexpr size_t DEFAULT_SSL_BUFFER_SIZE = 4096;
     uint8_t ssl_read_buffer_[DEFAULT_SSL_BUFFER_SIZE];
 

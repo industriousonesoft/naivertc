@@ -677,13 +677,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${LIBBOOST_LIBRARY_PATH}/libboost_filesystem${CMAKE_STATIC_LIBRARY_SUFFIX}
     ${LIBBOOST_LIBRARY_PATH}/libboost_thread${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
-# use openssl
+# use mbedtls instead of openssl
 if(USE_MBEDTLS)
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I../configs -DMBEDTLS_CONFIG_FILE='<mbedtls_config.h>'")
 add_subdirectory(deps/mbedtls EXCLUDE_FROM_ALL)
 target_compile_definitions(${PROJECT_NAME} PUBLIC USE_MBEDTLS)
 target_link_libraries(${PROJECT_NAME} PUBLIC mbedtls)
 endif()
-# use openssl
+# openssl (used to generate self-signed certificate even if used mbedtls)
 if(APPLE)
     # This is a bug in CMake that causes it to prefer the system version over 
     # the one in the specified ROOT folder
@@ -694,9 +695,7 @@ if(APPLE)
 endif()
 # find and link openssl
 find_package(OpenSSL REQUIRED)
-if(NOT USE_MBEDTLS)
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenSSL::SSL)
-endif()
 # usrsctp
 option(sctp_build_programs 0)
 option(sctp_build_shared_lib 0)

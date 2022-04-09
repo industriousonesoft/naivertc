@@ -1,5 +1,6 @@
 #include "rtc/transports/dtls_transport.hpp"
 #include "common/weak_ptr_manager.hpp"
+#include "rtc/base/task_utils/task_queue_impl.hpp"
 
 #include <plog/Log.h>
 
@@ -106,7 +107,8 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
         // PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet.size();
 
 #if defined(USE_MBEDTLS)
-        // TODO: parsed by mbedtls
+        // curr_in_packet_.emplace(std::move(in_packet));
+        // mbedtls_ssl_read(&ssl_, ssl_read_buffer_, DEFAULT_SSL_BUFFER_SIZE);
 #else
         if (!ssl_) {
             return;
@@ -148,6 +150,12 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
     }catch (const std::exception& exp) {
         PLOG_WARNING << "Error occurred when processing incoming packet: " << exp.what();
     }
+}
+
+int DtlsTransport::OnDtlsWrite(CopyOnWriteBuffer data) {
+    return attached_queue_->Invoke<int>([this, data=std::move(data)](){
+        return HandleDtlsWrite(std::move(data));
+    });
 }
 
 int DtlsTransport::HandleDtlsWrite(CopyOnWriteBuffer data) {
