@@ -9,6 +9,7 @@
 namespace naivertc {
 
 Certificate::Certificate(std::string_view crt_pem, std::string_view key_pem) {
+#if !defined(USE_MBEDTLS)
     BIO *bio = BIO_new(BIO_s_mem());
 	BIO_write(bio, crt_pem.data(), int(crt_pem.size()));
 	x509_ = std::shared_ptr<X509>(PEM_read_bio_X509(bio, nullptr, 0, 0), X509_free);
@@ -24,8 +25,10 @@ Certificate::Certificate(std::string_view crt_pem, std::string_view key_pem) {
 		throw std::invalid_argument("Unable to import PEM key PEM");
 
 	fingerprint_ = MakeFingerprint(x509_.get());
+#endif
 }
 
+#if !defined(USE_MBEDTLS)
 Certificate::Certificate(std::shared_ptr<X509> x509, std::shared_ptr<EVP_PKEY> pkey) 
     : x509_(x509),
     pkey_(pkey) {
@@ -35,10 +38,13 @@ Certificate::Certificate(std::shared_ptr<X509> x509, std::shared_ptr<EVP_PKEY> p
 std::tuple<X509 *, EVP_PKEY *> Certificate::credentials() const {
     return {x509_.get(), pkey_.get()};
 }
+#endif
 
 Certificate::~Certificate() {
+#if !defined(USE_MBEDTLS)
     x509_.reset();
     pkey_.reset();
+#endif
 }
 
 const std::string Certificate::fingerprint() const {
@@ -49,6 +55,7 @@ std::string Certificate::fingerprint() {
     return fingerprint_;
 }
 
+#if !defined(USE_MBEDTLS)
 std::string Certificate::MakeFingerprint(X509* x509) {
     // SHA_265的长度为32个字节
     const size_t size = 32;
@@ -69,9 +76,11 @@ std::string Certificate::MakeFingerprint(X509* x509) {
     }
     return oss.str();
 }
+#endif
 
 std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, std::string_view common_name) {
 
+#if !defined(USE_MBEDTLS)
     PLOG_DEBUG << "Generating certificate with OpenSSL.";
 
     std::shared_ptr<X509> x509(X509_new(), X509_free);
@@ -154,6 +163,10 @@ std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, std::st
 		throw std::runtime_error("Unable to auto-sign certificate");
 
 	return std::make_shared<Certificate>(x509, pkey);
+
+#else
+    return nullptr;
+#endif
 }
 
 const std::string COMMON_NAME = "libnaivertc";

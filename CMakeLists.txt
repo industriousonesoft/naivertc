@@ -18,10 +18,12 @@ message(STATUS "SYSTEM_NAME : ${CMAKE_SYSTEM_NAME}" )
 # Using libnice instead of libjuice for more completed implementation of 
 # the IETF's Interactive Connectivity Establishment(ICE) standard to compatible with WebRTC
 option(USE_NICE "Use libnice instead of libjuice" ON)
+option(USE_MBEDTLS "Use mbedtls instead of openssl" ON)
 option(ENABLE_TESTS "Enable tests" ON)
 
 # macOSx
 if(${CMAKE_SYSTEM_NAME} MATCHES "macOS" OR ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    # set the install path of dependent libs
     set(INSTALL_DIR ${PROJECT_SOURCE_DIR}/lib_deps/macos/_install)
     # openssl
     set(OPENSSL_ROOT_DIR "/usr/local/Cellar/openssl\@1.1/1.1.1g/")
@@ -394,6 +396,7 @@ set(LIB_SOURCES
     src/rtc/transports/sctp_message.cpp
     src/rtc/transports/dtls_transport.cpp
     src/rtc/transports/dtls_transport_openssl_delegate.cpp
+    src/rtc/transports/dtls_transport_mbedtls_delegate.cpp
     src/rtc/transports/dtls_srtp_transport.cpp
     src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
 
@@ -654,12 +657,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC plog::plog)
 if(USE_NICE)
     # libnice
     find_package(LibNice REQUIRED)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_NICE=1)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_NICE)
     target_link_libraries(${PROJECT_NAME} PUBLIC LibNice::LibNice)
 else()
     # libjuice
     add_subdirectory(deps/libjuice EXCLUDE_FROM_ALL)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_NICE=0)
     target_link_libraries(${PROJECT_NAME} PUBLIC LibJuice::LibJuiceStatic)
 endif()
 
@@ -675,7 +677,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${LIBBOOST_LIBRARY_PATH}/libboost_filesystem${CMAKE_STATIC_LIBRARY_SUFFIX}
     ${LIBBOOST_LIBRARY_PATH}/libboost_thread${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
-# openssl
+# use openssl
+if(USE_MBEDTLS)
+add_subdirectory(deps/mbedtls EXCLUDE_FROM_ALL)
+target_compile_definitions(${PROJECT_NAME} PUBLIC USE_MBEDTLS)
+target_link_libraries(${PROJECT_NAME} PUBLIC mbedtls)
+endif()
+# use openssl
 if(APPLE)
     # This is a bug in CMake that causes it to prefer the system version over 
     # the one in the specified ROOT folder
@@ -684,8 +692,11 @@ if(APPLE)
         set(OPENSSL_SSL_LIBRARY "${OPENSSL_ROOT_DIR}/lib/libssl.dylib" CACHE FILEPATH "" FORCE)
     endif()
 endif()
+# find and link openssl
 find_package(OpenSSL REQUIRED)
+if(NOT USE_MBEDTLS)
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenSSL::SSL)
+endif()
 # usrsctp
 option(sctp_build_programs 0)
 option(sctp_build_shared_lib 0)

@@ -1,3 +1,4 @@
+#if !defined(USE_MBEDTLS)
 #include "rtc/transports/dtls_transport.hpp"
 #include "common/weak_ptr_manager.hpp"
 #include "rtc/base/task_utils/task_queue_impl.hpp"
@@ -42,7 +43,7 @@ void DtlsTransport::Cleanup() {
 }
 
 // Init methods
-void DtlsTransport::InitOpenSSL(const Configuration& config) {
+void DtlsTransport::InitDTLS(const Configuration& config) {
     RTC_RUN_ON(&sequence_checker_);
     PLOG_DEBUG << "Initializing DTLS transport (OpenSSL)";
     try {
@@ -121,12 +122,12 @@ void DtlsTransport::InitOpenSSL(const Configuration& config) {
         }
 
     }catch (const std::exception& exp) {
-        DeinitOpenSSL();
+        DeinitDTLS();
         PLOG_ERROR << exp.what();
     }
 }
 
-void DtlsTransport::DeinitOpenSSL() {
+void DtlsTransport::DeinitDTLS() {
     RTC_RUN_ON(&sequence_checker_);
     if (ssl_) {
         SSL_free(ssl_);
@@ -361,3 +362,5 @@ long DtlsTransport::BioMethodCtrl(BIO* bio, int cmd, long num, void* ptr) {
 }
 
 }
+
+#endif // !defined(USE_MBEDTLS)

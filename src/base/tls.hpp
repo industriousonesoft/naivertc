@@ -1,10 +1,12 @@
 #ifndef _BASE_TLS_H_
 #define _BASE_TLS_H_
 
+#if !defined(USE_MBEDTLS)
+
 #ifdef _WIN32
 // Include winsock2.h header first since OpenSSL may include winsock.h
 #include <winsock2.h>
-#endif
+#endif // _WIN32
 
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
@@ -20,8 +22,9 @@
 
 #ifndef BIO_EOF
 #define BIO_EOF -1
-#endif
+#endif // BIO_EOF
 
+// openssl
 namespace naivertc::openssl {
 
 void init();
@@ -32,4 +35,6 @@ bool check(SSL *ssl, int ret, const std::string &message = "OpenSSL error");
 
 }
 
-#endif
+#endif // !defined(USE_MBEDTLS)
+
+#endif // _BASE_TLS_H_

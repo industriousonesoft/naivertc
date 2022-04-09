@@ -8,7 +8,7 @@
 #include "rtc/sdp/sdp_defines.hpp"
 #include "rtc/sdp/sdp_description.hpp"
 
-#if USE_NICE
+#if defined(USE_NICE)
 #include <nice/agent.h>
 #include <thread>
 #include <chrono>
@@ -32,7 +32,7 @@ public:
 
         bool enable_ice_tcp = false;
         
-    #if USE_NICE
+    #if defined(USE_NICE)
         std::optional<ProxyServer> proxy_server;
     #else
         std::optional<std::string> bind_addresses;
@@ -113,7 +113,7 @@ private:
     int Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) override;
 
 private:
-#if USE_NICE
+#if defined(USE_NICE)
     static std::string ToString(const NiceAddress& nice_addr);
 
     void InitNice(const Configuration& config);
@@ -146,7 +146,7 @@ private:
 #endif
 
 private:
-#if USE_NICE
+#if defined(USE_NICE)
     uint32_t stream_id_ = 0;
     const guint component_id_ = 1;
     guint timeout_id_ = 0;

@@ -1,4 +1,4 @@
-#if !USE_NICE
+#if !defined(USE_NICE)
 #include "rtc/transports/ice_transport.hpp"
 #include "common/utils_random.hpp"
 #include "rtc/base/task_utils/task_queue_impl.hpp"
@@ -187,4 +187,4 @@ void IceTransport::OnJuiceDataReceived(juice_agent_t* agent, const char* data, s
 
 }
 
-#endif // USE_NICE = 0
+#endif // !defined(USE_NICE)

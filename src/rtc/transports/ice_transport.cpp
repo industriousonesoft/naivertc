@@ -14,7 +14,7 @@ IceTransport::IceTransport(Configuration config, sdp::Role role)
       config_(std::move(config)),
       curr_mid_("0"),
       role_(role) {
- #if !USE_NICE
+ #if !defined(USE_NICE)
     if (config_.enable_ice_tcp) {
         PLOG_WARNING << "ICE-TCP is not supported with libjuice.";
     }
@@ -70,7 +70,7 @@ bool IceTransport::Start() {
 bool IceTransport::Stop() {
     RTC_RUN_ON(&sequence_checker_);
     if (!is_stoped_) {
-#if USE_NICE
+#if defined(USE_NICE)
         if (timeout_id_ > 0) {
             g_source_remove(timeout_id_);
             timeout_id_ = 0;
@@ -93,7 +93,7 @@ void IceTransport::StartToGatherLocalCandidate(std::string mid) {
         // Change state now as candidates start to gather can be synchronous
         UpdateGatheringState(GatheringState::GATHERING);
 
-    #if !USE_NICE
+    #if !defined(USE_NICE)
         if (juice_gather_candidates(juice_agent_.get()) < 0) {
             throw std::runtime_error("Failed to gather local ICE candidate");
         }
@@ -116,7 +116,7 @@ void IceTransport::AddRemoteCandidate(sdp::Candidate candidate) {
         }
         bool bRet = false;
         auto candidate_sdp = candidate.sdp_line();
-    #if !USE_NICE
+    #if !defined(USE_NICE)
         // juice_send_diffserv
         bRet = juice_add_remote_candidate(juice_agent_.get(), candidate_sdp.c_str()) >= 0;
     #else
@@ -145,7 +145,7 @@ void IceTransport::AddRemoteCandidate(sdp::Candidate candidate) {
 
 std::optional<std::string> IceTransport::GetLocalAddress() const {
     RTC_RUN_ON(&sequence_checker_);
-#if !USE_NICE
+#if !defined(USE_NICE)
     char buffer[JUICE_MAX_ADDRESS_STRING_LEN];
     if (juice_get_selected_addresses(juice_agent_.get(), buffer, JUICE_MAX_ADDRESS_STRING_LEN, NULL, 0) == 0) {
         return std::make_optional(std::string(buffer));
@@ -162,7 +162,7 @@ std::optional<std::string> IceTransport::GetLocalAddress() const {
 
 std::optional<std::string> IceTransport::GetRemoteAddress() const {
     RTC_RUN_ON(&sequence_checker_);
-#if !USE_NICE
+#if !defined(USE_NICE)
     char buffer[JUICE_MAX_ADDRESS_STRING_LEN];
     if (juice_get_selected_addresses(juice_agent_.get(), NULL, 0, buffer, JUICE_MAX_ADDRESS_STRING_LEN) == 0) {
         return std::make_optional(std::string(buffer));
@@ -182,7 +182,7 @@ IceTransport::Description IceTransport::GetLocalDescription(sdp::Type type) cons
     // RFC 5763: The endpoint that is the offer MUST use the setup attribute value of setup::actpass
     // See https://tools.ietf.org/html/rfc5763#section-5
     auto role = type == sdp::Type::OFFER ? sdp::Role::ACT_PASS : role_;
-#if !USE_NICE
+#if !defined(USE_NICE)
     char sdp_buffer[JUICE_MAX_SDP_STRING_LEN];
     if (juice_get_local_description(juice_agent_.get(), sdp_buffer, JUICE_MAX_SDP_STRING_LEN) < 0) {
         return Description(type, role);
@@ -205,7 +205,7 @@ void IceTransport::SetRemoteDescription(Description remote_sdp) {
     try {
         NegotiateRole(remote_sdp.role());
         int ret = 0;
-    #if !USE_NICE
+    #if !defined(USE_NICE)
         auto eol = "\r\n";
         ret = juice_set_remote_description(juice_agent_.get(), remote_sdp.GenerateSDP(eol).c_str())
     #else
@@ -230,7 +230,7 @@ IceTransport::CandidatePair IceTransport::GetSelectedCandidatePair() const {
     RTC_RUN_ON(&sequence_checker_);
     std::optional<sdp::Candidate> selected_local_candidate = std::nullopt;
     std::optional<sdp::Candidate> selected_remote_candidate = std::nullopt;
-#if !USE_NICE
+#if !defined(USE_NICE)
     char local_candidate_sdp[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
     char remote_candidate_sdp[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
     if (juice_get_selected_candidates(mAgent.get(), local_candidate_sdp, JUICE_MAX_CANDIDATE_SDP_STRING_LEN,
@@ -312,7 +312,7 @@ void IceTransport::OnGatheredCandidate(sdp::Candidate candidate) {
 int IceTransport::Outgoing(CopyOnWriteBuffer out_packet, PacketOptions options) {
     RTC_RUN_ON(&sequence_checker_);
     int ret = -1;
-#if !USE_NICE
+#if !defined(USE_NICE)
     // Explicit Congestion Notification takes the least-significant 2 bits of the DS field.
     int ds = int(uint8_t(options.dscp) << 2);
     ret = juice_send_diffserv(juice_agent_.get(), out_packet.data(), out_packet.size(), ds);

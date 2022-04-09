@@ -2,6 +2,9 @@
 
 #include <plog/Log.h>
 
+
+#if !defined(USE_MBEDTLS)
+
 namespace naivertc::openssl {
 
 void init() {
@@ -49,3 +52,5 @@ bool check(SSL *ssl, int ret, const std::string& message) {
 }
 
 } // namespace naivertc::openssl
+
+#endif // !defined(USE_MBEDTLS)

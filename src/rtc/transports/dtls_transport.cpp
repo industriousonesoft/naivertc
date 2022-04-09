@@ -20,13 +20,13 @@ DtlsTransport::DtlsTransport(Configuration config, bool is_client, BaseTransport
       config_(std::move(config)),
       is_client_(is_client),
       handshake_packet_options_(PacketKind::BINARY, kHandshakePacketDscp) {
-    InitOpenSSL(config_);
+    InitDTLS(config_);
     WeakPtrManager::SharedInstance()->Register(this);
 }
 
 DtlsTransport::~DtlsTransport() {
     RTC_RUN_ON(&sequence_checker_);
-    DeinitOpenSSL();
+    DeinitDTLS();
     WeakPtrManager::SharedInstance()->Deregister(this);
 }
 
@@ -64,8 +64,10 @@ bool DtlsTransport::Stop() {
         // Cut down incomming data
         DeregisterIncoming();
         // Shutdown SSL connection
+#if !defined(USE_MBEDTLS)
         SSL_shutdown(ssl_);
         ssl_ = NULL;
+#endif
         is_stoped_ = true;
         UpdateState(State::DISCONNECTED);
     }
@@ -78,6 +80,10 @@ int DtlsTransport::Send(CopyOnWriteBuffer packet, PacketOptions options) {
         return -1;
     }
     user_packet_options_ = std::move(options);
+#if defined(USE_MBEDTLS)
+    // TODO: send by mbedtls
+    return -1;
+#else
     int ret = SSL_write(ssl_, packet.cdata(), int(packet.size()));
     if (openssl::check(ssl_, ret)) {
         PLOG_VERBOSE_IF(false) << "Send size=" << ret;
@@ -86,17 +92,25 @@ int DtlsTransport::Send(CopyOnWriteBuffer packet, PacketOptions options) {
         PLOG_VERBOSE << "Failed to send size=" << ret;
         return -1;
     }
+#endif
+
 }
 
 // Protected && private methods
 void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
     RTC_RUN_ON(&sequence_checker_);
-    if (in_packet.empty() || !ssl_) {
+    if (in_packet.empty()) {
         return;
     }
     try {
         // PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet.size();
 
+#if defined(USE_MBEDTLS)
+        // TODO: parsed by mbedtls
+#else
+        if (!ssl_) {
+            return;
+        }
         // Write into SSL in BIO, and will be retrieved by SSL_read
         BIO_write(in_bio_, in_packet.cdata(), int(in_packet.size()));
 
@@ -130,7 +144,7 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
         if (read_size > 0) {
             ForwardIncomingPacket(CopyOnWriteBuffer(ssl_read_buffer_, read_size));
         }
-
+#endif
     }catch (const std::exception& exp) {
         PLOG_WARNING << "Error occurred when processing incoming packet: " << exp.what();
     }

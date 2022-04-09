@@ -1,4 +1,4 @@
-#if USE_NICE
+#if defined(USE_NICE)
 #include "rtc/transports/ice_transport.hpp"
 #include "common/utils_random.hpp"
 #include "common/utils_network.hpp"
@@ -269,4 +269,4 @@ gboolean IceTransport::OnNiceTimeout(gpointer user_data) {
 } // namespace naivertc
 
 
-#endif // USE_NICE = 1
+#endif // defined(USE_NICE)

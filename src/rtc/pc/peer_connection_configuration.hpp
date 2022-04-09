@@ -20,7 +20,7 @@ enum class CertificateType {
     RSA
 };
 
-#if USE_NICE
+#if defined(USE_NICE)
 
 struct ProxyServer {
     enum class Type { 
@@ -55,7 +55,7 @@ struct RtcConfiguration {
     // Ice settings
     std::vector<IceServer> ice_servers;
     
-#if USE_NICE
+#if defined(USE_NICE)
     // libnice only
     std::optional<ProxyServer> proxy_server;
 #else

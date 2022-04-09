@@ -28,6 +28,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/../../deps/json/include
 )
 
+if(USE_MBEDTLS)
+target_link_libraries(${PROJECT_NAME} PUBLIC OpenSSL::SSL)
+endif()
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     nlohmann_json
     naivertc

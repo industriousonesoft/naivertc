@@ -9,12 +9,15 @@
 
 #include <optional>
 #include <functional>
+#include <mutex>
 
 namespace naivertc {
 
+#if !defined(USE_MBEDTLS)
 using openssl_bool = int;
 static const openssl_bool openssl_true = 1;
 static const openssl_bool openssl_false = 0;
+#endif
 
 class DtlsTransport : public BaseTransport {
 public:
@@ -49,21 +52,22 @@ protected:
                               size_t contextlen, bool use_context);
 
 private:
-    void InitOpenSSL(const Configuration& config);
-    void DeinitOpenSSL();
+    void InitDTLS(const Configuration& config);
+    void DeinitDTLS();
 
     void InitHandshake();
     bool TryToHandshake();
     bool IsHandshakeTimeout();
     virtual void DtlsHandshakeDone();
 
+#if !defined(USE_MBEDTLS)
     static openssl_bool CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx);
     static void InfoCallback(const SSL* ssl, int where, int ret);
-
     static openssl_bool BioMethodNew(BIO* bio);
     static openssl_bool BioMethodFree(BIO* bio);
     static int BioMethodWrite(BIO* bio, const char* in_data, int in_size);
     static long BioMethodCtrl(BIO* bio, int cmd, long num, void* ptr);
+#endif
 
     bool HandleVerify(std::string fingerprint);
 
@@ -76,6 +80,7 @@ private:
     const PacketOptions handshake_packet_options_;
     std::optional<PacketOptions> user_packet_options_;
 
+#if !defined(USE_MBEDTLS)
     SSL_CTX* ctx_ = NULL;
     SSL* ssl_ = NULL;
     BIO* in_bio_ = NULL;
@@ -84,8 +89,9 @@ private:
     // 全局变量声明式
     static BIO_METHOD* bio_methods_;
     static int transport_ex_index_;
-    static std::mutex global_mutex_;
+#endif
 
+    static std::mutex global_mutex_;
     static constexpr size_t DEFAULT_SSL_BUFFER_SIZE = 4096;
     uint8_t ssl_read_buffer_[DEFAULT_SSL_BUFFER_SIZE];
 
