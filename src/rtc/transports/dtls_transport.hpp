@@ -61,8 +61,8 @@ private:
     virtual void DtlsHandshakeDone();
 
 #if defined(USE_MBEDTLS)
-    static int MbedtlsNetSend(void *ctx, const unsigned char *buf, size_t len);
-    static int MbedtlsNetRecv(void *ctx, unsigned char *buf, size_t len);
+    static int mbedtls_custom_send(void *ctx, const unsigned char *buf, size_t len);
+    static int mbedtls_custom_recv(void *ctx, unsigned char *buf, size_t len);
 #else
     static openssl_bool CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx);
     static void InfoCallback(const SSL* ssl, int where, int ret);

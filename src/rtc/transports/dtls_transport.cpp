@@ -104,18 +104,19 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
         return;
     }
     try {
-        // PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet.size();
 
+        PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet.size();
+
+        int ret = 0;
 #if defined(USE_MBEDTLS)
-        // curr_in_packet_.emplace(std::move(in_packet));
-        // mbedtls_ssl_read(&ssl_, ssl_read_buffer_, DEFAULT_SSL_BUFFER_SIZE);
+        curr_in_packet_.emplace(std::move(in_packet));
 #else
         if (!ssl_) {
             return;
         }
         // Write into SSL in BIO, and will be retrieved by SSL_read
         BIO_write(in_bio_, in_packet.cdata(), int(in_packet.size()));
-
+#endif
         // In non-blocking mode, We may try to do handshake multiple time. 
         if (state_ == State::CONNECTING) {
             if (TryToHandshake()) {
@@ -133,20 +134,26 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
             return;
         }
 
-        int read_size = SSL_read(ssl_, ssl_read_buffer_, DEFAULT_SSL_BUFFER_SIZE);
-
+#if defined(USE_MBEDTLS)
+        ret = mbedtls_ssl_read(&ssl_, ssl_read_buffer_, DEFAULT_SSL_BUFFER_SIZE);
+        if (ret == MBEDTLS_ERR_SSL_WANT_READ ||
+            ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+            return;
+        }
+#else
+        ret = SSL_read(ssl_, ssl_read_buffer_, DEFAULT_SSL_BUFFER_SIZE);
         // Read failed
         if (!openssl::check(ssl_, read_size)) {
             PLOG_ERROR << "Failed to read from ssl: " << read_size;
             return;
         }
-
-        // PLOG_VERBOSE << "SSL read size: " << read_size;
-
-        if (read_size > 0) {
-            ForwardIncomingPacket(CopyOnWriteBuffer(ssl_read_buffer_, read_size));
-        }
 #endif
+
+        PLOG_VERBOSE << "SSL read size: " << ret;
+        if (ret > 0) {
+            ForwardIncomingPacket(CopyOnWriteBuffer(ssl_read_buffer_, ret));
+        }
+        
     }catch (const std::exception& exp) {
         PLOG_WARNING << "Error occurred when processing incoming packet: " << exp.what();
     }
