@@ -224,6 +224,7 @@ int DtlsTransport::mbedtls_custom_recv(void *ctx, unsigned char *buf, size_t len
             size_t write_size = std::min(transport->curr_in_packet_->size(), len);
             memcpy(buf, transport->curr_in_packet_->cdata(), write_size);
             PLOG_VERBOSE << "DTLS write size: " << write_size;
+            transport->curr_in_packet_.reset();
             return write_size;
         } else {
             return MBEDTLS_ERR_SSL_WANT_WRITE;

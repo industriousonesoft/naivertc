@@ -82,8 +82,9 @@ int DtlsTransport::Send(CopyOnWriteBuffer packet, PacketOptions options) {
     }
     user_packet_options_ = std::move(options);
 #if defined(USE_MBEDTLS)
-    // TODO: send by mbedtls
-    return -1;
+    int ret = mbedtls_ssl_write(&ssl_, packet.cdata(), packet.size());
+    PLOG_VERBOSE_IF(true) << "Send size=" << ret;
+    return ret;
 #else
     int ret = SSL_write(ssl_, packet.cdata(), int(packet.size()));
     if (openssl::check(ssl_, ret)) {
@@ -138,6 +139,10 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
         ret = mbedtls_ssl_read(&ssl_, ssl_read_buffer_, DEFAULT_SSL_BUFFER_SIZE);
         if (ret == MBEDTLS_ERR_SSL_WANT_READ ||
             ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+            return;
+        }
+        if (ret <= 0) {
+            PLOG_VERBOSE << "mbedtls_ssl_read returned: " << ret;
             return;
         }
 #else

@@ -595,15 +595,15 @@ void SctpTransport::HandleSctpUpCall() {
 	}
 
 	if (events & SCTP_EVENT_WRITE) {
-		// PLOG_VERBOSE << "Handle SCTP upcall: do flush";
+		PLOG_VERBOSE << "Handle SCTP upcall: do flush";
 		DoFlush();
 	}
 }
     
-bool SctpTransport::HandleSctpWrite(CopyOnWriteBuffer data) {
+bool SctpTransport::HandleSctpWrite(CopyOnWriteBuffer packet) {
 	RTC_RUN_ON(&sequence_checker_);
-	// PLOG_VERBOSE << "Handle SCTP write: " << packet.size();
-	int sent_size = Outgoing(std::move(data), packet_options_);
+	PLOG_VERBOSE << "Handle SCTP write: " << packet.size();
+	int sent_size = Outgoing(std::move(packet), packet_options_);
 	// Reset the sent flag and ready to handle the incoming message
 	if (sent_size >= 0 && !has_sent_once_) {
 		PLOG_VERBOSE << "SCTP has set once";
