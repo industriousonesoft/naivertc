@@ -86,6 +86,37 @@ std::string PrivateKeyToPEM(EVP_PKEY* pkey) {
     BIO_free(bio);
     return key_pem;
 }
+
+std::string hex_fingerpring_hex(const unsigned char* buffer, size_t len) {
+    std::ostringstream oss;
+    // hex + uppercast + filled with '0
+    oss << std::hex << std::uppercase << std::setfill('0');
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            oss << std::setw(1) << ':';
+        } 
+        oss << std::setw(2) << unsigned(buffer[i]);
+    }
+    return oss.str();
+}
+
+#if defined(USE_MBEDTLS)
+// MbedTLS X509_digest
+bool X509_digest(mbedtls_x509_crt *cert, 
+                 mbedtls_md_type_t md_type, 
+                 unsigned char* buffer, 
+                 size_t* len) {
+    const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(md_type);
+    const size_t md_size = mbedtls_md_get_size(md_info);
+    if(*len < md_size) {
+        PLOG_WARNING << "No enough space to fill MD value.";
+        return false;
+    }
+    mbedtls_md(md_info, cert->raw.p, cert->raw.len, buffer);
+    *len = md_size;
+    return true;
+}
+#endif
     
 } // namespace
 
@@ -136,18 +167,21 @@ std::string Certificate::MakeFingerprint(X509* x509) {
     if (!X509_digest(x509, EVP_sha256(), buffer, &len)) {
         throw std::runtime_error("Failed to create SHA-256 fingerprint of X509 certificate.");
     }
-
-    std::ostringstream oss;
-    // hex + uppercast + filled with '0
-    oss << std::hex << std::uppercase << std::setfill('0');
-    for (size_t i = 0; i < len; i++) {
-        if (i > 0) {
-            oss << std::setw(1) << ':';
-        } 
-        oss << std::setw(2) << unsigned(buffer[i]);
-    }
-    return oss.str();
+    return hex_fingerpring_hex(buffer, len);
 }
+
+#if defined(USE_MBEDTLS)
+std::string Certificate::MakeFingerprint(mbedtls_x509_crt* x509) {
+    // SHA_265的长度为32个字节
+    const size_t size = 32;
+    unsigned char buffer[size];
+    size_t len = size;
+    if (!X509_digest(x509, MBEDTLS_MD_SHA256, buffer, &len)) {
+        throw std::runtime_error("Failed to create SHA-256 fingerprint of X509 certificate.");
+    }
+    return hex_fingerpring_hex(buffer, len);
+}
+#endif
 
 std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, std::string_view common_name) {
 
@@ -237,7 +271,7 @@ std::shared_ptr<Certificate> Certificate::Generate(CertificateType type, std::st
     return nullptr;
 }
 
-const std::string COMMON_NAME = "libnaivertc";
+const std::string COMMON_NAME = "naivertc";
 std::shared_future<std::shared_ptr<Certificate>> Certificate::MakeCertificate(CertificateType type) {
     auto future = std::async(std::launch::async, Certificate::Generate, type, COMMON_NAME);
     return future;

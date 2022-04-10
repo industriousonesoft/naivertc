@@ -77,7 +77,7 @@ void PeerConnection::OnDtlsTransportStateChanged(DtlsTransport::State transport_
     });
 }
 
-bool PeerConnection::OnDtlsVerify(std::string_view fingerprint) {
+bool PeerConnection::OnDtlsVerify(std::string fingerprint) {
     RTC_RUN_ON(network_task_queue_);
     return signaling_task_queue_->Invoke<bool>([this, remote_fingerprint=std::move(fingerprint)](){
         // We expect the remote fingerprint received by singaling channel is equal to 

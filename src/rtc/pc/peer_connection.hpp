@@ -171,7 +171,7 @@ private:
 
     // DtlsTransport callbacks
     void OnDtlsTransportStateChanged(DtlsTransport::State transport_state);
-    bool OnDtlsVerify(std::string_view fingerprint);
+    bool OnDtlsVerify(std::string fingerprint);
     void OnRtpPacketReceived(CopyOnWriteBuffer in_packet, bool is_rtcp);
 
     // SctpTransport callbacks

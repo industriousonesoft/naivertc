@@ -34,7 +34,7 @@ public:
 
     bool IsClient() const;
 
-    using VerifyCallback = std::function<bool(std::string_view fingerprint)>;
+    using VerifyCallback = std::function<bool(std::string)>;
     void OnVerify(VerifyCallback callback);
 
     virtual bool Start() override;
@@ -61,8 +61,13 @@ private:
     virtual void DtlsHandshakeDone();
 
 #if defined(USE_MBEDTLS)
+    static int my_cert_verify(void *ctx, 
+                              mbedtls_x509_crt *crt, 
+                              int depth, uint32_t *flags);
+
     static int mbedtls_custom_send(void *ctx, const unsigned char *buf, size_t len);
     static int mbedtls_custom_recv(void *ctx, unsigned char *buf, size_t len);
+    
 #else
     static openssl_bool CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx);
     static void InfoCallback(const SSL* ssl, int where, int ret);

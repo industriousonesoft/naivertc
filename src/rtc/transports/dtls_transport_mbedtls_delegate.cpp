@@ -56,6 +56,7 @@ typedef struct dtls_srtp_keys
 } dtls_srtp_keys;
 dtls_srtp_keys dtls_srtp_keying;
 
+// dtls_srtp_key_derivation
 void dtls_srtp_key_derivation( void *p_expkey,
                                mbedtls_ssl_key_export_type secret_type,
                                const unsigned char *secret,
@@ -130,14 +131,19 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
                                           MBEDTLS_SSL_PRESET_DEFAULT);
         mbedtls::check(ret, "Failed to config DTLS.");
 
-        // TODO: Verify fingerprint
-        mbedtls_ssl_conf_authmode(&ssl_conf_, MBEDTLS_SSL_VERIFY_OPTIONAL);
+        // Verify required.
+        mbedtls_ssl_conf_authmode(&ssl_conf_, MBEDTLS_SSL_VERIFY_REQUIRED);
+        // Set verify callback.
+        mbedtls_ssl_conf_verify(&ssl_conf_, my_cert_verify, this);
+
         mbedtls_ssl_conf_rng(&ssl_conf_, mbedtls_ctr_drbg_random, &ctr_drbg_);
         mbedtls_ssl_conf_dbg(&ssl_conf_, mbedtls_debug, nullptr);
         mbedtls_ssl_conf_read_timeout(&ssl_conf_, READ_TIMEOUT_MS);
         // DTLS-SRTP
         mbedtls_ssl_conf_dtls_srtp_protection_profiles(&ssl_conf_, default_dtls_srtp_profiles);
 
+        // NOTE: (self-signed cert verification) Use self-signed certificate as the CA certs, 
+        // as a non-empty chain of CA is required when verifying cert.
         mbedtls_ssl_conf_ca_chain(&ssl_conf_, &cert_, nullptr);
         ret = mbedtls_ssl_conf_own_cert(&ssl_conf_, &cert_, &pkey_);
         mbedtls::check(ret, "Faild to verify server cert and private key.");
@@ -250,7 +256,7 @@ bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
                                   sizeof( dtls_srtp_keying.randbytes ),
                                   out,
                                   olen);
-    
+
     if(ret != 0) {
         PLOG_WARNING << "Failed to export keying material, ret=" << ret;
         return false;
@@ -284,6 +290,36 @@ int DtlsTransport::mbedtls_custom_recv(void *ctx, unsigned char *buf, size_t len
         }
     }
     return -1;
+}
+
+int DtlsTransport::my_cert_verify(void *ctx, mbedtls_x509_crt *crt, int depth, uint32_t *flags) {
+    char buf[1024];
+   
+    auto transport = reinterpret_cast<DtlsTransport*>(ctx);
+    if (WeakPtrManager::SharedInstance()->Lock(transport)) {
+        PLOG_VERBOSE << "Verify requested for depth:" << depth << ", flags: " << *flags;
+        mbedtls_x509_crt_info( buf, sizeof( buf ) - 1, "", crt );
+
+        PLOG_VERBOSE << "certificate info: " << buf;
+    
+        // Only bad certificate with a positive flags, 
+        // e.g., #define MBEDTLS_X509_BADCERT_NOT_TRUSTED   0x08  
+        /**< The certificate is not correctly signed by the trusted CA. */
+        // see "mbedtls/include/mbedtls/x509.h".
+        if ((*flags) == 0)
+            PLOG_WARNING << "This certificate has no flags.";
+        else {
+            mbedtls_x509_crt_verify_info( buf, sizeof( buf ), "  ! ", *flags );
+        }
+
+        // NOTE: (self-signed cert verification) Self-signed certificate with the flags = 0x08,
+        // so we need to reset it to indicate that we will verify it by myself.
+        *flags = 0;
+
+        // Verify self-signed certificate through fingerprint.
+        transport->HandleVerify(Certificate::MakeFingerprint(crt));
+    }   
+    return 0;
 }
 
 } // namespace naivertc

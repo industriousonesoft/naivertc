@@ -5,6 +5,10 @@
 #include "base/openssl.hpp"
 #include "rtc/pc/peer_connection_configuration.hpp"
 
+#if defined(USE_MBEDTLS)
+#include "base/mbedtls.hpp"
+#endif
+
 #include <string>
 #include <memory>
 #include <tuple>
@@ -27,7 +31,12 @@ public:
 
     const std::string fingerprint() const;
     std::string fingerprint();
+
     static std::string MakeFingerprint(X509* x509);
+
+#if defined(USE_MBEDTLS)
+    static std::string MakeFingerprint(mbedtls_x509_crt* x509);
+#endif
 
 
 private:
