@@ -22,6 +22,53 @@ static void mbedtls_debug(void *ctx, int level,
 // READ_TIMEOUT_MS
 #define READ_TIMEOUT_MS 10000   /* 10 seconds */
 
+// RFC 8827: The DTLS-SRTP protection profile SRTP_AES128_CM_HMAC_SHA1_80 MUST be supported
+// See https://tools.ietf.org/html/rfc8827#section-6.5
+const mbedtls_ssl_srtp_profile default_dtls_srtp_profiles[] = {
+        MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80,
+        // MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32,
+        // MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_80,
+        // MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_32,
+        // MBEDTLS_TLS_SRTP_UNSET
+};
+
+/* Supported SRTP mode needs a maximum of :
+ * - 16 bytes for key (AES-128)
+ * - 14 bytes SALT
+ * One for sender, one for receiver context
+ */
+#define MBEDTLS_TLS_SRTP_MAX_KEY_MATERIAL_LENGTH    60
+
+typedef struct dtls_srtp_keys
+{
+    unsigned char master_secret[48];
+    unsigned char randbytes[64];
+    mbedtls_tls_prf_types tls_prf_type;
+} dtls_srtp_keys;
+dtls_srtp_keys dtls_srtp_keying;
+
+void dtls_srtp_key_derivation( void *p_expkey,
+                               mbedtls_ssl_key_export_type secret_type,
+                               const unsigned char *secret,
+                               size_t secret_len,
+                               const unsigned char client_random[32],
+                               const unsigned char server_random[32],
+                               mbedtls_tls_prf_types tls_prf_type )
+{
+    dtls_srtp_keys *keys = (dtls_srtp_keys *)p_expkey;
+
+    /* We're only interested in the TLS 1.2 master secret */
+    if( secret_type != MBEDTLS_SSL_KEY_EXPORT_TLS12_MASTER_SECRET )
+        return;
+    if( secret_len != sizeof( keys->master_secret ) )
+        return;
+
+    memcpy( keys->master_secret, secret, sizeof( keys->master_secret ) );
+    memcpy( keys->randbytes, client_random, 32 );
+    memcpy( keys->randbytes + 32, server_random, 32 );
+    keys->tls_prf_type = tls_prf_type;
+}
+
 } // namespace
 
 void DtlsTransport::Init() {
@@ -90,10 +137,7 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
         mbedtls_ssl_conf_dbg(&ssl_conf_, mbedtls_debug, nullptr);
         mbedtls_ssl_conf_read_timeout(&ssl_conf_, READ_TIMEOUT_MS);
         // DTLS-SRTP
-        // RFC 8827: The DTLS-SRTP protection profile SRTP_AES128_CM_HMAC_SHA1_80 MUST be supported
-		// See https://tools.ietf.org/html/rfc8827#section-6.5
-        mbedtls_ssl_srtp_profile use_srtp = MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80;
-        mbedtls_ssl_conf_dtls_srtp_protection_profiles(&ssl_conf_, &use_srtp);
+        mbedtls_ssl_conf_dtls_srtp_protection_profiles(&ssl_conf_, default_dtls_srtp_profiles);
 
         mbedtls_ssl_conf_ca_chain(&ssl_conf_, &cert_, nullptr);
         ret = mbedtls_ssl_conf_own_cert(&ssl_conf_, &cert_, &pkey_);
@@ -101,14 +145,16 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
             throw std::runtime_error("Faild to verify server cert and private key.");
         }
 
-        // cookie
-        // ret = mbedtls_ssl_cookie_setup(&cookie_, mbedtls_ctr_drbg_random, &ctr_drbg_);
-        // if (ret != 0) {
-        //     throw std::runtime_error("Failed to set DTLS cookie.");
-        // }
-        // TODO: Verify cookie.
-        mbedtls_ssl_conf_dtls_cookies(&ssl_conf_, mbedtls_ssl_cookie_write, nullptr, &cookie_);
-
+        // cookie only needed on server.
+        if (!is_client_) {
+            // ret = mbedtls_ssl_cookie_setup(&cookie_, mbedtls_ctr_drbg_random, &ctr_drbg_);
+            // if (ret != 0) {
+            //     throw std::runtime_error("Failed to set DTLS cookie.");
+            // }
+            // FIXME: SSl cookie check failed as no cookie in the client hello message.
+            mbedtls_ssl_conf_dtls_cookies(&ssl_conf_, mbedtls_ssl_cookie_write, nullptr, &cookie_);
+        }
+    
         // setup SSL configs.
         ret = mbedtls_ssl_setup(&ssl_, &ssl_conf_);
         if (ret != 0) {
@@ -129,6 +175,10 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
 
         // Timer
         mbedtls_ssl_set_timer_cb(&ssl_, &timer_, mbedtls_timing_set_delay, mbedtls_timing_get_delay);
+        
+        // Key export callback
+        mbedtls_ssl_set_export_keys_cb(&ssl_, dtls_srtp_key_derivation,
+                                        &dtls_srtp_keying);
 
     } catch (const std::exception& exp) {
         DeinitDTLS();
@@ -203,7 +253,22 @@ bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
                                          const char *label, size_t llen,
                                          const unsigned char *context,
                                          size_t contextlen, bool use_context) {
-    return false;
+    assert(olen == MBEDTLS_TLS_SRTP_MAX_KEY_MATERIAL_LENGTH);
+    int ret = mbedtls_ssl_tls_prf(dtls_srtp_keying.tls_prf_type,
+                                  dtls_srtp_keying.master_secret,
+                                  sizeof( dtls_srtp_keying.master_secret ),
+                                  label,
+                                  dtls_srtp_keying.randbytes,
+                                  sizeof( dtls_srtp_keying.randbytes ),
+                                  out,
+                                  olen);
+
+    if(ret != 0) {
+        PLOG_WARNING << "Failed to export keying material, ret=" << ret;
+        return false;
+    } else {
+        return true;
+    }   
 }
 
 int DtlsTransport::mbedtls_custom_send(void *ctx, const unsigned char *buf, size_t len) {

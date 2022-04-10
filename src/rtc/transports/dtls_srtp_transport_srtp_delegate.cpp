@@ -55,7 +55,7 @@ void DtlsSrtpTransport::InitSrtp() {
     const size_t material_len = SRTP_AES_ICM_128_KEY_LEN_WSALT * 2;
     unsigned char material[material_len];
      
-    PLOG_INFO << "Deriving SRTP keying material (OpenSSL)";
+    PLOG_INFO << "Deriving SRTP keying material";
 
     // Export SRTP master secret.
     if (DtlsTransport::ExportKeyingMaterial(material, material_len, kDtlsSrtpExporterLabel.c_str(), kDtlsSrtpExporterLabel.size(), nullptr, 0, false) == false) {

@@ -602,7 +602,7 @@ void SctpTransport::HandleSctpUpCall() {
     
 bool SctpTransport::HandleSctpWrite(CopyOnWriteBuffer packet) {
 	RTC_RUN_ON(&sequence_checker_);
-	PLOG_VERBOSE << "Handle SCTP write: " << packet.size();
+	// PLOG_VERBOSE << "Handle SCTP write: " << packet.size();
 	int sent_size = Outgoing(std::move(packet), packet_options_);
 	// Reset the sent flag and ready to handle the incoming message
 	if (sent_size >= 0 && !has_sent_once_) {
