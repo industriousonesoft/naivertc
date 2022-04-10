@@ -590,12 +590,12 @@ void SctpTransport::HandleSctpUpCall() {
 	int events = usrsctp_get_events(socket_);
 
 	if (events & SCTP_EVENT_READ) {
-		PLOG_VERBOSE << "Handle SCTP upcall: do Recv";
+		PLOG_VERBOSE_IF(false) << "Handle SCTP upcall: do Recv";
 		DoRecv();
 	}
 
 	if (events & SCTP_EVENT_WRITE) {
-		PLOG_VERBOSE << "Handle SCTP upcall: do flush";
+		PLOG_VERBOSE_IF(false) << "Handle SCTP upcall: do flush";
 		DoFlush();
 	}
 }

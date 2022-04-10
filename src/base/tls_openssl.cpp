@@ -1,9 +1,8 @@
+#if !defined(USE_MBEDTLS)
+
 #include "base/tls.hpp"
 
 #include <plog/Log.h>
-
-
-#if !defined(USE_MBEDTLS)
 
 namespace naivertc::openssl {
 

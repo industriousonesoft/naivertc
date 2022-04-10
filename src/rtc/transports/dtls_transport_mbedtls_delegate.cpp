@@ -112,32 +112,23 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
                                          &entropy_, 
                                          (const unsigned char*)pers,
                                          strlen(pers));
-        if (ret != 0) {
-            throw std::runtime_error("Failed to seed the RNG.");
-        }
-
+        mbedtls::check(ret, "Failed to seed the RNG.");
+      
         auto [crt_pem, pkey_pem] = config.certificate->GetCredentialsInPEM();
 
         // Load the certificates and private RSA key.
         ret = mbedtls_x509_crt_parse(&cert_, (const unsigned char*)crt_pem.data(), crt_pem.size());
-        if (ret != 0) {
-            throw std::runtime_error("Failed to parse x509 with certificates in PEM formate.");
-        }
-
+        mbedtls::check(ret, "Failed to parse x509 with certificates in PEM formate.");
+        
         ret = mbedtls_pk_parse_key(&pkey_, (const unsigned char*)pkey_pem.data(), pkey_pem.size(), NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg_);
-        if (ret != 0) {
-            throw std::runtime_error("Failed to parse private key of ECDSA.");
-        }
+        mbedtls::check(ret, "Failed to parse private key of ECDSA.");
 
         // Config DTLS
         ret = mbedtls_ssl_config_defaults(&ssl_conf_, 
                                           (is_client_ ? MBEDTLS_SSL_IS_CLIENT : MBEDTLS_SSL_IS_SERVER),
                                           MBEDTLS_SSL_TRANSPORT_DATAGRAM,
                                           MBEDTLS_SSL_PRESET_DEFAULT);
-
-        if (ret != 0) {
-            throw std::runtime_error("Failed to config DTLS.");
-        }
+        mbedtls::check(ret, "Failed to config DTLS.");
 
         // TODO: Verify fingerprint
         mbedtls_ssl_conf_authmode(&ssl_conf_, MBEDTLS_SSL_VERIFY_OPTIONAL);
@@ -149,10 +140,8 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
 
         mbedtls_ssl_conf_ca_chain(&ssl_conf_, &cert_, nullptr);
         ret = mbedtls_ssl_conf_own_cert(&ssl_conf_, &cert_, &pkey_);
-        if (ret != 0) {
-            throw std::runtime_error("Faild to verify server cert and private key.");
-        }
-
+        mbedtls::check(ret, "Faild to verify server cert and private key.");
+      
         // cookie only needed on server.
         if (!is_client_) {
             // ret = mbedtls_ssl_cookie_setup(&cookie_, mbedtls_ctr_drbg_random, &ctr_drbg_);
@@ -165,10 +154,8 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
     
         // setup SSL configs.
         ret = mbedtls_ssl_setup(&ssl_, &ssl_conf_);
-        if (ret != 0) {
-            throw std::runtime_error("Failed to setup DTLS.");
-        }
-
+        mbedtls::check(ret, "Failed to setup DTLS.");
+      
         /* For HelloVerifyRequest cookies, server only, DTLS only. */
         // if (!is_client_) {
         //     auto client_ip = static_cast<IceTransport*>(lower_)->GetRemoteAddress();
@@ -216,12 +203,9 @@ void DtlsTransport::InitHandshake() {
     PLOG_VERBOSE << "SSL MTU set to " << mtu;
 
     int ret = mbedtls_ssl_handshake(&ssl_);
-    if(ret == MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED) {
-        PLOG_WARNING << "Hello verification requested.";
-    }
     // Non-blocking.
-    if (ret != 0) {
-        PLOG_WARNING << "Ready to init handshake";
+    if (!mbedtls::check(ret)) {
+        PLOG_WARNING << "Ready to handshake.";
     }
 }
 
@@ -229,11 +213,7 @@ bool DtlsTransport::TryToHandshake() {
 
     // 1 if handshake is over, 0 if it is still ongoing.
     int ret = mbedtls_ssl_handshake(&ssl_);
-    if(ret == MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED) {
-        PLOG_WARNING << "Hello verification requested.";
-        return false;
-    }
-    if (ret != 0) {
+    if (!mbedtls::check(ret)) {
         PLOG_WARNING << "Still woking on handshake...";
         return false;
     }
@@ -270,7 +250,7 @@ bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
                                   sizeof( dtls_srtp_keying.randbytes ),
                                   out,
                                   olen);
-
+    
     if(ret != 0) {
         PLOG_WARNING << "Failed to export keying material, ret=" << ret;
         return false;
@@ -284,7 +264,7 @@ int DtlsTransport::mbedtls_custom_send(void *ctx, const unsigned char *buf, size
     if (WeakPtrManager::SharedInstance()->Lock(transport)) {
         auto bytes = reinterpret_cast<const uint8_t*>(buf);
         int write_size = transport->OnDtlsWrite(CopyOnWriteBuffer(bytes, len));
-        PLOG_VERBOSE << "Send DTLS size: " << len << " : " << write_size;
+        PLOG_VERBOSE_IF(false) << "Send DTLS size: " << len << " : " << write_size;
         return len;
     }
     return -1;
@@ -296,7 +276,7 @@ int DtlsTransport::mbedtls_custom_recv(void *ctx, unsigned char *buf, size_t len
         if (transport->curr_in_packet_) {
             size_t write_size = std::min(transport->curr_in_packet_->size(), len);
             memcpy(buf, transport->curr_in_packet_->cdata(), write_size);
-            PLOG_VERBOSE << "DTLS write size: " << write_size;
+            PLOG_VERBOSE_IF(false) << "DTLS write size: " << write_size;
             transport->curr_in_packet_.reset();
             return write_size;
         } else {

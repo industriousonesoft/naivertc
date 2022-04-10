@@ -106,7 +106,7 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
     }
     try {
 
-        PLOG_VERBOSE << "Incoming DTLS packet size: " << in_packet.size();
+        PLOG_VERBOSE_IF(false) << "Incoming DTLS packet size: " << in_packet.size();
 
         int ret = 0;
 #if defined(USE_MBEDTLS)
@@ -154,7 +154,7 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
         }
 #endif
 
-        PLOG_VERBOSE << "SSL read size: " << ret;
+        PLOG_VERBOSE_IF(false) << "SSL read size: " << ret;
         if (ret > 0) {
             ForwardIncomingPacket(CopyOnWriteBuffer(ssl_read_buffer_, ret));
         }

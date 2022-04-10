@@ -73,6 +73,7 @@ std::string PrivateKeyToPEM(EVP_PKEY* pkey) {
         return nullptr;
     }
     PEM_write_bio_PrivateKey(bio, pkey, nullptr, nullptr, 0, nullptr, nullptr);
+    // NOTE: |bptr| is just a memory view, so no need to free it.
     BUF_MEM *bptr;
     BIO_get_mem_ptr(bio, &bptr);
     if (bptr->data == nullptr || bptr->length == 0) {
@@ -81,7 +82,7 @@ std::string PrivateKeyToPEM(EVP_PKEY* pkey) {
     }
     auto key_pem = std::string(bptr->data, bptr->length + /*'\0'*/1);
     key_pem[bptr->length] = '\0';
-    
+
     BIO_free(bio);
     return key_pem;
 }

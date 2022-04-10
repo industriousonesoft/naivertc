@@ -335,7 +335,6 @@ set(LIB_HEADERS
 set(LIB_SOURCES
     # base
     src/base/certificate.cpp
-    src/base/tls.cpp
     src/base/init.cpp
     src/base/system_time.cpp
     # common
@@ -391,12 +390,11 @@ set(LIB_SOURCES
     src/rtc/transports/base_transport.cpp
     src/rtc/transports/ice_transport.cpp
     src/rtc/transports/ice_transport_description.cpp
+
     src/rtc/transports/sctp_transport.cpp
     src/rtc/transports/sctp_transport_usrsctp_delegate.cpp
     src/rtc/transports/sctp_message.cpp
     src/rtc/transports/dtls_transport.cpp
-    src/rtc/transports/dtls_transport_openssl_delegate.cpp
-    src/rtc/transports/dtls_transport_mbedtls_delegate.cpp
     src/rtc/transports/dtls_srtp_transport.cpp
     src/rtc/transports/dtls_srtp_transport_srtp_delegate.cpp
 
@@ -623,8 +621,20 @@ else()
     set(LIB_SOURCES ${LIB_SOURCES}
         src/rtc/transports/ice_transport_juice_delegate.cpp
     )
-endif()
-
+endif(USE_NICE)
+    
+if(USE_MBEDTLS)
+    set(LIB_SOURCES ${LIB_SOURCES}
+        src/base/tls_mbedtls.cpp
+        src/rtc/transports/dtls_transport_mbedtls_delegate.cpp
+    )
+else()
+    set(LIB_SOURCES ${LIB_SOURCES}
+        src/base/tls_openssl.cpp
+        src/rtc/transports/dtls_transport_openssl_delegate.cpp
+    )
+endif(USE_MBEDTLS)
+  
 # gcc -Wall: enables all compiler's warning messages
 # gcc -Wextra: enables extra warning messages
 # gcc -Wpedantic: 当gcc编译不符合ANSI/ISO C标准的代码时，将产生相应的警告信息
@@ -679,9 +689,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 )
 # use mbedtls instead of openssl
 if(USE_MBEDTLS)
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I../configs -DMBEDTLS_CONFIG_FILE='<mbedtls_config.h>'")
+set(MBEDTLS_CONFIG_DIR ${PROJECT_SOURCE_DIR}/configs)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${MBEDTLS_CONFIG_DIR} -DMBEDTLS_CONFIG_FILE='<mbedtls_config_dtls_srtp.h>'")
 add_subdirectory(deps/mbedtls EXCLUDE_FROM_ALL)
-target_compile_definitions(${PROJECT_NAME} PUBLIC USE_MBEDTLS)
+target_compile_definitions(${PROJECT_NAME} PUBLIC 
+    USE_MBEDTLS,
+    MBEDTLS_SSL_DTLS_SRTP
+)
 target_link_libraries(${PROJECT_NAME} PUBLIC mbedtls)
 endif()
 # openssl (used to generate self-signed certificate even if used mbedtls)
