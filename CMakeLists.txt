@@ -745,6 +745,7 @@ set(TESTING_SOURCES
 # Cpp files of unit tests
 set(UNITTEST_SOURCES
     # base
+    src/base/certificate_unittest.cpp
     src/base/system_time_unittest.cpp
     src/base/thread_annotation_unittest.cpp
     # common

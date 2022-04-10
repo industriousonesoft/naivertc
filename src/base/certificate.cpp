@@ -37,16 +37,14 @@ std::string X509ToPEM(X509* cert) {
     BUF_MEM *bptr;
     BIO_get_mem_ptr(bio, &bptr);
     if (bptr->data == nullptr || bptr->length == 0) {
-        BUF_MEM_free(bptr);
         BIO_free(bio);
         return nullptr;
     }
-    // The mbedtls require the PEM string with '\0'.
+    // The MbedTLS requires the PEM string with '\0'.
     auto crt_pem = std::string(bptr->data, bptr->length + /*'\0'*/1);
     crt_pem[bptr->length] = '\0';
     
-    BUF_MEM_free(bptr);
-    // BIO_free(bio);
+    BIO_free(bio);
     return crt_pem;
 }
 
@@ -78,20 +76,17 @@ std::string PrivateKeyToPEM(EVP_PKEY* pkey) {
     BUF_MEM *bptr;
     BIO_get_mem_ptr(bio, &bptr);
     if (bptr->data == nullptr || bptr->length == 0) {
-        BUF_MEM_free(bptr);
         BIO_free(bio);
         return nullptr;
     }
     auto key_pem = std::string(bptr->data, bptr->length + /*'\0'*/1);
     key_pem[bptr->length] = '\0';
-    BUF_MEM_free(bptr);
-    // TODO: Why?
-    // BIO_free(bio);
+    
+    BIO_free(bio);
     return key_pem;
 }
     
 } // namespace
-
 
 Certificate::Certificate(std::string_view crt_pem, std::string_view key_pem) 
     : crt_pem_(crt_pem),

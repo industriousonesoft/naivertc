@@ -12,6 +12,15 @@ namespace {
 constexpr char pers_server[] = "dtls_server";
 constexpr char pers_client[] = "dtls_client";
 
+// Debug levels - 0 No debug - 1 Error - 2 State change - 3 Informational - 4 Verbose
+enum MbedTLSDebugLevel : int {
+    NO_DEBUG = 0,
+    ERROR = 1,
+    STATE_CHANGE = 2,
+    INFO = 3,
+    VERBOSE = 4
+};
+
 // mbedtls_debug
 static void mbedtls_debug(void *ctx, int level,
                           const char *file, int line,
@@ -92,12 +101,11 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
         mbedtls_ctr_drbg_init(&ctr_drbg_);
         mbedtls_x509_crt_init(&cert_);
         mbedtls_pk_init(&pkey_);
-
-        // Debug levels - 0 No debug - 1 Error - 2 State change - 3 Informational - 4 Verbose
-        mbedtls_debug_set_threshold(1);
+        // Debug level.
+        mbedtls_debug_set_threshold(MbedTLSDebugLevel::NO_DEBUG);
 
         // Seed the RNG (random number generator)
-        PLOG_VERBOSE << "Seeding the random number generator...";
+        PLOG_VERBOSE_IF(false) << "Seeding the random number generator...";
         auto pers = is_client_ ? pers_client : pers_server;
         int ret = mbedtls_ctr_drbg_seed(&ctr_drbg_, 
                                          mbedtls_entropy_func, 
