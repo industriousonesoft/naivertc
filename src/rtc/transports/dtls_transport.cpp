@@ -106,7 +106,7 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
     }
     try {
 
-        PLOG_VERBOSE_IF(false) << "Incoming DTLS packet size: " << in_packet.size();
+        PLOG_VERBOSE_IF(true) << "Incoming DTLS packet size: " << in_packet.size();
 
         int ret = 0;
 #if defined(USE_MBEDTLS)

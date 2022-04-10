@@ -6,6 +6,10 @@
 
 #include <plog/Log.h>
 
+// Enable client hello verification with cookie.
+// https://github.com/Mbed-TLS/mbedtls/pull/3132
+// #define ENABLE_COOKIES
+
 namespace naivertc {
 namespace {
 // Personalization string.
@@ -20,6 +24,8 @@ enum MbedTLSDebugLevel : int {
     INFO = 3,
     VERBOSE = 4
 };
+
+constexpr MbedTLSDebugLevel kDefaultDebugLevel = STATE_CHANGE;
 
 // mbedtls_debug
 static void mbedtls_debug(void *ctx, int level,
@@ -97,13 +103,15 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
     try {
         mbedtls_ssl_init(&ssl_);
         mbedtls_ssl_config_init(&ssl_conf_);
-        // mbedtls_ssl_cookie_init(&cookie_);
+#if defined(ENABLE_COOKIES)
+        mbedtls_ssl_cookie_init(&cookie_);
+#endif
         mbedtls_entropy_init(&entropy_);
         mbedtls_ctr_drbg_init(&ctr_drbg_);
         mbedtls_x509_crt_init(&cert_);
         mbedtls_pk_init(&pkey_);
         // Debug level.
-        mbedtls_debug_set_threshold(MbedTLSDebugLevel::NO_DEBUG);
+        mbedtls_debug_set_threshold(kDefaultDebugLevel);
 
         // Seed the RNG (random number generator)
         PLOG_VERBOSE_IF(false) << "Seeding the random number generator...";
@@ -124,7 +132,7 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
         ret = mbedtls_pk_parse_key(&pkey_, (const unsigned char*)pkey_pem.data(), pkey_pem.size(), NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg_);
         mbedtls::check(ret, "Failed to parse private key of ECDSA.");
 
-        // Config DTLS
+        // Config SSL
         ret = mbedtls_ssl_config_defaults(&ssl_conf_, 
                                           (is_client_ ? MBEDTLS_SSL_IS_CLIENT : MBEDTLS_SSL_IS_SERVER),
                                           MBEDTLS_SSL_TRANSPORT_DATAGRAM,
@@ -151,36 +159,20 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
       
         // cookie only needed on server.
         if (!is_client_) {
-            // ret = mbedtls_ssl_cookie_setup(&cookie_, mbedtls_ctr_drbg_random, &ctr_drbg_);
-            // if (ret != 0) {
-            //     throw std::runtime_error("Failed to set DTLS cookie.");
-            // }
+#if defined(ENABLE_COOKIES)
+            ret = mbedtls_ssl_cookie_setup(&cookie_, mbedtls_ctr_drbg_random, &ctr_drbg_);
+            if (ret != 0) {
+                throw std::runtime_error("Failed to set DTLS cookie.");
+            }
+            mbedtls_ssl_conf_dtls_cookies(&ssl_conf_, mbedtls_ssl_cookie_write, mbedtls_ssl_cookie_check, &cookie_);
+#else
             // FIXME: SSl cookie check failed as no cookie in the client hello message.
             mbedtls_ssl_conf_dtls_cookies(&ssl_conf_, mbedtls_ssl_cookie_write, nullptr, &cookie_);
+#endif
         }
     
-        // setup SSL configs.
-        ret = mbedtls_ssl_setup(&ssl_, &ssl_conf_);
-        mbedtls::check(ret, "Failed to setup DTLS.");
-      
-        /* For HelloVerifyRequest cookies, server only, DTLS only. */
-        // if (!is_client_) {
-        //     auto client_ip = static_cast<IceTransport*>(lower_)->GetRemoteAddress();
-        //     ret = mbedtls_ssl_set_client_transport_id(&ssl_, (const unsigned char *)client_ip->data(), client_ip->size());
-        //     if (ret != 0) {
-        //         throw std::runtime_error("Failed to set clinet transport id.");
-        //     }
-        // }
-
-        // BIO callbacks
-        mbedtls_ssl_set_bio(&ssl_, this, mbedtls_custom_send, mbedtls_custom_recv, nullptr);
-
-        // Timer
-        mbedtls_ssl_set_timer_cb(&ssl_, &timer_, mbedtls_timing_set_delay, mbedtls_timing_get_delay);
-        
-        // Key export callback
-        mbedtls_ssl_set_export_keys_cb(&ssl_, dtls_srtp_key_derivation,
-                                        &dtls_srtp_keying);
+        // Init SSL.
+        InitSSL();
 
     } catch (const std::exception& exp) {
         DeinitDTLS();
@@ -191,40 +183,92 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
 
 void DtlsTransport::DeinitDTLS() {
     RTC_RUN_ON(&sequence_checker_);
-    mbedtls_x509_crt_free( &cert_ );
-    mbedtls_pk_free( &pkey_ );
-    mbedtls_ssl_free( &ssl_ );
-    mbedtls_ssl_config_free( &ssl_conf_ );
-    // mbedtls_ssl_cookie_free( &cookie_ );
-    mbedtls_ctr_drbg_free( &ctr_drbg_ );
-    mbedtls_entropy_free( &entropy_ );
+    mbedtls_x509_crt_free(&cert_);
+    mbedtls_pk_free(&pkey_);
+    mbedtls_ssl_free(&ssl_);
+    mbedtls_ssl_config_free(&ssl_conf_);
+#if defined(ENABLE_COOKIES)
+    mbedtls_ssl_cookie_free(&cookie_);
+#endif
+    mbedtls_ctr_drbg_free(&ctr_drbg_);
+    mbedtls_entropy_free(&entropy_);
+}
+
+void DtlsTransport::InitSSL() {
+    RTC_RUN_ON(&sequence_checker_);
+
+    // Setup SSL configs.
+    int ret = mbedtls_ssl_setup(&ssl_, &ssl_conf_);
+    mbedtls::check(ret, "Failed to setup DTLS.");
+      
+#if defined(ENABLE_COOKIES)
+    /* For HelloVerifyRequest cookies, server only, DTLS only. */
+    if (!is_client_) {
+        // TODO: Find a better way to retrive the remote ip address.
+        auto client_ip = static_cast<IceTransport*>(lower_)->GetRemoteAddress();
+        ret = mbedtls_ssl_set_client_transport_id(&ssl_, (const unsigned char *)client_ip->data(), client_ip->size());
+        mbedtls::check(ret, "Failed to set client transport id.");
+    }
+#endif
+
+    // BIO callbacks
+    mbedtls_ssl_set_bio(&ssl_, this, mbedtls_custom_send, mbedtls_custom_recv, nullptr);
+
+    // Timer
+    mbedtls_ssl_set_timer_cb(&ssl_, &timer_, mbedtls_timing_set_delay, mbedtls_timing_get_delay);
+    
+    // Key export callback
+    mbedtls_ssl_set_export_keys_cb(&ssl_, dtls_srtp_key_derivation, &dtls_srtp_keying);
+
+    // The MTU before handshake.
+    size_t mtu = config_.mtu.value_or(kDefaultMtuSize) - 8 - 40; // UDP/IPv6
+    mbedtls_ssl_set_mtu(&ssl_, static_cast<uint16_t>(mtu));
+
+    PLOG_VERBOSE << "Before handshake: MTU set to " << mtu;
 }
 
 void DtlsTransport::InitHandshake() {
     RTC_RUN_ON(&sequence_checker_);
   
-    // 握手成功之前的MTU值
-    size_t mtu = config_.mtu.value_or(kDefaultMtuSize) - 8 - 40; // UDP/IPv6
-    mbedtls_ssl_set_mtu(&ssl_, static_cast<uint16_t>(mtu));
-
-    PLOG_VERBOSE << "SSL MTU set to " << mtu;
-
-    int ret = mbedtls_ssl_handshake(&ssl_);
-    // Non-blocking.
-    if (!mbedtls::check(ret)) {
-        PLOG_WARNING << "Ready to handshake.";
-    }
+    PLOG_WARNING << "Ready to handshake.";
+    TryToHandshake();
 }
 
 bool DtlsTransport::TryToHandshake() {
+    RTC_RUN_ON(&sequence_checker_);
+    int ret = 0;
 
-    // 1 if handshake is over, 0 if it is still ongoing.
-    int ret = mbedtls_ssl_handshake(&ssl_);
+    if (waiting_for_reconnection) {
+        // FIXME: It seems that the WebRTC peer do not support client hello with cookie.
+        ret = mbedtls_ssl_read(&ssl_, ssl_read_buffer_, DEFAULT_SSL_BUFFER_SIZE);
+        if (ret == MBEDTLS_ERR_SSL_CLIENT_RECONNECT) {
+            waiting_for_reconnection = false;
+            PLOG_VERBOSE << "Try a new handshake after reconnected.";
+        } else {
+            PLOG_WARNING << "Still waiting for a new reconnection.";
+            mbedtls::check(ret);
+            return false;
+        }
+    }
+
+    // Do handshake again to check if it's done.
+    ret = mbedtls_ssl_handshake(&ssl_);
+
+    if(ret == MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED) {
+        PLOG_WARNING << "Hello verification requested.";
+        // Reinit SSL and wait new client hello.
+		mbedtls_ssl_session_reset(&ssl_);
+        InitSSL();
+        waiting_for_reconnection = true;
+        return false;
+    }
+
     if (!mbedtls::check(ret)) {
         PLOG_WARNING << "Still woking on handshake...";
         return false;
     }
 
+    // Set MTU after handshake.
     // RFC 8261: DTLS MUST support sending messages larger than the current path
     // MTU See https://tools.ietf.org/html/rfc8261#section-5
     mbedtls_ssl_set_mtu(&ssl_, DEFAULT_SSL_BUFFER_SIZE + 1 /* buffer eof byte? */);
@@ -291,7 +335,7 @@ int DtlsTransport::mbedtls_custom_recv(void *ctx, unsigned char *buf, size_t len
         if (transport->curr_in_packet_) {
             size_t write_size = std::min(transport->curr_in_packet_->size(), len);
             memcpy(buf, transport->curr_in_packet_->cdata(), write_size);
-            PLOG_VERBOSE_IF(false) << "DTLS write size: " << write_size;
+            PLOG_VERBOSE_IF(true) << "DTLS write size: " << write_size;
             transport->curr_in_packet_.reset();
             return write_size;
         } else {

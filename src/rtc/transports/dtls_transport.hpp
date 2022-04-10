@@ -61,6 +61,8 @@ private:
     virtual void DtlsHandshakeDone();
 
 #if defined(USE_MBEDTLS)
+    void InitSSL();
+
     static int my_cert_verify(void *ctx, 
                               mbedtls_x509_crt *crt, 
                               int depth, uint32_t *flags);
@@ -101,6 +103,7 @@ private:
     mbedtls_pk_context pkey_;
 
     std::optional<CopyOnWriteBuffer> curr_in_packet_;
+    bool waiting_for_reconnection = false;
 #else
     // openssl
     SSL_CTX* ctx_ = NULL;

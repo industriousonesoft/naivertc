@@ -14,16 +14,12 @@ std::string error_string(int err_code) {
 }
 
 bool check(int ret, const std::string& message) {
-    if (ret == 0) {
+    if (ret >= 0) {
         return true;
     }
 	if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
 		return false;
 	}
-    // if(ret == MBEDTLS_ERR_SSL_HELLO_VERIFY_REQUIRED) {
-    //     PLOG_WARNING << "Hello verification requested.";
-    //     return false;
-    // }
 	if (ret == MBEDTLS_ERR_SSL_TIMEOUT) {
 		PLOG_DEBUG << "DTLS connection timeouted.";
 		return false;
