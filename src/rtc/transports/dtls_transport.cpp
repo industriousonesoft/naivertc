@@ -110,11 +110,9 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
 
         int ret = 0;
 #if defined(USE_MBEDTLS)
-        curr_in_packet_.emplace(std::move(in_packet));
+        mbedtls_bio_write(std::move(in_packet));
 #else
-        if (!ssl_) {
-            return;
-        }
+        assert(ssl_ != nullptr);
         // Write into SSL in BIO, and will be retrieved by SSL_read
         BIO_write(in_bio_, in_packet.cdata(), int(in_packet.size()));
 #endif

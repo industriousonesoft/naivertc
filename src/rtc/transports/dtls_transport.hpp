@@ -68,6 +68,7 @@ private:
     static int mbedtls_custom_send(void *ctx, const unsigned char *buf, size_t len);
     static int mbedtls_custom_recv(void *ctx, unsigned char *buf, size_t len);
     
+    void mbedtls_bio_write(CopyOnWriteBuffer packet);
 #else
     static openssl_bool CertificateCallback(int preverify_ok, X509_STORE_CTX* ctx);
     static void InfoCallback(const SSL* ssl, int where, int ret);

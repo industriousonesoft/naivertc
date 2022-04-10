@@ -135,9 +135,10 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
         mbedtls_ssl_conf_authmode(&ssl_conf_, MBEDTLS_SSL_VERIFY_REQUIRED);
         // Set verify callback.
         mbedtls_ssl_conf_verify(&ssl_conf_, my_cert_verify, this);
-
+        // Config RNG.
         mbedtls_ssl_conf_rng(&ssl_conf_, mbedtls_ctr_drbg_random, &ctr_drbg_);
         mbedtls_ssl_conf_dbg(&ssl_conf_, mbedtls_debug, nullptr);
+        // Set SSL read timeout limit.
         mbedtls_ssl_conf_read_timeout(&ssl_conf_, READ_TIMEOUT_MS);
         // DTLS-SRTP
         mbedtls_ssl_conf_dtls_srtp_protection_profiles(&ssl_conf_, default_dtls_srtp_profiles);
@@ -265,6 +266,13 @@ bool DtlsTransport::ExportKeyingMaterial(unsigned char *out, size_t olen,
     }   
 }
 
+// Private methods
+void DtlsTransport::mbedtls_bio_write(CopyOnWriteBuffer packet) {
+    RTC_RUN_ON(&sequence_checker_);
+    // TODO: Use a FIFO buffer instead.
+    curr_in_packet_.emplace(std::move(packet));
+}
+
 int DtlsTransport::mbedtls_custom_send(void *ctx, const unsigned char *buf, size_t len) {
     auto transport = reinterpret_cast<DtlsTransport*>(ctx);
     if (WeakPtrManager::SharedInstance()->Lock(transport)) {
@@ -272,8 +280,9 @@ int DtlsTransport::mbedtls_custom_send(void *ctx, const unsigned char *buf, size
         int write_size = transport->OnDtlsWrite(CopyOnWriteBuffer(bytes, len));
         PLOG_VERBOSE_IF(false) << "Send DTLS size: " << len << " : " << write_size;
         return len;
+    } else {
+        return MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER;
     }
-    return -1;
 }
 
 int DtlsTransport::mbedtls_custom_recv(void *ctx, unsigned char *buf, size_t len) {
@@ -286,10 +295,11 @@ int DtlsTransport::mbedtls_custom_recv(void *ctx, unsigned char *buf, size_t len
             transport->curr_in_packet_.reset();
             return write_size;
         } else {
-            return MBEDTLS_ERR_SSL_WANT_WRITE;
+            return MBEDTLS_ERR_SSL_WANT_READ;
         }
+    } else {
+        return MBEDTLS_ERR_SSL_ILLEGAL_PARAMETER;
     }
-    return -1;
 }
 
 int DtlsTransport::my_cert_verify(void *ctx, mbedtls_x509_crt *crt, int depth, uint32_t *flags) {
