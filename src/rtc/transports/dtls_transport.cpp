@@ -146,8 +146,8 @@ void DtlsTransport::Incoming(CopyOnWriteBuffer in_packet) {
 #else
         ret = SSL_read(ssl_, ssl_read_buffer_, DEFAULT_SSL_BUFFER_SIZE);
         // Read failed
-        if (!openssl::check(ssl_, read_size)) {
-            PLOG_ERROR << "Failed to read from ssl: " << read_size;
+        if (!openssl::check(ssl_, ret)) {
+            PLOG_ERROR << "Failed to read from ssl, ret=" << ret;
             return;
         }
 #endif

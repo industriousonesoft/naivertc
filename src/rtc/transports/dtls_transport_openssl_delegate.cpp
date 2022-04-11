@@ -334,7 +334,7 @@ int DtlsTransport::BioMethodWrite(BIO* bio, const char* in_data, int in_size) {
     if (WeakPtrManager::SharedInstance()->Lock(transport)) {
         auto bytes = reinterpret_cast<const uint8_t*>(in_data);
         int write_size = transport->OnDtlsWrite(CopyOnWriteBuffer(bytes, in_size));
-        // PLOG_VERBOSE << "Handle DTLS size: " << in_size << " : " << write_size;
+        PLOG_VERBOSE_IF(false) << "Handle DTLS size: " << in_size << " : " << write_size;
         return in_size;
     }
     return -1;
