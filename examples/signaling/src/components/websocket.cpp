@@ -6,7 +6,7 @@
  * @LastEditTime: 2021-03-03 16:14:23
  */
 
-#include "base/websocket.hpp"
+#include "components/websocket.hpp"
 
 #include <utility>
 #include <iostream>
@@ -18,7 +18,6 @@
 #include <boost/beast/core/buffers_to_string.hpp>
 #include <boost/beast/websocket/stream.hpp>
 
-namespace naivertc {
 namespace signaling {
 
 static boost::asio::ssl::context CreateSSLContext() {
@@ -300,5 +299,4 @@ void Websocket::OnClose(close_callback_t on_close,
   on_close(ec);
 }
 
-}
-}
+} // namespace signaling 

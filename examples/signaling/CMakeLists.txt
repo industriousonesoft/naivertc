@@ -7,12 +7,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCE_FILES
     # Header files
-    src/common/url_parts.hpp
-    src/base/websocket.hpp
+    src/utils/url_parts.hpp
+    src/components/websocket.hpp
+    src/channels/base_channel.hpp
     src/channels/ayame_channel.hpp
 
     # Cpp files
-    src/base/websocket.cpp
+    src/components/websocket.cpp
+    src/channels/base_channel.cpp
     src/channels/ayame_channel.cpp
 )
 

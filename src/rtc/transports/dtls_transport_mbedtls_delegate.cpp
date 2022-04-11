@@ -16,7 +16,13 @@ namespace {
 constexpr char pers_server[] = "dtls_server";
 constexpr char pers_client[] = "dtls_client";
 
-// Debug levels - 0 No debug - 1 Error - 2 State change - 3 Informational - 4 Verbose
+/** Debug levels 
+*   - 0 No debug 
+*   - 1 Error 
+*   - 2 State change 
+*   - 3 Informational 
+*   - 4 Verbose 
+*/
 enum MbedTLSDebugLevel : int {
     NO_DEBUG = 0,
     ERROR = 1,

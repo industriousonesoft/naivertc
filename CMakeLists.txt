@@ -693,7 +693,7 @@ set(MBEDTLS_CONFIG_DIR ${PROJECT_SOURCE_DIR}/configs)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${MBEDTLS_CONFIG_DIR} -DMBEDTLS_CONFIG_FILE='<mbedtls_config_dtls_srtp.h>'")
 add_subdirectory(deps/mbedtls EXCLUDE_FROM_ALL)
 target_compile_definitions(${PROJECT_NAME} PUBLIC 
-    USE_MBEDTLS,
+    USE_MBEDTLS
     MBEDTLS_SSL_DTLS_SRTP
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC mbedtls)

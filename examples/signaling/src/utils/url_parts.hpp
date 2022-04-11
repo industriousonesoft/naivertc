@@ -10,7 +10,6 @@
 
 #include <string>
 
-namespace naivertc {
 namespace signaling {
 
 struct URLParts {
@@ -64,7 +63,7 @@ struct URLParts {
   }
 };
 
-}
-}
+
+} // namespace signaling
 
 #endif

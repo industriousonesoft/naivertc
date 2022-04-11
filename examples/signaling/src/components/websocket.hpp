@@ -11,7 +11,7 @@
 #include <functional>
 #include <memory>
 
-#include "common/url_parts.hpp"
+#include "utils/url_parts.hpp"
 
 // Boost
 #include <boost/asio/io_context.hpp>
@@ -25,7 +25,6 @@
 #include <boost/beast/websocket/stream.hpp>
 #include <boost/thread/thread.hpp>
 
-namespace naivertc {
 namespace signaling {
 
 class Websocket {
@@ -107,7 +106,6 @@ public:
   std::vector<std::unique_ptr<WriteData>> write_data_;
 };
 
-}
-}
+} // namespace signaling
 
 #endif
