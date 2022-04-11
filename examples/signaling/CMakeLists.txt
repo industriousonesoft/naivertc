@@ -9,13 +9,14 @@ set(SOURCE_FILES
     # Header files
     src/utils/url_parts.hpp
     src/components/websocket.hpp
-    src/channels/base_channel.hpp
-    src/channels/ayame_channel.hpp
+    src/channels/signaling_channel.hpp
+    src/channels/ayame_client.hpp
+   
 
     # Cpp files
     src/components/websocket.cpp
-    src/channels/base_channel.cpp
-    src/channels/ayame_channel.cpp
+    src/channels/signaling_channel.cpp
+    src/channels/ayame_client.cpp
 )
 
 # gcc -Wall: enables all compiler's warning messages

@@ -4,7 +4,7 @@
 #include "stream/h264_file_stream_source.hpp"
 
 // signaling
-#include <channels/ayame_channel.hpp>
+#include <channels/signaling_channel.hpp>
 // naivertc
 #include <rtc/pc/peer_connection.hpp>
 #include <rtc/base/task_utils/task_queue.hpp>

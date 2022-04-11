@@ -10,38 +10,37 @@ logger = logging.getLogger('websockets')
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
-clients = {}
+client_peers = {}
 
 async def handle_websocket(websocket, path):
-    client_id = None
+    peer_id = None
     try:
         splitted = path.split('/')
         splitted.pop(0)
-        client_id = splitted.pop(0)
-        print('Client {} connected.'.format(client_id))
+        peer_id = splitted.pop(0)
+        print('Peer {} connected.'.format(peer_id))
 
-        clients[client_id] = websocket
+        client_peers[peer_id] = websocket
         while True:
             data = await websocket.recv()
-            print('Client {} << {}'.format(client_id, data))
+            print('Received {} from peer {}'.format(data, peer_id))
             message = json.loads(data)
-            # TODO: Using roomId instead.
-            dest_client_id = message['id']
-            dest_websocket = clients[dest_client_id]
+            dest_peer_id = message['id']
+            dest_websocket = client_peers[dest_peer_id]
             if dest_websocket:
-                message['id'] = client_id
+                message['id'] = peer_id
                 data = json.dumps(message)
-                print('Client {} >> {}'.format(dest_client_id, data))
+                print('Forward {} to {}'.format(data, dest_peer_id))
                 await dest_websocket.send(data)
             else:
-                print('Client {} not found'.format(dest_client_id))
+                print('Peer {} not found'.format(dest_peer_id))
 
     except Exception as e:
         print(e)
     finally:
-        if client_id:
-            del clients[client_id]
-            print('Client {} disconnected'.format(client_id))
+        if peer_id:
+            del client_peers[peer_id]
+            print('Peer {} disconnected'.format(peer_id))
 
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.8)
 project(naivertc VERSION 0.1.0 LANGUAGES CXX)
 
 # C++ standard requirements
-# 最低版本需求C++11，原因是代码用到了：c++11新标准支持static局部变量安全访问
+# 最低版本需求C++11，以支持static局部变量可安全访问的特性。
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
