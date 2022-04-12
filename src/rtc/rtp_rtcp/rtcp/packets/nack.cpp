@@ -32,6 +32,8 @@ namespace rtcp {
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //   |            PID                |             BLP               |
 //   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// PID: Packet ID，2 byte，the sequence number of the first lost packet.
+// BLP: bitmask of following lost packets，16 bits.
 
 Nack::Nack() = default;
 Nack::Nack(const Nack&) = default;

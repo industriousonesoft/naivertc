@@ -5,9 +5,12 @@
 namespace naivertc {
 namespace {
 
+// The maximum sequence number span between two adjacent incoming packet.
 constexpr size_t kMaxPacketAge = 10000;
+// The maximum nack packet count.
 constexpr size_t kMaxNackPacketCount = 1000;
 constexpr int kDefaultRttMs = 100;
+// The maximum retransmission counts for one packet.
 constexpr int kMaxNackRetries = 10;
 
 } // namespace
