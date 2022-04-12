@@ -81,11 +81,12 @@ void PeerConnection::OnSctpMessageReceived(SctpMessage message) {
                     // so it's unnegotiated.
                     data_channel = DataChannel::RemoteDataChannel(stream_id, /*negotiated=*/false, shared_from_this());
                     // We own the data channel temporarily
-                    pending_data_channels_.push_back(data_channel);
                     data_channels_.emplace(stream_id, data_channel);
                     data_channel->OnOpened([this, data_channel](){
-                        // Add incoming data channel after it's opened.
-                        this->OnIncomingDataChannel(data_channel);
+                        signaling_task_queue_->Post([this, data_channel](){
+                            // Add incoming data channel after it's opened.
+                            this->OnIncomingDataChannel(data_channel);
+                        });
                     });
                     data_channel->OnIncomingMessage(std::move(message));
                 } else {

@@ -10,13 +10,13 @@ set(SOURCE_FILES
     src/utils/url_parts.hpp
     src/components/websocket.hpp
     src/channels/signaling_channel.hpp
-    src/channels/ayame_client.hpp
+    src/channels/signaling_client.hpp
    
 
     # Cpp files
     src/components/websocket.cpp
     src/channels/signaling_channel.cpp
-    src/channels/ayame_client.cpp
+    src/channels/signaling_client.cpp
 )
 
 # gcc -Wall: enables all compiler's warning messages

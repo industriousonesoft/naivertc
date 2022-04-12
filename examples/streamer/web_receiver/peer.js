@@ -6,16 +6,18 @@ let dataChannel = null;
 let candidates = [];
 let hasReceivedSdp = false;
 // ICE servers
-const iceServers = [{ 'urls': 'stun:stun.l.google.com:19302' }];
+const iceServers = [{'urls': ['stun:stun.l.google.com:19302']}];
 // Peer connection config.
 const peerConnectionConfig = {
+    'sdpSemantics': 'unified-plan',
+    'bundlePolicy': "max-bundle",
     'iceServers': iceServers
 };
 // Peer id
 const peerId = randomString(10);
 
 // Websocket
-const ws = new WebSocket('ws://127.0.0.1:8000/' + peerId);
+const ws = new WebSocket('ws://127.0.0.1:8000/');
 ws.onopen = onWsOpen.bind();
 ws.onerror = onWsError.bind();
 ws.onmessage = onWsMessage.bind();
@@ -31,7 +33,13 @@ function onWsOpen(event) {
 function onWsMessage(event) {
     console.log('ws onmessage() data:', event.data);
     const message = JSON.parse(event.data);
-    if (message.type === 'offer') {
+    if (message.type === 'accept') {
+        peerConnection = createNewConnection();
+        if (message.isInitiator === false) {
+            makeOffer();
+        }
+    }
+    else if (message.type === 'offer') {
         console.log('Received offer ...');
         const offer = new RTCSessionDescription(message);
         console.log('offer: ', offer);
@@ -61,8 +69,8 @@ function onWsMessage(event) {
 function connect() {
     console.group();
     if (!peerConnection) {
-        console.log('make Offer');
-        makeOffer();
+        console.log('Do register.');
+        doRegister();
     }
     else {
         console.warn('peer connection already exists.');
@@ -87,6 +95,12 @@ function disconnect() {
     }
     console.log('peerConnection is closed.');
     console.groupEnd();
+}
+
+function doRegister() {
+    const message = JSON.stringify({ type: 'register',
+                                      clientId: peerId });
+    ws.send(message);
 }
 
 function drainCandidate() {
@@ -117,7 +131,7 @@ function playVideo(element, stream) {
     element.srcObject = stream;
 }
 
-function prepareNewConnection() {
+function createNewConnection() {
     const peer = new RTCPeerConnection(peerConnectionConfig);
     dataChannel = peer.createDataChannel("serial");
     if ('ontrack' in peer) {
@@ -209,11 +223,14 @@ function sendSdp(sessionDescription) {
 }
 
 async function makeOffer() {
-    peerConnection = prepareNewConnection();
+    if (!peerConnection) {
+        console.error('peerConnection DOES NOT exist!');
+        return;
+    }
     try {
         const sessionDescription = await peerConnection.createOffer({
-        'offerToReceiveAudio': true,
-        'offerToReceiveVideo': true
+            'offerToReceiveAudio': true,
+            'offerToReceiveVideo': true
         })
         console.log('createOffer() success in promise, SDP=', sessionDescription.sdp);
         switch (document.getElementById('codec').value) {
@@ -256,19 +273,17 @@ async function makeAnswer() {
     }
 }
 
-function setOffer(sessionDescription) {
-    if (peerConnection) {
-        console.error('peerConnection already exists!');
+async function setOffer(sessionDescription) {
+    if (!peerConnection) {
+        console.error('peerConnection DOES NOT exist!');
+        return;
     }
-    const peerConnection = prepareNewConnection();
-    peerConnection.onnegotiationneeded = async function () {
-        try{
-            await peerConnection.setRemoteDescription(sessionDescription);
-            console.log('setRemoteDescription(offer) success in promise');
-            makeAnswer();
-        }catch(error) {
-            console.error('setRemoteDescription(offer) ERROR: ', error);
-        }
+    try{
+        await peerConnection.setRemoteDescription(sessionDescription);
+        console.log('setRemoteDescription(offer) success in promise');
+        makeAnswer();
+    }catch(error) {
+        console.error('setRemoteDescription(offer) ERROR: ', error);
     }
 }
 
@@ -335,7 +350,7 @@ function removeCodec(orgsdp, codec) {
                 modvideoline += " " + videoelem;
             })
             modvideoline += "\r\n";
-            modsdp = modsdp.replace(videore, modvideoline);
+            modsdp = modsdp.replace(videoRegExp, modvideoline);
         }
         return internalFunc(modsdp);
     }

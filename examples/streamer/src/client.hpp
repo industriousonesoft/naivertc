@@ -4,7 +4,7 @@
 #include "stream/h264_file_stream_source.hpp"
 
 // signaling
-#include <channels/ayame_client.hpp>
+#include <channels/signaling_client.hpp>
 // naivertc
 #include <rtc/pc/peer_connection.hpp>
 #include <rtc/base/task_utils/task_queue.hpp>
@@ -14,7 +14,7 @@
 
 using namespace naivertc;
 
-class Client: public signaling::AyameClient::Observer {
+class Client: public signaling::Client::Observer {
     Client(boost::asio::io_context& ioc);
 public:
     static std::shared_ptr<Client> Create(boost::asio::io_context& ioc) {
@@ -40,7 +40,7 @@ private:
     void StopVideoStream();
 
 private:
-    // Implements signaling::AyameClient::Observer
+    // Implements signaling::Client::Observer
     void OnConnected(bool is_initiator) override;
     void OnClosed(const std::string err_reason) override;
     void OnIceServers(std::vector<IceServer> ice_servers) override;
@@ -51,7 +51,7 @@ private:
     boost::asio::io_context& ioc_;
     boost::asio::io_context::strand strand_;
 
-    std::unique_ptr<signaling::AyameClient> ayame_client_;
+    std::unique_ptr<signaling::Client> signaling_client_;
     std::shared_ptr<PeerConnection> peer_conn_;
 
     std::shared_ptr<DataChannel> data_channel_;

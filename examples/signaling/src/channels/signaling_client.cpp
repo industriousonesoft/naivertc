@@ -1,12 +1,4 @@
-/*
- * @Description: 
- * @Version: 
- * @Author: CaoWanPing
- * @Date: 2021-03-03 11:49:47
- * @LastEditTime: 2021-03-25 15:44:32
- */
-
-#include "channels/ayame_client.hpp"
+#include "channels/signaling_client.hpp"
 
 #include <nlohmann/json.hpp>
 #include <plog/Log.h>
@@ -47,7 +39,7 @@ void ParseIceServers(json json_message, std::vector<naivertc::IceServer>& ice_se
     
 } // namespace
 
-AyameClient::AyameClient(const Configuration& config, 
+Client::Client(const Configuration& config, 
                          boost::asio::io_context& ioc, 
                          Observer* observer)
     : config_(config),
@@ -57,19 +49,19 @@ AyameClient::AyameClient(const Configuration& config,
     assert(observer_ != nullptr);
 }
 
-AyameClient::~AyameClient() {
+Client::~Client() {
     Stop();
 }
 
-void AyameClient::Start() {
+void Client::Start() {
     channel_->Connect(config_.signaling_url, config_.insecure);
 }
 
-void AyameClient::Stop() {
+void Client::Stop() {
     channel_->Close();
 }
 
-void AyameClient::SendSDP(std::string_view sdp, bool is_offer) {
+void Client::SendSDP(std::string_view sdp, bool is_offer) {
     json json_message = {
         {"type", is_offer ? "offer" : "answer"}, 
         {"sdp", sdp}
@@ -77,7 +69,7 @@ void AyameClient::SendSDP(std::string_view sdp, bool is_offer) {
     channel_->Send(json_message.dump());
 }
 
-void AyameClient::SendCandidate(std::string_view sdp_mid, 
+void Client::SendCandidate(std::string_view sdp_mid, 
                                 int sdp_mlineindex, 
                                 std::string_view candidate) {
     // ayame uses the `ice` property in exchange for candidate sdp. Note that it is not `candidate`
@@ -92,18 +84,19 @@ void AyameClient::SendCandidate(std::string_view sdp_mid,
 }
 
 // Private methods
-void AyameClient::OnConnected() {
+void Client::OnConnected() {
     DoRegister();
 }
 
-void AyameClient::OnClosed(const std::string err_reason) {
+void Client::OnClosed(const std::string err_reason) {
     observer_->OnClosed(err_reason);
 }
 
-bool AyameClient::OnRead(const std::string msg) {
+bool Client::OnRead(const std::string msg) {
 
     auto json_message = json::parse(msg);
     const std::string type = json_message["type"];
+    // Register accepted.
     if (type == "accept") {
         auto is_initiator = false;
         if (json_message.contains("isInitiator")) {
@@ -153,14 +146,14 @@ bool AyameClient::OnRead(const std::string msg) {
 }
 
 // Private methods
-void AyameClient::DoRegister() {
+void Client::DoRegister() {
     json json_message = {
         {"type", "register"},
         {"clientId", config_.client_id},
         {"roomId", config_.room_id},
-        {"AyameClient", "WebRTC Native Client"},
+        {"Client", "WebRTC Native Client"},
         {"libwebrtc", "m86.0.4240.198"},
-        {"environment", "Cross Platform"},
+        {"environment", "Cross Platform"}
     };
     if (config_.signaling_key.length() > 0) {
         json_message["key"] = config_.signaling_key;
@@ -168,7 +161,7 @@ void AyameClient::DoRegister() {
     channel_->Send(json_message.dump());
 }
 
-void AyameClient::DoSendPong() {
+void Client::DoSendPong() {
     json json_message = {{"type", "pong"}};
     channel_->Send(json_message.dump());
 }

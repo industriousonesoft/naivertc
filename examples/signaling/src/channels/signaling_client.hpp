@@ -8,7 +8,7 @@
 
 namespace signaling {
 
-class AyameClient : public Channel::Observer {
+class Client : public Channel::Observer {
 public:
     // Configuration
     struct Configuration {
@@ -33,10 +33,10 @@ public:
         virtual void OnRemoteCandidate(const std::string sdp_mid, const int sdp_mlineindex, const std::string candidate) = 0;
     };
 public:
-    AyameClient(const Configuration& config, 
+    Client(const Configuration& config, 
                 boost::asio::io_context& ioc, 
                 Observer* observer);
-    ~AyameClient() override;
+    ~Client() override;
 
     void Start();
     void Stop();

@@ -6,6 +6,8 @@
 #include <iostream>
 #include <filesystem>
 
+// #define ENABLE_AYAME
+
 namespace {
 
 const std::string kDefaultSamplesDirRelPath = "/examples/streamer/samples/";
@@ -19,25 +21,32 @@ Client::Client(boost::asio::io_context& ioc)
       strand_(ioc_),
       worker_queue_(std::make_unique<naivertc::TaskQueue>("worker.queue")) {
 
-    signaling::AyameClient::Configuration config;
+    signaling::Client::Configuration config;
     config.insecure = true;
+#if defined(ENABLE_AYAME)
     config.signaling_url = "wss://ayame-labo.shiguredo.jp/signaling";
     config.room_id = "industriousonesoft@ayame-labo-sample";
     config.client_id = "horseman-naive-rtc";
     config.signaling_key = "dzSU5Lz88dfZ0mVTWp51X8bPKBzfmhfdZH8D2ei3U7aNplX6";
-    ayame_client_ = std::make_unique<signaling::AyameClient>(config, ioc_, this);
+#else
+    config.signaling_url = "ws://127.0.0.1:8000/";
+    config.room_id = "test-room";
+    config.client_id = "naivertc-sender";
+    config.signaling_key = "";
+#endif
+    signaling_client_ = std::make_unique<signaling::Client>(config, ioc_, this);
 }
 
 Client::~Client() {
-    ayame_client_.reset();
+    signaling_client_.reset();
 }
 
 void Client::Start() {
-    ayame_client_->Start();
+    signaling_client_->Start();
 }
 
 void Client::Stop() {
-    ayame_client_->Stop();
+    signaling_client_->Stop();
     if (peer_conn_) {
         peer_conn_->Close();
     }

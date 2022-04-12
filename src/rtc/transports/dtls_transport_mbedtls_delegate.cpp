@@ -31,8 +31,6 @@ enum MbedTLSDebugLevel : int {
     VERBOSE = 4
 };
 
-constexpr MbedTLSDebugLevel kDefaultDebugLevel = STATE_CHANGE;
-
 // mbedtls_debug
 static void mbedtls_debug(void *ctx, int level,
                           const char *file, int line,
@@ -117,7 +115,7 @@ void DtlsTransport::InitDTLS(const Configuration& config) {
         mbedtls_x509_crt_init(&cert_);
         mbedtls_pk_init(&pkey_);
         // Debug level.
-        mbedtls_debug_set_threshold(kDefaultDebugLevel);
+        mbedtls_debug_set_threshold(ERROR);
 
         // Seed the RNG (random number generator)
         PLOG_VERBOSE_IF(false) << "Seeding the random number generator...";

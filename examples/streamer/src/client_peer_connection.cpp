@@ -152,13 +152,13 @@ void Client::AddDataChannel() {
 }
 
 void Client::SendLocalSDP(const std::string sdp, bool is_offer) {
-    if (ayame_client_) {
-        ayame_client_->SendSDP(sdp, is_offer);
+    if (signaling_client_) {
+        signaling_client_->SendSDP(sdp, is_offer);
     }
 }
 
 void Client::SendLocalCandidate(const std::string mid, const std::string sdp) {
-    if (ayame_client_) {
-        ayame_client_->SendCandidate(mid, 0, sdp);
+    if (signaling_client_) {
+        signaling_client_->SendCandidate(mid, 0, sdp);
     }
 }
