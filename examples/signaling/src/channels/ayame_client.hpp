@@ -27,14 +27,14 @@ public:
     public:
         virtual ~Observer() = default;
         virtual void OnConnected(bool is_initiator) = 0;
-        virtual void OnClosed(std::string_view err_reason) = 0;
+        virtual void OnClosed(const std::string err_reason) = 0;
         virtual void OnIceServers(std::vector<naivertc::IceServer> ice_servers) = 0;
         virtual void OnRemoteSDP(const std::string sdp, bool is_offer) = 0;
         virtual void OnRemoteCandidate(const std::string sdp_mid, const int sdp_mlineindex, const std::string candidate) = 0;
     };
 public:
     AyameClient(const Configuration& config, 
-                Channel* channel, 
+                boost::asio::io_context& ioc, 
                 Observer* observer);
     ~AyameClient() override;
 
@@ -49,16 +49,16 @@ public:
 private:
     // Implements of Channel::Observer
     void OnConnected() override;
-    void OnClosed(std::string_view err_reason) override;
-    bool OnRead(std::string msg) override;
+    void OnClosed(const std::string err_reason) override;
+    bool OnRead(const std::string msg) override;
     
 private:
     void DoRegister();
     void DoSendPong();
-    
+
 private:
     const Configuration config_;
-    Channel* const channel_;
+    std::unique_ptr<Channel> channel_;
     Observer* const observer_;
 
 };

@@ -48,24 +48,24 @@ void ParseIceServers(json json_message, std::vector<naivertc::IceServer>& ice_se
 } // namespace
 
 AyameClient::AyameClient(const Configuration& config, 
-                         Channel* channel, 
+                         boost::asio::io_context& ioc, 
                          Observer* observer)
     : config_(config),
-      channel_(channel),
+      channel_(CreateDefaultChannel(ioc, this)),
       observer_(observer) {
     assert(channel_ != nullptr);
     assert(observer_ != nullptr);
 }
 
-AyameClient::~AyameClient() = default;
+AyameClient::~AyameClient() {
+    Stop();
+}
 
 void AyameClient::Start() {
-    channel_->RegisterObserver(this);
     channel_->Connect(config_.signaling_url, config_.insecure);
 }
 
 void AyameClient::Stop() {
-    channel_->DeregisterObserver(this);
     channel_->Close();
 }
 
@@ -96,11 +96,11 @@ void AyameClient::OnConnected() {
     DoRegister();
 }
 
-void AyameClient::OnClosed(std::string_view err_reason) {
+void AyameClient::OnClosed(const std::string err_reason) {
     observer_->OnClosed(err_reason);
 }
 
-bool AyameClient::OnRead(std::string msg) {
+bool AyameClient::OnRead(const std::string msg) {
 
     auto json_message = json::parse(msg);
     const std::string type = json_message["type"];
@@ -141,7 +141,7 @@ bool AyameClient::OnRead(std::string msg) {
         DoSendPong();
     } else if (type == "bye") {
         Stop();
-        observer_->OnClosed(nullptr);
+        observer_->OnClosed("Closed by remote.");
         return false;
     } else if (type == "error") {
         Stop();

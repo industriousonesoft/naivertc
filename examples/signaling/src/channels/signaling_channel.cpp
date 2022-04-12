@@ -28,14 +28,12 @@ bool ParseURL(const std::string& signaling_url, URLParts& parts) {
 // ChannelImpl declaration
 class ChannelImpl : public Channel {
 public:
-    ChannelImpl(boost::asio::io_context& ioc);
+    ChannelImpl(boost::asio::io_context& ioc, Observer* observer);
     virtual ~ChannelImpl();
     
     void Connect(std::string signaling_url, bool insecure) override;
     void Close() override;
     void Send(std::string msg) override;
-    void RegisterObserver(Observer* observer) override;
-    void DeregisterObserver(Observer* observer) override;
 
 private:
     void OnConnect(boost::system::error_code ec);
@@ -57,10 +55,12 @@ private:
 };
 
 // ChannelImpl implement
-ChannelImpl::ChannelImpl(boost::asio::io_context& ioc)
+ChannelImpl::ChannelImpl(boost::asio::io_context& ioc, Observer* observer)
     : ioc_(ioc),
-      observer_(nullptr),
-      is_connected_(false) {}
+      observer_(observer),
+      is_connected_(false) {
+    assert(observer != nullptr);
+}
 
 ChannelImpl::~ChannelImpl() {
     Close();
@@ -71,7 +71,7 @@ ChannelImpl::~ChannelImpl() {
 
 void ChannelImpl::Connect(std::string signaling_url, bool insecure) {
     if (signaling_url.empty()) {
-        observer_->OnClosed("Invalid signaling url");
+        observer_->OnClosed("Invalid signaling url.");
     }
     if (is_connected_ || is_connecting_) {
         return;
@@ -105,16 +105,6 @@ void ChannelImpl::Send(std::string msg) {
     ws_->WriteText(msg);
 }
 
-void ChannelImpl::RegisterObserver(Observer* observer) {
-    observer_ = observer;
-}
-
-void ChannelImpl::DeregisterObserver(Observer* observer) {
-    if (observer_ == observer) {
-        observer_ = nullptr;
-    }
-}
-
 // Private methods
 void ChannelImpl::OnConnect(boost::system::error_code ec) {
     is_connecting_ = false;
@@ -138,8 +128,8 @@ void ChannelImpl::OnClose(boost::system::error_code ec) {
 }
 
 void ChannelImpl::OnRead(boost::system::error_code ec,
-                              std::size_t bytes_transferred,
-                              std::string text) {
+                         std::size_t bytes_transferred,
+                         std::string text) {
    
     boost::ignore_unused(bytes_transferred);
 
@@ -177,8 +167,8 @@ void ChannelImpl::DoRead() {
 }
 
 // CreateDefaultChannel
-std::unique_ptr<Channel> CreateDefaultChannel(boost::asio::io_context& ioc) {
-    return std::unique_ptr<Channel>(new ChannelImpl(ioc));
+std::unique_ptr<Channel> CreateDefaultChannel(boost::asio::io_context& ioc, Channel::Observer* observer) {
+    return std::unique_ptr<Channel>(new ChannelImpl(ioc, observer));
 }
 
 } // namespace signaling
