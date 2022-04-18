@@ -10,6 +10,7 @@ namespace naivertc {
 namespace rtcp {
 namespace {
     
+// See https://blog.jianchihu.net/webrtc-research-transport-cc-rtp-rtcp.html
 // Header size:
 // * 4 bytes Common RTCP Packet Header
 // * 8 bytes Common Packet Format for RTCP Feedback Messages
