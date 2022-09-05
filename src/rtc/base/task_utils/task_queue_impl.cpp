@@ -56,7 +56,7 @@ void SetCurrentTaskQueue(TaskQueueImpl* value) {
 
 TaskQueueImpl::CurrentTaskQueueSetter::CurrentTaskQueueSetter(TaskQueueImpl* task_queue) 
     : previous_(GetCurrentTaskQueue()) {
-    current_task_queue = task_queue;
+     SetCurrentTaskQueue(task_queue);
 }
 
 TaskQueueImpl::CurrentTaskQueueSetter::~CurrentTaskQueueSetter() {
